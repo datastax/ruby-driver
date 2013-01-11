@@ -77,11 +77,15 @@ module Cql
     context 'when fed a complete SUPPORTED frame' do
       before do
         frame << "\x81\x00\x00\x06\x00\x00\x00\x27"
-        frame << "\x00\x02\x00\x76CQL_VERSION\x00\x01\x00\x053.0.0\x00\x76COMPRESSION\x00\x00"
+        frame << "\x00\x02\x00\x0bCQL_VERSION\x00\x01\x00\x053.0.0\x00\x0bCOMPRESSION\x00\x00"
       end
 
       it 'is complete' do
         frame.should be_complete
+      end
+
+      it 'has a string mulimap body' do
+        frame.body.should == {'CQL_VERSION' => ['3.0.0'], 'COMPRESSION' => []}
       end
     end
 

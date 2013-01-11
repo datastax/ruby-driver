@@ -4,4 +4,5 @@ module Cql
   CqlError = Class.new(StandardError)
 end
 
+require 'cql/decoding'
 require 'cql/frame'

@@ -13,6 +13,10 @@ module Cql
       @headers && @headers.length
     end
 
+    def body
+      @body && @body.contents
+    end
+
     def complete?
       @body && @body.complete?
     end
@@ -74,7 +78,28 @@ module Cql
       HEADER_FORMAT = 'C4N'.freeze
     end
 
+    module Decoding
+      def decode_string_multimap!(str)
+        map = {}
+        map_size = str.slice!(0, 2).unpack('n')
+        map_size.first.times do
+          key_length = str.slice!(0, 2).unpack('n')
+          key = str.slice!(0, key_length.first)
+          values = []
+          value_list_size = str.slice!(0, 2).unpack('n')
+          value_list_size.first.times do
+            value_length = str.slice!(0, 2).unpack('n')
+            values << str.slice!(0, value_length.first)
+          end
+          map[key] = values
+        end
+        map
+      end
+    end
+
     class FrameBody
+      include Decoding
+
       def initialize(buffer, length)
         @buffer = buffer
         @length = length
@@ -87,12 +112,28 @@ module Cql
       def complete?
         @buffer.length >= @length
       end
+
+      def contents
+        @contents ||= decode!
+      end
+
+      private
+
+      def decode!
+        nil
+      end
     end
 
     class Ready < FrameBody
     end
 
     class Supported < FrameBody
+
+      private
+
+      def decode!
+        decode_string_multimap!(@buffer)
+      end
     end
   end
 end
