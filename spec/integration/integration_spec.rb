@@ -74,13 +74,39 @@ describe 'Startup' do
     end
 
     context 'with QUERY requests' do
+      let :keyspace_name do
+        "cql_rb_#{rand(1000)}"
+      end
+
       def query(cql, consistency=:any)
         response = connection.send(Cql::QueryRequest.new(cql, consistency))
         raise "Bad request: #{response}" if response.is_a?(Cql::ErrorResponse)
         response
       end
 
-      it 'sends a USE command and receives RESULT' do
+      def create_keyspace!
+        query("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}")
+      end
+
+      def use_keyspace!
+        query("USE #{keyspace_name}")
+      end
+
+      def drop_keyspace!
+        query("DROP KEYSPACE #{keyspace_name}")
+      end
+
+      def in_keyspace
+        create_keyspace!
+        use_keyspace!
+        begin
+          yield
+        ensure
+          drop_keyspace!
+        end
+      end
+
+      it 'sends a USE command' do
         response = query('USE system', :one)
         response.keyspace.should == 'system'
       end
@@ -90,49 +116,38 @@ describe 'Startup' do
         response.should be_a(Cql::ErrorResponse)
       end
 
-      it 'sends a CREATE KEYSPACE command and receives RESULT' do
-        keyspace_name = "cql_rb_#{rand(1000)}"
+      it 'sends a CREATE KEYSPACE command' do
         response = query("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}")
         begin
           response.change.should == 'CREATED'
           response.keyspace.should == keyspace_name
         ensure
-          query("DROP KEYSPACE #{keyspace_name}")
+          drop_keyspace!
         end
       end
 
-      it 'sends a DROP KEYSPACE command and receives RESULT' do
-        keyspace_name = "cql_rb_#{rand(1000)}"
-        query("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}")
+      it 'sends a DROP KEYSPACE command' do
+        create_keyspace!
+        use_keyspace!
         response = query("DROP KEYSPACE #{keyspace_name}")
         response.change.should == 'DROPPED'
         response.keyspace.should == keyspace_name
       end
 
-      it 'sends a CREATE TABLE command and receives RESULT' do
-        keyspace_name = "cql_rb_#{rand(1000)}"
-        query("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}")
-        query("USE #{keyspace_name}")
-        begin
-          response = query("CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))")
+      it 'sends a CREATE TABLE command' do
+        in_keyspace do
+          response = query('CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))')
           response.change.should == 'CREATED'
           response.keyspace.should == keyspace_name
-        ensure
-          query("DROP KEYSPACE #{keyspace_name}")
         end
       end
 
-      it 'sends a DROP TABLE command and receives RESULT' do
-        keyspace_name = "cql_rb_#{rand(1000)}"
-        query("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}")
-        query("USE #{keyspace_name}")
-        begin
-          query("CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))")
+      it 'sends a DROP TABLE command' do
+        in_keyspace do
+          query('CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))')
           response = query("DROP TABLE users")
           response.change.should == 'DROPPED'
           response.keyspace.should == keyspace_name
-        ensure
-          query("DROP KEYSPACE #{keyspace_name}")
         end
       end
     end
