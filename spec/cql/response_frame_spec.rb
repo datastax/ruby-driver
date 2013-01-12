@@ -179,6 +179,10 @@ module Cql
           ]
         end
 
+        it 'decodes VARCHAR as UTF-8' do
+          frame.body.rows.first['user_name'].encoding.should == ::Encoding::UTF_8
+        end
+
         it 'raises an error when encountering an unknown column type' do
           frame = described_class.new
           frame << "\x81\x00\x00\b\x00\x00\x00E"

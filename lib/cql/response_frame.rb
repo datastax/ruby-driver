@@ -192,10 +192,21 @@ module Cql
       @rows = rows
     end
 
-    def self.decode!(buffer)
+    def self.read_column_type!(buffer)
+      id, type = read_option!(buffer) do |id, b|
+        case id
+        when 0x0d then :varchar
+        else
+          raise UnsupportedColumnTypeError, %(Unsupported column type #{id})
+        end
+      end
+      type
+    end
+
+    def self.read_metadata!(buffer)
       flags = read_int!(buffer)
       columns_count = read_int!(buffer)
-      if flags & 1 == 1
+      if flags & 0x01 == 0x01
         global_keyspace_name = read_string!(buffer)
         global_table_name = read_string!(buffer)
       end
@@ -208,26 +219,36 @@ module Cql
           table_name = read_string!(buffer)
         end
         column_name = read_string!(buffer)
-        type = read_option!(buffer) do |id, b|
-          case id
-          when 0x0d then :varchar
-          else
-            raise UnsupportedColumnTypeError, %(Unsupported column type #{id})
-          end
-        end
+        type = read_column_type!(buffer)
         [keyspace_name, table_name, column_name, type]
       end
+    end
+
+    def self.convert_type(bytes, type)
+      return nil unless bytes
+      case type
+      when :varchar
+        bytes.force_encoding(::Encoding::UTF_8)
+      end
+    end
+
+    def self.read_rows!(buffer, column_specs)
       rows_count = read_int!(buffer)
       rows = []
       rows_count.times do |row_index|
         row = {}
-        columns_count.times do |column_index|
-          _, _, column_name, type = column_specs[column_index]
-          row[column_name] = read_bytes!(buffer)
+        column_specs.each do |column_spec|
+          column_value = read_bytes!(buffer)
+          row[column_spec[2]] = convert_type(column_value, column_spec[3])
         end
         rows << row
       end
-      new(rows)
+      rows
+    end
+
+    def self.decode!(buffer)
+      column_specs = read_metadata!(buffer)
+      new(read_rows!(buffer, column_specs))
     end
 
     def to_s
