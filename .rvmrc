@@ -1,1 +1,1 @@
-rvm --create use 1.9.3-p327@ruby-cql
+rvm --create use 1.9.3-p327@cql-rb
