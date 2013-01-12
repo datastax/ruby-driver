@@ -101,41 +101,40 @@ module Cql
 
       def check_complete!
         if @buffer.length >= @length
-          @response = @type.new(@buffer)
+          @response = @type.decode!(@buffer)
         end
       end
     end
   end
 
   class ResponseBody
-    include Decoding
+    extend Decoding
 
-    def initialize(buffer)
-      decode!(buffer)
-    end
-
-    private
-
-    def decode!(buffer)
+    def self.decode!(buffer)
     end
   end
 
   class ErrorResponse < ResponseBody
     attr_reader :code, :message
 
-    def to_s
-      %(ERROR #{code} "#{message}")
+    def initialize(*args)
+      @code, @message = args
     end
 
-    private
+    def self.decode!(buffer)
+      new(read_int!(buffer), read_string!(buffer))
+    end
 
-    def decode!(buffer)
-      @code = read_int!(buffer)
-      @message = read_string!(buffer)
+    def to_s
+      %(ERROR #{code} "#{message}")
     end
   end
 
   class ReadyResponse < ResponseBody
+    def self.decode!(buffer)
+      new
+    end
+
     def to_s
       'READY'
     end
@@ -144,84 +143,127 @@ module Cql
   class SupportedResponse < ResponseBody
     attr_reader :options
 
-    def to_s
-      %(SUPPORTED #{options})
+    def initialize(options)
+      @options = options
     end
 
-    private
+    def self.decode!(buffer)
+      new(read_string_multimap!(buffer))
+    end
 
-    def decode!(buffer)
-      @options = read_string_multimap!(buffer)
+    def to_s
+      %(SUPPORTED #{options})
     end
   end
 
   class ResultResponse < ResponseBody
     attr_reader :change, :keyspace, :table, :rows
 
-    def to_s
-      case @kind
+    def self.decode!(buffer)
+      case read_int!(buffer)
       when 0x01
-        %(RESULT void)
+        VoidResultResponse.decode!(buffer)
       when 0x02
-        %(RESULT rows ...)
+        RowsResultResponse.decode!(buffer)
       when 0x03
-        %(RESULT set_keyspace "#{@keyspace}")
+        SetKeyspaceResultResponse.decode!(buffer)
       when 0x05
-        %(RESULT schema_change "#{@change}" "#{@keyspace}" "#{@table}")
-      end
-    end
-
-    private
-
-    def decode!(buffer)
-      @kind = read_int!(buffer)
-      case @kind
-      when 0x01
-        # nothing
-      when 0x02
-        flags = read_int!(buffer)
-        columns_count = read_int!(buffer)
-        if flags & 1 == 1
-          global_keyspace_name = read_string!(buffer)
-          global_table_name = read_string!(buffer)
-        end
-        column_specs = columns_count.times.map do
-          if global_keyspace_name
-            keyspace_name = global_keyspace_name
-            table_name = global_table_name
-          else
-            keyspace_name = read_string!(buffer)
-            table_name = read_string!(buffer)
-          end
-          column_name = read_string!(buffer)
-          type = read_option!(buffer) do |id, b|
-            case id
-            when 0x0d then :varchar
-            else
-              raise UnsupportedColumnTypeError, %(Unsupported column type #{id})
-            end
-          end
-          [keyspace_name, table_name, column_name, type]
-        end
-        rows_count = read_int!(buffer)
-        @rows = []
-        rows_count.times do |row_index|
-          row = {}
-          columns_count.times do |column_index|
-            _, _, column_name, type = column_specs[column_index]
-            row[column_name] = read_bytes!(buffer)
-          end
-          @rows << row
-        end
-      when 0x03
-        @keyspace = read_string!(buffer)
-      when 0x05
-        @change = read_string!(buffer)
-        @keyspace = read_string!(buffer)
-        @table = read_string!(buffer)
+        SchemaChangeResultResponse.decode!(buffer)
       else
         raise UnsupportedResultKindError, %(Unsupported result kind "#{@kind}")
       end
+    end
+  end
+
+  class VoidResultResponse < ResultResponse
+    def self.decode!(buffer)
+      new
+    end
+
+    def to_s
+      %(RESULT void)
+    end
+  end
+
+  class RowsResultResponse < ResultResponse
+    attr_reader :rows
+
+    def initialize(rows)
+      @rows = rows
+    end
+
+    def self.decode!(buffer)
+      flags = read_int!(buffer)
+      columns_count = read_int!(buffer)
+      if flags & 1 == 1
+        global_keyspace_name = read_string!(buffer)
+        global_table_name = read_string!(buffer)
+      end
+      column_specs = columns_count.times.map do
+        if global_keyspace_name
+          keyspace_name = global_keyspace_name
+          table_name = global_table_name
+        else
+          keyspace_name = read_string!(buffer)
+          table_name = read_string!(buffer)
+        end
+        column_name = read_string!(buffer)
+        type = read_option!(buffer) do |id, b|
+          case id
+          when 0x0d then :varchar
+          else
+            raise UnsupportedColumnTypeError, %(Unsupported column type #{id})
+          end
+        end
+        [keyspace_name, table_name, column_name, type]
+      end
+      rows_count = read_int!(buffer)
+      rows = []
+      rows_count.times do |row_index|
+        row = {}
+        columns_count.times do |column_index|
+          _, _, column_name, type = column_specs[column_index]
+          row[column_name] = read_bytes!(buffer)
+        end
+        rows << row
+      end
+      new(rows)
+    end
+
+    def to_s
+      %(RESULT rows ...)
+    end
+  end
+
+  class SetKeyspaceResultResponse < ResultResponse
+    attr_reader :keyspace
+
+    def initialize(keyspace)
+      @keyspace = keyspace
+    end
+
+    def self.decode!(buffer)
+      new(read_string!(buffer))
+    end
+
+    def to_s
+      %(RESULT set_keyspace "#{@keyspace}")
+    end
+  end
+
+  class SchemaChangeResultResponse < ResultResponse
+    attr_reader :change, :keyspace, :table
+
+    def initialize(*args)
+      @change, @keyspace, @table = args
+    end
+
+    def self.decode!(buffer)
+      new(read_string!(buffer), read_string!(buffer), read_string!(buffer))
+    end
+
+    def to_s
+      %(RESULT schema_change "#{@change}" "#{@keyspace}" "#{@table}")
     end
   end
 end
