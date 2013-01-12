@@ -145,6 +145,17 @@ describe 'Startup' do
         response.keyspace.should == keyspace_name
       end
 
+      it 'sends an ALTER KEYSPACE command' do
+        create_keyspace!
+        begin
+          response = query("ALTER KEYSPACE #{keyspace_name} WITH DURABLE_WRITES = false")
+          response.change.should == 'UPDATED'
+          response.keyspace.should == keyspace_name
+        ensure
+          drop_keyspace!
+        end
+      end
+
       it 'sends a CREATE TABLE command' do
         in_keyspace do
           response = query('CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))')
