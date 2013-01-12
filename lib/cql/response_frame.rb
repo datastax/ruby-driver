@@ -14,7 +14,7 @@ module Cql
     end
 
     def body
-      @body && @body.contents
+      @body.response
     end
 
     def complete?
@@ -33,96 +33,122 @@ module Cql
     private
 
     def create_body
-      body_class = begin
+      body_type = begin
         case @headers.opcode
-        when 0x00 then Error
-        when 0x02 then Ready
-        when 0x06 then Supported
+        when 0x00 then ErrorResponse
+        when 0x02 then ReadyResponse
+        when 0x06 then SupportedResponse
         else
           raise UnsupportedOperationError, "The operation #{@headers.opcode} is not supported"
         end
       end
-      body_class.new(@headers.release_buffer!, @headers.length)
+      FrameBody.new(@headers.buffer, @headers.length, body_type)
     end
 
     class FrameHeaders
-      attr_reader :protocol_version, :opcode, :length
+      attr_reader :buffer, :protocol_version, :opcode, :length
 
       def initialize(buffer)
         @buffer = buffer
+        check_complete!
       end
 
       def <<(str)
         @buffer << str
-        if @buffer.length >= 8
-          @protocol_version, @flags, @stream_id, @opcode, @length = @buffer.slice!(0, 8).unpack(HEADER_FORMAT)
-          raise UnsupportedFrameTypeError, 'Request frames are not supported' if @protocol_version & 0x80 == 0
-          @protocol_version &= 0x7f
-        end
+        check_complete!
       end
 
       def complete?
         !!@protocol_version
       end
 
-      def release_buffer!
-        b = @buffer
-        @buffer = nil
-        b
-      end
-
       private
 
       HEADER_FORMAT = 'C4N'.freeze
+
+      def check_complete!
+        if @buffer.length >= 8
+          @protocol_version, @flags, @stream_id, @opcode, @length = @buffer.slice!(0, 8).unpack(HEADER_FORMAT)
+          raise UnsupportedFrameTypeError, 'Request frames are not supported' if @protocol_version & 0x80 == 0
+          @protocol_version &= 0x7f
+        end
+      end
     end
 
     class FrameBody
-      include Decoding
+      attr_reader :response
 
-      def initialize(buffer, length)
+      def initialize(buffer, length, type)
         @buffer = buffer
         @length = length
+        @type = type
+        check_complete!
       end
 
       def <<(str)
         @buffer << str
+        check_complete!
       end
 
       def complete?
-        @buffer.length >= @length
-      end
-
-      def contents
-        @contents ||= decode!
+        !!@response
       end
 
       private
 
-      def decode!
-        nil
+      def check_complete!
+        if @buffer.length >= @length
+          @response = @type.new(@buffer)
+        end
       end
     end
+  end
 
-    class Error < FrameBody
-      private
+  class ResponseBody
+    include Decoding
 
-      def decode!
-        error_code = read_int!(@buffer)
-        error_message = read_string!(@buffer)
-        [error_code, error_message]
-      end
+    def initialize(buffer)
+      decode!(buffer)
     end
 
-    class Ready < FrameBody
+    private
+
+    def decode!(buffer)
+    end
+  end
+
+  class ErrorResponse < ResponseBody
+    attr_reader :code, :message
+
+    def to_s
+      %(ERROR #{code} "#{message}")
     end
 
-    class Supported < FrameBody
+    private
 
-      private
+    def decode!(buffer)
+      @code = read_int!(buffer)
+      @message = read_string!(buffer)
+    end
+  end
 
-      def decode!
-        read_string_multimap!(@buffer)
-      end
+  class ReadyResponse < ResponseBody
+    def to_s
+      'READY'
+    end
+  end
+
+  class SupportedResponse < ResponseBody
+    attr_reader :options
+
+    def to_s
+      %(SUPPORTED #{options})
+    end
+
+    private
+
+    def decode!(buffer)
+      @options = read_string_multimap!(buffer)
     end
   end
 end

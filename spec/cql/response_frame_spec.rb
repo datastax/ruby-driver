@@ -74,13 +74,11 @@ module Cql
       end
 
       it 'has an error code' do
-        error_code, _ = frame.body
-        error_code.should == 10
+        frame.body.code.should == 10
       end
 
       it 'has an error message' do
-        _, error_message = frame.body
-        error_message.should == 'Provided version 4.0.0 is not supported by this server (supported: 2.0.0, 3.0.0)'
+        frame.body.message.should == 'Provided version 4.0.0 is not supported by this server (supported: 2.0.0, 3.0.0)'
       end
     end
 
@@ -105,7 +103,7 @@ module Cql
       end
 
       it 'has a string mulimap body' do
-        frame.body.should == {'CQL_VERSION' => ['3.0.0'], 'COMPRESSION' => []}
+        frame.body.options.should == {'CQL_VERSION' => ['3.0.0'], 'COMPRESSION' => []}
       end
     end
 
