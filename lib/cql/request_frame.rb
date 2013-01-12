@@ -32,16 +32,17 @@ module Cql
   class StartupRequest < RequestBody
     def initialize(cql_version='3.0.0', compression=nil)
       super(1)
-      @cql_version = cql_version
-      @compression = compression
+      @arguments = {CQL_VERSION => cql_version}
+      @arguments[COMPRESSION] = compression if compression
     end
 
     def write(io)
-      arguments = {}
-      arguments[CQL_VERSION] = @cql_version
-      arguments[COMPRESSION] = @compression if @compression
-      write_string_map(io, arguments)
+      write_string_map(io, @arguments)
       io
+    end
+
+    def to_s
+      %(STARTUP #{@arguments})
     end
 
     private
@@ -58,6 +59,10 @@ module Cql
     def write(io)
       io
     end
+
+    def to_s
+      'OPTIONS'
+    end
   end
 
   class RegisterRequest < RequestBody
@@ -68,6 +73,10 @@ module Cql
 
     def write(io)
       write_string_list(io, @events)
+    end
+
+    def to_s
+      %(REGISTER #{@events})
     end
   end
 end
