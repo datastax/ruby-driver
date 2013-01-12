@@ -15,8 +15,15 @@ module Cql
     end
 
     describe '#write_short' do
-      it 'encodes a short'
-      it 'returns the buffer'
+      it 'encodes a short' do
+        Encoding.write_short(buffer, 0xabcd)
+        buffer.should == "\xab\xcd"
+      end
+
+      it 'returns the buffer' do
+        result = Encoding.write_short(buffer, 42)
+        result.should equal(buffer)
+      end
     end
 
     describe '#write_string' do
@@ -37,8 +44,20 @@ module Cql
     end
 
     describe '#write_long_string' do
-      it 'encodes a string'
-      it 'returns the buffer'
+      it 'encodes a string' do
+        Encoding.write_long_string(buffer, 'hello world ' * 100_000)
+        buffer.should start_with("\x00\x12\x4f\x80hello world hello world hello world hello")
+      end
+
+      it 'encodes an empty string' do
+        Encoding.write_long_string(buffer, '')
+        buffer.should == "\x00\x00\x00\x00"
+      end
+
+      it 'returns the buffer' do
+        result = Encoding.write_long_string(buffer, 'hello')
+        result.should equal(buffer)
+      end
     end
 
     describe '#write_uuid' do
@@ -90,8 +109,30 @@ module Cql
     end
 
     describe '#write_consistency' do
-      it 'encodes a consistency symbol'
-      it 'returns the buffer'
+      {
+        :any => "\x00\x00",
+        :one => "\x00\x01",
+        :two => "\x00\x02",
+        :three => "\x00\x03",
+        :quorum => "\x00\x04",
+        :all => "\x00\x05",
+        :local_quorum => "\x00\x06",
+        :each_quorum => "\x00\x07"
+      }.each do |consistency, expected_encoding|
+        it "encodes #{consistency}" do
+          Encoding.write_consistency(buffer, consistency)
+          buffer.should == expected_encoding
+        end
+      end
+
+      it 'raises an exception for an unknown consistency' do
+        expect { Encoding.write_consistency(buffer, :foo) }.to raise_error(EncodingError)
+      end
+
+      it 'returns the buffer' do
+        result = Encoding.write_consistency(buffer, :quorum)
+        result.should equal(buffer)
+      end
     end
 
     describe '#write_string_map' do

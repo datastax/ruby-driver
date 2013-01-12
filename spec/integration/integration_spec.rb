@@ -5,6 +5,8 @@ require 'socket'
 
 
 class Connection
+  attr_reader :log
+
   def self.open(host, port)
     new(TCPSocket.new(host, port))
   end
@@ -42,26 +44,38 @@ describe 'Startup' do
     connection.close
   end
 
-  it 'sends OPTIONS and receives SUPPORTED' do
-    response = connection.send(Cql::OptionsRequest.new)
-    response.options.should include('CQL_VERSION' => ['3.0.0'])
+  context 'when setting up' do
+    it 'sends OPTIONS and receives SUPPORTED' do
+      response = connection.send(Cql::OptionsRequest.new)
+      response.options.should include('CQL_VERSION' => ['3.0.0'])
+    end
+
+    it 'sends STARTUP and receives READY' do
+      response = connection.send(Cql::StartupRequest.new)
+      response.should be_a(Cql::ReadyResponse)
+    end
+
+    it 'sends a bad STARTUP and receives ERROR' do
+      response = connection.send(Cql::StartupRequest.new('9.9.9'))
+      response.code.should == 10
+      response.message.should include('not supported')
+    end
   end
 
-  it 'sends STARTUP and receives READY' do
-    response = connection.send(Cql::StartupRequest.new)
-    response.should be_ready
-  end
+  context 'when set up' do
+    before do
+      connection.send(Cql::StartupRequest.new)
+    end
 
-  it 'sends a bad STARTUP and receives ERROR' do
-    response = connection.send(Cql::StartupRequest.new('9.9.9'))
-    response.should be_error
-    response.code.should == 10
-    response.message.should include('not supported')
-  end
+    it 'sends a REGISTER request and receives READY' do
+      response = connection.send(Cql::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE'))
+      response.should be_a(Cql::ReadyResponse)
+    end
 
-  it 'sends a REGISTER request and receives READY' do
-    connection.send(Cql::StartupRequest.new)
-    response = connection.send(Cql::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE'))
-    response.should be_ready
+    it 'sends a QUERY and receives RESULT' do
+      response = connection.send(Cql::QueryRequest.new('USE system', :one))
+      response.should be_a(Cql::ResultResponse)
+      response.keyspace.should == 'system'
+    end
   end
 end

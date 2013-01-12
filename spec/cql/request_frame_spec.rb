@@ -32,5 +32,12 @@ module Cql
         bytes.should == "\x01\x00\x00\x0b\x00\x00\x00\x22\x00\x02\x00\x0fTOPOLOGY_CHANGE\x00\x0dSTATUS_CHANGE"
       end
     end
+
+    context 'with QUERY requests' do
+      it 'encodes the request' do
+        bytes = RequestFrame.new(QueryRequest.new('USE system', :all)).write('')
+        bytes.should == "\x01\x00\x00\x07\x00\x00\x00\x10\x00\x00\x00\x0aUSE system\x00\x05"
+      end
+    end
   end
 end

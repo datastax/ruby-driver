@@ -1,6 +1,8 @@
 # encoding: utf-8
 
 module Cql
+  EncodingError = Class.new(CqlError)
+
   module Encoding
     extend self
 
@@ -9,7 +11,7 @@ module Cql
     end
 
     def write_short(buffer, n)
-      raise NotImplementedError
+      buffer << [n].pack('n')
     end
 
     def write_string(buffer, str)
@@ -19,7 +21,9 @@ module Cql
     end
 
     def write_long_string(buffer, str)
-      raise NotImplementedError
+      buffer << [str.length].pack('N')
+      buffer << str
+      buffer
     end
 
     def write_uuid(buffer, uuid)
@@ -42,10 +46,6 @@ module Cql
       raise NotImplementedError
     end
 
-    def write_long_string(buffer, str)
-      raise NotImplementedError
-    end
-
     def write_option(buffer, option)
       raise NotImplementedError
     end
@@ -54,20 +54,14 @@ module Cql
       raise NotImplementedError
     end
 
-    def write_long_string(buffer, str)
-      raise NotImplementedError
-    end
-
     def write_inet(buffer, ip, port)
       raise NotImplementedError
     end
 
-    def write_long_string(buffer, str)
-      raise NotImplementedError
-    end
-
     def write_consistency(buffer, consistency)
-      raise NotImplementedError
+      index = CONSISTENCIES.index(consistency)
+      raise EncodingError, %(Unknown consistency "#{consistency}") unless index
+      write_short(buffer, index)
     end
 
     def write_string_map(buffer, map)

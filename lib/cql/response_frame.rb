@@ -38,6 +38,7 @@ module Cql
         when 0x00 then ErrorResponse
         when 0x02 then ReadyResponse
         when 0x06 then SupportedResponse
+        when 0x08 then ResultResponse
         else
           raise UnsupportedOperationError, "The operation #{@headers.opcode} is not supported"
         end
@@ -120,10 +121,6 @@ module Cql
   class ErrorResponse < ResponseBody
     attr_reader :code, :message
 
-    def error?
-      true
-    end
-
     def to_s
       %(ERROR #{code} "#{message}")
     end
@@ -137,10 +134,6 @@ module Cql
   end
 
   class ReadyResponse < ResponseBody
-    def ready?
-      true
-    end
-
     def to_s
       'READY'
     end
@@ -157,6 +150,24 @@ module Cql
 
     def decode!(buffer)
       @options = read_string_multimap!(buffer)
+    end
+  end
+
+  class ResultResponse < ResponseBody
+    attr_reader :keyspace
+
+    def to_s
+      %(RESULT set_keyspace "#{@keyspace}")
+    end
+
+    private
+
+    def decode!(buffer)
+      kind = read_int!(buffer)
+      case kind
+      when 0x03
+        @keyspace = read_string!(buffer)
+      end
     end
   end
 end

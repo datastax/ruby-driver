@@ -93,6 +93,5 @@ module Cql
 
     INT_FORMAT = 'N'.freeze
     SHORT_FORMAT = 'n'.freeze
-    CONSISTENCIES = [:any, :one, :two, :three, :quorum, :all, :local_quorum, :each_quorum].freeze
   end
 end

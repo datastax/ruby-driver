@@ -73,10 +73,6 @@ module Cql
         frame.should be_complete
       end
 
-      it 'is an error' do
-        frame.body.should be_error
-      end
-
       it 'has an error code' do
         frame.body.code.should == 10
       end
@@ -94,10 +90,6 @@ module Cql
       it 'is complete' do
         frame.should be_complete
       end
-
-      it 'is ready' do
-        frame.body.should be_ready
-      end
     end
 
     context 'when fed a complete SUPPORTED frame' do
@@ -110,8 +102,23 @@ module Cql
         frame.should be_complete
       end
 
-      it 'has a string mulimap body' do
+      it 'has options' do
         frame.body.options.should == {'CQL_VERSION' => ['3.0.0'], 'COMPRESSION' => []}
+      end
+    end
+
+    context 'when fed a complete RESULT frame' do
+      before do
+        frame << "\x81\x00\x00\b\x00\x00\x00\f"
+        frame << "\x00\x00\x00\x03\x00\x06system"
+      end
+
+      it 'is complete' do
+        frame.should be_complete
+      end
+
+      it 'has a keyspace' do
+        frame.body.keyspace.should == 'system'
       end
     end
 

@@ -79,4 +79,21 @@ module Cql
       %(REGISTER #{@events})
     end
   end
+
+  class QueryRequest < RequestBody
+    def initialize(cql, consistency)
+      super(7)
+      @cql = cql
+      @consistency = consistency
+    end
+
+    def write(io)
+      write_long_string(io, @cql)
+      write_consistency(io, @consistency)
+    end
+
+    def to_s
+      %(QUERY "#{@cql}" #{@consistency})
+    end
+  end
 end
