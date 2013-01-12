@@ -64,6 +64,26 @@ module Cql
       end
     end
 
+    context 'when fed a complete ERROR frame' do
+      before do
+        frame << "\x81\x00\x00\x00\x00\x00\x00V\x00\x00\x00\n\x00PProvided version 4.0.0 is not supported by this server (supported: 2.0.0, 3.0.0)"
+      end
+
+      it 'is complete' do
+        frame.should be_complete
+      end
+
+      it 'has an error code' do
+        error_code, _ = frame.body
+        error_code.should == 10
+      end
+
+      it 'has an error message' do
+        _, error_message = frame.body
+        error_message.should == 'Provided version 4.0.0 is not supported by this server (supported: 2.0.0, 3.0.0)'
+      end
+    end
+
     context 'when fed a complete READY frame' do
       before do
         frame << [0x81, 0, 0, 0x02, 0].pack('C4N')

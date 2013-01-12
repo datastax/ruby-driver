@@ -32,14 +32,12 @@ module Cql
 
     private
 
-    READY_OP = 0x02
-    SUPPORTED_OP = 0x06
-
     def create_body
       body_class = begin
         case @headers.opcode
-        when READY_OP then Ready
-        when SUPPORTED_OP then Supported
+        when 0x00 then Error
+        when 0x02 then Ready
+        when 0x06 then Supported
         else
           raise UnsupportedOperationError, "The operation #{@headers.opcode} is not supported"
         end
@@ -102,6 +100,16 @@ module Cql
 
       def decode!
         nil
+      end
+    end
+
+    class Error < FrameBody
+      private
+
+      def decode!
+        error_code = read_int!(@buffer)
+        error_message = read_string!(@buffer)
+        [error_code, error_message]
       end
     end
 
