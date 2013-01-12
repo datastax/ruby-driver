@@ -44,7 +44,12 @@ module Cql
     end
 
     def read_bytes!(buffer)
-      raise NotImplementedError
+      size = read_int!(buffer)
+      return nil if size & 0x80000000 == 0x80000000
+      raise DecodingError, "Byte array length is #{size}, but only #{buffer.size} bytes given" if buffer.size < size
+      bytes = buffer.slice!(0, size)
+      bytes.force_encoding(::Encoding::BINARY)
+      bytes
     end
 
     def read_short_bytes!(buffer)
@@ -52,7 +57,12 @@ module Cql
     end
 
     def read_option!(buffer)
-      raise NotImplementedError
+      id = read_short!(buffer)
+      value = nil
+      if block_given?
+        value = yield id, buffer
+      end
+      [id, value]
     end
 
     def read_option_list!(buffer)

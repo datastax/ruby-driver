@@ -166,6 +166,32 @@ module Cql
           frame.body.should_not be_nil
         end
       end
+
+      context 'when it\'s rows' do
+        before do
+          frame << "\x81\x00\x00\b\x00\x00\x00~\x00\x00\x00\x02\x00\x00\x00\x01\x00\x00\x00\x03\x00\ncql_rb_126\x00\x05users\x00\tuser_name\x00\r\x00\x05email\x00\r\x00\bpassword\x00\r\x00\x00\x00\x02\x00\x00\x00\x04phil\x00\x00\x00\rphil@heck.com\xFF\xFF\xFF\xFF\x00\x00\x00\x03sue\x00\x00\x00\rsue@inter.net\xFF\xFF\xFF\xFF"
+        end
+
+        it 'has rows that are hashes of column name => column value' do
+          frame.body.rows.should == [
+            {'user_name' => 'phil', 'email' => 'phil@heck.com', 'password' => nil},
+            {'user_name' => 'sue',  'email' => 'sue@inter.net', 'password' => nil}
+          ]
+        end
+
+        it 'raises an error when encountering an unknown column type' do
+          frame = described_class.new
+          frame << "\x81\x00\x00\b\x00\x00\x00E"
+          frame << "\x00\x00\x00\x02\x00\x00\x00\x01\x00\x00\x00\x03\x00\ncql_rb_328\x00\x05users"
+          expect { frame << "\x00\tuser_name\x00\xff\x00\x05email\x00\r\x00\bpassword\x00\r\x00\x00\x00\x00" }.to raise_error(UnsupportedColumnTypeError)
+        end
+      end
+
+      context 'when it\'s an unknown type' do
+        it 'raises an error' do
+          expect { frame << "\x81\x00\x00\b\x00\x00\x00\x05\x00\x00\x00\xffhello" }.to raise_error(UnsupportedResultKindError)
+        end
+      end
     end
 
     context 'when fed an non-existent opcode' do

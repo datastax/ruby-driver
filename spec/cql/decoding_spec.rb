@@ -99,7 +99,9 @@ module Cql
     end
 
     describe '#read_uuid!' do
-
+      it 'decodes a UUID'
+      it 'consumes the bytes'
+      it 'raises an error when there a not enough bytes in the buffer'
     end
 
     describe '#read_string_list!' do
@@ -127,10 +129,35 @@ module Cql
     end
 
     describe '#read_bytes!' do
-      it 'decodes a byte array'
-      it 'decodes null'
-      it 'consumes the bytes'
-      it 'raises an error when there are not enough bytes in the buffer'
+      let :buffer do
+        "\x00\x01\x00\x00" << ("\x42" * 0x10000)
+      end
+
+      it 'decodes a byte array' do
+        Decoding.read_bytes!(buffer).should == ("\x42" * 0x10000)
+      end
+
+      it 'decodes an empty byte array' do
+        Decoding.read_bytes!("\x00\x00\x00\x00").should == ''
+      end
+
+      it 'returns an ASCII-8BIT encoded string' do
+        Decoding.read_bytes!("\x00\x00\x00\x01\xaa").encoding.should == ::Encoding::BINARY
+      end
+
+      it 'decodes null' do
+        Decoding.read_bytes!("\x80\x00\x00\x00").should be_nil
+      end
+
+      it 'consumes the bytes' do
+        buffer << "\xab\xcd"
+        Decoding.read_bytes!(buffer)
+        buffer.should == "\xab\xcd"
+      end
+
+      it 'raises an error when there are not enough bytes in the buffer' do
+        expect { Decoding.read_bytes!(buffer[0, 10]) }.to raise_error(DecodingError)
+      end
     end
 
     describe '#read_short_bytes!' do
@@ -141,9 +168,31 @@ module Cql
     end
 
     describe '#read_option!' do
-      it 'decodes an option'
-      it 'consumes the bytes'
-      it 'raises an error when there are not enough bytes in the buffer'
+      it 'decodes an option ID and value with instructions from a block' do
+        id, value = Decoding.read_option!("\x00\x01\x00\x03foo") do |id, buffer|
+          Decoding.read_string!(buffer)
+        end
+        id.should == 1
+        value.should == 'foo'
+      end
+
+      it 'decodes an option ID and nil value when there is no block' do
+        id, value = Decoding.read_option!("\xaa\xbb")
+        id.should == 0xaabb
+        value.should be_nil
+      end
+
+      it 'consumes the bytes' do
+        buffer = "\x00\x01\x00\x03\xab"
+        id, value = Decoding.read_option!(buffer) do |id, buffer|
+          Decoding.read_short!(buffer)
+        end
+        buffer.should == "\xab"
+      end
+
+      it 'raises an error when there are not enough bytes in the buffer' do
+        expect { Decoding.read_option!("\xaa") }.to raise_error(DecodingError)
+      end
     end
 
     describe '#read_option_list!' do

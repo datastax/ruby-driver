@@ -208,6 +208,18 @@ describe 'Startup' do
         #   query(%<TRUNCATE users>)
         # end
       end
+
+      it 'sends a SELECT command' do
+        in_keyspace_with_table do
+          query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
+          query(%<INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')>)
+          response = query(%<SELECT * FROM users>, :quorum)
+          response.rows.should == [
+            {'user_name' => 'phil', 'email' => 'phil@heck.com', 'password' => nil},
+            {'user_name' => 'sue',  'email' => 'sue@inter.net', 'password' => nil}
+          ]
+        end
+      end
     end
   end
 end

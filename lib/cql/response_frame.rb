@@ -3,6 +3,8 @@
 module Cql
   UnsupportedOperationError = Class.new(CqlError)
   UnsupportedFrameTypeError = Class.new(CqlError)
+  UnsupportedResultKindError = Class.new(CqlError)
+  UnsupportedColumnTypeError = Class.new(CqlError)
 
   class ResponseFrame
     def initialize
@@ -154,12 +156,14 @@ module Cql
   end
 
   class ResultResponse < ResponseBody
-    attr_reader :change, :keyspace, :table
+    attr_reader :change, :keyspace, :table, :rows
 
     def to_s
       case @kind
       when 0x01
         %(RESULT void)
+      when 0x02
+        %(RESULT rows ...)
       when 0x03
         %(RESULT set_keyspace "#{@keyspace}")
       when 0x05
@@ -172,12 +176,51 @@ module Cql
     def decode!(buffer)
       @kind = read_int!(buffer)
       case @kind
+      when 0x01
+        # nothing
+      when 0x02
+        flags = read_int!(buffer)
+        columns_count = read_int!(buffer)
+        if flags & 1 == 1
+          global_keyspace_name = read_string!(buffer)
+          global_table_name = read_string!(buffer)
+        end
+        column_specs = columns_count.times.map do
+          if global_keyspace_name
+            keyspace_name = global_keyspace_name
+            table_name = global_table_name
+          else
+            keyspace_name = read_string!(buffer)
+            table_name = read_string!(buffer)
+          end
+          column_name = read_string!(buffer)
+          type = read_option!(buffer) do |id, b|
+            case id
+            when 0x0d then :varchar
+            else
+              raise UnsupportedColumnTypeError, %(Unsupported column type #{id})
+            end
+          end
+          [keyspace_name, table_name, column_name, type]
+        end
+        rows_count = read_int!(buffer)
+        @rows = []
+        rows_count.times do |row_index|
+          row = {}
+          columns_count.times do |column_index|
+            _, _, column_name, type = column_specs[column_index]
+            row[column_name] = read_bytes!(buffer)
+          end
+          @rows << row
+        end
       when 0x03
         @keyspace = read_string!(buffer)
       when 0x05
         @change = read_string!(buffer)
         @keyspace = read_string!(buffer)
         @table = read_string!(buffer)
+      else
+        raise UnsupportedResultKindError, %(Unsupported result kind "#{@kind}")
       end
     end
   end
