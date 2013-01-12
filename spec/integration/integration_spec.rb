@@ -72,10 +72,32 @@ describe 'Startup' do
       response.should be_a(Cql::ReadyResponse)
     end
 
-    it 'sends a QUERY and receives RESULT' do
-      response = connection.send(Cql::QueryRequest.new('USE system', :one))
-      response.should be_a(Cql::ResultResponse)
-      response.keyspace.should == 'system'
+    context 'with QUERY requests' do
+      it 'sends a USE command and receives RESULT' do
+        response = connection.send(Cql::QueryRequest.new('USE system', :one))
+        response.keyspace.should == 'system'
+      end
+
+      it 'sends a CREATE KEYSPACE command and receives RESULT' do
+        begin
+          keyspace_name = "cql_rb_#{rand(1000)}"
+          response = connection.send(Cql::QueryRequest.new("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}", :any))
+          response.change.should == 'CREATED'
+          response.keyspace.should == keyspace_name
+          response.message.should == ''
+        ensure
+          connection.send(Cql::QueryRequest.new("DROP KEYSPACE #{keyspace_name}", :any))
+        end
+      end
+
+      it 'sends a DROP KEYSPACE command and receives RESULT' do
+        keyspace_name = "cql_rb_#{rand(1000)}"
+        connection.send(Cql::QueryRequest.new("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}", :any))
+        response = connection.send(Cql::QueryRequest.new("DROP KEYSPACE #{keyspace_name}", :any))
+        response.change.should == 'DROPPED'
+        response.keyspace.should == keyspace_name
+        response.message.should == ''
+      end
     end
   end
 end

@@ -1,4 +1,4 @@
-# encoding: utf-8
+# encoding: ascii-8bit
 
 require 'spec_helper'
 
@@ -108,17 +108,33 @@ module Cql
     end
 
     context 'when fed a complete RESULT frame' do
-      before do
-        frame << "\x81\x00\x00\b\x00\x00\x00\f"
-        frame << "\x00\x00\x00\x03\x00\x06system"
+      context 'when it\'s a set_keyspace' do
+        before do
+          frame << "\x81\x00\x00\b\x00\x00\x00\f"
+          frame << "\x00\x00\x00\x03\x00\x06system"
+        end
+
+        it 'has a keyspace' do
+          frame.body.keyspace.should == 'system'
+        end
       end
 
-      it 'is complete' do
-        frame.should be_complete
-      end
+      context 'when it\'s a schema_change' do
+        before do
+          frame << "\x81\x00\x00\b\x00\x00\x00\e\x00\x00\x00\x05\x00\aCREATED\x00\ncql_rb_477\x00\x00"
+        end
 
-      it 'has a keyspace' do
-        frame.body.keyspace.should == 'system'
+        it 'has a change description' do
+          frame.body.change.should == 'CREATED'
+        end
+
+        it 'has a keyspace' do
+          frame.body.keyspace.should == 'cql_rb_477'
+        end
+
+        it 'has a message' do
+          frame.body.message.should == ''
+        end
       end
     end
 

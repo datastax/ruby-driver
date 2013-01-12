@@ -154,19 +154,28 @@ module Cql
   end
 
   class ResultResponse < ResponseBody
-    attr_reader :keyspace
+    attr_reader :change, :keyspace, :message
 
     def to_s
-      %(RESULT set_keyspace "#{@keyspace}")
+      case @kind
+      when 0x03
+        %(RESULT set_keyspace "#{@keyspace}")
+      when 0x05
+        %(RESULT schema_change "#{@change}" "#{@keyspace}" "#{@message}")
+      end
     end
 
     private
 
     def decode!(buffer)
-      kind = read_int!(buffer)
-      case kind
+      @kind = read_int!(buffer)
+      case @kind
       when 0x03
         @keyspace = read_string!(buffer)
+      when 0x05
+        @change = read_string!(buffer)
+        @keyspace = read_string!(buffer)
+        @message = read_string!(buffer)
       end
     end
   end
