@@ -120,6 +120,10 @@ module Cql
   class ErrorResponse < ResponseBody
     attr_reader :code, :message
 
+    def error?
+      true
+    end
+
     def to_s
       %(ERROR #{code} "#{message}")
     end
@@ -133,6 +137,10 @@ module Cql
   end
 
   class ReadyResponse < ResponseBody
+    def ready?
+      true
+    end
+
     def to_s
       'READY'
     end

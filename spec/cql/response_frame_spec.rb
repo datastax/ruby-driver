@@ -73,6 +73,10 @@ module Cql
         frame.should be_complete
       end
 
+      it 'is an error' do
+        frame.body.should be_error
+      end
+
       it 'has an error code' do
         frame.body.code.should == 10
       end
@@ -89,6 +93,10 @@ module Cql
 
       it 'is complete' do
         frame.should be_complete
+      end
+
+      it 'is ready' do
+        frame.body.should be_ready
       end
     end
 
