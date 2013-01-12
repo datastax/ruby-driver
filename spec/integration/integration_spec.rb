@@ -195,6 +195,19 @@ describe 'Startup' do
           query(%<UPDATE users SET email = 'sue@heck.com' WHERE user_name = 'phil'>)
         end
       end
+
+      it 'sends a DELETE command' do
+        in_keyspace_with_table do
+          query(%<DELETE email FROM users WHERE user_name = 'sue'>)
+        end
+      end
+
+      it 'sends a TRUNCATE command' do
+        pending 'this blocks indefinitely (but it\'s the same thing in cqlsh)'
+        # in_keyspace_with_table do
+        #   query(%<TRUNCATE users>)
+        # end
+      end
     end
   end
 end
