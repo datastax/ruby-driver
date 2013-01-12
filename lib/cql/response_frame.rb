@@ -165,17 +165,20 @@ module Cql
     attr_reader :change, :keyspace, :table, :rows
 
     def self.decode!(buffer)
-      case read_int!(buffer)
+      kind = read_int!(buffer)
+      case kind
       when 0x01
         VoidResultResponse.decode!(buffer)
       when 0x02
         RowsResultResponse.decode!(buffer)
       when 0x03
         SetKeyspaceResultResponse.decode!(buffer)
+      when 0x04
+        PreparedResultResponse.decode!(buffer)
       when 0x05
         SchemaChangeResultResponse.decode!(buffer)
       else
-        raise UnsupportedResultKindError, %(Unsupported result kind "#{@kind}")
+        raise UnsupportedResultKindError, %(Unsupported result kind: #{kind})
       end
     end
   end
@@ -227,7 +230,7 @@ module Cql
           sub_type = read_column_type!(buffer)
           [:set, sub_type]
         else
-          raise UnsupportedColumnTypeError, %(Unsupported column type #{id})
+          raise UnsupportedColumnTypeError, %(Unsupported column type: #{id})
         end
       end
       type
@@ -375,6 +378,24 @@ module Cql
 
     def to_s
       %(RESULT set_keyspace "#{@keyspace}")
+    end
+  end
+
+  class PreparedResultResponse < ResultResponse
+    attr_reader :id, :metadata
+
+    def initialize(*args)
+      @id, @metadata = args
+    end
+
+    def self.decode!(buffer)
+      id = read_short_bytes!(buffer)
+      metadata = RowsResultResponse.read_metadata!(buffer)
+      new(id, metadata)
+    end
+
+    def to_s
+      %(RESULT prepared #{id.inspect})
     end
   end
 

@@ -35,5 +35,12 @@ module Cql
         bytes.should == "\x01\x00\x00\x07\x00\x00\x00\x10\x00\x00\x00\x0aUSE system\x00\x05"
       end
     end
+
+    context 'with PREPARE requests' do
+      it 'encodes the request' do
+        bytes = RequestFrame.new(PrepareRequest.new('UPDATE users SET email = ? WHERE user_name = ?')).write('')
+        bytes.should == "\x01\x00\x00\x09\x00\x00\x00\x32\x00\x00\x00\x2eUPDATE users SET email = ? WHERE user_name = ?"
+      end
+    end
   end
 end

@@ -96,4 +96,19 @@ module Cql
       %(QUERY "#{@cql}" #{@consistency})
     end
   end
+
+  class PrepareRequest < RequestBody
+    def initialize(cql)
+      super(9)
+      @cql = cql
+    end
+
+    def write(io)
+      write_long_string(io, @cql)
+    end
+
+    def to_s
+      %(PREPARE "#{@cql}")
+    end
+  end
 end

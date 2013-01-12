@@ -180,6 +180,21 @@ module Cql
         end
       end
 
+      context 'when it\'s a prepared' do
+        before do
+          frame << "\x81\x00\x00\b\x00\x00\x00>"
+          frame << "\x00\x00\x00\x04\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/\x00\x00\x00\x01\x00\x00\x00\x01\x00\ncql_rb_911\x00\x05users\x00\tuser_name\x00\r"
+        end
+
+        it 'has an id' do
+          frame.body.id.should == "\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/"
+        end
+
+        it 'has column metadata' do
+          frame.body.metadata.should == [['cql_rb_911', 'users', 'user_name', :varchar]]
+        end
+      end
+
       context 'with different column types' do
         before do
           # The following test was created by intercepting the frame for the

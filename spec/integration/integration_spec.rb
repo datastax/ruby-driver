@@ -42,7 +42,7 @@ describe 'Startup' do
       response.should be_a(Cql::ReadyResponse)
     end
 
-    context 'with QUERY requests' do
+    context 'when running queries' do
       let :keyspace_name do
         "cql_rb_#{rand(1000)}"
       end
@@ -86,107 +86,119 @@ describe 'Startup' do
         end
       end
 
-      it 'sends a USE command' do
-        response = query('USE system', :one)
-        response.keyspace.should == 'system'
-      end
-
-      it 'sends a bad CQL string and receives ERROR' do
-        response = connection.execute(Cql::QueryRequest.new('HELLO WORLD', :any))
-        response.should be_a(Cql::ErrorResponse)
-      end
-
-      it 'sends a CREATE KEYSPACE command' do
-        response = query("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}")
-        begin
-          response.change.should == 'CREATED'
-          response.keyspace.should == keyspace_name
-        ensure
-          drop_keyspace!
+      context 'with QUERY requests' do
+        it 'sends a USE command' do
+          response = query('USE system', :one)
+          response.keyspace.should == 'system'
         end
-      end
 
-      it 'sends a DROP KEYSPACE command' do
-        create_keyspace!
-        use_keyspace!
-        response = query("DROP KEYSPACE #{keyspace_name}")
-        response.change.should == 'DROPPED'
-        response.keyspace.should == keyspace_name
-      end
-
-      it 'sends an ALTER KEYSPACE command' do
-        create_keyspace!
-        begin
-          response = query("ALTER KEYSPACE #{keyspace_name} WITH DURABLE_WRITES = false")
-          response.change.should == 'UPDATED'
-          response.keyspace.should == keyspace_name
-        ensure
-          drop_keyspace!
+        it 'sends a bad CQL string and receives ERROR' do
+          response = connection.execute(Cql::QueryRequest.new('HELLO WORLD', :any))
+          response.should be_a(Cql::ErrorResponse)
         end
-      end
 
-      it 'sends a CREATE TABLE command' do
-        in_keyspace do
-          response = query('CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))')
-          response.change.should == 'CREATED'
-          response.keyspace.should == keyspace_name
-          response.table.should == 'users'
+        it 'sends a CREATE KEYSPACE command' do
+          response = query("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}")
+          begin
+            response.change.should == 'CREATED'
+            response.keyspace.should == keyspace_name
+          ensure
+            drop_keyspace!
+          end
         end
-      end
 
-      it 'sends a DROP TABLE command' do
-        in_keyspace_with_table do
-          response = query('DROP TABLE users')
+        it 'sends a DROP KEYSPACE command' do
+          create_keyspace!
+          use_keyspace!
+          response = query("DROP KEYSPACE #{keyspace_name}")
           response.change.should == 'DROPPED'
           response.keyspace.should == keyspace_name
-          response.table.should == 'users'
+        end
+
+        it 'sends an ALTER KEYSPACE command' do
+          create_keyspace!
+          begin
+            response = query("ALTER KEYSPACE #{keyspace_name} WITH DURABLE_WRITES = false")
+            response.change.should == 'UPDATED'
+            response.keyspace.should == keyspace_name
+          ensure
+            drop_keyspace!
+          end
+        end
+
+        it 'sends a CREATE TABLE command' do
+          in_keyspace do
+            response = query('CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))')
+            response.change.should == 'CREATED'
+            response.keyspace.should == keyspace_name
+            response.table.should == 'users'
+          end
+        end
+
+        it 'sends a DROP TABLE command' do
+          in_keyspace_with_table do
+            response = query('DROP TABLE users')
+            response.change.should == 'DROPPED'
+            response.keyspace.should == keyspace_name
+            response.table.should == 'users'
+          end
+        end
+
+        it 'sends an ALTER TABLE command' do
+          in_keyspace_with_table do
+            response = query('ALTER TABLE users ADD age INT')
+            response.change.should == 'UPDATED'
+            response.keyspace.should == keyspace_name
+            response.table.should == 'users'
+          end
+        end
+
+        it 'sends an INSERT command' do
+          in_keyspace_with_table do
+            query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
+          end
+        end
+
+        it 'sends an UPDATE command' do
+          in_keyspace_with_table do
+            query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
+            query(%<UPDATE users SET email = 'sue@heck.com' WHERE user_name = 'phil'>)
+          end
+        end
+
+        it 'sends a DELETE command' do
+          in_keyspace_with_table do
+            query(%<DELETE email FROM users WHERE user_name = 'sue'>)
+          end
+        end
+
+        it 'sends a TRUNCATE command' do
+          pending 'this blocks indefinitely (but it\'s the same thing in cqlsh)'
+          # in_keyspace_with_table do
+          #   query(%<TRUNCATE users>)
+          # end
+        end
+
+        it 'sends a SELECT command' do
+          in_keyspace_with_table do
+            query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
+            query(%<INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')>)
+            response = query(%<SELECT * FROM users>, :quorum)
+            response.rows.should == [
+              {'user_name' => 'phil', 'email' => 'phil@heck.com', 'password' => nil},
+              {'user_name' => 'sue',  'email' => 'sue@inter.net', 'password' => nil}
+            ]
+          end
         end
       end
 
-      it 'sends an ALTER TABLE command' do
-        in_keyspace_with_table do
-          response = query('ALTER TABLE users ADD age INT')
-          response.change.should == 'UPDATED'
-          response.keyspace.should == keyspace_name
-          response.table.should == 'users'
-        end
-      end
-
-      it 'sends an INSERT command' do
-        in_keyspace_with_table do
-          query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
-        end
-      end
-
-      it 'sends an UPDATE command' do
-        in_keyspace_with_table do
-          query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
-          query(%<UPDATE users SET email = 'sue@heck.com' WHERE user_name = 'phil'>)
-        end
-      end
-
-      it 'sends a DELETE command' do
-        in_keyspace_with_table do
-          query(%<DELETE email FROM users WHERE user_name = 'sue'>)
-        end
-      end
-
-      it 'sends a TRUNCATE command' do
-        pending 'this blocks indefinitely (but it\'s the same thing in cqlsh)'
-        # in_keyspace_with_table do
-        #   query(%<TRUNCATE users>)
-        # end
-      end
-
-      it 'sends a SELECT command' do
-        in_keyspace_with_table do
-          query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
-          query(%<INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')>)
-          response = query(%<SELECT * FROM users>, :quorum)
-          response.rows.should == [
-            {'user_name' => 'phil', 'email' => 'phil@heck.com', 'password' => nil},
-            {'user_name' => 'sue',  'email' => 'sue@inter.net', 'password' => nil}
-          ]
+      context 'with PREPARE requests' do
+        it 'sends a PREPARE request and receives RESULT' do
+          in_keyspace_with_table do
+            response = connection.execute(Cql::PrepareRequest.new('SELECT * FROM users WHERE user_name = ?'))
+            response.id.should_not be_nil
+            response.metadata.should_not be_nil
+          end
         end
       end
     end
