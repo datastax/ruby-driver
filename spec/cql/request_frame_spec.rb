@@ -5,10 +5,6 @@ require 'spec_helper'
 
 module Cql
   describe RequestFrame do
-    let :frame do
-      described_class.new
-    end
-
     it 'encodes an OPTIONS request' do
       bytes = RequestFrame.new(OptionsRequest.new).write('')
       bytes.should == "\x01\x00\x00\x05\x00\x00\x00\x00"
