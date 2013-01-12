@@ -16,9 +16,9 @@ connection = Cql::Connection.open
 
 check_response!(connection.execute(Cql::StartupRequest.new))
 
-STDIN.each_line do |line|
-  line.chomp!
-  query = line.chomp
+buffer = STDIN.read
+buffer.split(';').each do |query|
+  query.strip!
   $stderr.puts(query)
   response = check_response!(connection.execute(Cql::QueryRequest.new(query, :one)))
   puts(response)
