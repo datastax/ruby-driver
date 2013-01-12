@@ -156,6 +156,16 @@ module Cql
           end
         end
       end
+
+      context 'when it\'s a void' do
+        before do
+          frame << "\x81\x00\x00\b\x00\x00\x00\x04\x00\x00\x00\x01"
+        end
+
+        it 'is has a body' do
+          frame.body.should_not be_nil
+        end
+      end
     end
 
     context 'when fed an non-existent opcode' do

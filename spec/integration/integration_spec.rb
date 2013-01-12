@@ -96,6 +96,10 @@ describe 'Startup' do
         query("DROP KEYSPACE #{keyspace_name}")
       end
 
+      def create_table!
+        query('CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))')
+      end
+
       def in_keyspace
         create_keyspace!
         use_keyspace!
@@ -103,6 +107,13 @@ describe 'Startup' do
           yield
         ensure
           drop_keyspace!
+        end
+      end
+
+      def in_keyspace_with_table
+        in_keyspace do
+          create_table!
+          yield
         end
       end
 
@@ -144,9 +155,8 @@ describe 'Startup' do
       end
 
       it 'sends a DROP TABLE command' do
-        in_keyspace do
-          query('CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))')
-          response = query("DROP TABLE users")
+        in_keyspace_with_table do
+          response = query('DROP TABLE users')
           response.change.should == 'DROPPED'
           response.keyspace.should == keyspace_name
           response.table.should == 'users'
@@ -154,12 +164,24 @@ describe 'Startup' do
       end
 
       it 'sends an ALTER TABLE command' do
-        in_keyspace do
-          query('CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))')
+        in_keyspace_with_table do
           response = query('ALTER TABLE users ADD age INT')
           response.change.should == 'UPDATED'
           response.keyspace.should == keyspace_name
           response.table.should == 'users'
+        end
+      end
+
+      it 'sends an INSERT command' do
+        in_keyspace_with_table do
+          query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
+        end
+      end
+
+      it 'sends an UPDATE command' do
+        in_keyspace_with_table do
+          query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
+          query(%<UPDATE users SET email = 'sue@heck.com' WHERE user_name = 'phil'>)
         end
       end
     end

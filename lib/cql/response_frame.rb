@@ -158,6 +158,8 @@ module Cql
 
     def to_s
       case @kind
+      when 0x01
+        %(RESULT void)
       when 0x03
         %(RESULT set_keyspace "#{@keyspace}")
       when 0x05
