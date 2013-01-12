@@ -79,12 +79,11 @@ describe 'Startup' do
       end
 
       it 'sends a CREATE KEYSPACE command and receives RESULT' do
+        keyspace_name = "cql_rb_#{rand(1000)}"
+        response = connection.send(Cql::QueryRequest.new("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}", :any))
         begin
-          keyspace_name = "cql_rb_#{rand(1000)}"
-          response = connection.send(Cql::QueryRequest.new("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}", :any))
           response.change.should == 'CREATED'
           response.keyspace.should == keyspace_name
-          response.message.should == ''
         ensure
           connection.send(Cql::QueryRequest.new("DROP KEYSPACE #{keyspace_name}", :any))
         end
@@ -96,7 +95,33 @@ describe 'Startup' do
         response = connection.send(Cql::QueryRequest.new("DROP KEYSPACE #{keyspace_name}", :any))
         response.change.should == 'DROPPED'
         response.keyspace.should == keyspace_name
-        response.message.should == ''
+      end
+
+      it 'sends a CREATE TABLE command and receives RESULT' do
+        keyspace_name = "cql_rb_#{rand(1000)}"
+        connection.send(Cql::QueryRequest.new("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}", :any))
+        connection.send(Cql::QueryRequest.new("USE #{keyspace_name}", :any))
+        begin
+          response = connection.send(Cql::QueryRequest.new("CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))", :any))
+          response.change.should == 'CREATED'
+          response.keyspace.should == keyspace_name
+        ensure
+          connection.send(Cql::QueryRequest.new("DROP KEYSPACE #{keyspace_name}", :any))
+        end
+      end
+
+      it 'sends a DROP TABLE command and receives RESULT' do
+        keyspace_name = "cql_rb_#{rand(1000)}"
+        connection.send(Cql::QueryRequest.new("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}", :any))
+        connection.send(Cql::QueryRequest.new("USE #{keyspace_name}", :any))
+        begin
+          connection.send(Cql::QueryRequest.new("CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))", :any))
+          response = connection.send(Cql::QueryRequest.new("DROP TABLE users", :any))
+          response.change.should == 'DROPPED'
+          response.keyspace.should == keyspace_name
+        ensure
+          connection.send(Cql::QueryRequest.new("DROP KEYSPACE #{keyspace_name}", :any))
+        end
       end
     end
   end
