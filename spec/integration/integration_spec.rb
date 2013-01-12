@@ -139,6 +139,7 @@ describe 'Startup' do
           response = query('CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))')
           response.change.should == 'CREATED'
           response.keyspace.should == keyspace_name
+          response.table.should == 'users'
         end
       end
 
@@ -148,6 +149,17 @@ describe 'Startup' do
           response = query("DROP TABLE users")
           response.change.should == 'DROPPED'
           response.keyspace.should == keyspace_name
+          response.table.should == 'users'
+        end
+      end
+
+      it 'sends an ALTER TABLE command' do
+        in_keyspace do
+          query('CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))')
+          response = query('ALTER TABLE users ADD age INT')
+          response.change.should == 'UPDATED'
+          response.keyspace.should == keyspace_name
+          response.table.should == 'users'
         end
       end
     end

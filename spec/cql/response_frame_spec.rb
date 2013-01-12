@@ -120,20 +120,40 @@ module Cql
       end
 
       context 'when it\'s a schema_change' do
-        before do
-          frame << "\x81\x00\x00\b\x00\x00\x00\e\x00\x00\x00\x05\x00\aCREATED\x00\ncql_rb_477\x00\x00"
+        context 'when it\'s a keyspace change' do
+          before do
+            frame << "\x81\x00\x00\b\x00\x00\x00\e\x00\x00\x00\x05\x00\aCREATED\x00\ncql_rb_477\x00\x00"
+          end
+
+          it 'has a change description' do
+            frame.body.change.should == 'CREATED'
+          end
+
+          it 'has a keyspace' do
+            frame.body.keyspace.should == 'cql_rb_477'
+          end
+
+          it 'has no table' do
+            frame.body.table.should be_empty
+          end
         end
 
-        it 'has a change description' do
-          frame.body.change.should == 'CREATED'
-        end
+        context 'when it\'s a table change' do
+          before do
+            frame << "\x81\x00\x00\b\x00\x00\x00 \x00\x00\x00\x05\x00\aUPDATED\x00\ncql_rb_973\x00\x05users"
+          end
 
-        it 'has a keyspace' do
-          frame.body.keyspace.should == 'cql_rb_477'
-        end
+          it 'has a change description' do
+            frame.body.change.should == 'UPDATED'
+          end
 
-        it 'has a message' do
-          frame.body.message.should == ''
+          it 'has a keyspace' do
+            frame.body.keyspace.should == 'cql_rb_973'
+          end
+
+          it 'has a table' do
+            frame.body.table.should == 'users'
+          end
         end
       end
     end

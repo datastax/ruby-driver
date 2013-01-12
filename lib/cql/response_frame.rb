@@ -154,14 +154,14 @@ module Cql
   end
 
   class ResultResponse < ResponseBody
-    attr_reader :change, :keyspace, :message
+    attr_reader :change, :keyspace, :table
 
     def to_s
       case @kind
       when 0x03
         %(RESULT set_keyspace "#{@keyspace}")
       when 0x05
-        %(RESULT schema_change "#{@change}" "#{@keyspace}" "#{@message}")
+        %(RESULT schema_change "#{@change}" "#{@keyspace}" "#{@table}")
       end
     end
 
@@ -175,7 +175,7 @@ module Cql
       when 0x05
         @change = read_string!(buffer)
         @keyspace = read_string!(buffer)
-        @message = read_string!(buffer)
+        @table = read_string!(buffer)
       end
     end
   end
