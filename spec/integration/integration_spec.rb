@@ -64,7 +64,8 @@ describe 'Startup' do
 
   context 'when set up' do
     before do
-      connection.send(Cql::StartupRequest.new)
+      response = connection.send(Cql::StartupRequest.new)
+      response
     end
 
     it 'sends a REGISTER request and receives READY' do
@@ -74,12 +75,19 @@ describe 'Startup' do
 
     context 'with QUERY requests' do
       def query(cql, consistency=:any)
-        connection.send(Cql::QueryRequest.new(cql, consistency))
+        response = connection.send(Cql::QueryRequest.new(cql, consistency))
+        raise "Bad request: #{response}" if response.is_a?(Cql::ErrorResponse)
+        response
       end
 
       it 'sends a USE command and receives RESULT' do
         response = query('USE system', :one)
         response.keyspace.should == 'system'
+      end
+
+      it 'sends a bad CQL string and receives ERROR' do
+        response = connection.send(Cql::QueryRequest.new('HELLO WORLD', :any))
+        response.should be_a(Cql::ErrorResponse)
       end
 
       it 'sends a CREATE KEYSPACE command and receives RESULT' do
