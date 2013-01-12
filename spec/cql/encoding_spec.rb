@@ -10,9 +10,13 @@ module Cql
     end
 
     describe '#write_int' do
+      it 'encodes an int'
+      it 'returns the buffer'
     end
 
     describe '#write_short' do
+      it 'encodes a short'
+      it 'returns the buffer'
     end
 
     describe '#write_string' do
@@ -33,30 +37,49 @@ module Cql
     end
 
     describe '#write_long_string' do
+      it 'encodes a string'
+      it 'returns the buffer'
     end
 
     describe '#write_uuid' do
+      it 'encodes an UUID'
+      it 'returns the buffer'
     end
 
     describe '#write_string_list' do
+      it 'encodes a string list'
+      it 'returns the buffer'
     end
 
     describe '#write_bytes' do
+      it 'encodes a byte array'
+      it 'returns the buffer'
     end
 
     describe '#write_short_bytes' do
+      it 'encodes a byte array'
+      it 'returns the buffer'
     end
 
     describe '#write_option' do
+      it 'encodes an option'
+      it 'returns the buffer'
     end
 
     describe '#write_option_list' do
+      it 'encodes an option list'
+      it 'returns the buffer'
     end
 
     describe '#write_inet' do
+      it 'encodes an IPv4 + port pair'
+      it 'encodes an IPv6 + port pair'
+      it 'returns the buffer'
     end
 
     describe '#write_consistency' do
+      it 'encodes a consistency symbol'
+      it 'returns the buffer'
     end
 
     describe '#write_string_map' do
@@ -77,6 +100,8 @@ module Cql
     end
 
     describe '#write_string_multimap' do
+      it 'encodes a string multimap'
+      it 'returns the buffer'
     end
   end
 end
