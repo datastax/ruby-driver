@@ -27,7 +27,11 @@ module Cql
     end
 
     def write_string_list(buffer, strs)
-      raise NotImplementedError
+      buffer << [strs.size].pack('n')
+      strs.each do |str|
+        write_string(buffer, str)
+      end
+      buffer
     end
 
     def write_bytes(buffer, bytes)

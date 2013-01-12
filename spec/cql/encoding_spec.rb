@@ -47,8 +47,20 @@ module Cql
     end
 
     describe '#write_string_list' do
-      it 'encodes a string list'
-      it 'returns the buffer'
+      it 'encodes a string list' do
+        Encoding.write_string_list(buffer, %w[foo bar hello world])
+        buffer.should == "\x00\x04\x00\x03foo\x00\x03bar\x00\x05hello\x00\x05world"
+      end
+
+      it 'encodes an empty string list' do
+        Encoding.write_string_list(buffer, [])
+        buffer.should == "\x00\x00"
+      end
+
+      it 'returns the buffer' do
+        result = Encoding.write_string_list(buffer, %w[foo])
+        result.should equal(buffer)
+      end
     end
 
     describe '#write_bytes' do

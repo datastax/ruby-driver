@@ -59,4 +59,15 @@ module Cql
       io
     end
   end
+
+  class RegisterRequest < RequestBody
+    def initialize(*events)
+      super(11)
+      @events = events
+    end
+
+    def write(io)
+      write_string_list(io, @events)
+    end
+  end
 end
