@@ -7,7 +7,7 @@ module Cql
   class Connection
     attr_reader :log
 
-    def self.open(host, port)
+    def self.open(host='localhost', port=9042)
       new(TCPSocket.new(host, port))
     end
 

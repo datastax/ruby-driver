@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+# encoding: utf-8
+
+$: << File.expand_path('../../lib', __FILE__)
+
+require 'cql'
+require 'cql/connection'
+
+
+def check_response!(response)
+  abort("Error: #{response.message} (#{response.code}") if response.is_a?(Cql::ErrorResponse)
+  response
+end
+
+connection = Cql::Connection.open
+
+check_response!(connection.execute(Cql::StartupRequest.new))
+
+STDIN.each_line do |line|
+  line.chomp!
+  query = line.chomp
+  $stderr.puts(query)
+  response = check_response!(connection.execute(Cql::QueryRequest.new(query, :one)))
+  puts(response)
+end
