@@ -78,25 +78,6 @@ module Cql
       HEADER_FORMAT = 'C4N'.freeze
     end
 
-    module Decoding
-      def decode_string_multimap!(str)
-        map = {}
-        map_size = str.slice!(0, 2).unpack('n')
-        map_size.first.times do
-          key_length = str.slice!(0, 2).unpack('n')
-          key = str.slice!(0, key_length.first)
-          values = []
-          value_list_size = str.slice!(0, 2).unpack('n')
-          value_list_size.first.times do
-            value_length = str.slice!(0, 2).unpack('n')
-            values << str.slice!(0, value_length.first)
-          end
-          map[key] = values
-        end
-        map
-      end
-    end
-
     class FrameBody
       include Decoding
 
@@ -132,7 +113,7 @@ module Cql
       private
 
       def decode!
-        decode_string_multimap!(@buffer)
+        read_string_multimap!(@buffer)
       end
     end
   end
