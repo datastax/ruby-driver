@@ -20,7 +20,7 @@ module Cql
       length = read_short!(buffer)
       raise DecodingError, "String length is #{length}, but only #{buffer.size} bytes given" if buffer.size < length
       string = buffer.slice!(0, length)
-      string.force_encoding(Encoding::UTF_8)
+      string.force_encoding(::Encoding::UTF_8)
       string
     end
 
@@ -28,7 +28,7 @@ module Cql
       length = read_int!(buffer)
       raise DecodingError, "String length is #{length}, but only #{buffer.size} bytes given" if buffer.size < length
       string = buffer.slice!(0, length)
-      string.force_encoding(Encoding::UTF_8)
+      string.force_encoding(::Encoding::UTF_8)
       string
     end
 

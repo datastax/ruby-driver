@@ -51,11 +51,11 @@ module Cql
       end
 
       it 'decodes a string' do
-        Decoding.read_string!(buffer).should == 'hej och hå'.force_encoding(Encoding::UTF_8)
+        Decoding.read_string!(buffer).should == 'hej och hå'.force_encoding(::Encoding::UTF_8)
       end
 
       it 'decodes a string as UTF-8' do
-        Decoding.read_string!(buffer).encoding.should == Encoding::UTF_8
+        Decoding.read_string!(buffer).encoding.should == ::Encoding::UTF_8
       end
 
       it 'decodes an empty string' do
@@ -84,7 +84,7 @@ module Cql
       end
 
       it 'decodes a string as UTF-8' do
-        Decoding.read_long_string!(buffer).encoding.should == Encoding::UTF_8
+        Decoding.read_long_string!(buffer).encoding.should == ::Encoding::UTF_8
       end
 
       it 'consumes the bytes' do
