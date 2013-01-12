@@ -7,12 +7,14 @@ module Cql
   class Connection
     attr_reader :log
 
-    def self.open(host='localhost', port=9042)
-      new(TCPSocket.new(host, port))
+    def self.open(options={})
+      options = {:host => 'localhost', :port => 9042}.merge(options)
+      new(TCPSocket.new(options.delete(:host), options.delete(:port)), options)
     end
 
-    def initialize(socket)
+    def initialize(socket, options={})
       @socket = socket
+      @trace_io = options[:trace_io]
     end
 
     def close
@@ -22,6 +24,7 @@ module Cql
     def execute(request)
       frame = Cql::RequestFrame.new(request)
       frame.write(@socket)
+      frame.write(@trace_io) if @trace_io
       @socket.flush
       receive
     end
@@ -29,7 +32,9 @@ module Cql
     def receive
       frame = Cql::ResponseFrame.new
       until frame.complete?
-        frame << @socket.read(frame.length ? frame.length : 8)
+        bytes = @socket.read(frame.length ? frame.length : 8)
+        @trace_io << bytes if @trace_io
+        frame << bytes
       end
       frame.body
     end

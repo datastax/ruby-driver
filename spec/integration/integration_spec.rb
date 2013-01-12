@@ -6,7 +6,7 @@ require 'cql/connection'
 
 describe 'Startup' do
   let :connection do
-    Cql::Connection.open('localhost', 9042)
+    Cql::Connection.open(host: 'localhost', port: 9042)
   end
 
   after do

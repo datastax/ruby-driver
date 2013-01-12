@@ -8,11 +8,22 @@ require 'cql/connection'
 
 
 def check_response!(response)
-  abort("Error: #{response.message} (#{response.code}") if response.is_a?(Cql::ErrorResponse)
+  abort("Error: #{response.message} (##{response.code})") if response.is_a?(Cql::ErrorResponse)
   response
 end
 
-connection = Cql::Connection.open
+class Tracer
+  def initialize(io)
+    @io = io
+  end
+
+  def write(str)
+    @io.puts("TRACE #{str.inspect}")
+  end
+  alias_method :<<, :write
+end
+
+connection = Cql::Connection.open(trace_io: Tracer.new($stderr))
 
 check_response!(connection.execute(Cql::StartupRequest.new))
 
