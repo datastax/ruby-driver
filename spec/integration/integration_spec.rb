@@ -73,54 +73,58 @@ describe 'Startup' do
     end
 
     context 'with QUERY requests' do
+      def query(cql, consistency=:any)
+        connection.send(Cql::QueryRequest.new(cql, consistency))
+      end
+
       it 'sends a USE command and receives RESULT' do
-        response = connection.send(Cql::QueryRequest.new('USE system', :one))
+        response = query('USE system', :one)
         response.keyspace.should == 'system'
       end
 
       it 'sends a CREATE KEYSPACE command and receives RESULT' do
         keyspace_name = "cql_rb_#{rand(1000)}"
-        response = connection.send(Cql::QueryRequest.new("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}", :any))
+        response = query("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}")
         begin
           response.change.should == 'CREATED'
           response.keyspace.should == keyspace_name
         ensure
-          connection.send(Cql::QueryRequest.new("DROP KEYSPACE #{keyspace_name}", :any))
+          query("DROP KEYSPACE #{keyspace_name}")
         end
       end
 
       it 'sends a DROP KEYSPACE command and receives RESULT' do
         keyspace_name = "cql_rb_#{rand(1000)}"
-        connection.send(Cql::QueryRequest.new("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}", :any))
-        response = connection.send(Cql::QueryRequest.new("DROP KEYSPACE #{keyspace_name}", :any))
+        query("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}")
+        response = query("DROP KEYSPACE #{keyspace_name}")
         response.change.should == 'DROPPED'
         response.keyspace.should == keyspace_name
       end
 
       it 'sends a CREATE TABLE command and receives RESULT' do
         keyspace_name = "cql_rb_#{rand(1000)}"
-        connection.send(Cql::QueryRequest.new("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}", :any))
-        connection.send(Cql::QueryRequest.new("USE #{keyspace_name}", :any))
+        query("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}")
+        query("USE #{keyspace_name}")
         begin
-          response = connection.send(Cql::QueryRequest.new("CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))", :any))
+          response = query("CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))")
           response.change.should == 'CREATED'
           response.keyspace.should == keyspace_name
         ensure
-          connection.send(Cql::QueryRequest.new("DROP KEYSPACE #{keyspace_name}", :any))
+          query("DROP KEYSPACE #{keyspace_name}")
         end
       end
 
       it 'sends a DROP TABLE command and receives RESULT' do
         keyspace_name = "cql_rb_#{rand(1000)}"
-        connection.send(Cql::QueryRequest.new("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}", :any))
-        connection.send(Cql::QueryRequest.new("USE #{keyspace_name}", :any))
+        query("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}")
+        query("USE #{keyspace_name}")
         begin
-          connection.send(Cql::QueryRequest.new("CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))", :any))
-          response = connection.send(Cql::QueryRequest.new("DROP TABLE users", :any))
+          query("CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))")
+          response = query("DROP TABLE users")
           response.change.should == 'DROPPED'
           response.keyspace.should == keyspace_name
         ensure
-          connection.send(Cql::QueryRequest.new("DROP KEYSPACE #{keyspace_name}", :any))
+          query("DROP KEYSPACE #{keyspace_name}")
         end
       end
     end
