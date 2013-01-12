@@ -4,7 +4,7 @@ module Cql
   UnsupportedOperationError = Class.new(CqlError)
   UnsupportedFrameTypeError = Class.new(CqlError)
 
-  class Frame
+  class ResponseFrame
     def initialize
       @headers = FrameHeaders.new('')
     end

@@ -4,7 +4,7 @@ require 'spec_helper'
 
 
 module Cql
-  describe Frame do
+  describe ResponseFrame do
     let :frame do
       described_class.new
     end

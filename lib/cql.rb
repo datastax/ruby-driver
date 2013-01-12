@@ -5,4 +5,4 @@ module Cql
 end
 
 require 'cql/decoding'
-require 'cql/frame'
+require 'cql/response_frame'
