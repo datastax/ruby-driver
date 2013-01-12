@@ -161,10 +161,35 @@ module Cql
     end
 
     describe '#read_short_bytes!' do
-      it 'decodes a byte array'
-      it 'decodes null'
-      it 'consumes the bytes'
-      it 'raises an error when there are not enough bytes in the buffer'
+      let :buffer do
+        "\x01\x00" << ("\x42" * 0x100)
+      end
+
+      it 'decodes a byte array' do
+        Decoding.read_short_bytes!(buffer).should == ("\x42" * 0x100)
+      end
+
+      it 'decodes an empty byte array' do
+        Decoding.read_short_bytes!("\x00\x00\x00\x00").should == ''
+      end
+
+      it 'returns an ASCII-8BIT encoded string' do
+        Decoding.read_short_bytes!("\x00\x00\x00\x01\xaa").encoding.should == ::Encoding::BINARY
+      end
+
+      it 'decodes null' do
+        Decoding.read_short_bytes!("\x80\x00").should be_nil
+      end
+
+      it 'consumes the bytes' do
+        buffer << "\xab\xcd"
+        Decoding.read_short_bytes!(buffer)
+        buffer.should == "\xab\xcd"
+      end
+
+      it 'raises an error when there are not enough bytes in the buffer' do
+        expect { Decoding.read_short_bytes!(buffer[0, 10]) }.to raise_error(DecodingError)
+      end
     end
 
     describe '#read_option!' do

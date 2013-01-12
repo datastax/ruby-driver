@@ -6,6 +6,7 @@ module Cql
   CONSISTENCIES = [:any, :one, :two, :three, :quorum, :all, :local_quorum, :each_quorum].freeze
 end
 
+require 'cql/uuid'
 require 'cql/encoding'
 require 'cql/decoding'
 require 'cql/response_frame'

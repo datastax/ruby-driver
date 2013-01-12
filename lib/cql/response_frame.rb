@@ -1,5 +1,10 @@
 # encoding: utf-8
 
+require 'ipaddr'
+require 'bigdecimal'
+require 'set'
+
+
 module Cql
   UnsupportedOperationError = Class.new(CqlError)
   UnsupportedFrameTypeError = Class.new(CqlError)
@@ -195,7 +200,32 @@ module Cql
     def self.read_column_type!(buffer)
       id, type = read_option!(buffer) do |id, b|
         case id
+        when 0x01 then :ascii
+        when 0x02 then :bigint
+        when 0x03 then :blob
+        when 0x04 then :boolean
+        # when 0x05 then :counter
+        when 0x06 then :decimal
+        when 0x07 then :double
+        when 0x08 then :float
+        when 0x09 then :int
+        when 0x0a then :text
+        when 0x0b then :timestamp
+        when 0x0c then :uuid
         when 0x0d then :varchar
+        when 0x0e then :varint
+        when 0x0f then :timeuuid
+        when 0x10 then :inet
+        when 0x20
+          sub_type = read_column_type!(buffer)
+          [:list, sub_type]
+        when 0x21
+          key_type = read_column_type!(buffer)
+          value_type = read_column_type!(buffer)
+          [:map, key_type, value_type]
+        when 0x22
+          sub_type = read_column_type!(buffer)
+          [:set, sub_type]
         else
           raise UnsupportedColumnTypeError, %(Unsupported column type #{id})
         end
@@ -224,11 +254,79 @@ module Cql
       end
     end
 
+    def self.convert_bignum(bytes)
+      n = 0
+      bytes.each_byte do |b|
+        n = (n << 8) | b
+      end
+      n
+    end
+
+    def self.convert_bigdecimal(bytes)
+      size = bytes.unpack(INT_FORMAT).first
+      BigDecimal.new(convert_bignum(bytes[4, bytes.length - 4]), size)
+    end
+
     def self.convert_type(bytes, type)
       return nil unless bytes
       case type
-      when :varchar
+      when :ascii
+        bytes.force_encoding(::Encoding::ASCII)
+      when :bigint
+        top, bottom = bytes.unpack(TWO_INTS_FORMAT)
+        top << 32 | bottom
+      when :blob
+        bytes
+      when :boolean
+        bytes == TRUE_BYTE
+      when :decimal
+        convert_bigdecimal(bytes)
+      when :double
+        bytes.unpack(DOUBLE_FORMAT).first
+      when :float
+        bytes.unpack(FLOAT_FORMAT).first
+      when :int
+        bytes.unpack(INT_FORMAT).first
+      when :timestamp
+        top, bottom = bytes.unpack(TWO_INTS_FORMAT)
+        ms = top << 32 | bottom
+        Time.at(ms)
+      when :varchar, :text
         bytes.force_encoding(::Encoding::UTF_8)
+      when :varint
+        convert_bignum(bytes)
+      when :timeuuid, :uuid
+        Uuid.new(convert_bignum(bytes))
+      when :inet
+        IPAddr.new_ntoh(bytes)
+      when Array
+        case type.first
+        when :list
+          list = []
+          size = read_short!(bytes)
+          size.times do
+            list << convert_type(read_short_bytes!(bytes), type.last)
+          end
+          list
+        when :map
+          map = {}
+          size = read_short!(bytes)
+          size.times do
+            key = convert_type(read_short_bytes!(bytes), type[1])
+            value = convert_type(read_short_bytes!(bytes), type[2])
+            map[key] = value
+          end
+          map
+        when :set
+          set = Set.new
+          size = read_short!(bytes)
+          size.times do
+            set << convert_type(read_short_bytes!(bytes), type.last)
+          end
+          set
+        end
+      else
+        bytes
       end
     end
 
@@ -254,6 +352,14 @@ module Cql
     def to_s
       %(RESULT rows ...)
     end
+
+    private
+
+    TWO_INTS_FORMAT = 'NN'.freeze
+    DOUBLE_FORMAT = 'G'.freeze
+    FLOAT_FORMAT = 'g'.freeze
+    INT_FORMAT = 'N'.freeze
+    TRUE_BYTE = "\x01".freeze
   end
 
   class SetKeyspaceResultResponse < ResultResponse
