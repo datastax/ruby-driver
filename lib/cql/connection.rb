@@ -32,7 +32,8 @@ module Cql
     def receive
       frame = Cql::ResponseFrame.new
       until frame.complete?
-        bytes = @socket.read(frame.body_length ? frame.body_length : frame.header_length)
+        read_length = frame.body_length || frame.header_length
+        bytes = @socket.read(read_length)
         @trace_io << bytes if @trace_io
         frame << bytes
       end
