@@ -49,7 +49,7 @@ describe 'Startup' do
 
       def query(cql, consistency=:any)
         response = connection.execute(Cql::QueryRequest.new(cql, consistency))
-        raise "Bad request: #{response}" if response.is_a?(Cql::ErrorResponse)
+        raise response.to_s if response.is_a?(Cql::ErrorResponse)
         response
       end
 
