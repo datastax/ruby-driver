@@ -179,6 +179,18 @@ describe 'Startup' do
           # end
         end
 
+        it 'sends a BATCH command' do
+          pending 'this times out'
+          # in_keyspace_with_table do
+          #   query(<<-EOQ, :all)
+          #     BEGIN BATCH
+          #       INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')
+          #       INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')
+          #     APPLY BATCH
+          #   EOQ
+          # end
+        end
+
         it 'sends a SELECT command' do
           in_keyspace_with_table do
             query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
