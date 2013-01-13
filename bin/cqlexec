@@ -30,7 +30,9 @@ check_response!(connection.execute(Cql::StartupRequest.new))
 buffer = STDIN.read
 buffer.split(';').each do |query|
   query.strip!
-  $stderr.puts(query)
-  response = check_response!(connection.execute(Cql::QueryRequest.new(query, :one)))
-  puts(response)
+  if query.length > 0
+    $stderr.puts(query)
+    response = check_response!(connection.execute(Cql::QueryRequest.new(query, :one)))
+    puts(response)
+  end
 end
