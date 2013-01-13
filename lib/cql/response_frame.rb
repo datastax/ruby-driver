@@ -16,7 +16,11 @@ module Cql
       @headers = FrameHeaders.new('')
     end
 
-    def length
+    def header_length
+      8
+    end
+
+    def body_length
       @headers && @headers.length
     end
 

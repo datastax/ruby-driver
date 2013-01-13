@@ -10,8 +10,12 @@ module Cql
     end
 
     context 'when fed no data' do
-      it 'has no length' do
-        frame.length.should be_nil
+      it 'has a header length' do
+        frame.header_length.should == 8
+      end
+
+      it 'has no body length' do
+        frame.body_length.should be_nil
       end
 
       it 'is not complete' do
@@ -25,7 +29,7 @@ module Cql
       end
 
       it 'knows the frame body length' do
-        frame.length.should == 22
+        frame.body_length.should == 22
       end
     end
 
@@ -37,7 +41,7 @@ module Cql
       end
 
       it 'knows the body length' do
-        frame.length.should == 22
+        frame.body_length.should == 22
       end
     end
 
@@ -56,7 +60,7 @@ module Cql
       end
 
       it 'knows the body length' do
-        frame.length.should == 22
+        frame.body_length.should == 22
       end
 
       it 'is not complete' do
