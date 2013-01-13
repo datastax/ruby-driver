@@ -6,26 +6,30 @@ require 'cql/connection'
 
 describe 'Startup' do
   let :connection do
-    Cql::Connection.open(host: 'localhost', port: 9042)
+    Cql::Connection.new(host: 'localhost', port: 9042).open
   end
 
   after do
     connection.close
   end
 
+  def execute_request(request)
+    connection.execute!(request)
+  end
+
   context 'when setting up' do
     it 'sends OPTIONS and receives SUPPORTED' do
-      response = connection.execute(Cql::OptionsRequest.new)
+      response = execute_request(Cql::OptionsRequest.new)
       response.options.should include('CQL_VERSION' => ['3.0.0'])
     end
 
     it 'sends STARTUP and receives READY' do
-      response = connection.execute(Cql::StartupRequest.new)
+      response = execute_request(Cql::StartupRequest.new)
       response.should be_a(Cql::ReadyResponse)
     end
 
     it 'sends a bad STARTUP and receives ERROR' do
-      response = connection.execute(Cql::StartupRequest.new('9.9.9'))
+      response = execute_request(Cql::StartupRequest.new('9.9.9'))
       response.code.should == 10
       response.message.should include('not supported')
     end
@@ -33,12 +37,12 @@ describe 'Startup' do
 
   context 'when set up' do
     before do
-      response = connection.execute(Cql::StartupRequest.new)
+      response = execute_request(Cql::StartupRequest.new)
       response
     end
 
     it 'sends a REGISTER request and receives READY' do
-      response = connection.execute(Cql::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE'))
+      response = execute_request(Cql::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE'))
       response.should be_a(Cql::ReadyResponse)
     end
 
@@ -48,7 +52,7 @@ describe 'Startup' do
       end
 
       def query(cql, consistency=:any)
-        response = connection.execute(Cql::QueryRequest.new(cql, consistency))
+        response = execute_request(Cql::QueryRequest.new(cql, consistency))
         raise response.to_s if response.is_a?(Cql::ErrorResponse)
         response
       end
@@ -93,7 +97,7 @@ describe 'Startup' do
         end
 
         it 'sends a bad CQL string and receives ERROR' do
-          response = connection.execute(Cql::QueryRequest.new('HELLO WORLD', :any))
+          response = execute_request(Cql::QueryRequest.new('HELLO WORLD', :any))
           response.should be_a(Cql::ErrorResponse)
         end
 
@@ -207,7 +211,7 @@ describe 'Startup' do
       context 'with PREPARE requests' do
         it 'sends a PREPARE request and receives RESULT' do
           in_keyspace_with_table do
-            response = connection.execute(Cql::PrepareRequest.new('SELECT * FROM users WHERE user_name = ?'))
+            response = execute_request(Cql::PrepareRequest.new('SELECT * FROM users WHERE user_name = ?'))
             response.id.should_not be_nil
             response.metadata.should_not be_nil
           end
