@@ -16,6 +16,10 @@ module Cql
       @headers = FrameHeaders.new('')
     end
 
+    def stream_id
+      @headers && @headers.stream_id
+    end
+
     def header_length
       8
     end
@@ -58,7 +62,7 @@ module Cql
     end
 
     class FrameHeaders
-      attr_reader :buffer, :protocol_version, :opcode, :length
+      attr_reader :buffer, :protocol_version, :stream_id, :opcode, :length
 
       def initialize(buffer)
         @buffer = buffer
@@ -76,12 +80,10 @@ module Cql
 
       private
 
-      HEADER_FORMAT = 'C4N'.freeze
-
       def check_complete!
         if @buffer.length >= 8
           @protocol_version, @flags, @stream_id, @opcode, @length = @buffer.slice!(0, 8).unpack(HEADER_FORMAT)
-          raise UnsupportedFrameTypeError, 'Request frames are not supported' if @protocol_version & 0x80 == 0
+          raise UnsupportedFrameTypeError, 'Request frames are not supported' if @protocol_version > 0
           @protocol_version &= 0x7f
         end
       end

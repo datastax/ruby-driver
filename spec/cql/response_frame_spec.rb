@@ -43,6 +43,36 @@ module Cql
       it 'knows the body length' do
         frame.body_length.should == 22
       end
+
+      it 'knows the stream ID' do
+        frame.stream_id.should == 0
+      end
+    end
+
+    context 'when fed a header with a non-zero stream ID' do
+      before do
+        frame << "\x81\x00\x20\x02\x00\x00\x00\x16"
+      end
+
+      it 'knows the stream ID' do
+        frame.stream_id.should == 0x20
+      end
+    end
+
+    context 'when fed a header with the stream ID -1' do
+      before do
+        frame << "\x81\x00\xff\x02\x00\x00\x00\x16"
+      end
+
+      it 'knows the stream ID' do
+        frame.stream_id.should == -1
+      end
+    end
+
+    context 'when fed a request frame header' do
+      it 'raises an UnsupportedFrameTypeError' do
+        expect { frame << "\x01\x00\x00\x00\x00\x00\x00\x00" }.to raise_error(UnsupportedFrameTypeError)
+      end
     end
 
     context 'when fed a request frame header' do

@@ -1,13 +1,17 @@
 # encoding: utf-8
 
 module Cql
+  InvalidStreamIdError = Class.new(CqlError)
+
   class RequestFrame
-    def initialize(body)
+    def initialize(body, stream_id=0)
       @body = body
+      @stream_id = stream_id
+      raise InvalidStreamIdError, 'The stream ID must be between 0 and 127' unless 0 <= @stream_id && @stream_id < 128
     end
 
     def write(io)
-      buffer = [1, 0, 0, @body.opcode, 0].pack(HEADER_FORMAT)
+      buffer = [1, 0, @stream_id, @body.opcode, 0].pack(HEADER_FORMAT)
       buffer = @body.write(buffer)
       buffer[4, 4] = [buffer.length - 8].pack(INT_FORMAT)
       io << buffer
@@ -16,7 +20,6 @@ module Cql
     private
 
     INT_FORMAT = 'N'.freeze
-    HEADER_FORMAT = 'C4N'.freeze
   end
 
   class RequestBody

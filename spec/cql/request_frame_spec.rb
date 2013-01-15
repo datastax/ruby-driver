@@ -5,9 +5,11 @@ require 'spec_helper'
 
 module Cql
   describe RequestFrame do
-    it 'encodes an OPTIONS request' do
-      bytes = RequestFrame.new(OptionsRequest.new).write('')
-      bytes.should == "\x01\x00\x00\x05\x00\x00\x00\x00"
+    context 'with OPTIONS requests' do
+      it 'encodes an OPTIONS request' do
+        bytes = RequestFrame.new(OptionsRequest.new).write('')
+        bytes.should == "\x01\x00\x00\x05\x00\x00\x00\x00"
+      end
     end
 
     context 'with STARTUP requests' do
@@ -40,6 +42,24 @@ module Cql
       it 'encodes the request' do
         bytes = RequestFrame.new(PrepareRequest.new('UPDATE users SET email = ? WHERE user_name = ?')).write('')
         bytes.should == "\x01\x00\x00\x09\x00\x00\x00\x32\x00\x00\x00\x2eUPDATE users SET email = ? WHERE user_name = ?"
+      end
+    end
+
+    context 'with a stream ID' do
+      it 'encodes the stream ID in the header' do
+        bytes = RequestFrame.new(QueryRequest.new('USE system', :all), 42).write('')
+        bytes[2].should == "\x2a"
+      end
+
+      it 'defaults to zero' do
+        bytes = RequestFrame.new(QueryRequest.new('USE system', :all)).write('')
+        bytes[2].should == "\x00"
+      end
+
+      it 'raises an exception if the stream ID is outside of 0..127' do
+        expect { RequestFrame.new(QueryRequest.new('USE system', :all), -1) }.to raise_error(InvalidStreamIdError)
+        expect { RequestFrame.new(QueryRequest.new('USE system', :all), 128) }.to raise_error(InvalidStreamIdError)
+        expect { RequestFrame.new(QueryRequest.new('USE system', :all), 99999999) }.to raise_error(InvalidStreamIdError)
       end
     end
   end
