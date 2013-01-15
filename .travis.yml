@@ -1,0 +1,17 @@
+language: ruby
+script: 'rspec spec'
+rvm:
+  - 1.9.3
+  - jruby-19mode
+  - jruby-head
+jdk:
+  - openjdk7
+  - openjdk6
+services:
+  - cassandra
+matrix:
+  exclude:
+    - rvm: 1.9.3
+      jdk: openjdk7
+    - rvm: 1.9.3
+      jdk: openjdk6
