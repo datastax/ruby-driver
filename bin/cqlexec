@@ -23,7 +23,7 @@ class Tracer
   alias_method :<<, :write
 end
 
-connection = Cql::Connection.open(trace_io: Tracer.new($stderr))
+connection = Cql::Connection.new.open
 
 check_response!(connection.execute(Cql::StartupRequest.new))
 
