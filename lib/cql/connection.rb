@@ -39,9 +39,15 @@ module Cql
     end
 
     def execute!(request)
-      q = Queue.new
-      execute(request) { |response| q << response }
-      q.pop
+      response = nil
+      reader, writer = IO.pipe
+      execute(request) do |res|
+        response = res
+        writer.write(0)
+        writer.close
+      end
+      IO.select([reader])
+      response
     end
 
     private
