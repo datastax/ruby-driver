@@ -6,7 +6,7 @@ require 'cql/connection'
 
 describe 'Startup' do
   let :connection do
-    Cql::Connection.new(host: 'localhost', port: 9042).open
+    Cql::Connection.new.open
   end
 
   after do
@@ -217,6 +217,13 @@ describe 'Startup' do
           end
         end
       end
+    end
+  end
+
+  context 'with error conditions' do
+    it 'raises an exception when it cannot connect to Cassandra' do
+      expect { Cql::Connection.new(host: 'example.com', timeout: 0.1).open.execute(Cql::OptionsRequest.new) }.to raise_error(Cql::TimeoutError)
+      expect { Cql::Connection.new(host: 'blackhole', timeout: 0.1).open.execute(Cql::OptionsRequest.new) }.to raise_error(Cql::TimeoutError)
     end
   end
 end
