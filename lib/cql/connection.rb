@@ -3,7 +3,6 @@
 require 'socket'
 require 'resolv'
 require 'resolv-replace'
-require 'thread'
 
 
 module Cql
@@ -14,11 +13,12 @@ module Cql
       @host = options[:host] || 'localhost'
       @port = options[:port] || 9042
       @timeout = options[:timeout] || 10
+      @queue_lock = Mutex.new
     end
 
     def open
       @socket = connect(@host, @port, @timeout)
-      @request_queue = Queue.new
+      @request_queue = []
       @io_thread = Thread.start(&method(:io_loop))
       self
     rescue Errno::EHOSTUNREACH, SocketError => e
@@ -34,7 +34,9 @@ module Cql
     end
 
     def execute(request, &handler)
-      @request_queue << [request, handler]
+      @queue_lock.synchronize do
+        @request_queue << [request, handler]
+      end
       nil
     end
 
@@ -89,16 +91,45 @@ module Cql
 
     def io_loop
       Thread.current.abort_on_exception = true
+
+      response_frame = nil
+      request_frame_data = nil
+      response_handler = nil
+
       until closed?
-        request, handler = @request_queue.pop
-        Cql::RequestFrame.new(request).write(@socket)
-        response_frame = Cql::ResponseFrame.new
-        until response_frame.complete?
-          IO.select([@socket])
-          response_frame << @socket.read_nonblock(2**16)
+        unless response_frame || request_frame_data
+          request, handler = @queue_lock.synchronize do
+            @request_queue.pop
+          end
+
+          if request
+            request_frame_data = Cql::RequestFrame.new(request).write('')
+            response_frame = Cql::ResponseFrame.new
+            response_handler = handler
+          end
         end
-        handler.call(response_frame.body)
+
+        readables, writables, _ = IO.select([@socket], [@socket], nil, 1)
+
+        if readables && response_frame && readables.include?(@socket)
+          response_frame << @socket.read_nonblock(2**16)
+          if response_frame.complete?
+            handler.call(response_frame.body)
+            response_frame = nil
+            # TODO: keep remaning buffer
+          end
+        end
+
+        if writables && request_frame_data
+          bytes_written = @socket.write_nonblock(request_frame_data)
+          if bytes_written == request_frame_data.length
+            request_frame_data = nil
+          else
+            request_frame_data.slice!(0, bytes_written)
+          end
+        end
       end
+
       @socket.close
     end
   end
