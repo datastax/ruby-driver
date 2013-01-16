@@ -14,14 +14,12 @@ module Cql
       @host = options[:host] || 'localhost'
       @port = options[:port] || 9042
       @timeout = options[:timeout] || 10
-      @connected = false
     end
 
     def open
-      socket = connect(@host, @port, @timeout)
-      stream = Stream.new(socket)
+      @socket = connect(@host, @port, @timeout)
       @request_queue = Queue.new
-      @io_thread = Thread.start(stream, @request_queue, &method(:io_loop))
+      @io_thread = Thread.start(&method(:io_loop))
       self
     rescue Errno::EHOSTUNREACH, SocketError => e
       raise TimeoutError, e.message, e.backtrace
@@ -83,40 +81,19 @@ module Cql
       raise exception
     end
 
-    def io_loop(stream, request_queue)
-      @connected = true
+    def io_loop
+      Thread.current.abort_on_exception = true
       until closed?
-        request, handler = request_queue.pop
-        request_frame = Cql::RequestFrame.new(request)
-        stream.send_frame(request_frame)
-        response_frame = stream.receive_frame
+        request, handler = @request_queue.pop
+        Cql::RequestFrame.new(request).write(@socket)
+        response_frame = Cql::ResponseFrame.new
+        until response_frame.complete?
+          IO.select([@socket])
+          response_frame << @socket.read_nonblock(2**16)
+        end
         handler.call(response_frame.body)
       end
-    end
-
-    class Stream
-      def initialize(io)
-        @io = io
-      end
-
-      def to_io
-        @io
-      end
-
-      def send_frame(frame)
-        frame.write(@io)
-        @io.flush
-      end
-
-      def receive_frame
-        frame = Cql::ResponseFrame.new
-        until frame.complete?
-          read_length = frame.body_length || frame.header_length
-          bytes = @io.read(read_length)
-          frame << bytes
-        end
-        frame
-      end
+      @socket.close
     end
   end
 end
