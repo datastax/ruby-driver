@@ -25,7 +25,7 @@ end
 
 connection = Cql::Connection.new.open
 
-check_response!(connection.execute(Cql::StartupRequest.new))
+check_response!(connection.execute!(Cql::StartupRequest.new))
 
 buffer = STDIN.read
 buffer.split(';').each do |query|
