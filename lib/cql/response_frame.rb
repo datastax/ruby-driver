@@ -12,8 +12,9 @@ module Cql
   UnsupportedColumnTypeError = Class.new(CqlError)
 
   class ResponseFrame
-    def initialize
-      @headers = FrameHeaders.new('')
+    def initialize(buffer='')
+      @headers = FrameHeaders.new(buffer)
+      check_complete!
     end
 
     def stream_id
@@ -41,11 +42,17 @@ module Cql
         @body << str
       else
         @headers << str
-        @body = create_body if @headers.complete?
+        check_complete!
       end
     end
 
     private
+
+    def check_complete!
+      if @headers.complete?
+        @body = create_body
+      end
+    end
 
     def create_body
       body_type = begin
@@ -90,7 +97,7 @@ module Cql
     end
 
     class FrameBody
-      attr_reader :response
+      attr_reader :response, :buffer
 
       def initialize(buffer, length, type)
         @buffer = buffer

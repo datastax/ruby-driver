@@ -13,10 +13,12 @@ module Cql
       @host = options[:host] || 'localhost'
       @port = options[:port] || 9042
       @timeout = options[:timeout] || 10
-      @queue_lock = Mutex.new
     end
 
     def open
+      return if @io_thread
+      @queue_lock = Mutex.new
+      @queue_signal_receiver, @queue_signal_sender = IO.pipe
       @socket = connect(@host, @port, @timeout)
       @request_queue = []
       @io_thread = Thread.start(&method(:io_loop))
@@ -34,22 +36,17 @@ module Cql
     end
 
     def execute(request, &handler)
+      future = ResponseFuture.new
+      future.on_complete(&handler) if handler
       @queue_lock.synchronize do
-        @request_queue << [request, handler]
+        @request_queue << [request, future]
+        @queue_signal_sender.write(0)
       end
-      nil
+      future
     end
 
     def execute!(request)
-      response = nil
-      reader, writer = IO.pipe
-      execute(request) do |res|
-        response = res
-        writer.write(0)
-        writer.close
-      end
-      IO.select([reader])
-      response
+      execute(request).get
     end
 
     private
@@ -89,48 +86,144 @@ module Cql
       raise exception
     end
 
-    def io_loop
-      Thread.current.abort_on_exception = true
+    class NodeConnection
+      def initialize(io)
+        @io = io
+        @write_buffer = ''
+        @read_buffer = ''
+        @current_frame = ResponseFrame.new(@read_buffer)
+        @response_tasks = [nil] * 128
+        @queued_requests = []
+      end
 
-      response_frame = nil
-      request_frame_data = nil
-      response_handler = nil
+      def to_io
+        @io
+      end
 
-      until closed?
-        unless response_frame || request_frame_data
-          request, handler = @queue_lock.synchronize do
-            @request_queue.pop
-          end
-
-          if request
-            request_frame_data = Cql::RequestFrame.new(request).write('')
-            response_frame = Cql::ResponseFrame.new
-            response_handler = handler
-          end
+      def next_stream_id
+        @response_tasks.each_with_index do |task, index|
+          return index unless task
         end
+        nil
+      end
 
-        readables, writables, _ = IO.select([@socket], [@socket], nil, 1)
-
-        if readables && response_frame && readables.include?(@socket)
-          response_frame << @socket.read_nonblock(2**16)
-          if response_frame.complete?
-            handler.call(response_frame.body)
-            response_frame = nil
-            # TODO: keep remaning buffer
-          end
-        end
-
-        if writables && request_frame_data
-          bytes_written = @socket.write_nonblock(request_frame_data)
-          if bytes_written == request_frame_data.length
-            request_frame_data = nil
-          else
-            request_frame_data.slice!(0, bytes_written)
-          end
+      def check_request_queue!
+        while has_capacity? && @queued_requests.any?
+          perform_request(*@queued_requests.shift)
         end
       end
 
-      @socket.close
+      def has_capacity?
+        0 < @queued_requests.count(&:nil?)
+      end
+
+      def perform_request(request, future)
+        stream_id = next_stream_id
+        if stream_id
+          RequestFrame.new(request, stream_id).write(@write_buffer)
+          @response_tasks[stream_id] = future
+        else
+          @queued_requests << [request, future]
+        end
+      end
+
+      def handle_read
+        new_bytes = @io.read_nonblock(2**16)
+        @current_frame << new_bytes
+        while @current_frame.complete?
+          stream_id = @current_frame.stream_id
+          @response_tasks[stream_id].complete!(@current_frame.body)
+          @response_tasks[stream_id] = nil
+          @current_frame = ResponseFrame.new(@read_buffer)
+          check_request_queue!
+        end
+      end
+
+      def handle_write
+        unless @write_buffer.empty?
+          bytes_written = @io.write_nonblock(@write_buffer)
+          @write_buffer.slice!(0, bytes_written)
+        end
+      end
+
+      def close
+        @io.close
+      end
+    end
+
+    class QueueSignalListener
+      def initialize(*args)
+        @io, @request_queue, @queue_lock, @node_connections = args
+      end
+
+      def to_io
+        @io
+      end
+
+      def handle_read
+        request, future = @queue_lock.synchronize do
+          @io.read(1)
+          @request_queue.pop
+        end
+        if request
+          @node_connections.sample.perform_request(request, future)
+        end
+      end
+
+      def handle_write
+      end
+
+      def close
+        @io.close
+      end
+    end
+
+    def io_loop
+      Thread.current.abort_on_exception = true
+
+      node_connections = [NodeConnection.new(@socket)]
+      queue_signal_listener = QueueSignalListener.new(@queue_signal_receiver, @request_queue, @queue_lock, node_connections)
+      streams = node_connections + [queue_signal_listener]
+
+      until closed?
+        readables, writables, _ = IO.select(streams, streams, nil, 1)
+
+        readables.each(&:handle_read)
+        writables.each(&:handle_write)
+      end
+
+      streams.each(&:close)
+    rescue => e
+      $stderr.puts("ERROR: #{e.message} (#{e.class.name})")
+      raise
+    end
+
+    class ResponseFuture
+      def initialize
+        @lock = Queue.new
+        @listeners = []
+      end
+
+      def on_complete(&listener)
+        if @response
+          listener.call(@response)
+        else
+          @listeners << listener
+        end
+      end
+
+      def complete!(response)
+        @response = response
+        @lock << :ping
+        @listeners.each { |l| l.call(response) }
+        @listeners.clear
+      end
+
+      def get
+        return @response if @response
+        @lock.pop
+        @response
+      end
     end
   end
 end

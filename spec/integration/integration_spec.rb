@@ -217,13 +217,56 @@ describe 'Startup' do
           end
         end
       end
+
+      context 'with pipelining' do
+        it 'handles multiple concurrent requests' do
+          in_keyspace_with_table do
+            semaphore = Queue.new
+
+            10.times do
+              connection.execute(Cql::QueryRequest.new('SELECT * FROM users', :quorum)) do |response|
+                semaphore << :ping
+              end
+            end
+
+            connection.execute(Cql::QueryRequest.new(%<INSERT INTO users (user_name, email) VALUES ('sam', 'sam@ham.com')>, :one)) do |response|
+              semaphore << :ping
+            end
+
+            11.times { semaphore.pop }
+          end
+        end
+
+        it 'handles lots of concurrent requests' do
+          in_keyspace_with_table do
+            semaphore = Queue.new
+
+            2000.times do
+              connection.execute(Cql::QueryRequest.new('SELECT * FROM users', :quorum)) do |response|
+                semaphore << :ping
+              end
+            end
+
+            2000.times { semaphore.pop }
+          end
+        end
+      end
     end
   end
 
-  context 'with error conditions' do
+  context 'in special circumstances' do
     it 'raises an exception when it cannot connect to Cassandra' do
       expect { Cql::Connection.new(host: 'example.com', timeout: 0.1).open.execute(Cql::OptionsRequest.new) }.to raise_error(Cql::TimeoutError)
       expect { Cql::Connection.new(host: 'blackhole', timeout: 0.1).open.execute(Cql::OptionsRequest.new) }.to raise_error(Cql::TimeoutError)
+    end
+
+    it 'does nothing the second time #open is called' do
+      connection = Cql::Connection.new
+      connection.open
+      connection.execute!(Cql::StartupRequest.new)
+      connection.open
+      response = connection.execute!(Cql::QueryRequest.new('USE system', :any))
+      response.should_not be_a(Cql::ErrorResponse)
     end
   end
 end
