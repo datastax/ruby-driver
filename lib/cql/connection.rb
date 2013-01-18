@@ -40,7 +40,7 @@ module Cql
       future.on_complete(&handler) if handler
       @queue_lock.synchronize do
         @request_queue << [request, future]
-        @queue_signal_sender.write(0)
+        @queue_signal_sender.write(PING_BYTE)
       end
       future
     end
@@ -50,6 +50,8 @@ module Cql
     end
 
     private
+
+    PING_BYTE = "\0".freeze
 
     def connect(host, port, timeout)
       socket = nil
@@ -93,7 +95,6 @@ module Cql
         @read_buffer = ''
         @current_frame = ResponseFrame.new(@read_buffer)
         @response_tasks = [nil] * 128
-        @queued_requests = []
       end
 
       def to_io
@@ -102,19 +103,13 @@ module Cql
 
       def next_stream_id
         @response_tasks.each_with_index do |task, index|
-          return index unless task
+          return index if task.nil?
         end
         nil
       end
 
-      def check_request_queue!
-        while has_capacity? && @queued_requests.any?
-          perform_request(*@queued_requests.shift)
-        end
-      end
-
       def has_capacity?
-        0 < @queued_requests.count(&:nil?)
+        !!next_stream_id
       end
 
       def perform_request(request, future)
@@ -135,7 +130,6 @@ module Cql
           @response_tasks[stream_id].complete!(@current_frame.body)
           @response_tasks[stream_id] = nil
           @current_frame = ResponseFrame.new(@read_buffer)
-          check_request_queue!
         end
       end
 
@@ -161,12 +155,16 @@ module Cql
       end
 
       def handle_read
-        request, future = @queue_lock.synchronize do
-          @io.read(1)
-          @request_queue.pop
-        end
-        if request
-          @node_connections.sample.perform_request(request, future)
+        requests = []
+        if @io.read_nonblock(1)
+          @queue_lock.synchronize do
+            while @node_connections.any?(&:has_capacity?) && @request_queue.size > 0
+              pair = @request_queue.pop
+              if pair && pair.first
+                @node_connections.select(&:has_capacity?).sample.perform_request(*pair)
+              end
+            end
+          end
         end
       end
 
