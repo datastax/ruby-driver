@@ -177,22 +177,22 @@ describe 'Startup' do
         end
 
         it 'sends a TRUNCATE command' do
-          pending 'this blocks indefinitely (but it\'s the same thing in cqlsh)'
-          # in_keyspace_with_table do
-          #   query(%<TRUNCATE users>)
-          # end
+          pending 'this times out in C* with "Truncate timed out - received only 0 responses" (but it does that in cqlsh too, so not sure what is going on)'
+          in_keyspace_with_table do
+            query(%<TRUNCATE users>)
+          end
         end
 
         it 'sends a BATCH command' do
           pending 'this times out'
-          # in_keyspace_with_table do
-          #   query(<<-EOQ, :all)
-          #     BEGIN BATCH
-          #       INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')
-          #       INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')
-          #     APPLY BATCH
-          #   EOQ
-          # end
+          in_keyspace_with_table do
+            query(<<-EOQ, :all)
+              BEGIN BATCH
+                INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')
+                INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')
+              APPLY BATCH
+            EOQ
+          end
         end
 
         it 'sends a SELECT command' do
