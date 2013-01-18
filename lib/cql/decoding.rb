@@ -6,6 +6,12 @@ module Cql
   module Decoding
     extend self
 
+    def read_byte!(buffer)
+      raise DecodingError, 'No byte available to decode' if buffer.empty?
+      b = buffer.slice!(0, 1)
+      b.getbyte(0)
+    end
+
     def read_int!(buffer)
       raise DecodingError, "Need four bytes to decode an int, only #{buffer.size} bytes given" if buffer.size < 4
       buffer.slice!(0, 4).unpack(INT_FORMAT).first
@@ -108,5 +114,6 @@ module Cql
 
     INT_FORMAT = 'N'.freeze
     SHORT_FORMAT = 'n'.freeze
+    CHAR_FORMAT = 'c'.freeze
   end
 end

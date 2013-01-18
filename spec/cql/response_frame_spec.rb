@@ -116,6 +116,67 @@ module Cql
       end
     end
 
+    context 'when fed an ERROR frame with more than an error message' do
+      it 'has more details for a unavailable error' do
+        frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00\x1c\x00\x00\x10\x00\x00\x0cUnavailable!\x00\x05\x00\x00\x00\x03\x00\x00\x00\x02")
+        frame.body.details.should == {
+          :cl => :all,
+          :required => 3,
+          :alive => 2
+        }
+      end
+
+      it 'has more details for a write_timeout error' do
+        frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00K\x00\x00\x11\x00\x000Operation timed out - received only 0 responses.\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00\tBATCH_LOG")
+        frame.body.details.should == {
+          :cl => :one,
+          :received => 0,
+          :blockfor => 1,
+          :write_type => 'BATCH_LOG'
+        }
+      end
+
+      it 'has more details for a read_timeout error' do
+        frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00\x25\x00\x00\x12\x00\x00\x14Operation timed out.\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x01")
+        frame.body.details.should == {
+          :cl => :one,
+          :received => 0,
+          :blockfor => 1,
+          :data_present => true
+        }
+        frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00\x25\x00\x00\x12\x00\x00\x14Operation timed out.\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00")
+        frame.body.details.should == {
+          :cl => :one,
+          :received => 0,
+          :blockfor => 1,
+          :data_present => false
+        }
+      end
+
+      it 'has more details for an already_exists error with a keyspace' do
+        frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00\x1e\x00\x00\x24\x00\x00\x10Keyspace exists!\x00\x05stuff\x00\x00")
+        frame.body.details.should == {
+          :ks => 'stuff',
+          :table => '',
+        }
+      end
+
+      it 'has more details for an already_exists error with a keyspace and table' do
+        frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00\x24\x00\x00\x24\x00\x00\x10Keyspace exists!\x00\x05stuff\x00\x06things")
+        frame.body.details.should == {
+          :ks => 'stuff',
+          :table => 'things',
+        }
+      end
+
+      it 'has more details for an unprepared error' do
+        frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00\x33\x00\x00\x25\x00\x00\x1bUnknown prepared statement!\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/")
+        frame.body.details.should == {
+          :id => "\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/"
+        }
+      end
+    end
+
     context 'when fed a complete READY frame' do
       before do
         frame << [0x81, 0, 0, 0x02, 0].pack('C4N')

@@ -137,14 +137,43 @@ module Cql
   end
 
   class ErrorResponse < ResponseBody
-    attr_reader :code, :message
+    attr_reader :code, :message, :details
 
     def initialize(*args)
-      @code, @message = args
+      @code, @message, @details = args
     end
 
     def self.decode!(buffer)
-      new(read_int!(buffer), read_string!(buffer))
+      code = read_int!(buffer)
+      message = read_string!(buffer)
+      details = nil
+      case code
+      when 0x1000 # unavailable
+        details = {}
+        details[:cl] = read_consistency!(buffer)
+        details[:required] = read_int!(buffer)
+        details[:alive] = read_int!(buffer)
+      when 0x1100 # write_timeout
+        details = {}
+        details[:cl] = read_consistency!(buffer)
+        details[:received] = read_int!(buffer)
+        details[:blockfor] = read_int!(buffer)
+        details[:write_type] = read_string!(buffer)
+      when 0x1200 # read_timeout
+        details = {}
+        details[:cl] = read_consistency!(buffer)
+        details[:received] = read_int!(buffer)
+        details[:blockfor] = read_int!(buffer)
+        details[:data_present] = read_byte!(buffer) != 0
+      when 0x2400 # already_exists
+        details = {}
+        details[:ks] = read_string!(buffer)
+        details[:table] = read_string!(buffer)
+      when 0x2500
+        details = {}
+        details[:id] = read_short_bytes!(buffer)
+      end
+      new(code, message, details)
     end
 
     def to_s

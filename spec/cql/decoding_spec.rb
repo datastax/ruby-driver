@@ -5,6 +5,25 @@ require 'spec_helper'
 
 module Cql
   describe Decoding do
+    describe '#read_byte!' do
+      let :buffer do
+        "\xab"
+      end
+
+      it 'decodes a raw byte' do
+        Decoding.read_byte!(buffer).should == 0xab
+      end
+
+      it 'consumes the byte' do
+        Decoding.read_byte!(buffer)
+        buffer.should be_empty
+      end
+
+      it 'raises an error when there is no byte available' do
+        expect { Decoding.read_byte!('') }.to raise_error(DecodingError)
+      end
+    end
+
     describe '#read_int!' do
       let :buffer do
         "\x00\xff\x00\xff"
