@@ -12,29 +12,30 @@ def check_response!(response)
   response
 end
 
-class Tracer
-  def initialize(io)
-    @io = io
-  end
-
-  def write(str)
-    @io.puts("TRACE #{str.inspect}")
-  end
-  alias_method :<<, :write
-end
-
 connection = Cql::Connection.new.open
 
-check_response!(connection.execute!(Cql::StartupRequest.new))
+connection.on_event do |event|
+  $stdout.puts(event)
+end
+
+request = Cql::StartupRequest.new
+$stderr.puts(request)
+response = check_response!(connection.execute!(request))
+$stdout.puts(response)
+
+request = Cql::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE')
+$stderr.puts(request)
+response = check_response!(connection.execute!(request))
+$stdout.puts(response)
 
 buffer = STDIN.read
 buffer.split(';').each do |query|
   query.strip!
   if query.length > 0
-    $stderr.puts(query)
     request = Cql::QueryRequest.new(query, :one)
+    $stderr.puts(request)
     response = check_response!(connection.execute!(request))
-    puts(response)
+    $stdout.puts(response)
   end
 end
 
