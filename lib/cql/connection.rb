@@ -35,6 +35,13 @@ module Cql
       @closed
     end
 
+    def on_event(&handler)
+      @queue_lock.synchronize do
+        @request_queue << [:on_event, handler]
+        @queue_signal_sender.write(PING_BYTE)
+      end
+    end
+
     def execute(request, &handler)
       future = ResponseFuture.new
       future.on_complete(&handler) if handler
@@ -52,6 +59,7 @@ module Cql
     private
 
     PING_BYTE = "\0".freeze
+    EVENT_STREAM_ID = -1
 
     def connect(host, port, timeout)
       socket = nil
@@ -95,10 +103,15 @@ module Cql
         @read_buffer = ''
         @current_frame = ResponseFrame.new(@read_buffer)
         @response_tasks = [nil] * 128
+        @event_listeners = []
       end
 
       def to_io
         @io
+      end
+
+      def on_event(&listener)
+        @event_listeners << listener
       end
 
       def next_stream_id
@@ -127,8 +140,12 @@ module Cql
         @current_frame << new_bytes
         while @current_frame.complete?
           stream_id = @current_frame.stream_id
-          @response_tasks[stream_id].complete!(@current_frame.body)
-          @response_tasks[stream_id] = nil
+          if stream_id == EVENT_STREAM_ID
+            @event_listeners.each { |listener| listener.call(@current_frame.body) }
+          else
+            @response_tasks[stream_id].complete!(@current_frame.body)
+            @response_tasks[stream_id] = nil
+          end
           @current_frame = ResponseFrame.new(@read_buffer)
         end
       end
@@ -161,7 +178,11 @@ module Cql
             while @node_connections.any?(&:has_capacity?) && @request_queue.size > 0
               pair = @request_queue.pop
               if pair && pair.first
-                @node_connections.select(&:has_capacity?).sample.perform_request(*pair)
+                if pair.first == :on_event
+                  @node_connections.each { |c| c.on_event(&pair.last) }
+                else
+                  @node_connections.select(&:has_capacity?).sample.perform_request(*pair)
+                end
               end
             end
           end

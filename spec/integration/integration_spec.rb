@@ -9,12 +9,55 @@ describe 'Startup' do
     Cql::Connection.new.open
   end
 
+  let :keyspace_name do
+    "cql_rb_#{rand(1000)}"
+  end
+
   after do
     connection.close
   end
 
   def execute_request(request)
     connection.execute!(request)
+  end
+
+  def query(cql, consistency=:any)
+    response = execute_request(Cql::QueryRequest.new(cql, consistency))
+    raise response.to_s if response.is_a?(Cql::ErrorResponse)
+    response
+  end
+
+  def create_keyspace!
+    query("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}")
+  end
+
+  def use_keyspace!
+    query("USE #{keyspace_name}")
+  end
+
+  def drop_keyspace!
+    query("DROP KEYSPACE #{keyspace_name}")
+  end
+
+  def create_table!
+    query('CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))')
+  end
+
+  def in_keyspace
+    create_keyspace!
+    use_keyspace!
+    begin
+      yield
+    ensure
+      drop_keyspace!
+    end
+  end
+
+  def in_keyspace_with_table
+    in_keyspace do
+      create_table!
+      yield
+    end
   end
 
   context 'when setting up' do
@@ -41,55 +84,32 @@ describe 'Startup' do
       response
     end
 
-    it 'sends a REGISTER request and receives READY' do
-      response = execute_request(Cql::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE'))
-      response.should be_a(Cql::ReadyResponse)
-    end
-
-    context 'when running queries' do
-      let :keyspace_name do
-        "cql_rb_#{rand(1000)}"
+    context 'with events' do
+      it 'sends a REGISTER request and receives READY' do
+        response = execute_request(Cql::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE'))
+        response.should be_a(Cql::ReadyResponse)
       end
 
-      def query(cql, consistency=:any)
-        response = execute_request(Cql::QueryRequest.new(cql, consistency))
-        raise response.to_s if response.is_a?(Cql::ErrorResponse)
-        response
-      end
-
-      def create_keyspace!
-        query("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'CLASS': 'SimpleStrategy', 'replication_factor': 1}")
-      end
-
-      def use_keyspace!
-        query("USE #{keyspace_name}")
-      end
-
-      def drop_keyspace!
-        query("DROP KEYSPACE #{keyspace_name}")
-      end
-
-      def create_table!
-        query('CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))')
-      end
-
-      def in_keyspace
-        create_keyspace!
-        use_keyspace!
+      it 'passes events to listeners' do
+        semaphore = Queue.new
+        event = nil
+        execute_request(Cql::RegisterRequest.new('SCHEMA_CHANGE'))
+        connection.on_event do |event_response|
+          event = event_response
+          semaphore << :ping
+        end
         begin
-          yield
+          create_keyspace!
+          semaphore.pop
+          event.change.should == 'CREATED'
+          event.keyspace.should == keyspace_name
         ensure
           drop_keyspace!
         end
       end
+    end
 
-      def in_keyspace_with_table
-        in_keyspace do
-          create_table!
-          yield
-        end
-      end
-
+    context 'when running queries' do
       context 'with QUERY requests' do
         it 'sends a USE command' do
           response = query('USE system', :one)

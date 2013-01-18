@@ -437,6 +437,39 @@ module Cql
       end
     end
 
+    context 'when fed a complete EVENT frame' do
+      before do
+        frame << "\x81\x00\xFF\f\x00\x00\x00+\x00\rSCHEMA_CHANGE\x00\aDROPPED\x00\ncql_rb_609\x00\x05users"
+      end
+
+      it 'has the stream ID -1' do
+        frame.stream_id.should == -1
+      end
+
+      it 'has an event type' do
+        frame.body.type.should == 'SCHEMA_CHANGE'
+      end
+
+      it 'has a change' do
+        frame.body.change.should == 'DROPPED'
+      end
+
+      it 'has a keyspace' do
+        frame.body.keyspace.should == 'cql_rb_609'
+      end
+
+      it 'has a table' do
+        frame.body.table.should == 'users'
+      end
+    end
+
+    context 'when fed an unsupported event type' do
+      it 'raises an exception' do
+        frame = "\x81\x00\xFF\f\x00\x00\x00\x06\x00\x04PING"
+        expect { described_class.new(frame) }.to raise_error(UnsupportedEventTypeError, /PING/)
+      end
+    end
+
     context 'when fed an non-existent opcode' do
       it 'raises an UnsupportedOperationError' do
         expect { frame << "\x81\x00\x00\x99\x00\x00\x00\x39" }.to raise_error(UnsupportedOperationError)

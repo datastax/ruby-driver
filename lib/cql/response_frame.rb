@@ -10,6 +10,7 @@ module Cql
   UnsupportedFrameTypeError = Class.new(CqlError)
   UnsupportedResultKindError = Class.new(CqlError)
   UnsupportedColumnTypeError = Class.new(CqlError)
+  UnsupportedEventTypeError = Class.new(CqlError)
 
   class ResponseFrame
     def initialize(buffer='')
@@ -61,6 +62,7 @@ module Cql
         when 0x02 then ReadyResponse
         when 0x06 then SupportedResponse
         when 0x08 then ResultResponse
+        when 0x0c then EventResponse
         else
           raise UnsupportedOperationError, "The operation #{@headers.opcode} is not supported"
         end
@@ -475,6 +477,37 @@ module Cql
 
     def to_s
       %(RESULT schema_change "#{@change}" "#{@keyspace}" "#{@table}")
+    end
+  end
+
+  class EventResponse < ResultResponse
+    def self.decode!(buffer)
+      type = read_string!(buffer)
+      case type
+      when SchemaChangeEventResponse::TYPE
+        SchemaChangeEventResponse.decode!(buffer)
+      else
+        raise UnsupportedEventTypeError, %(Unsupported event type: "#{type}")
+      end
+    end
+  end
+
+  class SchemaChangeEventResponse < EventResponse
+    TYPE = 'SCHEMA_CHANGE'.freeze
+
+    attr_reader :type, :change, :keyspace, :table
+
+    def initialize(*args)
+      @change, @keyspace, @table = args
+      @type = TYPE
+    end
+
+    def self.decode!(buffer)
+      new(read_string!(buffer), read_string!(buffer), read_string!(buffer))
+    end
+
+    def to_s
+      %(EVENT "#{@type}" "#{@change}" "#{@keyspace}" "#{@table}")
     end
   end
 end
