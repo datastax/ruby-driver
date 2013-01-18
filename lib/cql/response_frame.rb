@@ -119,7 +119,11 @@ module Cql
 
       def check_complete!
         if @buffer.length >= @length
+          extra_length = @buffer.length - @length
           @response = @type.decode!(@buffer)
+          if @buffer.length > extra_length
+            @buffer.slice!(0, @buffer.length - extra_length)
+          end
         end
       end
     end
