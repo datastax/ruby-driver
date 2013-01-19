@@ -6,7 +6,7 @@ require 'cql/connection'
 
 describe 'Startup' do
   let :connection do
-    Cql::Connection.new.open
+    Cql::Connection.new(host: ENV['CASSANDRA_HOST']).open
   end
 
   let :keyspace_name do
