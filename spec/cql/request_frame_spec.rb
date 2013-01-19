@@ -19,7 +19,7 @@ module Cql
       end
 
       it 'defaults to CQL 3.0.0 and no compression' do
-        bytes = RequestFrame.new(StartupRequest.new()).write('')
+        bytes = RequestFrame.new(StartupRequest.new).write('')
         bytes.should == "\x01\x00\x00\x01\x00\x00\x00\x16\x00\x01\x00\x0bCQL_VERSION\x00\x053.0.0"
       end
     end
@@ -60,6 +60,41 @@ module Cql
         expect { RequestFrame.new(QueryRequest.new('USE system', :all), -1) }.to raise_error(InvalidStreamIdError)
         expect { RequestFrame.new(QueryRequest.new('USE system', :all), 128) }.to raise_error(InvalidStreamIdError)
         expect { RequestFrame.new(QueryRequest.new('USE system', :all), 99999999) }.to raise_error(InvalidStreamIdError)
+      end
+    end
+
+    describe 'StartupRequest#to_s' do
+      it 'returns a pretty string' do
+        request = StartupRequest.new
+        request.to_s.should == 'STARTUP {"CQL_VERSION"=>"3.0.0"}'
+      end
+    end
+
+    describe 'OptionsRequest#to_s' do
+      it 'returns a pretty string' do
+        request = OptionsRequest.new
+        request.to_s.should == 'OPTIONS'
+      end
+    end
+
+    describe 'RegisterRequest#to_s' do
+      it 'returns a pretty string' do
+        request = RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE')
+        request.to_s.should == 'REGISTER ["TOPOLOGY_CHANGE", "STATUS_CHANGE"]'
+      end
+    end
+
+    describe 'QueryRequest#to_s' do
+      it 'returns a pretty string' do
+        request = QueryRequest.new('SELECT * FROM system.peers', :local_quorum)
+        request.to_s.should == 'QUERY "SELECT * FROM system.peers" LOCAL_QUORUM'
+      end
+    end
+
+    describe 'QueryRequest#to_s' do
+      it 'returns a pretty string' do
+        request = PrepareRequest.new('UPDATE users SET email = ? WHERE user_name = ?')
+        request.to_s.should == 'PREPARE "UPDATE users SET email = ? WHERE user_name = ?"'
       end
     end
   end

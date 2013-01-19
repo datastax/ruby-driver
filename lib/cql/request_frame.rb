@@ -45,7 +45,7 @@ module Cql
     end
 
     def to_s
-      %(STARTUP #{@arguments})
+      %(STARTUP #@arguments)
     end
 
     private
@@ -64,7 +64,7 @@ module Cql
     end
 
     def to_s
-      'OPTIONS'
+      %(OPTIONS)
     end
   end
 
@@ -79,7 +79,7 @@ module Cql
     end
 
     def to_s
-      %(REGISTER #{@events})
+      %(REGISTER #@events)
     end
   end
 
@@ -96,7 +96,7 @@ module Cql
     end
 
     def to_s
-      %(QUERY "#{@cql}" #{@consistency})
+      %(QUERY "#@cql" #{@consistency.to_s.upcase})
     end
   end
 
@@ -111,7 +111,7 @@ module Cql
     end
 
     def to_s
-      %(PREPARE "#{@cql}")
+      %(PREPARE "#@cql")
     end
   end
 end
