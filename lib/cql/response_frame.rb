@@ -254,7 +254,7 @@ module Cql
     end
 
     def to_s
-      %(RESULT void)
+      %(RESULT VOID)
     end
   end
 
@@ -418,7 +418,7 @@ module Cql
     end
 
     def to_s
-      %(RESULT rows ...)
+      %(RESULT ROWS #@rows)
     end
 
     private
@@ -442,7 +442,7 @@ module Cql
     end
 
     def to_s
-      %(RESULT set_keyspace "#{@keyspace}")
+      %(RESULT SET_KEYSPACE "#{@keyspace}")
     end
   end
 
@@ -460,7 +460,7 @@ module Cql
     end
 
     def to_s
-      %(RESULT prepared #{id.inspect})
+      %(RESULT PREPARED #{id.each_byte.map { |x| x.to_s(16) }.join('')} #@metadata)
     end
   end
 
@@ -476,7 +476,7 @@ module Cql
     end
 
     def to_s
-      %(RESULT schema_change "#{@change}" "#{@keyspace}" "#{@table}")
+      %(RESULT SCHEMA_CHANGE #{@change} "#{@keyspace}" "#{@table}")
     end
   end
 
@@ -511,7 +511,7 @@ module Cql
     end
 
     def to_s
-      %(EVENT "#{@type}" "#{@change}" "#{@keyspace}" "#{@table}")
+      %(EVENT #@type #@change "#@keyspace" "#@table")
     end
   end
 
@@ -530,7 +530,7 @@ module Cql
     end
 
     def to_s
-      %(EVENT "#{@type}" "#{@change}" "#{@address}")
+      %(EVENT #@type #@change #@address:#@port)
     end
   end
 

@@ -114,9 +114,13 @@ module Cql
       it 'has an error message' do
         frame.body.message.should == 'Provided version 4.0.0 is not supported by this server (supported: 2.0.0, 3.0.0)'
       end
+
+      it 'has a pretty #to_s representation' do
+        frame.body.to_s.should == 'ERROR 10 "Provided version 4.0.0 is not supported by this server (supported: 2.0.0, 3.0.0)"'
+      end
     end
 
-    context 'when fed an ERROR frame with more than an error message' do
+    context 'when fed an ERROR frame with details' do
       it 'has more details for a unavailable error' do
         frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00\x1c\x00\x00\x10\x00\x00\x0cUnavailable!\x00\x05\x00\x00\x00\x03\x00\x00\x00\x02")
         frame.body.details.should == {
@@ -175,6 +179,11 @@ module Cql
           :id => "\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/"
         }
       end
+
+      it 'has a pretty #to_s representation' do
+        frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00\x33\x00\x00\x25\x00\x00\x1bUnknown prepared statement!\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/")
+        frame.body.to_s.should match(/^ERROR 9472 "Unknown prepared statement!" \{:id=>".+?"\}$/)
+      end
     end
 
     context 'when fed a complete READY frame' do
@@ -184,6 +193,10 @@ module Cql
 
       it 'is complete' do
         frame.should be_complete
+      end
+
+      it 'has a pretty #to_s representation' do
+        frame.body.to_s.should == 'READY'
       end
     end
 
@@ -200,6 +213,10 @@ module Cql
       it 'has options' do
         frame.body.options.should == {'CQL_VERSION' => ['3.0.0'], 'COMPRESSION' => []}
       end
+
+      it 'has a pretty #to_s representation' do
+        frame.body.to_s.should == 'SUPPORTED {"CQL_VERSION"=>["3.0.0"], "COMPRESSION"=>[]}'
+      end
     end
 
     context 'when fed a complete RESULT frame' do
@@ -211,6 +228,10 @@ module Cql
 
         it 'has a keyspace' do
           frame.body.keyspace.should == 'system'
+        end
+
+        it 'has a pretty #to_s representation' do
+          frame.body.to_s.should == 'RESULT SET_KEYSPACE "system"'
         end
       end
 
@@ -231,6 +252,10 @@ module Cql
           it 'has no table' do
             frame.body.table.should be_empty
           end
+
+          it 'has a pretty #to_s representation' do
+            frame.body.to_s.should == 'RESULT SCHEMA_CHANGE CREATED "cql_rb_477" ""'
+          end
         end
 
         context 'when it\'s a table change' do
@@ -249,6 +274,10 @@ module Cql
           it 'has a table' do
             frame.body.table.should == 'users'
           end
+
+          it 'has a pretty #to_s representation' do
+            frame.body.to_s.should == 'RESULT SCHEMA_CHANGE UPDATED "cql_rb_973" "users"'
+          end
         end
       end
 
@@ -259,6 +288,10 @@ module Cql
 
         it 'is has a body' do
           frame.body.should_not be_nil
+        end
+
+        it 'has a pretty #to_s representation' do
+          frame.body.to_s.should == 'RESULT VOID'
         end
       end
 
@@ -272,6 +305,10 @@ module Cql
             {'user_name' => 'phil', 'email' => 'phil@heck.com', 'password' => nil},
             {'user_name' => 'sue',  'email' => 'sue@inter.net', 'password' => nil}
           ]
+        end
+
+        it 'has a pretty #to_s representation' do
+          frame.body.to_s.should == 'RESULT ROWS [{"user_name"=>"phil", "email"=>"phil@heck.com", "password"=>nil}, {"user_name"=>"sue", "email"=>"sue@inter.net", "password"=>nil}]'
         end
       end
 
@@ -287,6 +324,10 @@ module Cql
 
         it 'has column metadata' do
           frame.body.metadata.should == [['cql_rb_911', 'users', 'user_name', :varchar]]
+        end
+
+        it 'has a pretty #to_s representation' do
+          frame.body.to_s.should match(/^RESULT PREPARED [0-9a-f]{32} \[\["cql_rb_911", "users", "user_name", :varchar\]\]$/)
         end
       end
 
@@ -461,6 +502,10 @@ module Cql
       it 'has a table' do
         frame.body.table.should == 'users'
       end
+
+      it 'has a pretty #to_s representation' do
+        frame.body.to_s.should == 'EVENT SCHEMA_CHANGE DROPPED "cql_rb_609" "users"'
+      end
     end
 
     context 'when fed a STATUS_CHANGE EVENT frame' do
@@ -487,6 +532,10 @@ module Cql
       it 'has a port' do
         frame.body.port.should == 9042
       end
+
+      it 'has a pretty #to_s representation' do
+        frame.body.to_s.should == 'EVENT STATUS_CHANGE DOWN 0.0.0.0:9042'
+      end
     end
 
     context 'when fed a TOPOLOGY_CHANGE EVENT frame' do
@@ -512,6 +561,10 @@ module Cql
 
       it 'has a port' do
         frame.body.port.should == 9042
+      end
+
+      it 'has a pretty #to_s representation' do
+        frame.body.to_s.should == 'EVENT TOPOLOGY_CHANGE REMOVED_NODE 0.0.0.0:9042'
       end
     end
 
