@@ -157,7 +157,7 @@ module Cql
     end
 
     def to_s
-      %(ERROR #{code} "#{message}")
+      %(ERROR #@code "#@message")
     end
   end
 
@@ -196,7 +196,7 @@ module Cql
     end
 
     def to_s
-      %(ERROR #{code} "#{message}" #{details.inspect})
+      %(ERROR #@code "#@message" #@details)
     end
   end
 
@@ -440,7 +440,7 @@ module Cql
     end
 
     def to_s
-      %(RESULT SET_KEYSPACE "#{@keyspace}")
+      %(RESULT SET_KEYSPACE "#@keyspace")
     end
   end
 
@@ -474,7 +474,7 @@ module Cql
     end
 
     def to_s
-      %(RESULT SCHEMA_CHANGE #{@change} "#{@keyspace}" "#{@table}")
+      %(RESULT SCHEMA_CHANGE #@change "#@keyspace" "#@table")
     end
   end
 
