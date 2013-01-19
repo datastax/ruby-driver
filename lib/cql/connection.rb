@@ -6,7 +6,7 @@ require 'resolv-replace'
 
 
 module Cql
-  TimeoutError = Class.new(CqlError)
+  ConnectionError = Class.new(CqlError)
 
   class Connection
     def initialize(options={})
@@ -23,8 +23,8 @@ module Cql
       @request_queue = []
       @io_thread = Thread.start(&method(:io_loop))
       self
-    rescue Errno::EHOSTUNREACH, SocketError => e
-      raise TimeoutError, e.message, e.backtrace
+    rescue Errno::EHOSTUNREACH, Errno::EBADF, SocketError => e
+      raise ConnectionError, e.message, e.backtrace
     end
 
     def close

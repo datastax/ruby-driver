@@ -276,8 +276,8 @@ describe 'Startup' do
 
   context 'in special circumstances' do
     it 'raises an exception when it cannot connect to Cassandra' do
-      expect { Cql::Connection.new(host: 'example.com', timeout: 0.1).open.execute(Cql::OptionsRequest.new) }.to raise_error(Cql::TimeoutError)
-      expect { Cql::Connection.new(host: 'blackhole', timeout: 0.1).open.execute(Cql::OptionsRequest.new) }.to raise_error(Cql::TimeoutError)
+      expect { Cql::Connection.new(host: 'example.com', timeout: 0.1).open.execute(Cql::OptionsRequest.new) }.to raise_error(Cql::ConnectionError)
+      expect { Cql::Connection.new(host: 'blackhole', timeout: 0.1).open.execute(Cql::OptionsRequest.new) }.to raise_error(Cql::ConnectionError)
     end
 
     it 'does nothing the second time #open is called' do
