@@ -309,6 +309,34 @@ module Cql
 
         it 'has a pretty #to_s representation' do
           frame.body.to_s.should == 'RESULT ROWS [{"user_name"=>"phil", "email"=>"phil@heck.com", "password"=>nil}, {"user_name"=>"sue", "email"=>"sue@inter.net", "password"=>nil}]'
+
+      context 'when it\'s rows from different keyspaces' do
+        before do
+          # TODO: not sure if this is really how it would be for real
+          # this frame was constructed from the spec not from an actual result
+          frame << "\x81\x00\x00\b\x00\x00\x00\xa7"
+          frame << "\x00\x00\x00\x02"
+          frame << "\x00\x00\x00\x00"
+          frame << "\x00\x00\x00\x03"
+          frame << "\x00\ncql_rb_126\x00\x06users1\x00\tuser_name\x00\r"
+          frame << "\x00\ncql_rb_127\x00\x06users2\x00\x05email\x00\r"
+          frame << "\x00\ncql_rb_128\x00\x06users3\x00\bpassword\x00\r"
+          frame << "\x00\x00\x00\x02\x00\x00\x00\x04phil\x00\x00\x00\rphil@heck.com\xFF\xFF\xFF\xFF\x00\x00\x00\x03sue\x00\x00\x00\rsue@inter.net\xFF\xFF\xFF\xFF"
+        end
+
+        it 'has rows that are hashes of column name => column value' do
+          frame.body.rows.should == [
+            {'user_name' => 'phil', 'email' => 'phil@heck.com', 'password' => nil},
+            {'user_name' => 'sue',  'email' => 'sue@inter.net', 'password' => nil}
+          ]
+        end
+
+        it 'has column metadata' do
+          frame.body.metadata.should == [
+            ['cql_rb_126', 'users1', 'user_name', :varchar],
+            ['cql_rb_127', 'users2', 'email', :varchar],
+            ['cql_rb_128', 'users3', 'password', :varchar]
+          ]
         end
       end
 

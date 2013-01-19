@@ -265,6 +265,17 @@ module Cql
       @rows = rows
     end
 
+    def self.decode!(buffer)
+      column_specs = read_metadata!(buffer)
+      new(read_rows!(buffer, column_specs))
+    end
+
+    def to_s
+      %(RESULT ROWS #@rows)
+    end
+
+    private
+
     def self.read_column_type!(buffer)
       id, type = read_option!(buffer) do |id, b|
         case id
@@ -277,7 +288,7 @@ module Cql
         when 0x07 then :double
         when 0x08 then :float
         when 0x09 then :int
-        when 0x0a then :text
+        # when 0x0a then :text
         when 0x0b then :timestamp
         when 0x0c then :uuid
         when 0x0d then :varchar
@@ -393,8 +404,6 @@ module Cql
           end
           set
         end
-      else
-        bytes
       end
     end
 
@@ -411,17 +420,6 @@ module Cql
       end
       rows
     end
-
-    def self.decode!(buffer)
-      column_specs = read_metadata!(buffer)
-      new(read_rows!(buffer, column_specs))
-    end
-
-    def to_s
-      %(RESULT ROWS #@rows)
-    end
-
-    private
 
     TWO_INTS_FORMAT = 'NN'.freeze
     DOUBLE_FORMAT = 'G'.freeze
