@@ -246,10 +246,28 @@ module Cql
     end
 
     describe '#read_inet!' do
-      it 'decodes an IPv4 + port pair'
-      it 'decodes an IPv6 + port pair'
-      it 'consumes the bytes'
-      it 'raises an error when there are not enough bytes in the buffer'
+      it 'decodes an IPv4 + port pair' do
+        ip_addr, port = Decoding.read_inet!("\x04\x00\x00\x00\x00\x00\x00#R")
+        ip_addr.should == IPAddr.new('0.0.0.0')
+        port.should == 9042
+      end
+
+      it 'decodes an IPv6 + port pair' do
+        ip_addr, port = Decoding.read_inet!("\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00#R")
+        ip_addr.should == IPAddr.new('::1')
+        port.should == 9042
+      end
+
+      it 'consumes the bytes' do
+        buffer = "\x04\x00\x00\x00\x00\x00\x00#R\xff\xaa"
+        Decoding.read_inet!(buffer)
+        buffer.should == "\xff\xaa"
+      end
+
+      it 'raises an error when there are not enough bytes in the buffer' do
+        expect { Decoding.read_inet!("\x04\x00\x00\x00\x00\x00\x00") }.to raise_error(DecodingError)
+        expect { Decoding.read_inet!("\x04\x00\x00\x00") }.to raise_error(DecodingError)
+      end
     end
 
     describe '#read_consistency!' do

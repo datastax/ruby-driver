@@ -486,6 +486,8 @@ module Cql
       case type
       when SchemaChangeEventResponse::TYPE
         SchemaChangeEventResponse.decode!(buffer)
+      when StatusChangeEventResponse::TYPE
+        StatusChangeEventResponse.decode!(buffer)
       else
         raise UnsupportedEventTypeError, %(Unsupported event type: "#{type}")
       end
@@ -508,6 +510,25 @@ module Cql
 
     def to_s
       %(EVENT "#{@type}" "#{@change}" "#{@keyspace}" "#{@table}")
+    end
+  end
+
+  class StatusChangeEventResponse < EventResponse
+    TYPE = 'STATUS_CHANGE'.freeze
+
+    attr_reader :type, :change, :address, :port
+
+    def initialize(*args)
+      @change, @address, @port = args
+      @type = TYPE
+    end
+
+    def self.decode!(buffer)
+      new(read_string!(buffer), *read_inet!(buffer))
+    end
+
+    def to_s
+      %(EVENT "#{@type}" "#{@change}" "#{@address}")
     end
   end
 end

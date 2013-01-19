@@ -81,7 +81,11 @@ module Cql
     end
 
     def read_inet!(buffer)
-      raise NotImplementedError
+      size = read_byte!(buffer)
+      raise DecodingError, "Inet requires #{size} bytes, but only #{buffer.size} bytes given" if buffer.size < size
+      ip_addr = IPAddr.new_ntoh(buffer.slice!(0, size))
+      port = read_int!(buffer)
+      [ip_addr, port]
     end
 
     def read_consistency!(buffer)
