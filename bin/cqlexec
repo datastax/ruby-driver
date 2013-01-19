@@ -3,40 +3,118 @@
 
 $: << File.expand_path('../../lib', __FILE__)
 
+require 'optparse'
 require 'cql'
 require 'cql/connection'
 
 
-def check_response!(response)
-  abort("Error: #{response.message} (##{response.code})") if response.is_a?(Cql::ErrorResponse)
-  response
-end
+class CqlExecutor
+  def initialize(args)
+    @options = parse_options!(args)
+  end
 
-connection = Cql::Connection.new.open
+  def run(io)
+    @connection = Cql::Connection.new(host: @options[:host], port: @options[:port]).open
 
-connection.on_event do |event|
-  $stdout.puts(event)
-end
+    begin
+      start
+      buffer = io.read
+      buffer.split(';').each do |query|
+        query.strip!
+        if query.length > 0
+          perform_request(Cql::QueryRequest.new(query, :one))
+        end
+      end
+    rescue Cql::CqlError => e
+      abort("Error: #{e.message} (#{e.class})")
+    rescue Interrupt
+      exit
+    ensure
+      @connection.close if @connection && !@connection.closed?
+    end
+  end
 
-request = Cql::StartupRequest.new
-$stderr.puts(request)
-response = check_response!(connection.execute!(request))
-$stdout.puts(response)
+  private
 
-request = Cql::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE')
-$stderr.puts(request)
-response = check_response!(connection.execute!(request))
-$stdout.puts(response)
+  def parse_options!(args)
+    options = {}
 
-buffer = STDIN.read
-buffer.split(';').each do |query|
-  query.strip!
-  if query.length > 0
-    request = Cql::QueryRequest.new(query, :one)
-    $stderr.puts(request)
-    response = check_response!(connection.execute!(request))
-    $stdout.puts(response)
+    option_parser = OptionParser.new do |opts|
+      opts.banner = "Usage: #{File.basename(__FILE__)} [options]"
+      opts.separator('')
+      opts.on('--help', 'Show this message') do
+        $stderr.puts(opts)
+        exit!
+      end
+      opts.on('-h', '--host [HOST]', 'Connect to HOST, defaults to localhost') do |host|
+        options[:host] = host
+      end
+      opts.on('-p', '--port [PORT]', Integer, 'Connect to PORT, defaults to 9042') do |port|
+        options[:port] = port
+      end
+      opts.on('-v', '--verbose', 'Print requests to STDERR') do |port|
+        options[:verbose] = true
+      end
+      opts.separator('')
+      opts.separator('Pass CQL commands on STDIN, prints results on STDOUT')
+      opts.separator('')
+    end
+
+    option_parser.parse!
+    
+    options
+  end
+
+  def start
+    perform_request(Cql::StartupRequest.new)
+
+    @connection.on_event do |event|
+      $stdout.puts(event)
+    end
+
+    perform_request(Cql::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE'))
+  end
+
+  def perform_request(request)
+    $stderr.puts(request) if @options[:verbose]
+    response = check_response!(@connection.execute!(request))
+    $stderr.puts(response) if @options[:verbose]
+    case response
+    when Cql::RowsResultResponse
+      table_names = []
+      header = ''
+      row_format = ''
+      divider = ''
+      response.metadata.each do |ks, table, column, type|
+        table_names << [ks, table].join('.')
+        column_width = [response.rows.first[column].to_s.length, column.length].max
+        format = "%-#{column_width}.#{column_width}s"
+        header << "#{format} | " % [column]
+        row_format << "#{format} | "
+        divider << ('-' * column_width) << '-+-'
+      end
+      row_format.sub!(/ \| $/, '')
+      divider = divider[0..-4]
+      table_name = table_names.uniq.join(', ')
+
+      $stdout.puts(table_name)
+      $stdout.puts('=' * table_name.length)
+      $stdout.puts(header[0, divider.length])
+      $stdout.puts(divider)
+      
+      response.rows.each do |row|
+        $stdout.puts(row_format % response.metadata.map { |_, _, column, _| row[column] })
+      end
+    end
+  end
+
+  def check_response!(response)
+    if response.is_a?(Cql::ErrorResponse)
+      abort("Error: #{response.message} (##{response.code})")
+    else
+      response
+    end
   end
 end
 
-connection.close
+CqlExecutor.new(ARGV).run(STDIN)
