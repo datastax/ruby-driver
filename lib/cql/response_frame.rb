@@ -488,6 +488,8 @@ module Cql
         SchemaChangeEventResponse.decode!(buffer)
       when StatusChangeEventResponse::TYPE
         StatusChangeEventResponse.decode!(buffer)
+      when TopologyChangeEventResponse::TYPE
+        TopologyChangeEventResponse.decode!(buffer)
       else
         raise UnsupportedEventTypeError, %(Unsupported event type: "#{type}")
       end
@@ -529,6 +531,15 @@ module Cql
 
     def to_s
       %(EVENT "#{@type}" "#{@change}" "#{@address}")
+    end
+  end
+
+  class TopologyChangeEventResponse < StatusChangeEventResponse
+    TYPE = 'TOPOLOGY_CHANGE'.freeze
+
+    def initialize(*args)
+      super
+      @type = TYPE
     end
   end
 end

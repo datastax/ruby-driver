@@ -489,6 +489,32 @@ module Cql
       end
     end
 
+    context 'when fed a TOPOLOGY_CHANGE EVENT frame' do
+      before do
+        frame << "\x81\x00\xFF\f\x00\x00\x00(\x00\x0FTOPOLOGY_CHANGE\x00\fREMOVED_NODE\x04\x00\x00\x00\x00\x00\x00#R"
+      end
+
+      it 'has the stream ID -1' do
+        frame.stream_id.should == -1
+      end
+
+      it 'has an event type' do
+        frame.body.type.should == 'TOPOLOGY_CHANGE'
+      end
+
+      it 'has a change' do
+        frame.body.change.should == 'REMOVED_NODE'
+      end
+
+      it 'has an address' do
+        frame.body.address.should == IPAddr.new('0.0.0.0')
+      end
+
+      it 'has a port' do
+        frame.body.port.should == 9042
+      end
+    end
+
     context 'when fed an unsupported event type' do
       it 'raises an exception' do
         frame = "\x81\x00\xFF\f\x00\x00\x00\x06\x00\x04PING"
