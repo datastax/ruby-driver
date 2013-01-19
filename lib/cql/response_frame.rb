@@ -259,19 +259,19 @@ module Cql
   end
 
   class RowsResultResponse < ResultResponse
-    attr_reader :rows
+    attr_reader :rows, :metadata
 
-    def initialize(rows)
-      @rows = rows
+    def initialize(*args)
+      @rows, @metadata = args
     end
 
     def self.decode!(buffer)
       column_specs = read_metadata!(buffer)
-      new(read_rows!(buffer, column_specs))
+      new(read_rows!(buffer, column_specs), column_specs)
     end
 
     def to_s
-      %(RESULT ROWS #@rows)
+      %(RESULT ROWS #@metadata #@rows)
     end
 
     private

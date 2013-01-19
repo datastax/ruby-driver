@@ -307,8 +307,18 @@ module Cql
           ]
         end
 
+        it 'has column metadata' do
+          frame.body.metadata.should == [
+            ['cql_rb_126', 'users', 'user_name', :varchar],
+            ['cql_rb_126', 'users', 'email', :varchar],
+            ['cql_rb_126', 'users', 'password', :varchar]
+          ]
+        end
+
         it 'has a pretty #to_s representation' do
-          frame.body.to_s.should == 'RESULT ROWS [{"user_name"=>"phil", "email"=>"phil@heck.com", "password"=>nil}, {"user_name"=>"sue", "email"=>"sue@inter.net", "password"=>nil}]'
+          frame.body.to_s.should == 'RESULT ROWS [["cql_rb_126", "users", "user_name", :varchar], ["cql_rb_126", "users", "email", :varchar], ["cql_rb_126", "users", "password", :varchar]] [{"user_name"=>"phil", "email"=>"phil@heck.com", "password"=>nil}, {"user_name"=>"sue", "email"=>"sue@inter.net", "password"=>nil}]'
+        end
+      end
 
       context 'when it\'s rows from different keyspaces' do
         before do
