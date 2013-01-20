@@ -4,6 +4,7 @@
 $: << File.expand_path('../../lib', __FILE__)
 
 require 'optparse'
+require 'set'
 require 'cql'
 require 'cql/connection'
 
@@ -18,13 +19,15 @@ class CqlExecutor
 
     begin
       start
-      buffer = io.read
-      buffer.split(';').each do |query|
-        query.strip!
-        if query.length > 0
-          perform_request(Cql::QueryRequest.new(query, :one))
+      buffer = ''
+      while (line = io.gets)
+        buffer << line
+        if semi_index = buffer.index(';')
+          query = buffer.slice!(0, semi_index + 1)
+          prepare_and_execute_request(query)
         end
       end
+      prepare_and_execute_request(buffer)
     rescue Cql::CqlError => e
       abort("Error: #{e.message} (#{e.class})")
     rescue Interrupt
@@ -66,49 +69,86 @@ class CqlExecutor
   end
 
   def start
-    perform_request(Cql::StartupRequest.new)
+    execute_request(Cql::StartupRequest.new)
 
     @connection.on_event do |event|
       $stdout.puts(event)
     end
 
-    perform_request(Cql::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE'))
+    execute_request(Cql::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE'))
   end
 
-  def perform_request(request)
+  def prepare_and_execute_request(query)
+    query.chomp!(';')
+    query.strip!
+    unless query.empty?
+      p query
+      execute_request(Cql::QueryRequest.new(query, :one))
+    end
+  end
+
+  def execute_request(request)
     $stderr.puts(request) if @options[:verbose]
     response = check_response!(@connection.execute!(request))
     $stderr.puts(response) if @options[:verbose]
     case response
     when Cql::RowsResultResponse
-      table_names = []
-      header = ''
-      row_format = ''
-      divider = ''
-      if response.rows.any?
-        response.metadata.each do |ks, table, column, type|
-          table_names << [ks, table].join('.')
-          column_width = [response.rows.first[column].to_s.length, column.length].max
-          format = "%-#{column_width}.#{column_width}s"
-          header << "#{format} | " % [column]
-          row_format << "#{format} | "
-          divider << ('-' * column_width) << '-+-'
-        end
-        row_format.sub!(/ \| $/, '')
-        divider = divider[0..-4]
-        table_name = table_names.uniq.join(', ')
+      format_table_output(response)
+    end
+  end
 
-        $stdout.puts(table_name)
-        $stdout.puts('=' * table_name.length)
-        $stdout.puts(header[0, divider.length])
-        $stdout.puts(divider)
-
-        response.rows.each do |row|
-          $stdout.puts(row_format % response.metadata.map { |_, _, column, _| row[column] })
-        end
-      else
-        $stdout.puts('(empty result set)')
+  def format_table_output(response)
+    table_names = []
+    header = ''
+    row_format = ''
+    divider = ''
+    column_widths = {}
+    if response.rows.any?
+      response.metadata.each do |ks, table, column, type|
+        table_names << [ks, table].join('.')
+        column_width = [format_value(response.rows.first[column]).length, column.length].max
+        column_widths[column] = column_width
+        format = "%-#{column_width}.#{column_width}s"
+        header << "#{format} | " % [column]
+        row_format << "#{format} | "
+        divider << ('-' * column_width) << '-+-'
       end
+      row_format.sub!(/ \| $/, '')
+      divider = divider[0..-4]
+      table_name = table_names.uniq.join(', ')
+
+      $stdout.puts(table_name)
+      $stdout.puts('=' * table_name.length)
+      $stdout.puts(header[0, divider.length])
+      $stdout.puts(divider)
+
+      response.rows.each do |row|
+        values = response.metadata.map do |_, _, column, _|
+          limit_width(format_value(row[column]), column_widths[column])
+        end
+        $stdout.puts(row_format % values)
+      end
+    else
+      $stdout.puts('(empty result set)')
+    end
+  end
+
+  def format_value(value)
+    case value
+    when Set
+      value.to_a.to_s
+    when nil
+      '(nil)'
+    else
+      value.to_s
+    end
+  end
+
+  def limit_width(value, width)
+    if value.length > width
+      value[0, width - 1] << '…'
+    else
+      value
     end
   end
 
