@@ -210,7 +210,7 @@ describe 'Startup' do
         it 'sends a BATCH command' do
           pending 'this times out'
           in_keyspace_with_table do
-            query(<<-EOQ, :all)
+            query(<<-EOQ, :one)
               BEGIN BATCH
                 INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')
                 INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')
