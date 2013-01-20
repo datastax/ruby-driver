@@ -343,7 +343,10 @@ module Cql
 
     def self.convert_bigdecimal(bytes)
       size = bytes.unpack(INT_FORMAT).first
-      BigDecimal.new(convert_bignum(bytes[4, bytes.length - 4]), size)
+      number_bytes = bytes[4, bytes.length - 4]
+      number_string = convert_bignum(number_bytes).to_s
+      fraction_string = number_string[0, number_string.length - size] << DECIMAL_POINT << number_string[number_string.length - size, number_string.length]
+      BigDecimal.new(fraction_string)
     end
 
     def self.convert_type(bytes, type)
@@ -426,6 +429,7 @@ module Cql
     FLOAT_FORMAT = 'g'.freeze
     INT_FORMAT = 'N'.freeze
     TRUE_BYTE = "\x01".freeze
+    DECIMAL_POINT = '.'.freeze
   end
 
   class SetKeyspaceResultResponse < ResultResponse

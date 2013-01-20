@@ -444,7 +444,7 @@ module Cql
         end
 
         it 'decodes DECIMAL as a number' do
-          frame.body.rows.first['decimal_column'].should == BigDecimal.new(1042342234234123423435647768234, 18)
+          frame.body.rows.first['decimal_column'].should == BigDecimal.new('1042342234234.123423435647768234')
         end
 
         it 'decodes DOUBLE as a number' do
