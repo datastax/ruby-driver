@@ -85,25 +85,29 @@ class CqlExecutor
       header = ''
       row_format = ''
       divider = ''
-      response.metadata.each do |ks, table, column, type|
-        table_names << [ks, table].join('.')
-        column_width = [response.rows.first[column].to_s.length, column.length].max
-        format = "%-#{column_width}.#{column_width}s"
-        header << "#{format} | " % [column]
-        row_format << "#{format} | "
-        divider << ('-' * column_width) << '-+-'
-      end
-      row_format.sub!(/ \| $/, '')
-      divider = divider[0..-4]
-      table_name = table_names.uniq.join(', ')
+      if response.rows.any?
+        response.metadata.each do |ks, table, column, type|
+          table_names << [ks, table].join('.')
+          column_width = [response.rows.first[column].to_s.length, column.length].max
+          format = "%-#{column_width}.#{column_width}s"
+          header << "#{format} | " % [column]
+          row_format << "#{format} | "
+          divider << ('-' * column_width) << '-+-'
+        end
+        row_format.sub!(/ \| $/, '')
+        divider = divider[0..-4]
+        table_name = table_names.uniq.join(', ')
 
-      $stdout.puts(table_name)
-      $stdout.puts('=' * table_name.length)
-      $stdout.puts(header[0, divider.length])
-      $stdout.puts(divider)
-      
-      response.rows.each do |row|
-        $stdout.puts(row_format % response.metadata.map { |_, _, column, _| row[column] })
+        $stdout.puts(table_name)
+        $stdout.puts('=' * table_name.length)
+        $stdout.puts(header[0, divider.length])
+        $stdout.puts(divider)
+
+        response.rows.each do |row|
+          $stdout.puts(row_format % response.metadata.map { |_, _, column, _| row[column] })
+        end
+      else
+        $stdout.puts('(empty result set)')
       end
     end
   end
