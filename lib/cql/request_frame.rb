@@ -114,4 +114,38 @@ module Cql
       %(PREPARE "#@cql")
     end
   end
+
+  class ExecuteRequest < RequestBody
+    def initialize(id, *values, consistency)
+      super(10)
+      @id = id
+      @values = values
+      @consistency = consistency
+    end
+
+    def write(io)
+      write_short_bytes(io, @id)
+      write_short(io, @values.size)
+      @values.each do |value|
+        write_value(io, value)
+      end
+      write_consistency(io, @consistency)
+    end
+
+    def to_s
+      id = @id.each_byte.map { |x| x.to_s(16) }.join('')
+      %(EXECUTE #{id} #@values #{@consistency.to_s.upcase})
+    end
+
+    private
+
+    def write_value(io, value)
+      case value
+      when String
+        write_bytes(io, value)
+      when Integer
+        write_bytes(io, write_int('', value))
+      end
+    end
+  end
 end

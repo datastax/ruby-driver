@@ -45,6 +45,13 @@ module Cql
       end
     end
 
+    context 'with EXECUTE requests' do
+      it 'encodes the request' do
+        bytes = RequestFrame.new(ExecuteRequest.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", 'hello', 42, 'foo', :each_quorum)).write('')
+        bytes.should == "\x01\x00\x00\x0a\x00\x00\x00\x2e\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/\x00\x03\x00\x00\x00\x05hello\x00\x00\x00\x04\x00\x00\x00\x2a\x00\x00\x00\x03foo\x00\x07"
+      end
+    end
+
     context 'with a stream ID' do
       it 'encodes the stream ID in the header' do
         bytes = RequestFrame.new(QueryRequest.new('USE system', :all), 42).write('')
@@ -95,6 +102,13 @@ module Cql
       it 'returns a pretty string' do
         request = PrepareRequest.new('UPDATE users SET email = ? WHERE user_name = ?')
         request.to_s.should == 'PREPARE "UPDATE users SET email = ? WHERE user_name = ?"'
+      end
+    end
+
+    describe 'ExecuteRequest#to_s' do
+      it 'returns a pretty string' do
+        request = ExecuteRequest.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", 'hello', 42, 'foo', :each_quorum)
+        request.to_s.should == 'EXECUTE ca487f1e7a82d23c4e8af3355171a52f ["hello", 42, "foo"] EACH_QUORUM'
       end
     end
   end

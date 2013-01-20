@@ -7,7 +7,7 @@ module Cql
     extend self
 
     def write_int(buffer, n)
-      raise NotImplementedError
+      buffer << [n].pack('N')
     end
 
     def write_short(buffer, n)
@@ -39,11 +39,23 @@ module Cql
     end
 
     def write_bytes(buffer, bytes)
-      raise NotImplementedError
+      if bytes
+        write_int(buffer, bytes.length)
+        buffer << bytes
+      else
+        write_int(buffer, -1)
+      end
+      buffer
     end
 
     def write_short_bytes(buffer, bytes)
-      raise NotImplementedError
+      if bytes
+        write_short(buffer, bytes.length)
+        buffer << bytes
+      else
+        write_short(buffer, -1)
+      end
+      buffer
     end
 
     def write_option(buffer, option)

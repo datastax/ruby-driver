@@ -236,6 +236,16 @@ describe 'Startup' do
             response.metadata.should_not be_nil
           end
         end
+
+        it 'sends an EXECUTE request and receives RESULT' do
+          in_keyspace_with_table do
+            query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
+            query(%<INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')>)
+            prepare_response = execute_request(Cql::PrepareRequest.new('SELECT * FROM users WHERE user_name = ?'))
+            response = execute_request(Cql::ExecuteRequest.new(prepare_response.id, 'sue', :one))
+            response.rows.should have(1).item
+          end
+        end
       end
 
       context 'with pipelining' do
