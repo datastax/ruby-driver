@@ -238,12 +238,15 @@ describe 'Startup' do
         end
 
         it 'sends an EXECUTE request and receives RESULT' do
-          in_keyspace_with_table do
-            query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
-            query(%<INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')>)
-            prepare_response = execute_request(Cql::PrepareRequest.new('SELECT * FROM users WHERE user_name = ?'))
-            response = execute_request(Cql::ExecuteRequest.new(prepare_response.id, 'sue', :one))
-            response.rows.should have(1).item
+          in_keyspace do
+            create_table_cql = %<CREATE TABLE stuff (id1 UUID, id2 VARINT, id3 TIMESTAMP, value1 DOUBLE, value2 TIMEUUID, value3 BLOB, PRIMARY KEY (id1, id2, id3))>
+            insert_cql = %<INSERT INTO stuff (id1, id2, id3, value1, value2, value3) VALUES (?, ?, ?, ?, ?, ?)>
+            create_response = execute_request(Cql::QueryRequest.new(create_table_cql, :one))
+            create_response.should_not be_a(Cql::ErrorResponse)
+            prepare_response = execute_request(Cql::PrepareRequest.new(insert_cql))
+            prepare_response.should_not be_a(Cql::ErrorResponse)
+            execute_response = execute_request(Cql::ExecuteRequest.new(prepare_response.id, prepare_response.metadata, [Cql::Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'), -12312312312, Time.now, 345345.234234, Cql::Uuid.new('a4a70900-24e1-11df-8924-001ff3591711'), "\xab\xcd\xef".force_encoding(::Encoding::BINARY)], :one))
+            execute_response.should_not be_a(Cql::ErrorResponse)
           end
         end
       end

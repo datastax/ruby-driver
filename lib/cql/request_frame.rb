@@ -116,18 +116,20 @@ module Cql
   end
 
   class ExecuteRequest < RequestBody
-    def initialize(id, *values, consistency)
+    def initialize(id, metadata, values, consistency)
       super(10)
+      raise ArgumentError, "Metadata for #{metadata.size} columns, but #{values.size} values given" if metadata.size != values.size
       @id = id
+      @metadata = metadata
       @values = values
       @consistency = consistency
     end
 
     def write(io)
       write_short_bytes(io, @id)
-      write_short(io, @values.size)
-      @values.each do |value|
-        write_value(io, value)
+      write_short(io, @metadata.size)
+      @metadata.each_with_index do |(_, _, _, type), index|
+        write_value(io, @values[index], type)
       end
       write_consistency(io, @consistency)
     end
@@ -139,13 +141,82 @@ module Cql
 
     private
 
-    def write_value(io, value)
-      case value
-      when String
-        write_bytes(io, value)
-      when Integer
-        write_bytes(io, write_int('', value))
+    BYTES_FORMAT = 'C*'.freeze
+    DOUBLE_FORMAT = 'G'.freeze
+    FLOAT_FORMAT = 'g'.freeze
+    INT_FORMAT = 'N'.freeze
+    TRUE_BYTE = "\x01".freeze
+    FALSE_BYTE = "\x00".freeze
+    EMPTY_STRING = ''.freeze
+
+    def write_value(io, value, type)
+      case type
+      when :ascii
+        write_bytes(io, value.encode(::Encoding::ASCII))
+      when :bigint
+        write_long(io, value)
+      when :blob
+        write_bytes(io, value.encode(::Encoding::BINARY))
+      when :boolean
+        write_int(io, 1)
+        io << (value ? TRUE_BYTE : FALSE_BYTE)
+      when :decimal
+        sign, number_string, _, size = value.split
+        num = number_string.to_i
+        raw = write_bignum('', num)
+        write_int(io, 4 + raw.size)
+        write_int(io, number_string.length - size)
+        io << raw
+      when :double
+        write_int(io, 8)
+        io << [value].pack(DOUBLE_FORMAT)
+      when :float
+        write_int(io, 4)
+        io << [value].pack(FLOAT_FORMAT)
+      when :inet
+        if value.ipv6?
+          write_int(io, 16)
+          io << value.hton
+        else
+          write_int(io, 4)
+          io << value.hton
+        end
+      when :int
+        write_int(io, 4)
+        io << [value].pack(INT_FORMAT)
+      when :text, :varchar
+        write_bytes(io, value.encode(::Encoding::UTF_8))
+      when :timestamp
+        ms = (value.to_f * 1000).to_i
+        write_long(io, ms)
+      when :timeuuid, :uuid
+        write_int(io, 16)
+        write_bignum(io, value.value)
+      when :varint
+        raw = write_bignum('', value)
+        write_int(io, raw.length)
+        io << raw
+      else
+        raise UnsupportedColumnTypeError, %(Unsupported column type: #{type})
       end
+    end
+
+    def write_long(io, n)
+      top = n >> 32
+      bottom = n & 0xffffffff
+      write_int(io, 8)
+      write_int(io, top)
+      write_int(io, bottom)
+    end
+
+    def write_bignum(io, n)
+      num = n
+      bytes = []
+      until num == 0 || num == -1
+        bytes << (num & 0xff)
+        num = num >> 8
+      end
+      io << bytes.reverse.pack(BYTES_FORMAT)
     end
   end
 end
