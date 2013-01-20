@@ -372,7 +372,7 @@ module Cql
       when :timestamp
         top, bottom = bytes.unpack(TWO_INTS_FORMAT)
         ms = top << 32 | bottom
-        Time.at(ms)
+        Time.at(ms/1000.0)
       when :varchar, :text
         bytes.force_encoding(::Encoding::UTF_8)
       when :varint
