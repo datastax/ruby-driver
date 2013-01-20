@@ -49,7 +49,11 @@ describe 'Startup' do
     begin
       yield
     ensure
-      drop_keyspace!
+      begin
+        drop_keyspace!
+      rescue  Errno::EPIPE => e
+        # ignore since we're shutting down
+      end
     end
   end
 
