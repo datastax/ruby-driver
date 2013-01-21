@@ -365,7 +365,7 @@ module Cql
         when :varchar, :text
           bytes.force_encoding(::Encoding::UTF_8)
         when :varint
-          read_varint!(bytes, bytes.length)
+          read_varint!(bytes)
         when :timeuuid, :uuid
           read_uuid!(bytes)
         when :inet

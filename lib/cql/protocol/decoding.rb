@@ -11,7 +11,7 @@ module Cql
         b.getbyte(0)
       end
 
-      def read_varint!(buffer, length, signed=true)
+      def read_varint!(buffer, length=buffer.length, signed=true)
         raise DecodingError, "Length #{length} specifed but only #{buffer.size} bytes given" if buffer.size < length
         bytes = buffer.slice!(0, length)
         n = 0
