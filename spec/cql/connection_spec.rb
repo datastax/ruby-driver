@@ -81,6 +81,16 @@ module Cql
         expect { described_class.new(host: 'huffabuff.local', timeout: 1).open }.to raise_error(ConnectionError)
         expect { described_class.new(port: 9999, timeout: 1).open }.to raise_error(ConnectionError)
       end
+
+      it 'times out quickly when it cannot connect' do
+        started_at = Time.now
+        begin
+          described_class.new(port: 9999, timeout: 1).open
+        rescue ConnectionError
+        end
+        time_taken = (Time.now - started_at).to_f
+        time_taken.should be_within(0.5).of(1)
+      end
     end
   end
 end
