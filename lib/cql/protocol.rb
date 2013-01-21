@@ -2,6 +2,16 @@
 
 module Cql
   module Protocol
+    ProtocolError = Class.new(CqlError)
+    DecodingError = Class.new(ProtocolError)
+    EncodingError = Class.new(ProtocolError)
+    InvalidStreamIdError = Class.new(ProtocolError)
+    UnsupportedOperationError = Class.new(ProtocolError)
+    UnsupportedFrameTypeError = Class.new(ProtocolError)
+    UnsupportedResultKindError = Class.new(ProtocolError)
+    UnsupportedColumnTypeError = Class.new(ProtocolError)
+    UnsupportedEventTypeError = Class.new(ProtocolError)
+
     CONSISTENCIES = [:any, :one, :two, :three, :quorum, :all, :local_quorum, :each_quorum].freeze
 
     module Formats

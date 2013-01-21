@@ -7,12 +7,6 @@ require 'set'
 
 module Cql
   module Protocol
-    UnsupportedOperationError = Class.new(CqlError)
-    UnsupportedFrameTypeError = Class.new(CqlError)
-    UnsupportedResultKindError = Class.new(CqlError)
-    UnsupportedColumnTypeError = Class.new(CqlError)
-    UnsupportedEventTypeError = Class.new(CqlError)
-
     class ResponseFrame
       def initialize(buffer='')
         @headers = FrameHeaders.new(buffer)

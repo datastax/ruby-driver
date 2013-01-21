@@ -2,8 +2,6 @@
 
 module Cql
   module Protocol
-    InvalidStreamIdError = Class.new(CqlError)
-
     class RequestFrame
       def initialize(body, stream_id=0)
         @body = body

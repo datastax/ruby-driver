@@ -2,8 +2,6 @@
 
 module Cql
   module Protocol
-    EncodingError = Class.new(CqlError)
-
     module Encoding
       extend self
 

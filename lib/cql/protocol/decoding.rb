@@ -2,8 +2,6 @@
 
 module Cql
   module Protocol
-    DecodingError = Class.new(CqlError)
-
     module Decoding
       extend self
 
