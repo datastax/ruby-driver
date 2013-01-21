@@ -21,8 +21,8 @@ describe 'Startup' do
   end
 
   def query(cql, consistency=:any)
-    response = execute_request(Cql::QueryRequest.new(cql, consistency))
-    raise response.to_s if response.is_a?(Cql::ErrorResponse)
+    response = execute_request(Cql::Protocol::QueryRequest.new(cql, consistency))
+    raise response.to_s if response.is_a?(Cql::Protocol::ErrorResponse)
     response
   end
 
@@ -65,17 +65,17 @@ describe 'Startup' do
 
   context 'when setting up' do
     it 'sends OPTIONS and receives SUPPORTED' do
-      response = execute_request(Cql::OptionsRequest.new)
+      response = execute_request(Cql::Protocol::OptionsRequest.new)
       response.options.should include('CQL_VERSION' => ['3.0.0'])
     end
 
     it 'sends STARTUP and receives READY' do
-      response = execute_request(Cql::StartupRequest.new)
-      response.should be_a(Cql::ReadyResponse)
+      response = execute_request(Cql::Protocol::StartupRequest.new)
+      response.should be_a(Cql::Protocol::ReadyResponse)
     end
 
     it 'sends a bad STARTUP and receives ERROR' do
-      response = execute_request(Cql::StartupRequest.new('9.9.9'))
+      response = execute_request(Cql::Protocol::StartupRequest.new('9.9.9'))
       response.code.should == 10
       response.message.should include('not supported')
     end
@@ -83,20 +83,20 @@ describe 'Startup' do
 
   context 'when set up' do
     before do
-      response = execute_request(Cql::StartupRequest.new)
+      response = execute_request(Cql::Protocol::StartupRequest.new)
       response
     end
 
     context 'with events' do
       it 'sends a REGISTER request and receives READY' do
-        response = execute_request(Cql::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE'))
-        response.should be_a(Cql::ReadyResponse)
+        response = execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE'))
+        response.should be_a(Cql::Protocol::ReadyResponse)
       end
 
       it 'passes events to listeners' do
         semaphore = Queue.new
         event = nil
-        execute_request(Cql::RegisterRequest.new('SCHEMA_CHANGE'))
+        execute_request(Cql::Protocol::RegisterRequest.new('SCHEMA_CHANGE'))
         connection.on_event do |event_response|
           event = event_response
           semaphore << :ping
@@ -120,8 +120,8 @@ describe 'Startup' do
         end
 
         it 'sends a bad CQL string and receives ERROR' do
-          response = execute_request(Cql::QueryRequest.new('HELLO WORLD', :any))
-          response.should be_a(Cql::ErrorResponse)
+          response = execute_request(Cql::Protocol::QueryRequest.new('HELLO WORLD', :any))
+          response.should be_a(Cql::Protocol::ErrorResponse)
         end
 
         it 'sends a CREATE KEYSPACE command' do
@@ -234,7 +234,7 @@ describe 'Startup' do
       context 'with PREPARE requests' do
         it 'sends a PREPARE request and receives RESULT' do
           in_keyspace_with_table do
-            response = execute_request(Cql::PrepareRequest.new('SELECT * FROM users WHERE user_name = ?'))
+            response = execute_request(Cql::Protocol::PrepareRequest.new('SELECT * FROM users WHERE user_name = ?'))
             response.id.should_not be_nil
             response.metadata.should_not be_nil
           end
@@ -244,12 +244,12 @@ describe 'Startup' do
           in_keyspace do
             create_table_cql = %<CREATE TABLE stuff (id1 UUID, id2 VARINT, id3 TIMESTAMP, value1 DOUBLE, value2 TIMEUUID, value3 BLOB, PRIMARY KEY (id1, id2, id3))>
             insert_cql = %<INSERT INTO stuff (id1, id2, id3, value1, value2, value3) VALUES (?, ?, ?, ?, ?, ?)>
-            create_response = execute_request(Cql::QueryRequest.new(create_table_cql, :one))
-            create_response.should_not be_a(Cql::ErrorResponse)
-            prepare_response = execute_request(Cql::PrepareRequest.new(insert_cql))
-            prepare_response.should_not be_a(Cql::ErrorResponse)
-            execute_response = execute_request(Cql::ExecuteRequest.new(prepare_response.id, prepare_response.metadata, [Cql::Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'), -12312312312, Time.now, 345345.234234, Cql::Uuid.new('a4a70900-24e1-11df-8924-001ff3591711'), "\xab\xcd\xef".force_encoding(::Encoding::BINARY)], :one))
-            execute_response.should_not be_a(Cql::ErrorResponse)
+            create_response = execute_request(Cql::Protocol::QueryRequest.new(create_table_cql, :one))
+            create_response.should_not be_a(Cql::Protocol::ErrorResponse)
+            prepare_response = execute_request(Cql::Protocol::PrepareRequest.new(insert_cql))
+            prepare_response.should_not be_a(Cql::Protocol::ErrorResponse)
+            execute_response = execute_request(Cql::Protocol::ExecuteRequest.new(prepare_response.id, prepare_response.metadata, [Cql::Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'), -12312312312, Time.now, 345345.234234, Cql::Uuid.new('a4a70900-24e1-11df-8924-001ff3591711'), "\xab\xcd\xef".force_encoding(::Encoding::BINARY)], :one))
+            execute_response.should_not be_a(Cql::Protocol::ErrorResponse)
           end
         end
       end
@@ -260,12 +260,12 @@ describe 'Startup' do
             semaphore = Queue.new
 
             10.times do
-              connection.execute(Cql::QueryRequest.new('SELECT * FROM users', :quorum)) do |response|
+              connection.execute(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum)) do |response|
                 semaphore << :ping
               end
             end
 
-            connection.execute(Cql::QueryRequest.new(%<INSERT INTO users (user_name, email) VALUES ('sam', 'sam@ham.com')>, :one)) do |response|
+            connection.execute(Cql::Protocol::QueryRequest.new(%<INSERT INTO users (user_name, email) VALUES ('sam', 'sam@ham.com')>, :one)) do |response|
               semaphore << :ping
             end
 
@@ -278,7 +278,7 @@ describe 'Startup' do
             semaphore = Queue.new
 
             2000.times do
-              connection.execute(Cql::QueryRequest.new('SELECT * FROM users', :quorum)) do |response|
+              connection.execute(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum)) do |response|
                 semaphore << :ping
               end
             end
@@ -292,17 +292,17 @@ describe 'Startup' do
 
   context 'in special circumstances' do
     it 'raises an exception when it cannot connect to Cassandra' do
-      expect { Cql::Connection.new(host: 'example.com', timeout: 0.1).open.execute(Cql::OptionsRequest.new) }.to raise_error(Cql::ConnectionError)
-      expect { Cql::Connection.new(host: 'blackhole', timeout: 0.1).open.execute(Cql::OptionsRequest.new) }.to raise_error(Cql::ConnectionError)
+      expect { Cql::Connection.new(host: 'example.com', timeout: 0.1).open.execute(Cql::Protocol::OptionsRequest.new) }.to raise_error(Cql::ConnectionError)
+      expect { Cql::Connection.new(host: 'blackhole', timeout: 0.1).open.execute(Cql::Protocol::OptionsRequest.new) }.to raise_error(Cql::ConnectionError)
     end
 
     it 'does nothing the second time #open is called' do
       connection = Cql::Connection.new
       connection.open
-      connection.execute!(Cql::StartupRequest.new)
+      connection.execute!(Cql::Protocol::StartupRequest.new)
       connection.open
-      response = connection.execute!(Cql::QueryRequest.new('USE system', :any))
-      response.should_not be_a(Cql::ErrorResponse)
+      response = connection.execute!(Cql::Protocol::QueryRequest.new('USE system', :any))
+      response.should_not be_a(Cql::Protocol::ErrorResponse)
     end
   end
 end

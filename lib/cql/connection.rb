@@ -101,7 +101,7 @@ module Cql
         @io = io
         @write_buffer = ''
         @read_buffer = ''
-        @current_frame = ResponseFrame.new(@read_buffer)
+        @current_frame = Protocol::ResponseFrame.new(@read_buffer)
         @response_tasks = [nil] * 128
         @event_listeners = []
       end
@@ -128,7 +128,7 @@ module Cql
       def perform_request(request, future)
         stream_id = next_stream_id
         if stream_id
-          RequestFrame.new(request, stream_id).write(@write_buffer)
+          Protocol::RequestFrame.new(request, stream_id).write(@write_buffer)
           @response_tasks[stream_id] = future
         else
           @queued_requests << [request, future]
@@ -146,7 +146,7 @@ module Cql
             @response_tasks[stream_id].complete!(@current_frame.body)
             @response_tasks[stream_id] = nil
           end
-          @current_frame = ResponseFrame.new(@read_buffer)
+          @current_frame = Protocol::ResponseFrame.new(@read_buffer)
         end
       end
 
