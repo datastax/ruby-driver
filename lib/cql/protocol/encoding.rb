@@ -26,7 +26,7 @@ module Cql
       end
 
       def write_uuid(buffer, uuid)
-        raise NotImplementedError
+        write_varint(buffer, uuid.value)
       end
 
       def write_string_list(buffer, strs)
@@ -70,6 +70,31 @@ module Cql
           write_string(buffer, value)
         end
         buffer
+      end
+
+      def write_long(buffer, n)
+        top = n >> 32
+        bottom = n & 0xffffffff
+        write_int(buffer, top)
+        write_int(buffer, bottom)
+      end
+
+      def write_varint(buffer, n)
+        num = n
+        bytes = []
+        until num == 0 || num == -1
+          bytes << (num & 0xff)
+          num = num >> 8
+        end
+        buffer << bytes.reverse.pack(Formats::BYTES_FORMAT)
+      end
+
+      def write_decimal(buffer, n)
+        sign, number_string, _, size = n.split
+        num = number_string.to_i
+        raw = write_varint('', num)
+        write_int(buffer, number_string.length - size)
+        buffer << raw
       end
     end
   end

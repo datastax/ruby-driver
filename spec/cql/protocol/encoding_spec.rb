@@ -93,9 +93,25 @@ module Cql
       end
 
       describe '#write_uuid' do
-        it 'encodes an UUID'
-        it 'appends to the buffer'
-        it 'returns the buffer'
+        let :uuid do
+          Uuid.new('a4a70900-24e1-11df-8924-001ff3591711')
+        end
+
+        it 'encodes an UUID' do
+          Encoding.write_uuid(buffer, uuid)
+          buffer.should == "\xA4\xA7\t\x00$\xE1\x11\xDF\x89$\x00\x1F\xF3Y\x17\x11"
+        end
+
+        it 'appends to the buffer' do
+          buffer << 'FOO'
+          Encoding.write_uuid(buffer, uuid)
+          buffer.should start_with('FOO')
+        end
+
+        it 'returns the buffer' do
+          result = Encoding.write_uuid(buffer, uuid)
+          result.should equal(buffer)
+        end
       end
 
       describe '#write_string_list' do
@@ -219,6 +235,65 @@ module Cql
 
         it 'returns the buffer' do
           result = Encoding.write_string_map(buffer, 'HELLO' => 'world')
+          result.should equal(buffer)
+        end
+      end
+
+      describe '#write_long' do
+        it 'encodes a long' do
+          Encoding.write_long(buffer, 0x0123456789)
+          buffer.should == "\x00\x00\x00\x01\x23\x45\x67\x89"
+        end
+
+        it 'appends to the buffer' do
+          buffer << "\x99"
+          Encoding.write_long(buffer, 0x0123456789)
+          buffer.should == "\x99\x00\x00\x00\x01\x23\x45\x67\x89"
+        end
+
+        it 'returns the buffer' do
+          result = Encoding.write_long(buffer, 1)
+          result.should equal(buffer)
+        end
+      end
+
+      describe '#write_varint' do
+        it 'encodes a variable length integer' do
+          Encoding.write_varint(buffer, 1231312312331283012830129382342342412123)
+          buffer.should == "\x03\x9EV \x15\f\x03\x9DK\x18\xCDI\\$?\a["
+        end
+
+        it 'encodes a negative variable length integer' do
+          Encoding.write_varint(buffer, -234234234234)
+          buffer.should == "\xC9v\x8D:\x86"
+        end
+
+        it 'appends to the buffer' do
+          buffer << "\x99"
+          Encoding.write_varint(buffer, -234234234234)
+          buffer.should == "\x99\xC9v\x8D:\x86"
+        end
+
+        it 'returns the buffer' do
+          result = Encoding.write_varint(buffer, -234234234234)
+          result.should equal(buffer)
+        end
+      end
+
+      describe '#write_decimal' do
+        it 'encodes a BigDecimal as a decimal' do
+          Encoding.write_decimal(buffer, BigDecimal.new('1042342234234.123423435647768234'))
+          buffer.should == "\x00\x00\x00\x12\r'\xFDI\xAD\x80f\x11g\xDCfV\xAA"
+        end
+
+        it 'appends to the buffer' do
+          buffer << "\x99"
+          Encoding.write_decimal(buffer, BigDecimal.new('1042342234234.123423435647768234'))
+          buffer.should start_with("\x99")
+        end
+
+        it 'returns the buffer' do
+          result = Encoding.write_decimal(buffer, BigDecimal.new('3.14'))
           result.should equal(buffer)
         end
       end

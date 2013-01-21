@@ -141,6 +141,7 @@ module Cql
         when :ascii
           write_bytes(io, value.encode(::Encoding::ASCII))
         when :bigint
+          write_int(io, 8)
           write_long(io, value)
         when :blob
           write_bytes(io, value.encode(::Encoding::BINARY))
@@ -148,11 +149,8 @@ module Cql
           write_int(io, 1)
           io << (value ? Constants::TRUE_BYTE : Constants::FALSE_BYTE)
         when :decimal
-          sign, number_string, _, size = value.split
-          num = number_string.to_i
-          raw = write_bignum('', num)
-          write_int(io, 4 + raw.size)
-          write_int(io, number_string.length - size)
+          raw = write_decimal('', value)
+          write_int(io, raw.size)
           io << raw
         when :double
           write_int(io, 8)
@@ -175,35 +173,18 @@ module Cql
           write_bytes(io, value.encode(::Encoding::UTF_8))
         when :timestamp
           ms = (value.to_f * 1000).to_i
+          write_int(io, 8)
           write_long(io, ms)
         when :timeuuid, :uuid
           write_int(io, 16)
-          write_bignum(io, value.value)
+          write_uuid(io, value)
         when :varint
-          raw = write_bignum('', value)
+          raw = write_varint('', value)
           write_int(io, raw.length)
           io << raw
         else
           raise UnsupportedColumnTypeError, %(Unsupported column type: #{type})
         end
-      end
-
-      def write_long(io, n)
-        top = n >> 32
-        bottom = n & 0xffffffff
-        write_int(io, 8)
-        write_int(io, top)
-        write_int(io, bottom)
-      end
-
-      def write_bignum(io, n)
-        num = n
-        bytes = []
-        until num == 0 || num == -1
-          bytes << (num & 0xff)
-          num = num >> 8
-        end
-        io << bytes.reverse.pack(Formats::BYTES_FORMAT)
       end
     end
   end
