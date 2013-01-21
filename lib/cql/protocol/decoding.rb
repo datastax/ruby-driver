@@ -11,6 +11,19 @@ module Cql
         b.getbyte(0)
       end
 
+      def read_varint!(buffer, length, signed=true)
+        raise DecodingError, "Length #{length} specifed but only #{buffer.size} bytes given" if buffer.size < length
+        bytes = buffer.slice!(0, length)
+        n = 0
+        bytes.each_byte do |b|
+          n = (n << 8) | b
+        end
+        if signed && bytes.getbyte(0) & 0x80 == 0x80
+          n -= 2**(bytes.length * 8)
+        end
+        n
+      end
+
       def read_int!(buffer)
         raise DecodingError, "Need four bytes to decode an int, only #{buffer.size} bytes given" if buffer.size < 4
         buffer.slice!(0, 4).unpack(Formats::INT_FORMAT).first
@@ -38,7 +51,8 @@ module Cql
       end
 
       def read_uuid!(buffer)
-        raise NotImplementedError
+        raise DecodingError, "UUID requires 16 bytes, but only #{buffer.size} bytes given" if buffer.size < 16
+        Uuid.new(read_varint!(buffer, 16, false))
       end
 
       def read_string_list!(buffer)

@@ -330,18 +330,10 @@ module Cql
         end
       end
 
-      def self.convert_bignum(bytes)
-        n = 0
-        bytes.each_byte do |b|
-          n = (n << 8) | b
-        end
-        n
-      end
-
       def self.convert_bigdecimal(bytes)
         size = bytes.unpack(Formats::INT_FORMAT).first
         number_bytes = bytes[4, bytes.length - 4]
-        number_string = convert_bignum(number_bytes).to_s
+        number_string = read_varint!(number_bytes, number_bytes.length).to_s
         fraction_string = number_string[0, number_string.length - size] << DECIMAL_POINT << number_string[number_string.length - size, number_string.length]
         BigDecimal.new(fraction_string)
       end
@@ -373,9 +365,9 @@ module Cql
         when :varchar, :text
           bytes.force_encoding(::Encoding::UTF_8)
         when :varint
-          convert_bignum(bytes)
+          read_varint!(bytes, bytes.length)
         when :timeuuid, :uuid
-          Uuid.new(convert_bignum(bytes))
+          read_uuid!(bytes)
         when :inet
           IPAddr.new_ntoh(bytes)
         when Array

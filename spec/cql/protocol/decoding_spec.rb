@@ -25,6 +25,30 @@ module Cql
         end
       end
 
+      describe '#read_varint!' do
+        it 'decodes a variable length integer' do
+          Decoding.read_varint!("\x03\x9EV \x15\f\x03\x9DK\x18\xCDI\\$?\a[", 17).should == 1231312312331283012830129382342342412123
+        end
+
+        it 'decodes a negative variable length integer' do
+          Decoding.read_varint!("\xC9v\x8D:\x86", 5).should == -234234234234
+        end
+
+        it 'decodes an unsigned variable length integer' do
+          Decoding.read_varint!("\xC9v\x8D:\x86", 5, false).should == 865277393542
+        end
+
+        it 'consumes the bytes' do
+          buffer = "\x03\x9EV \x15\f\x03\x9DK\x18\xCDI\\$?\a[\x01\x02\x03"
+          Decoding.read_varint!(buffer, 17)
+          buffer.should == "\x01\x02\x03"
+        end
+
+        it 'raises an error when there is not enough bytes available' do
+          expect { Decoding.read_varint!("\xC9v\x8D:", 7) }.to raise_error(DecodingError)
+        end
+      end
+
       describe '#read_int!' do
         let :buffer do
           "\x00\xff\x00\xff"
@@ -119,9 +143,22 @@ module Cql
       end
 
       describe '#read_uuid!' do
-        it 'decodes a UUID'
-        it 'consumes the bytes'
-        it 'raises an error when there a not enough bytes in the buffer'
+        let :buffer do
+          "\xA4\xA7\t\x00$\xE1\x11\xDF\x89$\x00\x1F\xF3Y\x17\x11"
+        end
+
+        it 'decodes a UUID' do
+          Decoding.read_uuid!(buffer).should == Uuid.new('a4a70900-24e1-11df-8924-001ff3591711')
+        end
+        
+        it 'consumes the bytes' do
+          Decoding.read_uuid!(buffer)
+          buffer.should be_empty
+        end
+        
+        it 'raises an error when there a not enough bytes in the buffer' do
+          expect { Decoding.read_uuid!(buffer[2, 5]) }.to raise_error(DecodingError)
+        end
       end
 
       describe '#read_string_list!' do
