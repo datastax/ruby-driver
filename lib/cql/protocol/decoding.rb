@@ -15,12 +15,12 @@ module Cql
 
       def read_int!(buffer)
         raise DecodingError, "Need four bytes to decode an int, only #{buffer.size} bytes given" if buffer.size < 4
-        buffer.slice!(0, 4).unpack(INT_FORMAT).first
+        buffer.slice!(0, 4).unpack(Formats::INT_FORMAT).first
       end
 
       def read_short!(buffer)
         raise DecodingError, "Need two bytes to decode a short, only #{buffer.size} bytes given" if buffer.size < 2
-        buffer.slice!(0, 2).unpack(SHORT_FORMAT).first
+        buffer.slice!(0, 2).unpack(Formats::SHORT_FORMAT).first
       end
 
       def read_string!(buffer)
@@ -114,12 +114,6 @@ module Cql
         end
         map
       end
-
-      private
-
-      INT_FORMAT = 'N'.freeze
-      SHORT_FORMAT = 'n'.freeze
-      CHAR_FORMAT = 'c'.freeze
     end
   end
 end

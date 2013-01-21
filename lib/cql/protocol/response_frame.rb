@@ -92,7 +92,7 @@ module Cql
 
         def check_complete!
           if @buffer.length >= 8
-            @protocol_version, @flags, @stream_id, @opcode, @length = @buffer.slice!(0, 8).unpack(HEADER_FORMAT)
+            @protocol_version, @flags, @stream_id, @opcode, @length = @buffer.slice!(0, 8).unpack(Formats::HEADER_FORMAT)
             raise UnsupportedFrameTypeError, 'Request frames are not supported' if @protocol_version > 0
             @protocol_version &= 0x7f
           end
@@ -277,6 +277,8 @@ module Cql
 
       private
 
+      DECIMAL_POINT = '.'.freeze
+
       def self.read_column_type!(buffer)
         id, type = read_option!(buffer) do |id, b|
           case id
@@ -343,7 +345,7 @@ module Cql
       end
 
       def self.convert_bigdecimal(bytes)
-        size = bytes.unpack(INT_FORMAT).first
+        size = bytes.unpack(Formats::INT_FORMAT).first
         number_bytes = bytes[4, bytes.length - 4]
         number_string = convert_bignum(number_bytes).to_s
         fraction_string = number_string[0, number_string.length - size] << DECIMAL_POINT << number_string[number_string.length - size, number_string.length]
@@ -356,22 +358,22 @@ module Cql
         when :ascii
           bytes.force_encoding(::Encoding::ASCII)
         when :bigint
-          top, bottom = bytes.unpack(TWO_INTS_FORMAT)
+          top, bottom = bytes.unpack(Formats::TWO_INTS_FORMAT)
           top << 32 | bottom
         when :blob
           bytes
         when :boolean
-          bytes == TRUE_BYTE
+          bytes == Constants::TRUE_BYTE
         when :decimal
           convert_bigdecimal(bytes)
         when :double
-          bytes.unpack(DOUBLE_FORMAT).first
+          bytes.unpack(Formats::DOUBLE_FORMAT).first
         when :float
-          bytes.unpack(FLOAT_FORMAT).first
+          bytes.unpack(Formats::FLOAT_FORMAT).first
         when :int
-          bytes.unpack(INT_FORMAT).first
+          bytes.unpack(Formats::INT_FORMAT).first
         when :timestamp
-          top, bottom = bytes.unpack(TWO_INTS_FORMAT)
+          top, bottom = bytes.unpack(Formats::TWO_INTS_FORMAT)
           ms = top << 32 | bottom
           Time.at(ms/1000.0)
         when :varchar, :text
@@ -424,13 +426,6 @@ module Cql
         end
         rows
       end
-
-      TWO_INTS_FORMAT = 'NN'.freeze
-      DOUBLE_FORMAT = 'G'.freeze
-      FLOAT_FORMAT = 'g'.freeze
-      INT_FORMAT = 'N'.freeze
-      TRUE_BYTE = "\x01".freeze
-      DECIMAL_POINT = '.'.freeze
     end
 
     class SetKeyspaceResultResponse < ResultResponse

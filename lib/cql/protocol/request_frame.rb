@@ -12,15 +12,11 @@ module Cql
       end
 
       def write(io)
-        buffer = [1, 0, @stream_id, @body.opcode, 0].pack(HEADER_FORMAT)
+        buffer = [1, 0, @stream_id, @body.opcode, 0].pack(Formats::HEADER_FORMAT)
         buffer = @body.write(buffer)
-        buffer[4, 4] = [buffer.length - 8].pack(INT_FORMAT)
+        buffer[4, 4] = [buffer.length - 8].pack(Formats::INT_FORMAT)
         io << buffer
       end
-
-      private
-
-      INT_FORMAT = 'N'.freeze
     end
 
     class RequestBody
@@ -142,14 +138,6 @@ module Cql
 
       private
 
-      BYTES_FORMAT = 'C*'.freeze
-      DOUBLE_FORMAT = 'G'.freeze
-      FLOAT_FORMAT = 'g'.freeze
-      INT_FORMAT = 'N'.freeze
-      TRUE_BYTE = "\x01".freeze
-      FALSE_BYTE = "\x00".freeze
-      EMPTY_STRING = ''.freeze
-
       def write_value(io, value, type)
         case type
         when :ascii
@@ -160,7 +148,7 @@ module Cql
           write_bytes(io, value.encode(::Encoding::BINARY))
         when :boolean
           write_int(io, 1)
-          io << (value ? TRUE_BYTE : FALSE_BYTE)
+          io << (value ? Constants::TRUE_BYTE : Constants::FALSE_BYTE)
         when :decimal
           sign, number_string, _, size = value.split
           num = number_string.to_i
@@ -170,10 +158,10 @@ module Cql
           io << raw
         when :double
           write_int(io, 8)
-          io << [value].pack(DOUBLE_FORMAT)
+          io << [value].pack(Formats::DOUBLE_FORMAT)
         when :float
           write_int(io, 4)
-          io << [value].pack(FLOAT_FORMAT)
+          io << [value].pack(Formats::FLOAT_FORMAT)
         when :inet
           if value.ipv6?
             write_int(io, 16)
@@ -184,7 +172,7 @@ module Cql
           end
         when :int
           write_int(io, 4)
-          io << [value].pack(INT_FORMAT)
+          io << [value].pack(Formats::INT_FORMAT)
         when :text, :varchar
           write_bytes(io, value.encode(::Encoding::UTF_8))
         when :timestamp
@@ -217,7 +205,7 @@ module Cql
           bytes << (num & 0xff)
           num = num >> 8
         end
-        io << bytes.reverse.pack(BYTES_FORMAT)
+        io << bytes.reverse.pack(Formats::BYTES_FORMAT)
       end
     end
   end

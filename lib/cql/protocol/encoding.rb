@@ -8,21 +8,21 @@ module Cql
       extend self
 
       def write_int(buffer, n)
-        buffer << [n].pack('N')
+        buffer << [n].pack(Formats::INT_FORMAT)
       end
 
       def write_short(buffer, n)
-        buffer << [n].pack('n')
+        buffer << [n].pack(Formats::SHORT_FORMAT)
       end
 
       def write_string(buffer, str)
-        buffer << [str.length].pack('n')
+        buffer << [str.length].pack(Formats::SHORT_FORMAT)
         buffer << str
         buffer
       end
 
       def write_long_string(buffer, str)
-        buffer << [str.length].pack('N')
+        buffer << [str.length].pack(Formats::INT_FORMAT)
         buffer << str
         buffer
       end
@@ -32,7 +32,7 @@ module Cql
       end
 
       def write_string_list(buffer, strs)
-        buffer << [strs.size].pack('n')
+        buffer << [strs.size].pack(Formats::SHORT_FORMAT)
         strs.each do |str|
           write_string(buffer, str)
         end
@@ -78,7 +78,7 @@ module Cql
       end
 
       def write_string_map(buffer, map)
-        buffer << [map.size].pack('n')
+        buffer << [map.size].pack(Formats::SHORT_FORMAT)
         map.each do |key, value|
           write_string(buffer, key)
           write_string(buffer, value)
