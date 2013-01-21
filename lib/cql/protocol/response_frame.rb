@@ -334,8 +334,7 @@ module Cql
         when :ascii
           bytes.force_encoding(::Encoding::ASCII)
         when :bigint
-          top, bottom = bytes.unpack(Formats::TWO_INTS_FORMAT)
-          top << 32 | bottom
+          read_long!(bytes)
         when :blob
           bytes
         when :boolean
@@ -349,9 +348,8 @@ module Cql
         when :int
           bytes.unpack(Formats::INT_FORMAT).first
         when :timestamp
-          top, bottom = bytes.unpack(Formats::TWO_INTS_FORMAT)
-          ms = top << 32 | bottom
-          Time.at(ms/1000.0)
+          timestamp = read_long!(bytes)
+          Time.at(timestamp/1000.0)
         when :varchar, :text
           bytes.force_encoding(::Encoding::UTF_8)
         when :varint

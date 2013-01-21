@@ -73,6 +73,22 @@ module Cql
         end
       end
 
+      describe '#read_long!' do
+        it 'decodes a long' do
+          Decoding.read_long!("\x00\x00\xca\xfe\xba\xbe\x00\x00").should == 0x0000cafebabe0000
+        end
+
+        it 'consumes the bytes' do
+          buffer = "\xca\xfe\xba\xbe\xca\xfe\xba\xbe\xca\xfe\xba\xbe"
+          Decoding.read_long!(buffer)
+          buffer.should == "\xca\xfe\xba\xbe"
+        end
+
+        it 'raises an error when there is not enough bytes available' do
+          expect { Decoding.read_long!("\xca\xfe\xba\xbe\x00") }.to raise_error(DecodingError)
+        end
+      end
+
       describe '#read_int!' do
         let :buffer do
           "\x00\xff\x00\xff"

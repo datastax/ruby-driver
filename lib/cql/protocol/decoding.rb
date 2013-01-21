@@ -33,6 +33,12 @@ module Cql
         BigDecimal.new(fraction_string)
       end
 
+      def read_long!(buffer)
+        raise DecodingError, "Need eight bytes to decode long, only #{buffer.size} bytes given" if buffer.size < 8
+        top, bottom = buffer.slice!(0, 8).unpack(Formats::TWO_INTS_FORMAT)
+        (top << 32) | bottom
+      end
+
       def read_int!(buffer)
         raise DecodingError, "Need four bytes to decode an int, only #{buffer.size} bytes given" if buffer.size < 4
         buffer.slice!(0, 4).unpack(Formats::INT_FORMAT).first
