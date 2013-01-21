@@ -7,6 +7,7 @@ module Cql
   HEADER_FORMAT = 'c4N'.freeze
 end
 
+require 'cql/connection'
 require 'cql/uuid'
 require 'cql/encoding'
 require 'cql/decoding'

@@ -23,8 +23,8 @@ module Cql
       @request_queue = []
       @io_thread = Thread.start(&method(:io_loop))
       self
-    rescue Errno::EHOSTUNREACH, Errno::EBADF, SocketError => e
-      raise ConnectionError, e.message, e.backtrace
+    rescue Errno::EHOSTUNREACH, Errno::EBADF, Errno::EINVAL, SystemCallError, SocketError => e
+      raise ConnectionError, "Could not connect to #@host:#@port: #{e.message} (#{e.class.name})", e.backtrace
     end
 
     def close
@@ -210,11 +210,15 @@ module Cql
         readables.each(&:handle_read)
         writables.each(&:handle_write)
       end
-
-      streams.each(&:close)
-    rescue => e
-      $stderr.puts("ERROR: #{e.message} (#{e.class.name})")
-      raise
+    rescue Errno::ECONNRESET, EOFError, IOError => e
+      close
+    ensure
+      streams.each do |stream|
+        begin
+          stream.close
+        rescue IOError
+        end
+      end
     end
 
     class ResponseFuture
