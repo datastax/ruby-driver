@@ -277,12 +277,6 @@ module Cql
         end
       end
 
-      describe '#read_option_list!' do
-        it 'decodes an option list'
-        it 'consumes the bytes'
-        it 'raises an error when there are not enough bytes in the buffer'
-      end
-
       describe '#read_inet!' do
         it 'decodes an IPv4 + port pair' do
           ip_addr, port = Decoding.read_inet!("\x04\x00\x00\x00\x00\x00\x00#R")

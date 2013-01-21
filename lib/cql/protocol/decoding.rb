@@ -89,10 +89,6 @@ module Cql
         [id, value]
       end
 
-      def read_option_list!(buffer)
-        raise NotImplementedError
-      end
-
       def read_inet!(buffer)
         size = read_byte!(buffer)
         raise DecodingError, "Inet requires #{size} bytes, but only #{buffer.size} bytes given" if buffer.size < size
