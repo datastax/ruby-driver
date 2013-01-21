@@ -57,18 +57,6 @@ module Cql
         buffer
       end
 
-      def write_option(buffer, option)
-        raise NotImplementedError
-      end
-
-      def write_option_list(buffer, options)
-        raise NotImplementedError
-      end
-
-      def write_inet(buffer, ip, port)
-        raise NotImplementedError
-      end
-
       def write_consistency(buffer, consistency)
         index = CONSISTENCIES.index(consistency)
         raise EncodingError, %(Unknown consistency "#{consistency}") unless index
@@ -82,10 +70,6 @@ module Cql
           write_string(buffer, value)
         end
         buffer
-      end
-
-      def write_string_multimap(buffer, map)
-        raise NotImplementedError
       end
     end
   end

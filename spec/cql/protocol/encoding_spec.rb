@@ -167,25 +167,6 @@ module Cql
         end
       end
 
-      describe '#write_option' do
-        it 'encodes an option'
-        it 'appends to the buffer'
-        it 'returns the buffer'
-      end
-
-      describe '#write_option_list' do
-        it 'encodes an option list'
-        it 'appends to the buffer'
-        it 'returns the buffer'
-      end
-
-      describe '#write_inet' do
-        it 'encodes an IPv4 + port pair'
-        it 'encodes an IPv6 + port pair'
-        it 'appends to the buffer'
-        it 'returns the buffer'
-      end
-
       describe '#write_consistency' do
         {
           :any => "\x00\x00",
@@ -240,12 +221,6 @@ module Cql
           result = Encoding.write_string_map(buffer, 'HELLO' => 'world')
           result.should equal(buffer)
         end
-      end
-
-      describe '#write_string_multimap' do
-        it 'encodes a string multimap'
-        it 'appends to the buffer'
-        it 'returns the buffer'
       end
     end
   end
