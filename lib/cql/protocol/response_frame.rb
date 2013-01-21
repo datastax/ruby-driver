@@ -271,8 +271,6 @@ module Cql
 
       private
 
-      DECIMAL_POINT = '.'.freeze
-
       def self.read_column_type!(buffer)
         id, type = read_option!(buffer) do |id, b|
           case id
@@ -330,14 +328,6 @@ module Cql
         end
       end
 
-      def self.convert_bigdecimal(bytes)
-        size = bytes.unpack(Formats::INT_FORMAT).first
-        number_bytes = bytes[4, bytes.length - 4]
-        number_string = read_varint!(number_bytes, number_bytes.length).to_s
-        fraction_string = number_string[0, number_string.length - size] << DECIMAL_POINT << number_string[number_string.length - size, number_string.length]
-        BigDecimal.new(fraction_string)
-      end
-
       def self.convert_type(bytes, type)
         return nil unless bytes
         case type
@@ -351,7 +341,7 @@ module Cql
         when :boolean
           bytes == Constants::TRUE_BYTE
         when :decimal
-          convert_bigdecimal(bytes)
+          read_decimal!(bytes)
         when :double
           bytes.unpack(Formats::DOUBLE_FORMAT).first
         when :float

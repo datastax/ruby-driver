@@ -24,6 +24,15 @@ module Cql
         n
       end
 
+      def read_decimal!(buffer, length=buffer.length)
+        raise DecodingError, "Length #{length} specifed but only #{buffer.size} bytes given" if buffer.size < length
+        size = read_int!(buffer)
+        number_bytes = buffer.slice!(0, length - 4)
+        number_string = read_varint!(number_bytes).to_s
+        fraction_string = number_string[0, number_string.length - size] << DECIMAL_POINT << number_string[number_string.length - size, number_string.length]
+        BigDecimal.new(fraction_string)
+      end
+
       def read_int!(buffer)
         raise DecodingError, "Need four bytes to decode an int, only #{buffer.size} bytes given" if buffer.size < 4
         buffer.slice!(0, 4).unpack(Formats::INT_FORMAT).first
@@ -122,6 +131,10 @@ module Cql
         end
         map
       end
+
+      private
+
+      DECIMAL_POINT = '.'.freeze
     end
   end
 end

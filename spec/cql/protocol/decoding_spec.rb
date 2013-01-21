@@ -49,6 +49,30 @@ module Cql
         end
       end
 
+      describe '#read_decimal!' do
+        let :buffer do
+          "\x00\x00\x00\x12\r'\xFDI\xAD\x80f\x11g\xDCfV\xAA"
+        end
+
+        it 'decodes a decimal to a BigDecimal' do
+          Decoding.read_decimal!(buffer, buffer.length).should == BigDecimal.new('1042342234234.123423435647768234')
+        end
+
+        it 'consumes the bytes' do
+          buffer << 'HELLO'
+          Decoding.read_decimal!(buffer, buffer.length - 5)
+          buffer.should == 'HELLO'
+        end
+
+        it 'defaults to using the buffer length' do
+          Decoding.read_decimal!(buffer.dup).should == Decoding.read_decimal!(buffer, buffer.length)
+        end
+
+        it 'raises an error when there is not enough bytes available' do
+          expect { Decoding.read_decimal!(buffer[0, 3], 7) }.to raise_error(DecodingError)
+        end
+      end
+
       describe '#read_int!' do
         let :buffer do
           "\x00\xff\x00\xff"
