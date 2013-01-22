@@ -5,4 +5,5 @@ group :test do
   gem 'pry'
   gem 'simplecov'
   gem 'viiite'
+  gem 'travis'
 end

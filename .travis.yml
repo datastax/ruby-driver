@@ -1,5 +1,5 @@
 language: ruby
-script: 'rspec spec'
+script: 'rspec spec/cql'
 rvm:
   - 1.9.3
   - jruby-19mode
@@ -7,8 +7,8 @@ rvm:
 jdk:
   - openjdk7
   - openjdk6
-services:
-  - cassandra
+# services:
+#   - cassandra
 matrix:
   exclude:
     - rvm: 1.9.3
