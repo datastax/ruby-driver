@@ -96,6 +96,14 @@ module Cql
         write_int(buffer, number_string.length - size)
         buffer << raw
       end
+
+      def write_double(buffer, n)
+        buffer << [n].pack(Formats::DOUBLE_FORMAT)
+      end
+
+      def write_float(buffer, n)
+        buffer << [n].pack(Formats::FLOAT_FORMAT)
+      end
     end
   end
 end

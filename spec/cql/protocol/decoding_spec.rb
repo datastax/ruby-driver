@@ -89,6 +89,38 @@ module Cql
         end
       end
 
+      describe '#read_double!' do
+        it 'decodes a double' do
+          Decoding.read_double!("@\xC3\x88\x0F\xC2\x7F\x9DU").should == 10000.123123123
+        end
+
+        it 'consumes the bytes' do
+          buffer = "@\xC3\x88\x0F\xC2\x7F\x9DUxyz"
+          Decoding.read_double!(buffer)
+          buffer.should == 'xyz'
+        end
+
+        it 'raises an error when there is not enough bytes available' do
+          expect { Decoding.read_double!("@\xC3\x88\x0F") }.to raise_error(DecodingError)
+        end
+      end
+
+      describe '#read_float!' do
+        it 'decodes a float' do
+          Decoding.read_float!("AB\x14{").should be_within(0.00001).of(12.13)
+        end
+
+        it 'consumes the bytes' do
+          buffer = "AB\x14{xyz"
+          Decoding.read_float!(buffer)
+          buffer.should == 'xyz'
+        end
+
+        it 'raises an error when there is not enough bytes available' do
+          expect { Decoding.read_float!("\x0F") }.to raise_error(DecodingError)
+        end
+      end
+
       describe '#read_int!' do
         let :buffer do
           "\x00\xff\x00\xff"

@@ -342,11 +342,11 @@ module Cql
         when :decimal
           read_decimal!(bytes)
         when :double
-          bytes.unpack(Formats::DOUBLE_FORMAT).first
+          read_double!(bytes)
         when :float
-          bytes.unpack(Formats::FLOAT_FORMAT).first
+          read_float!(bytes)
         when :int
-          bytes.unpack(Formats::INT_FORMAT).first
+          read_int!(bytes)
         when :timestamp
           timestamp = read_long!(bytes)
           Time.at(timestamp/1000.0)

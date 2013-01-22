@@ -154,21 +154,16 @@ module Cql
           io << raw
         when :double
           write_int(io, 8)
-          io << [value].pack(Formats::DOUBLE_FORMAT)
+          write_double(io, value)
         when :float
           write_int(io, 4)
-          io << [value].pack(Formats::FLOAT_FORMAT)
+          write_float(io, value)
         when :inet
-          if value.ipv6?
-            write_int(io, 16)
-            io << value.hton
-          else
-            write_int(io, 4)
-            io << value.hton
-          end
+          write_int(io, value.ipv6? ? 16 : 4)
+          io << value.hton
         when :int
           write_int(io, 4)
-          io << [value].pack(Formats::INT_FORMAT)
+          write_int(io, value)
         when :text, :varchar
           write_bytes(io, value.encode(::Encoding::UTF_8))
         when :timestamp

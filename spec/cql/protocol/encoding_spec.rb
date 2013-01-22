@@ -297,6 +297,42 @@ module Cql
           result.should equal(buffer)
         end
       end
+
+      describe '#write_double' do
+        it 'encodes a double' do
+          Encoding.write_double(buffer, 10000.123123123)
+          buffer.should == "@\xC3\x88\x0F\xC2\x7F\x9DU"
+        end
+
+        it 'appends to the buffer' do
+          buffer << 'BEFORE'
+          Encoding.write_double(buffer, 10000.123123123)
+          buffer.should start_with('BEFORE')
+        end
+
+        it 'returns the buffer' do
+          result = Encoding.write_double(buffer, 10000.123123123)
+          result.should equal(buffer)
+        end
+      end
+
+      describe '#write_float' do
+        it 'encodes a float' do
+          Encoding.write_float(buffer, 12.13)
+          buffer.should == "AB\x14{"
+        end
+
+        it 'appends to the buffer' do
+          buffer << 'BEFORE'
+          Encoding.write_float(buffer, 12.13)
+          buffer.should start_with('BEFORE')
+        end
+
+        it 'returns the buffer' do
+          result = Encoding.write_float(buffer, 12.13)
+          result.should equal(buffer)
+        end
+      end
     end
   end
 end

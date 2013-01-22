@@ -39,6 +39,16 @@ module Cql
         (top << 32) | bottom
       end
 
+      def read_double!(buffer)
+        raise DecodingError, "Need eight bytes to decode double, only #{buffer.size} bytes given" if buffer.size < 8
+        buffer.slice!(0, 8).unpack(Formats::DOUBLE_FORMAT).first
+      end
+
+      def read_float!(buffer)
+        raise DecodingError, "Need four bytes to decode float, only #{buffer.size} bytes given" if buffer.size < 4
+        buffer.slice!(0, 4).unpack(Formats::FLOAT_FORMAT).first
+      end
+
       def read_int!(buffer)
         raise DecodingError, "Need four bytes to decode an int, only #{buffer.size} bytes given" if buffer.size < 4
         buffer.slice!(0, 4).unpack(Formats::INT_FORMAT).first
