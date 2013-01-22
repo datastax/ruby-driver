@@ -11,7 +11,7 @@ module Cql
       end
     end
 
-    describe '#open' do
+    describe '#open', :noci => true do
       let :host do
         Socket.gethostname
       end
