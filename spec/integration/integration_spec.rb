@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 
-describe 'Startup', :noci => true do
+describe 'Startup' do
   let :connection do
     Cql::Connection.new(host: ENV['CASSANDRA_HOST']).open
   end

@@ -11,7 +11,7 @@ module Cql
       end
     end
 
-    describe '#open', :noci => true do
+    describe '#open' do
       let :host do
         Socket.gethostname
       end
@@ -27,16 +27,18 @@ module Cql
       def start_server!
         @server_running = [true]
         @connects = []
-        @sockets = Socket.tcp_server_sockets(port)
+        @sockets = [TCPServer.new(port)]
         @server_thread = Thread.start(@sockets, @server_running, @connects) do |sockets, server_running, connects|
-          Thread.current.abort_on_exception = true
-          while server_running[0]
-            readables, _ = IO.select(sockets, nil, nil, 0)
-            if readables
-              readables.each do |socket|
-                connection, _ = socket.accept_nonblock
-                connects << 1
-                connection.close
+          begin
+            Thread.current.abort_on_exception = true
+            while server_running[0]
+              readables, _ = IO.select(sockets, nil, nil, 0)
+              if readables
+                readables.each do |socket|
+                  connection, _ = socket.accept_nonblock
+                  connects << 1
+                  connection.close
+                end
               end
             end
           end

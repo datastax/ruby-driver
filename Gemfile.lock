@@ -13,6 +13,7 @@ GEM
       multipart-post (~> 1.1)
     faraday_middleware (0.9.0)
       faraday (>= 0.7.4, < 0.9)
+    ffi (1.1.5-java)
     gh (0.9.1)
       addressable
       backports (~> 2.3)
@@ -23,8 +24,13 @@ GEM
     gnuplot (2.3.6)
     highline (1.6.15)
     json (1.7.6)
+    json (1.7.6-java)
     launchy (2.1.2)
       addressable (~> 2.3)
+    launchy (2.1.2-java)
+      addressable (~> 2.3)
+      ffi (~> 1.1.1)
+      spoon (~> 0.0.1)
     method_source (0.8.1)
     multi_json (1.5.0)
     multipart-post (1.1.5)
@@ -36,6 +42,11 @@ GEM
       coderay (~> 1.0.5)
       method_source (~> 0.8)
       slop (~> 3.3.1)
+    pry (0.9.10-java)
+      coderay (~> 1.0.5)
+      method_source (~> 0.8)
+      slop (~> 3.3.1)
+      spoon (~> 0.0)
     quickl (0.4.3)
     rspec (2.12.0)
       rspec-core (~> 2.12.0)
@@ -50,6 +61,7 @@ GEM
       simplecov-html (~> 0.7.1)
     simplecov-html (0.7.1)
     slop (3.3.3)
+    spoon (0.0.1)
     travis (1.1.0)
       backports (~> 2.6)
       faraday (~> 0.8)
@@ -64,6 +76,7 @@ GEM
       json
 
 PLATFORMS
+  java
   ruby
 
 DEPENDENCIES
