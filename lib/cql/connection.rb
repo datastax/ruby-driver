@@ -280,7 +280,6 @@ module Cql
 
     class ResponseFuture
       def initialize
-        @lock = Queue.new
         @listeners = []
       end
 
@@ -294,13 +293,14 @@ module Cql
 
       def complete!(response)
         @response = response
-        @lock << :ping
+        @lock << :ping if @lock
         @listeners.each { |l| l.call(response) }
         @listeners.clear
       end
 
       def get
         return @response if @response
+        @lock = Queue.new
         @lock.pop
         @response
       end
