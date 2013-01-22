@@ -231,7 +231,7 @@ module Cql
           readables.each(&:handle_read)
           writables.each(&:handle_write)
         end
-      rescue Errno::ECONNRESET, EOFError, IOError => e
+      rescue Errno::ECONNRESET, IOError => e
         close
       ensure
         @streams.each do |stream|
