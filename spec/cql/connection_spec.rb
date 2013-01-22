@@ -91,7 +91,7 @@ module Cql
         rescue ConnectionError
         end
         time_taken = (Time.now - started_at).to_f
-        time_taken.should be_within(0.5).of(1)
+        time_taken.should be < 1.5
       end
     end
   end
