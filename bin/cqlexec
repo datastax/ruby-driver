@@ -69,13 +69,13 @@ class CqlExecutor
   end
 
   def start
-    execute_request(Cql::StartupRequest.new)
+    execute_request(Cql::Protocol::StartupRequest.new)
 
     @connection.on_event do |event|
       $stdout.puts(event)
     end
 
-    execute_request(Cql::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE'))
+    execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE'))
   end
 
   def prepare_and_execute_request(query)
@@ -83,7 +83,7 @@ class CqlExecutor
     query.strip!
     unless query.empty?
       p query
-      execute_request(Cql::QueryRequest.new(query, :one))
+      execute_request(Cql::Protocol::QueryRequest.new(query, :one))
     end
   end
 
@@ -92,7 +92,7 @@ class CqlExecutor
     response = check_response!(@connection.execute!(request))
     $stderr.puts(response) if @options[:verbose]
     case response
-    when Cql::RowsResultResponse
+    when Cql::Protocol::RowsResultResponse
       format_table_output(response)
     end
   end
@@ -153,7 +153,7 @@ class CqlExecutor
   end
 
   def check_response!(response)
-    if response.is_a?(Cql::ErrorResponse)
+    if response.is_a?(Cql::Protocol::ErrorResponse)
       abort("Error: #{response.message} (##{response.code})")
     else
       response
