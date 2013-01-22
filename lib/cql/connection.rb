@@ -16,40 +16,30 @@ module Cql
     end
 
     def open
-      return if @io_thread
-      @queue_lock = Mutex.new
-      @queue_signal_receiver, @queue_signal_sender = IO.pipe
-      @socket = connect(@host, @port, @timeout)
-      @request_queue = []
-      @io_thread = Thread.start(&method(:io_loop))
+      return if @io_reactor
+      @io_reactor = IoReactor.new
+      @io_reactor.add_connection(@host, @port, @timeout)
+      @reactor_thread = Thread.start do
+        Thread.current.abort_on_exception = true
+        @io_reactor.run
+      end
       self
-    rescue Errno::EHOSTUNREACH, Errno::EBADF, Errno::EINVAL, SystemCallError, SocketError => e
-      raise ConnectionError, "Could not connect to #@host:#@port: #{e.message} (#{e.class.name})", e.backtrace
     end
 
     def close
-      @closed = true
+      @io_reactor && @io_reactor.close
     end
 
     def closed?
-      @closed
+      @io_reactor && @io_reactor.closed?
     end
 
-    def on_event(&handler)
-      @queue_lock.synchronize do
-        @request_queue << [:on_event, handler]
-        @queue_signal_sender.write(PING_BYTE)
-      end
+    def on_event(&listener)
+      @io_reactor.add_event_listener(listener)
     end
 
     def execute(request, &handler)
-      future = ResponseFuture.new
-      future.on_complete(&handler) if handler
-      @queue_lock.synchronize do
-        @request_queue << [request, future]
-        @queue_signal_sender.write(PING_BYTE)
-      end
-      future
+      @io_reactor.add_request(request, handler)
     end
 
     def execute!(request)
@@ -57,44 +47,6 @@ module Cql
     end
 
     private
-
-    PING_BYTE = "\0".freeze
-    EVENT_STREAM_ID = -1
-
-    def connect(host, port, timeout)
-      socket = nil
-      exception = nil
-      addrinfo = Socket.getaddrinfo(host, port, nil, Socket::Constants::SOCK_STREAM)
-      addrinfo.each do |_, port, _, ip, address_family, socket_type|
-        sockaddr = Socket.sockaddr_in(port, ip)
-        begin
-          socket = Socket.new(address_family, socket_type, 0)
-          socket.connect_nonblock(sockaddr)
-          return socket
-        rescue Errno::EINPROGRESS
-          IO.select(nil, [socket], nil, timeout)
-          begin
-            socket.connect_nonblock(sockaddr)
-            return socket
-          rescue Errno::EISCONN
-            return socket
-          rescue Errno::EINVAL => e
-            exception = e
-            socket.close
-            next
-          rescue SystemCallError => e
-            exception = e
-            socket.close
-            next
-          end
-        rescue SystemCallError => e
-          exception = e
-          socket.close
-          next
-        end
-      end
-      raise exception
-    end
 
     class NodeConnection
       def initialize(io)
@@ -160,30 +112,38 @@ module Cql
       def close
         @io.close
       end
+
+      private
+
+      EVENT_STREAM_ID = -1
     end
 
-    class QueueSignalListener
+    class CommandDispatcher
       def initialize(*args)
-        @io, @request_queue, @queue_lock, @node_connections = args
+        @io, @command_queue, @queue_lock, @node_connections = args
       end
 
       def to_io
         @io
       end
 
+      def has_capacity?
+        false
+      end
+
+      def on_event; end
+
       def handle_read
         requests = []
         if @io.read_nonblock(1)
-          @queue_lock.synchronize do
-            while @node_connections.any?(&:has_capacity?) && @request_queue.size > 0
-              pair = @request_queue.pop
-              if pair && pair.first
-                if pair.first == :on_event
-                  @node_connections.each { |c| c.on_event(&pair.last) }
-                else
-                  @node_connections.select(&:has_capacity?).sample.perform_request(*pair)
-                end
-              end
+          while (command = next_command)
+            case command.shift
+            when :event_listener
+              listener = command.shift
+              @node_connections.each { |c| c.on_event(&listener) }
+            else
+              request, future = command
+              @node_connections.select(&:has_capacity?).sample.perform_request(request, future)
             end
           end
         end
@@ -195,29 +155,126 @@ module Cql
       def close
         @io.close
       end
+
+      private
+
+      def next_command
+        @queue_lock.synchronize do
+          if @node_connections.any?(&:has_capacity?) && @command_queue.size > 0
+            return @command_queue.shift
+          end
+        end
+        nil
+      end
     end
 
-    def io_loop
-      Thread.current.abort_on_exception = true
-
-      node_connections = [NodeConnection.new(@socket)]
-      queue_signal_listener = QueueSignalListener.new(@queue_signal_receiver, @request_queue, @queue_lock, node_connections)
-      streams = node_connections + [queue_signal_listener]
-
-      until closed?
-        readables, writables, _ = IO.select(streams, streams, nil, 1)
-
-        readables.each(&:handle_read)
-        writables.each(&:handle_write)
+    class IoReactor
+      def initialize
+        @lock = Mutex.new
+        @streams = []
+        @command_queue = []
+        @queue_signal_receiver, @queue_signal_sender = IO.pipe
       end
-    rescue Errno::ECONNRESET, EOFError, IOError => e
-      close
-    ensure
-      streams.each do |stream|
-        begin
-          stream.close
-        rescue IOError
+
+      def close
+        @closed = true
+      end
+
+      def closed?
+        @closed
+      end
+
+      def run
+        @lock.synchronize do
+          @streams << CommandDispatcher.new(@queue_signal_receiver, @command_queue, @lock, @streams)
         end
+        @closed = false
+        io_loop
+      end
+
+      def add_connection(host, port, timeout)
+        @lock.synchronize do
+          begin
+            @streams = @streams + [NodeConnection.new(connect(host, port, timeout))]
+          rescue Errno::EHOSTUNREACH, Errno::EBADF, Errno::EINVAL, SystemCallError, SocketError => e
+            raise ConnectionError, "Could not connect to #@host:#@port: #{e.message} (#{e.class.name})", e.backtrace
+          end
+        end
+      end
+
+      def add_event_listener(listener)
+        command_queue_push(:event_listener, listener)
+      end
+
+      def add_request(request, listener)
+        future = ResponseFuture.new
+        future.on_complete(&listener) if listener
+        command_queue_push(:request, request, future)
+        future
+      end
+
+      private
+
+      PING_BYTE = "\0".freeze
+
+      def command_queue_push(*item)
+        @lock.synchronize do
+          @command_queue << item
+        end
+        @queue_signal_sender.write(PING_BYTE)
+      end
+
+      def io_loop
+        until closed?
+          readables, writables, _ = IO.select(@streams, @streams, nil, 1)
+
+          readables.each(&:handle_read)
+          writables.each(&:handle_write)
+        end
+      rescue Errno::ECONNRESET, EOFError, IOError => e
+        close
+      ensure
+        @streams.each do |stream|
+          begin
+            stream.close
+          rescue IOError
+          end
+        end
+      end
+
+      def connect(host, port, timeout)
+        socket = nil
+        exception = nil
+        addrinfo = Socket.getaddrinfo(host, port, nil, Socket::Constants::SOCK_STREAM)
+        addrinfo.each do |_, port, _, ip, address_family, socket_type|
+          sockaddr = Socket.sockaddr_in(port, ip)
+          begin
+            socket = Socket.new(address_family, socket_type, 0)
+            socket.connect_nonblock(sockaddr)
+            return socket
+          rescue Errno::EINPROGRESS
+            IO.select(nil, [socket], nil, timeout)
+            begin
+              socket.connect_nonblock(sockaddr)
+              return socket
+            rescue Errno::EISCONN
+              return socket
+            rescue Errno::EINVAL => e
+              exception = e
+              socket.close
+              next
+            rescue SystemCallError => e
+              exception = e
+              socket.close
+              next
+            end
+          rescue SystemCallError => e
+            exception = e
+            socket.close
+            next
+          end
+        end
+        raise exception
       end
     end
 
