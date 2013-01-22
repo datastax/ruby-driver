@@ -27,15 +27,17 @@ module Cql
       def start_server!
         @server_running = [true]
         @connects = []
-        @server = TCPServer.new(port)
-        @server_thread = Thread.start(@server, @server_running, @connects) do |server, server_running, connects|
+        @sockets = Socket.tcp_server_sockets(port)
+        @server_thread = Thread.start(@sockets, @server_running, @connects) do |sockets, server_running, connects|
           Thread.current.abort_on_exception = true
           while server_running[0]
-            begin
-              connection = server.accept_nonblock
-              connects << 1
-              connection.close
-            rescue Errno::EAGAIN
+            readables, _ = IO.select(sockets, nil, nil, 0)
+            if readables
+              readables.each do |socket|
+                connection, _ = socket.accept_nonblock
+                connects << 1
+                connection.close
+              end
             end
           end
         end
@@ -45,7 +47,7 @@ module Cql
         return unless @server_running[0]
         @server_running[0] = false
         @server_thread.join
-        @server.close
+        @sockets.each(&:close)
       end
 
       before do
