@@ -278,7 +278,7 @@ module Cql
           when 0x02 then :bigint
           when 0x03 then :blob
           when 0x04 then :boolean
-          # when 0x05 then :counter
+          when 0x05 then :counter
           when 0x06 then :decimal
           when 0x07 then :double
           when 0x08 then :float
@@ -339,6 +339,8 @@ module Cql
           bytes
         when :boolean
           bytes == Constants::TRUE_BYTE
+        when :counter
+          read_long!(bytes)
         when :decimal
           read_decimal!(bytes)
         when :double

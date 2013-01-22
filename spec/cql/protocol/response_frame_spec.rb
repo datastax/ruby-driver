@@ -502,6 +502,11 @@ module Cql
             frame.body.rows.first['set_column'].should == Set.new(["\xab\x43\x21", "\xaf\xd8\x7e\xcd"].map { |s| s.force_encoding(::Encoding::BINARY) })
           end
 
+          it 'decodes COUNTER as a number' do
+            frame = described_class.new("\x81\x00\x00\b\x00\x00\x00N\x00\x00\x00\x02\x00\x00\x00\x01\x00\x00\x00\x03\x00\x04test\x00\x04cnts\x00\x02id\x00\r\x00\x02c1\x00\x05\x00\x02c2\x00\x05\x00\x00\x00\x01\x00\x00\x00\x04theo\x00\x00\x00\b\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\b\x00\x00\x00\x00\x00\x00\x00\x01")
+            frame.body.rows.first['c1'].should == 3
+          end
+
           it 'raises an error when encountering an unknown column type' do
             frame = described_class.new
             frame << "\x81\x00\x00\b\x00\x00\x00E"
