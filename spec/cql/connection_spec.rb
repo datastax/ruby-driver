@@ -17,7 +17,7 @@ module Cql
       end
 
       let :port do
-        3453
+        34535
       end
 
       let :connection do
