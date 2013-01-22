@@ -82,7 +82,6 @@ class CqlExecutor
     query.chomp!(';')
     query.strip!
     unless query.empty?
-      p query
       execute_request(Cql::Protocol::QueryRequest.new(query, :one))
     end
   end
