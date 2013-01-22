@@ -1,5 +1,6 @@
 language: ruby
 script: 'rspec spec/cql'
+bundler_args: --without development
 rvm:
   - 1.9.3
   - jruby-19mode

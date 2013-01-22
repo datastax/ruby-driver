@@ -1,9 +1,12 @@
 source :rubygems
 
-group :test do
-  gem 'rspec'
+group :development do
   gem 'pry'
-  gem 'simplecov'
   gem 'viiite'
   gem 'travis'
+end
+
+group :test do
+  gem 'rspec'
+  gem 'simplecov'
 end
