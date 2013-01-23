@@ -75,6 +75,10 @@ module Cql
           !!next_stream_id
         end
 
+        def can_write?
+          !@write_buffer.empty?
+        end
+
         def perform_request(request, future)
           stream_id = next_stream_id
           if stream_id
@@ -101,10 +105,8 @@ module Cql
         end
 
         def handle_write
-          unless @write_buffer.empty?
-            bytes_written = @io.write_nonblock(@write_buffer)
-            @write_buffer.slice!(0, bytes_written)
-          end
+          bytes_written = @io.write_nonblock(@write_buffer)
+          @write_buffer.slice!(0, bytes_written)
         end
 
         def close
@@ -126,6 +128,10 @@ module Cql
         end
 
         def has_capacity?
+          false
+        end
+
+        def can_write?
           false
         end
 
@@ -224,10 +230,10 @@ module Cql
 
         def io_loop
           until closed?
-            readables, writables, _ = IO.select(@streams, @streams, nil, 1)
-
-            readables.each(&:handle_read)
-            writables.each(&:handle_write)
+            write_ready_streams = @streams.select(&:can_write?)
+            readables, writables, _ = IO.select(@streams, write_ready_streams, nil, 1)
+            readables && readables.each(&:handle_read)
+            writables && writables.each(&:handle_write)
           end
         rescue Errno::ECONNRESET, IOError => e
           close
