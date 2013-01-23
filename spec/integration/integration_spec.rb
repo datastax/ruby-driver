@@ -5,7 +5,7 @@ require 'spec_helper'
 
 describe 'Startup' do
   let :connection do
-    Cql::Connection.new(host: ENV['CASSANDRA_HOST']).connect
+    Cql::Io::Connection.new(host: ENV['CASSANDRA_HOST']).connect
   end
 
   let :keyspace_name do
@@ -292,12 +292,12 @@ describe 'Startup' do
 
   context 'in special circumstances' do
     it 'raises an exception when it cannot connect to Cassandra' do
-      expect { Cql::Connection.new(host: 'example.com', timeout: 0.1).connect.execute(Cql::Protocol::OptionsRequest.new) }.to raise_error(Cql::ConnectionError)
-      expect { Cql::Connection.new(host: 'blackhole', timeout: 0.1).connect.execute(Cql::Protocol::OptionsRequest.new) }.to raise_error(Cql::ConnectionError)
+      expect { Cql::Io::Connection.new(host: 'example.com', timeout: 0.1).connect.execute(Cql::Protocol::OptionsRequest.new) }.to raise_error(Cql::Io::ConnectionError)
+      expect { Cql::Io::Connection.new(host: 'blackhole', timeout: 0.1).connect.execute(Cql::Protocol::OptionsRequest.new) }.to raise_error(Cql::Io::ConnectionError)
     end
 
     it 'does nothing the second time #connect is called' do
-      connection = Cql::Connection.new
+      connection = Cql::Io::Connection.new
       connection.connect
       connection.execute!(Cql::Protocol::StartupRequest.new)
       connection.connect
