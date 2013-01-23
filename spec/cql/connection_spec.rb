@@ -11,7 +11,7 @@ module Cql
       end
     end
 
-    describe '#open' do
+    describe '#connect' do
       let :host do
         Socket.gethostname
       end
@@ -62,34 +62,34 @@ module Cql
       end
 
       it 'connects to the specified host and port' do
-        connection.open
+        connection.connect
         sleep 0.1
         stop_server!
         @connects.should have(1).items
       end
 
       it 'does nothing when called a second time' do
-        connection.open
+        connection.connect
         sleep 0.1
-        connection.open
+        connection.connect
         sleep 0.1
         stop_server!
         @connects.should have(1).items
       end
 
       it 'returns the connection' do
-        connection.open.should equal(connection)
+        connection.connect.should equal(connection)
       end
 
       it 'raises an error if it cannot connect' do
-        expect { described_class.new(host: 'huffabuff.local', timeout: 1).open }.to raise_error(ConnectionError)
-        expect { described_class.new(port: 9999, timeout: 1).open }.to raise_error(ConnectionError)
+        expect { described_class.new(host: 'huffabuff.local', timeout: 1).connect }.to raise_error(ConnectionError)
+        expect { described_class.new(port: 9999, timeout: 1).connect }.to raise_error(ConnectionError)
       end
 
       it 'times out quickly when it cannot connect' do
         started_at = Time.now
         begin
-          described_class.new(port: 9999, timeout: 1).open
+          described_class.new(port: 9999, timeout: 1).connect
         rescue ConnectionError
         end
         time_taken = (Time.now - started_at).to_f

@@ -15,7 +15,7 @@ module Cql
       @timeout = options[:timeout] || 10
     end
 
-    def open
+    def connect
       return if @io_reactor
       @io_reactor = IoReactor.new
       @io_reactor.add_connection(@host, @port, @timeout)
