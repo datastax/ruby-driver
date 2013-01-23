@@ -6,7 +6,6 @@ $: << File.expand_path('../../lib', __FILE__)
 require 'optparse'
 require 'set'
 require 'cql'
-require 'cql/connection'
 
 
 class CqlExecutor
@@ -15,7 +14,7 @@ class CqlExecutor
   end
 
   def run(io)
-    @connection = Cql::Connection.new(host: @options[:host], port: @options[:port]).open
+    @connection = Cql::Io::Connection.new(host: @options[:host], port: @options[:port]).connect
 
     begin
       start
