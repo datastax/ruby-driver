@@ -3,9 +3,11 @@
 require 'spec_helper'
 
 
-describe 'Startup' do
+describe 'A CQL connection' do
   let :connection do
-    Cql::Io::Connection.new(host: ENV['CASSANDRA_HOST']).connect
+    c = Cql::Io::Connection.new(host: ENV['CASSANDRA_HOST'])
+    c.connect!
+    c
   end
 
   let :keyspace_name do
@@ -13,7 +15,7 @@ describe 'Startup' do
   end
 
   after do
-    connection.close
+    connection.close! if connection.connected?
   end
 
   def execute_request(request)
@@ -292,15 +294,15 @@ describe 'Startup' do
 
   context 'in special circumstances' do
     it 'raises an exception when it cannot connect to Cassandra' do
-      expect { Cql::Io::Connection.new(host: 'example.com', timeout: 0.1).connect.execute(Cql::Protocol::OptionsRequest.new) }.to raise_error(Cql::Io::ConnectionError)
-      expect { Cql::Io::Connection.new(host: 'blackhole', timeout: 0.1).connect.execute(Cql::Protocol::OptionsRequest.new) }.to raise_error(Cql::Io::ConnectionError)
+      expect { Cql::Io::Connection.new(host: 'example.com', timeout: 0.1).connect! }.to raise_error(Cql::Io::ConnectionError)
+      expect { Cql::Io::Connection.new(host: 'blackhole', timeout: 0.1).connect! }.to raise_error(Cql::Io::ConnectionError)
     end
 
     it 'does nothing the second time #connect is called' do
       connection = Cql::Io::Connection.new
-      connection.connect
+      connection.connect!
       connection.execute!(Cql::Protocol::StartupRequest.new)
-      connection.connect
+      connection.connect!
       response = connection.execute!(Cql::Protocol::QueryRequest.new('USE system', :any))
       response.should_not be_a(Cql::Protocol::ErrorResponse)
     end

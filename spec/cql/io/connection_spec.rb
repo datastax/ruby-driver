@@ -6,6 +6,34 @@ require 'spec_helper'
 module Cql
   module Io
     describe Connection do
+      include AsyncHelpers
+      include FakeServerHelpers
+
+      let :host do
+        Socket.gethostname
+      end
+
+      let :port do
+        34535
+      end
+
+      let :connection do
+        described_class.new(host: host, port: port)
+      end
+
+      def await_server
+        sleep 0.1
+      end
+
+      before do
+        start_server!(port)
+      end
+
+      after do
+        connection.close! if connection.connected?
+        stop_server!
+      end
+
       describe '#initialize' do
         it 'does not connect' do
           described_class.new
@@ -13,88 +41,151 @@ module Cql
       end
 
       describe '#connect' do
-        let :host do
-          Socket.gethostname
-        end
-
-        let :port do
-          34535
-        end
-
-        let :connection do
-          described_class.new(host: host, port: port)
-        end
-
-        def start_server!
-          @server_running = [true]
-          @connects = []
-          @sockets = [TCPServer.new(port)]
-          @server_thread = Thread.start(@sockets, @server_running, @connects) do |sockets, server_running, connects|
-            begin
-              Thread.current.abort_on_exception = true
-              while server_running[0]
-                readables, _ = IO.select(sockets, nil, nil, 0)
-                if readables
-                  readables.each do |socket|
-                    connection, _ = socket.accept_nonblock
-                    connects << 1
-                    connection.close
-                  end
-                end
-              end
-            end
-          end
-        end
-
-        def stop_server!
-          return unless @server_running[0]
-          @server_running[0] = false
-          @server_thread.join
-          @sockets.each(&:close)
-        end
-
-        before do
-          start_server!
-        end
-
-        after do
-          connection.close unless connection.closed?
-          stop_server!
-        end
-
         it 'connects to the specified host and port' do
-          connection.connect
-          sleep 0.1
-          stop_server!
-          @connects.should have(1).items
+          future = connection.connect
+          future.get
+          await_server
+          server_stats[:connects].should == 1
         end
 
         it 'does nothing when called a second time' do
-          connection.connect
-          sleep 0.1
-          connection.connect
-          sleep 0.1
-          stop_server!
-          @connects.should have(1).items
+          future = connection.connect
+          future.get
+          future = connection.connect
+          future.get
+          await_server
+          server_stats[:connects].should == 1
         end
 
-        it 'returns the connection' do
-          connection.connect.should equal(connection)
+        it 'connects only once when called asynchronously' do
+          future1 = connection.connect
+          future2 = connection.connect
+          future1.get
+          future2.get
+          await_server
+          server_stats[:connects].should == 1
         end
 
-        it 'raises an error if it cannot connect' do
-          expect { described_class.new(host: 'huffabuff.local', timeout: 1).connect }.to raise_error(ConnectionError)
-          expect { described_class.new(port: 9999, timeout: 1).connect }.to raise_error(ConnectionError)
+        it 'fails the returned future when it cannot connect' do
+          future = described_class.new(host: 'huffabuff.local', timeout: 1).connect
+          expect { future.get }.to raise_error(ConnectionError)
+          future = described_class.new(port: 9999, timeout: 1).connect
+          expect { future.get }.to raise_error(ConnectionError)
         end
 
         it 'times out quickly when it cannot connect' do
           started_at = Time.now
           begin
-            described_class.new(port: 9999, timeout: 1).connect
+            connection = described_class.new(port: 9999, timeout: 1)
+            future = connection.connect
+            future.get
           rescue ConnectionError
           end
           time_taken = (Time.now - started_at).to_f
           time_taken.should be < 1.5
+        end
+      end
+
+      describe '#connect!' do
+        it 'connects synchronously' do
+          connection.connect!
+          connection.should be_connected
+        end
+      end
+
+      describe '#connected?' do
+        it 'is initially false' do
+          connection.should_not be_connected
+        end
+
+        it 'is true when connected' do
+          value = :bad_value
+          await do |signal|
+            connection.connect.on_complete do
+              value = connection.connected?
+              signal << :ping
+            end
+          end
+          value.should be_true
+        end
+
+        it 'is false when the connection has been closed' do
+          value = :bad_value
+          await do |signal|
+            connection.connect.on_complete do
+              connection.close.on_complete do
+                value = connection.connected?
+                signal << :ping
+              end
+            end
+          end
+          value.should be_false
+        end
+      end
+
+      describe '#close' do
+        it 'raises an error unless the connection is open' do
+          expect { connection.close }.to raise_error(IllegalStateError)
+        end
+
+        it 'closes the connection' do
+          await do |signal|
+            connection.connect.on_complete do
+              connection.close.on_complete do
+                signal << :ping
+              end
+            end
+          end
+          await_server
+          server_stats[:disconnects].should == 1
+        end
+      end
+
+      describe '#close!' do
+        it 'closes synchronously' do
+          connection.connect!
+          connection.close!
+          connection.should be_closed
+        end
+      end
+
+      describe '#closed?' do
+        it 'is false initially' do
+          connection.should_not be_closed
+        end
+
+        it 'is false while connected' do
+          value = :bad_value
+          await do |signal|
+            connection.connect.on_complete do
+              value = connection.closed?
+              signal << :ping
+            end
+          end
+          value.should be_false
+        end
+
+        it 'is true when the connection is closed' do
+          await do |signal|
+            connection.connect.on_complete do
+              connection.close.on_complete do
+                signal << :ping
+              end
+            end
+          end
+          connection.should be_closed
+        end
+
+        it 'is true when the connection is scheduled to close' do
+          value = :bad_value
+          await do |signal|
+            connection.connect.on_complete do
+              connection.close
+              value = connection.closed?
+              signal << :ping
+            end
+          end
+          value.should be_true
         end
       end
     end

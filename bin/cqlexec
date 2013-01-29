@@ -14,7 +14,7 @@ class CqlExecutor
   end
 
   def run(io)
-    @connection = Cql::Io::Connection.new(host: @options[:host], port: @options[:port]).connect
+    @connection = Cql::Io::Connection.new(host: @options[:host], port: @options[:port]).connect!
 
     begin
       start
@@ -32,7 +32,7 @@ class CqlExecutor
     rescue Interrupt
       exit
     ensure
-      @connection.close if @connection && !@connection.closed?
+      @connection.close! if @connection && !@connection.closed?
     end
   end
 
