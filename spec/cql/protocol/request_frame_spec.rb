@@ -220,10 +220,10 @@ module Cql
         end
 
         describe '#eql?' do
-          it 'returns true when the CQL and consistency are the same' do
+          it 'returns true when the CQL is the same' do
             p1 = PrepareRequest.new('SELECT * FROM system.peers')
             p2 = PrepareRequest.new('SELECT * FROM system.peers')
-            p2.should eql(p2)
+            p1.should eql(p2)
           end
 
           it 'returns false when the CQL is different' do
