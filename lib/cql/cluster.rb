@@ -67,7 +67,7 @@ module Cql
 
     def execute_request(request)
       raise NotConnectedError unless @connection.connected?
-      interpret_response!(@connection.execute(request).get)
+      @connection.execute(request).map(&method(:interpret_response!)).value
     end
 
     def interpret_response!(response)
