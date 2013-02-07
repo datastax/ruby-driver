@@ -222,8 +222,6 @@ module Cql
     end
 
     class ResultResponse < ResponseBody
-      attr_reader :change, :keyspace, :table, :rows
-
       def self.decode!(buffer)
         kind = read_int!(buffer)
         case kind
