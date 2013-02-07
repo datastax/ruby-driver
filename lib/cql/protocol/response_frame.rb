@@ -241,6 +241,10 @@ module Cql
           raise UnsupportedResultKindError, %(Unsupported result kind: #{kind})
         end
       end
+
+      def void?
+        false
+      end
     end
 
     class VoidResultResponse < ResultResponse
@@ -250,6 +254,10 @@ module Cql
 
       def to_s
         %(RESULT VOID)
+      end
+
+      def void?
+        true
       end
     end
 

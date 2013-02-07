@@ -184,39 +184,44 @@ describe 'A CQL connection' do
 
         it 'sends an INSERT command' do
           in_keyspace_with_table do
-            query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
+            response = query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
+            response.should be_void
           end
         end
 
         it 'sends an UPDATE command' do
           in_keyspace_with_table do
             query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
-            query(%<UPDATE users SET email = 'sue@heck.com' WHERE user_name = 'phil'>)
+            response = query(%<UPDATE users SET email = 'sue@heck.com' WHERE user_name = 'phil'>)
+            response.should be_void
           end
         end
 
         it 'sends a DELETE command' do
           in_keyspace_with_table do
-            query(%<DELETE email FROM users WHERE user_name = 'sue'>)
+            response = query(%<DELETE email FROM users WHERE user_name = 'sue'>)
+            response.should be_void
           end
         end
 
         it 'sends a TRUNCATE command' do
           pending 'this times out in C* with "Truncate timed out - received only 0 responses" (but it does that in cqlsh too, so not sure what is going on)'
           in_keyspace_with_table do
-            query(%<TRUNCATE users>)
+            response = query(%<TRUNCATE users>)
+            response.should be_void
           end
         end
 
         it 'sends a BATCH command' do
           pending 'this times out'
           in_keyspace_with_table do
-            query(<<-EOQ, :one)
+            response = query(<<-EOQ, :one)
               BEGIN BATCH
                 INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')
                 INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')
               APPLY BATCH
             EOQ
+            response.should be_void
           end
         end
 

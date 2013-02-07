@@ -231,6 +231,10 @@ module Cql
             frame.body.keyspace.should == 'system'
           end
 
+          it 'is not void' do
+            frame.body.should_not be_void
+          end
+
           it 'has a pretty #to_s representation' do
             frame.body.to_s.should == 'RESULT SET_KEYSPACE "system"'
           end
@@ -252,6 +256,10 @@ module Cql
 
             it 'has no table' do
               frame.body.table.should be_empty
+            end
+
+            it 'is not void' do
+              frame.body.should_not be_void
             end
 
             it 'has a pretty #to_s representation' do
@@ -276,6 +284,10 @@ module Cql
               frame.body.table.should == 'users'
             end
 
+            it 'is not void' do
+              frame.body.should_not be_void
+            end
+
             it 'has a pretty #to_s representation' do
               frame.body.to_s.should == 'RESULT SCHEMA_CHANGE UPDATED "cql_rb_973" "users"'
             end
@@ -289,6 +301,10 @@ module Cql
 
           it 'is has a body' do
             frame.body.should_not be_nil
+          end
+
+          it 'is void' do
+            frame.body.should be_void
           end
 
           it 'has a pretty #to_s representation' do
@@ -314,6 +330,10 @@ module Cql
               ['cql_rb_126', 'users', 'email', :varchar],
               ['cql_rb_126', 'users', 'password', :varchar]
             ]
+          end
+
+          it 'is not void' do
+            frame.body.should_not be_void
           end
 
           it 'has a pretty #to_s representation' do
