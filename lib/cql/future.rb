@@ -95,6 +95,20 @@ module Cql
     end
   end
 
+  class CompletedFuture < Future
+    def initialize(value=nil)
+      super()
+      complete!(value)
+    end
+  end
+
+  class FailedFuture < Future
+    def initialize(error)
+      super()
+      fail!(error)
+    end
+  end
+
   class CombinedFuture < Future
     def initialize(*futures)
       super()

@@ -225,4 +225,48 @@ module Cql
       end
     end
   end
+
+  describe CompletedFuture do
+    let :future do
+      described_class.new('hello world')
+    end
+
+    it 'is complete when created' do
+      future.should be_complete
+    end
+
+    it 'calls callbacks immediately' do
+      value = nil
+      future.on_complete { |v| value = v }
+      value.should == 'hello world'
+    end
+
+    it 'does not block on #value' do
+      future.value.should == 'hello world'
+    end
+
+    it 'defaults to the value nil' do
+      described_class.new.value.should be_nil
+    end
+  end
+
+  describe FailedFuture do
+    let :future do
+      described_class.new(StandardError.new('Blurgh'))
+    end
+
+    it 'is failed when created' do
+      future.should be_failed
+    end
+
+    it 'calls callbacks immediately' do
+      error = nil
+      future.on_failure { |e| error = e }
+      error.message.should == 'Blurgh'
+    end
+
+    it 'does not block on #value' do
+      expect { future.value }.to raise_error('Blurgh')
+    end
+  end
 end
