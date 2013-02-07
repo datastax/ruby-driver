@@ -133,6 +133,8 @@ module Cql
     end
 
     class ExecuteRequest < RequestBody
+      attr_reader :id, :metadata, :values, :consistency
+
       def initialize(id, metadata, values, consistency)
         super(10)
         raise ArgumentError, "Metadata for #{metadata.size} columns, but #{values.size} values given" if metadata.size != values.size
@@ -154,6 +156,22 @@ module Cql
       def to_s
         id = @id.each_byte.map { |x| x.to_s(16) }.join('')
         %(EXECUTE #{id} #@values #{@consistency.to_s.upcase})
+      end
+
+      def eql?(rq)
+        self.class === rq && rq.id == self.id && rq.metadata == self.metadata && rq.values == self.values && rq.consistency == self.consistency
+      end
+      alias_method :==, :eql?
+
+      def hash
+        @h ||= begin
+          h = 0
+          h = ((h & 33554431) * 31) ^ @id.hash
+          h = ((h & 33554431) * 31) ^ @metadata.hash
+          h = ((h & 33554431) * 31) ^ @values.hash
+          h = ((h & 33554431) * 31) ^ @consistency.hash
+          h
+        end
       end
 
       private

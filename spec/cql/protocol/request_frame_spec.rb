@@ -261,10 +261,96 @@ module Cql
       end
 
       describe ExecuteRequest do
+        let :id do
+          "\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/"
+        end
+
+        let :metadata do
+          [
+            ['ks', 'tbl', 'col1', :varchar],
+            ['ks', 'tbl', 'col2', :int],
+            ['ks', 'tbl', 'col3', :varchar]
+          ]
+        end
+
+        let :values do
+          ['hello', 42, 'foo']
+        end
+
         describe '#to_s' do
           it 'returns a pretty string' do
-            request = ExecuteRequest.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col1', :varchar], ['ks', 'tbl', 'col2', :int], ['ks', 'tbl', 'col3', :varchar]], ['hello', 42, 'foo'], :each_quorum)
+            request = ExecuteRequest.new(id, metadata, values, :each_quorum)
             request.to_s.should == 'EXECUTE ca487f1e7a82d23c4e8af3355171a52f ["hello", 42, "foo"] EACH_QUORUM'
+          end
+        end
+
+        describe '#eql?' do
+          it 'returns true when the ID, metadata, values and consistency are the same' do
+            e1 = ExecuteRequest.new(id, metadata, values, :one)
+            e2 = ExecuteRequest.new(id, metadata, values, :one)
+            e1.should eql(e2)
+          end
+
+          it 'returns false when the ID is different' do
+            e1 = ExecuteRequest.new(id, metadata, values, :one)
+            e2 = ExecuteRequest.new(id.reverse, metadata, values, :one)
+            e1.should_not eql(e2)
+          end
+
+          it 'returns false when the metadata is different' do
+            e1 = ExecuteRequest.new(id, metadata, values, :one)
+            e2 = ExecuteRequest.new(id, metadata.reverse, values, :one)
+            e1.should_not eql(e2)
+          end
+
+          it 'returns false when the values are different' do
+            e1 = ExecuteRequest.new(id, metadata, values, :one)
+            e2 = ExecuteRequest.new(id, metadata, values.reverse, :one)
+            e1.should_not eql(e2)
+          end
+
+          it 'returns false when the consistency is different' do
+            e1 = ExecuteRequest.new(id, metadata, values, :one)
+            e2 = ExecuteRequest.new(id, metadata, values, :two)
+            e1.should_not eql(e2)
+          end
+
+          it 'is aliased as ==' do
+            e1 = ExecuteRequest.new(id, metadata, values, :one)
+            e2 = ExecuteRequest.new(id, metadata, values, :one)
+            e1.should == e2
+          end
+        end
+
+        describe '#hash' do
+          it 'has the same hash code as another identical object' do
+            e1 = ExecuteRequest.new(id, metadata, values, :one)
+            e2 = ExecuteRequest.new(id, metadata, values, :one)
+            e1.hash.should == e2.hash
+          end
+
+          it 'does not have the same hash code when the ID is different' do
+            e1 = ExecuteRequest.new(id, metadata, values, :one)
+            e2 = ExecuteRequest.new(id.reverse, metadata, values, :one)
+            e1.hash.should_not == e2.hash
+          end
+
+          it 'does not have the same hash code when the metadata is different' do
+            e1 = ExecuteRequest.new(id, metadata, values, :one)
+            e2 = ExecuteRequest.new(id, metadata.reverse, values, :one)
+            e1.hash.should_not == e2.hash
+          end
+
+          it 'does not have the same hash code when the values are different' do
+            e1 = ExecuteRequest.new(id, metadata, values, :one)
+            e2 = ExecuteRequest.new(id, metadata, values.reverse, :one)
+            e1.hash.should_not == e2.hash
+          end
+
+          it 'does not have the same hash code when the consistency is different' do
+            e1 = ExecuteRequest.new(id, metadata, values, :one)
+            e2 = ExecuteRequest.new(id, metadata, values, :two)
+            e1.hash.should_not == e2.hash
           end
         end
       end
