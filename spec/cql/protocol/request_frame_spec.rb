@@ -99,6 +99,10 @@ module Cql
           column_metadata[2][3] = :imaginary
           expect { RequestFrame.new(ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum)).write('') }.to raise_error(UnsupportedColumnTypeError)
         end
+
+        it 'raises an error when it cannot encode the argument' do
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 'not an int', 'foo'], :each_quorum).write('') }.to raise_error(TypeError, /cannot be encoded as INT/)
+        end
       end
 
       context 'with a stream ID' do

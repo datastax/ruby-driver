@@ -202,6 +202,8 @@ module Cql
         else
           raise UnsupportedColumnTypeError, %(Unsupported column type: #{type})
         end
+      rescue TypeError => e
+        raise TypeError, %("#{value}" cannot be encoded as #{type.to_s.upcase}: #{e.message}), e.backtrace
       end
     end
   end
