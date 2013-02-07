@@ -143,46 +143,46 @@ module Cql
       end
     end
 
-    describe '#use!' do
+    describe '#use' do
       before do
         cluster.start!
         connection.next_response = Protocol::SetKeyspaceResultResponse.new('system')
       end
 
       it 'executes a USE query' do
-        cluster.use!('system')
+        cluster.use('system')
         last_request.should == Protocol::QueryRequest.new('USE system', :one)
       end
 
       it 'knows which keyspace it changed to' do
-        cluster.use!('system')
+        cluster.use('system')
         cluster.keyspace.should == 'system'
       end
 
       it 'raises an error if the keyspace name is not valid' do
-        expect { cluster.use!('system; DROP KEYSPACE system') }.to raise_error(InvalidKeyspaceNameError)
+        expect { cluster.use('system; DROP KEYSPACE system') }.to raise_error(InvalidKeyspaceNameError)
       end
     end
 
-    describe '#execute!' do
+    describe '#execute' do
       before do
         cluster.start!
       end
 
       it 'asks the connection to execute the query' do
-        cluster.execute!('UPDATE stuff SET thing = 1 WHERE id = 3')
+        cluster.execute('UPDATE stuff SET thing = 1 WHERE id = 3')
         last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', :quorum)
       end
 
       it 'uses the specified consistency' do
-        cluster.execute!('UPDATE stuff SET thing = 1 WHERE id = 3', :three)
+        cluster.execute('UPDATE stuff SET thing = 1 WHERE id = 3', :three)
         last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', :three)
       end
 
       context 'with a void CQL query' do
         it 'returns nil' do
           connection.next_response = Protocol::VoidResultResponse.new
-          result = cluster.execute!('UPDATE stuff SET thing = 1 WHERE id = 3')
+          result = cluster.execute('UPDATE stuff SET thing = 1 WHERE id = 3')
           result.should be_nil
         end
       end
@@ -190,13 +190,13 @@ module Cql
       context 'with a USE query' do
         it 'returns nil' do
           connection.next_response = Protocol::SetKeyspaceResultResponse.new('system')
-          result = cluster.execute!('USE system')
+          result = cluster.execute('USE system')
           result.should be_nil
         end
 
         it 'knows which keyspace it changed to' do
           connection.next_response = Protocol::SetKeyspaceResultResponse.new('system')
-          cluster.execute!('USE system')
+          cluster.execute('USE system')
           cluster.keyspace.should == 'system'
         end
       end
@@ -212,7 +212,7 @@ module Cql
 
         let :result do
           connection.next_response = Protocol::RowsResultResponse.new(rows, metadata)
-          cluster.execute!('SELECT * FROM things')
+          cluster.execute('SELECT * FROM things')
         end
 
         it 'returns an Enumerable of rows' do
@@ -248,24 +248,24 @@ module Cql
       context 'when the response is an error' do
         it 'raises an error' do
           connection.next_response = Protocol::ErrorResponse.new(0xabcd, 'Blurgh')
-          expect { cluster.execute!('SELECT * FROM things') }.to raise_error(QueryError, 'Blurgh')
+          expect { cluster.execute('SELECT * FROM things') }.to raise_error(QueryError, 'Blurgh')
         end
       end
     end
 
-    describe '#prepare!' do
+    describe '#prepare' do
       before do
         cluster.start!
       end
 
       it 'sends a prepare request' do
-        cluster.prepare!('SELECT * FROM system.peers')
+        cluster.prepare('SELECT * FROM system.peers')
         last_request.should == Protocol::PrepareRequest.new('SELECT * FROM system.peers')
       end
 
       it 'returns a prepared statement' do
         connection.next_response = Protocol::PreparedResultResponse.new('A' * 32, [['stuff', 'things', 'item', :varchar]])
-        statement = cluster.prepare!('SELECT * FROM stuff.things WHERE item = ?')
+        statement = cluster.prepare('SELECT * FROM stuff.things WHERE item = ?')
         statement.should_not be_nil
       end
 
@@ -273,49 +273,49 @@ module Cql
         id = 'A' * 32
         metadata = [['stuff', 'things', 'item', :varchar]]
         connection.next_response = Protocol::PreparedResultResponse.new(id, metadata)
-        statement = cluster.prepare!('SELECT * FROM stuff.things WHERE item = ?')
-        statement.execute!('foo')
+        statement = cluster.prepare('SELECT * FROM stuff.things WHERE item = ?')
+        statement.execute('foo')
         last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], :quorum)
       end
     end
 
     context 'when not connected' do
-      it 'complains when #use! is called before #start!' do
-        expect { cluster.use!('system') }.to raise_error(NotConnectedError)
+      it 'complains when #use is called before #start!' do
+        expect { cluster.use('system') }.to raise_error(NotConnectedError)
       end
 
-      it 'complains when #use! is called after #shutdown!' do
+      it 'complains when #use is called after #shutdown!' do
         cluster.start!
         cluster.shutdown!
-        expect { cluster.use!('system') }.to raise_error(NotConnectedError)
+        expect { cluster.use('system') }.to raise_error(NotConnectedError)
       end
 
-      it 'complains when #execute! is called before #start!' do
-        expect { cluster.execute!('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
+      it 'complains when #execute is called before #start!' do
+        expect { cluster.execute('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
       end
 
-      it 'complains when #execute! is called after #shutdown!' do
+      it 'complains when #execute is called after #shutdown!' do
         cluster.start!
         cluster.shutdown!
-        expect { cluster.execute!('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
+        expect { cluster.execute('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
       end
 
-      it 'complains when #prepare! is called before #start!' do
-        expect { cluster.prepare!('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
+      it 'complains when #prepare is called before #start!' do
+        expect { cluster.prepare('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
       end
 
-      it 'complains when #prepare! is called after #shutdown!' do
+      it 'complains when #prepare is called after #shutdown!' do
         cluster.start!
         cluster.shutdown!
-        expect { cluster.prepare!('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
+        expect { cluster.prepare('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
       end
 
-      it 'complains when #execute! of a prepared statement is called after #shutdown!' do
+      it 'complains when #execute of a prepared statement is called after #shutdown!' do
         cluster.start!
         connection.next_response = Protocol::PreparedResultResponse.new('A' * 32, [])
-        statement = cluster.prepare!('DELETE FROM stuff WHERE id = 3')
+        statement = cluster.prepare('DELETE FROM stuff WHERE id = 3')
         cluster.shutdown!
-        expect { statement.execute! }.to raise_error(NotConnectedError)
+        expect { statement.execute }.to raise_error(NotConnectedError)
       end
     end
   end

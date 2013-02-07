@@ -26,8 +26,8 @@ module Cql
     def start!
       return if @connection.connected?
       @connection.connect.get
-      execute_request!(Protocol::StartupRequest.new)
-      use!(@keyspace) if @keyspace
+      execute_request(Protocol::StartupRequest.new)
+      use(@keyspace) if @keyspace
       self
     end
 
@@ -36,22 +36,22 @@ module Cql
       self
     end
 
-    def use!(keyspace)
+    def use(keyspace)
       raise NotConnectedError unless @connection.connected?
-      execute!("USE #{keyspace}", :one) if check_keyspace_name!(keyspace)
+      execute("USE #{keyspace}", :one) if check_keyspace_name!(keyspace)
     end
 
-    def execute!(cql, consistency=:quorum)
-      execute_request!(Protocol::QueryRequest.new(cql, consistency))
+    def execute(cql, consistency=:quorum)
+      execute_request(Protocol::QueryRequest.new(cql, consistency))
     end
 
-    def execute_statement!(id, metadata, values, consistency)
+    def execute_statement(id, metadata, values, consistency)
       # TODO this does not take connection locality into consideration
-      execute_request!(Protocol::ExecuteRequest.new(id, metadata, values, consistency))
+      execute_request(Protocol::ExecuteRequest.new(id, metadata, values, consistency))
     end
 
-    def prepare!(cql)
-      execute_request!(Protocol::PrepareRequest.new(cql))
+    def prepare(cql)
+      execute_request(Protocol::PrepareRequest.new(cql))
     end
 
     private
@@ -65,7 +65,7 @@ module Cql
       true
     end
 
-    def execute_request!(request)
+    def execute_request(request)
       raise NotConnectedError unless @connection.connected?
       interpret_response!(@connection.execute(request).get)
     end
@@ -91,8 +91,8 @@ module Cql
         @cluster, @id, @metadata = args
       end
 
-      def execute!(*args)
-        @cluster.execute_statement!(@id, @metadata, args, :quorum)
+      def execute(*args)
+        @cluster.execute_statement(@id, @metadata, args, :quorum)
       end
     end
 
