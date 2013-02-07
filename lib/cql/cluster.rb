@@ -106,6 +106,10 @@ module Cql
         @rows = rows
       end
 
+      def empty?
+        @rows.empty?
+      end
+
       def each(&block)
         @rows.each(&block)
       end
