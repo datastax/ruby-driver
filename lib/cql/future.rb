@@ -82,8 +82,15 @@ module Cql
 
     def map(&block)
       fp = self.class.new
-      on_complete { |v| fp.complete!(block.call(v)) }
       on_failure { |e| fp.fail!(e) }
+      on_complete do |v|
+        begin
+          vv = block.call(v)
+          fp.complete!(vv)
+        rescue => e
+          fp.fail!(e)
+        end
+      end
       fp
     end
   end

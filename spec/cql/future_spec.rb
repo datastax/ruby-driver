@@ -212,6 +212,16 @@ module Cql
           f1.fail!(StandardError.new('Blurgh'))
           failed.should be_true
         end
+
+        it 'fails when the block raises an error' do
+          f1 = Future.new
+          f2 = f1.map { |v| raise 'Blurgh' }
+          Thread.start do
+            sleep(0.01)
+            f1.complete!
+          end
+          expect { f2.get }.to raise_error('Blurgh')
+        end
       end
     end
   end
