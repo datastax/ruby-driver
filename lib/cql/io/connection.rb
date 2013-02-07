@@ -23,10 +23,6 @@ module Cql
         @connect_future
       end
 
-      def connect!
-        connect.get
-      end
-
       def connected?
         !!@io_reactor && @io_reactor.connected?
       end
@@ -34,10 +30,6 @@ module Cql
       def close
         raise IllegalStateError, 'Cannot close a connection that has not connected!' unless @io_reactor
         @io_reactor.close
-      end
-
-      def close!
-        close.get
       end
 
       def closed?
@@ -53,10 +45,6 @@ module Cql
         response_future.on_complete(&handler) if handler
         @io_reactor.add_request(request, response_future)
         response_future
-      end
-
-      def execute!(request)
-        execute(request).get
       end
 
       private

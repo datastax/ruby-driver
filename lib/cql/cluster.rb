@@ -25,14 +25,14 @@ module Cql
 
     def start!
       return if @connection.connected?
-      @connection.connect!
+      @connection.connect.get
       execute_request!(Protocol::StartupRequest.new)
       use!(@keyspace) if @keyspace
       self
     end
 
     def shutdown!
-      @connection.close!
+      @connection.close.get
       self
     end
 
@@ -67,7 +67,7 @@ module Cql
 
     def execute_request!(request)
       raise NotConnectedError unless @connection.connected?
-      interpret_response!(@connection.execute!(request))
+      interpret_response!(@connection.execute(request).get)
     end
 
     def interpret_response!(response)

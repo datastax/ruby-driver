@@ -30,7 +30,7 @@ module Cql
       end
 
       after do
-        connection.close! if connection.connected?
+        connection.close.get if connection.connected?
         stop_server!
       end
 
@@ -86,13 +86,6 @@ module Cql
         end
       end
 
-      describe '#connect!' do
-        it 'connects synchronously' do
-          connection.connect!
-          connection.should be_connected
-        end
-      end
-
       describe '#connected?' do
         it 'is initially false' do
           connection.should_not be_connected
@@ -138,14 +131,6 @@ module Cql
           end
           await_server
           server_stats[:disconnects].should == 1
-        end
-      end
-
-      describe '#close!' do
-        it 'closes synchronously' do
-          connection.connect!
-          connection.close!
-          connection.should be_closed
         end
       end
 

@@ -27,25 +27,27 @@ module Cql
         @next_response = response
       end
 
-      def connect!
+      def connect
         @connected = true
+        Future.new.tap { |f| f.complete! }
       end
 
       def connected?
         @connected && !@closed
       end
 
-      def close!
+      def close
         @closed = true
+        Future.new.tap { |f| f.complete! }
       end
 
       def closed?
         !!@closed
       end
 
-      def execute!(request)
+      def execute(request)
         @requests << request
-        @next_response
+        Future.new.tap { |f| f.complete!(@next_response) }
       end
     end
 
