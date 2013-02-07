@@ -192,5 +192,27 @@ module Cql
         end
       end
     end
+
+    describe '#map' do
+      context 'returns a new future that' do
+        it 'will complete with the result of the given block' do
+          mapped_value = nil
+          f1 = Future.new
+          f2 = f1.map { |v| v * 2 }
+          f2.on_complete { |v| mapped_value = v }
+          f1.complete!(3)
+          mapped_value.should == 3 * 2
+        end
+
+        it 'fails when the original future fails' do
+          failed = false
+          f1 = Future.new
+          f2 = f1.map { |v| v * 2 }
+          f2.on_failure { failed = true }
+          f1.fail!(StandardError.new('Blurgh'))
+          failed.should be_true
+        end
+      end
+    end
   end
 end

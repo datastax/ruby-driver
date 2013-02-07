@@ -79,6 +79,13 @@ module Cql
         end
       end
     end
+
+    def map(&block)
+      fp = self.class.new
+      on_complete { |v| fp.complete!(block.call(v)) }
+      on_failure { |e| fp.fail!(e) }
+      fp
+    end
   end
 
   class CombinedFuture < Future
