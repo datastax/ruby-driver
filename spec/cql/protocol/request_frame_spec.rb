@@ -119,45 +119,149 @@ module Cql
         end
       end
 
-      describe 'StartupRequest#to_s' do
-        it 'returns a pretty string' do
-          request = StartupRequest.new
-          request.to_s.should == 'STARTUP {"CQL_VERSION"=>"3.0.0"}'
+      describe StartupRequest do
+        describe '#to_s' do
+          it 'returns a pretty string' do
+            request = StartupRequest.new
+            request.to_s.should == 'STARTUP {"CQL_VERSION"=>"3.0.0"}'
+          end
         end
       end
 
-      describe 'OptionsRequest#to_s' do
-        it 'returns a pretty string' do
-          request = OptionsRequest.new
-          request.to_s.should == 'OPTIONS'
+      describe OptionsRequest do
+        describe '#to_s' do
+          it 'returns a pretty string' do
+            request = OptionsRequest.new
+            request.to_s.should == 'OPTIONS'
+          end
         end
       end
 
-      describe 'RegisterRequest#to_s' do
-        it 'returns a pretty string' do
-          request = RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE')
-          request.to_s.should == 'REGISTER ["TOPOLOGY_CHANGE", "STATUS_CHANGE"]'
+      describe RegisterRequest do
+        describe '#to_s' do
+          it 'returns a pretty string' do
+            request = RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE')
+            request.to_s.should == 'REGISTER ["TOPOLOGY_CHANGE", "STATUS_CHANGE"]'
+          end
         end
       end
 
-      describe 'QueryRequest#to_s' do
-        it 'returns a pretty string' do
-          request = QueryRequest.new('SELECT * FROM system.peers', :local_quorum)
-          request.to_s.should == 'QUERY "SELECT * FROM system.peers" LOCAL_QUORUM'
+      describe QueryRequest do
+        describe '#to_s' do
+          it 'returns a pretty string' do
+            request = QueryRequest.new('SELECT * FROM system.peers', :local_quorum)
+            request.to_s.should == 'QUERY "SELECT * FROM system.peers" LOCAL_QUORUM'
+          end
+        end
+
+        describe '#eql?' do
+          it 'returns true when the CQL and consistency are the same' do
+            q1 = QueryRequest.new('SELECT * FROM system.peers', :two)
+            q2 = QueryRequest.new('SELECT * FROM system.peers', :two)
+            q2.should eql(q2)
+          end
+
+          it 'returns false when the consistency is different' do
+            q1 = QueryRequest.new('SELECT * FROM system.peers', :two)
+            q2 = QueryRequest.new('SELECT * FROM system.peers', :three)
+            q1.should_not eql(q2)
+          end
+
+          it 'returns false when the CQL is different' do
+            q1 = QueryRequest.new('SELECT * FROM system.peers', :two)
+            q2 = QueryRequest.new('SELECT * FROM peers', :two)
+            q1.should_not eql(q2)
+          end
+
+          it 'does not know about CQL syntax' do
+            q1 = QueryRequest.new('SELECT * FROM system.peers', :two)
+            q2 = QueryRequest.new('SELECT   *   FROM   system.peers', :two)
+            q1.should_not eql(q2)
+          end
+
+          it 'is aliased as ==' do
+            q1 = QueryRequest.new('SELECT * FROM system.peers', :two)
+            q2 = QueryRequest.new('SELECT * FROM system.peers', :two)
+            q1.should == q2
+          end
+        end
+
+        describe '#hash' do
+          it 'has the same hash code as another identical object' do
+            q1 = QueryRequest.new('SELECT * FROM system.peers', :two)
+            q2 = QueryRequest.new('SELECT * FROM system.peers', :two)
+            q1.hash.should == q2.hash
+          end
+
+          it 'does not have the same hash code when the consistency is different' do
+            q1 = QueryRequest.new('SELECT * FROM system.peers', :two)
+            q2 = QueryRequest.new('SELECT * FROM system.peers', :three)
+            q1.hash.should_not == q2.hash
+          end
+
+          it 'does not have the same hash code when the CQL is different' do
+            q1 = QueryRequest.new('SELECT * FROM system.peers', :two)
+            q2 = QueryRequest.new('SELECT * FROM peers', :two)
+            q1.hash.should_not == q2.hash
+          end
         end
       end
 
-      describe 'QueryRequest#to_s' do
-        it 'returns a pretty string' do
-          request = PrepareRequest.new('UPDATE users SET email = ? WHERE user_name = ?')
-          request.to_s.should == 'PREPARE "UPDATE users SET email = ? WHERE user_name = ?"'
+      describe PrepareRequest do
+        describe '#to_s' do
+          it 'returns a pretty string' do
+            request = PrepareRequest.new('UPDATE users SET email = ? WHERE user_name = ?')
+            request.to_s.should == 'PREPARE "UPDATE users SET email = ? WHERE user_name = ?"'
+          end
+        end
+
+        describe '#eql?' do
+          it 'returns true when the CQL and consistency are the same' do
+            p1 = PrepareRequest.new('SELECT * FROM system.peers')
+            p2 = PrepareRequest.new('SELECT * FROM system.peers')
+            p2.should eql(p2)
+          end
+
+          it 'returns false when the CQL is different' do
+            p1 = PrepareRequest.new('SELECT * FROM system.peers')
+            p2 = PrepareRequest.new('SELECT * FROM peers')
+            p1.should_not eql(p2)
+          end
+
+          it 'does not know about CQL syntax' do
+            p1 = PrepareRequest.new('SELECT * FROM system.peers')
+            p2 = PrepareRequest.new('SELECT   *   FROM   system.peers')
+            p1.should_not eql(p2)
+          end
+
+          it 'is aliased as ==' do
+            p1 = PrepareRequest.new('SELECT * FROM system.peers')
+            p2 = PrepareRequest.new('SELECT * FROM system.peers')
+            p1.should == p2
+          end
+        end
+
+        describe '#hash' do
+          it 'has the same hash code as another identical object' do
+            p1 = PrepareRequest.new('SELECT * FROM system.peers')
+            p2 = PrepareRequest.new('SELECT * FROM system.peers')
+            p1.hash.should == p2.hash
+          end
+
+          it 'does not have the same hash code when the CQL is different' do
+            p1 = PrepareRequest.new('SELECT * FROM system.peers')
+            p2 = PrepareRequest.new('SELECT * FROM peers')
+            p1.hash.should_not == p2.hash
+          end
         end
       end
 
-      describe 'ExecuteRequest#to_s' do
-        it 'returns a pretty string' do
-          request = ExecuteRequest.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col1', :varchar], ['ks', 'tbl', 'col2', :int], ['ks', 'tbl', 'col3', :varchar]], ['hello', 42, 'foo'], :each_quorum)
-          request.to_s.should == 'EXECUTE ca487f1e7a82d23c4e8af3355171a52f ["hello", 42, "foo"] EACH_QUORUM'
+      describe ExecuteRequest do
+        describe '#to_s' do
+          it 'returns a pretty string' do
+            request = ExecuteRequest.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col1', :varchar], ['ks', 'tbl', 'col2', :int], ['ks', 'tbl', 'col3', :varchar]], ['hello', 42, 'foo'], :each_quorum)
+            request.to_s.should == 'EXECUTE ca487f1e7a82d23c4e8af3355171a52f ["hello", 42, "foo"] EACH_QUORUM'
+          end
         end
       end
     end

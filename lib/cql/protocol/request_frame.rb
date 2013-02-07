@@ -79,6 +79,8 @@ module Cql
     end
 
     class QueryRequest < RequestBody
+      attr_reader :cql, :consistency
+
       def initialize(cql, consistency)
         super(7)
         @cql = cql
@@ -93,9 +95,20 @@ module Cql
       def to_s
         %(QUERY "#@cql" #{@consistency.to_s.upcase})
       end
+
+      def eql?(rq)
+        self.class === rq && rq.cql.eql?(self.cql) && rq.consistency.eql?(self.consistency)
+      end
+      alias_method :==, :eql?
+
+      def hash
+        @h ||= (@cql.hash * 31) ^ consistency.hash
+      end
     end
 
     class PrepareRequest < RequestBody
+      attr_reader :cql
+
       def initialize(cql)
         super(9)
         @cql = cql
@@ -107,6 +120,15 @@ module Cql
 
       def to_s
         %(PREPARE "#@cql")
+      end
+
+      def eql?(rq)
+        self.class === rq && rq.cql == self.cql
+      end
+      alias_method :==, :eql?
+
+      def hash
+        @h ||= @cql.hash
       end
     end
 
