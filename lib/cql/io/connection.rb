@@ -216,19 +216,17 @@ module Cql
         end
 
         def add_connection(host, port, timeout)
-          future = Future.new
           begin
             socket = connect!(host, port, timeout)
             @lock.synchronize do
               @streams << NodeConnection.new(socket)
             end
-            future.complete!
+            CompletedFuture.new
           rescue Errno::EHOSTUNREACH, Errno::EBADF, Errno::EINVAL, SystemCallError, SocketError => e
             error = ConnectionError.new("Could not connect to #@host:#@port: #{e.message} (#{e.class.name})")
             error.set_backtrace(e.backtrace)
-            future.fail!(error)
+            FailedFuture.new(error)
           end
-          future
         end
 
         def add_event_listener(listener)
