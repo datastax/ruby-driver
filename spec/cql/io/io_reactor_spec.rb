@@ -123,6 +123,27 @@ module Cql
           r.stop.get
         end
       end
+
+      context 'when errors occur' do
+        context 'in the IO loop' do
+          before do
+            bad_request = stub(:request)
+            bad_request.stub(:opcode).and_raise(StandardError.new('Blurgh'))
+            io_reactor.start
+            io_reactor.add_connection(host, port).get
+            io_reactor.queue_request(bad_request)
+          end
+
+          it 'stops' do
+            sleep(0.1)
+            io_reactor.should_not be_running
+          end
+
+          it 'fails the future returned from #stop' do
+            expect { io_reactor.stop.get }.to raise_error('Blurgh')
+          end
+        end
+      end
     end
   end
 end

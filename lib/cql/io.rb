@@ -4,7 +4,7 @@ module Cql
   module Io
     IoError = Class.new(CqlError)
     ConnectionError = Class.new(IoError)
-    IllegalStateError = Class.new(IoError)
+    NotRunningError = Class.new(CqlError)
   end
 end
 

@@ -12,6 +12,7 @@ module Cql
         @lock = Mutex.new
         @streams = []
         @command_queue = []
+        @queue_signal_receiver, @queue_signal_sender = IO.pipe
         @started_future = Future.new
         @stopped_future = Future.new
         @running = false
@@ -23,15 +24,18 @@ module Cql
 
       def start
         @lock.synchronize do
-          unless @reactor_thread
-            @queue_signal_receiver, @queue_signal_sender = IO.pipe
-            @streams << CommandDispatcher.new(@queue_signal_receiver, @command_queue, @lock, @streams)
+          unless @running
             @running = true
+            @streams << CommandDispatcher.new(@queue_signal_receiver, @command_queue, @lock, @streams)
             @reactor_thread = Thread.start do
-              Thread.current.abort_on_exception = true
-              @started_future.complete!
-              io_loop
-              @stopped_future.complete!
+              begin
+                @started_future.complete!
+                io_loop
+                @stopped_future.complete!
+              rescue => e
+                @stopped_future.fail!(e)
+                raise
+              end
             end
           end
         end
@@ -51,9 +55,13 @@ module Cql
             @streams.delete(connection)
           end
         end
+        future.on_complete do
+          command_queue_push
+        end
         @lock.synchronize do
           @streams << connection
         end
+        command_queue_push
         future
       end
 
@@ -75,15 +83,13 @@ module Cql
         while running?
           read_ready_streams = @streams.select(&:connected?)
           write_ready_streams = @streams.select(&:can_write?)
-          readables, writables, _ = IO.select(read_ready_streams, write_ready_streams, nil, 0.1)
+          readables, writables, _ = IO.select(read_ready_streams, write_ready_streams, nil, 1)
           readables && readables.each(&:handle_read)
           writables && writables.each(&:handle_write)
           @streams.each(&:ping)
         end
-      rescue Errno::ECONNRESET, IOError => e
-        close
       ensure
-        @connected = false
+        stop
         @streams.each do |stream|
           begin
             stream.close
@@ -93,8 +99,10 @@ module Cql
       end
 
       def command_queue_push(*item)
-        @lock.synchronize do
-          @command_queue << item
+        if item && item.any?
+          @lock.synchronize do
+            @command_queue << item
+          end
         end
         @queue_signal_sender.write(PING_BYTE)
       end
@@ -144,16 +152,12 @@ module Cql
         end
       end
 
-      def connecting?
-        !@connected_future.complete?
-      end
-
       def connected?
         @io && !connecting?
       end
 
       def has_capacity?
-        !!next_stream_id
+        !!next_stream_id && connected?
       end
 
       def can_write?
@@ -217,6 +221,10 @@ module Cql
 
       EVENT_STREAM_ID = -1
 
+      def connecting?
+        !@connected_future.complete?
+      end
+
       def handle_connected
         @io.connect_nonblock(@sockaddr)
         @connected_future.complete!
@@ -252,10 +260,6 @@ module Cql
 
       def to_io
         @io
-      end
-
-      def connecting?
-        false
       end
 
       def connected?
