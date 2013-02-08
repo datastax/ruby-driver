@@ -4,10 +4,11 @@ require 'spec_helper'
 
 
 describe 'A CQL connection' do
-  let :connection do
-    c = Cql::Io::Connection.new(host: ENV['CASSANDRA_HOST'])
-    c.connect.get
-    c
+  let :io_reactor do
+    ir = Cql::Io::IoReactor.new
+    ir.start
+    ir.add_connection(ENV['CASSANDRA_HOST'], 9042).get
+    ir
   end
 
   let :keyspace_name do
@@ -15,11 +16,11 @@ describe 'A CQL connection' do
   end
 
   after do
-    connection.close.get if connection.connected?
+    io_reactor.stop.get if io_reactor.running?
   end
 
   def execute_request(request)
-    connection.execute(request).get
+    io_reactor.queue_request(request).get
   end
 
   def query(cql, consistency=:any)
@@ -99,7 +100,7 @@ describe 'A CQL connection' do
         semaphore = Queue.new
         event = nil
         execute_request(Cql::Protocol::RegisterRequest.new('SCHEMA_CHANGE'))
-        connection.on_event do |event_response|
+        io_reactor.add_event_listener do |event_response|
           event = event_response
           semaphore << :ping
         end
@@ -264,33 +265,23 @@ describe 'A CQL connection' do
       context 'with pipelining' do
         it 'handles multiple concurrent requests' do
           in_keyspace_with_table do
-            semaphore = Queue.new
-
-            10.times do
-              connection.execute(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum)) do |response|
-                semaphore << :ping
-              end
+            futures = 10.times.map do
+              io_reactor.queue_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum))
             end
 
-            connection.execute(Cql::Protocol::QueryRequest.new(%<INSERT INTO users (user_name, email) VALUES ('sam', 'sam@ham.com')>, :one)) do |response|
-              semaphore << :ping
-            end
-
-            11.times { semaphore.pop }
+            futures << io_reactor.queue_request(Cql::Protocol::QueryRequest.new(%<INSERT INTO users (user_name, email) VALUES ('sam', 'sam@ham.com')>, :one))
+            
+            Cql::Future.combine(*futures).get
           end
         end
 
         it 'handles lots of concurrent requests' do
           in_keyspace_with_table do
-            semaphore = Queue.new
-
-            2000.times do
-              connection.execute(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum)) do |response|
-                semaphore << :ping
-              end
+            futures = 2000.times.map do
+              io_reactor.queue_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum))
             end
 
-            2000.times { semaphore.pop }
+            Cql::Future.combine(*futures).get
           end
         end
       end
@@ -299,16 +290,20 @@ describe 'A CQL connection' do
 
   context 'in special circumstances' do
     it 'raises an exception when it cannot connect to Cassandra' do
-      expect { Cql::Io::Connection.new(host: 'example.com', timeout: 0.1).connect.get }.to raise_error(Cql::Io::ConnectionError)
-      expect { Cql::Io::Connection.new(host: 'blackhole', timeout: 0.1).connect.get }.to raise_error(Cql::Io::ConnectionError)
+      io_reactor = Cql::Io::IoReactor.new(connection_timeout: 0.1)
+      io_reactor.start.get
+      expect { io_reactor.add_connection('example.com', 9042).get }.to raise_error(Cql::Io::ConnectionError)
+      expect { io_reactor.add_connection('blackhole', 9042).get }.to raise_error(Cql::Io::ConnectionError)
+      io_reactor.stop.get
     end
 
-    it 'does nothing the second time #connect is called' do
-      connection = Cql::Io::Connection.new
-      connection.connect.get
-      connection.execute(Cql::Protocol::StartupRequest.new).get
-      connection.connect.get
-      response = connection.execute(Cql::Protocol::QueryRequest.new('USE system', :any)).get
+    it 'does nothing the second time #start is called' do
+      io_reactor = Cql::Io::IoReactor.new
+      io_reactor.start.get
+      io_reactor.add_connection('localhost', 9042)
+      io_reactor.queue_request(Cql::Protocol::StartupRequest.new).get
+      io_reactor.start.get
+      response = io_reactor.queue_request(Cql::Protocol::QueryRequest.new('USE system', :any)).get
       response.should_not be_a(Cql::Protocol::ErrorResponse)
     end
   end

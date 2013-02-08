@@ -5,7 +5,7 @@ require 'spec_helper'
 
 module Cql
   module Io
-    describe Connection do
+    describe IoReactor do
       include AsyncHelpers
       include FakeServerHelpers
 
@@ -17,8 +17,8 @@ module Cql
         34535
       end
 
-      let :connection do
-        described_class.new(host: host, port: port)
+      let :io_reactor do
+        described_class.new(connection_timeout: 1)
       end
 
       def await_server
@@ -30,157 +30,97 @@ module Cql
       end
 
       after do
-        connection.close.get if connection.connected?
+        io_reactor.stop.get if io_reactor.running?
         stop_server!
       end
 
       describe '#initialize' do
         it 'does not connect' do
           described_class.new
+          await_server
+          server_stats[:connects].should == 0
         end
       end
 
-      describe '#connect' do
+      describe '#running?' do
+        it 'is initially false' do
+          io_reactor.should_not be_running
+        end
+
+        it 'is true when started' do
+          io_reactor.start.get
+          io_reactor.should be_running
+        end
+
+        it 'is true when starting' do
+          f = io_reactor.start
+          io_reactor.should be_running
+          f.get
+        end
+
+        it 'is false when stopped' do
+          io_reactor.start.get
+          io_reactor.stop.get
+          io_reactor.should_not be_running
+        end
+      end
+
+      describe '#stop' do
+        it 'closes all connections' do
+          io_reactor.start.get
+          f1 = io_reactor.add_connection(host, port)
+          f2 = io_reactor.add_connection(host, port)
+          f3 = io_reactor.add_connection(host, port)
+          f4 = io_reactor.add_connection(host, port)
+          Future.combine(f1, f2, f3, f4).get
+          io_reactor.stop.get
+          await_server
+          server_stats[:disconnects].should == 4
+        end
+      end
+
+      describe '#add_connection' do
+        before do
+          io_reactor.start.get
+        end
+
         it 'connects to the specified host and port' do
-          future = connection.connect
+          future = io_reactor.add_connection(host, port)
           future.get
           await_server
           server_stats[:connects].should == 1
         end
 
-        it 'does nothing when called a second time' do
-          future = connection.connect
-          future.get
-          future = connection.connect
-          future.get
-          await_server
-          server_stats[:connects].should == 1
+        it 'fails the returned future when it cannot connect to the host' do
+          future = io_reactor.add_connection('example.com', port)
+          expect { future.get }.to raise_error(ConnectionError)
         end
 
-        it 'connects only once when called asynchronously' do
-          future1 = connection.connect
-          future2 = connection.connect
-          future1.get
-          future2.get
-          await_server
-          server_stats[:connects].should == 1
-        end
-
-        it 'fails the returned future when it cannot connect' do
-          connection = described_class.new(host: 'huffabuff.local', timeout: 1)
-          future = connection.connect
+        it 'fails the returned future when it cannot connect to the port' do
+          future = io_reactor.add_connection(host, 9999)
           expect { future.get }.to raise_error(ConnectionError)
-          connection.close
-
-          connection = described_class.new(host: 'example.com', timeout: 0.1)
-          future = connection.connect
-          expect { future.get }.to raise_error(ConnectionError)
-          connection.close
-
-          connection = described_class.new(port: 9999, timeout: 1)
-          future = connection.connect
-          expect { future.get }.to raise_error(ConnectionError)
-          connection.close
         end
 
         it 'times out quickly when it cannot connect' do
           started_at = Time.now
           begin
-            connection = described_class.new(port: 9999, timeout: 1)
-            future = connection.connect
+            future = io_reactor.add_connection(host, 9999)
             future.get
           rescue ConnectionError
           end
           time_taken = (Time.now - started_at).to_f
           time_taken.should be < 1.5
         end
-      end
 
-      describe '#connected?' do
-        it 'is initially false' do
-          connection.should_not be_connected
-        end
-
-        it 'is true when connected' do
-          value = :bad_value
+        it 'can be called before the reactor is started' do
+          r = described_class.new(connection_timeout: 1)
           await do |signal|
-            connection.connect.on_complete do
-              value = connection.connected?
+            r.add_connection(host, port).on_complete do
               signal << :ping
             end
+            r.start.get
           end
-          value.should be_true
-        end
-
-        it 'is false when the connection has been closed' do
-          value = :bad_value
-          await do |signal|
-            connection.connect.on_complete do
-              connection.close.on_complete do
-                value = connection.connected?
-                signal << :ping
-              end
-            end
-          end
-          value.should be_false
-        end
-      end
-
-      describe '#close' do
-        it 'raises an error unless the connection is open' do
-          expect { connection.close }.to raise_error(IllegalStateError)
-        end
-
-        it 'closes the connection' do
-          await do |signal|
-            connection.connect.on_complete do
-              connection.close.on_complete do
-                signal << :ping
-              end
-            end
-          end
-          await_server
-          server_stats[:disconnects].should == 1
-        end
-      end
-
-      describe '#closed?' do
-        it 'is false initially' do
-          connection.should_not be_closed
-        end
-
-        it 'is false while connected' do
-          value = :bad_value
-          await do |signal|
-            connection.connect.on_complete do
-              value = connection.closed?
-              signal << :ping
-            end
-          end
-          value.should be_false
-        end
-
-        it 'is true when the connection is closed' do
-          await do |signal|
-            connection.connect.on_complete do
-              connection.close.on_complete do
-                signal << :ping
-              end
-            end
-          end
-          connection.should be_closed
-        end
-
-        it 'is true when the connection is scheduled to close' do
-          value = :bad_value
-          await do |signal|
-            connection.connect.on_complete do
-              connection.close
-              value = connection.closed?
-              signal << :ping
-            end
-          end
-          value.should be_true
+          r.stop.get
         end
       end
     end

@@ -17,27 +17,35 @@ module Cql
     attr_reader :keyspace
 
     def initialize(options={})
-      connection_options = options.dup
-      @connection_factory = connection_options.delete(:connection_factory) || Io::Connection
-      @connection = @connection_factory.new(connection_options)
+      connection_timeout = options[:connection_timeout]
+      @host = options[:host] || 'localhost'
+      @port = options[:port] || 9042
+      @io_reactor = options[:io_reactor] || Io::IoReactor.new(connection_timeout: connection_timeout)
+      @started = false
+      @shut_down = false
       @keyspace = options[:keyspace]
     end
 
     def start!
-      return if @connection.connected?
-      @connection.connect.get
+      return if @started
+      @started = true
+      @io_reactor.start
+      @io_reactor.add_connection(@host, @port).get
       execute_request(Protocol::StartupRequest.new)
       use(@keyspace) if @keyspace
       self
     end
 
     def shutdown!
-      @connection.close.get
+      return if @shut_down
+      @shut_down = true
+      @started = false
+      @io_reactor.stop.get
       self
     end
 
     def use(keyspace)
-      raise NotConnectedError unless @connection.connected?
+      raise NotConnectedError unless @started
       execute("USE #{keyspace}", :one) if check_keyspace_name!(keyspace)
     end
 
@@ -66,8 +74,8 @@ module Cql
     end
 
     def execute_request(request)
-      raise NotConnectedError unless @connection.connected?
-      @connection.execute(request).map(&method(:interpret_response!)).value
+      raise NotConnectedError unless @started
+      @io_reactor.queue_request(request).map(&method(:interpret_response!)).value
     end
 
     def interpret_response!(response)

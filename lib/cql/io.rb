@@ -8,4 +8,4 @@ module Cql
   end
 end
 
-require 'cql/io/connection'
+require 'cql/io/io_reactor'
