@@ -30,7 +30,10 @@ module Cql
       return if @started
       @started = true
       @io_reactor.start
-      @io_reactor.add_connection(@host, @port).get
+      connection_futures = @host.split(',').map do |host|
+        @io_reactor.add_connection(host, @port)
+      end
+      Future.combine(*connection_futures).get
       execute_request(Protocol::StartupRequest.new)
       use(@keyspace) if @keyspace
       self
