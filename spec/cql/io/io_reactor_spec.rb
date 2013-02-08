@@ -31,14 +31,14 @@ module Cql
 
       after do
         io_reactor.stop.get if io_reactor.running?
-        stop_server!
+        stop_server!(port)
       end
 
       describe '#initialize' do
         it 'does not connect' do
           described_class.new
           await_server
-          server_stats[:connects].should == 0
+          server_stats(port)[:connects].should == 0
         end
       end
 
@@ -75,7 +75,7 @@ module Cql
           Future.combine(f1, f2, f3, f4).get
           io_reactor.stop.get
           await_server
-          server_stats[:disconnects].should == 4
+          server_stats(port)[:disconnects].should == 4
         end
       end
 
@@ -88,7 +88,7 @@ module Cql
           future = io_reactor.add_connection(host, port)
           future.get
           await_server
-          server_stats[:connects].should == 1
+          server_stats(port)[:connects].should == 1
         end
 
         it 'fails the returned future when it cannot connect to the host' do
@@ -133,7 +133,7 @@ module Cql
           sleep(0.1)
           r.stop.get
           sleep(0.1)
-          server_stats[:data][3, 1].should == "\x01"
+          server_stats(port)[:received_bytes][3, 1].should == "\x01"
         end
 
         it 'can be called before the reactor is started' do
@@ -144,13 +144,13 @@ module Cql
           sleep(0.1)
           r.stop.get
           sleep(0.1)
-          server_stats[:data][3, 1].should == "\x01"
+          server_stats(port)[:received_bytes][3, 1].should == "\x01"
         end
       end
 
       describe '#add_event_listener' do
         it 'calls the listener when frames with stream ID -1 arrives' do
-          stop_server!
+          stop_server!(port)
           start_server!(port, "\x81\x00\xFF\f\x00\x00\x00+\x00\rSCHEMA_CHANGE\x00\aDROPPED\x00\nkeyspace01\x00\x05users")
           event = nil
           r = described_class.new(connection_timeout: 1)

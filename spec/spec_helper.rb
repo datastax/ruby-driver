@@ -25,30 +25,59 @@ end
 
 module FakeServerHelpers
   def start_server!(port, response_bytes=nil)
-    @server_lock = Mutex.new
-    @server_running = [true]
-    @connects = []
-    @disconnects = []
-    @data = ''
-    @sockets = [TCPServer.new(port)]
-    @server_thread = Thread.start(@sockets, @server_running, @connects, @disconnects, @data, @server_lock) do |sockets, server_running, connects, disconnects, data, lock|
-      begin
-        Thread.current.abort_on_exception = true
-        while server_running[0]
-          readables, _ = IO.select(sockets, nil, nil, 0)
-          if readables
-            readables.each do |socket|
-              connection, _ = socket.accept_nonblock
+    @fake_servers ||= {}
+    raise "Port in use: #{port}" if @fake_servers[port]
+    @fake_servers[port] = server_state = {}
+    server_state[:lock] = Mutex.new
+    server_state[:running] = true
+    server_state[:connects] = 0
+    server_state[:disconnects] = 0
+    server_state[:response_bytes] = response_bytes
+    server_state[:received_bytes] = ''
+    server_state[:sockets] = [TCPServer.new(port)]
+    server_state[:thread] = Thread.start do
+      Thread.current.abort_on_exception = true
+      lock = server_state[:lock]
+      connections = []
+      while server_state[:running]
+        acceptables, _ = IO.select(server_state[:sockets], connections, nil, 0)
+        readables, writables, exceptionals = IO.select(connections, connections, connections, 0)
+
+        if exceptionals && exceptionals.any?
+          p [:exceptionals, exceptionals]
+        end
+
+        if acceptables
+          acceptables.each do |socket|
+            connection, _ = socket.accept_nonblock
+            lock.synchronize do
+              server_state[:connects] += 1
+            end
+            connections << connection
+          end
+        end
+
+        if readables
+          readables.each do |readable|
+            begin
+              bytes = readable.read_nonblock(2**16)
               lock.synchronize do
-                connects << 1
+                server_state[:received_bytes] << bytes
               end
-              connection.write(response_bytes) if response_bytes
-              bytes = connection.read
+            rescue EOFError
+              connections.delete(readable)
               lock.synchronize do
-                data << bytes
-                disconnects << 1
+                server_state[:disconnects] += 1
               end
-              connection.close
+            end
+          end
+        end
+
+        if writables && server_state[:response_bytes] && server_state[:response_bytes].size > 0
+          writables.each do |writable|
+            lock.synchronize do
+              n = writable.write_nonblock(server_state[:response_bytes])
+              server_state[:response_bytes].slice!(0, n)
             end
           end
         end
@@ -56,20 +85,15 @@ module FakeServerHelpers
     end
   end
 
-  def stop_server!
-    return unless @server_running[0]
-    @server_running[0] = false
-    @server_thread.join
-    @sockets.each(&:close)
+  def stop_server!(port)
+    server_state = @fake_servers.delete(port)
+    return unless server_state
+    server_state[:running] = false
+    server_state[:thread].join
+    server_state[:sockets].each(&:close)
   end
 
-  def server_stats
-    stats = {}
-    @server_lock.synchronize do
-      stats[:data] = @data
-      stats[:connects] = @connects ? @connects.size : 0
-      stats[:disconnects] = @disconnects ? @disconnects.size : 0
-    end
-    stats
+  def server_stats(port)
+    @fake_servers[port]
   end
 end
