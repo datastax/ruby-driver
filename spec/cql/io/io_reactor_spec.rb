@@ -148,6 +148,10 @@ module Cql
         end
       end
 
+      describe '#add_event_listener' do
+        it 'calls the listener when frames with stream ID -1 arrives'
+      end
+
       context 'when errors occur' do
         context 'in the IO loop' do
           before do
