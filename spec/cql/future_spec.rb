@@ -248,6 +248,15 @@ module Cql
     it 'defaults to the value nil' do
       described_class.new.value.should be_nil
     end
+
+    it 'handles #map' do
+      described_class.new('foo').map(&:upcase).value.should == 'FOO'
+    end
+
+    it 'handles #map' do
+      f = described_class.new('foo').map { |v| raise 'Blurgh' }
+      f.should be_failed
+    end
   end
 
   describe FailedFuture do

@@ -81,7 +81,7 @@ module Cql
     end
 
     def map(&block)
-      fp = self.class.new
+      fp = Future.new
       on_failure { |e| fp.fail!(e) }
       on_complete do |v|
         begin
