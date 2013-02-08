@@ -124,6 +124,30 @@ module Cql
         end
       end
 
+      describe '#queue_request' do
+        it 'eventually sends the request' do
+          r = described_class.new(connection_timeout: 1)
+          r.start
+          r.add_connection(host, port).get
+          r.queue_request(Cql::Protocol::StartupRequest.new)
+          sleep(0.1)
+          r.stop.get
+          sleep(0.1)
+          server_stats[:data][3, 1].should == "\x01"
+        end
+
+        it 'can be called before the reactor is started' do
+          r = described_class.new(connection_timeout: 1)
+          r.queue_request(Cql::Protocol::StartupRequest.new)
+          r.start
+          r.add_connection(host, port).get
+          sleep(0.1)
+          r.stop.get
+          sleep(0.1)
+          server_stats[:data][3, 1].should == "\x01"
+        end
+      end
+
       context 'when errors occur' do
         context 'in the IO loop' do
           before do

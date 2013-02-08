@@ -29,8 +29,9 @@ module FakeServerHelpers
     @server_running = [true]
     @connects = []
     @disconnects = []
+    @data = ''
     @sockets = [TCPServer.new(port)]
-    @server_thread = Thread.start(@sockets, @server_running, @connects, @disconnects, @server_lock) do |sockets, server_running, connects, disconnects, lock|
+    @server_thread = Thread.start(@sockets, @server_running, @connects, @disconnects, @data, @server_lock) do |sockets, server_running, connects, disconnects, data, lock|
       begin
         Thread.current.abort_on_exception = true
         while server_running[0]
@@ -41,8 +42,9 @@ module FakeServerHelpers
               lock.synchronize do
                 connects << 1
               end
-              connection.read
+              bytes = connection.read
               lock.synchronize do
+                data << bytes
                 disconnects << 1
               end
               connection.close
@@ -63,6 +65,7 @@ module FakeServerHelpers
   def server_stats
     stats = {}
     @server_lock.synchronize do
+      stats[:data] = @data
       stats[:connects] = @connects ? @connects.size : 0
       stats[:disconnects] = @disconnects ? @disconnects.size : 0
     end
