@@ -67,10 +67,20 @@ module Cql
         end
 
         it 'fails the returned future when it cannot connect' do
-          future = described_class.new(host: 'huffabuff.local', timeout: 1).connect
+          connection = described_class.new(host: 'huffabuff.local', timeout: 1)
+          future = connection.connect
           expect { future.get }.to raise_error(ConnectionError)
-          future = described_class.new(port: 9999, timeout: 1).connect
+          connection.close
+
+          connection = described_class.new(host: 'example.com', timeout: 0.1)
+          future = connection.connect
           expect { future.get }.to raise_error(ConnectionError)
+          connection.close
+
+          connection = described_class.new(port: 9999, timeout: 1)
+          future = connection.connect
+          expect { future.get }.to raise_error(ConnectionError)
+          connection.close
         end
 
         it 'times out quickly when it cannot connect' do

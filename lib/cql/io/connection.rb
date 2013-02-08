@@ -50,13 +50,33 @@ module Cql
       private
 
       class NodeConnection
-        def initialize(io)
-          @io = io
+        def initialize(*args)
+          @host, @port, @connection_timeout = args
+          @connected_future = Future.new
+          @io = nil
+          @addrinfo = nil
           @write_buffer = ''
           @read_buffer = ''
           @current_frame = Protocol::ResponseFrame.new(@read_buffer)
           @response_tasks = [nil] * 128
           @event_listeners = []
+        end
+
+        def open
+          @connection_started_at = Time.now
+          begin
+            addrinfo = Socket.getaddrinfo(@host, @port, :INET, :STREAM)
+            _, port, _, ip, address_family, socket_type = addrinfo.first
+            @sockaddr = Socket.sockaddr_in(port, ip)
+            @io = Socket.new(address_family, socket_type, 0)
+            @io.connect_nonblock(@sockaddr)
+            @connected_future.complete!
+          rescue Errno::EINPROGRESS
+            # ok
+          rescue Errno::EHOSTUNREACH, Errno::EBADF, Errno::EINVAL, SystemCallError, SocketError => e
+            fail_connection!(e)
+          end
+          @connected_future
         end
 
         def to_io
@@ -67,11 +87,18 @@ module Cql
           @event_listeners << listener
         end
 
-        def next_stream_id
-          @response_tasks.each_with_index do |task, index|
-            return index if task.nil?
+        def ping
+          if @io && connecting? && (Time.now - @connection_started_at > @connection_timeout)
+            fail_connection!
           end
-          nil
+        end
+
+        def connecting?
+          !@connected_future.complete?
+        end
+
+        def connected?
+          @io && !connecting?
         end
 
         def has_capacity?
@@ -79,7 +106,7 @@ module Cql
         end
 
         def can_write?
-          !@write_buffer.empty?
+          @io && (!@write_buffer.empty? || connecting?)
         end
 
         def perform_request(request, future)
@@ -108,17 +135,63 @@ module Cql
         end
 
         def handle_write
-          bytes_written = @io.write_nonblock(@write_buffer)
-          @write_buffer.slice!(0, bytes_written)
+          if connecting?
+            handle_connected
+          else
+            bytes_written = @io.write_nonblock(@write_buffer)
+            @write_buffer.slice!(0, bytes_written)
+          end
         end
 
-        def close!
-          @io.close
+        def close
+          if @io
+            @io.close
+            if connecting?
+              @connected_future.complete!
+            end
+          end
+        end
+
+        def to_s
+          state = begin
+            if connected? then 'connected'
+            elsif connecting? then 'connecting'
+            else 'not connected'
+            end
+          end
+          %<NodeConnection(#{@host}:#{@port}, #{state})>
         end
 
         private
 
         EVENT_STREAM_ID = -1
+
+        def handle_connected
+          @io.connect_nonblock(@sockaddr)
+          @connected_future.complete!
+        rescue Errno::EISCONN
+          # ok
+          @connected_future.complete!
+        rescue Errno::EINVAL, SystemCallError => e
+          fail_connection!(e)
+        end
+
+        def fail_connection!(e=nil)
+          message = "Could not connect to #{@host}:#{@port}"
+          message << ": #{e.message} (#{e.class.name})" if e
+          error = ConnectionError.new(message)
+          error.set_backtrace(e.backtrace) if e
+          @connected_future.fail!(error)
+          @io.close if @io
+          @io = nil
+        end
+
+        def next_stream_id
+          @response_tasks.each_with_index do |task, index|
+            return index if task.nil?
+          end
+          nil
+        end
       end
 
       class CommandDispatcher
@@ -130,6 +203,14 @@ module Cql
           @io
         end
 
+        def connecting?
+          false
+        end
+
+        def connected?
+          true
+        end
+
         def has_capacity?
           false
         end
@@ -139,6 +220,9 @@ module Cql
         end
 
         def on_event; end
+
+        def ping
+        end
 
         def handle_read
           requests = []
@@ -159,8 +243,12 @@ module Cql
         def handle_write
         end
 
-        def close!
+        def close
           @io.close
+        end
+
+        def to_s
+          %(CommandDispatcher)
         end
 
         private
@@ -216,17 +304,17 @@ module Cql
         end
 
         def add_connection(host, port, timeout)
-          begin
-            socket = connect!(host, port, timeout)
+          connection = NodeConnection.new(host, port, timeout)
+          future = connection.open
+          future.on_failure do
             @lock.synchronize do
-              @streams << NodeConnection.new(socket)
+              @streams.delete(connection)
             end
-            CompletedFuture.new
-          rescue Errno::EHOSTUNREACH, Errno::EBADF, Errno::EINVAL, SystemCallError, SocketError => e
-            error = ConnectionError.new("Could not connect to #@host:#@port: #{e.message} (#{e.class.name})")
-            error.set_backtrace(e.backtrace)
-            FailedFuture.new(error)
           end
+          @lock.synchronize do
+            @streams << connection
+          end
+          future
         end
 
         def add_event_listener(listener)
@@ -250,10 +338,12 @@ module Cql
 
         def io_loop
           until closed?
+            read_ready_streams = @streams.select(&:connected?)
             write_ready_streams = @streams.select(&:can_write?)
-            readables, writables, _ = IO.select(@streams, write_ready_streams, nil, 1)
+            readables, writables, _ = IO.select(read_ready_streams, write_ready_streams, nil, 0.1)
             readables && readables.each(&:handle_read)
             writables && writables.each(&:handle_write)
+            @streams.each(&:ping)
           end
         rescue Errno::ECONNRESET, IOError => e
           close
@@ -261,45 +351,10 @@ module Cql
           @connected = false
           @streams.each do |stream|
             begin
-              stream.close!
+              stream.close
             rescue IOError
             end
           end
-        end
-
-        def connect!(host, port, timeout)
-          socket = nil
-          exception = nil
-          addrinfo = Socket.getaddrinfo(host, port, nil, Socket::Constants::SOCK_STREAM)
-          addrinfo.each do |_, port, _, ip, address_family, socket_type|
-            sockaddr = Socket.sockaddr_in(port, ip)
-            begin
-              socket = Socket.new(address_family, socket_type, 0)
-              socket.connect_nonblock(sockaddr)
-              return socket
-            rescue Errno::EINPROGRESS
-              IO.select(nil, [socket], nil, timeout)
-              begin
-                socket.connect_nonblock(sockaddr)
-                return socket
-              rescue Errno::EISCONN
-                return socket
-              rescue Errno::EINVAL => e
-                exception = e
-                socket.close
-                next
-              rescue SystemCallError => e
-                exception = e
-                socket.close
-                next
-              end
-            rescue SystemCallError => e
-              exception = e
-              socket.close
-              next
-            end
-          end
-          raise exception
         end
       end
     end
