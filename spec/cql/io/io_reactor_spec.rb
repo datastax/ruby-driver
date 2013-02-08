@@ -149,7 +149,19 @@ module Cql
       end
 
       describe '#add_event_listener' do
-        it 'calls the listener when frames with stream ID -1 arrives'
+        it 'calls the listener when frames with stream ID -1 arrives' do
+          stop_server!
+          start_server!(port, "\x81\x00\xFF\f\x00\x00\x00+\x00\rSCHEMA_CHANGE\x00\aDROPPED\x00\nkeyspace01\x00\x05users")
+          event = nil
+          r = described_class.new(connection_timeout: 1)
+          r.start
+          r.add_event_listener { |e| event = e }
+          r.add_connection(host, port).get
+          sleep(0.1)
+          r.stop.get
+          sleep(0.1)
+          event.should == Cql::Protocol::SchemaChangeEventResponse.new('DROPPED', 'keyspace01', 'users')
+        end
       end
 
       context 'when errors occur' do

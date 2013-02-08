@@ -24,7 +24,7 @@ module AsyncHelpers
 end
 
 module FakeServerHelpers
-  def start_server!(port)
+  def start_server!(port, response_bytes=nil)
     @server_lock = Mutex.new
     @server_running = [true]
     @connects = []
@@ -42,6 +42,7 @@ module FakeServerHelpers
               lock.synchronize do
                 connects << 1
               end
+              connection.write(response_bytes) if response_bytes
               bytes = connection.read
               lock.synchronize do
                 data << bytes
