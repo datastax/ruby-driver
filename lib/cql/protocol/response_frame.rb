@@ -200,6 +200,15 @@ module Cql
         new
       end
 
+      def eql?(rs)
+        self.class === rs
+      end
+      alias_method :==, :eql?
+
+      def hash
+        @h ||= to_s.hash ^ 0xbadc0de
+      end
+
       def to_s
         'READY'
       end

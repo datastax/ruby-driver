@@ -664,6 +664,24 @@ module Cql
         end
       end
 
+      describe ReadyResponse do
+        describe '#eql?' do
+          it 'is equal to all other ready responses' do
+            ReadyResponse.new.should eql(ReadyResponse.new)
+          end
+
+          it 'aliased as ==' do
+            ReadyResponse.new.should == ReadyResponse.new
+          end
+        end
+
+        describe '#hash' do
+          it 'has the same hash code as all other ready responses' do
+            ReadyResponse.new.hash.should == ReadyResponse.new.hash
+          end
+        end
+      end
+
       describe SchemaChangeEventResponse do
         describe '#eql?' do
           it 'is equal to an identical response' do
