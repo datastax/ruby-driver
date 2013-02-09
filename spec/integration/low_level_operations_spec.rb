@@ -20,7 +20,7 @@ describe 'A CQL connection' do
   end
 
   def execute_request(request)
-    io_reactor.queue_request(request).get
+    io_reactor.queue_request(request).get.first
   end
 
   def query(cql, consistency=:any)

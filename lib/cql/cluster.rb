@@ -14,8 +14,6 @@ module Cql
   end
 
   class Cluster
-    attr_reader :keyspace
-
     def initialize(options={})
       connection_timeout = options[:connection_timeout]
       @host = options[:host] || 'localhost'
@@ -23,19 +21,23 @@ module Cql
       @io_reactor = options[:io_reactor] || Io::IoReactor.new(connection_timeout: connection_timeout)
       @started = false
       @shut_down = false
-      @keyspace = options[:keyspace]
+      @initial_keyspace = options[:keyspace]
+      @connection_keyspaces = {}
     end
 
     def start!
       return if @started
       @started = true
       @io_reactor.start
-      connection_futures = @host.split(',').map do |host|
-        @io_reactor.add_connection(host, @port)
+      hosts = @host.split(',')
+      start_request = Protocol::StartupRequest.new
+      connection_futures = hosts.map do |host|
+        @io_reactor.add_connection(host, @port).flat_map do |connection_id|
+          execute_request(start_request, connection_id).map { connection_id }
+        end
       end
-      Future.combine(*connection_futures).get
-      execute_request(Protocol::StartupRequest.new)
-      use(@keyspace) if @keyspace
+      @connection_ids = Future.combine(*connection_futures).get
+      use(@initial_keyspace) if @initial_keyspace
       self
     end
 
@@ -47,22 +49,40 @@ module Cql
       self
     end
 
-    def use(keyspace)
+    def keyspace
+      @connection_ids.map { |id| @connection_keyspaces[id] }.first
+    end
+
+    def use(keyspace, connection_ids=@connection_ids)
       raise NotConnectedError unless @started
-      execute("USE #{keyspace}", :one) if check_keyspace_name!(keyspace)
+      if check_keyspace_name!(keyspace)
+        futures = connection_ids.map do |connection_id|
+          if @connection_keyspaces[connection_id] != keyspace
+            execute_request(Protocol::QueryRequest.new("USE #{keyspace}", :one), connection_id)
+          end
+        end
+        futures.compact!
+        Future.combine(*futures).get
+        nil
+      end
     end
 
     def execute(cql, consistency=:quorum)
-      execute_request(Protocol::QueryRequest.new(cql, consistency))
+      result = execute_request(Protocol::QueryRequest.new(cql, consistency)).value
+      if @connection_ids.any? { |id| @connection_keyspaces[id] != @last_keyspace_change }
+        ks = @last_keyspace_change
+        @last_keyspace_change = nil
+        use(ks)
+      end
+      result
     end
 
-    def execute_statement(id, metadata, values, consistency)
-      # TODO this does not take connection locality into consideration
-      execute_request(Protocol::ExecuteRequest.new(id, metadata, values, consistency))
+    def execute_statement(connection_id, statement_id, metadata, values, consistency)
+      execute_request(Protocol::ExecuteRequest.new(statement_id, metadata, values, consistency), connection_id).value
     end
 
     def prepare(cql)
-      execute_request(Protocol::PrepareRequest.new(cql))
+      execute_request(Protocol::PrepareRequest.new(cql)).value
     end
 
     private
@@ -76,34 +96,42 @@ module Cql
       true
     end
 
-    def execute_request(request)
+    def execute_request(request, connection_id=nil)
       raise NotConnectedError unless @started
-      @io_reactor.queue_request(request).map(&method(:interpret_response!)).value
+      @io_reactor.queue_request(request, connection_id).map do |response, connection_id|
+        interpret_response!(response, connection_id)
+      end
     end
 
-    def interpret_response!(response)
+    def interpret_response!(response, connection_id)
       case response
       when Protocol::ErrorResponse
         raise QueryError.new(response.code, response.message)
       when Protocol::RowsResultResponse
         QueryResult.new(response.metadata, response.rows)
       when Protocol::PreparedResultResponse
-        PreparedStatement.new(self, response.id, response.metadata)
+        PreparedStatement.new(self, connection_id, response.id, response.metadata)
       when Protocol::SetKeyspaceResultResponse
-        @keyspace = response.keyspace
+        @last_keyspace_change = @connection_keyspaces[connection_id] = response.keyspace
         nil
       else
         nil
       end
     end
 
+    def check_keyspaces!(keyspace)
+      if @connection_ids
+        use(keyspace, @connection_ids.select { |id| @connection_keyspaces[id] != keyspace })
+      end
+    end
+
     class PreparedStatement
       def initialize(*args)
-        @cluster, @id, @metadata = args
+        @cluster, @connection_id, @statement_id, @metadata = args
       end
 
       def execute(*args)
-        @cluster.execute_statement(@id, @metadata, args, :quorum)
+        @cluster.execute_statement(@connection_id, @statement_id, @metadata, args, :quorum)
       end
     end
 

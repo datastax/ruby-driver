@@ -6,23 +6,23 @@ require 'spec_helper'
 module Cql
   describe Cluster do
     class FakeIoReactor
-      attr_reader :connections
+      attr_reader :connections, :last_used_connection
 
       def initialize
         @running = false
         @connections = []
-        @next_response = {}
+        @queued_responses = Hash.new { |h, k| h[k] = [] }
         @default_host = nil
       end
 
-      def set_next_response(response, host=@default_host)
-        @next_response[host] = response
+      def queue_response(response, host=nil)
+        @queued_responses[host] << response
       end
 
       def start
         @running = true
         @connections.each do |connection|
-          connection[:future].complete!
+          connection[:future].complete! unless connection[:future].complete?
         end
         CompletedFuture.new
       end
@@ -39,14 +39,22 @@ module Cql
       def add_connection(host, port)
         @default_host ||= host
         future = Future.new
-        @connections << {:host => host, :port => port, :future => future, :requests => []}
-        future.complete! if @running
+        connection = {:host => host, :port => port, :future => future, :requests => []}
+        @connections << connection
+        future.complete!(connection.object_id) if @running
         future
       end
 
-      def queue_request(request)
-        @connections.last[:requests] << request
-        CompletedFuture.new(@next_response.delete(@default_host))
+      def queue_request(request, connection_id=nil)
+        if connection_id
+          connection = @connections.find { |c| c.object_id == connection_id }
+        else
+          connection = @connections.sample
+        end
+        connection[:requests] << request
+        response = @queued_responses[connection[:host]].shift || @queued_responses[nil].shift
+        @last_used_connection = connection
+        CompletedFuture.new([response, connection.object_id])
       end
     end
 
@@ -111,6 +119,14 @@ module Cql
         last_request.should be_a(Protocol::StartupRequest)
       end
 
+      it 'sends a startup request to each connection' do
+        c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
+        c.start!
+        connections.each do |cc|
+          cc[:requests].last.should be_a(Protocol::StartupRequest)
+        end
+      end
+
       it 'is not in a keyspace' do
         cluster.start!
         cluster.keyspace.should be_nil
@@ -150,15 +166,29 @@ module Cql
     describe '#use' do
       before do
         cluster.start!
-        io_reactor.set_next_response(Protocol::SetKeyspaceResultResponse.new('system'))
       end
 
       it 'executes a USE query' do
+        io_reactor.queue_response(Protocol::SetKeyspaceResultResponse.new('system'))
         cluster.use('system')
         last_request.should == Protocol::QueryRequest.new('USE system', :one)
       end
 
+      it 'executes a USE query for each connection' do
+        c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
+        c.start!
+
+        c.use('system')
+        last_requests = connections.select { |c| c[:host] =~ /^h\d\.example\.com$/ }.sort_by { |c| c[:host] }.map { |c| c[:requests].last }
+        last_requests.should == [
+          Protocol::QueryRequest.new('USE system', :one),
+          Protocol::QueryRequest.new('USE system', :one),
+          Protocol::QueryRequest.new('USE system', :one)
+        ]
+      end
+
       it 'knows which keyspace it changed to' do
+        io_reactor.queue_response(Protocol::SetKeyspaceResultResponse.new('system'))
         cluster.use('system')
         cluster.keyspace.should == 'system'
       end
@@ -185,7 +215,7 @@ module Cql
 
       context 'with a void CQL query' do
         it 'returns nil' do
-          io_reactor.set_next_response(Protocol::VoidResultResponse.new)
+          io_reactor.queue_response(Protocol::VoidResultResponse.new)
           result = cluster.execute('UPDATE stuff SET thing = 1 WHERE id = 3')
           result.should be_nil
         end
@@ -193,15 +223,34 @@ module Cql
 
       context 'with a USE query' do
         it 'returns nil' do
-          io_reactor.set_next_response(Protocol::SetKeyspaceResultResponse.new('system'))
+          io_reactor.queue_response(Protocol::SetKeyspaceResultResponse.new('system'))
           result = cluster.execute('USE system')
           result.should be_nil
         end
 
         it 'knows which keyspace it changed to' do
-          io_reactor.set_next_response(Protocol::SetKeyspaceResultResponse.new('system'))
+          io_reactor.queue_response(Protocol::SetKeyspaceResultResponse.new('system'))
           cluster.execute('USE system')
           cluster.keyspace.should == 'system'
+        end
+
+        it 'detects that one connection changed to a keyspace and changes the others too' do
+          c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
+          c.start!
+
+          io_reactor.queue_response(Protocol::SetKeyspaceResultResponse.new('system'), connections.find { |c| c[:host] == 'h1.example.com' }[:host])
+          io_reactor.queue_response(Protocol::SetKeyspaceResultResponse.new('system'), connections.find { |c| c[:host] == 'h2.example.com' }[:host])
+          io_reactor.queue_response(Protocol::SetKeyspaceResultResponse.new('system'), connections.find { |c| c[:host] == 'h3.example.com' }[:host])
+
+          c.execute('USE system', :one)
+          c.keyspace.should == 'system'
+
+          last_requests = connections.select { |c| c[:host] =~ /^h\d\.example\.com$/ }.sort_by { |c| c[:host] }.map { |c| c[:requests].last }
+          last_requests.should == [
+            Protocol::QueryRequest.new('USE system', :one),
+            Protocol::QueryRequest.new('USE system', :one),
+            Protocol::QueryRequest.new('USE system', :one)
+          ]
         end
       end
 
@@ -215,7 +264,7 @@ module Cql
         end
 
         let :result do
-          io_reactor.set_next_response(Protocol::RowsResultResponse.new(rows, metadata))
+          io_reactor.queue_response(Protocol::RowsResultResponse.new(rows, metadata))
           cluster.execute('SELECT * FROM things')
         end
 
@@ -251,7 +300,7 @@ module Cql
 
       context 'when the response is an error' do
         it 'raises an error' do
-          io_reactor.set_next_response(Protocol::ErrorResponse.new(0xabcd, 'Blurgh'))
+          io_reactor.queue_response(Protocol::ErrorResponse.new(0xabcd, 'Blurgh'))
           expect { cluster.execute('SELECT * FROM things') }.to raise_error(QueryError, 'Blurgh')
         end
       end
@@ -268,7 +317,7 @@ module Cql
       end
 
       it 'returns a prepared statement' do
-        io_reactor.set_next_response(Protocol::PreparedResultResponse.new('A' * 32, [['stuff', 'things', 'item', :varchar]]))
+        io_reactor.queue_response(Protocol::PreparedResultResponse.new('A' * 32, [['stuff', 'things', 'item', :varchar]]))
         statement = cluster.prepare('SELECT * FROM stuff.things WHERE item = ?')
         statement.should_not be_nil
       end
@@ -276,10 +325,36 @@ module Cql
       it 'executes a prepared statement' do
         id = 'A' * 32
         metadata = [['stuff', 'things', 'item', :varchar]]
-        io_reactor.set_next_response(Protocol::PreparedResultResponse.new(id, metadata))
+        io_reactor.queue_response(Protocol::PreparedResultResponse.new(id, metadata))
         statement = cluster.prepare('SELECT * FROM stuff.things WHERE item = ?')
         statement.execute('foo')
         last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], :quorum)
+      end
+
+      it 'executes a prepared statement using the right connection' do
+        metadata = [['stuff', 'things', 'item', :varchar]]
+        
+        c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
+        c.start!
+
+        io_reactor.queue_response(Protocol::PreparedResultResponse.new('A' * 32, metadata))
+        io_reactor.queue_response(Protocol::PreparedResultResponse.new('B' * 32, metadata))
+        io_reactor.queue_response(Protocol::PreparedResultResponse.new('C' * 32, metadata))
+
+        statement1 = c.prepare('SELECT * FROM stuff.things WHERE item = ?')
+        statement1_connection = io_reactor.last_used_connection
+        statement2 = c.prepare('SELECT * FROM stuff.things WHERE item = ?')
+        statement2_connection = io_reactor.last_used_connection
+        statement3 = c.prepare('SELECT * FROM stuff.things WHERE item = ?')
+        statement3_connection = io_reactor.last_used_connection
+
+        io_reactor.queue_response(Protocol::RowsResultResponse.new([{'thing' => 'foo1'}], metadata), statement1_connection[:host])
+        io_reactor.queue_response(Protocol::RowsResultResponse.new([{'thing' => 'foo2'}], metadata), statement2_connection[:host])
+        io_reactor.queue_response(Protocol::RowsResultResponse.new([{'thing' => 'foo3'}], metadata), statement3_connection[:host])
+
+        statement1.execute('foo').first.should == {'thing' => 'foo1'}
+        statement2.execute('foo').first.should == {'thing' => 'foo2'}
+        statement3.execute('foo').first.should == {'thing' => 'foo3'}
       end
     end
 
@@ -316,7 +391,7 @@ module Cql
 
       it 'complains when #execute of a prepared statement is called after #shutdown!' do
         cluster.start!
-        io_reactor.set_next_response(Protocol::PreparedResultResponse.new('A' * 32, []))
+        io_reactor.queue_response(Protocol::PreparedResultResponse.new('A' * 32, []))
         statement = cluster.prepare('DELETE FROM stuff WHERE id = 3')
         cluster.shutdown!
         expect { statement.execute }.to raise_error(NotConnectedError)

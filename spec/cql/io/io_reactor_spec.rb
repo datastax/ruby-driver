@@ -91,6 +91,11 @@ module Cql
           server_stats(port)[:connects].should == 1
         end
 
+        it 'yields the connection ID when completed' do
+          future = io_reactor.add_connection(host, port)
+          future.get.should_not be_nil
+        end
+
         it 'fails the returned future when it cannot connect to the host' do
           future = io_reactor.add_connection('example.com', port)
           expect { future.get }.to raise_error(ConnectionError)
@@ -146,17 +151,88 @@ module Cql
           sleep(0.1)
           server_stats(port)[:received_bytes][3, 1].should == "\x01"
         end
+
+        it 'performs the request using the connection with the given ID' do
+          future = Future.new
+          request = Cql::Protocol::StartupRequest.new
+          response = "\x81\x00\x00\x02\x00\x00\x00\x00"
+          server = server_stats(port)
+
+          io_reactor.start.on_complete do
+            io_reactor.add_connection(host, port).on_complete do |c1_id|
+              io_reactor.add_connection(host, port).on_complete do |c2_id|
+                q1_future = io_reactor.queue_request(request, c2_id)
+                q2_future = io_reactor.queue_request(request, c1_id)
+
+                Future.combine(q1_future, q2_future).on_complete do |(_, q1_id), (_, q2_id)|
+                  future.complete!([c1_id, c2_id, q1_id, q2_id])
+                end
+
+                loop do
+                  n = 0
+                  server[:lock].synchronize do
+                    n = server[:connections].size
+                  end
+                  break if n == 2
+                end
+
+                server[:lock].synchronize do
+                  server[:connections].each { |c| c.write_nonblock(response.dup) }
+                end
+              end
+            end
+          end
+
+          connection1_id, connection2_id, query1_id, query2_id = future.value
+
+          connection1_id.should_not be_nil
+          connection2_id.should_not be_nil
+          query1_id.should == connection2_id
+          query2_id.should == connection1_id
+        end
+
+        it 'fails if the connection does not exist'
+        it 'fails if the connection is busy'
+
+        it 'yields the response when completed' do
+          response = nil
+          io_reactor.start
+          io_reactor.add_connection(host, port).get
+          f = io_reactor.queue_request(Cql::Protocol::StartupRequest.new)
+          f.on_complete do |r, _|
+            response = r
+          end
+          server_broadcast!(port, "\x81\x00\x00\x02\x00\x00\x00\x00")
+          sleep(0.1)
+          io_reactor.stop.get
+          sleep(0.1)
+          response.should == Cql::Protocol::ReadyResponse.new
+        end
+
+        it 'yields the connection ID when completed' do
+          connection = nil
+          io_reactor.start
+          io_reactor.add_connection(host, port).get
+          f = io_reactor.queue_request(Cql::Protocol::StartupRequest.new)
+          f.on_complete do |_, c|
+            connection = c
+          end
+          server_broadcast!(port, "\x81\x00\x00\x02\x00\x00\x00\x00")
+          sleep(0.1)
+          io_reactor.stop.get
+          sleep(0.1)
+          connection.should_not be_nil
+        end
       end
 
       describe '#add_event_listener' do
         it 'calls the listener when frames with stream ID -1 arrives' do
-          stop_server!(port)
-          start_server!(port, "\x81\x00\xFF\f\x00\x00\x00+\x00\rSCHEMA_CHANGE\x00\aDROPPED\x00\nkeyspace01\x00\x05users")
           event = nil
           r = described_class.new(connection_timeout: 1)
           r.start
-          r.add_event_listener { |e| event = e }
           r.add_connection(host, port).get
+          r.add_event_listener { |e| event = e }
+          server_broadcast!(port, "\x81\x00\xFF\f\x00\x00\x00+\x00\rSCHEMA_CHANGE\x00\aDROPPED\x00\nkeyspace01\x00\x05users")
           sleep(0.1)
           r.stop.get
           sleep(0.1)

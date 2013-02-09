@@ -65,9 +65,9 @@ module Cql
         future
       end
 
-      def queue_request(request)
+      def queue_request(request, connection_id=nil)
         future = Future.new
-        command_queue_push(:request, request, future)
+        command_queue_push(:request, request, future, connection_id)
         future
       end
 
@@ -129,13 +129,17 @@ module Cql
           @sockaddr = Socket.sockaddr_in(port, ip)
           @io = Socket.new(address_family, socket_type, 0)
           @io.connect_nonblock(@sockaddr)
-          @connected_future.complete!
+          succeed_connection!
         rescue Errno::EINPROGRESS
           # ok
         rescue SystemCallError, SocketError => e
           fail_connection!(e)
         end
         @connected_future
+      end
+
+      def connection_id
+        self.object_id
       end
 
       def to_io
@@ -181,9 +185,11 @@ module Cql
           stream_id = @current_frame.stream_id
           if stream_id == EVENT_STREAM_ID
             @event_listeners.each { |listener| listener.call(@current_frame.body) }
-          else
-            @response_tasks[stream_id].complete!(@current_frame.body)
+          elsif @response_tasks[stream_id]
+            @response_tasks[stream_id].complete!([@current_frame.body, connection_id])
             @response_tasks[stream_id] = nil
+          else
+            # TODO dropping the request on the floor here, but we didn't send it
           end
           @current_frame = Protocol::ResponseFrame.new(@read_buffer)
         end
@@ -202,7 +208,7 @@ module Cql
         if @io
           @io.close
           if connecting?
-            @connected_future.complete!
+            succeed_connection!
           end
         end
       end
@@ -227,12 +233,16 @@ module Cql
 
       def handle_connected
         @io.connect_nonblock(@sockaddr)
-        @connected_future.complete!
+        succeed_connection!
       rescue Errno::EISCONN
         # ok
-        @connected_future.complete!
+        succeed_connection!
       rescue SystemCallError, SocketError => e
         fail_connection!(e)
+      end
+
+      def succeed_connection!
+        @connected_future.complete!(connection_id)
       end
 
       def fail_connection!(e=nil)
@@ -256,6 +266,10 @@ module Cql
     class CommandDispatcher
       def initialize(*args)
         @io, @command_queue, @queue_lock, @node_connections = args
+      end
+
+      def connection_id
+        -1
       end
 
       def to_io
@@ -288,8 +302,13 @@ module Cql
               listener = command.shift
               @node_connections.each { |c| c.on_event(&listener) }
             else
-              request, future = command
-              @node_connections.select(&:has_capacity?).sample.perform_request(request, future)
+              request, future, connection_id = command
+              if connection_id
+                connection = @node_connections.find { |c| c.connection_id == connection_id }
+                connection.perform_request(request, future)
+              else
+                @node_connections.select(&:has_capacity?).sample.perform_request(request, future)
+              end
             end
           end
         end
