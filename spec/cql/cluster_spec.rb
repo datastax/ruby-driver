@@ -24,12 +24,12 @@ module Cql
         @connections.each do |connection|
           connection[:future].complete! unless connection[:future].complete?
         end
-        CompletedFuture.new
+        Future.completed
       end
 
       def stop
         @running = false
-        CompletedFuture.new
+        Future.completed
       end
 
       def running?
@@ -54,7 +54,7 @@ module Cql
         connection[:requests] << request
         response = @queued_responses[connection[:host]].shift || @queued_responses[nil].shift
         @last_used_connection = connection
-        CompletedFuture.new([response, connection.object_id])
+        Future.completed([response, connection.object_id])
       end
     end
 

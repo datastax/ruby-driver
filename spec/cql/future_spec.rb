@@ -228,63 +228,63 @@ module Cql
     describe '#flat_map' do
       it 'works like #map, but expects that the block returns a future' do
         f1 = Future.new
-        f2 = f1.flat_map { |v| CompletedFuture.new(v * 2) }
+        f2 = f1.flat_map { |v| Future.completed(v * 2) }
         f1.complete!(3)
         f2.value.should == 3 * 2
       end
     end
-  end
 
-  describe CompletedFuture do
-    let :future do
-      described_class.new('hello world')
+    describe '.completed' do
+      let :future do
+        described_class.completed('hello world')
+      end
+
+      it 'is complete when created' do
+        future.should be_complete
+      end
+
+      it 'calls callbacks immediately' do
+        value = nil
+        future.on_complete { |v| value = v }
+        value.should == 'hello world'
+      end
+
+      it 'does not block on #value' do
+        future.value.should == 'hello world'
+      end
+
+      it 'defaults to the value nil' do
+        described_class.completed.value.should be_nil
+      end
+
+      it 'handles #map' do
+        described_class.completed('foo').map(&:upcase).value.should == 'FOO'
+      end
+
+      it 'handles #map' do
+        f = described_class.completed('foo').map { |v| raise 'Blurgh' }
+        f.should be_failed
+      end
     end
 
-    it 'is complete when created' do
-      future.should be_complete
-    end
+    describe '.failed' do
+      let :future do
+        described_class.failed(StandardError.new('Blurgh'))
+      end
 
-    it 'calls callbacks immediately' do
-      value = nil
-      future.on_complete { |v| value = v }
-      value.should == 'hello world'
-    end
+      it 'is failed when created' do
+        future.should be_failed
+      end
 
-    it 'does not block on #value' do
-      future.value.should == 'hello world'
-    end
+      it 'calls callbacks immediately' do
+        error = nil
+        future.on_failure { |e| error = e }
+        error.message.should == 'Blurgh'
+      end
 
-    it 'defaults to the value nil' do
-      described_class.new.value.should be_nil
-    end
-
-    it 'handles #map' do
-      described_class.new('foo').map(&:upcase).value.should == 'FOO'
-    end
-
-    it 'handles #map' do
-      f = described_class.new('foo').map { |v| raise 'Blurgh' }
-      f.should be_failed
-    end
-  end
-
-  describe FailedFuture do
-    let :future do
-      described_class.new(StandardError.new('Blurgh'))
-    end
-
-    it 'is failed when created' do
-      future.should be_failed
-    end
-
-    it 'calls callbacks immediately' do
-      error = nil
-      future.on_failure { |e| error = e }
-      error.message.should == 'Blurgh'
-    end
-
-    it 'does not block on #value' do
-      expect { future.value }.to raise_error('Blurgh')
+      it 'does not block on #value' do
+        expect { future.value }.to raise_error('Blurgh')
+      end
     end
   end
 end

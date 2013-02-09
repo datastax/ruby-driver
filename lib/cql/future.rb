@@ -15,6 +15,14 @@ module Cql
       CombinedFuture.new(*futures)
     end
 
+    def self.completed(value=nil)
+      CompletedFuture.new(value)
+    end
+
+    def self.failed(error)
+      FailedFuture.new(error)
+    end
+
     def complete!(v=nil)
       @state_lock.synchronize do
         raise FutureError, 'Future already completed' if complete? || failed?
