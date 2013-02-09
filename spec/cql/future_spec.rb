@@ -224,6 +224,15 @@ module Cql
         end
       end
     end
+
+    describe '#flat_map' do
+      it 'works like #map, but expects that the block returns a future' do
+        f1 = Future.new
+        f2 = f1.flat_map { |v| CompletedFuture.new(v * 2) }
+        f1.complete!(3)
+        f2.value.should == 3 * 2
+      end
+    end
   end
 
   describe CompletedFuture do

@@ -93,6 +93,23 @@ module Cql
       end
       fp
     end
+
+    def flat_map(&block)
+      fp = Future.new
+      on_failure { |e| fp.fail!(e) }
+      on_complete do |v|
+        begin
+          fpp = block.call(v)
+          fpp.on_failure { |e| fp.fail!(e) }
+          fpp.on_complete do |vv|
+            fp.complete!(vv)
+          end
+        rescue => e
+          fp.fail!(e)
+        end
+      end
+      fp
+    end
   end
 
   class CompletedFuture < Future
