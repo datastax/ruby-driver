@@ -156,7 +156,7 @@ module Cql
           sequence.should == [2, 1, 3]
         end
 
-        it 'returns an array of the values of the source futures' do
+        it 'returns an array of the values of the source futures, in order' do
           f1 = Future.new
           f2 = Future.new
           f3 = Future.new
@@ -164,7 +164,7 @@ module Cql
           f2.complete!(2)
           f1.complete!(1)
           f3.complete!(3)
-          f4.get.should == [2, 1, 3]
+          f4.get.should == [1, 2, 3]
         end
 
         it 'fails if any of the source futures fail' do

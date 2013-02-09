@@ -129,13 +129,17 @@ module Cql
   class CombinedFuture < Future
     def initialize(*futures)
       super()
-      values = []
-      futures.each do |f|
+      values = [nil] * futures.size
+      completed = [false] * futures.size
+      futures.each_with_index do |f, i|
         f.on_complete do |v|
+          all_done = false
           @state_lock.synchronize do
-            values << v
+            values[i] = v
+            completed[i] = true
+            all_done = completed.all?
           end
-          if values.size == futures.size
+          if all_done
             combined_complete!(values)
           end
         end
