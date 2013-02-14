@@ -294,7 +294,6 @@ module Cql
       end
 
       def handle_read
-        requests = []
         if @io.read_nonblock(1)
           while (command = next_command)
             case command.shift
@@ -305,7 +304,13 @@ module Cql
               request, future, connection_id = command
               if connection_id
                 connection = @node_connections.find { |c| c.connection_id == connection_id }
-                connection.perform_request(request, future)
+                if connection && connection.has_capacity?
+                  connection.perform_request(request, future)
+                elsif connection
+                  future.fail!(ConnectionBusyError.new("Connection ##{connection_id} is busy"))
+                else
+                  future.fail!(ConnectionNotFoundError.new("Connection ##{connection_id} does not exist"))
+                end
               else
                 @node_connections.select(&:has_capacity?).sample.perform_request(request, future)
               end

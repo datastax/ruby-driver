@@ -191,8 +191,32 @@ module Cql
           query2_id.should == connection1_id
         end
 
-        it 'fails if the connection does not exist'
-        it 'fails if the connection is busy'
+        it 'fails if the connection does not exist' do
+          f = io_reactor.start.flat_map do
+            io_reactor.add_connection(host, port).flat_map do
+              io_reactor.queue_request(Cql::Protocol::StartupRequest.new, 1234)
+            end
+          end
+          expect { f.get }.to raise_error(ConnectionNotFoundError)
+        end
+
+        it 'fails if the connection is busy' do
+          f = io_reactor.start.flat_map do
+            io_reactor.add_connection(host, port).flat_map do
+              io_reactor.add_connection(host, port).flat_map do |connection_id|
+                200.times do
+                  io_reactor.queue_request(Cql::Protocol::OptionsRequest.new, connection_id)
+                end
+                io_reactor.queue_request(Cql::Protocol::OptionsRequest.new, connection_id)
+              end
+            end
+          end
+          expect { f.get }.to raise_error(ConnectionBusyError)
+        end
+
+        it 'fails if the connection is busy, when there is only one connection' do
+          pending 'as it is the reactor doesn\'t try to deliver requests when all connections are busy'
+        end
 
         it 'yields the response when completed' do
           response = nil
