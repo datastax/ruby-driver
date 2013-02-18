@@ -74,11 +74,7 @@ module Cql
 
     def execute(cql, consistency=:quorum)
       result = execute_request(Protocol::QueryRequest.new(cql, consistency)).value
-      if @connection_ids.any? { |id| @connection_keyspaces[id] != @last_keyspace_change }
-        ks = @last_keyspace_change
-        @last_keyspace_change = nil
-        use(ks)
-      end
+      ensure_keyspace! if @last_keyspace_change
       result
     end
 
@@ -124,9 +120,11 @@ module Cql
       end
     end
 
-    def check_keyspaces!(keyspace)
-      if @connection_ids
-        use(keyspace, @connection_ids.select { |id| @connection_keyspaces[id] != keyspace })
+    def ensure_keyspace!
+      if @connection_ids.any? { |id| @connection_keyspaces[id] != @last_keyspace_change }
+        ks = @last_keyspace_change
+        @last_keyspace_change = nil
+        use(ks, @connection_ids.select { |id| @connection_keyspaces[id] != ks })
       end
     end
 
