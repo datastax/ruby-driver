@@ -16,6 +16,7 @@ class FakeIoReactor
 
   def start
     @running = true
+    @connections = []
     @connections.each do |connection|
       connection[:future].complete! unless connection[:future].complete?
     end

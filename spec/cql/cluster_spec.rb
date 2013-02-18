@@ -46,6 +46,10 @@ module Cql
       end
 
       it 'connects to all hosts' do
+        cluster.shutdown!
+        io_reactor.stop.get
+        io_reactor.start.get
+
         c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
         c.start!
         connections.should have(3).items
@@ -67,6 +71,10 @@ module Cql
       end
 
       it 'sends a startup request to each connection' do
+        cluster.shutdown!
+        io_reactor.stop.get
+        io_reactor.start.get
+
         c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
         c.start!
         connections.each do |cc|
@@ -122,6 +130,10 @@ module Cql
       end
 
       it 'executes a USE query for each connection' do
+        cluster.shutdown!
+        io_reactor.stop.get
+        io_reactor.start.get
+
         c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
         c.start!
 
@@ -182,6 +194,10 @@ module Cql
         end
 
         it 'detects that one connection changed to a keyspace and changes the others too' do
+          cluster.shutdown!
+          io_reactor.stop.get
+          io_reactor.start.get
+
           c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
           c.start!
 
@@ -279,6 +295,10 @@ module Cql
       end
 
       it 'executes a prepared statement using the right connection' do
+        cluster.shutdown!
+        io_reactor.stop.get
+        io_reactor.start.get
+
         metadata = [['stuff', 'things', 'item', :varchar]]
         
         c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
