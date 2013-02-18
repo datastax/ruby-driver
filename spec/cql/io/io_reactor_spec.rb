@@ -20,10 +20,6 @@ module Cql
         described_class.new(connection_timeout: 1)
       end
 
-      def await_server
-        sleep 0.1
-      end
-
       before do
         start_server!(port)
       end
@@ -36,7 +32,7 @@ module Cql
       describe '#initialize' do
         it 'does not connect' do
           described_class.new
-          await_server
+          sleep(0.1)
           server_stats(port)[:connects].should == 0
         end
       end
@@ -73,7 +69,7 @@ module Cql
           f4 = io_reactor.add_connection(host, port)
           Future.combine(f1, f2, f3, f4).get
           io_reactor.stop.get
-          await_server
+          await_disconnected!(port, 4)
           server_stats(port)[:disconnects].should == 4
         end
       end
@@ -86,7 +82,7 @@ module Cql
         it 'connects to the specified host and port' do
           future = io_reactor.add_connection(host, port)
           future.get
-          await_server
+          await_connected!(port)
           server_stats(port)[:connects].should == 1
         end
 

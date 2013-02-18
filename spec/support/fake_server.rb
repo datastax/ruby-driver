@@ -73,4 +73,12 @@ module FakeServerHelpers
       server_stats(port)[:connections].each { |c| c.write_nonblock(bytes) }
     end
   end
+
+  def await_connected!(port, n=1)
+    sleep(0.01) until @fake_servers[port][:connections].size >= n
+  end
+
+  def await_disconnected!(port, n=1)
+    sleep(0.01) until @fake_servers[port][:disconnects] >= n
+  end
 end
