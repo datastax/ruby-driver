@@ -131,24 +131,18 @@ module Cql
 
       describe '#queue_request' do
         it 'eventually sends the request' do
-          r = described_class.new(connection_timeout: 1)
-          r.start
-          r.add_connection(host, port).get
-          r.queue_request(Cql::Protocol::StartupRequest.new)
-          sleep(0.1)
-          r.stop.get
-          sleep(0.1)
+          io_reactor.start
+          io_reactor.add_connection(host, port).get
+          io_reactor.queue_request(Cql::Protocol::StartupRequest.new)
+          sleep(0.01) until server_stats(port)[:received_bytes].size > 0
           server_stats(port)[:received_bytes][3, 1].should == "\x01"
         end
 
         it 'can be called before the reactor is started' do
-          r = described_class.new(connection_timeout: 1)
-          r.queue_request(Cql::Protocol::StartupRequest.new)
-          r.start
-          r.add_connection(host, port).get
-          sleep(0.1)
-          r.stop.get
-          sleep(0.1)
+          io_reactor.queue_request(Cql::Protocol::StartupRequest.new)
+          io_reactor.start
+          io_reactor.add_connection(host, port).get
+          sleep(0.01) until server_stats(port)[:received_bytes].size > 0
           server_stats(port)[:received_bytes][3, 1].should == "\x01"
         end
 
@@ -227,9 +221,7 @@ module Cql
             response = r
           end
           server_broadcast!(port, "\x81\x00\x00\x02\x00\x00\x00\x00")
-          sleep(0.1)
-          io_reactor.stop.get
-          sleep(0.1)
+          sleep(0.01) until response
           response.should == Cql::Protocol::ReadyResponse.new
         end
 
@@ -242,9 +234,7 @@ module Cql
             connection = c
           end
           server_broadcast!(port, "\x81\x00\x00\x02\x00\x00\x00\x00")
-          sleep(0.1)
-          io_reactor.stop.get
-          sleep(0.1)
+          sleep(0.01) until connection
           connection.should_not be_nil
         end
       end
@@ -252,14 +242,11 @@ module Cql
       describe '#add_event_listener' do
         it 'calls the listener when frames with stream ID -1 arrives' do
           event = nil
-          r = described_class.new(connection_timeout: 1)
-          r.start
-          r.add_connection(host, port).get
-          r.add_event_listener { |e| event = e }
+          io_reactor.start
+          io_reactor.add_connection(host, port).get
+          io_reactor.add_event_listener { |e| event = e }
           server_broadcast!(port, "\x81\x00\xFF\f\x00\x00\x00+\x00\rSCHEMA_CHANGE\x00\aDROPPED\x00\nkeyspace01\x00\x05users")
-          sleep(0.1)
-          r.stop.get
-          sleep(0.1)
+          sleep(0.01) until event
           event.should == Cql::Protocol::SchemaChangeEventResponse.new('DROPPED', 'keyspace01', 'users')
         end
       end
