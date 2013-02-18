@@ -19,6 +19,7 @@ module Cql
       @host = options[:host] || 'localhost'
       @port = options[:port] || 9042
       @io_reactor = options[:io_reactor] || Io::IoReactor.new(connection_timeout: connection_timeout)
+      @lock = Mutex.new
       @started = false
       @shut_down = false
       @initial_keyspace = options[:keyspace]
@@ -26,8 +27,10 @@ module Cql
     end
 
     def start!
-      return if @started
-      @started = true
+      @lock.synchronize do
+        return if @started
+        @started = true
+      end
       @io_reactor.start
       hosts = @host.split(',')
       start_request = Protocol::StartupRequest.new
@@ -42,9 +45,11 @@ module Cql
     end
 
     def shutdown!
-      return if @shut_down
-      @shut_down = true
-      @started = false
+      @lock.synchronize do
+        return if @shut_down
+        @shut_down = true
+        @started = false
+      end
       @io_reactor.stop.get
       self
     end
