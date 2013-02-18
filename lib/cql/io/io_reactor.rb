@@ -129,7 +129,6 @@ module Cql
           @sockaddr = Socket.sockaddr_in(port, ip)
           @io = Socket.new(address_family, socket_type, 0)
           @io.connect_nonblock(@sockaddr)
-          succeed_connection!
         rescue Errno::EINPROGRESS
           # ok
         rescue SystemCallError, SocketError => e
