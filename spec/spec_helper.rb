@@ -97,3 +97,5 @@ module FakeServerHelpers
     end
   end
 end
+
+require 'support/fake_io_reactor'
