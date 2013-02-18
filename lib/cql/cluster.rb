@@ -55,26 +55,31 @@ module Cql
     end
 
     def keyspace
-      @connection_ids.map { |id| @connection_keyspaces[id] }.first
+      @lock.synchronize do
+        return @connection_ids.map { |id| @connection_keyspaces[id] }.first
+      end
     end
 
     def use(keyspace, connection_ids=@connection_ids)
       raise NotConnectedError unless @started
       if check_keyspace_name!(keyspace)
-        futures = connection_ids.map do |connection_id|
-          if @connection_keyspaces[connection_id] != keyspace
+        @lock.synchronize do
+          connection_ids = connection_ids.select { |id| @connection_keyspaces[id] != keyspace }
+        end
+        if connection_ids.any?
+          futures = connection_ids.map do |connection_id|
             execute_request(Protocol::QueryRequest.new("USE #{keyspace}", :one), connection_id)
           end
+          futures.compact!
+          Future.combine(*futures).get
         end
-        futures.compact!
-        Future.combine(*futures).get
         nil
       end
     end
 
     def execute(cql, consistency=:quorum)
       result = execute_request(Protocol::QueryRequest.new(cql, consistency)).value
-      ensure_keyspace! if @last_keyspace_change
+      ensure_keyspace!
       result
     end
 
@@ -113,7 +118,9 @@ module Cql
       when Protocol::PreparedResultResponse
         PreparedStatement.new(self, connection_id, response.id, response.metadata)
       when Protocol::SetKeyspaceResultResponse
-        @last_keyspace_change = @connection_keyspaces[connection_id] = response.keyspace
+        @lock.synchronize do
+          @last_keyspace_change = @connection_keyspaces[connection_id] = response.keyspace
+        end
         nil
       else
         nil
@@ -121,11 +128,12 @@ module Cql
     end
 
     def ensure_keyspace!
-      if @connection_ids.any? { |id| @connection_keyspaces[id] != @last_keyspace_change }
+      ks = nil
+      @lock.synchronize do
         ks = @last_keyspace_change
-        @last_keyspace_change = nil
-        use(ks, @connection_ids.select { |id| @connection_keyspaces[id] != ks })
+        return unless @last_keyspace_change
       end
+      use(ks, @connection_ids) if ks
     end
 
     class PreparedStatement
