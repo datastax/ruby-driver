@@ -7,22 +7,6 @@ require 'cql'
 ENV['CASSANDRA_HOST'] ||= 'localhost'
 
 
-module AsyncHelpers
-  def await(timeout=2)
-    timeout_token = rand(2131234)
-    lock = Queue.new
-    begin
-      yield lock
-    ensure
-      Thread.start do
-        sleep(timeout)
-        lock << timeout_token
-      end
-      lock.pop.should_not equal(timeout_token), 'test timed out'
-    end
-  end
-end
-
 module FakeServerHelpers
   def start_server!(port, response_bytes=nil)
     @fake_servers ||= {}

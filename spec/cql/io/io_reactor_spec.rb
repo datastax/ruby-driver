@@ -6,7 +6,6 @@ require 'spec_helper'
 module Cql
   module Io
     describe IoReactor do
-      include AsyncHelpers
       include FakeServerHelpers
 
       let :host do
@@ -119,13 +118,10 @@ module Cql
 
         it 'can be called before the reactor is started' do
           r = described_class.new(connection_timeout: 1)
-          await do |signal|
-            r.add_connection(host, port).on_complete do
-              signal << :ping
-            end
-            r.start.get
-          end
-          r.stop.get
+          f1 = r.add_connection(host, port)
+          f2 = r.start
+          f2.get
+          f1.get
         end
       end
 
