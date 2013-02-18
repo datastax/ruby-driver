@@ -6,8 +6,6 @@ require 'spec_helper'
 module Cql
   module Io
     describe IoReactor do
-      include FakeServerHelpers
-
       let :host do
         Socket.gethostname
       end
@@ -16,24 +14,28 @@ module Cql
         34535
       end
 
+      let :server do
+        FakeServer.new(port)
+      end
+
       let :io_reactor do
         described_class.new(connection_timeout: 1)
       end
 
       before do
-        start_server!(port)
+        server.start!
       end
 
       after do
         io_reactor.stop.get if io_reactor.running?
-        stop_server!(port)
+        server.stop!
       end
 
       describe '#initialize' do
         it 'does not connect' do
           described_class.new
           sleep(0.1)
-          server_stats(port)[:connects].should == 0
+          server.connects.should == 0
         end
       end
 
@@ -69,8 +71,8 @@ module Cql
           f4 = io_reactor.add_connection(host, port)
           Future.combine(f1, f2, f3, f4).get
           io_reactor.stop.get
-          await_disconnected!(port, 4)
-          server_stats(port)[:disconnects].should == 4
+          server.await_disconnects!(4)
+          server.disconnects.should == 4
         end
       end
 
@@ -82,8 +84,8 @@ module Cql
         it 'connects to the specified host and port' do
           future = io_reactor.add_connection(host, port)
           future.get
-          await_connected!(port)
-          server_stats(port)[:connects].should == 1
+          server.await_connects!(1)
+          server.connects.should == 1
         end
 
         it 'yields the connection ID when completed' do
@@ -126,23 +128,22 @@ module Cql
           io_reactor.start
           io_reactor.add_connection(host, port).get
           io_reactor.queue_request(Cql::Protocol::StartupRequest.new)
-          sleep(0.01) until server_stats(port)[:received_bytes].size > 0
-          server_stats(port)[:received_bytes][3, 1].should == "\x01"
+          sleep(0.01) until server.received_bytes.size > 0
+          server.received_bytes[3, 1].should == "\x01"
         end
 
         it 'can be called before the reactor is started' do
           io_reactor.queue_request(Cql::Protocol::StartupRequest.new)
           io_reactor.start
           io_reactor.add_connection(host, port).get
-          sleep(0.01) until server_stats(port)[:received_bytes].size > 0
-          server_stats(port)[:received_bytes][3, 1].should == "\x01"
+          sleep(0.01) until server.received_bytes.size > 0
+          server.received_bytes[3, 1].should == "\x01"
         end
 
         it 'performs the request using the connection with the given ID' do
           future = Future.new
           request = Cql::Protocol::StartupRequest.new
           response = "\x81\x00\x00\x02\x00\x00\x00\x00"
-          server = server_stats(port)
 
           io_reactor.start.on_complete do
             io_reactor.add_connection(host, port).on_complete do |c1_id|
@@ -154,17 +155,8 @@ module Cql
                   future.complete!([c1_id, c2_id, q1_id, q2_id])
                 end
 
-                loop do
-                  n = 0
-                  server[:lock].synchronize do
-                    n = server[:connections].size
-                  end
-                  break if n == 2
-                end
-
-                server[:lock].synchronize do
-                  server[:connections].each { |c| c.write_nonblock(response.dup) }
-                end
+                server.await_connects!(2)
+                server.broadcast!(response.dup)
               end
             end
           end
@@ -212,7 +204,7 @@ module Cql
           f.on_complete do |r, _|
             response = r
           end
-          server_broadcast!(port, "\x81\x00\x00\x02\x00\x00\x00\x00")
+          server.broadcast!("\x81\x00\x00\x02\x00\x00\x00\x00")
           sleep(0.01) until response
           response.should == Cql::Protocol::ReadyResponse.new
         end
@@ -225,7 +217,7 @@ module Cql
           f.on_complete do |_, c|
             connection = c
           end
-          server_broadcast!(port, "\x81\x00\x00\x02\x00\x00\x00\x00")
+          server.broadcast!("\x81\x00\x00\x02\x00\x00\x00\x00")
           sleep(0.01) until connection
           connection.should_not be_nil
         end
@@ -237,7 +229,7 @@ module Cql
           io_reactor.start
           io_reactor.add_connection(host, port).get
           io_reactor.add_event_listener { |e| event = e }
-          server_broadcast!(port, "\x81\x00\xFF\f\x00\x00\x00+\x00\rSCHEMA_CHANGE\x00\aDROPPED\x00\nkeyspace01\x00\x05users")
+          server.broadcast!("\x81\x00\xFF\f\x00\x00\x00+\x00\rSCHEMA_CHANGE\x00\aDROPPED\x00\nkeyspace01\x00\x05users")
           sleep(0.01) until event
           event.should == Cql::Protocol::SchemaChangeEventResponse.new('DROPPED', 'keyspace01', 'users')
         end
