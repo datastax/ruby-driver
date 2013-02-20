@@ -232,6 +232,13 @@ module Cql
         f1.complete!(3)
         f2.value.should == 3 * 2
       end
+
+      it 'fails when the block raises an error' do
+        f1 = Future.new
+        f2 = f1.flat_map { |v| raise 'Hurgh' }
+        f1.complete!(3)
+        expect { f2.get }.to raise_error('Hurgh')
+      end
     end
 
     describe '.completed' do
