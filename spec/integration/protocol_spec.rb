@@ -224,7 +224,6 @@ describe 'Protocol parsing and communication' do
         end
 
         it 'sends a TRUNCATE command' do
-          pending 'this times out in C* with "Truncate timed out - received only 0 responses" (but it does that in cqlsh too, so not sure what is going on)'
           in_keyspace_with_table do
             response = query(%<TRUNCATE users>)
             response.should be_void
@@ -232,9 +231,8 @@ describe 'Protocol parsing and communication' do
         end
 
         it 'sends a BATCH command' do
-          pending 'this times out'
           in_keyspace_with_table do
-            response = query(<<-EOQ, :one)
+            response = query(<<-EOQ)
               BEGIN BATCH
                 INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')
                 INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')
