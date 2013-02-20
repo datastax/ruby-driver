@@ -6,8 +6,10 @@ group :development do
   gem 'pry'
   gem 'viiite'
   gem 'travis'
-  gem 'yard'
-  gem 'redcarpet'
+  platforms :mri do
+    gem 'yard'
+    gem 'redcarpet'
+  end
 end
 
 group :test do
