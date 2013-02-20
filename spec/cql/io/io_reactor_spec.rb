@@ -27,8 +27,13 @@ module Cql
       end
 
       after do
-        io_reactor.stop.get if io_reactor.running?
-        server.stop!
+        begin
+          if io_reactor.running?
+            io_reactor.stop.get
+          end
+        ensure
+          server.stop!
+        end
       end
 
       describe '#initialize' do
