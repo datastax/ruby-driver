@@ -1,4 +1,6 @@
 /coverage
 /benchmark
 /tmp
+/doc
+/.yardoc
 /TODO.md

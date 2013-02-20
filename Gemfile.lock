@@ -48,6 +48,7 @@ GEM
       slop (~> 3.3.1)
       spoon (~> 0.0)
     quickl (0.4.3)
+    redcarpet (2.2.2)
     rspec (2.12.0)
       rspec-core (~> 2.12.0)
       rspec-expectations (~> 2.12.0)
@@ -74,6 +75,7 @@ GEM
       alf (~> 0.10.1)
       gnuplot (~> 2.3.6)
       json
+    yard (0.8.4.1)
 
 PLATFORMS
   java
@@ -81,7 +83,9 @@ PLATFORMS
 
 DEPENDENCIES
   pry
+  redcarpet
   rspec
   simplecov
   travis
   viiite
+  yard
