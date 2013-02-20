@@ -3,9 +3,12 @@
 require 'spec_helper'
 
 
-describe 'Startup' do
-  let :connection do
-    Cql::Io::Connection.new(host: ENV['CASSANDRA_HOST']).connect
+describe 'Protocol parsing and communication' do
+  let :io_reactor do
+    ir = Cql::Io::IoReactor.new
+    ir.start
+    ir.add_connection(ENV['CASSANDRA_HOST'], 9042).get
+    ir
   end
 
   let :keyspace_name do
@@ -13,14 +16,14 @@ describe 'Startup' do
   end
 
   after do
-    connection.close
+    io_reactor.stop.get if io_reactor.running?
   end
 
   def execute_request(request)
-    connection.execute!(request)
+    io_reactor.queue_request(request).get.first
   end
 
-  def query(cql, consistency=:any)
+  def query(cql, consistency=:one)
     response = execute_request(Cql::Protocol::QueryRequest.new(cql, consistency))
     raise response.to_s if response.is_a?(Cql::Protocol::ErrorResponse)
     response
@@ -42,6 +45,10 @@ describe 'Startup' do
     query('CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))')
   end
 
+  def create_counters_table!
+    query('CREATE TABLE counters (id VARCHAR, c1 COUNTER, c2 COUNTER, PRIMARY KEY (id))')
+  end
+
   def in_keyspace
     create_keyspace!
     use_keyspace!
@@ -59,6 +66,13 @@ describe 'Startup' do
   def in_keyspace_with_table
     in_keyspace do
       create_table!
+      yield
+    end
+  end
+
+  def in_keyspace_with_counters_table
+    in_keyspace do
+      create_counters_table!
       yield
     end
   end
@@ -97,7 +111,7 @@ describe 'Startup' do
         semaphore = Queue.new
         event = nil
         execute_request(Cql::Protocol::RegisterRequest.new('SCHEMA_CHANGE'))
-        connection.on_event do |event_response|
+        io_reactor.add_event_listener do |event_response|
           event = event_response
           semaphore << :ping
         end
@@ -182,39 +196,49 @@ describe 'Startup' do
 
         it 'sends an INSERT command' do
           in_keyspace_with_table do
-            query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
+            response = query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
+            response.should be_void
           end
         end
 
         it 'sends an UPDATE command' do
           in_keyspace_with_table do
             query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
-            query(%<UPDATE users SET email = 'sue@heck.com' WHERE user_name = 'phil'>)
+            response = query(%<UPDATE users SET email = 'sue@heck.com' WHERE user_name = 'phil'>)
+            response.should be_void
+          end
+        end
+
+        it 'increments a counter' do
+          in_keyspace_with_counters_table do
+            response = query(%<UPDATE counters SET c1 = c1 + 1, c2 = c2 - 2 WHERE id = 'stuff'>)
+            response.should be_void
           end
         end
 
         it 'sends a DELETE command' do
           in_keyspace_with_table do
-            query(%<DELETE email FROM users WHERE user_name = 'sue'>)
+            response = query(%<DELETE email FROM users WHERE user_name = 'sue'>)
+            response.should be_void
           end
         end
 
         it 'sends a TRUNCATE command' do
-          pending 'this times out in C* with "Truncate timed out - received only 0 responses" (but it does that in cqlsh too, so not sure what is going on)'
           in_keyspace_with_table do
-            query(%<TRUNCATE users>)
+            response = query(%<TRUNCATE users>)
+            response.should be_void
           end
         end
 
         it 'sends a BATCH command' do
-          pending 'this times out'
           in_keyspace_with_table do
-            query(<<-EOQ, :one)
+            response = query(<<-EOQ)
               BEGIN BATCH
                 INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')
                 INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')
               APPLY BATCH
             EOQ
+            response.should be_void
           end
         end
 
@@ -257,33 +281,23 @@ describe 'Startup' do
       context 'with pipelining' do
         it 'handles multiple concurrent requests' do
           in_keyspace_with_table do
-            semaphore = Queue.new
-
-            10.times do
-              connection.execute(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum)) do |response|
-                semaphore << :ping
-              end
+            futures = 10.times.map do
+              io_reactor.queue_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum))
             end
 
-            connection.execute(Cql::Protocol::QueryRequest.new(%<INSERT INTO users (user_name, email) VALUES ('sam', 'sam@ham.com')>, :one)) do |response|
-              semaphore << :ping
-            end
-
-            11.times { semaphore.pop }
+            futures << io_reactor.queue_request(Cql::Protocol::QueryRequest.new(%<INSERT INTO users (user_name, email) VALUES ('sam', 'sam@ham.com')>, :one))
+            
+            Cql::Future.combine(*futures).get
           end
         end
 
         it 'handles lots of concurrent requests' do
           in_keyspace_with_table do
-            semaphore = Queue.new
-
-            2000.times do
-              connection.execute(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum)) do |response|
-                semaphore << :ping
-              end
+            futures = 2000.times.map do
+              io_reactor.queue_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum))
             end
 
-            2000.times { semaphore.pop }
+            Cql::Future.combine(*futures).get
           end
         end
       end
@@ -292,16 +306,20 @@ describe 'Startup' do
 
   context 'in special circumstances' do
     it 'raises an exception when it cannot connect to Cassandra' do
-      expect { Cql::Io::Connection.new(host: 'example.com', timeout: 0.1).connect.execute(Cql::Protocol::OptionsRequest.new) }.to raise_error(Cql::Io::ConnectionError)
-      expect { Cql::Io::Connection.new(host: 'blackhole', timeout: 0.1).connect.execute(Cql::Protocol::OptionsRequest.new) }.to raise_error(Cql::Io::ConnectionError)
+      io_reactor = Cql::Io::IoReactor.new(connection_timeout: 0.1)
+      io_reactor.start.get
+      expect { io_reactor.add_connection('example.com', 9042).get }.to raise_error(Cql::Io::ConnectionError)
+      expect { io_reactor.add_connection('blackhole', 9042).get }.to raise_error(Cql::Io::ConnectionError)
+      io_reactor.stop.get
     end
 
-    it 'does nothing the second time #connect is called' do
-      connection = Cql::Io::Connection.new
-      connection.connect
-      connection.execute!(Cql::Protocol::StartupRequest.new)
-      connection.connect
-      response = connection.execute!(Cql::Protocol::QueryRequest.new('USE system', :any))
+    it 'does nothing the second time #start is called' do
+      io_reactor = Cql::Io::IoReactor.new
+      io_reactor.start.get
+      io_reactor.add_connection('localhost', 9042)
+      io_reactor.queue_request(Cql::Protocol::StartupRequest.new).get
+      io_reactor.start.get
+      response = io_reactor.queue_request(Cql::Protocol::QueryRequest.new('USE system', :any)).get
       response.should_not be_a(Cql::Protocol::ErrorResponse)
     end
   end

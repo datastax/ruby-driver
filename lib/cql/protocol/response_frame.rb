@@ -200,6 +200,15 @@ module Cql
         new
       end
 
+      def eql?(rs)
+        self.class === rs
+      end
+      alias_method :==, :eql?
+
+      def hash
+        @h ||= to_s.hash ^ 0xbadc0de
+      end
+
       def to_s
         'READY'
       end
@@ -222,8 +231,6 @@ module Cql
     end
 
     class ResultResponse < ResponseBody
-      attr_reader :change, :keyspace, :table, :rows
-
       def self.decode!(buffer)
         kind = read_int!(buffer)
         case kind
@@ -241,6 +248,10 @@ module Cql
           raise UnsupportedResultKindError, %(Unsupported result kind: #{kind})
         end
       end
+
+      def void?
+        false
+      end
     end
 
     class VoidResultResponse < ResultResponse
@@ -250,6 +261,10 @@ module Cql
 
       def to_s
         %(RESULT VOID)
+      end
+
+      def void?
+        true
       end
     end
 
@@ -482,6 +497,22 @@ module Cql
 
       def self.decode!(buffer)
         new(read_string!(buffer), read_string!(buffer), read_string!(buffer))
+      end
+
+      def eql?(rs)
+        rs.type == self.type && rs.change == self.change && rs.keyspace == self.keyspace && rs.table == self.table
+      end
+      alias_method :==, :eql?
+
+      def hash
+        @h ||= begin
+          h = 0
+          h = ((h & 33554431) * 31) ^ @type.hash
+          h = ((h & 33554431) * 31) ^ @change.hash
+          h = ((h & 33554431) * 31) ^ @keyspace.hash
+          h = ((h & 33554431) * 31) ^ @table.hash
+          h
+        end
       end
 
       def to_s

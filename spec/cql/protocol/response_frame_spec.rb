@@ -231,6 +231,10 @@ module Cql
             frame.body.keyspace.should == 'system'
           end
 
+          it 'is not void' do
+            frame.body.should_not be_void
+          end
+
           it 'has a pretty #to_s representation' do
             frame.body.to_s.should == 'RESULT SET_KEYSPACE "system"'
           end
@@ -252,6 +256,10 @@ module Cql
 
             it 'has no table' do
               frame.body.table.should be_empty
+            end
+
+            it 'is not void' do
+              frame.body.should_not be_void
             end
 
             it 'has a pretty #to_s representation' do
@@ -276,6 +284,10 @@ module Cql
               frame.body.table.should == 'users'
             end
 
+            it 'is not void' do
+              frame.body.should_not be_void
+            end
+
             it 'has a pretty #to_s representation' do
               frame.body.to_s.should == 'RESULT SCHEMA_CHANGE UPDATED "cql_rb_973" "users"'
             end
@@ -289,6 +301,10 @@ module Cql
 
           it 'is has a body' do
             frame.body.should_not be_nil
+          end
+
+          it 'is void' do
+            frame.body.should be_void
           end
 
           it 'has a pretty #to_s representation' do
@@ -314,6 +330,10 @@ module Cql
               ['cql_rb_126', 'users', 'email', :varchar],
               ['cql_rb_126', 'users', 'password', :varchar]
             ]
+          end
+
+          it 'is not void' do
+            frame.body.should_not be_void
           end
 
           it 'has a pretty #to_s representation' do
@@ -641,6 +661,84 @@ module Cql
           buffer << "\xab\xcd\xef\x99"
           described_class.new(buffer)
           buffer.should == "\x99"
+        end
+      end
+
+      describe ReadyResponse do
+        describe '#eql?' do
+          it 'is equal to all other ready responses' do
+            ReadyResponse.new.should eql(ReadyResponse.new)
+          end
+
+          it 'aliased as ==' do
+            ReadyResponse.new.should == ReadyResponse.new
+          end
+        end
+
+        describe '#hash' do
+          it 'has the same hash code as all other ready responses' do
+            ReadyResponse.new.hash.should == ReadyResponse.new.hash
+          end
+        end
+      end
+
+      describe SchemaChangeEventResponse do
+        describe '#eql?' do
+          it 'is equal to an identical response' do
+            r1 = SchemaChangeEventResponse.new('DELETED', 'keyspace_name', 'table_name')
+            r2 = SchemaChangeEventResponse.new('DELETED', 'keyspace_name', 'table_name')
+            r1.should eql(r2)
+          end
+
+          it 'is not equal when the change is different' do
+            r1 = SchemaChangeEventResponse.new('DELETED', 'keyspace_name', 'table_name')
+            r2 = SchemaChangeEventResponse.new('CREATED', 'keyspace_name', 'table_name')
+            r1.should_not eql(r2)
+          end
+
+          it 'is not equal when the keyspace is different' do
+            r1 = SchemaChangeEventResponse.new('DELETED', 'keyspace_name', 'table_name')
+            r2 = SchemaChangeEventResponse.new('DELETED', 'eman_ecapsyek', 'table_name')
+            r1.should_not eql(r2)
+          end
+
+          it 'is not equal when the table is different' do
+            r1 = SchemaChangeEventResponse.new('DELETED', 'keyspace_name', 'table_name')
+            r2 = SchemaChangeEventResponse.new('DELETED', 'keyspace_name', 'eman_elbat')
+            r1.should_not eql(r2)
+          end
+
+          it 'is aliased as ==' do
+            r1 = SchemaChangeEventResponse.new('DELETED', 'keyspace_name', 'table_name')
+            r2 = SchemaChangeEventResponse.new('DELETED', 'keyspace_name', 'table_name')
+            r1.should == r2
+          end
+        end
+
+        describe '#hash' do
+          it 'is the same for an identical response' do
+            r1 = SchemaChangeEventResponse.new('DELETED', 'keyspace_name', 'table_name')
+            r2 = SchemaChangeEventResponse.new('DELETED', 'keyspace_name', 'table_name')
+            r1.hash.should == r2.hash
+          end
+
+          it 'is not the same when the change is different' do
+            r1 = SchemaChangeEventResponse.new('DELETED', 'keyspace_name', 'table_name')
+            r2 = SchemaChangeEventResponse.new('CREATED', 'keyspace_name', 'table_name')
+            r1.hash.should_not == r2.hash
+          end
+
+          it 'is not the same when the keyspace is different' do
+            r1 = SchemaChangeEventResponse.new('DELETED', 'keyspace_name', 'table_name')
+            r2 = SchemaChangeEventResponse.new('DELETED', 'eman_ecapsyek', 'table_name')
+            r1.hash.should_not == r2.hash
+          end
+
+          it 'is not the same when the table is different' do
+            r1 = SchemaChangeEventResponse.new('DELETED', 'keyspace_name', 'table_name')
+            r2 = SchemaChangeEventResponse.new('DELETED', 'keyspace_name', 'eman_elbat')
+            r1.hash.should_not == r2.hash
+          end
         end
       end
     end
