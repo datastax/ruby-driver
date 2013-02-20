@@ -147,6 +147,29 @@ module Cql
           server.received_bytes[3, 1].should == "\x01"
         end
 
+        it 'queues requests when all connections are busy' do
+          request = Cql::Protocol::QueryRequest.new('UPDATE x SET y = 1 WHERE z = 2', :one)
+
+          io_reactor.start
+          io_reactor.add_connection(host, port).get
+
+          futures = 200.times.map do
+            io_reactor.queue_request(request)
+          end
+
+          128.times do |i|
+            server.broadcast!("\x81\x00#{[i].pack('c')}\b\x00\x00\x00\x04\x00\x00\x00\x01")
+          end
+
+          Future.combine(*futures.shift(128)).get
+
+          128.times do |i|
+            server.broadcast!("\x81\x00#{[i].pack('c')}\b\x00\x00\x00\x04\x00\x00\x00\x01")
+          end
+
+          Future.combine(*futures).get
+        end
+
         it 'performs the request using the connection with the given ID' do
           future = Future.new
           request = Cql::Protocol::StartupRequest.new

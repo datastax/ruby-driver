@@ -169,12 +169,8 @@ module Cql
 
       def perform_request(request, future)
         stream_id = next_stream_id
-        if stream_id
-          Protocol::RequestFrame.new(request, stream_id).write(@write_buffer)
-          @response_tasks[stream_id] = future
-        else
-          @queued_requests << [request, future]
-        end
+        Protocol::RequestFrame.new(request, stream_id).write(@write_buffer)
+        @response_tasks[stream_id] = future
       end
 
       def handle_read
@@ -290,31 +286,14 @@ module Cql
       def on_event; end
 
       def ping
+        if can_deliver_command?
+          deliver_commands
+        end
       end
 
       def handle_read
         if @io.read_nonblock(1)
-          while (command = next_command)
-            case command.shift
-            when :event_listener
-              listener = command.shift
-              @node_connections.each { |c| c.on_event(&listener) }
-            else
-              request, future, connection_id = command
-              if connection_id
-                connection = @node_connections.find { |c| c.connection_id == connection_id }
-                if connection && connection.has_capacity?
-                  connection.perform_request(request, future)
-                elsif connection
-                  future.fail!(ConnectionBusyError.new("Connection ##{connection_id} is busy"))
-                else
-                  future.fail!(ConnectionNotFoundError.new("Connection ##{connection_id} does not exist"))
-                end
-              else
-                @node_connections.select(&:has_capacity?).sample.perform_request(request, future)
-              end
-            end
-          end
+          deliver_commands
         end
       end
 
@@ -331,13 +310,41 @@ module Cql
 
       private
 
+      def can_deliver_command?
+        @node_connections.any?(&:has_capacity?) && @command_queue.size > 0
+      end
+
       def next_command
         @queue_lock.synchronize do
-          if @node_connections.any?(&:has_capacity?) && @command_queue.size > 0
+          if can_deliver_command?
             return @command_queue.shift
           end
         end
         nil
+      end
+
+      def deliver_commands
+        while (command = next_command)
+          case command.shift
+          when :event_listener
+            listener = command.shift
+            @node_connections.each { |c| c.on_event(&listener) }
+          else
+            request, future, connection_id = command
+            if connection_id
+              connection = @node_connections.find { |c| c.connection_id == connection_id }
+              if connection && connection.has_capacity?
+                connection.perform_request(request, future)
+              elsif connection
+                future.fail!(ConnectionBusyError.new("Connection ##{connection_id} is busy"))
+              else
+                future.fail!(ConnectionNotFoundError.new("Connection ##{connection_id} does not exist"))
+              end
+            else
+              @node_connections.select(&:has_capacity?).sample.perform_request(request, future)
+            end
+          end
+        end
       end
     end
   end
