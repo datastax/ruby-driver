@@ -241,6 +241,7 @@ module Cql
           f.on_complete do |r, _|
             response = r
           end
+          sleep(0.1)
           server.broadcast!("\x81\x00\x00\x02\x00\x00\x00\x00")
           await { response }
           response.should == Cql::Protocol::ReadyResponse.new
@@ -254,6 +255,7 @@ module Cql
           f.on_complete do |_, c|
             connection = c
           end
+          sleep(0.1)
           server.broadcast!("\x81\x00\x00\x02\x00\x00\x00\x00")
           await { connection }
           connection.should_not be_nil
