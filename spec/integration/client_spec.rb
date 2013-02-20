@@ -8,36 +8,36 @@ describe 'A CQL client' do
     {:host => ENV['CASSANDRA_HOST']}
   end
 
-  let :cluster do
-    Cql::Cluster.new(connection_options)
+  let :client do
+    Cql::Client.new(connection_options)
   end
 
   before do
-    cluster.start!
+    client.start!
   end
 
   after do
-    cluster.shutdown!
+    client.shutdown!
   end
 
   it 'executes a query and returns the result' do
-    result = cluster.execute('SELECT * FROM system.schema_keyspaces')
+    result = client.execute('SELECT * FROM system.schema_keyspaces')
     result.should_not be_empty
   end
 
   it 'knows which keyspace it\'s in' do
-    cluster.use('system')
-    cluster.keyspace.should == 'system'
-    cluster.use('system_auth')
-    cluster.keyspace.should == 'system_auth'
+    client.use('system')
+    client.keyspace.should == 'system'
+    client.use('system_auth')
+    client.keyspace.should == 'system_auth'
   end
 
   it 'is not in a keyspace initially' do
-    cluster.keyspace.should be_nil
+    client.keyspace.should be_nil
   end
 
   it 'can be initialized with a keyspace' do
-    c = Cql::Cluster.new(connection_options.merge(:keyspace => 'system'))
+    c = Cql::Client.new(connection_options.merge(:keyspace => 'system'))
     c.start!
     begin
       c.keyspace.should == 'system'
@@ -48,50 +48,50 @@ describe 'A CQL client' do
   end
 
   it 'prepares a statement' do
-    statement = cluster.prepare('SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?')
+    statement = client.prepare('SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?')
     statement.should_not be_nil
   end
 
   it 'executes a prepared statement' do
-    statement = cluster.prepare('SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?')
+    statement = client.prepare('SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?')
     result = statement.execute('system')
     result.should have(1).item
   end
 
   context 'with multiple connections' do
-    let :multi_cluster do
+    let :multi_client do
       opts = connection_options.dup
       opts[:host] = ([opts[:host]] * 10).join(',')
-      Cql::Cluster.new(opts)
+      Cql::Client.new(opts)
     end
 
     before do
-      cluster.shutdown!
-      multi_cluster.start!
+      client.shutdown!
+      multi_client.start!
     end
 
     after do
-      multi_cluster.shutdown!
+      multi_client.shutdown!
     end
 
     it 'handles keyspace changes with #use' do
-      multi_cluster.use('system')
+      multi_client.use('system')
       100.times do
-        result = multi_cluster.execute(%<SELECT * FROM schema_keyspaces WHERE keyspace_name = 'system'>)
+        result = multi_client.execute(%<SELECT * FROM schema_keyspaces WHERE keyspace_name = 'system'>)
         result.should have(1).item
       end
     end
 
     it 'handles keyspace changes with #execute' do
-      multi_cluster.execute('USE system')
+      multi_client.execute('USE system')
       100.times do
-        result = multi_cluster.execute(%<SELECT * FROM schema_keyspaces WHERE keyspace_name = 'system'>)
+        result = multi_client.execute(%<SELECT * FROM schema_keyspaces WHERE keyspace_name = 'system'>)
         result.should have(1).item
       end
     end
 
     it 'executes a prepared statement' do
-      statement = multi_cluster.prepare('SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?')
+      statement = multi_client.prepare('SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?')
       100.times do
         result = statement.execute('system')
         result.should have(1).item

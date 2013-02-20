@@ -4,7 +4,7 @@ require 'spec_helper'
 
 
 module Cql
-  describe Cluster do
+  describe Client do
     let :connection_options do
       {:host => 'example.com', :port => 12321, :io_reactor => io_reactor}
     end
@@ -13,7 +13,7 @@ module Cql
       FakeIoReactor.new
     end
 
-    let :cluster do
+    let :client do
       described_class.new(connection_options)
     end
 
@@ -35,18 +35,18 @@ module Cql
 
     describe '#start!' do
       it 'connects' do
-        cluster.start!
+        client.start!
         connections.should have(1).item
       end
 
       it 'connects only once' do
-        cluster.start!
-        cluster.start!
+        client.start!
+        client.start!
         connections.should have(1).item
       end
 
       it 'connects to all hosts' do
-        cluster.shutdown!
+        client.shutdown!
         io_reactor.stop.get
         io_reactor.start.get
 
@@ -56,22 +56,22 @@ module Cql
       end
 
       it 'returns itself' do
-        cluster.start!.should equal(cluster)
+        client.start!.should equal(client)
       end
 
       it 'forwards the host and port' do
-        cluster.start!
+        client.start!
         connection[:host].should == 'example.com'
         connection[:port].should == 12321
       end
 
       it 'sends a startup request' do
-        cluster.start!
+        client.start!
         last_request.should be_a(Protocol::StartupRequest)
       end
 
       it 'sends a startup request to each connection' do
-        cluster.shutdown!
+        client.shutdown!
         io_reactor.stop.get
         io_reactor.start.get
 
@@ -83,8 +83,8 @@ module Cql
       end
 
       it 'is not in a keyspace' do
-        cluster.start!
-        cluster.keyspace.should be_nil
+        client.start!
+        client.keyspace.should be_nil
       end
 
       it 'changes to the keyspace given as an option' do
@@ -102,35 +102,35 @@ module Cql
 
     describe '#shutdown!' do
       it 'closes the connection' do
-        cluster.start!
-        cluster.shutdown!
+        client.start!
+        client.shutdown!
         io_reactor.should_not be_running
       end
 
       it 'accepts multiple calls to #shutdown!' do
-        cluster.start!
-        cluster.shutdown!
-        cluster.shutdown!
+        client.start!
+        client.shutdown!
+        client.shutdown!
       end
 
       it 'returns itself' do
-        cluster.start!.shutdown!.should equal(cluster)
+        client.start!.shutdown!.should equal(client)
       end
     end
 
     describe '#use' do
       before do
-        cluster.start!
+        client.start!
       end
 
       it 'executes a USE query' do
         io_reactor.queue_response(Protocol::SetKeyspaceResultResponse.new('system'))
-        cluster.use('system')
+        client.use('system')
         last_request.should == Protocol::QueryRequest.new('USE system', :one)
       end
 
       it 'executes a USE query for each connection' do
-        cluster.shutdown!
+        client.shutdown!
         io_reactor.stop.get
         io_reactor.start.get
 
@@ -148,34 +148,34 @@ module Cql
 
       it 'knows which keyspace it changed to' do
         io_reactor.queue_response(Protocol::SetKeyspaceResultResponse.new('system'))
-        cluster.use('system')
-        cluster.keyspace.should == 'system'
+        client.use('system')
+        client.keyspace.should == 'system'
       end
 
       it 'raises an error if the keyspace name is not valid' do
-        expect { cluster.use('system; DROP KEYSPACE system') }.to raise_error(InvalidKeyspaceNameError)
+        expect { client.use('system; DROP KEYSPACE system') }.to raise_error(InvalidKeyspaceNameError)
       end
     end
 
     describe '#execute' do
       before do
-        cluster.start!
+        client.start!
       end
 
       it 'asks the connection to execute the query' do
-        cluster.execute('UPDATE stuff SET thing = 1 WHERE id = 3')
+        client.execute('UPDATE stuff SET thing = 1 WHERE id = 3')
         last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', :quorum)
       end
 
       it 'uses the specified consistency' do
-        cluster.execute('UPDATE stuff SET thing = 1 WHERE id = 3', :three)
+        client.execute('UPDATE stuff SET thing = 1 WHERE id = 3', :three)
         last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', :three)
       end
 
       context 'with a void CQL query' do
         it 'returns nil' do
           io_reactor.queue_response(Protocol::VoidResultResponse.new)
-          result = cluster.execute('UPDATE stuff SET thing = 1 WHERE id = 3')
+          result = client.execute('UPDATE stuff SET thing = 1 WHERE id = 3')
           result.should be_nil
         end
       end
@@ -183,18 +183,18 @@ module Cql
       context 'with a USE query' do
         it 'returns nil' do
           io_reactor.queue_response(Protocol::SetKeyspaceResultResponse.new('system'))
-          result = cluster.execute('USE system')
+          result = client.execute('USE system')
           result.should be_nil
         end
 
         it 'knows which keyspace it changed to' do
           io_reactor.queue_response(Protocol::SetKeyspaceResultResponse.new('system'))
-          cluster.execute('USE system')
-          cluster.keyspace.should == 'system'
+          client.execute('USE system')
+          client.keyspace.should == 'system'
         end
 
         it 'detects that one connection changed to a keyspace and changes the others too' do
-          cluster.shutdown!
+          client.shutdown!
           io_reactor.stop.get
           io_reactor.start.get
 
@@ -228,7 +228,7 @@ module Cql
 
         let :result do
           io_reactor.queue_response(Protocol::RowsResultResponse.new(rows, metadata))
-          cluster.execute('SELECT * FROM things')
+          client.execute('SELECT * FROM things')
         end
 
         it 'returns an Enumerable of rows' do
@@ -264,24 +264,24 @@ module Cql
       context 'when the response is an error' do
         it 'raises an error' do
           io_reactor.queue_response(Protocol::ErrorResponse.new(0xabcd, 'Blurgh'))
-          expect { cluster.execute('SELECT * FROM things') }.to raise_error(QueryError, 'Blurgh')
+          expect { client.execute('SELECT * FROM things') }.to raise_error(QueryError, 'Blurgh')
         end
       end
     end
 
     describe '#prepare' do
       before do
-        cluster.start!
+        client.start!
       end
 
       it 'sends a prepare request' do
-        cluster.prepare('SELECT * FROM system.peers')
+        client.prepare('SELECT * FROM system.peers')
         last_request.should == Protocol::PrepareRequest.new('SELECT * FROM system.peers')
       end
 
       it 'returns a prepared statement' do
         io_reactor.queue_response(Protocol::PreparedResultResponse.new('A' * 32, [['stuff', 'things', 'item', :varchar]]))
-        statement = cluster.prepare('SELECT * FROM stuff.things WHERE item = ?')
+        statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?')
         statement.should_not be_nil
       end
 
@@ -289,13 +289,13 @@ module Cql
         id = 'A' * 32
         metadata = [['stuff', 'things', 'item', :varchar]]
         io_reactor.queue_response(Protocol::PreparedResultResponse.new(id, metadata))
-        statement = cluster.prepare('SELECT * FROM stuff.things WHERE item = ?')
+        statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?')
         statement.execute('foo')
         last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], :quorum)
       end
 
       it 'executes a prepared statement using the right connection' do
-        cluster.shutdown!
+        client.shutdown!
         io_reactor.stop.get
         io_reactor.start.get
 
@@ -327,40 +327,40 @@ module Cql
 
     context 'when not connected' do
       it 'complains when #use is called before #start!' do
-        expect { cluster.use('system') }.to raise_error(NotConnectedError)
+        expect { client.use('system') }.to raise_error(NotConnectedError)
       end
 
       it 'complains when #use is called after #shutdown!' do
-        cluster.start!
-        cluster.shutdown!
-        expect { cluster.use('system') }.to raise_error(NotConnectedError)
+        client.start!
+        client.shutdown!
+        expect { client.use('system') }.to raise_error(NotConnectedError)
       end
 
       it 'complains when #execute is called before #start!' do
-        expect { cluster.execute('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
+        expect { client.execute('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
       end
 
       it 'complains when #execute is called after #shutdown!' do
-        cluster.start!
-        cluster.shutdown!
-        expect { cluster.execute('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
+        client.start!
+        client.shutdown!
+        expect { client.execute('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
       end
 
       it 'complains when #prepare is called before #start!' do
-        expect { cluster.prepare('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
+        expect { client.prepare('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
       end
 
       it 'complains when #prepare is called after #shutdown!' do
-        cluster.start!
-        cluster.shutdown!
-        expect { cluster.prepare('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
+        client.start!
+        client.shutdown!
+        expect { client.prepare('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
       end
 
       it 'complains when #execute of a prepared statement is called after #shutdown!' do
-        cluster.start!
+        client.start!
         io_reactor.queue_response(Protocol::PreparedResultResponse.new('A' * 32, []))
-        statement = cluster.prepare('DELETE FROM stuff WHERE id = 3')
-        cluster.shutdown!
+        statement = client.prepare('DELETE FROM stuff WHERE id = 3')
+        client.shutdown!
         expect { statement.execute }.to raise_error(NotConnectedError)
       end
     end

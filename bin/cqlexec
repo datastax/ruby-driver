@@ -14,7 +14,7 @@ class CqlExecutor
   end
 
   def run(io)
-    @cluster = Cql::Cluster.new(host: @options[:host], port: @options[:port]).start!
+    @client = Cql::Client.new(host: @options[:host], port: @options[:port]).start!
 
     # TODO register for events
 
@@ -33,7 +33,7 @@ class CqlExecutor
     rescue Interrupt
       exit
     ensure
-      @cluster.shutdown!
+      @client.shutdown!
     end
   end
 
@@ -72,7 +72,7 @@ class CqlExecutor
     query.chomp!(';')
     query.strip!
     unless query.empty?
-      format_table_output(@cluster.execute(query, :one))
+      format_table_output(@client.execute(query, :one))
     end
   end
 

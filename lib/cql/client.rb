@@ -13,7 +13,7 @@ module Cql
     end
   end
 
-  class Cluster
+  class Client
     def initialize(options={})
       connection_timeout = options[:connection_timeout]
       @host = options[:host] || 'localhost'
@@ -138,11 +138,11 @@ module Cql
 
     class PreparedStatement
       def initialize(*args)
-        @cluster, @connection_id, @statement_id, @metadata = args
+        @client, @connection_id, @statement_id, @metadata = args
       end
 
       def execute(*args)
-        @cluster.execute_statement(@connection_id, @statement_id, @metadata, args, :quorum)
+        @client.execute_statement(@connection_id, @statement_id, @metadata, args, :quorum)
       end
     end
 
