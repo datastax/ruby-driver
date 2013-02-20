@@ -74,6 +74,13 @@ module Cql
           server.await_disconnects!(4)
           server.disconnects.should == 4
         end
+
+        it 'succeeds connection futures when stopping while connecting' do
+          f = io_reactor.add_connection(host, port + 9)
+          io_reactor.start
+          io_reactor.stop
+          f.get
+        end
       end
 
       describe '#add_connection' do
