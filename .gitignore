@@ -2,5 +2,6 @@
 /benchmark
 /tmp
 /doc
+/pkg
 /.yardoc
 /TODO.md
