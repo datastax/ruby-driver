@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 
-describe 'A CQL connection' do
+describe 'Protocol parsing and communication' do
   let :io_reactor do
     ir = Cql::Io::IoReactor.new
     ir.start
