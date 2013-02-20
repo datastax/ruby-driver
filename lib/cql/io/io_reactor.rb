@@ -201,7 +201,12 @@ module Cql
 
       def close
         if @io
-          @io.close
+          begin
+            @io.close
+          rescue SystemCallError
+            # nothing to do, it wasn't open
+          end
+          @io = nil
           if connecting?
             succeed_connection!
           end
@@ -223,7 +228,7 @@ module Cql
       EVENT_STREAM_ID = -1
 
       def connecting?
-        !@connected_future.complete?
+        !(@connected_future.complete? || @connected_future.failed?)
       end
 
       def handle_connected
@@ -246,8 +251,7 @@ module Cql
         error = ConnectionError.new(message)
         error.set_backtrace(e.backtrace) if e
         @connected_future.fail!(error)
-        @io.close if @io
-        @io = nil
+        close
       end
 
       def next_stream_id
