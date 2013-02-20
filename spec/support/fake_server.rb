@@ -34,8 +34,10 @@ class FakeServer
       return unless @running
       @running = false
     end
-    @thread.join if @thread
-    @sockets.each(&:close)
+    if defined? @started
+      @thread.join
+      @sockets.each(&:close)
+    end
   end
 
   def broadcast!(bytes)
