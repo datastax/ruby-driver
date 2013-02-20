@@ -45,6 +45,10 @@ describe 'Protocol parsing and communication' do
     query('CREATE TABLE users (user_name VARCHAR, password VARCHAR, email VARCHAR, PRIMARY KEY (user_name))')
   end
 
+  def create_counters_table!
+    query('CREATE TABLE counters (id VARCHAR, c1 COUNTER, c2 COUNTER, PRIMARY KEY (id))')
+  end
+
   def in_keyspace
     create_keyspace!
     use_keyspace!
@@ -62,6 +66,13 @@ describe 'Protocol parsing and communication' do
   def in_keyspace_with_table
     in_keyspace do
       create_table!
+      yield
+    end
+  end
+
+  def in_keyspace_with_counters_table
+    in_keyspace do
+      create_counters_table!
       yield
     end
   end
@@ -194,6 +205,13 @@ describe 'Protocol parsing and communication' do
           in_keyspace_with_table do
             query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
             response = query(%<UPDATE users SET email = 'sue@heck.com' WHERE user_name = 'phil'>)
+            response.should be_void
+          end
+        end
+
+        it 'increments a counter' do
+          in_keyspace_with_counters_table do
+            response = query(%<UPDATE counters SET c1 = c1 + 1, c2 = c2 - 2 WHERE id = 'stuff'>)
             response.should be_void
           end
         end
