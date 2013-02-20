@@ -34,7 +34,7 @@ class FakeServer
       return unless @running
       @running = false
     end
-    @thread.join
+    @thread.join if @thread
     @sockets.each(&:close)
   end
 
