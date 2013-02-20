@@ -124,7 +124,7 @@ module Cql
       def open
         @connection_started_at = Time.now
         begin
-          addrinfo = Socket.getaddrinfo(@host, @port, :INET, :STREAM)
+          addrinfo = Socket.getaddrinfo(@host, @port, Socket::AF_INET, Socket::SOCK_STREAM)
           _, port, _, ip, address_family, socket_type = addrinfo.first
           @sockaddr = Socket.sockaddr_in(port, ip)
           @io = Socket.new(address_family, socket_type, 0)
