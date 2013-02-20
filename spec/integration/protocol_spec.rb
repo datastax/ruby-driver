@@ -23,7 +23,7 @@ describe 'Protocol parsing and communication' do
     io_reactor.queue_request(request).get.first
   end
 
-  def query(cql, consistency=:any)
+  def query(cql, consistency=:one)
     response = execute_request(Cql::Protocol::QueryRequest.new(cql, consistency))
     raise response.to_s if response.is_a?(Cql::Protocol::ErrorResponse)
     response
