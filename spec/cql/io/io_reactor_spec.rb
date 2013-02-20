@@ -142,7 +142,7 @@ module Cql
           io_reactor.start
           io_reactor.add_connection(host, port).get
           io_reactor.queue_request(Cql::Protocol::StartupRequest.new)
-          sleep(0.01) until server.received_bytes.size > 0
+          await { server.received_bytes.size > 0 }
           server.received_bytes[3, 1].should == "\x01"
         end
 
@@ -150,7 +150,7 @@ module Cql
           io_reactor.queue_request(Cql::Protocol::StartupRequest.new)
           io_reactor.start
           io_reactor.add_connection(host, port).get
-          sleep(0.01) until server.received_bytes.size > 0
+          await { server.received_bytes.size > 0 }
           server.received_bytes[3, 1].should == "\x01"
         end
 
@@ -242,7 +242,7 @@ module Cql
             response = r
           end
           server.broadcast!("\x81\x00\x00\x02\x00\x00\x00\x00")
-          sleep(0.01) until response
+          await { response }
           response.should == Cql::Protocol::ReadyResponse.new
         end
 
@@ -255,25 +255,12 @@ module Cql
             connection = c
           end
           server.broadcast!("\x81\x00\x00\x02\x00\x00\x00\x00")
-          sleep(0.01) until connection
+          await { connection }
           connection.should_not be_nil
         end
       end
 
       describe '#add_event_listener' do
-        def await(timeout=5, &test)
-          started_at = Time.now
-          until test.call
-            yield
-            time_taken = Time.now - started_at
-            if time_taken > timeout
-              fail('Test took more than %.1fs' % [time_taken.to_f])
-            else
-              sleep(0.01)
-            end
-          end
-        end
-
         it 'calls the listener when frames with stream ID -1 arrives' do
           event = nil
           io_reactor.start
