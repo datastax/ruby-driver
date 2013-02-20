@@ -81,7 +81,9 @@ module Cql
         end
 
         it 'succeeds connection futures when stopping while connecting' do
-          f = io_reactor.add_connection(host, port + 9)
+          server.stop!
+          server.start!(accept_delay: 2)
+          f = io_reactor.add_connection(host, port)
           io_reactor.start
           io_reactor.stop
           f.get
@@ -259,13 +261,27 @@ module Cql
       end
 
       describe '#add_event_listener' do
+        def await(timeout=5, &test)
+          started_at = Time.now
+          until test.call
+            yield
+            time_taken = Time.now - started_at
+            if time_taken > timeout
+              fail('Test took more than %.1fs' % [time_taken.to_f])
+            else
+              sleep(0.01)
+            end
+          end
+        end
+
         it 'calls the listener when frames with stream ID -1 arrives' do
           event = nil
           io_reactor.start
           io_reactor.add_connection(host, port).get
           io_reactor.add_event_listener { |e| event = e }
+          sleep(0.1)
           server.broadcast!("\x81\x00\xFF\f\x00\x00\x00+\x00\rSCHEMA_CHANGE\x00\aDROPPED\x00\nkeyspace01\x00\x05users")
-          sleep(0.01) until event
+          await { event }
           event.should == Cql::Protocol::SchemaChangeEventResponse.new('DROPPED', 'keyspace01', 'users')
         end
       end

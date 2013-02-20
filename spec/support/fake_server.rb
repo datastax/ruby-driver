@@ -13,7 +13,7 @@ class FakeServer
     @received_bytes = ''
   end
 
-  def start!
+  def start!(options={})
     @lock.synchronize do
       return if @running
       @running = true
@@ -22,6 +22,7 @@ class FakeServer
     @started = Cql::Future.new
     @thread = Thread.start do
       Thread.current.abort_on_exception = true
+      sleep(options[:accept_delay] || 0)
       @started.complete!
       io_loop
     end
