@@ -226,18 +226,22 @@ module Cql
       use(ks, @connection_ids) if ks
     end
 
+    public
+
+    #
     class PreparedStatement
       # @return [ResultMetadata]
       attr_reader :metadata
 
       def initialize(*args)
-        @client, @connection_id, @statement_id, @metadata = args
+        @client, @connection_id, @statement_id, @raw_metadata = args
+        @metadata = ResultMetadata.new(@raw_metadata)
       end
 
-      def execute(*args)
       # Execute the prepared statement with a list of values for the bound parameters.
       #
-        @client.execute_statement(@connection_id, @statement_id, @metadata, args, :quorum)
+      def execute(*args)
+        @client.execute_statement(@connection_id, @statement_id, @raw_metadata, args, :quorum)
       end
     end
 
@@ -267,6 +271,7 @@ module Cql
       def each(&block)
         @rows.each(&block)
       end
+      alias_method :each_row, :each
     end
 
     class ResultMetadata
@@ -274,15 +279,15 @@ module Cql
 
       # @private
       def initialize(metadata)
-        @metadata = Hash[metadata.map { |m| mm = ColumnMetadata.new(*m); [mm.column_name, mm] }]
+        @metadata = metadata.each_with_object({}) { |m, h| h[m[2]] = ColumnMetadata.new(*m) }
       end
 
-      def [](column_name)
-        @metadata[column_name]
       # Returns the column metadata
       #
       # @return [ColumnMetadata] column_metadata the metadata for the column
       #
+      def [](column_name)
+        @metadata[column_name]
       end
 
       # Iterates over the metadata for each column
