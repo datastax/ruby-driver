@@ -1,3 +1,8 @@
+PATH
+  remote: .
+  specs:
+    cql-rb (1.0.0.pre1)
+
 GEM
   remote: http://rubygems.org/
   specs:
@@ -83,6 +88,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  cql-rb!
   pry
   rake
   redcarpet
