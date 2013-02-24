@@ -10,7 +10,7 @@ task :release => :spec do
   $: << 'lib'
   require 'cql/version'
 
-  project_name = 'cql'
+  project_name = 'cql-rb'
   version_string = "v#{Cql::VERSION}"
   
   unless %x(git tag -l).include?(version_string)
