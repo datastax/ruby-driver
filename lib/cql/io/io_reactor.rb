@@ -216,6 +216,9 @@ module Cql
         stream_id = next_stream_id
         Protocol::RequestFrame.new(request, stream_id).write(@write_buffer)
         @response_tasks[stream_id] = future
+      rescue => e
+        @response_tasks.delete(stream_id)
+        future.fail!(e)
       end
 
       def handle_read

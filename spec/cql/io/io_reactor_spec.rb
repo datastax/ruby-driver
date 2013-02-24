@@ -233,6 +233,13 @@ module Cql
           pending 'as it is the reactor doesn\'t try to deliver requests when all connections are busy'
         end
 
+        it 'fails if there is an error when encoding the request' do
+          io_reactor.start
+          io_reactor.add_connection(host, port).get
+          f = io_reactor.queue_request(Cql::Protocol::QueryRequest.new('USE test', :foobar))
+          expect { f.get }.to raise_error(Cql::ProtocolError)
+        end
+
         it 'yields the response when completed' do
           response = nil
           io_reactor.start
@@ -272,27 +279,6 @@ module Cql
           server.broadcast!("\x81\x00\xFF\f\x00\x00\x00+\x00\rSCHEMA_CHANGE\x00\aDROPPED\x00\nkeyspace01\x00\x05users")
           await { event }
           event.should == Cql::Protocol::SchemaChangeEventResponse.new('DROPPED', 'keyspace01', 'users')
-        end
-      end
-
-      context 'when errors occur' do
-        context 'in the IO loop' do
-          before do
-            bad_request = stub(:request)
-            bad_request.stub(:opcode).and_raise(StandardError.new('Blurgh'))
-            io_reactor.start
-            io_reactor.add_connection(host, port).get
-            io_reactor.queue_request(bad_request)
-          end
-
-          it 'stops' do
-            sleep(0.1)
-            io_reactor.should_not be_running
-          end
-
-          it 'fails the future returned from #stop' do
-            expect { io_reactor.stop.get }.to raise_error('Blurgh')
-          end
         end
       end
     end

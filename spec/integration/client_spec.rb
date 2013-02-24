@@ -98,4 +98,14 @@ describe 'A CQL client' do
       end
     end
   end
+
+  context 'with error conditions' do
+    it 'raises an error for CQL syntax errors' do
+      expect { client.execute('BAD cql') }.to raise_error(Cql::CqlError)
+    end
+
+    it 'raises an error for bad consistency levels' do
+      expect { client.execute('SELECT * FROM system.peers', :helloworld) }.to raise_error(Cql::CqlError)
+    end
+  end
 end
