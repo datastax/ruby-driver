@@ -89,7 +89,7 @@ You can also `ALTER` keyspaces and tables.
 
 ## Prepared statements
 
-The driver supports prepared statements. Use `#prepare` to create a statement object, and then call `#execute` on that object to run a query. You must supply values for all bound parameters when you call `#execute`.
+The driver supports prepared statements. Use `#prepare` to create a statement object, and then call `#execute` on that object to run a statement. You must supply values for all bound parameters when you call `#execute`.
 
     statement = client.prepare('SELECT date, description FROM events WHERE id = ?')
     rows = statement.execute(1235)
@@ -102,7 +102,7 @@ At this time prepared statements are local to a single connection. Even if you c
 
 # Consistency levels
 
-The `#execute` method supports setting the desired consistency level for the query:
+The `#execute` method supports setting the desired consistency level for the statement:
 
     client.execute('SELECT * FROM peers', :local_quorum)
 
