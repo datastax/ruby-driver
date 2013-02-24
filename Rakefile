@@ -1,6 +1,5 @@
 # encoding: utf-8
 
-require 'ant'
 require 'rspec/core/rake_task'
 
 
