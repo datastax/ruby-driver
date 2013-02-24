@@ -86,16 +86,21 @@ module Cql
         return if @started
         @started = true
       end
-      @io_reactor.start
-      hosts = @host.split(',')
-      start_request = Protocol::StartupRequest.new
-      connection_futures = hosts.map do |host|
-        @io_reactor.add_connection(host, @port).flat_map do |connection_id|
-          execute_request(start_request, connection_id).map { connection_id }
+      begin
+        @io_reactor.start
+        hosts = @host.split(',')
+        start_request = Protocol::StartupRequest.new
+        connection_futures = hosts.map do |host|
+          @io_reactor.add_connection(host, @port).flat_map do |connection_id|
+            execute_request(start_request, connection_id).map { connection_id }
+          end
         end
+        @connection_ids = Future.combine(*connection_futures).get
+        use(@initial_keyspace) if @initial_keyspace
+      rescue
+        @started = false
+        raise
       end
-      @connection_ids = Future.combine(*connection_futures).get
-      use(@initial_keyspace) if @initial_keyspace
       self
     end
 
