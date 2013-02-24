@@ -117,6 +117,8 @@ The possible values are:
 * `:local_quorum`
 * `:each_quorum`
 
+The default consistency level is `:quorum`.
+
 Consistency level is ignored for `USE`, `TRUNCATE`, `CREATE` and `ALTER` statements, and some (like `:any`) aren't allowed in all situations.
 
 ## CQL3
