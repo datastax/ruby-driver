@@ -2,6 +2,7 @@
 
 _There has not yet been a stable release of this project._
 
+[![Build Status](https://travis-ci.org/iconara/cql-rb.png?branch=master)](https://travis-ci.org/iconara/cql-rb)
 
 # Requirements
 
