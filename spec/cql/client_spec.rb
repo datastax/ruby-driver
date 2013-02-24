@@ -95,8 +95,24 @@ module Cql
 
       it 'validates the keyspace name before sending the USE command' do
         c = described_class.new(connection_options.merge(:keyspace => 'system; DROP KEYSPACE system'))
-        expect { c.start! }.to raise_error(InvalidKeyspaceNameError)
+        expect { c.start! }.to raise_error(Client::InvalidKeyspaceNameError)
         requests.should_not include(Protocol::QueryRequest.new('USE system; DROP KEYSPACE system', :one))
+      end
+
+      it 're-raises any errors raised' do
+        io_reactor.stub(:add_connection).and_raise(ArgumentError)
+        expect { client.start! }.to raise_error(ArgumentError)
+      end
+
+      it 'is not connected if an error is raised' do
+        io_reactor.stub(:add_connection).and_raise(ArgumentError)
+        client.start! rescue nil
+        client.should_not be_connected
+      end
+
+      it 'is connected after #start! returns' do
+        client.start!
+        client.should be_connected
       end
     end
 
@@ -153,7 +169,7 @@ module Cql
       end
 
       it 'raises an error if the keyspace name is not valid' do
-        expect { client.use('system; DROP KEYSPACE system') }.to raise_error(InvalidKeyspaceNameError)
+        expect { client.use('system; DROP KEYSPACE system') }.to raise_error(Client::InvalidKeyspaceNameError)
       end
     end
 
@@ -294,6 +310,14 @@ module Cql
         last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], :quorum)
       end
 
+      it 'returns a prepared statement that knows the metadata' do
+        id = 'A' * 32
+        metadata = [['stuff', 'things', 'item', :varchar]]
+        io_reactor.queue_response(Protocol::PreparedResultResponse.new(id, metadata))
+        statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?')
+        statement.metadata['item'].type == :varchar
+      end
+
       it 'executes a prepared statement using the right connection' do
         client.shutdown!
         io_reactor.stop.get
@@ -326,34 +350,44 @@ module Cql
     end
 
     context 'when not connected' do
+      it 'is not connected before #start! has been called' do
+        client.should_not be_connected
+      end
+
+      it 'is not connected after #shutdown! has been called' do
+        client.start!
+        client.shutdown!
+        client.should_not be_connected
+      end
+
       it 'complains when #use is called before #start!' do
-        expect { client.use('system') }.to raise_error(NotConnectedError)
+        expect { client.use('system') }.to raise_error(Client::NotConnectedError)
       end
 
       it 'complains when #use is called after #shutdown!' do
         client.start!
         client.shutdown!
-        expect { client.use('system') }.to raise_error(NotConnectedError)
+        expect { client.use('system') }.to raise_error(Client::NotConnectedError)
       end
 
       it 'complains when #execute is called before #start!' do
-        expect { client.execute('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
+        expect { client.execute('DELETE FROM stuff WHERE id = 3') }.to raise_error(Client::NotConnectedError)
       end
 
       it 'complains when #execute is called after #shutdown!' do
         client.start!
         client.shutdown!
-        expect { client.execute('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
+        expect { client.execute('DELETE FROM stuff WHERE id = 3') }.to raise_error(Client::NotConnectedError)
       end
 
       it 'complains when #prepare is called before #start!' do
-        expect { client.prepare('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
+        expect { client.prepare('DELETE FROM stuff WHERE id = 3') }.to raise_error(Client::NotConnectedError)
       end
 
       it 'complains when #prepare is called after #shutdown!' do
         client.start!
         client.shutdown!
-        expect { client.prepare('DELETE FROM stuff WHERE id = 3') }.to raise_error(NotConnectedError)
+        expect { client.prepare('DELETE FROM stuff WHERE id = 3') }.to raise_error(Client::NotConnectedError)
       end
 
       it 'complains when #execute of a prepared statement is called after #shutdown!' do
@@ -361,7 +395,7 @@ module Cql
         io_reactor.queue_response(Protocol::PreparedResultResponse.new('A' * 32, []))
         statement = client.prepare('DELETE FROM stuff WHERE id = 3')
         client.shutdown!
-        expect { statement.execute }.to raise_error(NotConnectedError)
+        expect { statement.execute }.to raise_error(Client::NotConnectedError)
       end
     end
   end

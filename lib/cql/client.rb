@@ -1,9 +1,6 @@
 # encoding: utf-8
 
 module Cql
-  NotConnectedError = Class.new(CqlError)
-  InvalidKeyspaceNameError = Class.new(CqlError)
-
   class QueryError < CqlError
     attr_reader :code
 

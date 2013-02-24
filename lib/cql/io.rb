@@ -1,8 +1,9 @@
 # encoding: utf-8
 
 module Cql
+  IoError = Class.new(CqlError)
+
   module Io
-    IoError = Class.new(CqlError)
     ConnectionError = Class.new(IoError)
     NotRunningError = Class.new(CqlError)
     ConnectionNotFoundError = Class.new(CqlError)

@@ -1,9 +1,10 @@
 # encoding: utf-8
 
 module Cql
+  ProtocolError = Class.new(CqlError)
+
   # @private
   module Protocol
-    ProtocolError = Class.new(CqlError)
     DecodingError = Class.new(ProtocolError)
     EncodingError = Class.new(ProtocolError)
     InvalidStreamIdError = Class.new(ProtocolError)
