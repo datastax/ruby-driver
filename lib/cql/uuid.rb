@@ -1,7 +1,18 @@
 # encoding: utf-8
 
 module Cql
+  # Represents a UUID value.
+  #
+  # This is a very basic implementation of UUIDs and exists more or less just
+  # to encode and decode UUIDs from and to Cassandra.
+  #
   class Uuid
+    # Creates a new UUID either from a string (expected to be on the standard
+    # 8-4-4-4-12 form, or just 32 characters without hyphens), or from a
+    # 128 bit number.
+    #
+    # @raise [ArgumentError] if the string does not conform to the expected format
+    #
     def initialize(n)
       case n
       when String
@@ -11,6 +22,8 @@ module Cql
       end
     end
 
+    # Returns a string representation of this UUID in the standard 8-4-4-4-12 form.
+    #
     def to_s
       @s ||= begin
         parts = []
@@ -23,10 +36,15 @@ module Cql
       end
     end
 
+    # Returns the numerical representation of this UUID
+    #
+    # @return [Bignum] the 128 bit numerical representation
+    #
     def value
       @n
     end
 
+    # @private
     def eql?(other)
       self.value == other.value
     end

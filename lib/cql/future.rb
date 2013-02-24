@@ -3,6 +3,8 @@
 module Cql
   FutureError = Class.new(CqlError)
 
+  # A future represents the value of a process that may not yet have completed.
+  #
   class Future
     def initialize
       @complete_listeners = []
@@ -11,18 +13,43 @@ module Cql
       @state_lock = Mutex.new
     end
 
+    # Combine multiple futures into a new future which completes when all
+    # constituent futures complete, or fail when one or more of them fails.
+    #
+    # The value of the combined future is an array of the values of the
+    # constituent futures.
+    #
+    # @param [Array<Future>] futures the futures to combine
+    # @return [Future<Array>] an array of the values of the constituent futures
+    #
     def self.combine(*futures)
       CombinedFuture.new(*futures)
     end
 
+    # Creates a new future which is completed.
+    #
+    # @param [Object, nil] value the value of the created future
+    # @return [Future] a completed future
+    #
     def self.completed(value=nil)
       CompletedFuture.new(value)
     end
 
+    # Creates a new future which is failed.
+    #
+    # @param [Error] the error of the created future
+    # @return [Future] a failed future
+    #
     def self.failed(error)
       FailedFuture.new(error)
     end
 
+    # Completes the future.
+    #
+    # This will trigger all completion listeners in the calling thread.
+    #
+    # @param [Object] v the value of the future
+    #
     def complete!(v=nil)
       @state_lock.synchronize do
         raise FutureError, 'Future already completed' if complete? || failed?
@@ -37,10 +64,16 @@ module Cql
       end
     end
 
+    # Returns whether or not the future is complete
+    #
     def complete?
       defined? @value
     end
 
+    # Registers a listener for when this future completes
+    #
+    # @yieldparam [Object] value the value of the completed future
+    #
     def on_complete(&listener)
       @state_lock.synchronize do
         if complete?
@@ -51,6 +84,12 @@ module Cql
       end
     end
 
+    # Returns the value of this future, blocking until it is available, if necessary.
+    #
+    # If the future fails this method will raise the error that failed the future.
+    #
+    # @returns [Object] the value of this future
+    #
     def value
       raise @error if @error
       return @value if defined? @value
@@ -60,6 +99,12 @@ module Cql
     end
     alias_method :get, :value
 
+    # Fails the future.
+    #
+    # This will trigger all failure listeners in the calling thread.
+    #
+    # @param [Error] error the error which prevented the value from being determined
+    #
     def fail!(error)
       @state_lock.synchronize do
         raise FutureError, 'Future already completed' if failed? || complete?
@@ -74,10 +119,16 @@ module Cql
       end
     end
 
+    # Returns whether or not the future is failed.
+    #
     def failed?
       !!@error
     end
 
+    # Registers a listener for when this future fails
+    #
+    # @yieldparam [Error] error the error that failed the future
+    #
     def on_failure(&listener)
       @state_lock.synchronize do
         if failed?
@@ -88,6 +139,15 @@ module Cql
       end
     end
 
+    # Returns a new future representing a transformation of this future's value.
+    #
+    # @example
+    #   future2 = future1.map { |value| value * 2 }
+    #
+    # @yieldparam [Object] value the value of this future
+    # @yieldreturn [Object] the transformed value
+    # @return [Future] a new future representing the transformed value
+    #
     def map(&block)
       fp = Future.new
       on_failure { |e| fp.fail!(e) }
@@ -102,6 +162,18 @@ module Cql
       fp
     end
 
+    # Returns a new future representing a transformation of this future's value,
+    # but where the transformation itself may be asynchronous.
+    #
+    # @example
+    #   future2 = future1.flat_map { |value| method_returning_a_future(value) }
+    #
+    # This method is useful when you want to chain asynchronous operations.
+    #
+    # @yieldparam [Object] value the value of this future
+    # @yieldreturn [Future] a future representing the transformed value
+    # @return [Future] a new future representing the transformed value
+    #
     def flat_map(&block)
       fp = Future.new
       on_failure { |e| fp.fail!(e) }
@@ -120,6 +192,7 @@ module Cql
     end
   end
 
+  # @private
   class CompletedFuture < Future
     def initialize(value=nil)
       super()
@@ -127,6 +200,7 @@ module Cql
     end
   end
 
+  # @private
   class FailedFuture < Future
     def initialize(error)
       super()
@@ -134,6 +208,7 @@ module Cql
     end
   end
 
+  # @private
   class CombinedFuture < Future
     def initialize(*futures)
       super()

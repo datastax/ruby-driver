@@ -6,7 +6,17 @@ require 'resolv-replace'
 
 module Cql
   module Io
+    # An instance of IO reactor manages the connections used by a client.
+    #
+    # The reactor starts a thread in which all IO is performed. The IO reactor
+    # instances are thread safe.
+    #
     class IoReactor
+      #
+      # @param [Hash] options
+      # @option options [Integer] :connection_timeout (5) Max time to wait for a
+      #   connection, in seconds
+      #
       def initialize(options={})
         @connection_timeout = options[:connection_timeout] || 5
         @lock = Mutex.new
@@ -18,10 +28,19 @@ module Cql
         @running = false
       end
 
+      # Returns whether or not the reactor is running
+      #
       def running?
         @running
       end
 
+      # Starts the reactor.
+      #
+      # Calling this method when the reactor is connecting or is connected has
+      # no effect.
+      #
+      # @return [Future<nil>] a future which completes when the reactor has started
+      #
       def start
         @lock.synchronize do
           unless @running
@@ -42,11 +61,25 @@ module Cql
         @started_future
       end
 
+      # Stops the reactor.
+      #
+      # Calling this method when the reactor is stopping or has stopped has
+      # no effect.
+      #
+      # @return [Future<nil>] a future which completes when the reactor has stopped
+      #
       def stop
         @running = false
         @stopped_future
       end
 
+      # Establish a new connection.
+      #
+      # @param [String] host The hostname to connect to
+      # @param [Integer] port The port to connect to
+      # @return [Future<Object>] a future representing the ID of the newly
+      #   established connection, or connection error if the connection fails.
+      #
       def add_connection(host, port)
         connection = NodeConnection.new(host, port, @connection_timeout)
         future = connection.open
@@ -65,12 +98,23 @@ module Cql
         future
       end
 
+      # Sends a request over a random, or specific connection.
+      #
+      # @param [Cql::Protocol::RequestBody] request the request to send
+      # @param [Object] connection_id the ID of the connection which should be
+      #   used to send the request
+      # @return [Future<ResultResponse>] a future representing the result of the request
+      #
       def queue_request(request, connection_id=nil)
         future = Future.new
         command_queue_push(:request, request, future, connection_id)
         future
       end
 
+      # Registers a listener to receive server sent events.
+      #
+      # @yieldparam [Cql::Protocol::EventResponse] event the event sent by the server
+      #
       def add_event_listener(&listener)
         command_queue_push(:event_listener, listener)
       end
@@ -108,6 +152,7 @@ module Cql
       end
     end
 
+    # @private
     class NodeConnection
       def initialize(*args)
         @host, @port, @connection_timeout = args
@@ -262,6 +307,7 @@ module Cql
       end
     end
 
+    # @private
     class CommandDispatcher
       def initialize(*args)
         @io, @command_queue, @queue_lock, @node_connections = args
