@@ -52,8 +52,12 @@ module Cql
 
     private
 
+    HEX_STRING_PATTERN = /^[0-9a-fA-F]+$/
+
     def from_s(str)
       str = str.gsub('-', '')
+      raise ArgumentError, "Expected 32 chars but got #{str.length}" unless str.length == 32
+      raise ArgumentError, "Expected only characters 0-9, a-f, A-F" unless str =~ HEX_STRING_PATTERN
       n = 0
       (str.length/2).times do |i|
         n = (n << 8) | str[i * 2, 2].to_i(16)

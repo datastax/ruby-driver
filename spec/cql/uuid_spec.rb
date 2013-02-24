@@ -10,6 +10,22 @@ module Cql
         Uuid.new('a4a70900-24e1-11df-8924-001ff3591711').to_s.should == 'a4a70900-24e1-11df-8924-001ff3591711'
       end
 
+      it 'can be created from a string without hyphens' do
+        Uuid.new('a4a7090024e111df8924001ff3591711').to_s.should == 'a4a70900-24e1-11df-8924-001ff3591711'
+      end
+
+      it 'raises an error if the string is shorter than 32 chars' do
+        expect { Uuid.new('a4a7090024e111df8924001ff359171') }.to raise_error(ArgumentError)
+      end
+
+      it 'raises an error if the string is longer than 32 chars' do
+        expect { Uuid.new('a4a7090024e111df8924001ff35917111') }.to raise_error(ArgumentError)
+      end
+
+      it 'raises an error if the string is not a hexadecimal number' do
+        expect { Uuid.new('a4a7090024e111df8924001ff359171x') }.to raise_error(ArgumentError)
+      end
+
       it 'can be created from a number' do
         Uuid.new(276263553384940695775376958868900023510).to_s.should == 'cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'.force_encoding(::Encoding::ASCII)
       end
