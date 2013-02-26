@@ -123,6 +123,10 @@ module Cql
         io_reactor.should_not be_running
       end
 
+      it 'does nothing when called before #start!' do
+        client.shutdown!
+      end
+
       it 'accepts multiple calls to #shutdown!' do
         client.start!
         client.shutdown!

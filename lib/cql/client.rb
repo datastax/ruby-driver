@@ -84,9 +84,6 @@ module Cql
     def start!
       @lock.synchronize do
         return if @started
-        @started = true
-      end
-      begin
         @io_reactor.start
         hosts = @host.split(',')
         start_request = Protocol::StartupRequest.new
@@ -96,11 +93,9 @@ module Cql
           end
         end
         @connection_ids = Future.combine(*connection_futures).get
-        use(@initial_keyspace) if @initial_keyspace
-      rescue
-        @started = false
-        raise
+        @started = true
       end
+      use(@initial_keyspace) if @initial_keyspace
       self
     end
 
@@ -110,7 +105,7 @@ module Cql
     #
     def shutdown!
       @lock.synchronize do
-        return if @shut_down
+        return if @shut_down || !@started
         @shut_down = true
         @started = false
       end
@@ -140,7 +135,7 @@ module Cql
     # @raise [Cql::NotConnectedError] raised when the client is not connected
     #
     def use(keyspace, connection_ids=@connection_ids)
-      raise NotConnectedError unless @started
+      raise NotConnectedError unless connected?
       if check_keyspace_name!(keyspace)
         @lock.synchronize do
           connection_ids = connection_ids.select { |id| @connection_keyspaces[id] != keyspace }
@@ -166,6 +161,7 @@ module Cql
     #   (see {QueryResult}).
     #
     def execute(cql, consistency=:quorum)
+      raise NotConnectedError unless connected?
       result = execute_request(Protocol::QueryRequest.new(cql, consistency)).value
       ensure_keyspace!
       result
@@ -173,6 +169,7 @@ module Cql
 
     # @private
     def execute_statement(connection_id, statement_id, metadata, values, consistency)
+      raise NotConnectedError unless connected?
       execute_request(Protocol::ExecuteRequest.new(statement_id, metadata, values, consistency), connection_id).value
     end
 
@@ -183,6 +180,7 @@ module Cql
     # @return [Cql::PreparedStatement] an object encapsulating the prepared statement
     #
     def prepare(cql)
+      raise NotConnectedError unless connected?
       execute_request(Protocol::PrepareRequest.new(cql)).value
     end
 
@@ -198,7 +196,6 @@ module Cql
     end
 
     def execute_request(request, connection_id=nil)
-      raise NotConnectedError unless @started
       @io_reactor.queue_request(request, connection_id).map do |response, connection_id|
         interpret_response!(response, connection_id)
       end
