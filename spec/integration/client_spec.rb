@@ -56,6 +56,8 @@ describe 'A CQL client' do
     statement = client.prepare('SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?')
     result = statement.execute('system')
     result.should have(1).item
+    result = statement.execute('system', :one)
+    result.should have(1).item
   end
 
   context 'with multiple connections' do

@@ -290,6 +290,14 @@ module Cql
     end
 
     describe '#prepare' do
+      let :id do
+        'A' * 32
+      end
+
+      let :metadata do
+        [['stuff', 'things', 'item', :varchar]]
+      end
+
       before do
         client.start!
       end
@@ -306,8 +314,6 @@ module Cql
       end
 
       it 'executes a prepared statement' do
-        id = 'A' * 32
-        metadata = [['stuff', 'things', 'item', :varchar]]
         io_reactor.queue_response(Protocol::PreparedResultResponse.new(id, metadata))
         statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?')
         statement.execute('foo')
@@ -315,11 +321,16 @@ module Cql
       end
 
       it 'returns a prepared statement that knows the metadata' do
-        id = 'A' * 32
-        metadata = [['stuff', 'things', 'item', :varchar]]
         io_reactor.queue_response(Protocol::PreparedResultResponse.new(id, metadata))
         statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?')
         statement.metadata['item'].type == :varchar
+      end
+
+      it 'executes a prepared statement with a specific consistency level' do
+        io_reactor.queue_response(Protocol::PreparedResultResponse.new(id, metadata))
+        statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?')
+        statement.execute('thing', :local_quorum)
+        last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['thing'], :local_quorum)
       end
 
       it 'executes a prepared statement using the right connection' do
@@ -327,8 +338,6 @@ module Cql
         io_reactor.stop.get
         io_reactor.start.get
 
-        metadata = [['stuff', 'things', 'item', :varchar]]
-        
         c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
         c.start!
 
