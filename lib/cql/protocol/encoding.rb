@@ -14,14 +14,16 @@ module Cql
       end
 
       def write_string(buffer, str)
-        buffer << [str.length].pack(Formats::SHORT_FORMAT)
+        buffer << [str.bytesize].pack(Formats::SHORT_FORMAT)
         buffer << str
+        buffer.force_encoding(::Encoding::BINARY)
         buffer
       end
 
       def write_long_string(buffer, str)
-        buffer << [str.length].pack(Formats::INT_FORMAT)
+        buffer << [str.bytesize].pack(Formats::INT_FORMAT)
         buffer << str
+        buffer.force_encoding(::Encoding::BINARY)
         buffer
       end
 
@@ -39,21 +41,23 @@ module Cql
 
       def write_bytes(buffer, bytes)
         if bytes
-          write_int(buffer, bytes.length)
+          write_int(buffer, bytes.bytesize)
           buffer << bytes
         else
           write_int(buffer, -1)
         end
+        buffer.force_encoding(::Encoding::BINARY)
         buffer
       end
 
       def write_short_bytes(buffer, bytes)
         if bytes
-          write_short(buffer, bytes.length)
+          write_short(buffer, bytes.bytesize)
           buffer << bytes
         else
           write_short(buffer, -1)
         end
+        buffer.force_encoding(::Encoding::BINARY)
         buffer
       end
 

@@ -52,6 +52,18 @@ module Cql
           buffer.should == "\x00\x05hello"
         end
 
+        it 'returns a binary string' do
+          str = 'I love π'.force_encoding(::Encoding::UTF_8)
+          Encoding.write_string(buffer, str)
+          buffer.encoding.should == ::Encoding::BINARY
+        end
+
+        it 'encodes a string with multibyte characters' do
+          str = 'I love π'.force_encoding(::Encoding::UTF_8)
+          Encoding.write_string(buffer, str)
+          buffer.should == "\x00\x09I love π"
+        end
+
         it 'encodes an empty string' do
           Encoding.write_string(buffer, '')
           buffer.should == "\x00\x00"
@@ -73,6 +85,18 @@ module Cql
         it 'encodes a string' do
           Encoding.write_long_string(buffer, 'hello world ' * 100_000)
           buffer.should start_with("\x00\x12\x4f\x80hello world hello world hello world hello")
+        end
+
+        it 'returns a binary string' do
+          str = 'I love π'.force_encoding(::Encoding::UTF_8)
+          Encoding.write_long_string(buffer, str)
+          buffer.encoding.should == ::Encoding::BINARY
+        end
+
+        it 'encodes a string with multibyte characters' do
+          str = 'I love π'.force_encoding(::Encoding::UTF_8)
+          Encoding.write_long_string(buffer, str)
+          buffer.should == "\x00\x00\x00\x09I love π"
         end
 
         it 'encodes an empty string' do
@@ -120,6 +144,18 @@ module Cql
           buffer.should == "\x00\x04\x00\x03foo\x00\x03bar\x00\x05hello\x00\x05world"
         end
 
+        it 'returns a binary string' do
+          str = %w[I love π].map { |str| str.force_encoding(::Encoding::UTF_8) }
+          Encoding.write_string_list(buffer, str)
+          buffer.encoding.should == ::Encoding::BINARY
+        end
+
+        it 'encodes a string with multibyte characters' do
+          str = %w[I love π].map { |str| str.force_encoding(::Encoding::UTF_8) }
+          Encoding.write_string_list(buffer, str)
+          buffer.should == "\x00\x03\x00\x01I\x00\x04love\x00\x02π"
+        end
+
         it 'encodes an empty string list' do
           Encoding.write_string_list(buffer, [])
           buffer.should == "\x00\x00"
@@ -143,6 +179,18 @@ module Cql
           buffer.should == ("\x00\x00\x07\xd0" << ("\xaa" * 2000))
         end
 
+        it 'returns a binary string' do
+          str = 'I love π'.force_encoding(::Encoding::UTF_8)
+          Encoding.write_bytes(buffer, str)
+          buffer.encoding.should == ::Encoding::BINARY
+        end
+
+        it 'encodes a string with multibyte characters' do
+          str = 'I love π'.force_encoding(::Encoding::UTF_8)
+          Encoding.write_bytes(buffer, str)
+          buffer.should == "\x00\x00\x00\x09I love π"
+        end
+
         it 'encodes nil' do
           Encoding.write_bytes(buffer, nil)
           buffer.should == "\xff\xff\xff\xff"
@@ -164,6 +212,18 @@ module Cql
         it 'encodes a byte array' do
           Encoding.write_short_bytes(buffer, "\xaa\xbb\xcc")
           buffer.should == "\x00\x03\xaa\xbb\xcc"
+        end
+
+        it 'returns a binary string' do
+          str = 'I love π'.force_encoding(::Encoding::UTF_8)
+          Encoding.write_short_bytes(buffer, str)
+          buffer.encoding.should == ::Encoding::BINARY
+        end
+
+        it 'encodes a string with multibyte characters' do
+          str = 'I love π'.force_encoding(::Encoding::UTF_8)
+          Encoding.write_short_bytes(buffer, str)
+          buffer.should == "\x00\x09I love π"
         end
 
         it 'encodes nil' do

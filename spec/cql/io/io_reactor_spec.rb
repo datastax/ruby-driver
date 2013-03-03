@@ -142,7 +142,7 @@ module Cql
           io_reactor.start
           io_reactor.add_connection(host, port).get
           io_reactor.queue_request(Cql::Protocol::StartupRequest.new)
-          await { server.received_bytes.size > 0 }
+          await { server.received_bytes.bytesize > 0 }
           server.received_bytes[3, 1].should == "\x01"
         end
 
@@ -150,7 +150,7 @@ module Cql
           io_reactor.queue_request(Cql::Protocol::StartupRequest.new)
           io_reactor.start
           io_reactor.add_connection(host, port).get
-          await { server.received_bytes.size > 0 }
+          await { server.received_bytes.bytesize > 0 }
           server.received_bytes[3, 1].should == "\x01"
         end
 
