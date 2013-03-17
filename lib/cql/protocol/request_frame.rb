@@ -177,48 +177,79 @@ module Cql
       private
 
       def write_value(io, value, type)
-        case type
-        when :ascii
-          write_bytes(io, value.encode(::Encoding::ASCII))
-        when :bigint
-          write_int(io, 8)
-          write_long(io, value)
-        when :blob
-          write_bytes(io, value.encode(::Encoding::BINARY))
-        when :boolean
-          write_int(io, 1)
-          io << (value ? Constants::TRUE_BYTE : Constants::FALSE_BYTE)
-        when :decimal
-          raw = write_decimal('', value)
-          write_int(io, raw.size)
-          io << raw
-        when :double
-          write_int(io, 8)
-          write_double(io, value)
-        when :float
-          write_int(io, 4)
-          write_float(io, value)
-        when :inet
-          write_int(io, value.ipv6? ? 16 : 4)
-          io << value.hton
-        when :int
-          write_int(io, 4)
-          write_int(io, value)
-        when :text, :varchar
-          write_bytes(io, value.encode(::Encoding::UTF_8))
-        when :timestamp
-          ms = (value.to_f * 1000).to_i
-          write_int(io, 8)
-          write_long(io, ms)
-        when :timeuuid, :uuid
-          write_int(io, 16)
-          write_uuid(io, value)
-        when :varint
-          raw = write_varint('', value)
-          write_int(io, raw.length)
-          io << raw
+        if Array === type
+          raise InvalidValueError, 'Value for collection must be enumerable' unless value.is_a?(Enumerable)
+          case type.first
+          when :list, :set
+            _, sub_type = type
+            raw = ''
+            write_short(raw, value.size)
+            value.each do |element|
+              rr = ''
+              write_value(rr, element, sub_type)
+              raw << rr[2, rr.length - 2]
+            end
+            write_bytes(io, raw)
+          when :map
+            _, key_type, value_type = type
+            raw = ''
+            write_short(raw, value.size)
+            value.each do |key, value|
+              rr = ''
+              write_value(rr, key, key_type)
+              raw << rr[2, rr.length - 2]
+              rr = ''
+              write_value(rr, value, value_type)
+              raw << rr[2, rr.length - 2]
+            end
+            write_bytes(io, raw)
+          else
+            raise UnsupportedColumnTypeError, %(Unsupported column collection type: #{type.first})
+          end
         else
-          raise UnsupportedColumnTypeError, %(Unsupported column type: #{type})
+          case type
+          when :ascii
+            write_bytes(io, value.encode(::Encoding::ASCII))
+          when :bigint
+            write_int(io, 8)
+            write_long(io, value)
+          when :blob
+            write_bytes(io, value.encode(::Encoding::BINARY))
+          when :boolean
+            write_int(io, 1)
+            io << (value ? Constants::TRUE_BYTE : Constants::FALSE_BYTE)
+          when :decimal
+            raw = write_decimal('', value)
+            write_int(io, raw.size)
+            io << raw
+          when :double
+            write_int(io, 8)
+            write_double(io, value)
+          when :float
+            write_int(io, 4)
+            write_float(io, value)
+          when :inet
+            write_int(io, value.ipv6? ? 16 : 4)
+            io << value.hton
+          when :int
+            write_int(io, 4)
+            write_int(io, value)
+          when :text, :varchar
+            write_bytes(io, value.encode(::Encoding::UTF_8))
+          when :timestamp
+            ms = (value.to_f * 1000).to_i
+            write_int(io, 8)
+            write_long(io, ms)
+          when :timeuuid, :uuid
+            write_int(io, 16)
+            write_uuid(io, value)
+          when :varint
+            raw = write_varint('', value)
+            write_int(io, raw.length)
+            io << raw
+          else
+            raise UnsupportedColumnTypeError, %(Unsupported column type: #{type})
+          end
         end
       rescue TypeError => e
         raise TypeError, %("#{value}" cannot be encoded as #{type.to_s.upcase}: #{e.message}), e.backtrace

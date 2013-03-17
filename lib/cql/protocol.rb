@@ -8,6 +8,7 @@ module Cql
     DecodingError = Class.new(ProtocolError)
     EncodingError = Class.new(ProtocolError)
     InvalidStreamIdError = Class.new(ProtocolError)
+    InvalidValueError = Class.new(ProtocolError)
     UnsupportedOperationError = Class.new(ProtocolError)
     UnsupportedFrameTypeError = Class.new(ProtocolError)
     UnsupportedResultKindError = Class.new(ProtocolError)

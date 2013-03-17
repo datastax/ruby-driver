@@ -78,7 +78,15 @@ module Cql
           [:uuid, Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'), "\xCF\xD6l\xCC\xD8WN\x90\xB1\xE5\xDF\x98\xA3\xD4\f\xD6"],
           [:varchar, 'hello', 'hello'],
           [:varint, 1231312312331283012830129382342342412123, "\x03\x9EV \x15\f\x03\x9DK\x18\xCDI\\$?\a["],
-          [:varint, -234234234234, "\xC9v\x8D:\x86"]
+          [:varint, -234234234234, "\xC9v\x8D:\x86"],
+          [[:list, :timestamp], [Time.at(1358013521.123)], "\x00\x01" + "\x00\x08\x00\x00\x01</\xE9\xDC\xE3"],
+          [[:list, :boolean], [true, false, true, true], "\x00\x04" + "\x00\x01\x01" + "\x00\x01\x00"  + "\x00\x01\x01" + "\x00\x01\x01"],
+          [[:map, :uuid, :int], {Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6') => 45345, Uuid.new('a4a70900-24e1-11df-8924-001ff3591711') => 98765}, "\x00\x02" + "\x00\x10\xCF\xD6l\xCC\xD8WN\x90\xB1\xE5\xDF\x98\xA3\xD4\f\xD6" + "\x00\x04\x00\x00\xb1\x21" + "\x00\x10\xA4\xA7\t\x00$\xE1\x11\xDF\x89$\x00\x1F\xF3Y\x17\x11" + "\x00\x04\x00\x01\x81\xcd"],
+          [[:map, :ascii, :blob], {'hello' => 'world', 'one' => "\x01", 'two' => "\x02"}, "\x00\x03" + "\x00\x05hello" + "\x00\x05world" + "\x00\x03one" + "\x00\x01\x01" + "\x00\x03two" + "\x00\x01\x02"],
+          [[:set, :int], Set.new([13, 3453, 456456, 123, 768678]), "\x00\x05" + "\x00\x04\x00\x00\x00\x0d" + "\x00\x04\x00\x00\x0d\x7d" + "\x00\x04\x00\x06\xf7\x08" + "\x00\x04\x00\x00\x00\x7b" + "\x00\x04\x00\x0b\xba\xa6"],
+          [[:set, :varchar], Set.new(['foo', 'bar', 'baz']), "\x00\x03" + "\x00\x03foo" + "\x00\x03bar" + "\x00\x03baz"],
+          [[:set, :int], [13, 3453, 456456, 123, 768678], "\x00\x05" + "\x00\x04\x00\x00\x00\x0d" + "\x00\x04\x00\x00\x0d\x7d" + "\x00\x04\x00\x06\xf7\x08" + "\x00\x04\x00\x00\x00\x7b" + "\x00\x04\x00\x0b\xba\xa6"],
+          [[:set, :varchar], ['foo', 'bar', 'baz'], "\x00\x03" + "\x00\x03foo" + "\x00\x03bar" + "\x00\x03baz"]
         ]
         specs.each do |type, value, expected_bytes|
           it "encodes #{type} values" do
@@ -98,6 +106,16 @@ module Cql
         it 'raises an error for unsupported column types' do
           column_metadata[2][3] = :imaginary
           expect { RequestFrame.new(ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum)).write('') }.to raise_error(UnsupportedColumnTypeError)
+        end
+
+        it 'raises an error for unsupported column collection types' do
+          column_metadata[2][3] = [:imaginary, :varchar]
+          expect { RequestFrame.new(ExecuteRequest.new(id, column_metadata, ['hello', 42, ['foo']], :each_quorum)).write('') }.to raise_error(UnsupportedColumnTypeError)
+        end
+
+        it 'raises an error when collection values are not enumerable' do
+          column_metadata[2][3] = [:set, :varchar]
+          expect { RequestFrame.new(ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum)).write('') }.to raise_error(InvalidValueError)
         end
 
         it 'raises an error when it cannot encode the argument' do
