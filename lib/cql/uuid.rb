@@ -36,6 +36,10 @@ module Cql
       end
     end
 
+    def hash
+      @h = (@n & 0xffffffffffffffff) ^ ((@n >> 64) & 0xffffffffffffffff)
+    end
+
     # Returns the numerical representation of this UUID
     #
     # @return [Bignum] the 128 bit numerical representation

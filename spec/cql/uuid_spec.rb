@@ -47,6 +47,26 @@ module Cql
       end
     end
 
+    describe '#hash' do
+      it 'calculates a 64 bit hash of the UUID' do
+        h = Uuid.new(276263553384940695775376958868900023510).hash
+        h.should be < 2**63
+        h.should be > -2**63
+      end
+
+      it 'has the same hash code when #eql?' do
+        uuid1 = Uuid.new('a4a70900-24e1-11df-8924-001ff3591711')
+        uuid2 = Uuid.new('a4a70900-24e1-11df-8924-001ff3591711')
+        uuid1.hash.should == uuid2.hash
+      end
+
+      it 'has a different hash when not #eql?' do
+        uuid1 = Uuid.new('a4a70900-24e1-11df-8924-001ff3591711')
+        uuid2 = Uuid.new('b4a70900-24e1-11df-8924-001ff3591711')
+        uuid1.hash.should_not == uuid2.hash
+      end
+    end
+
     describe '#value' do
       it 'returns the numeric value' do
         Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6').value.should == 276263553384940695775376958868900023510
