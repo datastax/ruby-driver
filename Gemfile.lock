@@ -4,7 +4,7 @@ PATH
     cql-rb (1.0.0.pre3)
 
 GEM
-  remote: http://rubygems.org/
+  remote: https://rubygems.org/
   specs:
     addressable (2.3.2)
     alf (0.10.1)
