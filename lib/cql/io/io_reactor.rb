@@ -253,6 +253,21 @@ module Cql
           @current_frame = Protocol::ResponseFrame.new(@read_buffer)
         end
       rescue => e
+        force_close(e)
+      end
+
+      def handle_write
+        if connecting?
+          handle_connected
+        elsif connected?
+          bytes_written = @io.write_nonblock(@write_buffer)
+          @write_buffer.slice!(0, bytes_written)
+        end
+      rescue => e
+        force_close(e)
+      end
+
+      def force_close(e)
         case e
         when CqlError
           error = e
@@ -264,15 +279,6 @@ module Cql
           listener.fail!(error) if listener
         end
         close
-      end
-
-      def handle_write
-        if connecting?
-          handle_connected
-        else
-          bytes_written = @io.write_nonblock(@write_buffer)
-          @write_buffer.slice!(0, bytes_written)
-        end
       end
 
       def close
@@ -376,6 +382,8 @@ module Cql
       def ping
         if can_deliver_command?
           deliver_commands
+        else
+          prune_directed_requests!
         end
       end
 
@@ -439,11 +447,11 @@ module Cql
         end
       end
 
-      def connection_closed(connection)
+      def prune_directed_requests!
         failing_commands = []
         @queue_lock.synchronize do
           @command_queue.reject! do |command|
-            if command.first == :request && command.last == connection.connection_id
+            if command.first == :request && command.last && @node_connections.none? { |c| c.connection_id == command.last }
               failing_commands << command
               true
             else
@@ -455,6 +463,10 @@ module Cql
           _, _, future, id = command
           future.fail!(ConnectionNotFoundError.new("Connection ##{id} no longer exists"))
         end
+      end
+
+      def connection_closed(connection)
+        prune_directed_requests!
       end
     end
   end

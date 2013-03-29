@@ -291,14 +291,11 @@ module Cql
             @request_future = io_reactor.queue_request(Cql::Protocol::OptionsRequest.new)
             await { server.received_bytes.bytesize > 0 }
             server.broadcast!("\x01\x00\x00\x02\x00\x00\x00\x16")
+            expect { @request_future.get }.to raise_error(Protocol::UnsupportedFrameTypeError)
           end
 
           it 'does not kill the reactor' do
             io_reactor.should be_running
-          end
-
-          it 'fails outstanding requests' do
-            expect { @request_future.get }.to raise_error(Protocol::UnsupportedFrameTypeError)
           end
 
           it 'cleans out failed connections' do
@@ -312,7 +309,6 @@ module Cql
             io_reactor.queue_request(Cql::Protocol::StartupRequest.new)
             io_reactor.start
             @connection_id = io_reactor.add_connection(host, port).get
-            @good_request_future = io_reactor.queue_request(BadRequest.new)
             @bad_request_future = io_reactor.queue_request(BadRequest.new)
           end
 
@@ -320,18 +316,11 @@ module Cql
             @bad_request_future.get rescue nil
             io_reactor.should be_running
           end
-
-          it 'fails outstanding requests' do
-            expect { @good_request_future.get }.to raise_error(IoError)
-          end
         end
       end
     end
 
-    class BadRequest < Protocol::RequestBody
-      def initialize
-      end
-
+    class BadRequest < Protocol::OptionsRequest
       def write(io)
         raise 'Blurgh!'
       end
