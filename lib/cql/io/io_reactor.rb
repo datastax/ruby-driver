@@ -89,12 +89,12 @@ module Cql
           end
         end
         future.on_complete do
-          command_queue_push
+          command_queue_push(:connection_established, connection)
         end
         @lock.synchronize do
           @streams << connection
         end
-        command_queue_push
+        command_queue_push(:connection_added, connection)
         future
       end
 
@@ -131,6 +131,7 @@ module Cql
           readables && readables.each(&:handle_read)
           writables && writables.each(&:handle_write)
           @streams.each(&:ping)
+          @streams.reject!(&:closed?)
         end
       ensure
         stop
@@ -163,7 +164,7 @@ module Cql
         @read_buffer = ''
         @current_frame = Protocol::ResponseFrame.new(@read_buffer)
         @response_tasks = [nil] * 128
-        @event_listeners = []
+        @event_listeners = Hash.new { |h, k| h[k] = [] }
       end
 
       def open
@@ -191,7 +192,11 @@ module Cql
       end
 
       def on_event(&listener)
-        @event_listeners << listener
+        @event_listeners[:event] << listener
+      end
+
+      def on_close(&listener)
+        @event_listeners[:close] << listener
       end
 
       def ping
@@ -202,6 +207,10 @@ module Cql
 
       def connected?
         @io && !connecting?
+      end
+
+      def closed?
+        @io.nil? && !connecting?
       end
 
       def has_capacity?
@@ -217,8 +226,15 @@ module Cql
         Protocol::RequestFrame.new(request, stream_id).write(@write_buffer)
         @response_tasks[stream_id] = future
       rescue => e
+        case e
+        when CqlError
+          error = e
+        else
+          error = IoError.new(e.message)
+          error.set_backtrace(e.backtrace)
+        end
         @response_tasks.delete(stream_id)
-        future.fail!(e)
+        future.fail!(error)
       end
 
       def handle_read
@@ -227,7 +243,7 @@ module Cql
         while @current_frame.complete?
           stream_id = @current_frame.stream_id
           if stream_id == EVENT_STREAM_ID
-            @event_listeners.each { |listener| listener.call(@current_frame.body) }
+            @event_listeners[:event].each { |listener| listener.call(@current_frame.body) }
           elsif @response_tasks[stream_id]
             @response_tasks[stream_id].complete!([@current_frame.body, connection_id])
             @response_tasks[stream_id] = nil
@@ -236,6 +252,18 @@ module Cql
           end
           @current_frame = Protocol::ResponseFrame.new(@read_buffer)
         end
+      rescue => e
+        case e
+        when CqlError
+          error = e
+        else
+          error = IoError.new(e.message)
+          error.set_backtrace(e.backtrace)
+        end
+        @response_tasks.each do |listener|
+          listener.fail!(error) if listener
+        end
+        close
       end
 
       def handle_write
@@ -258,6 +286,7 @@ module Cql
           if connecting?
             succeed_connection!
           end
+          @event_listeners[:close].each { |listener| listener.call(self) }
         end
       end
 
@@ -328,6 +357,10 @@ module Cql
         true
       end
 
+      def closed?
+        false
+      end
+
       def has_capacity?
         false
       end
@@ -337,6 +370,8 @@ module Cql
       end
 
       def on_event; end
+
+      def on_close; end
 
       def ping
         if can_deliver_command?
@@ -379,16 +414,20 @@ module Cql
       def deliver_commands
         while (command = next_command)
           case command.shift
+          when :connection_added
+          when :connection_established
+            connection = command.shift
+            connection.on_close(&method(:connection_closed))
           when :event_listener
             listener = command.shift
             @node_connections.each { |c| c.on_event(&listener) }
-          else
+          when :request
             request, future, connection_id = command
             if connection_id
               connection = @node_connections.find { |c| c.connection_id == connection_id }
-              if connection && connection.has_capacity?
+              if connection && connection.connected? && connection.has_capacity?
                 connection.perform_request(request, future)
-              elsif connection
+              elsif connection && connection.connected?
                 future.fail!(ConnectionBusyError.new("Connection ##{connection_id} is busy"))
               else
                 future.fail!(ConnectionNotFoundError.new("Connection ##{connection_id} does not exist"))
@@ -397,6 +436,24 @@ module Cql
               @node_connections.select(&:has_capacity?).sample.perform_request(request, future)
             end
           end
+        end
+      end
+
+      def connection_closed(connection)
+        failing_commands = []
+        @queue_lock.synchronize do
+          @command_queue.reject! do |command|
+            if command.first == :request && command.last == connection.connection_id
+              failing_commands << command
+              true
+            else
+              false
+            end
+          end
+        end
+        failing_commands.each do |command|
+          _, _, future, id = command
+          future.fail!(ConnectionNotFoundError.new("Connection ##{id} no longer exists"))
         end
       end
     end
