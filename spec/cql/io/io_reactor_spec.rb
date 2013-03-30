@@ -177,47 +177,61 @@ module Cql
           Future.combine(*futures).get
         end
 
-        it 'performs the request using the connection with the given ID' do
-          future = Future.new
-          request = Cql::Protocol::StartupRequest.new
-          response = "\x81\x00\x00\x02\x00\x00\x00\x00"
+        context 'with a connection ID' do
+          it 'performs the request using the specified connection' do
+            future = Future.new
+            request = Cql::Protocol::StartupRequest.new
+            response = "\x81\x00\x00\x02\x00\x00\x00\x00"
 
-          io_reactor.start.on_complete do
-            io_reactor.add_connection(host, port).on_complete do |c1_id|
-              io_reactor.add_connection(host, port).on_complete do |c2_id|
-                q1_future = io_reactor.queue_request(request, c2_id)
-                q2_future = io_reactor.queue_request(request, c1_id)
+            io_reactor.start.on_complete do
+              io_reactor.add_connection(host, port).on_complete do |c1_id|
+                io_reactor.add_connection(host, port).on_complete do |c2_id|
+                  q1_future = io_reactor.queue_request(request, c2_id)
+                  q2_future = io_reactor.queue_request(request, c1_id)
 
-                Future.combine(q1_future, q2_future).on_complete do |(_, q1_id), (_, q2_id)|
-                  future.complete!([c1_id, c2_id, q1_id, q2_id])
+                  Future.combine(q1_future, q2_future).on_complete do |(_, q1_id), (_, q2_id)|
+                    future.complete!([c1_id, c2_id, q1_id, q2_id])
+                  end
+
+                  server.await_connects!(2)
+                  server.broadcast!(response.dup)
                 end
-
-                server.await_connects!(2)
-                server.broadcast!(response.dup)
               end
             end
+
+            connection1_id, connection2_id, query1_id, query2_id = future.value
+
+            connection1_id.should_not be_nil
+            connection2_id.should_not be_nil
+            query1_id.should == connection2_id
+            query2_id.should == connection1_id
           end
 
-          connection1_id, connection2_id, query1_id, query2_id = future.value
-
-          connection1_id.should_not be_nil
-          connection2_id.should_not be_nil
-          query1_id.should == connection2_id
-          query2_id.should == connection1_id
-        end
-
-        it 'fails if the connection does not exist' do
-          f = io_reactor.start.flat_map do
-            io_reactor.add_connection(host, port).flat_map do
-              io_reactor.queue_request(Cql::Protocol::StartupRequest.new, 1234)
+          it 'fails if the connection does not exist' do
+            f = io_reactor.start.flat_map do
+              io_reactor.add_connection(host, port).flat_map do
+                io_reactor.queue_request(Cql::Protocol::StartupRequest.new, 1234)
+              end
             end
+            expect { f.get }.to raise_error(ConnectionNotFoundError)
           end
-          expect { f.get }.to raise_error(ConnectionNotFoundError)
-        end
 
-        it 'fails if the connection is busy' do
-          f = io_reactor.start.flat_map do
-            io_reactor.add_connection(host, port).flat_map do
+          it 'fails if the connection is busy' do
+            f = io_reactor.start.flat_map do
+              io_reactor.add_connection(host, port).flat_map do
+                io_reactor.add_connection(host, port).flat_map do |connection_id|
+                  200.times do
+                    io_reactor.queue_request(Cql::Protocol::OptionsRequest.new, connection_id)
+                  end
+                  io_reactor.queue_request(Cql::Protocol::OptionsRequest.new, connection_id)
+                end
+              end
+            end
+            expect { f.get }.to raise_error(ConnectionBusyError)
+          end
+
+          it 'fails if the connection is busy, when there is only one connection' do
+            f = io_reactor.start.flat_map do
               io_reactor.add_connection(host, port).flat_map do |connection_id|
                 200.times do
                   io_reactor.queue_request(Cql::Protocol::OptionsRequest.new, connection_id)
@@ -225,20 +239,8 @@ module Cql
                 io_reactor.queue_request(Cql::Protocol::OptionsRequest.new, connection_id)
               end
             end
+            expect { f.get }.to raise_error(ConnectionBusyError)
           end
-          expect { f.get }.to raise_error(ConnectionBusyError)
-        end
-
-        it 'fails if the connection is busy, when there is only one connection' do
-          f = io_reactor.start.flat_map do
-            io_reactor.add_connection(host, port).flat_map do |connection_id|
-              200.times do
-                io_reactor.queue_request(Cql::Protocol::OptionsRequest.new, connection_id)
-              end
-              io_reactor.queue_request(Cql::Protocol::OptionsRequest.new, connection_id)
-            end
-          end
-          expect { f.get }.to raise_error(ConnectionBusyError)
         end
 
         it 'fails if there is an error when encoding the request' do
