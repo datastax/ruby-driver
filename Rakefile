@@ -13,7 +13,7 @@ task :release => :spec do
   project_name = 'cql-rb'
   version_string = "v#{Cql::VERSION}"
   
-  unless %x(git tag -l).include?(version_string)
+  unless %x(git tag -l).split("\n").include?(version_string)
     system %(git tag -a #{version_string} -m #{version_string})
   end
 
