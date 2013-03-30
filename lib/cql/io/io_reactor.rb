@@ -201,7 +201,7 @@ module Cql
 
       def ping
         if @io && connecting? && (Time.now - @connection_started_at > @connection_timeout)
-          fail_connection!
+          fail_connection!(ConnectionTimeoutError.new("Could not connect to #{@host}:#{@port} within #{@connection_timeout}s"))
         end
       end
 
