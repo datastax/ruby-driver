@@ -13,3 +13,4 @@ module Cql
 end
 
 require 'cql/io/io_reactor'
+require 'cql/io/node_connection'
