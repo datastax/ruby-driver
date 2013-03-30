@@ -400,6 +400,7 @@ module Cql
 
       def close
         @io.close
+        @io = nil
       end
 
       def to_s
