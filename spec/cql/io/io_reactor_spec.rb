@@ -230,7 +230,15 @@ module Cql
         end
 
         it 'fails if the connection is busy, when there is only one connection' do
-          pending 'as it is the reactor doesn\'t try to deliver requests when all connections are busy'
+          f = io_reactor.start.flat_map do
+            io_reactor.add_connection(host, port).flat_map do |connection_id|
+              200.times do
+                io_reactor.queue_request(Cql::Protocol::OptionsRequest.new, connection_id)
+              end
+              io_reactor.queue_request(Cql::Protocol::OptionsRequest.new, connection_id)
+            end
+          end
+          expect { f.get }.to raise_error(ConnectionBusyError)
         end
 
         it 'fails if there is an error when encoding the request' do

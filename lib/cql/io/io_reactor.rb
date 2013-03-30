@@ -388,8 +388,10 @@ module Cql
       end
 
       def handle_read
-        if @io.read_nonblock(1)
-          deliver_commands
+        if can_deliver_command?
+          if @io.read_nonblock(1)
+            deliver_commands
+          end
         end
       end
 
@@ -412,9 +414,7 @@ module Cql
 
       def next_command
         @queue_lock.synchronize do
-          if can_deliver_command?
-            return @command_queue.shift
-          end
+          return @command_queue.shift
         end
         nil
       end
