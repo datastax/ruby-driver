@@ -16,9 +16,9 @@ module Cql
       def initialize(options={})
         @connection_timeout = options[:connection_timeout] || 5
         @lock = Mutex.new
-        @connections = []
         @command_queue = []
-        @unblocker_out, @unblocker_in = IO.pipe
+        @unblocker = UnblockerConnection.new(*IO.pipe)
+        @connections = [@unblocker]
         @started_future = Future.new
         @stopped_future = Future.new
         @running = false
@@ -114,21 +114,12 @@ module Cql
 
       private
 
-      PING_BYTE = "\0".freeze
-
       def io_loop
         while running?
           read_ready_streams = @connections.select(&:connected?)
-          read_ready_streams << @unblocker_out
           write_ready_streams = @connections.select(&:can_write?)
           readables, writables, _ = IO.select(read_ready_streams, write_ready_streams, nil, 1)
-          readables && readables.each do |r|
-            if r == @unblocker_out
-              @unblocker_out.read_nonblock(2**16)
-            else
-              r.handle_read
-            end
-          end
+          readables && readables.each(&:handle_read)
           writables && writables.each(&:handle_write)
           @connections.select(&:connecting?).each(&:handle_connecting)
           perform_queued_commands if running?
@@ -149,7 +140,7 @@ module Cql
             @command_queue << command
           end
         end
-        @unblocker_in.write(PING_BYTE)
+        @unblocker.unblock!
       end
 
       def perform_queued_commands
@@ -208,6 +199,55 @@ module Cql
         super(request)
         @connection_id = connection_id
       end
+    end
+
+    class UnblockerConnection
+      def initialize(*args)
+        @out, @in = args
+      end
+
+      def unblock!
+        @in.write(PING_BYTE)
+      end
+
+      def to_io
+        @out
+      end
+
+      def close
+      end
+
+      def on_event; end
+
+      def on_close; end
+
+      def connection_id
+        -1
+      end
+
+      def connected?
+        true
+      end
+
+      def connecting?
+        false
+      end
+
+      def can_write?
+        false
+      end
+
+      def has_capacity?
+        false
+      end
+
+      def handle_read
+        @out.read_nonblock(2**16)
+      end
+
+      private
+
+      PING_BYTE = "\0".freeze
     end
   end
 end
