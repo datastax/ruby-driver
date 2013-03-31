@@ -121,8 +121,14 @@ module Cql
           readables, writables, _ = IO.select(read_ready_streams, write_ready_streams, nil, 1)
           readables && readables.each(&:handle_read)
           writables && writables.each(&:handle_write)
-          @connections.select(&:connecting?).each(&:handle_connecting)
-          perform_queued_commands if running?
+          @connections.each do |connection|
+            if connection.connecting?
+              connection.handle_connecting
+            end
+          end
+          if running?
+            perform_queued_commands
+          end
         end
       ensure
         stop
