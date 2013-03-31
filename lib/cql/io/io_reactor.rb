@@ -1,9 +1,5 @@
 # encoding: utf-8
 
-require 'socket'
-require 'resolv-replace'
-
-
 module Cql
   module Io
     # An instance of IO reactor manages the connections used by a client.
@@ -20,9 +16,9 @@ module Cql
       def initialize(options={})
         @connection_timeout = options[:connection_timeout] || 5
         @lock = Mutex.new
-        @streams = []
+        @connections = []
         @command_queue = []
-        @queue_signal_receiver, @queue_signal_sender = IO.pipe
+        @unblocker_out, @unblocker_in = IO.pipe
         @started_future = Future.new
         @stopped_future = Future.new
         @running = false
@@ -45,7 +41,6 @@ module Cql
         @lock.synchronize do
           unless @running
             @running = true
-            @streams << CommandDispatcher.new(@queue_signal_receiver, @command_queue, @lock, @streams)
             @reactor_thread = Thread.start do
               begin
                 @started_future.complete!
@@ -70,6 +65,7 @@ module Cql
       #
       def stop
         @running = false
+        command_queue_push(nil)
         @stopped_future
       end
 
@@ -82,20 +78,17 @@ module Cql
       #
       def add_connection(host, port)
         connection = NodeConnection.new(host, port, @connection_timeout)
-        future = connection.open
-        future.on_failure do
+        connection.on_close do
           @lock.synchronize do
-            @streams.delete(connection)
+            @connections.delete(connection)
           end
         end
-        future.on_complete do
-          command_queue_push(:connection_established, connection)
-        end
+        f = connection.open
         @lock.synchronize do
-          @streams << connection
+          @connections << connection
         end
-        command_queue_push(:connection_added, connection)
-        future
+        command_queue_push(nil)
+        f
       end
 
       # Sends a request over a random, or specific connection.
@@ -106,9 +99,9 @@ module Cql
       # @return [Future<ResultResponse>] a future representing the result of the request
       #
       def queue_request(request, connection_id=nil)
-        future = Future.new
-        command_queue_push(:request, request, future, connection_id)
-        future
+        command = connection_id ? TargetedRequestCommand.new(request, connection_id) : RequestCommand.new(request)
+        command_queue_push(command)
+        command.future
       end
 
       # Registers a listener to receive server sent events.
@@ -116,7 +109,7 @@ module Cql
       # @yieldparam [Cql::Protocol::EventResponse] event the event sent by the server
       #
       def add_event_listener(&listener)
-        command_queue_push(:event_listener, listener)
+        command_queue_push(EventListenerCommand.new(listener))
       end
 
       private
@@ -125,157 +118,95 @@ module Cql
 
       def io_loop
         while running?
-          read_ready_streams = @streams.select(&:connected?)
-          write_ready_streams = @streams.select(&:can_write?)
+          read_ready_streams = @connections.select(&:connected?)
+          read_ready_streams << @unblocker_out
+          write_ready_streams = @connections.select(&:can_write?)
           readables, writables, _ = IO.select(read_ready_streams, write_ready_streams, nil, 1)
-          readables && readables.each(&:handle_read)
+          readables && readables.each do |r|
+            if r == @unblocker_out
+              @unblocker_out.read_nonblock(2**16)
+            else
+              r.handle_read
+            end
+          end
           writables && writables.each(&:handle_write)
-          @streams.each(&:ping)
-          @streams.reject!(&:closed?)
+          @connections.select(&:connecting?).each(&:handle_connecting)
+          perform_queued_commands if running?
         end
       ensure
         stop
-        @streams.each do |stream|
+        @connections.dup.each do |connection|
           begin
-            stream.close
-          rescue IOError
+            connection.close
+          rescue IOError => e
           end
         end
       end
 
-      def command_queue_push(*item)
-        if item && item.any?
+      def command_queue_push(command)
+        if command
           @lock.synchronize do
-            @command_queue << item
+            @command_queue << command
           end
         end
-        @queue_signal_sender.write(PING_BYTE)
+        @unblocker_in.write(PING_BYTE)
+      end
+
+      def perform_queued_commands
+        @lock.synchronize do
+          unexecuted_commands = []
+          while (command = @command_queue.shift)
+            case command
+            when EventListenerCommand
+              @connections.each do |connection|
+                connection.on_event(&command.listener)
+              end
+            when TargetedRequestCommand
+              connection = @connections.find { |c| c.connection_id == command.connection_id }
+              if connection && connection.connected? && connection.has_capacity?
+                connection.perform_request(command.request, command.future)
+              elsif connection && connection.connected?
+                command.future.fail!(ConnectionBusyError.new("Connection ##{command.connection_id} is busy"))
+              else
+                command.future.fail!(ConnectionNotFoundError.new("Connection ##{command.connection_id} does not exist"))
+              end
+            when RequestCommand
+              connection = @connections.select(&:has_capacity?).sample
+              if connection
+                connection.perform_request(command.request, command.future)
+              else
+                unexecuted_commands << command
+              end
+            end
+          end
+          @command_queue.unshift(*unexecuted_commands) if unexecuted_commands.any?
+        end
       end
     end
 
-    # @private
-    class CommandDispatcher
-      def initialize(*args)
-        @io, @command_queue, @queue_lock, @node_connections = args
+    class EventListenerCommand
+      attr_reader :listener
+
+      def initialize(listener)
+        @listener = listener
       end
+    end
 
-      def connection_id
-        -1
+    class RequestCommand
+      attr_reader :future, :request
+
+      def initialize(request)
+        @request = request
+        @future = Future.new
       end
+    end
 
-      def to_io
-        @io
-      end
+    class TargetedRequestCommand < RequestCommand
+      attr_reader :connection_id
 
-      def connected?
-        true
-      end
-
-      def closed?
-        false
-      end
-
-      def has_capacity?
-        false
-      end
-
-      def can_write?
-        false
-      end
-
-      def on_event; end
-
-      def on_close; end
-
-      def ping
-        if can_deliver_command?
-          deliver_commands
-        else
-          prune_directed_requests!
-        end
-      end
-
-      def handle_read
-        if can_deliver_command?
-          if @io.read_nonblock(1)
-            deliver_commands
-          end
-        end
-      end
-
-      def handle_write
-      end
-
-      def close
-        @io.close
-        @io = nil
-      end
-
-      def to_s
-        %(CommandDispatcher)
-      end
-
-      private
-
-      def can_deliver_command?
-        @node_connections.any?(&:has_capacity?) && @command_queue.size > 0
-      end
-
-      def next_command
-        @queue_lock.synchronize do
-          return @command_queue.shift
-        end
-        nil
-      end
-
-      def deliver_commands
-        while (command = next_command)
-          case command.shift
-          when :connection_added
-          when :connection_established
-            connection = command.shift
-            connection.on_close(&method(:connection_closed))
-          when :event_listener
-            listener = command.shift
-            @node_connections.each { |c| c.on_event(&listener) }
-          when :request
-            request, future, connection_id = command
-            if connection_id
-              connection = @node_connections.find { |c| c.connection_id == connection_id }
-              if connection && connection.connected? && connection.has_capacity?
-                connection.perform_request(request, future)
-              elsif connection && connection.connected?
-                future.fail!(ConnectionBusyError.new("Connection ##{connection_id} is busy"))
-              else
-                future.fail!(ConnectionNotFoundError.new("Connection ##{connection_id} does not exist"))
-              end
-            else
-              @node_connections.select(&:has_capacity?).sample.perform_request(request, future)
-            end
-          end
-        end
-      end
-
-      def prune_directed_requests!
-        failing_commands = []
-        @queue_lock.synchronize do
-          @command_queue.reject! do |command|
-            if command.first == :request && command.last && @node_connections.none? { |c| c.connection_id == command.last }
-              failing_commands << command
-              true
-            else
-              false
-            end
-          end
-        end
-        failing_commands.each do |command|
-          _, _, future, id = command
-          future.fail!(ConnectionNotFoundError.new("Connection ##{id} no longer exists"))
-        end
-      end
-
-      def connection_closed(connection)
-        prune_directed_requests!
+      def initialize(request, connection_id)
+        super(request)
+        @connection_id = connection_id
       end
     end
   end

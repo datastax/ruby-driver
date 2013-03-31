@@ -52,14 +52,12 @@ module Cql
         @event_listeners[:close] << listener
       end
 
-      def ping
-        if @io && connecting? && (Time.now - @connection_started_at > @connection_timeout)
-          fail_connection!(ConnectionTimeoutError.new("Could not connect to #{@host}:#{@port} within #{@connection_timeout}s"))
-        end
-      end
-
       def connected?
         @io && !connecting?
+      end
+
+      def connecting?
+        @io && !(@connected_future.complete? || @connected_future.failed?)
       end
 
       def closed?
@@ -110,9 +108,8 @@ module Cql
       end
 
       def handle_write
-        if connecting?
-          handle_connected
-        elsif connected?
+        succeed_connection! if connecting?
+        if !@write_buffer.empty?
           bytes_written = @io.write_nonblock(@write_buffer)
           @write_buffer.slice!(0, bytes_written)
         end
@@ -120,18 +117,18 @@ module Cql
         force_close(e)
       end
 
-      def force_close(e)
-        case e
-        when CqlError
-          error = e
+      def handle_connecting
+        if connecting_timed_out?
+          fail_connection!(ConnectionTimeoutError.new("Could not connect to #{@host}:#{@port} within #{@connection_timeout}s"))
         else
-          error = IoError.new(e.message)
-          error.set_backtrace(e.backtrace)
+          @io.connect_nonblock(@sockaddr)
+          succeed_connection!
         end
-        @response_tasks.each do |listener|
-          listener.fail!(error) if listener
-        end
-        close
+      rescue Errno::EISCONN
+        # ok
+        succeed_connection!
+      rescue SystemCallError, SocketError => e
+        fail_connection!(e)
       end
 
       def close
@@ -141,10 +138,10 @@ module Cql
           rescue SystemCallError
             # nothing to do, it wasn't open
           end
-          @io = nil
           if connecting?
             succeed_connection!
           end
+          @io = nil
           @event_listeners[:close].each { |listener| listener.call(self) }
         end
       end
@@ -163,30 +160,38 @@ module Cql
 
       EVENT_STREAM_ID = -1
 
-      def connecting?
-        !(@connected_future.complete? || @connected_future.failed?)
-      end
-
-      def handle_connected
-        @io.connect_nonblock(@sockaddr)
-        succeed_connection!
-      rescue Errno::EISCONN
-        # ok
-        succeed_connection!
-      rescue SystemCallError, SocketError => e
-        fail_connection!(e)
+      def connecting_timed_out?
+        (Time.now - @connection_started_at) > @connection_timeout
       end
 
       def succeed_connection!
         @connected_future.complete!(connection_id)
       end
 
-      def fail_connection!(e=nil)
-        message = "Could not connect to #{@host}:#{@port}"
-        message << ": #{e.message} (#{e.class.name})" if e
-        error = ConnectionError.new(message)
-        error.set_backtrace(e.backtrace) if e
+      def fail_connection!(e)
+        case e
+        when ConnectionError
+          error = e
+        else
+          message = "Could not connect to #{@host}:#{@port}: #{e.message} (#{e.class.name})"
+          error = ConnectionError.new(message)
+          error.set_backtrace(e.backtrace)
+        end
         @connected_future.fail!(error)
+        force_close(error)
+      end
+
+      def force_close(e)
+        case e
+        when CqlError
+          error = e
+        else
+          error = IoError.new(e.message)
+          error.set_backtrace(e.backtrace)
+        end
+        @response_tasks.each do |listener|
+          listener.fail!(error) if listener
+        end
         close
       end
 
