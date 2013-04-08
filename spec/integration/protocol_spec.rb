@@ -117,6 +117,8 @@ describe 'Protocol parsing and communication' do
         if authentication_enabled
           response = raw_execute_request(Cql::Protocol::StartupRequest.new)
           response.should be_a(Cql::Protocol::AuthenticateResponse)
+        else
+          pending 'authentication not configured'
         end
       end
 
@@ -126,6 +128,8 @@ describe 'Protocol parsing and communication' do
           response = raw_execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
           response.code.should == 10
           response.message.should include('needs authentication')
+        else
+          pending 'authentication not configured'
         end
       end
 
@@ -134,6 +138,8 @@ describe 'Protocol parsing and communication' do
           raw_execute_request(Cql::Protocol::StartupRequest.new)
           response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra'))
           response.should be_a(Cql::Protocol::ReadyResponse)
+        else
+          pending 'authentication not configured'
         end
       end
 
@@ -143,6 +149,8 @@ describe 'Protocol parsing and communication' do
           response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar'))
           response.code.should == 0x100
           response.message.should include('Username and/or password are incorrect')
+        else
+          pending 'authentication not configured'
         end
       end
     end
@@ -276,12 +284,12 @@ describe 'Protocol parsing and communication' do
           end
         end
 
-        it 'sends a TRUNCATE command' do
-          in_keyspace_with_table do
-            response = query(%<TRUNCATE users>)
-            response.should be_void
-          end
-        end
+        # it 'sends a TRUNCATE command' do
+        #   in_keyspace_with_table do
+        #     response = query(%<TRUNCATE users>)
+        #     response.should be_void
+        #   end
+        # end
 
         it 'sends a BATCH command' do
           in_keyspace_with_table do
