@@ -19,8 +19,19 @@ describe 'Protocol parsing and communication' do
     io_reactor.stop.get if io_reactor.running?
   end
 
-  def execute_request(request)
+  def raw_execute_request(request)
     io_reactor.queue_request(request).get.first
+  end
+
+  def execute_request(request)
+    response = raw_execute_request(request)
+    if response.is_a?(Cql::Protocol::AuthenticateResponse)
+      unless response.authentication_class == 'org.apache.cassandra.auth.PasswordAuthenticator'
+        raise "Cassandra required an unsupported authenticator: #{response.authentication_class}"
+      end
+      response = execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra'))
+    end
+    response
   end
 
   def query(cql, consistency=:one)
@@ -83,15 +94,57 @@ describe 'Protocol parsing and communication' do
       response.options.should have_key('CQL_VERSION')
     end
 
-    it 'sends STARTUP and receives READY' do
-      response = execute_request(Cql::Protocol::StartupRequest.new)
-      response.should be_a(Cql::Protocol::ReadyResponse)
+    context 'when authentication is not required' do
+      it 'sends STARTUP and receives READY' do
+        response = execute_request(Cql::Protocol::StartupRequest.new)
+        response.should be_a(Cql::Protocol::ReadyResponse)
+      end
+
+      it 'sends a bad STARTUP and receives ERROR' do
+        response = execute_request(Cql::Protocol::StartupRequest.new('9.9.9'))
+        response.code.should == 10
+        response.message.should include('not supported')
+      end
     end
 
-    it 'sends a bad STARTUP and receives ERROR' do
-      response = execute_request(Cql::Protocol::StartupRequest.new('9.9.9'))
-      response.code.should == 10
-      response.message.should include('not supported')
+    context 'when authentication is required' do
+      let :authentication_enabled do
+        response = raw_execute_request(Cql::Protocol::StartupRequest.new)
+        response.is_a?(Cql::Protocol::AuthenticateResponse) && response.authentication_class == 'org.apache.cassandra.auth.PasswordAuthenticator'
+      end
+
+      it 'sends STARTUP and receives AUTHENTICATE' do
+        if authentication_enabled
+          response = raw_execute_request(Cql::Protocol::StartupRequest.new)
+          response.should be_a(Cql::Protocol::AuthenticateResponse)
+        end
+      end
+
+      it 'ignores the AUTHENTICATE response and receives ERROR' do
+        if authentication_enabled
+          raw_execute_request(Cql::Protocol::StartupRequest.new)
+          response = raw_execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
+          response.code.should == 10
+          response.message.should include('needs authentication')
+        end
+      end
+
+      it 'sends STARTUP followed by CREDENTIALS and receives READY' do
+        if authentication_enabled
+          raw_execute_request(Cql::Protocol::StartupRequest.new)
+          response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra'))
+          response.should be_a(Cql::Protocol::ReadyResponse)
+        end
+      end
+
+      it 'sends bad username and password in CREDENTIALS and receives ERROR' do
+        if authentication_enabled
+          raw_execute_request(Cql::Protocol::StartupRequest.new)
+          response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar'))
+          response.code.should == 0x100
+          response.message.should include('Username and/or password are incorrect')
+        end
+      end
     end
   end
 

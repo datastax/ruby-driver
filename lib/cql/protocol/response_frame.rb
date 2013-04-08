@@ -55,6 +55,7 @@ module Cql
           case @headers.opcode
           when 0x00 then ErrorResponse
           when 0x02 then ReadyResponse
+          when 0x03 then AuthenticateResponse
           when 0x06 then SupportedResponse
           when 0x08 then ResultResponse
           when 0x0c then EventResponse
@@ -211,6 +212,22 @@ module Cql
 
       def to_s
         'READY'
+      end
+    end
+
+    class AuthenticateResponse < ResponseBody
+      attr_reader :authentication_class
+
+      def self.decode!(buffer)
+        new(read_string!(buffer))
+      end
+
+      def initialize(authentication_class)
+        @authentication_class = authentication_class
+      end
+
+      def to_s
+        %(AUTHENTICATE #{authentication_class})
       end
     end
 

@@ -6,6 +6,21 @@ require 'spec_helper'
 module Cql
   module Protocol
     describe RequestFrame do
+      context 'with CREDENTIALS requests' do
+        it 'encodes a CREDENTIALS request' do
+          bytes = RequestFrame.new(CredentialsRequest.new('username' => 'cassandra', 'password' => 'ardnassac')).write('')
+          bytes.should == (
+            "\x01\x00\x00\04" +
+            "\x00\x00\x00\x2c" +
+            "\x00\x02" +
+            "\x00\x08username" +
+            "\x00\x09cassandra" +
+            "\x00\x08password" +
+            "\x00\x09ardnassac"
+          )
+        end
+      end
+
       context 'with OPTIONS requests' do
         it 'encodes an OPTIONS request' do
           bytes = RequestFrame.new(OptionsRequest.new).write('')
@@ -146,6 +161,15 @@ module Cql
           it 'returns a pretty string' do
             request = StartupRequest.new
             request.to_s.should == 'STARTUP {"CQL_VERSION"=>"3.0.0"}'
+          end
+        end
+      end
+
+      describe CredentialsRequest do
+        describe '#to_s' do
+          it 'returns a pretty string' do
+            request = CredentialsRequest.new('foo' => 'bar', 'hello' => 'world')
+            request.to_s.should == 'CREDENTIALS {"foo"=>"bar", "hello"=>"world"}'
           end
         end
       end

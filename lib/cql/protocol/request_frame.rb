@@ -49,6 +49,21 @@ module Cql
       COMPRESSION = 'COMPRESSION'.freeze
     end
 
+    class CredentialsRequest < RequestBody
+      def initialize(credentials_map)
+        super(4)
+        @credentials_map = credentials_map
+      end
+
+      def write(io)
+        write_string_map(io, @credentials_map)
+      end
+
+      def to_s
+        %(CREDENTIALS #{@credentials_map})
+      end
+    end
+
     class OptionsRequest < RequestBody
       def initialize
         super(5)

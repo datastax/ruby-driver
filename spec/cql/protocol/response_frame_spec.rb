@@ -201,6 +201,24 @@ module Cql
         end
       end
 
+      context 'when fed a complete AUTHENTICATE frame' do
+        before do
+          frame << "\x81\x00\x00\x03\x00\x00\x001\x00/org.apache.cassandra.auth.PasswordAuthenticator"
+        end
+
+        it 'is complete' do
+          frame.should be_complete
+        end
+
+        it 'has an authentication class' do
+          frame.body.authentication_class.should == 'org.apache.cassandra.auth.PasswordAuthenticator'
+        end
+
+        it 'has a pretty #to_s representation' do
+          frame.body.to_s.should == 'AUTHENTICATE org.apache.cassandra.auth.PasswordAuthenticator'
+        end
+      end
+
       context 'when fed a complete SUPPORTED frame' do
         before do
           frame << "\x81\x00\x00\x06\x00\x00\x00\x27"
