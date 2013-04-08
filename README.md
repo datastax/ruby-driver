@@ -20,15 +20,14 @@ The native transport protocol (sometimes called binary protocol, or CQL protocol
 
     require 'cql'
 
-    client = Cql::Client.new(host: 'cassandra.example.com')
-    client.start!
+    client = Cql::Client.connect(host: 'cassandra.example.com')
     client.use('system')
     rows = client.execute('SELECT keyspace_name, columnfamily_name FROM schema_columnfamilies')
     rows.each do |row|
       puts "The keyspace #{row['keyspace_name']} has a table called #{row['columnfamily_name']}""
     end
 
-when you're done you can call `#shutdown!` to disconnect from Cassandra. You can connect to multiple Cassandra nodes by passing multiple comma separated host names to the `:host` option.
+when you're done you can call `#close` to disconnect from Cassandra. You can connect to multiple Cassandra nodes by passing multiple comma separated host names to the `:host` option.
 
 ## Changing keyspaces
 

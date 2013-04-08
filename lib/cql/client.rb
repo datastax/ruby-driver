@@ -16,10 +16,8 @@ module Cql
   # it run queries, insert and update data.
   #
   # @example Connecting and changing to a keyspace
-  #   # create a client that will connect to two Cassandra nodes
-  #   client = Cql::Client.new(host: 'node01.cassandra.local,node02.cassandra.local')
-  #   # establish node connections
-  #   client.start!
+  #   # create a client and connect to two Cassandra nodes
+  #   client = Cql::Client.connect(host: 'node01.cassandra.local,node02.cassandra.local')
   #   # change to a keyspace
   #   client.use('stuff')
   #
@@ -47,8 +45,8 @@ module Cql
     # Create a new client.
     #
     # Creating a client does not automatically connect to Cassandra, you need to
-    # call {#start!} to connect. `#start!` returns `self` so you can chain that
-    # call after `new`.
+    # call {#connect} to connect, or use {Client.connect}. `#connect` returns
+    # `self` so you can chain that call after `new`.
     #
     # @param [Hash] options
     # @option options [String] :host ('localhost') One or more (comma separated)
@@ -70,6 +68,10 @@ module Cql
       @connection_keyspaces = {}
     end
 
+    def self.connect(options={})
+      new(options).connect
+    end
+
     # Connect to all nodes.
     #
     # You must call this method before you call any of the other methods of a
@@ -81,7 +83,7 @@ module Cql
     #
     # @return self
     #
-    def start!
+    def connect
       @lock.synchronize do
         return if @started
         @io_reactor.start
@@ -99,11 +101,17 @@ module Cql
       self
     end
 
+    # @deprecated Use {#connect} or {.connect}
+    def start!
+      $stderr.puts('Client#start! is deprecated, use Client#connect, or Client.connect')
+      connect
+    end
+
     # Disconnect from all nodes.
     #
     # @return self
     #
-    def shutdown!
+    def close
       @lock.synchronize do
         return if @shut_down || !@started
         @shut_down = true
@@ -111,6 +119,12 @@ module Cql
       end
       @io_reactor.stop.get
       self
+    end
+
+    # @deprecated Use {#close}
+    def shutdown!
+      $stderr.puts('Client#shutdown! is deprecated, use Client#close')
+      close
     end
 
     # Returns whether or not the client is connected.

@@ -33,114 +33,121 @@ module Cql
       requests.last
     end
 
-    describe '#start!' do
+    describe '.connect' do
+      it 'connects and returns the client' do
+        client = described_class.connect(connection_options)
+        client.should be_connected
+      end
+    end
+
+    describe '#connect' do
       it 'connects' do
-        client.start!
+        client.connect
         connections.should have(1).item
       end
 
       it 'connects only once' do
-        client.start!
-        client.start!
+        client.connect
+        client.connect
         connections.should have(1).item
       end
 
       it 'connects to all hosts' do
-        client.shutdown!
+        client.close
         io_reactor.stop.get
         io_reactor.start.get
 
         c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
-        c.start!
+        c.connect
         connections.should have(3).items
       end
 
       it 'returns itself' do
-        client.start!.should equal(client)
+        client.connect.should equal(client)
       end
 
       it 'forwards the host and port' do
-        client.start!
+        client.connect
         connection[:host].should == 'example.com'
         connection[:port].should == 12321
       end
 
       it 'sends a startup request' do
-        client.start!
+        client.connect
         last_request.should be_a(Protocol::StartupRequest)
       end
 
       it 'sends a startup request to each connection' do
-        client.shutdown!
+        client.close
         io_reactor.stop.get
         io_reactor.start.get
 
         c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
-        c.start!
+        c.connect
         connections.each do |cc|
           cc[:requests].last.should be_a(Protocol::StartupRequest)
         end
       end
 
       it 'is not in a keyspace' do
-        client.start!
+        client.connect
         client.keyspace.should be_nil
       end
 
       it 'changes to the keyspace given as an option' do
         c = described_class.new(connection_options.merge(:keyspace => 'hello_world'))
-        c.start!
+        c.connect
         last_request.should == Protocol::QueryRequest.new('USE hello_world', :one)
       end
 
       it 'validates the keyspace name before sending the USE command' do
         c = described_class.new(connection_options.merge(:keyspace => 'system; DROP KEYSPACE system'))
-        expect { c.start! }.to raise_error(Client::InvalidKeyspaceNameError)
+        expect { c.connect }.to raise_error(Client::InvalidKeyspaceNameError)
         requests.should_not include(Protocol::QueryRequest.new('USE system; DROP KEYSPACE system', :one))
       end
 
       it 're-raises any errors raised' do
         io_reactor.stub(:add_connection).and_raise(ArgumentError)
-        expect { client.start! }.to raise_error(ArgumentError)
+        expect { client.connect }.to raise_error(ArgumentError)
       end
 
       it 'is not connected if an error is raised' do
         io_reactor.stub(:add_connection).and_raise(ArgumentError)
-        client.start! rescue nil
+        client.connect rescue nil
         client.should_not be_connected
       end
 
-      it 'is connected after #start! returns' do
-        client.start!
+      it 'is connected after #connect returns' do
+        client.connect
         client.should be_connected
       end
     end
 
-    describe '#shutdown!' do
+    describe '#close' do
       it 'closes the connection' do
-        client.start!
-        client.shutdown!
+        client.connect
+        client.close
         io_reactor.should_not be_running
       end
 
-      it 'does nothing when called before #start!' do
-        client.shutdown!
+      it 'does nothing when called before #connect' do
+        client.close
       end
 
-      it 'accepts multiple calls to #shutdown!' do
-        client.start!
-        client.shutdown!
-        client.shutdown!
+      it 'accepts multiple calls to #close' do
+        client.connect
+        client.close
+        client.close
       end
 
       it 'returns itself' do
-        client.start!.shutdown!.should equal(client)
+        client.connect.close.should equal(client)
       end
     end
 
     describe '#use' do
       before do
-        client.start!
+        client.connect
       end
 
       it 'executes a USE query' do
@@ -150,12 +157,12 @@ module Cql
       end
 
       it 'executes a USE query for each connection' do
-        client.shutdown!
+        client.close
         io_reactor.stop.get
         io_reactor.start.get
 
         c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
-        c.start!
+        c.connect
 
         c.use('system')
         last_requests = connections.select { |c| c[:host] =~ /^h\d\.example\.com$/ }.sort_by { |c| c[:host] }.map { |c| c[:requests].last }
@@ -179,7 +186,7 @@ module Cql
 
     describe '#execute' do
       before do
-        client.start!
+        client.connect
       end
 
       it 'asks the connection to execute the query' do
@@ -214,12 +221,12 @@ module Cql
         end
 
         it 'detects that one connection changed to a keyspace and changes the others too' do
-          client.shutdown!
+          client.close
           io_reactor.stop.get
           io_reactor.start.get
 
           c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
-          c.start!
+          c.connect
 
           io_reactor.queue_response(Protocol::SetKeyspaceResultResponse.new('system'), connections.find { |c| c[:host] == 'h1.example.com' }[:host])
           io_reactor.queue_response(Protocol::SetKeyspaceResultResponse.new('system'), connections.find { |c| c[:host] == 'h2.example.com' }[:host])
@@ -299,7 +306,7 @@ module Cql
       end
 
       before do
-        client.start!
+        client.connect
       end
 
       it 'sends a prepare request' do
@@ -334,12 +341,12 @@ module Cql
       end
 
       it 'executes a prepared statement using the right connection' do
-        client.shutdown!
+        client.close
         io_reactor.stop.get
         io_reactor.start.get
 
         c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
-        c.start!
+        c.connect
 
         io_reactor.queue_response(Protocol::PreparedResultResponse.new('A' * 32, metadata))
         io_reactor.queue_response(Protocol::PreparedResultResponse.new('B' * 32, metadata))
@@ -363,51 +370,51 @@ module Cql
     end
 
     context 'when not connected' do
-      it 'is not connected before #start! has been called' do
+      it 'is not connected before #connect has been called' do
         client.should_not be_connected
       end
 
-      it 'is not connected after #shutdown! has been called' do
-        client.start!
-        client.shutdown!
+      it 'is not connected after #close has been called' do
+        client.connect
+        client.close
         client.should_not be_connected
       end
 
-      it 'complains when #use is called before #start!' do
+      it 'complains when #use is called before #connect' do
         expect { client.use('system') }.to raise_error(Client::NotConnectedError)
       end
 
-      it 'complains when #use is called after #shutdown!' do
-        client.start!
-        client.shutdown!
+      it 'complains when #use is called after #close' do
+        client.connect
+        client.close
         expect { client.use('system') }.to raise_error(Client::NotConnectedError)
       end
 
-      it 'complains when #execute is called before #start!' do
+      it 'complains when #execute is called before #connect' do
         expect { client.execute('DELETE FROM stuff WHERE id = 3') }.to raise_error(Client::NotConnectedError)
       end
 
-      it 'complains when #execute is called after #shutdown!' do
-        client.start!
-        client.shutdown!
+      it 'complains when #execute is called after #close' do
+        client.connect
+        client.close
         expect { client.execute('DELETE FROM stuff WHERE id = 3') }.to raise_error(Client::NotConnectedError)
       end
 
-      it 'complains when #prepare is called before #start!' do
+      it 'complains when #prepare is called before #connect' do
         expect { client.prepare('DELETE FROM stuff WHERE id = 3') }.to raise_error(Client::NotConnectedError)
       end
 
-      it 'complains when #prepare is called after #shutdown!' do
-        client.start!
-        client.shutdown!
+      it 'complains when #prepare is called after #close' do
+        client.connect
+        client.close
         expect { client.prepare('DELETE FROM stuff WHERE id = 3') }.to raise_error(Client::NotConnectedError)
       end
 
-      it 'complains when #execute of a prepared statement is called after #shutdown!' do
-        client.start!
+      it 'complains when #execute of a prepared statement is called after #close' do
+        client.connect
         io_reactor.queue_response(Protocol::PreparedResultResponse.new('A' * 32, []))
         statement = client.prepare('DELETE FROM stuff WHERE id = 3')
-        client.shutdown!
+        client.close
         expect { statement.execute }.to raise_error(Client::NotConnectedError)
       end
     end

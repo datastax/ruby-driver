@@ -13,11 +13,11 @@ describe 'A CQL client' do
   end
 
   before do
-    client.start!
+    client.connect
   end
 
   after do
-    client.shutdown!
+    client.close
   end
 
   it 'executes a query and returns the result' do
@@ -38,12 +38,12 @@ describe 'A CQL client' do
 
   it 'can be initialized with a keyspace' do
     c = Cql::Client.new(connection_options.merge(:keyspace => 'system'))
-    c.start!
+    c.connect
     begin
       c.keyspace.should == 'system'
       expect { c.execute('SELECT * FROM schema_keyspaces') }.to_not raise_error
     ensure
-      c.shutdown!
+      c.close
     end
   end
 
@@ -68,12 +68,12 @@ describe 'A CQL client' do
     end
 
     before do
-      client.shutdown!
-      multi_client.start!
+      client.close
+      multi_client.connect
     end
 
     after do
-      multi_client.shutdown!
+      multi_client.close
     end
 
     it 'handles keyspace changes with #use' do
@@ -112,7 +112,7 @@ describe 'A CQL client' do
 
     it 'fails gracefully when connecting to the Thrift port' do
       client = Cql::Client.new(connection_options.merge(port: 9160))
-      expect { client.start! }.to raise_error(Cql::IoError)
+      expect { client.connect }.to raise_error(Cql::IoError)
     end
   end
 end
