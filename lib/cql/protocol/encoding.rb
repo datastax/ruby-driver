@@ -14,6 +14,7 @@ module Cql
       end
 
       def write_string(buffer, str)
+        str = str.to_s
         buffer << [str.bytesize].pack(Formats::SHORT_FORMAT)
         buffer << binary_cast(str)
         buffer.force_encoding(::Encoding::BINARY)

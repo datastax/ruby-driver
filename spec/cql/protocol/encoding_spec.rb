@@ -73,6 +73,11 @@ module Cql
           buffer.should eql_bytes("\x00\x00")
         end
 
+        it 'encodes a non-string' do
+          Encoding.write_string(buffer, 42)
+          buffer.should eql_bytes("\x00\x0242")
+        end
+
         it 'appends to the buffer' do
           buffer << "\xab"
           buffer.force_encoding(::Encoding::BINARY)
