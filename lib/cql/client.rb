@@ -11,6 +11,7 @@ module Cql
   end
 
   ClientError = Class.new(CqlError)
+  AuthenticationError = Class.new(ClientError)
 
   # A CQL client manages connections to one or more Cassandra nodes and you use
   # it run queries, insert and update data.
@@ -65,6 +66,7 @@ module Cql
       @started = false
       @shut_down = false
       @initial_keyspace = options[:keyspace]
+      @credentials = options[:credentials]
       @connection_keyspaces = {}
     end
 
@@ -86,19 +88,21 @@ module Cql
     def connect
       @lock.synchronize do
         return if @started
+        @started = true
         @io_reactor.start
         hosts = @host.split(',')
-        start_request = Protocol::StartupRequest.new
-        connection_futures = hosts.map do |host|
-          @io_reactor.add_connection(host, @port).flat_map do |connection_id|
-            execute_request(start_request, connection_id).map { connection_id }
-          end
-        end
+        connection_futures = hosts.map { |host| connect_to_host(host) }
         @connection_ids = Future.combine(*connection_futures).get
-        @started = true
       end
       use(@initial_keyspace) if @initial_keyspace
       self
+    rescue => e
+      close
+      if e.is_a?(Cql::QueryError) && e.code == 0x100
+        raise AuthenticationError, e.message, e.backtrace
+      else
+        raise
+      end
     end
 
     # @deprecated Use {#connect} or {.connect}
@@ -210,6 +214,28 @@ module Cql
       true
     end
 
+    def connect_to_host(host)
+      connected = @io_reactor.add_connection(host, @port)
+      connected.flat_map do |connection_id|
+        started = execute_request(Protocol::StartupRequest.new, connection_id)
+        started.flat_map { |response| maybe_authenticate(response, connection_id) }
+      end
+    end
+
+    def maybe_authenticate(response, connection_id)
+      case response
+      when AuthenticationRequired
+        if @credentials
+          credentials_request = Protocol::CredentialsRequest.new(@credentials)
+          execute_request(credentials_request, connection_id).map { connection_id }
+        else
+          Future.failed(AuthenticationError.new('Server requested authentication, but no credentials given'))
+        end
+      else
+        Future.completed(connection_id)
+      end
+    end
+
     def execute_request(request, connection_id=nil)
       @io_reactor.queue_request(request, connection_id).map do |response, connection_id|
         interpret_response!(response, connection_id)
@@ -229,6 +255,8 @@ module Cql
           @last_keyspace_change = @connection_keyspaces[connection_id] = response.keyspace
         end
         nil
+      when Protocol::AuthenticateResponse
+        AuthenticationRequired.new(response.authentication_class)
       else
         nil
       end
@@ -275,6 +303,14 @@ module Cql
         bound_args = args.shift(@raw_metadata.size)
         consistency_level = args.shift
         @client.execute_statement(@connection_id, @statement_id, @raw_metadata, bound_args, consistency_level)
+      end
+    end
+
+    class AuthenticationRequired
+      attr_reader :authentication_class
+
+      def initialize(authentication_class)
+        @authentication_class = authentication_class
       end
     end
 

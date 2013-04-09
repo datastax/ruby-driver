@@ -50,17 +50,28 @@ module Cql
     end
 
     class CredentialsRequest < RequestBody
-      def initialize(credentials_map)
+      attr_reader :credentials
+
+      def initialize(credentials)
         super(4)
-        @credentials_map = credentials_map
+        @credentials = credentials.dup.freeze
       end
 
       def write(io)
-        write_string_map(io, @credentials_map)
+        write_string_map(io, @credentials)
       end
 
       def to_s
-        %(CREDENTIALS #{@credentials_map})
+        %(CREDENTIALS #{@credentials})
+      end
+
+      def eql?(rq)
+        self.class === rq && rq.credentials.eql?(@credentials)
+      end
+      alias_method :==, :eql?
+
+      def hash
+        @h ||= @credentials.hash
       end
     end
 

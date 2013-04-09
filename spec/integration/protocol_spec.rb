@@ -109,8 +109,16 @@ describe 'Protocol parsing and communication' do
 
     context 'when authentication is required' do
       let :authentication_enabled do
-        response = raw_execute_request(Cql::Protocol::StartupRequest.new)
-        response.is_a?(Cql::Protocol::AuthenticateResponse) && response.authentication_class == 'org.apache.cassandra.auth.PasswordAuthenticator'
+        ir = Cql::Io::IoReactor.new
+        ir.start
+        connected = ir.add_connection(ENV['CASSANDRA_HOST'], 9042)
+        started = connected.flat_map do
+          ir.queue_request(Cql::Protocol::StartupRequest.new)
+        end
+        response = started.get.first
+        required = response.is_a?(Cql::Protocol::AuthenticateResponse)
+        ir.stop.get
+        required
       end
 
       it 'sends STARTUP and receives AUTHENTICATE' do

@@ -115,11 +115,43 @@ module Cql
         io_reactor.stub(:add_connection).and_raise(ArgumentError)
         client.connect rescue nil
         client.should_not be_connected
+        io_reactor.should_not be_running
       end
 
       it 'is connected after #connect returns' do
         client.connect
         client.should be_connected
+      end
+
+      context 'when the server requests authentication' do
+        before do
+          io_reactor.queue_response(Protocol::AuthenticateResponse.new('com.example.Auth'))
+        end
+
+        it 'sends credentials' do
+          client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
+          client.connect
+          last_request.should == Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar')
+        end
+
+        it 'raises an error when no credentials have been given' do
+          client = described_class.new(connection_options)
+          expect { client.connect }.to raise_error(AuthenticationError)
+        end
+
+        it 'raises an error when the server responds with an error to the credentials request' do
+          io_reactor.queue_response(Protocol::ErrorResponse.new(256, 'No way, José'))
+          client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
+          expect { client.connect }.to raise_error(AuthenticationError)
+        end
+
+        it 'shuts down the client when there is an authentication error' do
+          io_reactor.queue_response(Protocol::ErrorResponse.new(256, 'No way, José'))
+          client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
+          client.connect rescue nil
+          client.should_not be_connected
+          io_reactor.should_not be_running
+        end
       end
     end
 

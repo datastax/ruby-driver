@@ -5,7 +5,7 @@ require 'spec_helper'
 
 describe 'A CQL client' do
   let :connection_options do
-    {:host => ENV['CASSANDRA_HOST']}
+    {:host => ENV['CASSANDRA_HOST'], :credentials => {:username => 'cassandra', :password => 'cassandra'}}
   end
 
   let :client do
@@ -97,6 +97,43 @@ describe 'A CQL client' do
       100.times do
         result = statement.execute('system')
         result.should have(1).item
+      end
+    end
+  end
+
+  context 'with authentication' do
+    let :client do
+      stub(:client, connect: nil, close: nil)
+    end
+
+    let :authentication_enabled do
+      begin
+        Cql::Client.connect(connection_options.merge(credentials: nil))
+        false
+      rescue Cql::AuthenticationError
+        true
+      end
+    end
+
+    it 'send credentials given in :credentials' do
+      client = Cql::Client.connect(connection_options.merge(credentials: {username: 'cassandra', password: 'cassandra'}))
+      client.execute('SELECT * FROM system.schema_keyspaces')
+    end
+
+    it 'raises an error when no credentials have been given' do
+      if authentication_enabled
+        expect { Cql::Client.connect(connection_options.merge(credentials: nil)) }.to raise_error(Cql::AuthenticationError)
+      else
+        pending 'authentication not configured'
+      end
+    end
+
+    it 'raises an error when the credentials are bad' do
+      if authentication_enabled
+        client = Cql::Client.new(connection_options.merge(credentials: {username: 'foo', password: 'bar'}))
+        expect { client.connect }.to raise_error(Cql::AuthenticationError)
+      else
+        pending 'authentication not configured'
       end
     end
   end
