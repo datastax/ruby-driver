@@ -1,5 +1,5 @@
 # encoding: utf-8
 
 module Cql
-  VERSION = '1.0.0.pre5'.freeze
+  VERSION = '1.0.0.pre6'.freeze
 end
