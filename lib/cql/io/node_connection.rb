@@ -29,7 +29,7 @@ module Cql
           @io = Socket.new(address_family, socket_type, 0)
           @io.connect_nonblock(@sockaddr)
         rescue Errno::EINPROGRESS
-          # ok
+          # NOTE not connected yet, this is expected
         rescue SystemCallError, SocketError => e
           fail_connection!(e)
         end
@@ -127,7 +127,6 @@ module Cql
       rescue Errno::EALREADY
         # NOTE still not connected
       rescue Errno::EISCONN
-        # ok
         succeed_connection!
       rescue SystemCallError, SocketError => e
         fail_connection!(e)
@@ -138,7 +137,7 @@ module Cql
           begin
             @io.close
           rescue SystemCallError
-            # nothing to do, it wasn't open
+            # NOTE nothing to do, it wasn't open
           end
           if connecting?
             succeed_connection!
