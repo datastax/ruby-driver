@@ -124,6 +124,8 @@ module Cql
           @io.connect_nonblock(@sockaddr)
           succeed_connection!
         end
+      rescue Errno::EALREADY
+        # NOTE still not connected
       rescue Errno::EISCONN
         # ok
         succeed_connection!
