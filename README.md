@@ -18,72 +18,86 @@ The native transport protocol (sometimes called binary protocol, or CQL protocol
 
 # Quick start
 
-    require 'cql'
+```ruby
+require 'cql'
 
-    client = Cql::Client.connect(host: 'cassandra.example.com')
-    client.use('system')
-    rows = client.execute('SELECT keyspace_name, columnfamily_name FROM schema_columnfamilies')
-    rows.each do |row|
-      puts "The keyspace #{row['keyspace_name']} has a table called #{row['columnfamily_name']}""
-    end
+client = Cql::Client.connect(host: 'cassandra.example.com')
+client.use('system')
+rows = client.execute('SELECT keyspace_name, columnfamily_name FROM schema_columnfamilies')
+rows.each do |row|
+  puts "The keyspace #{row['keyspace_name']} has a table called #{row['columnfamily_name']}""
+end
+```
 
 when you're done you can call `#close` to disconnect from Cassandra. You can connect to multiple Cassandra nodes by passing multiple comma separated host names to the `:host` option.
 
 ## Changing keyspaces
 
-    client.use('measurements')
+```ruby
+client.use('measurements')
+```
 
 or using CQL:
 
-    client.execute('USE measurements')
+```ruby
+client.execute('USE measurements')
+```
 
 ## Running queries
 
 You run CQL statements by passing them to `#execute`. Most statements don't have any result and the call will return nil.
 
-    client.execute("INSERT INTO events (id, date, description) VALUES (23462, '2013-02-24T10:14:23+0000', 'Rang bell, ate food')")
+```ruby
+client.execute("INSERT INTO events (id, date, description) VALUES (23462, '2013-02-24T10:14:23+0000', 'Rang bell, ate food')")
 
-    client.execute("UPDATE events SET description = 'Oh, my' WHERE id = 13126")
+client.execute("UPDATE events SET description = 'Oh, my' WHERE id = 13126")
+```
 
 
 If the CQL statement passed to `#execute` returns a result (e.g. it's a `SELECT` statement) the call returns an enumerable of rows:
 
-    rows = client.execute('SELECT date, description FROM events')
-    rows.each do |row|
-      row.each do |key, value|
-        puts "#{key} = #{value}"
-      end
-    end
+```ruby
+rows = client.execute('SELECT date, description FROM events')
+rows.each do |row|
+  row.each do |key, value|
+    puts "#{key} = #{value}"
+  end
+end
+```
 
 The enumerable also has an accessor called `metadata` which returns a description of the rows and columns:
 
-    rows = client.execute('SELECT date, description FROM events'
-    rows.metadata['date'].type # => :date
+```ruby
+rows = client.execute('SELECT date, description FROM events'
+rows.metadata['date'].type # => :date
+```
 
 ## Creating keyspaces and tables
 
 There is no special facility for creating keyspaces and tables, they are created by executing CQL:
 
-    keyspace_definition = <<-KSDEF
-      CREATE KEYSPACE measurements
-      WITH replication = {
-        'class': 'SimpleStrategy',
-        'replication_factor': 3
-      }
-    KSDEF
+```ruby
+keyspace_definition = <<-KSDEF
+  CREATE KEYSPACE measurements
+  WITH replication = {
+    'class': 'SimpleStrategy',
+    'replication_factor': 3
+  }
+KSDEF
 
-    table_definition = <<- TABLEDEF
-      CREATE TABLE events (
-        id INT,
-        date DATE,
-        comment VARCHAR,
-        PRIMARY KEY (id)
-      )
-    TABLEDEF
+table_definition = <<- TABLEDEF
+  CREATE TABLE events (
+    id INT,
+    date DATE,
+    comment VARCHAR,
+    PRIMARY KEY (id)
+  )
+TABLEDEF
 
-    client.execute(keyspace_definition)
-    client.use(measurements)
-    client.execute(table_definition)
+client.execute(keyspace_definition)
+client.use(measurements)
+client.execute(table_definition)
+```
 
 You can also `ALTER` keyspaces and tables.
 
@@ -91,8 +105,10 @@ You can also `ALTER` keyspaces and tables.
 
 The driver supports prepared statements. Use `#prepare` to create a statement object, and then call `#execute` on that object to run a statement. You must supply values for all bound parameters when you call `#execute`.
 
-    statement = client.prepare('SELECT date, description FROM events WHERE id = ?')
-    rows = statement.execute(1235)
+```ruby
+statement = client.prepare('SELECT date, description FROM events WHERE id = ?')
+rows = statement.execute(1235)
+```
 
 A prepared statement can be run many times, but the CQL parsing will only be done once. Use prepared statements for queries you run over and over again.
 
@@ -104,7 +120,9 @@ At this time prepared statements are local to a single connection. Even if you c
 
 The `#execute` method supports setting the desired consistency level for the statement:
 
-    client.execute('SELECT * FROM peers', :local_quorum)
+```ruby
+client.execute('SELECT * FROM peers', :local_quorum)
+```
 
 The possible values are: 
 
