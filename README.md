@@ -146,11 +146,9 @@ Read more about CQL3 in the [CQL3 syntax documentation](https://github.com/apach
 
 # Known bugs & limitations
 
-* If any connection raises an error the whole IO reactor shuts down.
+* There are still edge cases around connection errors, and there is no automatic reconnection.
 * JRuby 1.6.8 is not supported, although it should be. The only known issue is that connection failures aren't handled gracefully.
 * No automatic peer discovery.
-* You can't specify consistency level when executing prepared statements.
-* Authentication is not supported.
 * Compression is not supported.
 * Large results are buffered in memory until the whole response has been loaded, the protocol makes it possible to start to deliver rows to the client code as soon as the metadata is loaded, but this is not supported yet.
 * There is no cluster introspection utilities (like the `DESCRIBE` commands in `cqlsh`).
