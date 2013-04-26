@@ -53,7 +53,6 @@ client.execute("INSERT INTO events (id, date, description) VALUES (23462, '2013-
 client.execute("UPDATE events SET description = 'Oh, my' WHERE id = 13126")
 ```
 
-
 If the CQL statement passed to `#execute` returns a result (e.g. it's a `SELECT` statement) the call returns an enumerable of rows:
 
 ```ruby
@@ -85,7 +84,7 @@ keyspace_definition = <<-KSDEF
   }
 KSDEF
 
-table_definition = <<- TABLEDEF
+table_definition = <<-TABLEDEF
   CREATE TABLE events (
     id INT,
     date DATE,
