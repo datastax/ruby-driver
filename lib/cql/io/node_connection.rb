@@ -108,10 +108,13 @@ module Cql
       end
 
       def handle_write
-        succeed_connection! if connecting?
-        if !@write_buffer.empty?
-          bytes_written = @io.write_nonblock(@write_buffer)
-          @write_buffer.slice!(0, bytes_written)
+        if connecting?
+          handle_connecting
+        else
+          if !@write_buffer.empty?
+            bytes_written = @io.write_nonblock(@write_buffer)
+            @write_buffer.slice!(0, bytes_written)
+          end
         end
       rescue => e
         force_close(e)
