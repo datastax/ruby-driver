@@ -151,5 +151,9 @@ describe 'A CQL client' do
       client = Cql::Client.new(connection_options.merge(port: 9160))
       expect { client.connect }.to raise_error(Cql::IoError)
     end
+
+    it 'fails gracefully when connecting to something that does not run C*' do
+      expect { Cql::Client.connect(host: 'google.com') }.to raise_error(Cql::Io::ConnectionTimeoutError)
+    end
   end
 end
