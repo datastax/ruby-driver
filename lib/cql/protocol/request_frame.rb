@@ -10,9 +10,9 @@ module Cql
       end
 
       def write(io)
-        buffer = [1, 0, @stream_id, @body.opcode, 0].pack(Formats::HEADER_FORMAT)
-        buffer = @body.write(buffer)
-        buffer[4, 4] = [buffer.length - 8].pack(Formats::INT_FORMAT)
+        buffer = @body.write(ByteBuffer.new)
+        io << [1, 0, @stream_id, @body.opcode].pack(Formats::HEADER_FORMAT)
+        io << [buffer.length].pack(Formats::INT_FORMAT)
         io << buffer
       end
     end

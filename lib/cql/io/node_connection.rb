@@ -12,8 +12,8 @@ module Cql
         @connected_future = Future.new
         @io = nil
         @addrinfo = nil
-        @write_buffer = ''
-        @read_buffer = ''
+        @write_buffer = ByteBuffer.new
+        @read_buffer = ByteBuffer.new
         @current_frame = Protocol::ResponseFrame.new(@read_buffer)
         @response_tasks = [nil] * 128
         @event_listeners = Hash.new { |h, k| h[k] = [] }

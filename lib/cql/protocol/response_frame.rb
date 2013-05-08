@@ -87,7 +87,8 @@ module Cql
 
         def check_complete!
           if @buffer.length >= 8
-            @protocol_version, @flags, @stream_id, @opcode, @length = @buffer.slice!(0, 8).unpack(Formats::HEADER_FORMAT)
+            @protocol_version, @flags, @stream_id, @opcode = @buffer.slice!(0, 4).unpack(Formats::HEADER_FORMAT)
+            @length = @buffer.slice!(0, 4).unpack(Formats::INT_FORMAT).first
             raise UnsupportedFrameTypeError, 'Request frames are not supported' if @protocol_version > 0
             @protocol_version &= 0x7f
           end

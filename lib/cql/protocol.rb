@@ -26,7 +26,7 @@ module Cql
 
       BYTES_FORMAT = 'C*'.freeze
       TWO_INTS_FORMAT = 'NN'.freeze
-      HEADER_FORMAT = 'c4N'.freeze
+      HEADER_FORMAT = 'c4'.freeze
     end
 
     module Constants

@@ -16,15 +16,13 @@ module Cql
       def write_string(buffer, str)
         str = str.to_s
         buffer << [str.bytesize].pack(Formats::SHORT_FORMAT)
-        buffer << binary_cast(str)
-        buffer.force_encoding(::Encoding::BINARY)
+        buffer << str
         buffer
       end
 
       def write_long_string(buffer, str)
         buffer << [str.bytesize].pack(Formats::INT_FORMAT)
-        buffer << binary_cast(str)
-        buffer.force_encoding(::Encoding::BINARY)
+        buffer << str
         buffer
       end
 
@@ -43,22 +41,20 @@ module Cql
       def write_bytes(buffer, bytes)
         if bytes
           write_int(buffer, bytes.bytesize)
-          buffer << binary_cast(bytes)
+          buffer << bytes
         else
           write_int(buffer, -1)
         end
-        buffer.force_encoding(::Encoding::BINARY)
         buffer
       end
 
       def write_short_bytes(buffer, bytes)
         if bytes
           write_short(buffer, bytes.bytesize)
-          buffer << binary_cast(bytes)
+          buffer << bytes
         else
           write_short(buffer, -1)
         end
-        buffer.force_encoding(::Encoding::BINARY)
         buffer
       end
 
@@ -108,13 +104,6 @@ module Cql
 
       def write_float(buffer, n)
         buffer << [n].pack(Formats::FLOAT_FORMAT)
-      end
-
-      private
-
-      def binary_cast(str)
-        return str if str.ascii_only?
-        str.dup.force_encoding(::Encoding::BINARY)
       end
     end
   end

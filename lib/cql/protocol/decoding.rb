@@ -13,7 +13,7 @@ module Cql
 
       def read_varint!(buffer, length=buffer.length, signed=true)
         raise DecodingError, "Length #{length} specifed but only #{buffer.bytesize} bytes given" if buffer.bytesize < length
-        bytes = buffer.slice!(0, length)
+        bytes = buffer.slice!(0, length).to_s
         n = 0
         bytes.each_byte do |b|
           n = (n << 8) | b
@@ -62,7 +62,7 @@ module Cql
       def read_string!(buffer)
         length = read_short!(buffer)
         raise DecodingError, "String length is #{length}, but only #{buffer.bytesize} bytes given" if buffer.bytesize < length
-        string = buffer.slice!(0, length)
+        string = buffer.slice!(0, length).to_s
         string.force_encoding(::Encoding::UTF_8)
         string
       end
@@ -70,7 +70,7 @@ module Cql
       def read_long_string!(buffer)
         length = read_int!(buffer)
         raise DecodingError, "String length is #{length}, but only #{buffer.bytesize} bytes given" if buffer.bytesize < length
-        string = buffer.slice!(0, length)
+        string = buffer.slice!(0, length).to_s
         string.force_encoding(::Encoding::UTF_8)
         string
       end
@@ -91,8 +91,7 @@ module Cql
         size = read_int!(buffer)
         return nil if size & 0x80000000 == 0x80000000
         raise DecodingError, "Byte array length is #{size}, but only #{buffer.bytesize} bytes given" if buffer.bytesize < size
-        bytes = buffer.slice!(0, size)
-        bytes.force_encoding(::Encoding::BINARY)
+        bytes = buffer.slice!(0, size).to_s
         bytes
       end
 
@@ -100,8 +99,7 @@ module Cql
         size = read_short!(buffer)
         return nil if size & 0x8000 == 0x8000
         raise DecodingError, "Byte array length is #{size}, but only #{buffer.bytesize} bytes given" if buffer.bytesize < size
-        bytes = buffer.slice!(0, size)
-        bytes.force_encoding(::Encoding::BINARY)
+        bytes = buffer.slice!(0, size).to_s
         bytes
       end
 
@@ -117,7 +115,7 @@ module Cql
       def read_inet!(buffer)
         size = read_byte!(buffer)
         raise DecodingError, "Inet requires #{size} bytes, but only #{buffer.bytesize} bytes given" if buffer.bytesize < size
-        ip_addr = IPAddr.new_ntoh(buffer.slice!(0, size))
+        ip_addr = IPAddr.new_ntoh(buffer.slice!(0, size).to_s)
         port = read_int!(buffer)
         [ip_addr, port]
       end

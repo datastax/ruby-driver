@@ -143,7 +143,7 @@ module Cql
           io_reactor.add_connection(host, port).get
           io_reactor.queue_request(Cql::Protocol::StartupRequest.new)
           await { server.received_bytes.bytesize > 0 }
-          server.received_bytes[3, 1].should == "\x01"
+          server.received_bytes.to_s[3, 1].should == "\x01"
         end
 
         it 'can be called before the reactor is started' do

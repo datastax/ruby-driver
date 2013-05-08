@@ -52,6 +52,11 @@ module Cql
           bytes = RequestFrame.new(QueryRequest.new('USE system', :all)).write('')
           bytes.should == "\x01\x00\x00\x07\x00\x00\x00\x10\x00\x00\x00\x0aUSE system\x00\x05"
         end
+
+        it 'correctly encodes queries with multibyte characters' do
+          bytes = RequestFrame.new(QueryRequest.new("INSERT INTO users (user_id, first, last, age) VALUES ('test', 'ümlaut', 'test', 1)", :all)).write(ByteBuffer.new)
+          bytes.should eql_bytes("\x01\x00\x00\a\x00\x00\x00Y\x00\x00\x00SINSERT INTO users (user_id, first, last, age) VALUES ('test', '\xC3\xBCmlaut', 'test', 1)\x00\x05")
+        end
       end
 
       context 'with PREPARE requests' do

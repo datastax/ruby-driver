@@ -8,7 +8,7 @@ module Cql
     describe Decoding do
       describe '#read_byte!' do
         let :buffer do
-          "\xab"
+          ByteBuffer.new("\xab")
         end
 
         it 'decodes a raw byte' do

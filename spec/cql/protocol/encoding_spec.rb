@@ -7,7 +7,7 @@ module Cql
   module Protocol
     describe Encoding do
       let :buffer do
-        ''.force_encoding(::Encoding::BINARY)
+        ByteBuffer.new
       end
 
       describe '#write_int' do
@@ -18,7 +18,6 @@ module Cql
 
         it 'appends to the buffer' do
           buffer << "\xab"
-          buffer.force_encoding(::Encoding::BINARY)
           Encoding.write_int(buffer, 10)
           buffer.should eql_bytes("\xab\x00\x00\x00\x0a")
         end
@@ -37,7 +36,6 @@ module Cql
 
         it 'appends to the buffer' do
           buffer << "\xab"
-          buffer.force_encoding(::Encoding::BINARY)
           Encoding.write_short(buffer, 10)
           buffer.should eql_bytes("\xab\x00\x0a")
         end
@@ -54,15 +52,8 @@ module Cql
           buffer.should eql_bytes("\x00\x05hello")
         end
 
-        it 'returns a binary string' do
-          str = 'I love π'
-          Encoding.write_string(buffer, str)
-          buffer.encoding.should == ::Encoding::BINARY
-        end
-
         it 'encodes a string with multibyte characters' do
           buffer << "\xff"
-          buffer.force_encoding(::Encoding::BINARY)
           str = 'I love π'
           Encoding.write_string(buffer, str)
           buffer.should eql_bytes("\xff\x00\x09I love π")
@@ -80,7 +71,6 @@ module Cql
 
         it 'appends to the buffer' do
           buffer << "\xab"
-          buffer.force_encoding(::Encoding::BINARY)
           Encoding.write_string(buffer, 'foo')
           buffer.should eql_bytes("\xab\x00\x03foo")
         end
@@ -97,15 +87,8 @@ module Cql
           buffer[0, 45].should eql_bytes("\x00\x12\x4f\x80hello world hello world hello world hello")
         end
 
-        it 'returns a binary string' do
-          str = 'I love π'
-          Encoding.write_long_string(buffer, str)
-          buffer.encoding.should == ::Encoding::BINARY
-        end
-
         it 'encodes a string with multibyte characters' do
           buffer << "\xff"
-          buffer.force_encoding(::Encoding::BINARY)
           str = 'I love π'
           Encoding.write_long_string(buffer, str)
           buffer.should eql_bytes("\xff\x00\x00\x00\x09I love π")
@@ -118,7 +101,6 @@ module Cql
 
         it 'appends to the buffer' do
           buffer << "\xab"
-          buffer.force_encoding(::Encoding::BINARY)
           Encoding.write_long_string(buffer, 'foo')
           buffer.should eql_bytes("\xab\x00\x00\x00\x03foo")
         end
@@ -141,9 +123,8 @@ module Cql
 
         it 'appends to the buffer' do
           buffer << 'FOO'
-          buffer.force_encoding(::Encoding::BINARY)
           Encoding.write_uuid(buffer, uuid)
-          buffer.should start_with('FOO')
+          buffer[0, 3].should eql_bytes('FOO')
         end
 
         it 'returns the buffer' do
@@ -158,15 +139,8 @@ module Cql
           buffer.should eql_bytes("\x00\x04\x00\x03foo\x00\x03bar\x00\x05hello\x00\x05world")
         end
 
-        it 'returns a binary string' do
-          str = %w[I love π]
-          Encoding.write_string_list(buffer, str)
-          buffer.encoding.should == ::Encoding::BINARY
-        end
-
         it 'encodes a string with multibyte characters' do
           buffer << "\xff"
-          buffer.force_encoding(::Encoding::BINARY)
           str = %w[I love π]
           Encoding.write_string_list(buffer, str)
           buffer.should eql_bytes("\xff\x00\x03\x00\x01I\x00\x04love\x00\x02π")
@@ -174,12 +148,11 @@ module Cql
 
         it 'encodes an empty string list' do
           Encoding.write_string_list(buffer, [])
-          buffer.should == "\x00\x00"
+          buffer.should eql_bytes("\x00\x00")
         end
 
         it 'appends to the buffer' do
           buffer << "\xab"
-          buffer.force_encoding(::Encoding::BINARY)
           Encoding.write_string_list(buffer, %w[foo bar])
           buffer.should eql_bytes("\xab\x00\x02\x00\x03foo\x00\x03bar")
         end
@@ -196,15 +169,8 @@ module Cql
           buffer.should eql_bytes("\x00\x00\x07\xd0" << ("\xaa" * 2000))
         end
 
-        it 'returns a binary string' do
-          str = 'I love π'
-          Encoding.write_bytes(buffer, str)
-          buffer.encoding.should == ::Encoding::BINARY
-        end
-
         it 'encodes a string with multibyte characters' do
           buffer << "\xff"
-          buffer.force_encoding(::Encoding::BINARY)
           str = 'I love π'
           Encoding.write_bytes(buffer, str)
           buffer.should eql_bytes("\xff\x00\x00\x00\x09I love π")
@@ -217,7 +183,6 @@ module Cql
 
         it 'appends to the buffer' do
           buffer << "\xab"
-          buffer.force_encoding(::Encoding::BINARY)
           Encoding.write_bytes(buffer, "\xf0\x0b\xbar")
           buffer.should eql_bytes("\xab\x00\x00\x00\x04\xf0\x0b\xbar")
         end
@@ -234,15 +199,8 @@ module Cql
           buffer.should eql_bytes("\x00\x03\xaa\xbb\xcc")
         end
 
-        it 'returns a binary string' do
-          str = 'I love π'
-          Encoding.write_short_bytes(buffer, str)
-          buffer.encoding.should == ::Encoding::BINARY
-        end
-
         it 'encodes a string with multibyte characters' do
           buffer << "\xff"
-          buffer.force_encoding(::Encoding::BINARY)
           str = 'I love π'
           Encoding.write_short_bytes(buffer, str)
           buffer.should eql_bytes("\xff\x00\x09I love π")
@@ -255,7 +213,6 @@ module Cql
 
         it 'appends to the buffer' do
           buffer << "\xab"
-          buffer.force_encoding(::Encoding::BINARY)
           Encoding.write_short_bytes(buffer, "\xf0\x0b\xbar")
           buffer.should eql_bytes("\xab\x00\x04\xf0\x0b\xbar")
         end
@@ -279,7 +236,7 @@ module Cql
         }.each do |consistency, expected_encoding|
           it "encodes #{consistency}" do
             Encoding.write_consistency(buffer, consistency)
-            buffer.should == expected_encoding
+            buffer.should eql_bytes(expected_encoding)
           end
         end
 
@@ -289,7 +246,6 @@ module Cql
 
         it 'appends to the buffer' do
           buffer << "\xab"
-          buffer.force_encoding(::Encoding::BINARY)
           Encoding.write_consistency(buffer, :one)
           buffer.should eql_bytes("\xab\x00\x01")
         end
@@ -313,7 +269,6 @@ module Cql
 
         it 'appends to the buffer' do
           buffer << "\xab"
-          buffer.force_encoding(::Encoding::BINARY)
           Encoding.write_string_map(buffer, 'foo' => 'bar')
           buffer.should eql_bytes("\xab\x00\x01\x00\x03foo\x00\x03bar")
         end
@@ -332,7 +287,6 @@ module Cql
 
         it 'appends to the buffer' do
           buffer << "\x99"
-          buffer.force_encoding(::Encoding::BINARY)
           Encoding.write_long(buffer, 0x0123456789)
           buffer.should eql_bytes("\x99\x00\x00\x00\x01\x23\x45\x67\x89")
         end
@@ -356,7 +310,6 @@ module Cql
 
         it 'appends to the buffer' do
           buffer << "\x99"
-          buffer.force_encoding(::Encoding::BINARY)
           Encoding.write_varint(buffer, -234234234234)
           buffer.should eql_bytes("\x99\xC9v\x8D:\x86")
         end
@@ -375,7 +328,6 @@ module Cql
 
         it 'appends to the buffer' do
           buffer << "\x99"
-          buffer.force_encoding(::Encoding::BINARY)
           Encoding.write_decimal(buffer, BigDecimal.new('1042342234234.123423435647768234'))
           buffer[0].should eql_bytes("\x99")
         end
@@ -394,9 +346,8 @@ module Cql
 
         it 'appends to the buffer' do
           buffer << 'BEFORE'
-          buffer.force_encoding(::Encoding::BINARY)
           Encoding.write_double(buffer, 10000.123123123)
-          buffer.should start_with('BEFORE')
+          buffer[0, 6].should eql_bytes('BEFORE')
         end
 
         it 'returns the buffer' do
@@ -414,7 +365,7 @@ module Cql
         it 'appends to the buffer' do
           buffer << 'BEFORE'
           Encoding.write_float(buffer, 12.13)
-          buffer.should start_with('BEFORE')
+          buffer[0, 6].should eql_bytes('BEFORE')
         end
 
         it 'returns the buffer' do
