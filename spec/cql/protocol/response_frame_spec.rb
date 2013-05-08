@@ -123,7 +123,7 @@ module Cql
 
       context 'when fed an ERROR frame with details' do
         it 'has more details for a unavailable error' do
-          frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00\x1c\x00\x00\x10\x00\x00\x0cUnavailable!\x00\x05\x00\x00\x00\x03\x00\x00\x00\x02")
+          frame = described_class.new(ByteBuffer.new("\x81\x00\x00\x00\x00\x00\x00\x1c\x00\x00\x10\x00\x00\x0cUnavailable!\x00\x05\x00\x00\x00\x03\x00\x00\x00\x02"))
           frame.body.details.should == {
             :cl => :all,
             :required => 3,
@@ -132,7 +132,7 @@ module Cql
         end
 
         it 'has more details for a write_timeout error' do
-          frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00K\x00\x00\x11\x00\x000Operation timed out - received only 0 responses.\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00\tBATCH_LOG")
+          frame = described_class.new(ByteBuffer.new("\x81\x00\x00\x00\x00\x00\x00K\x00\x00\x11\x00\x000Operation timed out - received only 0 responses.\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00\tBATCH_LOG"))
           frame.body.details.should == {
             :cl => :one,
             :received => 0,
@@ -142,14 +142,14 @@ module Cql
         end
 
         it 'has more details for a read_timeout error' do
-          frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00\x25\x00\x00\x12\x00\x00\x14Operation timed out.\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x01")
+          frame = described_class.new(ByteBuffer.new("\x81\x00\x00\x00\x00\x00\x00\x25\x00\x00\x12\x00\x00\x14Operation timed out.\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x01"))
           frame.body.details.should == {
             :cl => :one,
             :received => 0,
             :blockfor => 1,
             :data_present => true
           }
-          frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00\x25\x00\x00\x12\x00\x00\x14Operation timed out.\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00")
+          frame = described_class.new(ByteBuffer.new("\x81\x00\x00\x00\x00\x00\x00\x25\x00\x00\x12\x00\x00\x14Operation timed out.\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00"))
           frame.body.details.should == {
             :cl => :one,
             :received => 0,
@@ -159,7 +159,7 @@ module Cql
         end
 
         it 'has more details for an already_exists error with a keyspace' do
-          frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00\x1e\x00\x00\x24\x00\x00\x10Keyspace exists!\x00\x05stuff\x00\x00")
+          frame = described_class.new(ByteBuffer.new("\x81\x00\x00\x00\x00\x00\x00\x1e\x00\x00\x24\x00\x00\x10Keyspace exists!\x00\x05stuff\x00\x00"))
           frame.body.details.should == {
             :ks => 'stuff',
             :table => '',
@@ -167,7 +167,7 @@ module Cql
         end
 
         it 'has more details for an already_exists error with a keyspace and table' do
-          frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00\x24\x00\x00\x24\x00\x00\x10Keyspace exists!\x00\x05stuff\x00\x06things")
+          frame = described_class.new(ByteBuffer.new("\x81\x00\x00\x00\x00\x00\x00\x24\x00\x00\x24\x00\x00\x10Keyspace exists!\x00\x05stuff\x00\x06things"))
           frame.body.details.should == {
             :ks => 'stuff',
             :table => 'things',
@@ -175,14 +175,14 @@ module Cql
         end
 
         it 'has more details for an unprepared error' do
-          frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00\x33\x00\x00\x25\x00\x00\x1bUnknown prepared statement!\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/")
+          frame = described_class.new(ByteBuffer.new("\x81\x00\x00\x00\x00\x00\x00\x33\x00\x00\x25\x00\x00\x1bUnknown prepared statement!\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/"))
           frame.body.details.should == {
             :id => "\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/"
           }
         end
 
         it 'has a pretty #to_s representation' do
-          frame = described_class.new("\x81\x00\x00\x00\x00\x00\x00\x33\x00\x00\x25\x00\x00\x1bUnknown prepared statement!\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/")
+          frame = described_class.new(ByteBuffer.new("\x81\x00\x00\x00\x00\x00\x00\x33\x00\x00\x25\x00\x00\x1bUnknown prepared statement!\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/"))
           frame.body.to_s.should match(/^ERROR 9472 "Unknown prepared statement!" \{:id=>".+?"\}$/)
         end
       end
@@ -541,7 +541,7 @@ module Cql
           end
 
           it 'decodes COUNTER as a number' do
-            frame = described_class.new("\x81\x00\x00\b\x00\x00\x00N\x00\x00\x00\x02\x00\x00\x00\x01\x00\x00\x00\x03\x00\x04test\x00\x04cnts\x00\x02id\x00\r\x00\x02c1\x00\x05\x00\x02c2\x00\x05\x00\x00\x00\x01\x00\x00\x00\x04theo\x00\x00\x00\b\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\b\x00\x00\x00\x00\x00\x00\x00\x01")
+            frame = described_class.new(ByteBuffer.new("\x81\x00\x00\b\x00\x00\x00N\x00\x00\x00\x02\x00\x00\x00\x01\x00\x00\x00\x03\x00\x04test\x00\x04cnts\x00\x02id\x00\r\x00\x02c1\x00\x05\x00\x02c2\x00\x05\x00\x00\x00\x01\x00\x00\x00\x04theo\x00\x00\x00\b\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\b\x00\x00\x00\x00\x00\x00\x00\x01"))
             frame.body.rows.first['c1'].should == 3
           end
 
@@ -652,8 +652,8 @@ module Cql
 
       context 'when fed an unsupported event type' do
         it 'raises an exception' do
-          frame = "\x81\x00\xFF\f\x00\x00\x00\x06\x00\x04PING"
-          expect { described_class.new(frame) }.to raise_error(UnsupportedEventTypeError, /PING/)
+          bytes = ByteBuffer.new("\x81\x00\xFF\f\x00\x00\x00\x06\x00\x04PING")
+          expect { described_class.new(bytes) }.to raise_error(UnsupportedEventTypeError, /PING/)
         end
       end
 
@@ -665,20 +665,20 @@ module Cql
 
       context 'when fed more bytes than needed' do
         it 'it consumes its bytes, leaving the rest' do
-          buffer = "\x81\x00\x00\x06\x00\x00\x00\x27\x00\x02\x00\x0bCQL_VERSION\x00\x01\x00\x053.0.0\x00\x0bCOMPRESSION\x00\x00"
+          buffer = ByteBuffer.new("\x81\x00\x00\x06\x00\x00\x00\x27\x00\x02\x00\x0bCQL_VERSION\x00\x01\x00\x053.0.0\x00\x0bCOMPRESSION\x00\x00")
           buffer << "\x81\x00\x00\x00"
           described_class.new(buffer)
-          buffer.should == "\x81\x00\x00\x00"
+          buffer.should eql_bytes("\x81\x00\x00\x00")
         end
       end
 
       context 'when fed a frame that is longer than the specification specifies' do
         it 'it consumes the body length, leaving the rest' do
-          buffer = "\x81\x00\x00\x06\x00\x00\x00\x2a"
+          buffer = ByteBuffer.new("\x81\x00\x00\x06\x00\x00\x00\x2a")
           buffer << "\x00\x02\x00\x0bCQL_VERSION\x00\x01\x00\x053.0.0\x00\x0bCOMPRESSION\x00\x00"
           buffer << "\xab\xcd\xef\x99"
           described_class.new(buffer)
-          buffer.should == "\x99"
+          buffer.should eql_bytes("\x99")
         end
       end
 

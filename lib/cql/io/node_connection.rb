@@ -112,7 +112,7 @@ module Cql
         else
           if !@write_buffer.empty?
             bytes_written = @io.write_nonblock(@write_buffer)
-            @write_buffer.slice!(0, bytes_written)
+            @write_buffer.discard(bytes_written)
           end
         end
       rescue => e

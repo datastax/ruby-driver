@@ -8,7 +8,7 @@ require 'set'
 module Cql
   module Protocol
     class ResponseFrame
-      def initialize(buffer='')
+      def initialize(buffer=ByteBuffer.new)
         @headers = FrameHeaders.new(buffer)
         check_complete!
       end
@@ -87,8 +87,10 @@ module Cql
 
         def check_complete!
           if @buffer.length >= 8
-            @protocol_version, @flags, @stream_id, @opcode = @buffer.slice!(0, 4).unpack(Formats::HEADER_FORMAT)
-            @length = @buffer.slice!(0, 4).unpack(Formats::INT_FORMAT).first
+            @protocol_version, @flags, @stream_id, @opcode = @buffer.unpack(Formats::HEADER_FORMAT)
+            @buffer.discard(4)
+            @length = @buffer.unpack(Formats::INT_FORMAT).first
+            @buffer.discard(4)
             raise UnsupportedFrameTypeError, 'Request frames are not supported' if @protocol_version > 0
             @protocol_version &= 0x7f
           end
@@ -121,7 +123,7 @@ module Cql
             extra_length = @buffer.length - @length
             @response = @type.decode!(@buffer)
             if @buffer.length > extra_length
-              @buffer.slice!(0, @buffer.length - extra_length)
+              @buffer.discard(@buffer.length - extra_length)
             end
           end
         end
@@ -187,7 +189,7 @@ module Cql
           details[:ks] = read_string!(buffer)
           details[:table] = read_string!(buffer)
         when 0x2500
-          details[:id] = read_short_bytes!(buffer)
+          details[:id] = read_short_bytes!(buffer).to_s
         end
         new(code, message, details)
       end
@@ -365,13 +367,13 @@ module Cql
         return nil unless bytes
         case type
         when :ascii
-          bytes.force_encoding(::Encoding::ASCII)
+          bytes.to_s.force_encoding(::Encoding::ASCII)
         when :bigint
           read_long!(bytes)
         when :blob
-          bytes
+          bytes.to_s
         when :boolean
-          bytes == Constants::TRUE_BYTE
+          bytes.read_byte == 1
         when :counter
           read_long!(bytes)
         when :decimal
@@ -386,7 +388,7 @@ module Cql
           timestamp = read_long!(bytes)
           Time.at(timestamp/1000.0)
         when :varchar, :text
-          bytes.force_encoding(::Encoding::UTF_8)
+          bytes.to_s.force_encoding(::Encoding::UTF_8)
         when :varint
           read_varint!(bytes)
         when :timeuuid, :uuid
@@ -428,6 +430,7 @@ module Cql
         rows_count.times do |row_index|
           row = {}
           column_specs.each do |column_spec|
+            # TODO: pass the buffer into #convert_type
             column_value = read_bytes!(buffer)
             row[column_spec[2]] = convert_type(column_value, column_spec[3])
           end
@@ -461,7 +464,7 @@ module Cql
       end
 
       def self.decode!(buffer)
-        id = read_short_bytes!(buffer)
+        id = read_short_bytes!(buffer).to_s
         metadata = RowsResultResponse.read_metadata!(buffer)
         new(id, metadata)
       end

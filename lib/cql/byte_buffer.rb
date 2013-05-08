@@ -26,6 +26,20 @@ module Cql
     end
     alias_method :<<, :append
 
+    def discard(n)
+      slice!(0, n)
+    end
+
+    def read_byte
+      b = @bytes.getbyte(0)
+      discard(1)
+      b
+    end
+
+    def read(n)
+      slice!(0, n).to_s
+    end
+
     def slice!(start, length)
       raise RangeError, 'ByteBuffer#slice! can only work on the start of the buffer' unless start == 0
       slice = @bytes.slice!(start, length)
@@ -45,6 +59,10 @@ module Cql
 
     def hash
       @bytes.hash
+    end
+
+    def dup
+      self.class.new(@bytes.dup)
     end
 
     def to_str

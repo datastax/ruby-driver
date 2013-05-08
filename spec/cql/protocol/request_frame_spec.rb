@@ -111,11 +111,11 @@ module Cql
         specs.each do |type, value, expected_bytes|
           it "encodes #{type} values" do
             metadata = [['ks', 'tbl', 'id_column', type]]
-            bytes = RequestFrame.new(ExecuteRequest.new(id, metadata, [value], :one)).write('')
-            bytes.slice!(0, 8 + 2 + 16 + 2)
-            length = bytes.slice!(0, 4).unpack('N').first
-            result_bytes = bytes[0, length]
-            result_bytes.should == expected_bytes
+            buffer = RequestFrame.new(ExecuteRequest.new(id, metadata, [value], :one)).write(ByteBuffer.new)
+            buffer.discard(8 + 2 + 16 + 2)
+            length = buffer.unpack('N').first
+            result_bytes = buffer[4, length]
+            result_bytes.should eql_bytes(expected_bytes)
           end
         end
 
