@@ -4,16 +4,17 @@ module Cql
   class ByteBuffer
     def initialize(initial_bytes='')
       @bytes = initial_bytes.force_encoding(::Encoding::BINARY)
+      @offset = 0
     end
 
     def length
-      @bytes.bytesize
+      @bytes.bytesize - @offset
     end
     alias_method :size, :length
     alias_method :bytesize, :length
 
     def empty?
-      @bytes.empty?
+      length == 0
     end
 
     def append(bytes)
@@ -27,33 +28,28 @@ module Cql
     alias_method :<<, :append
 
     def discard(n)
-      slice!(0, n)
+      @offset += n
     end
 
     def read_byte
-      b = @bytes.getbyte(0)
+      b = @bytes.getbyte(@offset)
       discard(1)
       b
     end
 
     def read(n)
-      slice!(0, n).to_s
+      s = @bytes[@offset, n]
+      discard(n)
+      s
     end
 
-    def slice!(start, length)
-      raise RangeError, 'ByteBuffer#slice! can only work on the start of the buffer' unless start == 0
-      slice = @bytes.slice!(start, length)
+    def [](offset, length=1)
+      slice = @bytes[@offset + offset, length]
       self.class.new(slice)
     end
-
-    def slice(offset, length=1)
-      slice = @bytes[offset, length]
-      self.class.new(slice)
-    end
-    alias_method :[], :slice
 
     def eql?(other)
-      other.bytes.eql?(self.bytes)
+      other.to_str.eql?(self.to_str)
     end
     alias_method :==, :eql?
 
@@ -66,26 +62,16 @@ module Cql
     end
 
     def to_str
-      @bytes
+      @bytes[@offset, length]
     end
     alias_method :to_s, :to_str
 
     def inspect
-      %(#<#{self.class.name}: #{@bytes.inspect}>)
+      %(#<#{self.class.name}: #{to_str.inspect}>)
     end
 
     def unpack(pattern)
-      @bytes.unpack(pattern)
-    end
-
-    def getbyte(n)
-      @bytes.getbyte(n)
-    end
-
-    protected
-
-    def bytes
-      @bytes
+      to_str.unpack(pattern)
     end
   end
 end

@@ -139,25 +139,7 @@ module Cql
       end
     end
 
-    describe '#slice!' do
-      it 'returns a byte buffer containing the specified range' do
-        buffer.append('hello world')
-        buffer.slice!(0, 5).should == described_class.new('hello')
-      end
-
-      it 'removes the bytes from the buffer' do
-        buffer.append('hello world')
-        buffer.slice!(0, 5)
-        buffer.should == described_class.new(' world')
-      end
-
-      it 'raises an error if the slice is not at the beginning of the buffer' do
-        buffer.append('hello world')
-        expect { buffer.slice!(1, 2) }.to raise_error(RangeError)
-      end
-    end
-
-    describe '#slice' do
+    describe '#[]' do
       context 'with one argument' do
         it 'returns the byte from the specified offset' do
           buffer.append('hello world')
@@ -198,14 +180,6 @@ module Cql
       end
     end
 
-    describe '#getbyte' do
-      it 'returns the byte value of the byte at the specified offset' do
-        buffer.append('hello world')
-        buffer.getbyte(0).should == 104
-        buffer.getbyte(9).should == 108
-      end
-    end
-
     describe '#discard' do
       it 'discards the specified number of bytes from the front of the buffer' do
         buffer.append('hello world')
@@ -218,6 +192,7 @@ module Cql
       it 'returns the first byte' do
         buffer.append('hello')
         buffer.read_byte.should == 104
+        buffer.read_byte.should == 101
       end
 
       it 'removes the first byte from the buffer' do
@@ -235,8 +210,14 @@ module Cql
 
       it 'removes the bytes from the buffer' do
         buffer.append('hello')
-        buffer.read(4)
-        buffer.should == ByteBuffer.new('o')
+        buffer.read(3)
+        buffer.should == ByteBuffer.new('lo')
+        buffer.read(2).should == 'lo'
+      end
+
+      it 'returns as many bytes as are available when the specified number of bytes is longer than the buffer' do
+        buffer.append('hello')
+        buffer.read(23423543).should == 'hello'
       end
 
       it 'returns a string with binary encoding' do

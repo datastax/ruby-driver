@@ -58,7 +58,7 @@ module Cql
         end
 
         it 'decodes a decimal to a BigDecimal' do
-          Decoding.read_decimal!(buffer, buffer.length).should == BigDecimal.new('1042342234234.123423435647768234')
+          Decoding.read_decimal!(buffer).should == BigDecimal.new('1042342234234.123423435647768234')
         end
 
         it 'consumes the bytes' do
@@ -266,7 +266,7 @@ module Cql
         end
 
         it 'raises an error when there are not enough bytes in the buffer' do
-          expect { Decoding.read_string_list!(buffer.slice(0, 13)) }.to raise_error(DecodingError)
+          expect { Decoding.read_string_list!(buffer[0, 13]) }.to raise_error(DecodingError)
         end
       end
 
