@@ -43,6 +43,7 @@ GEM
     net-http-persistent (2.8)
     net-http-pipeline (1.0.1)
     netrc (0.7.7)
+    perftools.rb (2.0.0)
     pry (0.9.10)
       coderay (~> 1.0.5)
       method_source (~> 0.8)
@@ -89,6 +90,7 @@ PLATFORMS
 
 DEPENDENCIES
   cql-rb!
+  perftools.rb
   pry
   rake
   redcarpet
