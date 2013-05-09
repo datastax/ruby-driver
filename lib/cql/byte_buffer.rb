@@ -22,7 +22,9 @@ module Cql
       unless bytes.ascii_only?
         bytes = bytes.dup.force_encoding(::Encoding::BINARY)
       end
+      retag = @bytes.empty?
       @bytes << bytes
+      @bytes.force_encoding(::Encoding::BINARY) if retag
       self
     end
     alias_method :<<, :append

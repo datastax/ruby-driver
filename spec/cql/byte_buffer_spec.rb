@@ -223,6 +223,8 @@ module Cql
       it 'returns a string with binary encoding' do
         buffer.append('hello')
         buffer.read(4).encoding.should == ::Encoding::BINARY
+        buffer.append('∆')
+        buffer.read(2).encoding.should == ::Encoding::BINARY
       end
     end
 
