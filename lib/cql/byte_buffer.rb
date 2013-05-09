@@ -47,16 +47,20 @@ module Cql
 
     def read_int
       raise RangeError, "4 bytes required to read an int, but only #{length} available" if length < 4
-      i = to_s.unpack(INT_FORMAT).first
+      i0 = @bytes.getbyte(@offset + 0)
+      i1 = @bytes.getbyte(@offset + 1)
+      i2 = @bytes.getbyte(@offset + 2)
+      i3 = @bytes.getbyte(@offset + 3)
       discard(4)
-      i
+      (i0 << 24) | (i1 << 16) | (i2 << 8) | i3
     end
 
     def read_short
       raise RangeError, "2 bytes required to read a short, but only #{length} available" if length < 2
-      s = to_s.unpack(SHORT_FORMAT).first
+      i0 = @bytes.getbyte(@offset + 0)
+      i1 = @bytes.getbyte(@offset + 1)
       discard(2)
-      s
+      (i0 << 8) | i1
     end
 
     def read_byte(signed=false)
