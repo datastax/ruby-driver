@@ -71,22 +71,6 @@ module Cql
         @io && (!@write_buffer.empty? || connecting?)
       end
 
-      def perform_request(request, future)
-        stream_id = next_stream_id
-        Protocol::RequestFrame.new(request, stream_id).write(@write_buffer)
-        @response_tasks[stream_id] = future
-      rescue => e
-        case e
-        when CqlError
-          error = e
-        else
-          error = IoError.new(e.message)
-          error.set_backtrace(e.backtrace)
-        end
-        @response_tasks.delete(stream_id)
-        future.fail!(error)
-      end
-
       def handle_read
         new_bytes = @io.read_nonblock(2**16)
         @current_frame << new_bytes
@@ -104,6 +88,22 @@ module Cql
         end
       rescue => e
         force_close(e)
+      end
+
+      def perform_request(request, future)
+        stream_id = next_stream_id
+        Protocol::RequestFrame.new(request, stream_id).write(@write_buffer)
+        @response_tasks[stream_id] = future
+      rescue => e
+        case e
+        when CqlError
+          error = e
+        else
+          error = IoError.new(e.message)
+          error.set_backtrace(e.backtrace)
+        end
+        @response_tasks.delete(stream_id)
+        future.fail!(error)
       end
 
       def handle_write
