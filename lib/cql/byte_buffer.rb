@@ -18,6 +18,10 @@ module Cql
     end
 
     def append(bytes)
+      if @offset >= 2**20
+        @bytes.slice!(0, @offset)
+        @offset = 0
+      end
       bytes = bytes.to_s
       unless bytes.ascii_only?
         bytes = bytes.dup.force_encoding(::Encoding::BINARY)
