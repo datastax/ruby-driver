@@ -364,61 +364,75 @@ module Cql
         end
       end
 
-      def self.convert_type(bytes, type)
-        return nil unless bytes
+      def self.convert_type(buffer, type, size_bytes=4)
+        return nil if buffer.empty?
         case type
         when :ascii
-          bytes.to_s.force_encoding(::Encoding::ASCII)
+          bytes = size_bytes == 4 ? read_bytes!(buffer) : read_short_bytes!(buffer)
+          bytes ? bytes.to_s.force_encoding(::Encoding::ASCII) : nil
         when :bigint
-          read_long!(bytes)
+          buffer.discard(size_bytes)
+          read_long!(buffer)
         when :blob
-          bytes.to_s
+          bytes = size_bytes == 4 ? read_bytes!(buffer) : read_short_bytes!(buffer)
+          bytes ? bytes.to_s : nil
         when :boolean
-          bytes.read(1) == Constants::TRUE_BYTE
+          buffer.discard(size_bytes)
+          buffer.read(1) == Constants::TRUE_BYTE
         when :counter
-          read_long!(bytes)
+          buffer.discard(size_bytes)
+          read_long!(buffer)
         when :decimal
-          read_decimal!(bytes)
+          read_decimal!(buffer, buffer.read_int)
         when :double
-          read_double!(bytes)
+          buffer.discard(size_bytes)
+          read_double!(buffer)
         when :float
-          read_float!(bytes)
+          buffer.discard(size_bytes)
+          read_float!(buffer)
         when :int
-          read_int!(bytes)
+          buffer.discard(size_bytes)
+          read_int!(buffer)
         when :timestamp
-          timestamp = read_long!(bytes)
+          buffer.discard(size_bytes)
+          timestamp = read_long!(buffer)
           Time.at(timestamp/1000.0)
         when :varchar, :text
-          bytes.to_s.force_encoding(::Encoding::UTF_8)
+          bytes = size_bytes == 4 ? read_bytes!(buffer) : read_short_bytes!(buffer)
+          bytes ? bytes.to_s.force_encoding(::Encoding::UTF_8) : nil
         when :varint
-          read_varint!(bytes)
+          read_varint!(buffer, buffer.read_int)
         when :timeuuid, :uuid
-          read_uuid!(bytes)
+          buffer.discard(size_bytes)
+          read_uuid!(buffer)
         when :inet
-          IPAddr.new_ntoh(bytes.read(4))
+          # TODO: better check the size of this field to see if it's an IPv4 or IPv6
+          buffer.discard(size_bytes)
+          IPAddr.new_ntoh(buffer.read(4))
         when Array
+          buffer.discard(size_bytes)
           case type.first
           when :list
             list = []
-            size = read_short!(bytes)
+            size = read_short!(buffer)
             size.times do
-              list << convert_type(read_short_bytes!(bytes), type.last)
+              list << convert_type(buffer, type.last, 2)
             end
             list
           when :map
             map = {}
-            size = read_short!(bytes)
+            size = read_short!(buffer)
             size.times do
-              key = convert_type(read_short_bytes!(bytes), type[1])
-              value = convert_type(read_short_bytes!(bytes), type[2])
+              key = convert_type(buffer, type[1], 2)
+              value = convert_type(buffer, type[2], 2)
               map[key] = value
             end
             map
           when :set
             set = Set.new
-            size = read_short!(bytes)
+            size = read_short!(buffer)
             size.times do
-              set << convert_type(read_short_bytes!(bytes), type.last)
+              set << convert_type(buffer, type.last, 2)
             end
             set
           end
@@ -431,9 +445,7 @@ module Cql
         rows_count.times do |row_index|
           row = {}
           column_specs.each do |column_spec|
-            # TODO: pass the buffer into #convert_type
-            column_value = read_bytes!(buffer)
-            row[column_spec[2]] = convert_type(column_value, column_spec[3])
+            row[column_spec[2]] = convert_type(buffer, column_spec[3])
           end
           rows << row
         end
