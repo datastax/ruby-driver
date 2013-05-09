@@ -48,11 +48,19 @@ class FakeServer
   end
 
   def await_connects!(n=1)
-    sleep(0.01) until @connects >= n
+    started_at = Time.now
+    until @connects >= n
+      sleep(0.01)
+      raise 'Waited longer than 5s!' if (Time.now - started_at) > 5
+    end
   end
 
   def await_disconnects!(n=1)
-    sleep(0.01) until @disconnects >= n
+    started_at = Time.now
+    until @disconnects >= n
+      sleep(0.01)
+      raise 'Waited longer than 5s!' if (Time.now - started_at) > 5
+    end
   end
 
   def received_bytes
