@@ -87,10 +87,11 @@ module Cql
 
         def check_complete!
           if @buffer.length >= 8
-            @protocol_version, @flags, @stream_id, @opcode = @buffer.unpack(Formats::HEADER_FORMAT)
-            @buffer.discard(4)
-            @length = @buffer.unpack(Formats::INT_FORMAT).first
-            @buffer.discard(4)
+            @protocol_version = @buffer.read_byte(true)
+            @flags = @buffer.read_byte(true)
+            @stream_id = @buffer.read_byte(true)
+            @opcode = @buffer.read_byte(true)
+            @length = @buffer.read_int
             raise UnsupportedFrameTypeError, 'Request frames are not supported' if @protocol_version > 0
             @protocol_version &= 0x7f
           end
@@ -394,7 +395,7 @@ module Cql
         when :timeuuid, :uuid
           read_uuid!(bytes)
         when :inet
-          IPAddr.new_ntoh(bytes)
+          IPAddr.new_ntoh(bytes.read(4))
         when Array
           case type.first
           when :list

@@ -113,8 +113,7 @@ module Cql
             metadata = [['ks', 'tbl', 'id_column', type]]
             buffer = RequestFrame.new(ExecuteRequest.new(id, metadata, [value], :one)).write(ByteBuffer.new)
             buffer.discard(8 + 2 + 16 + 2)
-            length = buffer.unpack('N').first
-            buffer.discard(4)
+            length = buffer.read_int
             result_bytes = buffer.read(length)
             result_bytes.should eql_bytes(expected_bytes)
           end

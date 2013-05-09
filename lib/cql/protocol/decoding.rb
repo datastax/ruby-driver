@@ -6,12 +6,12 @@ module Cql
       extend self
 
       def read_byte!(buffer)
-        raise DecodingError, 'No byte available to decode' if buffer.empty?
-        buffer.read(1).getbyte(0)
+        buffer.read_byte
+      rescue RangeError => e
+        raise DecodingError, e.message, e.backtrace
       end
 
       def read_varint!(buffer, length=buffer.length, signed=true)
-        raise DecodingError, "Length #{length} specifed but only #{buffer.bytesize} bytes given" if buffer.bytesize < length
         bytes = buffer.read(length)
         n = 0
         bytes.each_byte do |b|
@@ -21,61 +21,72 @@ module Cql
           n -= 2**(bytes.length * 8)
         end
         n
+      rescue RangeError => e
+        raise DecodingError, e.message, e.backtrace
       end
 
       def read_decimal!(buffer, length=buffer.length)
-        raise DecodingError, "Length #{length} specifed but only #{buffer.bytesize} bytes given" if buffer.bytesize < length
         size = read_int!(buffer)
         number_string = read_varint!(buffer, length - 4).to_s
         fraction_string = number_string[0, number_string.length - size] << DECIMAL_POINT << number_string[number_string.length - size, number_string.length]
         BigDecimal.new(fraction_string)
+      rescue RangeError => e
+        raise DecodingError, e.message, e.backtrace
       end
 
       def read_long!(buffer)
-        raise DecodingError, "Need eight bytes to decode long, only #{buffer.bytesize} bytes given" if buffer.bytesize < 8
         top, bottom = buffer.read(8).unpack(Formats::TWO_INTS_FORMAT)
         (top << 32) | bottom
+      rescue RangeError => e
+        raise DecodingError, e.message, e.backtrace
       end
 
       def read_double!(buffer)
-        raise DecodingError, "Need eight bytes to decode double, only #{buffer.bytesize} bytes given" if buffer.bytesize < 8
         buffer.read(8).unpack(Formats::DOUBLE_FORMAT).first
+      rescue RangeError => e
+        raise DecodingError, "Not enough bytes available to decode a double: #{e.message}", e.backtrace
       end
 
       def read_float!(buffer)
-        raise DecodingError, "Need four bytes to decode float, only #{buffer.bytesize} bytes given" if buffer.bytesize < 4
         buffer.read(4).unpack(Formats::FLOAT_FORMAT).first
+      rescue RangeError => e
+        raise DecodingError, "Not enough bytes available to decode a float: #{e.message}", e.backtrace
       end
 
       def read_int!(buffer)
-        raise DecodingError, "Need four bytes to decode an int, only #{buffer.bytesize} bytes given" if buffer.bytesize < 4
-        buffer.read(4).unpack(Formats::INT_FORMAT).first
+        buffer.read_int
+      rescue RangeError => e
+        raise DecodingError, "Not enough bytes available to decode an int: #{e.message}", e.backtrace
       end
 
       def read_short!(buffer)
-        raise DecodingError, "Need two bytes to decode a short, only #{buffer.bytesize} bytes given" if buffer.bytesize < 2
-        buffer.read(2).unpack(Formats::SHORT_FORMAT).first
+        buffer.read_short
+      rescue RangeError => e
+        raise DecodingError, "Not enough bytes available to decode a short: #{e.message}", e.backtrace
       end
 
       def read_string!(buffer)
         length = read_short!(buffer)
-        raise DecodingError, "String length is #{length}, but only #{buffer.bytesize} bytes given" if buffer.bytesize < length
         string = buffer.read(length)
         string.force_encoding(::Encoding::UTF_8)
         string
+      rescue RangeError => e
+        raise DecodingError, "Not enough bytes available to decode a string: #{e.message}", e.backtrace
       end
 
       def read_long_string!(buffer)
         length = read_int!(buffer)
-        raise DecodingError, "String length is #{length}, but only #{buffer.bytesize} bytes given" if buffer.bytesize < length
         string = buffer.read(length)
         string.force_encoding(::Encoding::UTF_8)
         string
+      rescue RangeError => e
+        raise DecodingError, "Not enough bytes available to decode a long string: #{e.message}", e.backtrace
       end
 
       def read_uuid!(buffer)
-        raise DecodingError, "UUID requires 16 bytes, but only #{buffer.bytesize} bytes given" if buffer.bytesize < 16
         Uuid.new(read_varint!(buffer, 16, false))
+      rescue RangeError => e
+        raise DecodingError, "Not enough bytes available to decode a UUID: #{e.message}", e.backtrace
       end
 
       def read_string_list!(buffer)
@@ -88,15 +99,17 @@ module Cql
       def read_bytes!(buffer)
         size = read_int!(buffer)
         return nil if size & 0x80000000 == 0x80000000
-        raise DecodingError, "Byte array length is #{size}, but only #{buffer.bytesize} bytes given" if buffer.bytesize < size
         ByteBuffer.new(buffer.read(size))
+      rescue RangeError => e
+        raise DecodingError, "Not enough bytes available to decode a bytes: #{e.message}", e.backtrace
       end
 
       def read_short_bytes!(buffer)
         size = read_short!(buffer)
         return nil if size & 0x8000 == 0x8000
-        raise DecodingError, "Byte array length is #{size}, but only #{buffer.bytesize} bytes given" if buffer.bytesize < size
         ByteBuffer.new(buffer.read(size))
+      rescue RangeError => e
+        raise DecodingError, "Not enough bytes available to decode a short bytes: #{e.message}", e.backtrace
       end
 
       def read_option!(buffer)
@@ -110,10 +123,11 @@ module Cql
 
       def read_inet!(buffer)
         size = read_byte!(buffer)
-        raise DecodingError, "Inet requires #{size} bytes, but only #{buffer.bytesize} bytes given" if buffer.bytesize < size
         ip_addr = IPAddr.new_ntoh(buffer.read(size))
         port = read_int!(buffer)
         [ip_addr, port]
+      rescue RangeError => e
+        raise DecodingError, "Not enough bytes available to decode an INET: #{e.message}", e.backtrace
       end
 
       def read_consistency!(buffer)

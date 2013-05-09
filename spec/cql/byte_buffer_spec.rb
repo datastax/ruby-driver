@@ -168,12 +168,6 @@ module Cql
       end
     end
 
-    describe '#unpack' do
-      it 'runs #unpack on the bytes' do
-        buffer.append("\xca\xfe\xff").unpack('n').should == [0xcafe]
-      end
-    end
-
     describe '#discard' do
       it 'discards the specified number of bytes from the front of the buffer' do
         buffer.append('hello world')
@@ -200,9 +194,10 @@ module Cql
         buffer.read(2).should == 'lo'
       end
 
-      it 'returns as many bytes as are available when the specified number of bytes is longer than the buffer' do
+      it 'raises an error if there are not enough bytes' do
         buffer.append('hello')
-        buffer.read(23423543).should == 'hello'
+        expect { buffer.read(23423543) }.to raise_error(RangeError)
+        expect { buffer.discard(5).read(1) }.to raise_error(RangeError)
       end
 
       it 'returns a string with binary encoding' do
@@ -210,6 +205,66 @@ module Cql
         buffer.read(4).encoding.should == ::Encoding::BINARY
         buffer.append('∆')
         buffer.read(2).encoding.should == ::Encoding::BINARY
+      end
+    end
+
+    describe '#read_int' do
+      it 'returns the first four bytes interpreted as an int' do
+        buffer.append("\xca\xfe\xba\xbe\x01")
+        buffer.read_int.should == 0xcafebabe
+      end
+
+      it 'removes the bytes from the buffer' do
+        buffer.append("\xca\xfe\xba\xbe\x01")
+        buffer.read_int
+        buffer.should == ByteBuffer.new("\x01")
+      end
+
+      it 'raises an error if there are not enough bytes' do
+        buffer.append("\xca\xfe\xba")
+        expect { buffer.read_int }.to raise_error(RangeError)
+      end
+    end
+
+    describe '#read_short' do
+      it 'returns the first two bytes interpreted as a short' do
+        buffer.append("\xca\xfe\x01")
+        buffer.read_short.should == 0xcafe
+      end
+
+      it 'removes the bytes from the buffer' do
+        buffer.append("\xca\xfe\x01")
+        buffer.read_short
+        buffer.should == ByteBuffer.new("\x01")
+      end
+
+      it 'raises an error if there are not enough bytes' do
+        buffer.append("\xca")
+        expect { buffer.read_short }.to raise_error(RangeError)
+      end
+    end
+
+    describe '#read_byte' do
+      it 'returns the first bytes interpreted as an int' do
+        buffer.append("\x10\x01")
+        buffer.read_byte.should == 0x10
+        buffer.read_byte.should == 0x01
+      end
+
+      it 'removes the byte from the buffer' do
+        buffer.append("\x10\x01")
+        buffer.read_byte
+        buffer.should == ByteBuffer.new("\x01")
+      end
+
+      it 'raises an error if there are no bytes' do
+        expect { buffer.read_byte }.to raise_error(RangeError)
+      end
+
+      it 'can interpret the byte as signed' do
+        buffer.append("\x81\x02")
+        buffer.read_byte(true).should == -127
+        buffer.read_byte(true).should == 2
       end
     end
 

@@ -39,9 +39,32 @@ module Cql
     end
 
     def read(n)
+      raise RangeError, "#{n} bytes required but only #{length} available" if length < n
       s = @bytes[@offset, n]
       discard(n)
       s
+    end
+
+    def read_int
+      raise RangeError, "4 bytes required to read an int, but only #{length} available" if length < 4
+      i = to_s.unpack(INT_FORMAT).first
+      discard(4)
+      i
+    end
+
+    def read_short
+      raise RangeError, "2 bytes required to read a short, but only #{length} available" if length < 2
+      s = to_s.unpack(SHORT_FORMAT).first
+      discard(2)
+      s
+    end
+
+    def read_byte(signed=false)
+      raise RangeError, "No bytes available to read byte" if empty?
+      b = @bytes.getbyte(@offset)
+      b = (b & 0x7f) - (b & 0x80) if signed
+      discard(1)
+      b
     end
 
     def eql?(other)
@@ -66,8 +89,9 @@ module Cql
       %(#<#{self.class.name}: #{to_str.inspect}>)
     end
 
-    def unpack(pattern)
-      to_str.unpack(pattern)
-    end
+    private
+
+    INT_FORMAT = 'N'.freeze
+    SHORT_FORMAT = 'n'.freeze
   end
 end

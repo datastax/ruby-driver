@@ -21,7 +21,7 @@ module Cql
         end
 
         it 'raises an error when there is no byte available' do
-          expect { Decoding.read_byte!('') }.to raise_error(DecodingError)
+          expect { Decoding.read_byte!(ByteBuffer.new) }.to raise_error(DecodingError)
         end
       end
 
@@ -48,7 +48,8 @@ module Cql
         end
 
         it 'raises an error when there is not enough bytes available' do
-          expect { Decoding.read_varint!("\xC9v\x8D:", 7) }.to raise_error(DecodingError)
+          buffer = ByteBuffer.new("\xC9v\x8D:")
+          expect { Decoding.read_varint!(buffer, 7) }.to raise_error(DecodingError)
         end
       end
 
@@ -72,7 +73,8 @@ module Cql
         end
 
         it 'raises an error when there is not enough bytes available' do
-          expect { Decoding.read_decimal!(buffer.read(3), 7) }.to raise_error(DecodingError)
+          b = ByteBuffer.new(buffer.read(3))
+          expect { Decoding.read_decimal!(b, 7) }.to raise_error(DecodingError)
         end
       end
 
