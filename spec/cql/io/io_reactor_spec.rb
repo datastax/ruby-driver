@@ -183,21 +183,18 @@ module Cql
             request = Cql::Protocol::StartupRequest.new
             response = "\x81\x00\x00\x02\x00\x00\x00\x00"
 
-            io_reactor.start.on_complete do
-              io_reactor.add_connection(host, port).on_complete do |c1_id|
-                io_reactor.add_connection(host, port).on_complete do |c2_id|
-                  q1_future = io_reactor.queue_request(request, c2_id)
-                  q2_future = io_reactor.queue_request(request, c1_id)
+            io_reactor.start.get
+            c1_id = io_reactor.add_connection(host, port).get
+            c2_id = io_reactor.add_connection(host, port).get
+            q1_future = io_reactor.queue_request(request, c2_id)
+            q2_future = io_reactor.queue_request(request, c1_id)
 
-                  Future.combine(q1_future, q2_future).on_complete do |(_, q1_id), (_, q2_id)|
-                    future.complete!([c1_id, c2_id, q1_id, q2_id])
-                  end
-
-                  server.await_connects!(2)
-                  server.broadcast!(response.dup)
-                end
-              end
+            Future.combine(q1_future, q2_future).on_complete do |(_, q1_id), (_, q2_id)|
+              future.complete!([c1_id, c2_id, q1_id, q2_id])
             end
+
+            server.await_connects!(2)
+            server.broadcast!(response.dup)
 
             connection1_id, connection2_id, query1_id, query2_id = future.value
 
