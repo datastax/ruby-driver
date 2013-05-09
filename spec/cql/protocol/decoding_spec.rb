@@ -72,7 +72,7 @@ module Cql
         end
 
         it 'raises an error when there is not enough bytes available' do
-          expect { Decoding.read_decimal!(buffer[0, 3], 7) }.to raise_error(DecodingError)
+          expect { Decoding.read_decimal!(buffer.read(3), 7) }.to raise_error(DecodingError)
         end
       end
 
@@ -197,7 +197,8 @@ module Cql
         end
 
         it 'raises an error when there are not enough bytes in the buffer' do
-          expect { Decoding.read_string!(buffer[0, 5]) }.to raise_error(DecodingError)
+          b = ByteBuffer.new(buffer.read(5))
+          expect { Decoding.read_string!(b) }.to raise_error(DecodingError)
         end
       end
 
@@ -222,7 +223,8 @@ module Cql
         end
 
         it 'raises an error when there are not enough bytes in the buffer' do
-          expect { Decoding.read_long_string!(buffer[0, 246]) }.to raise_error(DecodingError)
+          b = ByteBuffer.new(buffer.read(246))
+          expect { Decoding.read_long_string!(b) }.to raise_error(DecodingError)
         end
       end
 
@@ -241,7 +243,8 @@ module Cql
         end
         
         it 'raises an error when there a not enough bytes in the buffer' do
-          expect { Decoding.read_uuid!(buffer[2, 5]) }.to raise_error(DecodingError)
+          b = ByteBuffer.new(buffer.discard(2).read(5))
+          expect { Decoding.read_uuid!(b) }.to raise_error(DecodingError)
         end
       end
 
@@ -266,7 +269,8 @@ module Cql
         end
 
         it 'raises an error when there are not enough bytes in the buffer' do
-          expect { Decoding.read_string_list!(buffer[0, 13]) }.to raise_error(DecodingError)
+          b = ByteBuffer.new(buffer.read(13))
+          expect { Decoding.read_string_list!(b) }.to raise_error(DecodingError)
         end
       end
 
@@ -296,7 +300,8 @@ module Cql
         end
 
         it 'raises an error when there are not enough bytes in the buffer' do
-          expect { Decoding.read_bytes!(buffer[0, 10]) }.to raise_error(DecodingError)
+          b = ByteBuffer.new(buffer.read(10))
+          expect { Decoding.read_bytes!(b) }.to raise_error(DecodingError)
         end
       end
 
@@ -326,7 +331,8 @@ module Cql
         end
 
         it 'raises an error when there are not enough bytes in the buffer' do
-          expect { Decoding.read_short_bytes!(buffer[0, 10]) }.to raise_error(DecodingError)
+          b = ByteBuffer.new(buffer.read(10))
+          expect { Decoding.read_short_bytes!(b) }.to raise_error(DecodingError)
         end
       end
 
@@ -458,7 +464,8 @@ module Cql
         end
 
         it 'raises an error when there are not enough bytes in the buffer' do
-          expect { Decoding.read_string_map!(buffer[0, 20]) }.to raise_error(DecodingError)
+          b = ByteBuffer.new(buffer.read(20))
+          expect { Decoding.read_string_map!(b) }.to raise_error(DecodingError)
         end
       end
 
@@ -483,7 +490,8 @@ module Cql
         end
 
         it 'raises an error when there are not enough bytes in the buffer' do
-          expect { Decoding.read_string_multimap!(buffer[0, 40]) }.to raise_error(DecodingError)
+          b = ByteBuffer.new(buffer.read(40))
+          expect { Decoding.read_string_multimap!(b) }.to raise_error(DecodingError)
         end
       end
     end

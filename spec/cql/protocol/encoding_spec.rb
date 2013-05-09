@@ -84,7 +84,7 @@ module Cql
       describe '#write_long_string' do
         it 'encodes a string' do
           Encoding.write_long_string(buffer, 'hello world ' * 100_000)
-          buffer[0, 45].should eql_bytes("\x00\x12\x4f\x80hello world hello world hello world hello")
+          buffer.read(45).should eql_bytes("\x00\x12\x4f\x80hello world hello world hello world hello")
         end
 
         it 'encodes a string with multibyte characters' do
@@ -124,7 +124,7 @@ module Cql
         it 'appends to the buffer' do
           buffer << 'FOO'
           Encoding.write_uuid(buffer, uuid)
-          buffer[0, 3].should eql_bytes('FOO')
+          buffer.read(3).should eql_bytes('FOO')
         end
 
         it 'returns the buffer' do
@@ -329,7 +329,7 @@ module Cql
         it 'appends to the buffer' do
           buffer << "\x99"
           Encoding.write_decimal(buffer, BigDecimal.new('1042342234234.123423435647768234'))
-          buffer[0].should eql_bytes("\x99")
+          buffer.read(1).should eql_bytes("\x99")
         end
 
         it 'returns the buffer' do
@@ -347,7 +347,7 @@ module Cql
         it 'appends to the buffer' do
           buffer << 'BEFORE'
           Encoding.write_double(buffer, 10000.123123123)
-          buffer[0, 6].should eql_bytes('BEFORE')
+          buffer.read(6).should eql_bytes('BEFORE')
         end
 
         it 'returns the buffer' do
@@ -365,7 +365,7 @@ module Cql
         it 'appends to the buffer' do
           buffer << 'BEFORE'
           Encoding.write_float(buffer, 12.13)
-          buffer[0, 6].should eql_bytes('BEFORE')
+          buffer.read(6).should eql_bytes('BEFORE')
         end
 
         it 'returns the buffer' do

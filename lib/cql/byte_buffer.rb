@@ -35,17 +35,13 @@ module Cql
 
     def discard(n)
       @offset += n
+      self
     end
 
     def read(n)
       s = @bytes[@offset, n]
       discard(n)
       s
-    end
-
-    def [](offset, length=1)
-      slice = @bytes[@offset + offset, length]
-      self.class.new(slice)
     end
 
     def eql?(other)

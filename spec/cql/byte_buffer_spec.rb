@@ -149,22 +149,6 @@ module Cql
       end
     end
 
-    describe '#[]' do
-      context 'with one argument' do
-        it 'returns the byte from the specified offset' do
-          buffer.append('hello world')
-          buffer[3].should == ByteBuffer.new('l')
-        end
-      end
-
-      context 'with two arguments' do
-        it 'returns the bytes from the specified offset and up to the length' do
-          buffer.append('hello world')
-          buffer[3, 7].should == ByteBuffer.new('lo worl')
-        end
-      end
-    end
-
     describe '#to_s' do
       it 'returns the bytes' do
         buffer.append('hello world').to_s.should == 'hello world'
@@ -196,10 +180,15 @@ module Cql
         buffer.discard(4)
         buffer.should == ByteBuffer.new('o world')
       end
+
+      it 'returns the byte buffer' do
+        buffer.append('hello world')
+        buffer.discard(4).should == ByteBuffer.new('o world')
+      end
     end
 
     describe '#read' do
-      it 'returns the specified number of bytes (as a string) from the front of the buffer' do
+      it 'returns the specified number of bytes, as a string' do
         buffer.append('hello')
         buffer.read(4).should == 'hell'
       end

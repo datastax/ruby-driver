@@ -114,7 +114,8 @@ module Cql
             buffer = RequestFrame.new(ExecuteRequest.new(id, metadata, [value], :one)).write(ByteBuffer.new)
             buffer.discard(8 + 2 + 16 + 2)
             length = buffer.unpack('N').first
-            result_bytes = buffer[4, length]
+            buffer.discard(4)
+            result_bytes = buffer.read(length)
             result_bytes.should eql_bytes(expected_bytes)
           end
         end

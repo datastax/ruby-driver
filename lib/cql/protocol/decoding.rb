@@ -89,18 +89,14 @@ module Cql
         size = read_int!(buffer)
         return nil if size & 0x80000000 == 0x80000000
         raise DecodingError, "Byte array length is #{size}, but only #{buffer.bytesize} bytes given" if buffer.bytesize < size
-        bytes = buffer[0, size]
-        buffer.discard(size)
-        bytes
+        ByteBuffer.new(buffer.read(size))
       end
 
       def read_short_bytes!(buffer)
         size = read_short!(buffer)
         return nil if size & 0x8000 == 0x8000
         raise DecodingError, "Byte array length is #{size}, but only #{buffer.bytesize} bytes given" if buffer.bytesize < size
-        bytes = buffer[0, size]
-        buffer.discard(size)
-        bytes
+        ByteBuffer.new(buffer.read(size))
       end
 
       def read_option!(buffer)
