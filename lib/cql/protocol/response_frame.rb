@@ -373,7 +373,7 @@ module Cql
         when :blob
           bytes.to_s
         when :boolean
-          bytes.read_byte == 1
+          bytes.read(1) == Constants::TRUE_BYTE
         when :counter
           read_long!(bytes)
         when :decimal

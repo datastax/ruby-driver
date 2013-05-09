@@ -7,7 +7,7 @@ module Cql
 
       def read_byte!(buffer)
         raise DecodingError, 'No byte available to decode' if buffer.empty?
-        buffer.read_byte
+        buffer.read(1).getbyte(0)
       end
 
       def read_varint!(buffer, length=buffer.length, signed=true)

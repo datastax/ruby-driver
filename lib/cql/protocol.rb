@@ -28,6 +28,11 @@ module Cql
       TWO_INTS_FORMAT = 'NN'.freeze
       HEADER_FORMAT = 'c4'.freeze
     end
+
+    module Constants
+      TRUE_BYTE = "\x01".freeze
+      FALSE_BYTE = "\x00".freeze
+    end
   end
 end
 

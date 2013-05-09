@@ -37,12 +37,6 @@ module Cql
       @offset += n
     end
 
-    def read_byte
-      b = @bytes.getbyte(@offset)
-      discard(1)
-      b
-    end
-
     def read(n)
       s = @bytes[@offset, n]
       discard(n)

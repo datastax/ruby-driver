@@ -198,20 +198,6 @@ module Cql
       end
     end
 
-    describe '#read_byte' do
-      it 'returns the first byte' do
-        buffer.append('hello')
-        buffer.read_byte.should == 104
-        buffer.read_byte.should == 101
-      end
-
-      it 'removes the first byte from the buffer' do
-        buffer.append('hello')
-        buffer.read_byte
-        buffer.should == ByteBuffer.new('ello')
-      end
-    end
-
     describe '#read' do
       it 'returns the specified number of bytes (as a string) from the front of the buffer' do
         buffer.append('hello')

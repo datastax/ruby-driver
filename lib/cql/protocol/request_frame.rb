@@ -202,9 +202,6 @@ module Cql
 
       private
 
-      TRUE_BYTE = "\x01".freeze
-      FALSE_BYTE = "\x00".freeze
-
       def write_value(io, value, type)
         if Array === type
           raise InvalidValueError, 'Value for collection must be enumerable' unless value.is_a?(Enumerable)
@@ -246,7 +243,7 @@ module Cql
             write_bytes(io, value.encode(::Encoding::BINARY))
           when :boolean
             write_int(io, 1)
-            io << (value ? TRUE_BYTE : FALSE_BYTE)
+            io << (value ? Constants::TRUE_BYTE : Constants::FALSE_BYTE)
           when :decimal
             raw = write_decimal('', value)
             write_int(io, raw.size)
