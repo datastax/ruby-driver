@@ -106,12 +106,12 @@ module Cql
     end
 
     def eql?(other)
-      self.bytes.eql?(other.bytes)
+      self.to_str.eql?(other.to_str)
     end
     alias_method :==, :eql?
 
     def hash
-      bytes.hash
+      to_str.hash
     end
 
     def dup
@@ -119,7 +119,7 @@ module Cql
     end
 
     def to_str
-      bytes
+      (@read_buffer + @write_buffer)[@offset, @length]
     end
     alias_method :to_s, :to_str
 
@@ -127,17 +127,7 @@ module Cql
       %(#<#{self.class.name}: #{to_str.inspect}>)
     end
 
-    protected
-
-    def bytes
-      (@read_buffer + @write_buffer)[@offset, @length]
-    end
-
     private
-
-    MAX_OFFSET = 2**20
-    INT_FORMAT = 'N'.freeze
-    SHORT_FORMAT = 'n'.freeze
 
     def swap_buffers
       @offset -= @read_buffer.bytesize
