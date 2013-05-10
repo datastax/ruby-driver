@@ -42,17 +42,10 @@ module Cql
       raise RangeError, "#{n} bytes required but only #{@length} available" if @length < n
       if @offset >= @read_buffer.bytesize
         swap_buffers
-        s = @read_buffer[@offset, n]
-        @offset += n
-        @length -= n
-        s
-      elsif @offset + n > @read_buffer.bytesize
-        s = @read_buffer[@offset, @read_buffer.bytesize - @offset]
-        n -= s.bytesize
-        swap_buffers
-        s << @read_buffer[@offset, n]
-        @offset += n
-        @length -= n
+      end
+      if @offset + n > @read_buffer.bytesize
+        s = read(@read_buffer.bytesize - @offset)
+        s << read(n - s.bytesize)
         s
       else
         s = @read_buffer[@offset, n]
@@ -64,6 +57,9 @@ module Cql
 
     def read_int
       raise RangeError, "4 bytes required to read an int, but only #{@length} available" if @length < 4
+      if @offset >= @read_buffer.bytesize
+        swap_buffers
+      end
       if @read_buffer.bytesize >= @offset + 4
         i0 = @read_buffer.getbyte(@offset + 0)
         i1 = @read_buffer.getbyte(@offset + 1)
@@ -82,6 +78,9 @@ module Cql
 
     def read_short
       raise RangeError, "2 bytes required to read a short, but only #{@length} available" if @length < 2
+      if @offset >= @read_buffer.bytesize
+        swap_buffers
+      end
       if @read_buffer.bytesize >= @offset + 2
         i0 = @read_buffer.getbyte(@offset + 0)
         i1 = @read_buffer.getbyte(@offset + 1)

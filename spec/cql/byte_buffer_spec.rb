@@ -281,13 +281,18 @@ module Cql
 
     context 'when reading and appending' do
       it 'handles heavy churn' do
-        # NOTE: this test is not great, it's here to trigger the buffer reset in #append
-        (2**6).times do
-          buffer.append('x' * 2**18)
-          buffer.read(2**17)
-          buffer.read(2**17)
+        1000.times do
+          buffer.append('x' * 6)
+          buffer.read_byte
+          buffer.append('y')
+          buffer.read_int
+          buffer.read_short
+          buffer.append('z' * 4)
+          buffer.read_byte
+          buffer.append('z')
+          buffer.read_int
+          buffer.should be_empty
         end
-        buffer.should be_empty
       end
     end
   end
