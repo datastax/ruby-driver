@@ -2,25 +2,26 @@
 
 module Cql
   class ByteBuffer
-    def initialize(initial_bytes='')
-      @bytes = initial_bytes.force_encoding(::Encoding::BINARY)
-      @offset = 0
-    end
-
-    def length
-      @bytes.bytesize - @offset
-    end
+    attr_reader :length
     alias_method :size, :length
     alias_method :bytesize, :length
 
+    def initialize(initial_bytes='')
+      @bytes = ''
+      @offset = 0
+      @length = 0
+      append(initial_bytes) unless initial_bytes.empty?
+    end
+
     def empty?
-      length == 0
+      @length == 0
     end
 
     def append(bytes)
       if @offset >= MAX_OFFSET
         @bytes = '' << to_s
         @offset = 0
+        @length = @bytes.bytesize
       end
       bytes = bytes.to_s
       unless bytes.ascii_only?
@@ -28,6 +29,7 @@ module Cql
       end
       retag = @bytes.empty?
       @bytes << bytes
+      @length += bytes.bytesize
       @bytes.force_encoding(::Encoding::BINARY) if retag
       self
     end
@@ -35,18 +37,19 @@ module Cql
 
     def discard(n)
       @offset += n
+      @length -= n
       self
     end
 
     def read(n)
-      raise RangeError, "#{n} bytes required but only #{length} available" if length < n
+      raise RangeError, "#{n} bytes required but only #{@length} available" if @length < n
       s = @bytes[@offset, n]
       discard(n)
       s
     end
 
     def read_int
-      raise RangeError, "4 bytes required to read an int, but only #{length} available" if length < 4
+      raise RangeError, "4 bytes required to read an int, but only #{@length} available" if @length < 4
       i0 = @bytes.getbyte(@offset + 0)
       i1 = @bytes.getbyte(@offset + 1)
       i2 = @bytes.getbyte(@offset + 2)
@@ -56,7 +59,7 @@ module Cql
     end
 
     def read_short
-      raise RangeError, "2 bytes required to read a short, but only #{length} available" if length < 2
+      raise RangeError, "2 bytes required to read a short, but only #{@length} available" if @length < 2
       i0 = @bytes.getbyte(@offset + 0)
       i1 = @bytes.getbyte(@offset + 1)
       discard(2)
@@ -72,7 +75,7 @@ module Cql
     end
 
     def eql?(other)
-      other.to_str.eql?(self.to_str)
+      self.bytes.eql?(other.bytes)
     end
     alias_method :==, :eql?
 
@@ -81,16 +84,22 @@ module Cql
     end
 
     def dup
-      self.class.new(@bytes.dup)
+      self.class.new(to_str)
     end
 
     def to_str
-      @bytes[@offset, length]
+      bytes.dup
     end
     alias_method :to_s, :to_str
 
     def inspect
       %(#<#{self.class.name}: #{to_str.inspect}>)
+    end
+
+    protected
+
+    def bytes
+      @bytes[@offset, @length]
     end
 
     private
