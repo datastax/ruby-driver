@@ -282,12 +282,12 @@ module Cql
         end
 
         it 'decodes a byte array' do
-          Decoding.read_bytes!(buffer).should == ByteBuffer.new("\x42" * 0x10000)
+          Decoding.read_bytes!(buffer).should eql_bytes("\x42" * 0x10000)
         end
 
         it 'decodes an empty byte array' do
           buffer = ByteBuffer.new("\x00\x00\x00\x00")
-          Decoding.read_bytes!(buffer).should == ByteBuffer.new
+          Decoding.read_bytes!(buffer).should be_empty
         end
 
         it 'decodes null' do
@@ -313,12 +313,12 @@ module Cql
         end
 
         it 'decodes a byte array' do
-          Decoding.read_short_bytes!(buffer).should == ByteBuffer.new("\x42" * 0x100)
+          Decoding.read_short_bytes!(buffer).should eql_bytes("\x42" * 0x100)
         end
 
         it 'decodes an empty byte array' do
           buffer = ByteBuffer.new("\x00\x00\x00\x00")
-          Decoding.read_short_bytes!(buffer).should == ByteBuffer.new
+          Decoding.read_short_bytes!(buffer).should be_empty
         end
 
         it 'decodes null' do

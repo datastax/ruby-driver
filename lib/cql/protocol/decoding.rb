@@ -99,7 +99,7 @@ module Cql
       def read_bytes!(buffer)
         size = read_int!(buffer)
         return nil if size & 0x80000000 == 0x80000000
-        ByteBuffer.new(buffer.read(size))
+        buffer.read(size)
       rescue RangeError => e
         raise DecodingError, "Not enough bytes available to decode a bytes: #{e.message}", e.backtrace
       end
@@ -107,7 +107,7 @@ module Cql
       def read_short_bytes!(buffer)
         size = read_short!(buffer)
         return nil if size & 0x8000 == 0x8000
-        ByteBuffer.new(buffer.read(size))
+        buffer.read(size)
       rescue RangeError => e
         raise DecodingError, "Not enough bytes available to decode a short bytes: #{e.message}", e.backtrace
       end

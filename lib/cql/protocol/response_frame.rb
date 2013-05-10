@@ -190,7 +190,7 @@ module Cql
           details[:ks] = read_string!(buffer)
           details[:table] = read_string!(buffer)
         when 0x2500
-          details[:id] = read_short_bytes!(buffer).to_s
+          details[:id] = read_short_bytes!(buffer)
         end
         new(code, message, details)
       end
@@ -369,13 +369,13 @@ module Cql
         case type
         when :ascii
           bytes = size_bytes == 4 ? read_bytes!(buffer) : read_short_bytes!(buffer)
-          bytes ? bytes.to_s.force_encoding(::Encoding::ASCII) : nil
+          bytes ? bytes.force_encoding(::Encoding::ASCII) : nil
         when :bigint
           buffer.discard(size_bytes)
           read_long!(buffer)
         when :blob
           bytes = size_bytes == 4 ? read_bytes!(buffer) : read_short_bytes!(buffer)
-          bytes ? bytes.to_s : nil
+          bytes ? bytes : nil
         when :boolean
           buffer.discard(size_bytes)
           buffer.read(1) == Constants::TRUE_BYTE
@@ -399,7 +399,7 @@ module Cql
           Time.at(timestamp/1000.0)
         when :varchar, :text
           bytes = size_bytes == 4 ? read_bytes!(buffer) : read_short_bytes!(buffer)
-          bytes ? bytes.to_s.force_encoding(::Encoding::UTF_8) : nil
+          bytes ? bytes.force_encoding(::Encoding::UTF_8) : nil
         when :varint
           read_varint!(buffer, buffer.read_int)
         when :timeuuid, :uuid
@@ -476,7 +476,7 @@ module Cql
       end
 
       def self.decode!(buffer)
-        id = read_short_bytes!(buffer).to_s
+        id = read_short_bytes!(buffer)
         metadata = RowsResultResponse.read_metadata!(buffer)
         new(id, metadata)
       end
