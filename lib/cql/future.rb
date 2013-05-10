@@ -1,5 +1,8 @@
 # encoding: utf-8
 
+require 'thread'
+
+
 module Cql
   FutureError = Class.new(CqlError)
 

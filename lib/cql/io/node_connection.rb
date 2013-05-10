@@ -1,7 +1,6 @@
 # encoding: utf-8
 
 require 'socket'
-require 'resolv-replace'
 
 
 module Cql
