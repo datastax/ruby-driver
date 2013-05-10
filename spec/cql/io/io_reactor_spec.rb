@@ -11,7 +11,7 @@ module Cql
       end
 
       let :port do
-        34535
+        2**15 + rand(2**15)
       end
 
       let :server do
