@@ -553,6 +553,22 @@ module Cql
           end
         end
 
+        context 'when decoding an INET column' do
+          let :rows do
+            frame = described_class.new
+            frame << "\x81\x00\x00\b\x00\x00\x00V\x00\x00\x00\x02\x00\x00\x00\x01\x00\x00\x00\x01\x00\ntest_types\x00\rlots_of_types\x00\vinet_column\x00\x10\x00\x00\x00\x02\x00\x00\x00\x04\x7F\x00\x00\x01\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01"
+            frame.body.rows.to_a
+          end
+
+          it 'decodes IPv4 values' do
+            rows[0]['inet_column'].should == IPAddr.new('127.0.0.1')
+          end
+
+          it 'decodes IPv6 values' do
+            rows[1]['inet_column'].should == IPAddr.new('::1')
+          end
+        end
+
         context 'when it\'s an unknown type' do
           it 'raises an error' do
             expect { frame << "\x81\x00\x00\b\x00\x00\x00\x05\x00\x00\x00\xffhello" }.to raise_error(UnsupportedResultKindError)

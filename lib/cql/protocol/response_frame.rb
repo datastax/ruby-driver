@@ -406,9 +406,8 @@ module Cql
           buffer.discard(size_bytes)
           read_uuid!(buffer)
         when :inet
-          # TODO: better check the size of this field to see if it's an IPv4 or IPv6
-          buffer.discard(size_bytes)
-          IPAddr.new_ntoh(buffer.read(4))
+          size = size_bytes == 4 ? buffer.read_int : buffer.read_short
+          IPAddr.new_ntoh(buffer.read(size))
         when Array
           buffer.discard(size_bytes)
           case type.first
