@@ -169,6 +169,12 @@ module Cql
         buffer.append('hello world')
         buffer.discard(4).should == ByteBuffer.new('o world')
       end
+
+      it 'raises an error if the number of bytes in the buffer is fewer than the number to discard' do
+        expect { buffer.discard(1) }.to raise_error(RangeError)
+        buffer.append('hello')
+        expect { buffer.discard(7) }.to raise_error(RangeError)
+      end
     end
 
     describe '#read' do

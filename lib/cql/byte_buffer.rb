@@ -36,6 +36,7 @@ module Cql
     alias_method :<<, :append
 
     def discard(n)
+      raise RangeError, "#{n} bytes to discard but only #{@length} available" if @length < n
       @offset += n
       @length -= n
       self
