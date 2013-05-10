@@ -120,7 +120,7 @@ module Cql
     end
 
     def to_str
-      bytes.dup
+      bytes
     end
     alias_method :to_s, :to_str
 
