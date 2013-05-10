@@ -81,16 +81,6 @@ module Cql
         buffer.append('hello ').append(ByteBuffer.new('world'))
         buffer.to_s.should == 'hello world'
       end
-
-      it 'handles reading and writing big chunks' do
-        # NOTE: this test is not great, it's here to trigger the buffer reset in #append
-        (2**6).times do
-          buffer.append('x' * 2**18)
-          buffer.read(2**17)
-          buffer.read(2**17)
-        end
-        buffer.should be_empty
-      end
     end
 
     describe '#eql?' do
@@ -280,6 +270,18 @@ module Cql
         copy = buffer.dup
         copy.append('goodbye')
         copy.should_not eql(buffer)
+      end
+    end
+
+    context 'when reading and appending' do
+      it 'handles heavy churn' do
+        # NOTE: this test is not great, it's here to trigger the buffer reset in #append
+        (2**6).times do
+          buffer.append('x' * 2**18)
+          buffer.read(2**17)
+          buffer.read(2**17)
+        end
+        buffer.should be_empty
       end
     end
   end

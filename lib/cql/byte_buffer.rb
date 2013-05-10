@@ -18,8 +18,8 @@ module Cql
     end
 
     def append(bytes)
-      if @offset >= 2**20
-        @bytes.slice!(0, @offset)
+      if @offset >= MAX_OFFSET
+        @bytes = '' << to_s
         @offset = 0
       end
       bytes = bytes.to_s
@@ -95,6 +95,7 @@ module Cql
 
     private
 
+    MAX_OFFSET = 2**20
     INT_FORMAT = 'N'.freeze
     SHORT_FORMAT = 'n'.freeze
   end
