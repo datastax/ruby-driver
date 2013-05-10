@@ -385,7 +385,7 @@ describe 'Protocol parsing and communication' do
     it 'does nothing the second time #start is called' do
       io_reactor = Cql::Io::IoReactor.new
       io_reactor.start.get
-      io_reactor.add_connection('localhost', 9042)
+      io_reactor.add_connection(ENV['CASSANDRA_HOST'], 9042)
       io_reactor.queue_request(Cql::Protocol::StartupRequest.new).get
       io_reactor.start.get
       response = io_reactor.queue_request(Cql::Protocol::QueryRequest.new('USE system', :any)).get

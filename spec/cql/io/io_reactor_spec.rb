@@ -7,7 +7,7 @@ module Cql
   module Io
     describe IoReactor do
       let :host do
-        Socket.gethostname
+        '127.0.0.1'
       end
 
       let :port do

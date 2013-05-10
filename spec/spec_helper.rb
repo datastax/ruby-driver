@@ -4,7 +4,7 @@ require 'bundler/setup'
 require 'simplecov'; SimpleCov.start
 require 'cql'
 
-ENV['CASSANDRA_HOST'] ||= 'localhost'
+ENV['CASSANDRA_HOST'] ||= '127.0.0.1'
 
 SimpleCov.start do
   add_group 'Source', 'lib'
