@@ -307,33 +307,38 @@ module Cql
 
       private
 
+      COLUMN_TYPES = [
+        nil,
+        :ascii,
+        :bigint,
+        :blob,
+        :boolean,
+        :counter,
+        :decimal,
+        :double,
+        :float,
+        :int,
+        :text,
+        :timestamp,
+        :uuid,
+        :varchar,
+        :varint,
+        :timeuuid,
+        :inet,
+      ].freeze
+
       def self.read_column_type!(buffer)
         id, type = read_option!(buffer) do |id, b|
-          case id
-          when 0x01 then :ascii
-          when 0x02 then :bigint
-          when 0x03 then :blob
-          when 0x04 then :boolean
-          when 0x05 then :counter
-          when 0x06 then :decimal
-          when 0x07 then :double
-          when 0x08 then :float
-          when 0x09 then :int
-          # when 0x0a then :text
-          when 0x0b then :timestamp
-          when 0x0c then :uuid
-          when 0x0d then :varchar
-          when 0x0e then :varint
-          when 0x0f then :timeuuid
-          when 0x10 then :inet
-          when 0x20
+          if id > 0 && id <= 0x10
+            COLUMN_TYPES[id]
+          elsif id == 0x20
             sub_type = read_column_type!(buffer)
             [:list, sub_type]
-          when 0x21
+          elsif id == 0x21
             key_type = read_column_type!(buffer)
             value_type = read_column_type!(buffer)
             [:map, key_type, value_type]
-          when 0x22
+          elsif id == 0x22
             sub_type = read_column_type!(buffer)
             [:set, sub_type]
           else
