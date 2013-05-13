@@ -14,7 +14,7 @@ class CqlExecutor
   end
 
   def run(io)
-    @client = Cql::Client.new(host: @options[:host], port: @options[:port]).start!
+    @client = Cql::Client.connect(host: @options[:host], port: @options[:port])
 
     # TODO register for events
 
@@ -33,7 +33,7 @@ class CqlExecutor
     rescue Interrupt
       exit
     ensure
-      @client.shutdown!
+      @client.close
     end
   end
 
