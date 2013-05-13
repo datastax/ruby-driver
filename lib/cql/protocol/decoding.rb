@@ -1,5 +1,8 @@
 # encoding: utf-8
 
+require 'bigdecimal'
+
+
 module Cql
   module Protocol
     module Decoding
