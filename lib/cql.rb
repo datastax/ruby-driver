@@ -5,6 +5,7 @@ module Cql
 end
 
 require 'cql/uuid'
+require 'cql/byte_buffer'
 require 'cql/future'
 require 'cql/io'
 require 'cql/protocol'

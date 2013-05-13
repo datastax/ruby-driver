@@ -12,8 +12,8 @@ module Cql
         @connected_future = Future.new
         @io = nil
         @addrinfo = nil
-        @write_buffer = ''
-        @read_buffer = ''
+        @write_buffer = ByteBuffer.new
+        @read_buffer = ByteBuffer.new
         @current_frame = Protocol::ResponseFrame.new(@read_buffer)
         @response_tasks = [nil] * 128
         @event_listeners = Hash.new { |h, k| h[k] = [] }
@@ -112,7 +112,7 @@ module Cql
         else
           if !@write_buffer.empty?
             bytes_written = @io.write_nonblock(@write_buffer)
-            @write_buffer.slice!(0, bytes_written)
+            @write_buffer.discard(bytes_written)
           end
         end
       rescue => e
