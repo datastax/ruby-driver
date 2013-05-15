@@ -540,9 +540,40 @@ module Cql
             frame.body.rows.first['set_column'].should == Set.new(["\xab\x43\x21", "\xaf\xd8\x7e\xcd"].map { |s| s.force_encoding(::Encoding::BINARY) })
           end
 
+          it 'decodes nulls' do
+            frame = described_class.new(ByteBuffer.new("\x81\x00\x00\b\x00\x00\x01\xB6\x00\x00\x00\x02\x00\x00\x00\x01\x00\x00\x00\x13\x00\x12cql_rb_client_spec\x00\rlots_of_types\x00\x02id\x00\t\x00\fascii_column\x00\x01\x00\rbigint_column\x00\x02\x00\vblob_column\x00\x03\x00\x0Eboolean_column\x00\x04\x00\x0Edecimal_column\x00\x06\x00\rdouble_column\x00\a\x00\ffloat_column\x00\b\x00\vinet_column\x00\x10\x00\nint_column\x00\t\x00\vlist_column\x00 \x00\x01\x00\nmap_column\x00!\x00\r\x00\x04\x00\nset_column\x00\"\x00\x03\x00\vtext_column\x00\r\x00\x10timestamp_column\x00\v\x00\x0Ftimeuuid_column\x00\x0F\x00\vuuid_column\x00\f\x00\x0Evarchar_column\x00\r\x00\rvarint_column\x00\x0E\x00\x00\x00\x01\x00\x00\x00\x04\x00\x00\x00\x03\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"))
+            row = frame.body.rows.first
+            row.should eql(
+              'id' => 3,
+              'ascii_column' => nil,
+              'bigint_column' => nil,
+              'blob_column' => nil,
+              'boolean_column' => nil,
+              'decimal_column' => nil,
+              'double_column' => nil,
+              'float_column' => nil,
+              'int_column' => nil,
+              'text_column' => nil,
+              'timestamp_column' => nil,
+              'uuid_column' => nil,
+              'varchar_column' => nil,
+              'varint_column' => nil,
+              'timeuuid_column' => nil,
+              'inet_column' => nil,
+              'list_column' => nil,
+              'map_column' => nil,
+              'set_column' => nil,
+            )
+          end
+
           it 'decodes COUNTER as a number' do
             frame = described_class.new(ByteBuffer.new("\x81\x00\x00\b\x00\x00\x00N\x00\x00\x00\x02\x00\x00\x00\x01\x00\x00\x00\x03\x00\x04test\x00\x04cnts\x00\x02id\x00\r\x00\x02c1\x00\x05\x00\x02c2\x00\x05\x00\x00\x00\x01\x00\x00\x00\x04theo\x00\x00\x00\b\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\b\x00\x00\x00\x00\x00\x00\x00\x01"))
             frame.body.rows.first['c1'].should == 3
+          end
+
+          it 'decodes a null COUNTER as nil' do
+            frame = described_class.new(ByteBuffer.new("\x81\x00\x00\b\x00\x00\x00V\x00\x00\x00\x02\x00\x00\x00\x01\x00\x00\x00\x02\x00\x12cql_rb_client_spec\x00\bcounters\x00\bcounter1\x00\x05\x00\bcounter2\x00\x05\x00\x00\x00\x01\x00\x00\x00\b\x00\x00\x00\x00\x00\x00\x00\x01\xFF\xFF\xFF\xFF"))
+            frame.body.rows.first['counter2'].should be_nil
           end
 
           it 'raises an error when encountering an unknown column type' do

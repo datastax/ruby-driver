@@ -17,7 +17,7 @@ module Cql
         return nil if buffer.empty?
         case type
         when Array
-          buffer.discard(size_bytes)
+          return nil unless read_size(buffer, size_bytes)
           case type.first
           when :list
             convert_list(buffer, @conversions[type[1]])
@@ -58,7 +58,7 @@ module Cql
       end
 
       def convert_bigint(buffer, size_bytes)
-        buffer.discard(size_bytes)
+        return nil unless read_size(buffer, size_bytes)
         read_long!(buffer)
       end
 
@@ -68,36 +68,33 @@ module Cql
       end
 
       def convert_boolean(buffer, size_bytes)
-        buffer.discard(size_bytes)
+        return nil unless read_size(buffer, size_bytes)
         buffer.read(1) == Constants::TRUE_BYTE
       end
 
-      def convert_counter(buffer, size_bytes)
-        buffer.discard(size_bytes)
-        read_long!(buffer)
-      end
-
       def convert_decimal(buffer, size_bytes)
-        read_decimal!(buffer, buffer.read_int)
+        size = read_size(buffer, size_bytes)
+        return nil unless size
+        read_decimal!(buffer, size)
       end
 
       def convert_double(buffer, size_bytes)
-        buffer.discard(size_bytes)
+        return nil unless read_size(buffer, size_bytes)
         read_double!(buffer)
       end
 
       def convert_float(buffer, size_bytes)
-        buffer.discard(size_bytes)
+        return nil unless read_size(buffer, size_bytes)
         read_float!(buffer)
       end
 
       def convert_int(buffer, size_bytes)
-        buffer.discard(size_bytes)
+        return nil unless read_size(buffer, size_bytes)
         read_int!(buffer)
       end
 
       def convert_timestamp(buffer, size_bytes)
-        buffer.discard(size_bytes)
+        return nil unless read_size(buffer, size_bytes)
         timestamp = read_long!(buffer)
         Time.at(timestamp/1000.0)
       end
@@ -108,16 +105,19 @@ module Cql
       end
 
       def convert_varint(buffer, size_bytes)
-        read_varint!(buffer, buffer.read_int)
+        size = read_size(buffer, size_bytes)
+        return nil unless size
+        read_varint!(buffer, size)
       end
 
       def convert_uuid(buffer, size_bytes)
-        buffer.discard(size_bytes)
+        return nil unless read_size(buffer, size_bytes)
         read_uuid!(buffer)
       end
 
       def convert_inet(buffer, size_bytes)
-        size = size_bytes == 4 ? buffer.read_int : buffer.read_short
+        size = read_size(buffer, size_bytes)
+        return nil unless size
         IPAddr.new_ntoh(buffer.read(size))
       end
 
@@ -148,6 +148,17 @@ module Cql
           set << value_converter.call(buffer, 2)
         end
         set
+      end
+
+      def read_size(buffer, size_bytes)
+        if size_bytes == 2
+          size = buffer.read_short
+          return nil if size & 0x8000 == 0x8000
+        else
+          size = buffer.read_int
+          return nil if size & 0x80000000 == 0x80000000
+        end
+        size
       end
     end
   end
