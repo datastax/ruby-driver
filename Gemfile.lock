@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cql-rb (1.0.0.rc0)
+    cql-rb (1.0.0.pre7)
 
 GEM
   remote: https://rubygems.org/
