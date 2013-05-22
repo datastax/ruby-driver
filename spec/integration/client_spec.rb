@@ -47,17 +47,25 @@ describe 'A CQL client' do
     end
   end
 
-  it 'prepares a statement' do
-    statement = client.prepare('SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?')
-    statement.should_not be_nil
-  end
+  context 'when using prepared statements' do
+    before do
+      client.use('system')
+    end
 
-  it 'executes a prepared statement' do
-    statement = client.prepare('SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?')
-    result = statement.execute('system')
-    result.should have(1).item
-    result = statement.execute('system', :one)
-    result.should have(1).item
+    let :statement do
+      client.prepare('SELECT * FROM schema_keyspaces WHERE keyspace_name = ?')
+    end
+
+    it 'prepares a statement' do
+      statement.should_not be_nil
+    end
+
+    it 'executes a prepared statement' do
+      result = statement.execute('system')
+      result.should have(1).item
+      result = statement.execute('system', :one)
+      result.should have(1).item
+    end
   end
 
   context 'with multiple connections' do
@@ -70,6 +78,7 @@ describe 'A CQL client' do
     before do
       client.close
       multi_client.connect
+      multi_client.use('system')
     end
 
     after do
@@ -77,7 +86,6 @@ describe 'A CQL client' do
     end
 
     it 'handles keyspace changes with #use' do
-      multi_client.use('system')
       100.times do
         result = multi_client.execute(%<SELECT * FROM schema_keyspaces WHERE keyspace_name = 'system'>)
         result.should have(1).item
@@ -85,7 +93,6 @@ describe 'A CQL client' do
     end
 
     it 'handles keyspace changes with #execute' do
-      multi_client.execute('USE system')
       100.times do
         result = multi_client.execute(%<SELECT * FROM schema_keyspaces WHERE keyspace_name = 'system'>)
         result.should have(1).item
