@@ -89,7 +89,7 @@ module Cql
         rows_count.times do |row_index|
           row = {}
           column_specs.each do |column_spec|
-            row[column_spec[2]] = type_converter.convert_type(buffer, column_spec[3])
+            row[column_spec[2]] = type_converter.from_bytes(buffer, column_spec[3])
           end
           rows << row
         end
