@@ -2,11 +2,12 @@
 
 module Cql
   class QueryError < CqlError
-    attr_reader :code
+    attr_reader :code, :cql
 
-    def initialize(code, message)
+    def initialize(code, message, cql=nil)
       super(message)
       @code = code
+      @cql = cql
     end
   end
 
@@ -238,14 +239,19 @@ module Cql
 
     def execute_request(request, connection_id=nil)
       @io_reactor.queue_request(request, connection_id).map do |response, connection_id|
-        interpret_response!(response, connection_id)
+        interpret_response!(request, response, connection_id)
       end
     end
 
-    def interpret_response!(response, connection_id)
+    def interpret_response!(request, response, connection_id)
       case response
       when Protocol::ErrorResponse
-        raise QueryError.new(response.code, response.message)
+        case request
+        when Protocol::QueryRequest
+          raise QueryError.new(response.code, response.message, request.cql)
+        else
+          raise QueryError.new(response.code, response.message)
+        end
       when Protocol::RowsResultResponse
         QueryResult.new(response.metadata, response.rows)
       when Protocol::PreparedResultResponse

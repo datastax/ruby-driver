@@ -325,6 +325,17 @@ module Cql
           io_reactor.queue_response(Protocol::ErrorResponse.new(0xabcd, 'Blurgh'))
           expect { client.execute('SELECT * FROM things') }.to raise_error(QueryError, 'Blurgh')
         end
+
+        it 'decorates the error with the CQL that caused it' do
+          io_reactor.queue_response(Protocol::ErrorResponse.new(0xabcd, 'Blurgh'))
+          begin
+            client.execute('SELECT * FROM things')
+          rescue QueryError => e
+            e.cql.should == 'SELECT * FROM things'
+          else
+            fail('No error was raised')
+          end
+        end
       end
     end
 
