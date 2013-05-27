@@ -33,7 +33,7 @@ module Cql
         end
       end
 
-      def to_bytes(io, type, value)
+      def to_bytes(io, type, value, size_bytes=4)
         case type
         when Array
           unless value.is_a?(Enumerable)
@@ -45,9 +45,7 @@ module Cql
             raw = ''
             write_short(raw, value.size)
             value.each do |element|
-              rr = ''
-              to_bytes(rr, sub_type, element)
-              raw << rr[2, rr.length - 2]
+              to_bytes(raw, sub_type, element, 2)
             end
             write_bytes(io, raw)
           when :map
@@ -55,12 +53,8 @@ module Cql
             raw = ''
             write_short(raw, value.size)
             value.each do |key, value|
-              rr = ''
-              to_bytes(rr, key_type, key)
-              raw << rr[2, rr.length - 2]
-              rr = ''
-              to_bytes(rr, value_type, value)
-              raw << rr[2, rr.length - 2]
+              to_bytes(raw, key_type, key, 2)
+              to_bytes(raw, value_type, value, 2)
             end
             write_bytes(io, raw)
           else
@@ -71,7 +65,7 @@ module Cql
           unless converter
             raise UnsupportedColumnTypeError, %(Unsupported column type: #{type})
           end
-          converter.call(io, value)
+          converter.call(io, value, size_bytes)
         end
       rescue TypeError => e
         raise TypeError, %("#{value}" cannot be encoded as #{type.to_s.upcase}: #{e.message}), e.backtrace
@@ -229,69 +223,122 @@ module Cql
         set
       end
 
-      def ascii_to_bytes(io, value)
-        write_bytes(io, value.encode(::Encoding::ASCII))
+      def ascii_to_bytes(io, value, size_bytes)
+        v = value.encode(::Encoding::ASCII)
+        if size_bytes == 4
+          write_bytes(io, v)
+        else
+          write_short_bytes(io, v)
+        end
       end
 
-      def bigint_to_bytes(io, value)
-        write_int(io, 8)
+      def bigint_to_bytes(io, value, size_bytes)
+        if size_bytes == 4
+          write_int(io, 8)
+        else
+          write_short(io, 8)
+        end
         write_long(io, value)
       end
 
-      def blob_to_bytes(io, value)
-        write_bytes(io, value.encode(::Encoding::BINARY))
+      def blob_to_bytes(io, value, size_bytes)
+        v = value.encode(::Encoding::BINARY)
+        if size_bytes == 4
+          write_bytes(io, v)
+        else
+          write_short_bytes(io, v)
+        end
       end
 
-      def boolean_to_bytes(io, value)
-        write_int(io, 1)
+      def boolean_to_bytes(io, value, size_bytes)
+        if size_bytes == 4
+          write_int(io, 1)
+        else
+          write_short(io, 1)
+        end
         io << (value ? Constants::TRUE_BYTE : Constants::FALSE_BYTE)
       end
 
-      def decimal_to_bytes(io, value)
+      def decimal_to_bytes(io, value, size_bytes)
         raw = write_decimal('', value)
-        write_int(io, raw.size)
-        io << raw
+        if size_bytes == 4
+          write_bytes(io, raw)
+        else
+          write_short_bytes(io, raw)
+        end
       end
 
-      def double_to_bytes(io, value)
-        write_int(io, 8)
+      def double_to_bytes(io, value, size_bytes)
+        if size_bytes == 4
+          write_int(io, 8)
+        else
+          write_short(io, 8)
+        end
         write_double(io, value)
       end
 
-      def float_to_bytes(io, value)
-        write_int(io, 4)
+      def float_to_bytes(io, value, size_bytes)
+        if size_bytes == 4
+          write_int(io, 4)
+        else
+          write_short(io, 4)
+        end
         write_float(io, value)
       end
 
-      def inet_to_bytes(io, value)
-        write_int(io, value.ipv6? ? 16 : 4)
+      def inet_to_bytes(io, value, size_bytes)
+        if size_bytes == 4
+          write_int(io, value.ipv6? ? 16 : 4)
+        else
+          write_short(io, value.ipv6? ? 16 : 4)
+        end
         io << value.hton
       end
 
-      def int_to_bytes(io, value)
-        write_int(io, 4)
+      def int_to_bytes(io, value, size_bytes)
+        if size_bytes == 4
+          write_int(io, 4)
+        else
+          write_short(io, 4)
+        end
         write_int(io, value)
       end
 
-      def varchar_to_bytes(io, value)
-        write_bytes(io, value.encode(::Encoding::UTF_8))
+      def varchar_to_bytes(io, value, size_bytes)
+        v = value.encode(::Encoding::UTF_8)
+        if size_bytes == 4
+          write_bytes(io, v)
+        else
+          write_short_bytes(io, v)
+        end
       end
 
-      def timestamp_to_bytes(io, value)
+      def timestamp_to_bytes(io, value, size_bytes)
         ms = (value.to_f * 1000).to_i
-        write_int(io, 8)
+        if size_bytes == 4
+          write_int(io, 8)
+        else
+          write_short(io, 8)
+        end
         write_long(io, ms)
       end
 
-      def uuid_to_bytes(io, value)
-        write_int(io, 16)
+      def uuid_to_bytes(io, value, size_bytes)
+        if size_bytes == 4
+          write_int(io, 16)
+        else
+          write_short(io, 16)
+        end
         write_uuid(io, value)
       end
 
-      def varint_to_bytes(io, value)
+      def varint_to_bytes(io, value, size_bytes)
         raw = write_varint('', value)
-        write_int(io, raw.length)
-        io << raw
+        if size_bytes == 4
+          write_bytes(io, raw)
+        else
+          write_short_bytes(io, raw)
+        end
       end
     end
   end
