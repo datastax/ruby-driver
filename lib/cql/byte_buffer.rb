@@ -105,6 +105,13 @@ module Cql
       b
     end
 
+    def cheap_peek
+      if @offset >= @read_buffer.bytesize
+        swap_buffers
+      end
+      @read_buffer[@offset, @read_buffer.bytesize - @offset]
+    end
+
     def eql?(other)
       self.to_str.eql?(other.to_str)
     end

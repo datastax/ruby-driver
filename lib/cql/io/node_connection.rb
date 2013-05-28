@@ -111,7 +111,7 @@ module Cql
           handle_connecting
         else
           if !@write_buffer.empty?
-            bytes_written = @io.write_nonblock(@write_buffer)
+            bytes_written = @io.write_nonblock(@write_buffer.cheap_peek)
             @write_buffer.discard(bytes_written)
           end
         end
