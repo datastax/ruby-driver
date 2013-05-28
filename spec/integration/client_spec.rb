@@ -9,7 +9,7 @@ describe 'A CQL client' do
   end
 
   let :client do
-    Cql::Client.new(connection_options)
+    Cql::Client.connect(connection_options)
   end
 
   before do
@@ -37,7 +37,7 @@ describe 'A CQL client' do
   end
 
   it 'can be initialized with a keyspace' do
-    c = Cql::Client.new(connection_options.merge(:keyspace => 'system'))
+    c = Cql::Client.connect(connection_options.merge(:keyspace => 'system'))
     c.connect
     begin
       c.keyspace.should == 'system'
@@ -72,7 +72,7 @@ describe 'A CQL client' do
     let :multi_client do
       opts = connection_options.dup
       opts[:host] = ([opts[:host]] * 10).join(',')
-      Cql::Client.new(opts)
+      Cql::Client.connect(opts)
     end
 
     before do
@@ -137,7 +137,7 @@ describe 'A CQL client' do
 
     it 'raises an error when the credentials are bad' do
       if authentication_enabled
-        client = Cql::Client.new(connection_options.merge(credentials: {username: 'foo', password: 'bar'}))
+        client = Cql::Client.connect(connection_options.merge(credentials: {username: 'foo', password: 'bar'}))
         expect { client.connect }.to raise_error(Cql::AuthenticationError)
       else
         pending 'authentication not configured'
@@ -155,8 +155,8 @@ describe 'A CQL client' do
     end
 
     it 'fails gracefully when connecting to the Thrift port' do
-      client = Cql::Client.new(connection_options.merge(port: 9160))
-      expect { client.connect }.to raise_error(Cql::IoError)
+      opts = connection_options.merge(port: 9160)
+      expect { Cql::Client.connect(opts) }.to raise_error(Cql::IoError)
     end
 
     it 'fails gracefully when connecting to something that does not run C*' do
