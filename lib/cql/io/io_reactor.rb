@@ -81,6 +81,12 @@ module Cql
         connection.on_close do
           @lock.synchronize do
             @connections.delete(connection)
+            connection_commands, @command_queue = @command_queue.partition do |command|
+              command.is_a?(TargetedRequestCommand) && command.connection_id == connection.connection_id
+            end
+            connection_commands.each do |command|
+              command.future.fail!(ConnectionClosedError.new)
+            end
           end
         end
         f = connection.open

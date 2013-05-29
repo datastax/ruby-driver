@@ -235,6 +235,26 @@ module Cql
 
             Future.combine(*futures).get
           end
+
+          it 'fails queued requests when the connection closes' do
+            request = Cql::Protocol::QueryRequest.new('UPDATE x SET y = 1 WHERE z = 2', :one)
+
+            io_reactor.start
+            connection_id = io_reactor.add_connection(host, port).get
+
+            failures = 0
+
+            200.times do
+              f = io_reactor.queue_request(request, connection_id)
+              f.on_failure do
+                failures += 1
+              end
+            end
+
+            server.broadcast!("\x01\x00\x00\x02\x00\x00\x00\x16")
+
+            await { failures == 200 }
+          end
         end
 
         it 'fails if there is an error when encoding the request' do
