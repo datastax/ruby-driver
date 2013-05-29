@@ -2,7 +2,8 @@
 
 module Cql
   module Client
-    class AsynchronousClient
+    # @private
+    class AsynchronousClient < Client
       def initialize(options={})
         connection_timeout = options[:connection_timeout]
         @host = options[:host] || 'localhost'

@@ -2,14 +2,9 @@
 
 module Cql
   module Client
-    class AsynchronousPreparedStatement
+    class PreparedStatement
       # @return [ResultMetadata]
       attr_reader :metadata
-
-      def initialize(*args)
-        @client, @connection_id, @statement_id, @raw_metadata = args
-        @metadata = ResultMetadata.new(@raw_metadata)
-      end
 
       # Execute the prepared statement with a list of values for the bound parameters.
       #
@@ -21,7 +16,17 @@ module Cql
       #
       # @param args [Array] the values for the bound parameters, and optionally
       #   the desired consistency level, as a symbol (defaults to :quorum)
-      #
+      def execute(*args)
+      end
+    end
+
+    # @private
+    class AsynchronousPreparedStatement < PreparedStatement
+      def initialize(*args)
+        @client, @connection_id, @statement_id, @raw_metadata = args
+        @metadata = ResultMetadata.new(@raw_metadata)
+      end
+
       def execute(*args)
         bound_args = args.shift(@raw_metadata.size)
         consistency_level = args.shift
@@ -29,13 +34,11 @@ module Cql
       end
     end
 
-    class SynchronousPreparedStatement
+    # @private
+    class SynchronousPreparedStatement < PreparedStatement
       def initialize(async_statement)
         @async_statement = async_statement
-      end
-
-      def metadata
-        @async_statement.metadata
+        @metadata = async_statement.metadata
       end
 
       def execute(*args)
