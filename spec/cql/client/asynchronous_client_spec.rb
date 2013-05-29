@@ -7,6 +7,10 @@ require 'cql/client/client_shared'
 module Cql
   module Client
     describe AsynchronousClient do
+      let :client do
+        described_class.new(connection_options)
+      end
+
       include_context 'client setup'
 
       describe '#connect' do

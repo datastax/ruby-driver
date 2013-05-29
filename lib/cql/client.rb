@@ -19,7 +19,7 @@ module Cql
     InvalidKeyspaceNameError = Class.new(ClientError)
 
     def self.connect(options={})
-      SynchronousClient.new(options).connect
+      SynchronousClient.new(AsynchronousClient.new(options)).connect
     end
   end
 end

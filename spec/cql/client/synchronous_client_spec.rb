@@ -7,6 +7,14 @@ require 'cql/client/client_shared'
 module Cql
   module Client
     describe SynchronousClient do
+      let :client do
+        create_client
+      end
+
+      def create_client(overrides={})
+        described_class.new(AsynchronousClient.new(connection_options.merge(overrides)))
+      end
+
       include_context 'client setup'
 
       describe '#connect' do
@@ -26,7 +34,7 @@ module Cql
           io_reactor.stop.get
           io_reactor.start.get
 
-          c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
+          c = create_client(host: 'h1.example.com,h2.example.com,h3.example.com')
           c.connect
           connections.should have(3).items
         end
@@ -51,7 +59,7 @@ module Cql
           io_reactor.stop.get
           io_reactor.start.get
 
-          c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
+          c = create_client(host: 'h1.example.com,h2.example.com,h3.example.com')
           c.connect
           connections.each do |cc|
             cc[:requests].last.should be_a(Protocol::StartupRequest)
@@ -64,13 +72,13 @@ module Cql
         end
 
         it 'changes to the keyspace given as an option' do
-          c = described_class.new(connection_options.merge(:keyspace => 'hello_world'))
+          c = create_client(:keyspace => 'hello_world')
           c.connect
           last_request.should == Protocol::QueryRequest.new('USE hello_world', :one)
         end
 
         it 'validates the keyspace name before sending the USE command' do
-          c = described_class.new(connection_options.merge(:keyspace => 'system; DROP KEYSPACE system'))
+          c = create_client(:keyspace => 'system; DROP KEYSPACE system')
           expect { c.connect }.to raise_error(Client::InvalidKeyspaceNameError)
           requests.should_not include(Protocol::QueryRequest.new('USE system; DROP KEYSPACE system', :one))
         end
@@ -98,25 +106,25 @@ module Cql
           end
 
           it 'sends credentials' do
-            client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
+            client = create_client(credentials: {'username' => 'foo', 'password' => 'bar'})
             client.connect
             last_request.should == Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar')
           end
 
           it 'raises an error when no credentials have been given' do
-            client = described_class.new(connection_options)
+            client = create_client
             expect { client.connect }.to raise_error(AuthenticationError)
           end
 
           it 'raises an error when the server responds with an error to the credentials request' do
             io_reactor.queue_response(Protocol::ErrorResponse.new(256, 'No way, José'))
-            client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
+            client = create_client(credentials: {'username' => 'foo', 'password' => 'bar'})
             expect { client.connect }.to raise_error(AuthenticationError)
           end
 
           it 'shuts down the client when there is an authentication error' do
             io_reactor.queue_response(Protocol::ErrorResponse.new(256, 'No way, José'))
-            client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
+            client = create_client(credentials: {'username' => 'foo', 'password' => 'bar'})
             client.connect rescue nil
             client.should_not be_connected
             io_reactor.should_not be_running
@@ -162,7 +170,7 @@ module Cql
           io_reactor.stop.get
           io_reactor.start.get
 
-          c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
+          c = create_client(host: 'h1.example.com,h2.example.com,h3.example.com')
           c.connect
 
           c.use('system')
@@ -226,7 +234,7 @@ module Cql
             io_reactor.stop.get
             io_reactor.start.get
 
-            c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
+            c = create_client(host: 'h1.example.com,h2.example.com,h3.example.com')
             c.connect
 
             io_reactor.queue_response(Protocol::SetKeyspaceResultResponse.new('system'), connections.find { |c| c[:host] == 'h1.example.com' }[:host])
@@ -357,7 +365,7 @@ module Cql
           io_reactor.stop.get
           io_reactor.start.get
 
-          c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
+          c = create_client(host: 'h1.example.com,h2.example.com,h3.example.com')
           c.connect
 
           io_reactor.queue_response(Protocol::PreparedResultResponse.new('A' * 32, metadata))

@@ -77,9 +77,10 @@ module Cql
         end
       end
 
-      def use(keyspace, connection_ids=@connection_ids)
+      def use(keyspace, connection_ids=nil)
         return Future.failed(NotConnectedError.new) unless @connected || @connecting
         return Future.failed(InvalidKeyspaceNameError.new(%("#{keyspace}" is not a valid keyspace name))) unless valid_keyspace_name?(keyspace)
+        connection_ids ||= @connection_ids
         @lock.synchronize do
           connection_ids = connection_ids.select { |id| @connection_keyspaces[id] != keyspace }
         end
@@ -94,7 +95,8 @@ module Cql
         end
       end
 
-      def execute(cql, consistency=DEFAULT_CONSISTENCY_LEVEL)
+      def execute(cql, consistency=nil)
+        consistency ||= DEFAULT_CONSISTENCY_LEVEL
         return Future.failed(NotConnectedError.new) unless @connected || @connecting
         f = execute_request(Protocol::QueryRequest.new(cql, consistency))
         f.on_complete do
@@ -210,7 +212,7 @@ module Cql
         when Protocol::RowsResultResponse
           QueryResult.new(response.metadata, response.rows)
         when Protocol::PreparedResultResponse
-          PreparedStatement.new(self, connection_id, response.id, response.metadata)
+          AsynchronousPreparedStatement.new(self, connection_id, response.id, response.metadata)
         when Protocol::SetKeyspaceResultResponse
           @lock.synchronize do
             @last_keyspace_change = @connection_keyspaces[connection_id] = response.keyspace

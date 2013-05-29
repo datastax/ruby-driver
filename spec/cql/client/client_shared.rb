@@ -9,10 +9,6 @@ shared_context 'client setup' do
     FakeIoReactor.new
   end
 
-  let :client do
-    described_class.new(connection_options)
-  end
-
   def connections
     io_reactor.connections
   end

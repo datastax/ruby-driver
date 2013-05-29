@@ -2,7 +2,7 @@
 
 module Cql
   module Client
-    class PreparedStatement
+    class AsynchronousPreparedStatement
       # @return [ResultMetadata]
       attr_reader :metadata
 
@@ -26,6 +26,20 @@ module Cql
         bound_args = args.shift(@raw_metadata.size)
         consistency_level = args.shift
         @client.execute_statement(@connection_id, @statement_id, @raw_metadata, bound_args, consistency_level)
+      end
+    end
+
+    class SynchronousPreparedStatement
+      def initialize(async_statement)
+        @async_statement = async_statement
+      end
+
+      def metadata
+        @async_statement.metadata
+      end
+
+      def execute(*args)
+        @async_statement.execute(*args).get
       end
     end
   end
