@@ -26,7 +26,11 @@ module Cql
     # @return [Future<Array>] an array of the values of the constituent futures
     #
     def self.combine(*futures)
-      CombinedFuture.new(*futures)
+      if futures.any?
+        CombinedFuture.new(*futures)
+      else
+        completed([])
+      end
     end
 
     # Creates a new future which is completed.
