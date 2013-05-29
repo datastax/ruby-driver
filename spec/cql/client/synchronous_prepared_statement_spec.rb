@@ -19,7 +19,7 @@ module Cql
       end
 
       let :future do
-        stub(:future, get: nil)
+        Future.new
       end
 
       describe '#metadata' do
@@ -32,8 +32,22 @@ module Cql
         it 'it calls #execute on the async statement and waits for the result' do
           result = stub(:result)
           async_statement.should_receive(:execute).with('one', 'two', :three).and_return(future)
-          future.stub(:get).and_return(result)
+          future.complete!(result)
           statement.execute('one', 'two', :three).should equal(result)
+        end
+      end
+
+      describe '#pipeline' do
+        it 'executes the statement multiple times and waits for all the results' do
+          result1 = stub(:result1)
+          result2 = stub(:result2)
+          async_statement.stub(:execute).with('one', 'two', :three).and_return(Future.completed(result1))
+          async_statement.stub(:execute).with('four', 'file', :all).and_return(Future.completed(result2))
+          results = statement.pipeline do |p|
+            p.execute('one', 'two', :three)
+            p.execute('four', 'file', :all)
+          end
+          results.should eql([result1, result2])
         end
       end
     end
