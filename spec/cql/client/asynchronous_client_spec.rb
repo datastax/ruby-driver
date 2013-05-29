@@ -75,7 +75,7 @@ module Cql
 
         it 'validates the keyspace name before sending the USE command' do
           c = described_class.new(connection_options.merge(:keyspace => 'system; DROP KEYSPACE system'))
-          expect { c.connect.get }.to raise_error(Client::InvalidKeyspaceNameError)
+          expect { c.connect.get }.to raise_error(InvalidKeyspaceNameError)
           requests.should_not include(Protocol::QueryRequest.new('USE system; DROP KEYSPACE system', :one))
         end
 
@@ -195,7 +195,7 @@ module Cql
         end
 
         it 'raises an error if the keyspace name is not valid' do
-          expect { client.use('system; DROP KEYSPACE system').get }.to raise_error(Client::InvalidKeyspaceNameError)
+          expect { client.use('system; DROP KEYSPACE system').get }.to raise_error(InvalidKeyspaceNameError)
         end
       end
 
@@ -407,33 +407,33 @@ module Cql
         end
 
         it 'complains when #use is called before #connect' do
-          expect { client.use('system').get }.to raise_error(Client::NotConnectedError)
+          expect { client.use('system').get }.to raise_error(NotConnectedError)
         end
 
         it 'complains when #use is called after #close' do
           client.connect.get
           client.close.get
-          expect { client.use('system').get }.to raise_error(Client::NotConnectedError)
+          expect { client.use('system').get }.to raise_error(NotConnectedError)
         end
 
         it 'complains when #execute is called before #connect' do
-          expect { client.execute('DELETE FROM stuff WHERE id = 3').get }.to raise_error(Client::NotConnectedError)
+          expect { client.execute('DELETE FROM stuff WHERE id = 3').get }.to raise_error(NotConnectedError)
         end
 
         it 'complains when #execute is called after #close' do
           client.connect.get
           client.close.get
-          expect { client.execute('DELETE FROM stuff WHERE id = 3').get }.to raise_error(Client::NotConnectedError)
+          expect { client.execute('DELETE FROM stuff WHERE id = 3').get }.to raise_error(NotConnectedError)
         end
 
         it 'complains when #prepare is called before #connect' do
-          expect { client.prepare('DELETE FROM stuff WHERE id = 3').get }.to raise_error(Client::NotConnectedError)
+          expect { client.prepare('DELETE FROM stuff WHERE id = 3').get }.to raise_error(NotConnectedError)
         end
 
         it 'complains when #prepare is called after #close' do
           client.connect.get
           client.close.get
-          expect { client.prepare('DELETE FROM stuff WHERE id = 3').get }.to raise_error(Client::NotConnectedError)
+          expect { client.prepare('DELETE FROM stuff WHERE id = 3').get }.to raise_error(NotConnectedError)
         end
 
         it 'complains when #execute of a prepared statement is called after #close' do
@@ -441,7 +441,7 @@ module Cql
           io_reactor.queue_response(Protocol::PreparedResultResponse.new('A' * 32, []))
           statement = client.prepare('DELETE FROM stuff WHERE id = 3').get
           client.close.get
-          expect { statement.execute.get }.to raise_error(Client::NotConnectedError)
+          expect { statement.execute.get }.to raise_error(NotConnectedError)
         end
       end
     end
