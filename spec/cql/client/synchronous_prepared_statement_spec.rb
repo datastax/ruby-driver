@@ -49,6 +49,10 @@ module Cql
           end
           results.should eql([result1, result2])
         end
+
+        it 'does nothing when statements are executed' do
+          statement.pipeline { |p| }.should == []
+        end
       end
     end
   end

@@ -32,7 +32,11 @@ module Cql
       end
 
       def get
-        Future.combine(*@futures).get
+        if @futures.any?
+          Future.combine(*@futures).get
+        else
+          []
+        end
       end
     end
   end
