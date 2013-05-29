@@ -163,7 +163,7 @@ module Cql
               if connection && connection.connected? && connection.has_capacity?
                 connection.perform_request(command.request, command.future)
               elsif connection && connection.connected?
-                command.future.fail!(ConnectionBusyError.new("Connection ##{command.connection_id} is busy"))
+                unexecuted_commands << command
               else
                 command.future.fail!(ConnectionNotFoundError.new("Connection ##{command.connection_id} does not exist"))
               end
@@ -176,7 +176,7 @@ module Cql
               end
             end
           end
-          @command_queue.unshift(*unexecuted_commands) if unexecuted_commands.any?
+          @command_queue = unexecuted_commands
         end
       end
     end
