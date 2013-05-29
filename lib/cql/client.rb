@@ -128,12 +128,31 @@ module Cql
       # @raise [Cql::NotConnectedError] raised when the client is not connected
       # @return [Cql::Client::PreparedStatement] an object encapsulating the prepared statement
     end
+
+    class PreparedStatement
+      # @return [ResultMetadata]
+      attr_reader :metadata
+
+      # Execute the prepared statement with a list of values for the bound parameters.
+      #
+      # The number of arguments must equal the number of bound parameters.
+      # To set the consistency level for the request you pass a consistency
+      # level (as a symbol) as the last argument. Needless to say, if you pass
+      # the value for one bound parameter too few, and then a consistency level,
+      # or if you pass too many values, you will get weird errors.
+      #
+      # @param args [Array] the values for the bound parameters, and optionally
+      #   the desired consistency level, as a symbol (defaults to :quorum)
+      def execute(*args)
+      end
+    end
   end
 end
 
 require 'cql/client/column_metadata'
 require 'cql/client/result_metadata'
 require 'cql/client/query_result'
-require 'cql/client/prepared_statement'
+require 'cql/client/asynchronous_prepared_statement'
+require 'cql/client/synchronous_prepared_statement'
 require 'cql/client/synchronous_client'
 require 'cql/client/asynchronous_client'

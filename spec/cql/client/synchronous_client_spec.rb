@@ -81,7 +81,8 @@ module Cql
       describe '#prepare' do
         it 'calls #prepare on the async client, waits for the result and returns a SynchronousFuture' do
           result = stub(:result)
-          async_statement = stub(:async_statement)
+          metadata = stub(:metadata)
+          async_statement = stub(:async_statement, metadata: metadata)
           another_future = stub(:another_future)
           async_client.stub(:prepare).with('SELECT * FROM something').and_return(future)
           future.stub(:get).and_return(async_statement)
@@ -89,6 +90,7 @@ module Cql
           async_statement.should_receive(:execute).and_return(another_future)
           another_future.stub(:get).and_return(result)
           statement.execute.should equal(result)
+          statement.metadata.should equal(metadata)
         end
       end
     end
