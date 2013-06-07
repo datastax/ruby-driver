@@ -1,7 +1,5 @@
 # Ruby CQL3 driver
 
-_There has not yet been a stable release of this project._
-
 [![Build Status](https://travis-ci.org/iconara/cql-rb.png?branch=master)](https://travis-ci.org/iconara/cql-rb)
 
 # Requirements
@@ -10,11 +8,15 @@ Cassandra 1.2 with the native transport protocol turned on and a modern Ruby. Te
 
 # Installation
 
+v1.0.0 has not yet been released, but the current prereleases are continuously being battle tested in systems running thousands of queries per second.
+
+You can install the latest prerelease with this command:
+
     gem install --prerelease cql-rb
 
 ## Configure Cassandra
 
-The native transport protocol (sometimes called binary protocol, or CQL protocol) is not on by default in Cassandra 1.2, to enable it edit the `cassandra.yaml` file on all nodes in your cluster and set `start_native_transport` to `true`. You need to restart the nodes for this to have effect.
+If you're running Cassandra 1.2.5 the native transport protocol is enabled by default, if you're running an earlier version (but later than 1.2) you must enable it by editing `cassandra.yaml` and setting `start_native_transport` to `true`.
 
 # Quick start
 
@@ -25,7 +27,7 @@ client = Cql::Client.connect(host: 'cassandra.example.com')
 client.use('system')
 rows = client.execute('SELECT keyspace_name, columnfamily_name FROM schema_columnfamilies')
 rows.each do |row|
-  puts "The keyspace #{row['keyspace_name']} has a table called #{row['columnfamily_name']}""
+  puts "The keyspace #{row['keyspace_name']} has a table called #{row['columnfamily_name']}"
 end
 ```
 
@@ -146,9 +148,9 @@ Read more about CQL3 in the [CQL3 syntax documentation](https://github.com/apach
 
 # Known bugs & limitations
 
-* There are still edge cases around connection errors, and there is no automatic reconnection.
-* JRuby 1.6.8 is not supported, although it should be. The only known issue is that connection failures aren't handled gracefully.
 * No automatic peer discovery.
+* No automatic reconnection on connection failures.
+* JRuby 1.6.8 is not supported, although it probably works fine. The only known issue is that connection failures aren't handled gracefully.
 * Compression is not supported.
 * Large results are buffered in memory until the whole response has been loaded, the protocol makes it possible to start to deliver rows to the client code as soon as the metadata is loaded, but this is not supported yet.
 * There is no cluster introspection utilities (like the `DESCRIBE` commands in `cqlsh`).
