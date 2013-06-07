@@ -2,7 +2,7 @@
 
 module Cql
   module Protocol
-    class ResultResponse < ResponseBody
+    class ResultResponse < Response
       def self.decode!(buffer)
         kind = read_int!(buffer)
         case kind

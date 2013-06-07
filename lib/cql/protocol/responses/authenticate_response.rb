@@ -2,7 +2,7 @@
 
 module Cql
   module Protocol
-    class AuthenticateResponse < ResponseBody
+    class AuthenticateResponse < Response
       attr_reader :authentication_class
 
       def self.decode!(buffer)

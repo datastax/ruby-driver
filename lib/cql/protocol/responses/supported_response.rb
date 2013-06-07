@@ -2,7 +2,7 @@
 
 module Cql
   module Protocol
-    class SupportedResponse < ResponseBody
+    class SupportedResponse < Response
       attr_reader :options
 
       def initialize(options)

@@ -39,7 +39,7 @@ end
 require 'cql/protocol/encoding'
 require 'cql/protocol/decoding'
 require 'cql/protocol/type_converter'
-require 'cql/protocol/response_body'
+require 'cql/protocol/response'
 require 'cql/protocol/responses/error_response'
 require 'cql/protocol/responses/detailed_error_response'
 require 'cql/protocol/responses/ready_response'

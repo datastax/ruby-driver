@@ -2,7 +2,7 @@
 
 module Cql
   module Protocol
-    class ErrorResponse < ResponseBody
+    class ErrorResponse < Response
       attr_reader :code, :message
 
       def initialize(*args)

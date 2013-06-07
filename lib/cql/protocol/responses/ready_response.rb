@@ -2,7 +2,7 @@
 
 module Cql
   module Protocol
-    class ReadyResponse < ResponseBody
+    class ReadyResponse < Response
       def self.decode!(buffer)
         new
       end

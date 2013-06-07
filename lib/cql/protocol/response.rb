@@ -3,7 +3,7 @@
 
 module Cql
   module Protocol
-    class ResponseBody
+    class Response
       extend Decoding
 
       def self.decode!(buffer)
