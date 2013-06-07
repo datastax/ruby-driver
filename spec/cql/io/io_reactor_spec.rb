@@ -258,9 +258,11 @@ module Cql
         end
 
         it 'fails if there is an error when encoding the request' do
+          request = stub(:request)
+          request.stub(:encode_frame).and_raise(Cql::ProtocolError.new('Boork!'))
           io_reactor.start
           io_reactor.add_connection(host, port).get
-          f = io_reactor.queue_request(Cql::Protocol::QueryRequest.new('USE test', :foobar))
+          f = io_reactor.queue_request(request)
           expect { f.get }.to raise_error(Cql::ProtocolError)
         end
 

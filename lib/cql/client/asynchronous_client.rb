@@ -104,17 +104,24 @@ module Cql
           ensure_keyspace!
         end
         f
+      rescue => e
+        Future.failed(e)
       end
 
       # @private
       def execute_statement(connection_id, statement_id, metadata, values, consistency)
         return Future.failed(NotConnectedError.new) unless @connected || @connecting
-        execute_request(Protocol::ExecuteRequest.new(statement_id, metadata, values, consistency || DEFAULT_CONSISTENCY_LEVEL), connection_id)
+        request = Protocol::ExecuteRequest.new(statement_id, metadata, values, consistency || DEFAULT_CONSISTENCY_LEVEL)
+        execute_request(request, connection_id)
+      rescue => e
+        Future.failed(e)
       end
 
       def prepare(cql)
         return Future.failed(NotConnectedError.new) unless @connected || @connecting
         execute_request(Protocol::PrepareRequest.new(cql))
+      rescue => e
+        Future.failed(e)
       end
 
       private

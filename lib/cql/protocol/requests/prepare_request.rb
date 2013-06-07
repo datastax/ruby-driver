@@ -6,6 +6,7 @@ module Cql
       attr_reader :cql
 
       def initialize(cql)
+        raise ArgumentError, 'No CQL given!' unless cql
         super(9)
         @cql = cql
       end

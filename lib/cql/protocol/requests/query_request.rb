@@ -6,6 +6,8 @@ module Cql
       attr_reader :cql, :consistency
 
       def initialize(cql, consistency)
+        raise ArgumentError, %(No CQL given!) unless cql
+        raise ArgumentError, %(No such consistency: #{consistency.inspect}) unless CONSISTENCIES.include?(consistency)
         super(7)
         @cql = cql
         @consistency = consistency

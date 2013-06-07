@@ -303,6 +303,13 @@ module Cql
           end
         end
 
+        context 'when there is an error creating the request' do
+          it 'returns a failed future' do
+            f = client.execute('SELECT * FROM stuff', :foo)
+            expect { f.get }.to raise_error(ArgumentError)
+          end
+        end
+
         context 'when the response is an error' do
           it 'raises an error' do
             io_reactor.queue_response(Protocol::ErrorResponse.new(0xabcd, 'Blurgh'))
@@ -392,6 +399,22 @@ module Cql
           statement1.execute('foo').get.first.should == {'thing' => 'foo1'}
           statement2.execute('foo').get.first.should == {'thing' => 'foo2'}
           statement3.execute('foo').get.first.should == {'thing' => 'foo3'}
+        end
+
+        context 'when there is an error creating the request' do
+          it 'returns a failed future' do
+            f = client.prepare(nil)
+            expect { f.get }.to raise_error(ArgumentError)
+          end
+        end
+
+        context 'when there is an error preparing the request' do
+          it 'returns a failed future' do
+            io_reactor.queue_response(Protocol::PreparedResultResponse.new(id, metadata))
+            statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').get
+            f = statement.execute
+            expect { f.get }.to raise_error(ArgumentError)
+          end
         end
       end
 

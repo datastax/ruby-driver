@@ -6,6 +6,20 @@ require 'spec_helper'
 module Cql
   module Protocol
     describe QueryRequest do
+      describe '#initialize' do
+        it 'raises an error when the CQL is nil' do
+          expect { QueryRequest.new(nil, :one) }.to raise_error(ArgumentError)
+        end
+
+        it 'raises an error when the consistency is nil' do
+          expect { QueryRequest.new('USE system', nil) }.to raise_error(ArgumentError)
+        end
+
+        it 'raises an error when the consistency is invalid' do
+          expect { QueryRequest.new('USE system', :hello) }.to raise_error(ArgumentError)
+        end
+      end
+
       describe '#encode_frame' do
         it 'encodes a QUERY request frame' do
           bytes = QueryRequest.new('USE system', :all).encode_frame(3)

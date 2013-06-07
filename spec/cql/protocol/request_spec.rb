@@ -8,8 +8,8 @@ module Cql
     describe Request do
       describe '#encode_frame' do
         it 'returns a rendered request frame for the specified channel' do
-          frame = OptionsRequest.new.encode_frame(3)
-          frame.to_s.should start_with("\x01\x00\x03\x05\x00\x00\x00\x00")
+          frame = PrepareRequest.new('SELECT * FROM things').encode_frame(3)
+          frame.to_s.should == "\x01\x00\x03\x09\x00\x00\x00\x18\x00\x00\x00\x14SELECT * FROM things"
         end
       end
     end

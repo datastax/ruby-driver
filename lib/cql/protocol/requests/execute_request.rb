@@ -6,22 +6,17 @@ module Cql
       attr_reader :id, :metadata, :values, :consistency
 
       def initialize(id, metadata, values, consistency)
-        super(10)
         raise ArgumentError, "Metadata for #{metadata.size} columns, but #{values.size} values given" if metadata.size != values.size
+        super(10)
         @id = id
         @metadata = metadata
         @values = values
         @consistency = consistency
+        @bytes = encode_body
       end
 
       def write(io)
-        type_converter = TypeConverter.new
-        write_short_bytes(io, @id)
-        write_short(io, @metadata.size)
-        @metadata.each_with_index do |(_, _, _, type), index|
-          type_converter.to_bytes(io, type, @values[index])
-        end
-        write_consistency(io, @consistency)
+        io << @bytes
       end
 
       def to_s
@@ -43,6 +38,20 @@ module Cql
           h = ((h & 33554431) * 31) ^ @consistency.hash
           h
         end
+      end
+
+      private
+
+      def encode_body
+        buffer = ByteBuffer.new
+        type_converter = TypeConverter.new
+        write_short_bytes(buffer, @id)
+        write_short(buffer, @metadata.size)
+        @metadata.each_with_index do |(_, _, _, type), index|
+          type_converter.to_bytes(buffer, type, @values[index])
+        end
+        write_consistency(buffer, @consistency)
+        buffer.to_s
       end
     end
   end

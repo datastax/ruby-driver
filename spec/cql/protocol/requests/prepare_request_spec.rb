@@ -6,6 +6,12 @@ require 'spec_helper'
 module Cql
   module Protocol
     describe PrepareRequest do
+      describe '#initialize' do
+        it 'raises an error when the CQL is nil' do
+          expect { PrepareRequest.new(nil) }.to raise_error(ArgumentError)
+        end
+      end
+
       describe '#encode_frame' do
         it 'encodes a PREPARE request frame' do
           bytes = PrepareRequest.new('UPDATE users SET email = ? WHERE user_name = ?').encode_frame(3)

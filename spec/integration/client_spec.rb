@@ -151,7 +151,7 @@ describe 'A CQL client' do
     end
 
     it 'raises an error for bad consistency levels' do
-      expect { client.execute('SELECT * FROM system.peers', :helloworld) }.to raise_error(Cql::CqlError)
+      expect { client.execute('SELECT * FROM system.peers', :helloworld) }.to raise_error(ArgumentError)
     end
 
     it 'fails gracefully when connecting to the Thrift port' do

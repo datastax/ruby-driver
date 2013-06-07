@@ -22,6 +22,31 @@ module Cql
         ['hello', 42, 'foo']
       end
 
+      describe '#initialize' do
+        it 'raises an error when the metadata and values don\'t have the same size' do
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42], :each_quorum) }.to raise_error(ArgumentError)
+        end
+
+        it 'raises an error for unsupported column types' do
+          column_metadata[2][3] = :imaginary
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum) }.to raise_error(UnsupportedColumnTypeError)
+        end
+
+        it 'raises an error for unsupported column collection types' do
+          column_metadata[2][3] = [:imaginary, :varchar]
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, ['foo']], :each_quorum) }.to raise_error(UnsupportedColumnTypeError)
+        end
+
+        it 'raises an error when collection values are not enumerable' do
+          column_metadata[2][3] = [:set, :varchar]
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum) }.to raise_error(InvalidValueError)
+        end
+
+        it 'raises an error when it cannot encode the argument' do
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 'not an int', 'foo'], :each_quorum) }.to raise_error(TypeError, /cannot be encoded as INT/)
+        end
+      end
+
       describe '#encode_frame' do
         it 'encodes an EXECUTE request frame' do
           bytes = ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum).encode_frame(3)
@@ -65,29 +90,6 @@ module Cql
             result_bytes = buffer.read(length)
             result_bytes.should eql_bytes(expected_bytes)
           end
-        end
-
-        it 'raises an error when the metadata and values don\'t have the same size' do
-          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42], :each_quorum) }.to raise_error(ArgumentError)
-        end
-
-        it 'raises an error for unsupported column types' do
-          column_metadata[2][3] = :imaginary
-          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum).encode_frame(0) }.to raise_error(UnsupportedColumnTypeError)
-        end
-
-        it 'raises an error for unsupported column collection types' do
-          column_metadata[2][3] = [:imaginary, :varchar]
-          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, ['foo']], :each_quorum).encode_frame(0) }.to raise_error(UnsupportedColumnTypeError)
-        end
-
-        it 'raises an error when collection values are not enumerable' do
-          column_metadata[2][3] = [:set, :varchar]
-          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum).encode_frame(0) }.to raise_error(InvalidValueError)
-        end
-
-        it 'raises an error when it cannot encode the argument' do
-          expect { ExecuteRequest.new(id, column_metadata, ['hello', 'not an int', 'foo'], :each_quorum).write('') }.to raise_error(TypeError, /cannot be encoded as INT/)
         end
       end
 
