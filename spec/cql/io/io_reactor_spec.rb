@@ -213,30 +213,47 @@ module Cql
             expect { f.get }.to raise_error(ConnectionNotFoundError)
           end
 
-          it 'fails if the connection is busy' do
-            f = io_reactor.start.flat_map do
-              io_reactor.add_connection(host, port).flat_map do
-                io_reactor.add_connection(host, port).flat_map do |connection_id|
-                  200.times do
-                    io_reactor.queue_request(Cql::Protocol::OptionsRequest.new, connection_id)
-                  end
-                  io_reactor.queue_request(Cql::Protocol::OptionsRequest.new, connection_id)
-                end
-              end
+          it 'queues requests when the connection is busy' do
+            request = Cql::Protocol::QueryRequest.new('UPDATE x SET y = 1 WHERE z = 2', :one)
+
+            io_reactor.start
+            connection_id = io_reactor.add_connection(host, port).get
+
+            futures = 200.times.map do
+              io_reactor.queue_request(request, connection_id)
             end
-            expect { f.get }.to raise_error(ConnectionBusyError)
+
+            128.times do |i|
+              server.broadcast!("\x81\x00#{[i].pack('c')}\b\x00\x00\x00\x04\x00\x00\x00\x01")
+            end
+
+            Future.combine(*futures.shift(128)).get
+
+            128.times do |i|
+              server.broadcast!("\x81\x00#{[i].pack('c')}\b\x00\x00\x00\x04\x00\x00\x00\x01")
+            end
+
+            Future.combine(*futures).get
           end
 
-          it 'fails if the connection is busy, when there is only one connection' do
-            f = io_reactor.start.flat_map do
-              io_reactor.add_connection(host, port).flat_map do |connection_id|
-                200.times do
-                  io_reactor.queue_request(Cql::Protocol::OptionsRequest.new, connection_id)
-                end
-                io_reactor.queue_request(Cql::Protocol::OptionsRequest.new, connection_id)
+          it 'fails queued requests when the connection closes' do
+            request = Cql::Protocol::QueryRequest.new('UPDATE x SET y = 1 WHERE z = 2', :one)
+
+            io_reactor.start
+            connection_id = io_reactor.add_connection(host, port).get
+
+            failures = 0
+
+            200.times do
+              f = io_reactor.queue_request(request, connection_id)
+              f.on_failure do
+                failures += 1
               end
             end
-            expect { f.get }.to raise_error(ConnectionBusyError)
+
+            server.broadcast!("\x01\x00\x00\x02\x00\x00\x00\x16")
+
+            await { failures == 200 }
           end
         end
 

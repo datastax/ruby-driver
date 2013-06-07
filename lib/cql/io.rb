@@ -5,6 +5,7 @@ module Cql
 
   module Io
     ConnectionError = Class.new(IoError)
+    ConnectionClosedError = Class.new(IoError)
     ConnectionTimeoutError = Class.new(ConnectionError)
     NotRunningError = Class.new(CqlError)
     ConnectionNotFoundError = Class.new(CqlError)
