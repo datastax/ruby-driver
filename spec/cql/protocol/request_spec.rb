@@ -5,12 +5,19 @@ require 'spec_helper'
 
 module Cql
   module Protocol
-    describe RequestFrame do
+    describe Request do
+      describe '#encode_frame' do
+        it 'returns a rendered request frame for the specified channel' do
+          frame = OptionsRequest.new.encode_frame(3)
+          frame.to_s.should start_with("\x01\x00\x03\x05\x00\x00\x00\x00")
+        end
+      end
+
       context 'with CREDENTIALS requests' do
         it 'encodes a CREDENTIALS request' do
-          bytes = RequestFrame.new(CredentialsRequest.new('username' => 'cassandra', 'password' => 'ardnassac')).write('')
+          bytes = CredentialsRequest.new('username' => 'cassandra', 'password' => 'ardnassac').encode_frame(3)
           bytes.should == (
-            "\x01\x00\x00\04" +
+            "\x01\x00\x03\04" +
             "\x00\x00\x00\x2c" +
             "\x00\x02" +
             "\x00\x08username" +
@@ -23,46 +30,46 @@ module Cql
 
       context 'with OPTIONS requests' do
         it 'encodes an OPTIONS request' do
-          bytes = RequestFrame.new(OptionsRequest.new).write('')
-          bytes.should == "\x01\x00\x00\x05\x00\x00\x00\x00"
+          bytes = OptionsRequest.new.encode_frame(3)
+          bytes.should == "\x01\x00\x03\x05\x00\x00\x00\x00"
         end
       end
 
       context 'with STARTUP requests' do
         it 'encodes the request' do
-          bytes = RequestFrame.new(StartupRequest.new('3.0.0', 'snappy')).write('')
-          bytes.should == "\x01\x00\x00\x01\x00\x00\x00\x2b\x00\x02\x00\x0bCQL_VERSION\x00\x053.0.0\x00\x0bCOMPRESSION\x00\x06snappy"
+          bytes = StartupRequest.new('3.0.0', 'snappy').encode_frame(3)
+          bytes.should == "\x01\x00\x03\x01\x00\x00\x00\x2b\x00\x02\x00\x0bCQL_VERSION\x00\x053.0.0\x00\x0bCOMPRESSION\x00\x06snappy"
         end
 
         it 'defaults to CQL 3.0.0 and no compression' do
-          bytes = RequestFrame.new(StartupRequest.new).write('')
-          bytes.should == "\x01\x00\x00\x01\x00\x00\x00\x16\x00\x01\x00\x0bCQL_VERSION\x00\x053.0.0"
+          bytes = StartupRequest.new.encode_frame(3)
+          bytes.should == "\x01\x00\x03\x01\x00\x00\x00\x16\x00\x01\x00\x0bCQL_VERSION\x00\x053.0.0"
         end
       end
 
       context 'with REGISTER requests' do
         it 'encodes the request' do
-          bytes = RequestFrame.new(RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE')).write('')
-          bytes.should == "\x01\x00\x00\x0b\x00\x00\x00\x22\x00\x02\x00\x0fTOPOLOGY_CHANGE\x00\x0dSTATUS_CHANGE"
+          bytes = RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE').encode_frame(3)
+          bytes.should == "\x01\x00\x03\x0b\x00\x00\x00\x22\x00\x02\x00\x0fTOPOLOGY_CHANGE\x00\x0dSTATUS_CHANGE"
         end
       end
 
       context 'with QUERY requests' do
         it 'encodes the request' do
-          bytes = RequestFrame.new(QueryRequest.new('USE system', :all)).write('')
-          bytes.should == "\x01\x00\x00\x07\x00\x00\x00\x10\x00\x00\x00\x0aUSE system\x00\x05"
+          bytes = QueryRequest.new('USE system', :all).encode_frame(3)
+          bytes.should == "\x01\x00\x03\x07\x00\x00\x00\x10\x00\x00\x00\x0aUSE system\x00\x05"
         end
 
         it 'correctly encodes queries with multibyte characters' do
-          bytes = RequestFrame.new(QueryRequest.new("INSERT INTO users (user_id, first, last, age) VALUES ('test', 'ümlaut', 'test', 1)", :all)).write(ByteBuffer.new)
-          bytes.should eql_bytes("\x01\x00\x00\a\x00\x00\x00Y\x00\x00\x00SINSERT INTO users (user_id, first, last, age) VALUES ('test', '\xC3\xBCmlaut', 'test', 1)\x00\x05")
+          bytes = QueryRequest.new("INSERT INTO users (user_id, first, last, age) VALUES ('test', 'ümlaut', 'test', 1)", :all).encode_frame(3)
+          bytes.should eql_bytes("\x01\x00\x03\a\x00\x00\x00Y\x00\x00\x00SINSERT INTO users (user_id, first, last, age) VALUES ('test', '\xC3\xBCmlaut', 'test', 1)\x00\x05")
         end
       end
 
       context 'with PREPARE requests' do
         it 'encodes the request' do
-          bytes = RequestFrame.new(PrepareRequest.new('UPDATE users SET email = ? WHERE user_name = ?')).write('')
-          bytes.should == "\x01\x00\x00\x09\x00\x00\x00\x32\x00\x00\x00\x2eUPDATE users SET email = ? WHERE user_name = ?"
+          bytes = PrepareRequest.new('UPDATE users SET email = ? WHERE user_name = ?').encode_frame(3)
+          bytes.should == "\x01\x00\x03\x09\x00\x00\x00\x32\x00\x00\x00\x2eUPDATE users SET email = ? WHERE user_name = ?"
         end
       end
 
@@ -76,8 +83,8 @@ module Cql
         end
 
         it 'encodes the request' do
-          bytes = RequestFrame.new(ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum)).write('')
-          bytes.should == "\x01\x00\x00\x0a\x00\x00\x00\x2e\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/\x00\x03\x00\x00\x00\x05hello\x00\x00\x00\x04\x00\x00\x00\x2a\x00\x00\x00\x03foo\x00\x07"
+          bytes = ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum).encode_frame(3)
+          bytes.should == "\x01\x00\x03\x0a\x00\x00\x00\x2e\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/\x00\x03\x00\x00\x00\x05hello\x00\x00\x00\x04\x00\x00\x00\x2a\x00\x00\x00\x03foo\x00\x07"
         end
 
         specs = [
@@ -111,7 +118,7 @@ module Cql
         specs.each do |type, value, expected_bytes|
           it "encodes #{type} values" do
             metadata = [['ks', 'tbl', 'id_column', type]]
-            buffer = RequestFrame.new(ExecuteRequest.new(id, metadata, [value], :one)).write(ByteBuffer.new)
+            buffer = ExecuteRequest.new(id, metadata, [value], :one).encode_frame(3)
             buffer.discard(8 + 2 + 16 + 2)
             length = buffer.read_int
             result_bytes = buffer.read(length)
@@ -125,17 +132,17 @@ module Cql
 
         it 'raises an error for unsupported column types' do
           column_metadata[2][3] = :imaginary
-          expect { RequestFrame.new(ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum)).write('') }.to raise_error(UnsupportedColumnTypeError)
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum).encode_frame(0) }.to raise_error(UnsupportedColumnTypeError)
         end
 
         it 'raises an error for unsupported column collection types' do
           column_metadata[2][3] = [:imaginary, :varchar]
-          expect { RequestFrame.new(ExecuteRequest.new(id, column_metadata, ['hello', 42, ['foo']], :each_quorum)).write('') }.to raise_error(UnsupportedColumnTypeError)
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, ['foo']], :each_quorum).encode_frame(0) }.to raise_error(UnsupportedColumnTypeError)
         end
 
         it 'raises an error when collection values are not enumerable' do
           column_metadata[2][3] = [:set, :varchar]
-          expect { RequestFrame.new(ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum)).write('') }.to raise_error(InvalidValueError)
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum).encode_frame(0) }.to raise_error(InvalidValueError)
         end
 
         it 'raises an error when it cannot encode the argument' do
@@ -145,19 +152,19 @@ module Cql
 
       context 'with a stream ID' do
         it 'encodes the stream ID in the header' do
-          bytes = RequestFrame.new(QueryRequest.new('USE system', :all), 42).write('')
-          bytes[2].should == "\x2a"
+          bytes = QueryRequest.new('USE system', :all).encode_frame(42)
+          bytes.discard(2).read(1).should == "\x2a"
         end
 
         it 'defaults to zero' do
-          bytes = RequestFrame.new(QueryRequest.new('USE system', :all)).write('')
-          bytes[2].should == "\x00"
+          bytes = QueryRequest.new('USE system', :all).encode_frame
+          bytes.discard(2).read(1).should == "\x00"
         end
 
         it 'raises an exception if the stream ID is outside of 0..127' do
-          expect { RequestFrame.new(QueryRequest.new('USE system', :all), -1) }.to raise_error(InvalidStreamIdError)
-          expect { RequestFrame.new(QueryRequest.new('USE system', :all), 128) }.to raise_error(InvalidStreamIdError)
-          expect { RequestFrame.new(QueryRequest.new('USE system', :all), 99999999) }.to raise_error(InvalidStreamIdError)
+          expect { QueryRequest.new('USE system', :all).encode_frame(-1) }.to raise_error(InvalidStreamIdError)
+          expect { QueryRequest.new('USE system', :all).encode_frame(128) }.to raise_error(InvalidStreamIdError)
+          expect { QueryRequest.new('USE system', :all).encode_frame(99999999) }.to raise_error(InvalidStreamIdError)
         end
       end
 

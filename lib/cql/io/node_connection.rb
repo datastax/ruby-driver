@@ -92,7 +92,7 @@ module Cql
 
       def perform_request(request, future)
         stream_id = next_stream_id
-        Protocol::RequestFrame.new(request, stream_id).write(@write_buffer)
+        @write_buffer << request.encode_frame(stream_id)
         @response_tasks[stream_id] = future
       rescue => e
         case e

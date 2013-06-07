@@ -26,12 +26,14 @@ module Cql
 
       BYTES_FORMAT = 'C*'.freeze
       TWO_INTS_FORMAT = 'NN'.freeze
-      HEADER_FORMAT = 'c4'.freeze
+      HEADER_FORMAT = 'c4N'.freeze
     end
 
     module Constants
       TRUE_BYTE = "\x01".freeze
       FALSE_BYTE = "\x00".freeze
+      PROTOCOL_VERSION = "\x01".freeze
+      COMPRESSION_OFF = "\x00".freeze
     end
   end
 end
@@ -64,4 +66,3 @@ require 'cql/protocol/requests/query_request'
 require 'cql/protocol/requests/prepare_request'
 require 'cql/protocol/requests/execute_request'
 require 'cql/protocol/response_frame'
-require 'cql/protocol/request_frame'
