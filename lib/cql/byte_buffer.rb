@@ -105,6 +105,21 @@ module Cql
       b
     end
 
+    def update(location, bytes)
+      absolute_offset = @offset + location
+      bytes_length = bytes.bytesize
+      if absolute_offset >= @read_buffer.bytesize
+        @write_buffer[absolute_offset - @read_buffer.bytesize, bytes_length] = bytes
+      else
+        overflow = absolute_offset + bytes_length - @read_buffer.bytesize
+        read_buffer_portion = bytes_length - overflow
+        @read_buffer[absolute_offset, read_buffer_portion] = bytes[0, read_buffer_portion]
+        if overflow > 0
+          @write_buffer[0, overflow] = bytes[read_buffer_portion, bytes_length - 1]
+        end
+      end
+    end
+
     def cheap_peek
       if @offset >= @read_buffer.bytesize
         swap_buffers

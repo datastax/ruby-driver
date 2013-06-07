@@ -264,6 +264,31 @@ module Cql
       end
     end
 
+    describe '#update' do
+      it 'changes the bytes at the specified location' do
+        buffer.append('foo bar')
+        buffer.update(4, 'baz')
+        buffer.to_s.should == 'foo baz'
+      end
+
+      it 'handles updates after a read' do
+        buffer.append('foo bar')
+        buffer.read(1)
+        buffer.update(3, 'baz')
+        buffer.to_s.should == 'oo baz'
+      end
+
+      it 'handles updates after multiple reads and appends' do
+        buffer.append('foo bar')
+        buffer.read(1)
+        buffer.append('x')
+        buffer.update(4, 'baz')
+        buffer.append('yyyy')
+        buffer.read(1)
+        buffer.to_s.should == 'o bbazyyyy'
+      end
+    end
+
     describe '#dup' do
       it 'returns a copy' do
         buffer.append('hello world')
