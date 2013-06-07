@@ -11,7 +11,6 @@ module Cql
 
       def write(io)
         write_string_map(io, @arguments)
-        io
       end
 
       def to_s
