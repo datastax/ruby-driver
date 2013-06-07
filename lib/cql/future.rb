@@ -26,7 +26,11 @@ module Cql
     # @return [Future<Array>] an array of the values of the constituent futures
     #
     def self.combine(*futures)
-      CombinedFuture.new(*futures)
+      if futures.any?
+        CombinedFuture.new(*futures)
+      else
+        completed([])
+      end
     end
 
     # Creates a new future which is completed.
@@ -40,7 +44,7 @@ module Cql
 
     # Creates a new future which is failed.
     #
-    # @param [Error] the error of the created future
+    # @param [Error] error the error of the created future
     # @return [Future] a failed future
     #
     def self.failed(error)
@@ -91,7 +95,7 @@ module Cql
     #
     # If the future fails this method will raise the error that failed the future.
     #
-    # @returns [Object] the value of this future
+    # @return [Object] the value of this future
     #
     def value
       raise @error if @error

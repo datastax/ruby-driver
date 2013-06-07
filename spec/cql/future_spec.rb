@@ -190,6 +190,10 @@ module Cql
           f = Future.combine(Future.new, Future.new)
           expect { f.fail!(StandardError.new('Blurgh')) }.to raise_error(FutureError)
         end
+
+        it 'completes with an empty list when no futures are given' do
+          Future.combine.get.should == []
+        end
       end
     end
 
