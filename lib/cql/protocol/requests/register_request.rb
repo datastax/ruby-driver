@@ -2,7 +2,7 @@
 
 module Cql
   module Protocol
-    class RegisterRequest < RequestBody
+    class RegisterRequest < Request
       def initialize(*events)
         super(11)
         @events = events

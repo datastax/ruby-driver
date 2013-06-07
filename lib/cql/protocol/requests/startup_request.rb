@@ -2,7 +2,7 @@
 
 module Cql
   module Protocol
-    class StartupRequest < RequestBody
+    class StartupRequest < Request
       def initialize(cql_version='3.0.0', compression=nil)
         super(1)
         @arguments = {CQL_VERSION => cql_version}

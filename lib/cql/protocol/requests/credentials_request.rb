@@ -2,7 +2,7 @@
 
 module Cql
   module Protocol
-    class CredentialsRequest < RequestBody
+    class CredentialsRequest < Request
       attr_reader :credentials
 
       def initialize(credentials)

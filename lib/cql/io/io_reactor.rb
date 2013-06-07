@@ -99,7 +99,7 @@ module Cql
 
       # Sends a request over a random, or specific connection.
       #
-      # @param [Cql::Protocol::RequestBody] request the request to send
+      # @param [Cql::Protocol::Request] request the request to send
       # @param [Object] connection_id the ID of the connection which should be
       #   used to send the request
       # @return [Future<ResultResponse>] a future representing the result of the request

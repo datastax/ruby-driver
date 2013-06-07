@@ -2,7 +2,7 @@
 
 module Cql
   module Protocol
-    class OptionsRequest < RequestBody
+    class OptionsRequest < Request
       def initialize
         super(5)
       end

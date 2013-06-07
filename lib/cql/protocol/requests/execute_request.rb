@@ -2,7 +2,7 @@
 
 module Cql
   module Protocol
-    class ExecuteRequest < RequestBody
+    class ExecuteRequest < Request
       attr_reader :id, :metadata, :values, :consistency
 
       def initialize(id, metadata, values, consistency)

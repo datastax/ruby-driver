@@ -2,7 +2,7 @@
 
 module Cql
   module Protocol
-    class RequestBody
+    class Request
       include Encoding
 
       attr_reader :opcode

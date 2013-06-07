@@ -2,7 +2,7 @@
 
 module Cql
   module Protocol
-    class PrepareRequest < RequestBody
+    class PrepareRequest < Request
       attr_reader :cql
 
       def initialize(cql)

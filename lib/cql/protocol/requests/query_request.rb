@@ -2,7 +2,7 @@
 
 module Cql
   module Protocol
-    class QueryRequest < RequestBody
+    class QueryRequest < Request
       attr_reader :cql, :consistency
 
       def initialize(cql, consistency)
