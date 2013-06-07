@@ -54,6 +54,12 @@ module Cql
           statement.pipeline { |p| }.should == []
         end
       end
+
+      describe '#async' do
+        it 'returns an asynchronous statement' do
+          statement.async.should equal(async_statement)
+        end
+      end
     end
   end
 end

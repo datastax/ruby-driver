@@ -93,6 +93,12 @@ module Cql
           statement.metadata.should equal(metadata)
         end
       end
+
+      describe '#async' do
+        it 'returns an asynchronous client' do
+          client.async.should equal(async_client)
+        end
+      end
     end
   end
 end

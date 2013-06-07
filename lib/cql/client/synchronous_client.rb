@@ -38,6 +38,10 @@ module Cql
         async_statement = @async_client.prepare(cql).get
         SynchronousPreparedStatement.new(async_statement)
       end
+
+      def async
+        @async_client
+      end
     end
   end
 end

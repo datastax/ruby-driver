@@ -18,6 +18,10 @@ module Cql
         yield pl
         pl.get
       end
+
+      def async
+        @async_statement
+      end
     end
 
     # @private
