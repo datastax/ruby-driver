@@ -6,6 +6,8 @@ module Cql
   # This is a very basic implementation of UUIDs and exists more or less just
   # to encode and decode UUIDs from and to Cassandra.
   #
+  # If you want to generate UUIDs see {Cql::TimeUuid::Generator}.
+  #
   class Uuid
     # Creates a new UUID either from a string (expected to be on the standard
     # 8-4-4-4-12 form, or just 32 characters without hyphens), or from a

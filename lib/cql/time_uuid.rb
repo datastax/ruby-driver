@@ -1,7 +1,13 @@
 # encoding: utf-8
 
 module Cql
+  # A variant of UUID which can extract its time component.
+  #
   class TimeUuid < Uuid
+    # Returns the time component from this UUID as a Time.
+    #
+    # @return [Time]
+    #
     def to_time
       n = (value >> 64)
       t = 0
@@ -14,13 +20,36 @@ module Cql
       Time.at(seconds, microseconds).utc
     end
 
+    # A UUID version 1, variant 1 generator. It can generate a sequence of UUIDs
+    # with reasonable uniqueness guarantees:
+    #
+    # * The clock ID and node ID components are set to random numbers when the
+    #   generator is created.
+    # * If two calls to {#next} happen within the time afforded by the system
+    #   clock resolution a counter is incremented and added to the time
+    #   component.
+    # * If the clock moves backwards the clock ID is reset to a new random
+    #   number.
+    #
+    # Instances of this class are absolutely not threadsafe. You should
+    # never share instances between threads.
+    #
     class Generator
+      # Create a new UUID generator.
+      #
+      # @param [Integer] node_id an alternate node ID (defaults to a random number)
+      # @param [Integer] clock_id an alternate clock ID (defaults to a random number)
+      #
       def initialize(node_id=nil, clock_id=nil, clock=Time)
         @node_id = node_id || (rand(2**47) | 0x010000000000)
         @clock_id = clock_id || rand(2**16)
         @clock = clock
       end
 
+      # Returns a new UUID with a time component that is the current time.
+      #
+      # @return [Cql::TimeUuid] a new UUID
+      #
       def next
         now = @clock.now
         usecs = now.to_i * 1_000_000 + now.usec
@@ -36,11 +65,21 @@ module Cql
         from_usecs(@last_usecs)
       end
 
+      # Returns a new UUID with a time component based on the specified Time.
+      # A piece of jitter is added to ensure that multiple calls with the same
+      # time do not generate the same UUID (if you want determinism you can set
+      # the second parameter to zero).
+      #
+      # @param [Time] time the time to encode into the UUID
+      # @param [Integer] jitter a number of microseconds to add to the time to make it unique
+      # @return [Cql::TimeUuid] a new UUID
+      #
       def from_time(time, jitter=rand(2**16))
         usecs = time.to_i * 1_000_000 + time.usec + jitter
         from_usecs(usecs)
       end
 
+      # @private
       def from_usecs(usecs)
         t = GREGORIAN_OFFSET + usecs * 10
         time_hi  = t & 0x0fff000000000000
