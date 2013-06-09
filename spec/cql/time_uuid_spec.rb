@@ -69,12 +69,7 @@ module Cql
     end
 
     let :clock do
-      stub(:clock, to_i: 1370771820, usec: 329393)
-    end
-
-    before do
-      generator
-      clock.stub(:usec).and_return(329394)
+      stub(:clock, to_i: 1370771820, usec: 329394)
     end
 
     describe '#next' do
@@ -87,6 +82,7 @@ module Cql
       it 'returns unique IDs even when called within a time shorter than the clock resolution' do
         x1 = generator.next
         x2 = generator.next
+        clock.stub(:usec).and_return(329394 + 1)
         x3 = generator.next
         x1.should_not == x2
         x2.should_not == x3

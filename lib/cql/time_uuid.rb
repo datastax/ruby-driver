@@ -39,23 +39,21 @@ module Cql
         @node_id = node_id || (rand(2**47) | 0x010000000000)
         @clock_id = clock_id || rand(2**16)
         @clock = clock
-        @sequence = 0
       end
 
       def next
         now = @clock.now
         usecs = now.to_i * 1_000_000 + now.usec
-        if @last_usecs && @last_usecs == usecs
+        if @last_usecs && @last_usecs - @sequence <= usecs && usecs <= @last_usecs
           @sequence += 1
-          usecs += @sequence
         elsif @last_usecs && @last_usecs > usecs
           @sequence = 0
           @clock_id = rand(2**16)
         else
           @sequence = 0
-          @last_usecs = usecs
         end
-        TimeUuid.from_usecs(usecs, @clock_id, @node_id)
+        @last_usecs = usecs + @sequence
+        TimeUuid.from_usecs(@last_usecs, @clock_id, @node_id)
       end
 
       def from_time(time, jitter=rand(2**16))
