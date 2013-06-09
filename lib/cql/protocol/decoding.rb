@@ -86,8 +86,8 @@ module Cql
         raise DecodingError, "Not enough bytes available to decode a long string: #{e.message}", e.backtrace
       end
 
-      def read_uuid!(buffer)
-        Uuid.new(read_varint!(buffer, 16, false))
+      def read_uuid!(buffer, impl=Uuid)
+        impl.new(read_varint!(buffer, 16, false))
       rescue RangeError => e
         raise DecodingError, "Not enough bytes available to decode a UUID: #{e.message}", e.backtrace
       end

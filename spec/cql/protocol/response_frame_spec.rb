@@ -520,8 +520,8 @@ module Cql
             frame.body.rows.first['varint_column'].should == 1231312312331283012830129382342342412123
           end
 
-          it 'decodes TIMEUUID as a Uuid' do
-            frame.body.rows.first['timeuuid_column'].should == Uuid.new('a4a70900-24e1-11df-8924-001ff3591711')
+          it 'decodes TIMEUUID as a TimeUuid' do
+            frame.body.rows.first['timeuuid_column'].should == TimeUuid.new('a4a70900-24e1-11df-8924-001ff3591711')
           end
 
           it 'decodes INET as a IPAddr' do
