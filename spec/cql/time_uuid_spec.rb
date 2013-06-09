@@ -9,56 +9,11 @@ module Cql
       Time.utc(2013, 6, 7, 8, 9, 10)
     end
 
-    describe '.from_time' do
-      it 'can be created from a Time instance' do
-        x = described_class.from_time(time, 0, 0)
-        x.to_s.should start_with('88401700-cf49-11e2-')
-      end
-
-      it 'can be created with a clock ID' do
-        x = described_class.from_time(time, 0x0bad, 0)
-        x.to_s.should match(/^.{8}-.{4}-.{4}-.bad/)
-      end
-
-      it 'uses the lower 14 bits of the clock ID' do
-        x = described_class.from_time(time, 0xffffffcafe, 0)
-        x.to_s.should match(/^.{8}-.{4}-11e2-.afe/)
-      end
-
-      it 'ensures that the high bit of the clock ID is 1' do
-        x = described_class.from_time(time, 0x1337, 0)
-        x.to_s.should match(/^.{8}-.{4}-.{4}-9337/)
-      end
-
-      it 'can be created with a node ID' do
-        x = described_class.from_time(time, 0xcafe, 0x68656c6c6f20)
-        x.to_s.should match(/^.{8}-.{4}-.{4}-.{4}-68656c6c6f20$/)
-      end
-
-      it 'uses the lower 64 bits of the node ID' do
-        x = described_class.from_time(time, 0xcafe, 0xffffffffff68656c6c6f20)
-        x.to_s.should match(/^.{8}-.{4}-.{4}-8afe-68656c6c6f20$/)
-      end
-
-      it 'is a version 1, variant 1 UUID' do
-        x = described_class.from_time(time, 0, 0)
-        (x.value & 0x10008000000000000000).should == 0x10008000000000000000
-      end
-    end
-
     describe '#to_time' do
       it 'returns a Time' do
         x = TimeUuid.new('00b69180-d0e1-11e2-8b8b-0800200c9a66')
         x.to_time.should be > Time.utc(2013, 6, 9, 8, 45, 57)
         x.to_time.should be < Time.utc(2013, 6, 9, 8, 45, 58)
-      end
-    end
-
-    describe '#value' do
-      it 'returns the numeric value' do
-        x = described_class.from_time(time, 0, 0)
-        x.value.should be > 0x88401700cf4900000000000000000000
-        x.value.should be < 0x88401700cf4a00000000000000000000
       end
     end
   end
@@ -125,6 +80,11 @@ module Cql
         x = generator.next.value & 0x010000000000
         x.should == 0x010000000000
       end
+
+      it 'generates a version 1, variant 1 UUID' do
+        x = generator.from_time(clock)
+        (x.value & 0x10008000000000000000).should == 0x10008000000000000000
+      end
     end
 
     describe '#from_time' do
@@ -138,6 +98,38 @@ module Cql
         x = generator.from_time(clock, 8)
         x.to_time.to_i.should == 1370771820
         x.to_time.usec.should == 329394 + 8
+      end
+    end
+
+    context 'when specifying a custom clock ID' do
+      it 'uses the lower 14 bits of the specified clock ID' do
+        g = described_class.new(nil, 0x2bad, stub(now: clock))
+        (g.next.value >> 48 & 0x3fff).should == 0x2bad
+      end
+
+      it 'ensures that the high bit of the clock ID is 1 (the variant)' do
+        g = described_class.new(nil, 0x2bad, stub(now: clock))
+        (g.next.value >> 60 & 0b1000).should == 0b1000
+      end
+
+      it 'generates a new random clock ID if time has moved backwards' do
+        g = described_class.new(nil, 0x2bad, stub(now: clock))
+        str1 = g.next.to_s.split('-')[3]
+        clock.stub(:to_i).and_return(1370771820 - 2)
+        str2 = g.next.to_s.split('-')[3]
+        str1.should_not == str2
+      end
+    end
+
+    context 'when specifying a custom node ID' do
+      it 'uses the lower 48 bits of the specified node ID' do
+        g = described_class.new(0xd00b1ed00b1ed00b, 0x0000, stub(now: clock))
+        g.next.to_s.should end_with('00-1ed00b1ed00b')
+      end
+
+      it 'does not modify the multicast bit' do
+        g = described_class.new(0x000000000000, 0x0000, stub(now: clock))
+        g.next.to_s.should end_with('00-000000000000')
       end
     end
   end

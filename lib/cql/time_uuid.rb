@@ -2,26 +2,6 @@
 
 module Cql
   class TimeUuid < Uuid
-    def self.from_time(time, clock_id, node_id)
-      from_usecs(time.to_i * 1_000_000 + time.usec, clock_id, node_id)
-    end
-
-    def self.from_usecs(usec, clock_id, node_id)
-      t = GREGORIAN_OFFSET + usec * 10
-      time_hi  = t & 0x0fff000000000000
-      time_mid = t & 0x0000ffff00000000
-      time_low = t & 0x00000000ffffffff
-      version = 1
-      clock_id = clock_id & 0x3fff
-      node_id = node_id & 0xffffffffffff
-      variant = 0x8000
-      n = (time_low << 96) | (time_mid << 48) | (time_hi << 16)
-      n |= version << 76
-      n |= (clock_id | variant) << 48
-      n |= node_id
-      new(n)
-    end
-
     def to_time
       n = (value >> 64)
       t = 0
@@ -53,12 +33,28 @@ module Cql
           @sequence = 0
         end
         @last_usecs = usecs + @sequence
-        TimeUuid.from_usecs(@last_usecs, @clock_id, @node_id)
+        from_usecs(@last_usecs)
       end
 
       def from_time(time, jitter=rand(2**16))
         usecs = time.to_i * 1_000_000 + time.usec + jitter
-        TimeUuid.from_usecs(usecs, @clock_id, @node_id)
+        from_usecs(usecs)
+      end
+
+      def from_usecs(usecs)
+        t = GREGORIAN_OFFSET + usecs * 10
+        time_hi  = t & 0x0fff000000000000
+        time_mid = t & 0x0000ffff00000000
+        time_low = t & 0x00000000ffffffff
+        version = 1
+        clock_id = @clock_id & 0x3fff
+        node_id = @node_id & 0xffffffffffff
+        variant = 0x8000
+        n = (time_low << 96) | (time_mid << 48) | (time_hi << 16)
+        n |= version << 76
+        n |= (clock_id | variant) << 48
+        n |= node_id
+        TimeUuid.new(n)
       end
     end
 
