@@ -124,8 +124,9 @@ module Cql
           end
         end
 
-        shared_examples 'on connection error' do
+        context 'when #connect_nonblock raises SystemCallError' do
           before do
+            socket.stub(:connect_nonblock).and_raise(SystemCallError.new('Bork!', 9999))
             socket.stub(:close)
           end
 
@@ -158,20 +159,33 @@ module Cql
           end
         end
 
-        context 'when #connect_nonblock raises SystemCallError' do
+        context 'when Socket.getaddrinfo raises SocketError' do
           before do
-            socket.stub(:connect_nonblock).and_raise(SystemCallError.new('Bork!', 9999))
+            socket_impl.stub(:getaddrinfo).and_raise(SocketError)
           end
 
-          include_examples 'on connection error'
-        end
-
-        context 'when #connect_nonblock raises SocketError' do
-          before do
-            socket.stub(:connect_nonblock).and_raise(SocketError)
+          it 'returns false' do
+            handler.open.should be_false
           end
-          
-          include_examples 'on connection error'
+
+          it 'calls the close listener' do
+            called = false
+            handler.on_closed { called = true }
+            handler.open
+            called.should be_true, 'expected the close listener to have been called'
+          end
+
+          it 'passes the error to the close listener' do
+            error = nil
+            handler.on_closed { |e| error = e }
+            handler.open
+            error.should be_a(Exception)
+          end
+
+          it 'is closed' do
+            handler.open
+            handler.should be_closed
+          end
         end
 
         context 'when it takes longer than the connection timeout to connect' do
@@ -212,6 +226,10 @@ module Cql
           handler.close
         end
 
+        it 'returns true' do
+          handler.close.should be_true
+        end
+
         it 'swallows SystemCallErrors' do
           socket.stub(:close).and_raise(SystemCallError.new('Bork!', 9999))
           handler.close
@@ -231,6 +249,11 @@ module Cql
           handler.close
           handler.close
           calls.should == 1
+        end
+
+        it 'returns false if it did nothing' do
+          handler.close
+          handler.close.should be_false
         end
 
         it 'is not writable when closed' do

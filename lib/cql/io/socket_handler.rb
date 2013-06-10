@@ -37,20 +37,23 @@ module Cql
           close(ConnectionTimeoutError.new("Could not connect to #{@host}:#{@port} within #{@connection_timeout}s"))
         end
         false
-      rescue SystemCallError, SocketError => e
+      rescue SystemCallError => e
         close(e)
+        false
+      rescue SocketError => e
+        close(e) || closed!(e)
         false
       end
 
       def close(cause=nil)
-        if @io
-          begin
-            @io.close
-          rescue SystemCallError
-            # nothing to do, the socket was most likely already closed
-          end
-          closed!(cause)
+        return false unless @io
+        begin
+          @io.close
+        rescue SystemCallError
+          # nothing to do, the socket was most likely already closed
         end
+        closed!(cause)
+        true
       end
 
       def connected?
