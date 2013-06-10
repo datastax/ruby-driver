@@ -7,12 +7,9 @@ module Cql
   module Io
     # @private
     class NodeConnection
-      def initialize(*args)
-        @host, @port, @connection_timeout = args
+      def initialize(host, port, connection_timeout)
+        @socket_handler = SocketHandler.new(host, port, connection_timeout)
         @connected_future = Future.new
-        @io = nil
-        @addrinfo = nil
-        @write_buffer = ByteBuffer.new
         @read_buffer = ByteBuffer.new
         @current_frame = Protocol::ResponseFrame.new(@read_buffer)
         @response_tasks = [nil] * 128
@@ -20,18 +17,10 @@ module Cql
       end
 
       def open
-        @connection_started_at = Time.now
-        begin
-          addrinfo = Socket.getaddrinfo(@host, @port, Socket::AF_INET, Socket::SOCK_STREAM)
-          _, port, _, ip, address_family, socket_type = addrinfo.first
-          @sockaddr = Socket.sockaddr_in(port, ip)
-          @io = Socket.new(address_family, socket_type, 0)
-          @io.connect_nonblock(@sockaddr)
-        rescue Errno::EINPROGRESS
-          # NOTE not connected yet, this is expected
-        rescue SystemCallError, SocketError => e
-          fail_connection!(e)
-        end
+        @socket_handler.on_connected(&method(:handle_connected))
+        @socket_handler.on_closed(&method(:handle_closed))
+        @socket_handler.on_data(&method(:handle_data))
+        @socket_handler.open
         @connected_future
       end
 
@@ -40,7 +29,7 @@ module Cql
       end
 
       def to_io
-        @io
+        @socket_handler.to_io
       end
 
       def on_event(&listener)
@@ -52,15 +41,15 @@ module Cql
       end
 
       def connected?
-        @io && !connecting?
+        @socket_handler.connected?
       end
 
       def connecting?
-        @io && !(@connected_future.complete? || @connected_future.failed?)
+        @socket_handler.connecting?
       end
 
       def closed?
-        @io.nil? && !connecting?
+        @socket_handler.closed?
       end
 
       def has_capacity?
@@ -68,31 +57,16 @@ module Cql
       end
 
       def can_write?
-        @io && (!@write_buffer.empty? || connecting?)
+        @socket_handler.writable? || @socket_handler.connecting?
       end
 
       def handle_read
-        new_bytes = @io.read_nonblock(2**16)
-        @current_frame << new_bytes
-        while @current_frame.complete?
-          stream_id = @current_frame.stream_id
-          if stream_id == EVENT_STREAM_ID
-            @event_listeners[:event].each { |listener| listener.call(@current_frame.body) }
-          elsif @response_tasks[stream_id]
-            @response_tasks[stream_id].complete!([@current_frame.body, connection_id])
-            @response_tasks[stream_id] = nil
-          else
-            # TODO dropping the request on the floor here, but we didn't send it
-          end
-          @current_frame = Protocol::ResponseFrame.new(@read_buffer)
-        end
-      rescue => e
-        force_close(e)
+        @socket_handler.read
       end
 
       def perform_request(request, future)
         stream_id = next_stream_id
-        request.encode_frame(stream_id, @write_buffer)
+        @socket_handler.write(request.encode_frame(stream_id))
         @response_tasks[stream_id] = future
       rescue => e
         case e
@@ -110,43 +84,18 @@ module Cql
         if connecting?
           handle_connecting
         else
-          if !@write_buffer.empty?
-            bytes_written = @io.write_nonblock(@write_buffer.cheap_peek)
-            @write_buffer.discard(bytes_written)
-          end
+          @socket_handler.flush
         end
       rescue => e
-        force_close(e)
+        @socket_handler.close(e)
       end
 
       def handle_connecting
-        if connecting_timed_out?
-          fail_connection!(ConnectionTimeoutError.new("Could not connect to #{@host}:#{@port} within #{@connection_timeout}s"))
-        else
-          @io.connect_nonblock(@sockaddr)
-          succeed_connection!
-        end
-      rescue Errno::EALREADY, Errno::EINPROGRESS
-        # NOTE still not connected
-      rescue Errno::EISCONN
-        succeed_connection!
-      rescue SystemCallError, SocketError => e
-        fail_connection!(e)
+        @socket_handler.open
       end
 
       def close
-        if @io
-          begin
-            @io.close
-          rescue SystemCallError
-            # NOTE nothing to do, it wasn't open
-          end
-          if connecting?
-            succeed_connection!
-          end
-          @io = nil
-          @event_listeners[:close].each { |listener| listener.call(self) }
-        end
+        @socket_handler.close
       end
 
       def to_s
@@ -163,8 +112,49 @@ module Cql
 
       EVENT_STREAM_ID = -1
 
-      def connecting_timed_out?
-        (Time.now - @connection_started_at) > @connection_timeout
+      def handle_connected
+        succeed_connection!
+      end
+
+      def handle_closed(cause)
+        error = nil
+        case cause
+        when nil
+        when CqlError
+          error = cause
+        else
+          error = IoError.new(cause.message)
+          error.set_backtrace(cause.backtrace)
+        end
+        unless @connected_future.complete? || @connected_future.failed?
+          if error
+            fail_connection!(error)
+          else
+            succeed_connection!
+          end
+        end
+        @event_listeners[:close].each { |listener| listener.call(self) }
+        @response_tasks.each do |listener|
+          listener.fail!(error) if listener
+        end
+      end
+
+      def handle_data(new_bytes)
+        @current_frame << new_bytes
+        while @current_frame.complete?
+          stream_id = @current_frame.stream_id
+          if stream_id == EVENT_STREAM_ID
+            @event_listeners[:event].each { |listener| listener.call(@current_frame.body) }
+          elsif @response_tasks[stream_id]
+            @response_tasks[stream_id].complete!([@current_frame.body, connection_id])
+            @response_tasks[stream_id] = nil
+          else
+            # TODO dropping the request on the floor here, but we didn't send it
+          end
+          @current_frame = Protocol::ResponseFrame.new(@read_buffer)
+        end
+      rescue => e
+        @socket_handler.close(e)
       end
 
       def succeed_connection!
@@ -181,21 +171,6 @@ module Cql
           error.set_backtrace(e.backtrace)
         end
         @connected_future.fail!(error)
-        force_close(error)
-      end
-
-      def force_close(e)
-        case e
-        when CqlError
-          error = e
-        else
-          error = IoError.new(e.message)
-          error.set_backtrace(e.backtrace)
-        end
-        @response_tasks.each do |listener|
-          listener.fail!(error) if listener
-        end
-        close
       end
 
       def next_stream_id
