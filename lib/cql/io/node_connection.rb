@@ -92,7 +92,7 @@ module Cql
 
       def perform_request(request, future)
         stream_id = next_stream_id
-        @write_buffer << request.encode_frame(stream_id)
+        request.encode_frame(stream_id, @write_buffer)
         @response_tasks[stream_id] = future
       rescue => e
         case e
