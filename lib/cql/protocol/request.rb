@@ -13,9 +13,10 @@ module Cql
 
       def encode_frame(stream_id=0, buffer=ByteBuffer.new)
         raise InvalidStreamIdError, 'The stream ID must be between 0 and 127' unless 0 <= stream_id && stream_id < 128
+        offset = buffer.bytesize
         buffer << [1, 0, stream_id, opcode, 0].pack(Formats::HEADER_FORMAT)
         write(buffer)
-        buffer.update(4, [(buffer.bytesize - 8)].pack(Formats::INT_FORMAT))
+        buffer.update(offset + 4, [(buffer.bytesize - offset - 8)].pack(Formats::INT_FORMAT))
         buffer
       end
     end
