@@ -29,6 +29,8 @@ when you're done you can call `#close` to disconnect from Cassandra. You can con
 
 # Usage
 
+The full [API documentation](http://rubydoc.info/gems/cql-rb/frames) is available from [rubydoc.info](http://rubydoc.info/).
+
 ## Changing keyspaces
 
 ```ruby
