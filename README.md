@@ -214,6 +214,7 @@ Open an issue and I'll do my best to help you. Please include the gem version, C
 * Compression is not supported.
 * Large results are buffered in memory until the whole response has been loaded, the protocol makes it possible to start to deliver rows to the client code as soon as the metadata is loaded, but this is not supported yet.
 * There is no cluster introspection utilities (like the `DESCRIBE` commands in `cqlsh`).
+* No support for request tracing.
 
 ## Copyright
 
