@@ -8,11 +8,7 @@ Cassandra 1.2 with the native transport protocol turned on and a modern Ruby. Te
 
 # Installation
 
-v1.0.0 has not yet been released, but the current prereleases are continuously being battle tested in systems running thousands of queries per second.
-
-You can install the latest prerelease with this command:
-
-    gem install --prerelease cql-rb
+    gem install cql-rb
 
 ## Configure Cassandra
 
