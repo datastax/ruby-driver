@@ -51,7 +51,7 @@ module Cql
         when_not_connecting do
           f = @io_reactor.stop
           f.on_complete { @closed_future.complete!(self) }
-          f.on_failure { @closed_future.fail!(e) }
+          f.on_failure { |e| @closed_future.fail!(e) }
         end
         @closed_future.on_complete do
           @lock.synchronize do

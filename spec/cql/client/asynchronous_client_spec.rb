@@ -158,6 +158,11 @@ module Cql
         it 'returns itself' do
           client.connect.get.close.get.should equal(client)
         end
+
+        it 'fails when the IO reactor stop fails' do
+          io_reactor.stub(:stop).and_return(Future.failed(StandardError.new('Bork!')))
+          expect { client.close.get }.to raise_error('Bork!')
+        end
       end
 
       describe '#use' do
