@@ -327,6 +327,16 @@ module Cql
           handler.flush
         end
 
+        context 'with a block' do
+          it 'yields a byte buffer to the block' do
+            socket.should_receive(:write_nonblock).with('hello world').and_return(11)
+            handler.write do |buffer|
+              buffer << 'hello world'
+            end
+            handler.flush
+          end
+        end
+
         context 'when #write_nonblock raises an error' do
           before do
             socket.stub(:close)

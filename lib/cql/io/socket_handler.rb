@@ -84,8 +84,12 @@ module Cql
         @closed_listener = listener
       end
 
-      def write(bytes)
-        @write_buffer.append(bytes)
+      def write(bytes=nil)
+        if block_given?
+          yield @write_buffer
+        elsif bytes
+          @write_buffer.append(bytes)
+        end
       end
 
       def flush
