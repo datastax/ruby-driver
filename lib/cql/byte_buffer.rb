@@ -19,14 +19,18 @@ module Cql
     end
 
     def append(bytes)
-      bytes = bytes.to_s
-      unless bytes.ascii_only?
-        bytes = bytes.dup.force_encoding(::Encoding::BINARY)
+      if bytes.is_a?(self.class)
+        bytes.append_to(self)
+      else
+        bytes = bytes.to_s
+        unless bytes.ascii_only?
+          bytes = bytes.dup.force_encoding(::Encoding::BINARY)
+        end
+        retag = @write_buffer.empty?
+        @write_buffer << bytes
+        @write_buffer.force_encoding(::Encoding::BINARY) if retag
+        @length += bytes.bytesize
       end
-      retag = @write_buffer.empty?
-      @write_buffer << bytes
-      @write_buffer.force_encoding(::Encoding::BINARY) if retag
-      @length += bytes.bytesize
       self
     end
     alias_method :<<, :append
@@ -147,6 +151,18 @@ module Cql
 
     def inspect
       %(#<#{self.class.name}: #{to_str.inspect}>)
+    end
+
+    protected
+
+    def append_to(other)
+      other.raw_append(cheap_peek)
+      other.raw_append(@write_buffer) unless @write_buffer.empty?
+    end
+
+    def raw_append(bytes)
+      @write_buffer << bytes
+      @length += bytes.bytesize
     end
 
     private
