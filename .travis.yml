@@ -3,17 +3,20 @@ script: 'rspec spec'
 bundler_args: --without development
 rvm:
   - 1.9.3
+  - 2.0.0
   - jruby-19mode
   - jruby-head
 jdk:
   - openjdk7
   - openjdk6
-services:
-  - cassandra
-env:
-  - CASSANDRA_HOST=127.0.0.1
+# services:
+#   - cassandra
+# env:
+#   - CASSANDRA_HOST=127.0.0.1
 matrix:
   exclude:
     - rvm: 1.9.3
-      jdk: openjdk7
+      jdk: openjdk6
+    - rvm: 2.0.0
+      jdk: openjdk6
 
