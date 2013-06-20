@@ -62,7 +62,7 @@ module Cql
         raise FutureError, 'Future already completed' if complete? || failed?
         @value = v
         @complete_listeners.each do |listener|
-          listener.call(@value)
+          listener.call(@value) rescue nil
         end
       end
     ensure
@@ -84,7 +84,7 @@ module Cql
     def on_complete(&listener)
       @state_lock.synchronize do
         if complete?
-          listener.call(value)
+          listener.call(value) rescue nil
         else
           @complete_listeners << listener
         end
@@ -117,7 +117,7 @@ module Cql
         raise FutureError, 'Future already completed' if failed? || complete?
         @error = error
         @failure_listeners.each do |listener|
-          listener.call(error)
+          listener.call(error) rescue nil
         end
       end
     ensure
@@ -139,7 +139,7 @@ module Cql
     def on_failure(&listener)
       @state_lock.synchronize do
         if failed?
-          listener.call(@error)
+          listener.call(@error) rescue nil
         else
           @failure_listeners << listener
         end
