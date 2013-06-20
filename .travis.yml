@@ -1,5 +1,5 @@
 language: ruby
-script: 'rspec spec/cql'
+script: 'rspec spec'
 bundler_args: --without development
 rvm:
   - 1.9.3
@@ -8,8 +8,10 @@ rvm:
 jdk:
   - openjdk7
   - openjdk6
-# services:
-#   - cassandra
+services:
+  - cassandra
+env:
+  - CASSANDRA_HOST=127.0.0.1
 matrix:
   exclude:
     - rvm: 1.9.3
