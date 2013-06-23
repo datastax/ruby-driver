@@ -43,7 +43,6 @@ module Cql
   # See {Cql::Client::Client} for the full client API.
   #
   module Client
-    NotConnectedError = Class.new(ClientError)
     InvalidKeyspaceNameError = Class.new(ClientError)
 
     # Create a new client and connects to Cassandra.

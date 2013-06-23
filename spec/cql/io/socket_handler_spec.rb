@@ -34,69 +34,52 @@ module Cql
           .and_return(socket)
       end
 
-      describe '#open' do
+      describe '#connect' do
         it 'creates a socket and calls #connect_nonblock' do
           socket.should_receive(:connect_nonblock).with('SOCKADDR')
-          handler.open
+          handler.connect
         end
 
         it 'handles EINPROGRESS that #connect_nonblock raises' do
           socket.stub(:connect_nonblock).and_raise(Errno::EINPROGRESS)
-          handler.open
+          handler.connect
         end
 
-        it 'returns false while the socket is connecting' do
+        it 'is connecting after #connect has been called' do
           socket.stub(:connect_nonblock).and_raise(Errno::EINPROGRESS)
-          handler.open.should be_false
-        end
-
-        it 'is connecting after #open has been called' do
-          socket.stub(:connect_nonblock).and_raise(Errno::EINPROGRESS)
-          handler.open
+          handler.connect
           handler.should be_connecting
-        end
-
-        it 'attempts another connect the second time' do
-          socket.should_receive(:connect_nonblock).twice.and_raise(Errno::EINPROGRESS)
-          handler.open
-          handler.open
         end
 
         it 'is connecting even after the second call' do
           socket.should_receive(:connect_nonblock).twice.and_raise(Errno::EINPROGRESS)
-          handler.open
-          handler.open
+          handler.connect
+          handler.connect
           handler.should be_connecting
         end
 
         it 'does not create a new socket the second time' do
           socket_impl.should_receive(:new).once.and_return(socket)
           socket.stub(:connect_nonblock).and_raise(Errno::EINPROGRESS)
-          handler.open
-          handler.open
+          handler.connect
+          handler.connect
         end
 
-        it 'does nothing when connected' do
-          socket.stub(:connect_nonblock)
-          handler.open
-          socket.should_not_receive(:connect_nonblock)
-          handler.open
+        it 'attempts another connect the second time' do
+          socket.should_receive(:connect_nonblock).twice.and_raise(Errno::EINPROGRESS)
+          handler.connect
+          handler.connect
         end
 
         shared_examples 'on successfull connection' do
-          it 'returns true' do
-            handler.open.should be_true
-          end
-
-          it 'calls the connected listener' do
-            called = false
-            handler.on_connected { called = true }
-            handler.open
-            called.should be_true, 'expected the connected listener to have been called'
+          it 'completes the returned future and returns itself' do
+            f = handler.connect
+            f.should be_complete
+            f.get.should equal(handler)
           end
 
           it 'is connected' do
-            handler.open
+            handler.connect
             handler.should be_connected
           end
         end
@@ -118,9 +101,11 @@ module Cql
         end
 
         context 'when #connect_nonblock raises EALREADY' do
-          it 'returns false' do
+          it 'it does nothing' do
             socket.stub(:connect_nonblock).and_raise(Errno::EALREADY)
-            handler.open.should be_false
+            f = handler.connect
+            f.should_not be_complete
+            f.should_not be_failed
           end
         end
 
@@ -130,31 +115,32 @@ module Cql
             socket.stub(:close)
           end
 
-          it 'returns false' do
-            handler.open.should be_false
+          it 'fails the future with a ConnectionError' do
+            f = handler.connect
+            expect { f.get }.to raise_error(ConnectionError)
           end
 
           it 'closes the socket' do
             socket.should_receive(:close)
-            handler.open
+            handler.connect
           end
 
-          it 'calls the close listener' do
+          it 'calls the closed listener' do
             called = false
             handler.on_closed { called = true }
-            handler.open
+            handler.connect
             called.should be_true, 'expected the close listener to have been called'
           end
 
           it 'passes the error to the close listener' do
             error = nil
             handler.on_closed { |e| error = e }
-            handler.open
+            handler.connect
             error.should be_a(Exception)
           end
 
           it 'is closed' do
-            handler.open
+            handler.connect
             handler.should be_closed
           end
         end
@@ -164,26 +150,27 @@ module Cql
             socket_impl.stub(:getaddrinfo).and_raise(SocketError)
           end
 
-          it 'returns false' do
-            handler.open.should be_false
+          it 'fails the returned future with a ConnectionError' do
+            f = handler.connect
+            expect { f.get }.to raise_error(ConnectionError)
           end
 
           it 'calls the close listener' do
             called = false
             handler.on_closed { called = true }
-            handler.open
+            handler.connect
             called.should be_true, 'expected the close listener to have been called'
           end
 
           it 'passes the error to the close listener' do
             error = nil
             handler.on_closed { |e| error = e }
-            handler.open
+            handler.connect
             error.should be_a(Exception)
           end
 
           it 'is closed' do
-            handler.open
+            handler.connect
             handler.should be_closed
           end
         end
@@ -194,21 +181,32 @@ module Cql
             socket.stub(:close)
           end
 
-          it 'closes the connection' do
-            handler.open
+          it 'fails the returned future with a ConnectionTimeoutError' do
+            f = handler.connect
             clock.stub(:now).and_return(1)
-            handler.open
+            handler.connect
             socket.should_receive(:close)
             clock.stub(:now).and_return(7)
-            handler.open
+            handler.connect
+            f.should be_failed
+            expect { f.get }.to raise_error(ConnectionTimeoutError)
+          end
+
+          it 'closes the connection' do
+            handler.connect
+            clock.stub(:now).and_return(1)
+            handler.connect
+            socket.should_receive(:close)
+            clock.stub(:now).and_return(7)
+            handler.connect
           end
 
           it 'delivers a ConnectionTimeoutError to the close handler' do
             error = nil
             handler.on_closed { |e| error = e }
-            handler.open
+            handler.connect
             clock.stub(:now).and_return(7)
-            handler.open
+            handler.connect
             error.should be_a(ConnectionTimeoutError)
           end
         end
@@ -218,7 +216,7 @@ module Cql
         before do
           socket.stub(:connect_nonblock)
           socket.stub(:close)
-          handler.open
+          handler.connect
         end
 
         it 'closes the socket' do
@@ -232,6 +230,11 @@ module Cql
 
         it 'swallows SystemCallErrors' do
           socket.stub(:close).and_raise(SystemCallError.new('Bork!', 9999))
+          handler.close
+        end
+
+        it 'swallows IOErrors' do
+          socket.stub(:close).and_raise(IOError.new('Bork!'))
           handler.close
         end
 
@@ -274,12 +277,12 @@ module Cql
         end
 
         it 'returns the socket when connected' do
-          handler.open
+          handler.connect
           handler.to_io.should equal(socket)
         end
 
         it 'returns nil when closed' do
-          handler.open
+          handler.connect
           handler.close
           handler.to_io.should be_nil
         end
@@ -288,7 +291,7 @@ module Cql
       describe '#write/#flush' do
         before do
           socket.stub(:connect_nonblock)
-          handler.open
+          handler.connect
         end
 
         it 'appends to its buffer when #write is called' do
@@ -362,7 +365,7 @@ module Cql
       describe '#read' do
         before do
           socket.stub(:connect_nonblock)
-          handler.open
+          handler.connect
         end
 
         it 'reads a chunk from the socket' do

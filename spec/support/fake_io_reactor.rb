@@ -8,48 +8,74 @@ class FakeIoReactor
     @connections = []
     @queued_responses = Hash.new { |h, k| h[k] = [] }
     @default_host = nil
+    @connection_listeners = []
+    @started_future = Cql::Future.new
+    @startup_delay = 0
   end
 
-  def queue_response(response, host=nil)
-    @queued_responses[host] << response
+  def startup_delay=(n)
+    @startup_delay = n
+  end
+
+  def connect(host, port, timeout)
+    connection = FakeConnection.new(host, port, timeout)
+    @connections << connection
+    @connection_listeners.each do |listener|
+      listener.call(connection)
+    end
+    Cql::Future.completed(connection)
+  end
+
+  def on_connection(&listener)
+    @connection_listeners << listener
   end
 
   def start
     @running = true
-    @connections = []
-    @connections.each do |connection|
-      connection[:future].complete! unless connection[:future].complete?
+    Thread.start do
+      sleep(@startup_delay)
+      @started_future.complete!(self)
     end
-    Cql::Future.completed
+    @started_future
   end
 
   def stop
     @running = false
+    @connections.each(&:close)
     Cql::Future.completed
   end
 
   def running?
     @running
   end
+end
 
-  def add_connection(host, port)
-    @default_host ||= host
-    future = Cql::Future.new
-    connection = {:host => host, :port => port, :future => future, :requests => []}
-    @connections << connection
-    future.complete!(connection.object_id) if @running
-    future
+class FakeConnection
+  attr_reader :host, :port, :timeout, :requests
+
+  def initialize(host, port, timeout)
+    @host = host
+    @port = port
+    @timeout = timeout
+    @requests = []
+    @responses = []
+    @closed = false
   end
 
-  def queue_request(request, connection_id=nil)
-    if connection_id
-      connection = @connections.find { |c| c.object_id == connection_id }
+  def close
+    @closed = true
+  end
+
+  def queue_response(response)
+    @responses << response
+  end
+
+  def send_request(request)
+    if @closed
+      Cql::Future.failed(Cql::Io::NotConnectedError.new)
     else
-      connection = @connections.sample
+      @requests << request
+      Cql::Future.completed(@responses.shift)
     end
-    connection[:requests] << request
-    response = @queued_responses[connection[:host]].shift || @queued_responses[nil].shift
-    @last_used_connection = connection
-    Cql::Future.completed([response, connection.object_id])
   end
 end

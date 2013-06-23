@@ -4,11 +4,15 @@ require 'spec_helper'
 
 
 describe 'Protocol parsing and communication' do
-  let :io_reactor do
-    ir = Cql::Io::IoReactor.new
+  let! :io_reactor do
+    ir = Cql::Io::IoReactor.new(Cql::Io::CqlConnection)
     ir.start
-    ir.add_connection(ENV['CASSANDRA_HOST'], 9042).get
+    connections << ir.connect(ENV['CASSANDRA_HOST'], 9042, 5).get
     ir
+  end
+
+  let :connections do
+    []
   end
 
   let :keyspace_name do
@@ -20,7 +24,8 @@ describe 'Protocol parsing and communication' do
   end
 
   def raw_execute_request(request)
-    io_reactor.queue_request(request).get.first
+    connection = connections.first
+    connection.send_request(request).get
   end
 
   def execute_request(request)
@@ -109,13 +114,13 @@ describe 'Protocol parsing and communication' do
 
     context 'when authentication is required' do
       let :authentication_enabled do
-        ir = Cql::Io::IoReactor.new
+        ir = Cql::Io::IoReactor.new(Cql::Io::CqlConnection)
         ir.start
-        connected = ir.add_connection(ENV['CASSANDRA_HOST'], 9042)
-        started = connected.flat_map do
-          ir.queue_request(Cql::Protocol::StartupRequest.new)
+        connected = ir.connect(ENV['CASSANDRA_HOST'], 9042, 5)
+        started = connected.flat_map do |connection|
+          connection.send_request(Cql::Protocol::StartupRequest.new)
         end
-        response = started.get.first
+        response = started.get
         required = response.is_a?(Cql::Protocol::AuthenticateResponse)
         ir.stop.get
         required
@@ -180,7 +185,7 @@ describe 'Protocol parsing and communication' do
         semaphore = Queue.new
         event = nil
         execute_request(Cql::Protocol::RegisterRequest.new('SCHEMA_CHANGE'))
-        io_reactor.add_event_listener do |event_response|
+        connections.first.on_event do |event_response|
           event = event_response
           semaphore << :ping
         end
@@ -348,13 +353,17 @@ describe 'Protocol parsing and communication' do
       end
 
       context 'with pipelining' do
+        let :connection do
+          connections.first
+        end
+
         it 'handles multiple concurrent requests' do
           in_keyspace_with_table do
             futures = 10.times.map do
-              io_reactor.queue_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum))
+              connection.send_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum))
             end
 
-            futures << io_reactor.queue_request(Cql::Protocol::QueryRequest.new(%<INSERT INTO users (user_name, email) VALUES ('sam', 'sam@ham.com')>, :one))
+            futures << connection.send_request(Cql::Protocol::QueryRequest.new(%<INSERT INTO users (user_name, email) VALUES ('sam', 'sam@ham.com')>, :one))
             
             Cql::Future.combine(*futures).get
           end
@@ -363,7 +372,7 @@ describe 'Protocol parsing and communication' do
         it 'handles lots of concurrent requests' do
           in_keyspace_with_table do
             futures = 2000.times.map do
-              io_reactor.queue_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum))
+              connection.send_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum))
             end
 
             Cql::Future.combine(*futures).get
@@ -375,20 +384,20 @@ describe 'Protocol parsing and communication' do
 
   context 'in special circumstances' do
     it 'raises an exception when it cannot connect to Cassandra' do
-      io_reactor = Cql::Io::IoReactor.new(connection_timeout: 0.1)
+      io_reactor = Cql::Io::IoReactor.new(Cql::Io::CqlConnection)
       io_reactor.start.get
-      expect { io_reactor.add_connection('example.com', 9042).get }.to raise_error(Cql::Io::ConnectionError)
-      expect { io_reactor.add_connection('blackhole', 9042).get }.to raise_error(Cql::Io::ConnectionError)
+      expect { io_reactor.connect('example.com', 9042, 0.1).get }.to raise_error(Cql::Io::ConnectionError)
+      expect { io_reactor.connect('blackhole', 9042, 0.1).get }.to raise_error(Cql::Io::ConnectionError)
       io_reactor.stop.get
     end
 
     it 'does nothing the second time #start is called' do
-      io_reactor = Cql::Io::IoReactor.new
+      io_reactor = Cql::Io::IoReactor.new(Cql::Io::CqlConnection)
       io_reactor.start.get
-      io_reactor.add_connection(ENV['CASSANDRA_HOST'], 9042)
-      io_reactor.queue_request(Cql::Protocol::StartupRequest.new).get
+      connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1).get
+      connection.send_request(Cql::Protocol::StartupRequest.new).get
       io_reactor.start.get
-      response = io_reactor.queue_request(Cql::Protocol::QueryRequest.new('USE system', :any)).get
+      response = connection.send_request(Cql::Protocol::QueryRequest.new('USE system', :any)).get
       response.should_not be_a(Cql::Protocol::ErrorResponse)
     end
   end
