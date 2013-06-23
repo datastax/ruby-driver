@@ -51,7 +51,7 @@ class FakeIoReactor
 end
 
 class FakeConnection
-  attr_reader :host, :port, :timeout, :requests
+  attr_reader :host, :port, :timeout, :requests, :keyspace
 
   def initialize(host, port, timeout)
     @host = host
@@ -60,6 +60,7 @@ class FakeConnection
     @requests = []
     @responses = []
     @closed = false
+    @keyspace = nil
   end
 
   def close
@@ -75,7 +76,11 @@ class FakeConnection
       Cql::Future.failed(Cql::NotConnectedError.new)
     else
       @requests << request
-      Cql::Future.completed(@responses.shift)
+      response = @responses.shift
+      if response.is_a?(Cql::Protocol::SetKeyspaceResultResponse)
+        @keyspace = response.keyspace
+      end
+      Cql::Future.completed(response)
     end
   end
 end

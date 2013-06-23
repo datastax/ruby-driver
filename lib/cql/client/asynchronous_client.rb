@@ -5,22 +5,22 @@ module Cql
     # @private
     class AsynchronousClient < Client
       def initialize(options={})
-        connection_timeout = options[:connection_timeout]
+        @connection_timeout = options[:connection_timeout] || 10
         @host = options[:host] || 'localhost'
         @port = options[:port] || 9042
-        @io_reactor = options[:io_reactor] || Io::IoReactor.new(connection_timeout: connection_timeout)
+        @io_reactor = options[:io_reactor] || Io::IoReactor.new(Io::CqlConnection)
         @lock = Mutex.new
         @connected = false
         @connecting = false
         @closing = false
         @initial_keyspace = options[:keyspace]
         @credentials = options[:credentials]
-        @connection_keyspaces = {}
+        @request_runner = RequestRunner.new
       end
 
       def connect
         @lock.synchronize do
-          return @connected_future if @connected || @connecting
+          return @connected_future if can_execute?
           @connecting = true
           @connected_future = Future.new
         end
@@ -74,23 +74,22 @@ module Cql
 
       def keyspace
         @lock.synchronize do
-          return @connection_ids.map { |id| @connection_keyspaces[id] }.first
+          @connections.first.keyspace
         end
       end
 
-      def use(keyspace, connection_ids=nil)
-        return Future.failed(NotConnectedError.new) unless @connected || @connecting
+      def use(keyspace)
+        return Future.failed(NotConnectedError.new) unless can_execute?
         return Future.failed(InvalidKeyspaceNameError.new(%("#{keyspace}" is not a valid keyspace name))) unless valid_keyspace_name?(keyspace)
-        connection_ids ||= @connection_ids
-        @lock.synchronize do
-          connection_ids = connection_ids.select { |id| @connection_keyspaces[id] != keyspace }
+        connections = @lock.synchronize do
+          @connections.select { |c| c.keyspace != keyspace }
         end
-        if connection_ids.any?
-          futures = connection_ids.map do |connection_id|
-            execute_request(Protocol::QueryRequest.new("USE #{keyspace}", :one), connection_id)
+        if connections.any?
+          futures = connections.map do |connection|
+            execute_request(Protocol::QueryRequest.new("USE #{keyspace}", :one), connection)
           end
           futures.compact!
-          return Future.combine(*futures).map { nil }
+          Future.combine(*futures).map { nil }
         else
           Future.completed(nil)
         end
@@ -98,27 +97,14 @@ module Cql
 
       def execute(cql, consistency=nil)
         consistency ||= DEFAULT_CONSISTENCY_LEVEL
-        return Future.failed(NotConnectedError.new) unless @connected || @connecting
-        f = execute_request(Protocol::QueryRequest.new(cql, consistency))
-        f.on_complete do
-          ensure_keyspace!
-        end
-        f
-      rescue => e
-        Future.failed(e)
-      end
-
-      # @private
-      def execute_statement(connection_id, statement_id, metadata, values, consistency)
-        return Future.failed(NotConnectedError.new) unless @connected || @connecting
-        request = Protocol::ExecuteRequest.new(statement_id, metadata, values, consistency || DEFAULT_CONSISTENCY_LEVEL)
-        execute_request(request, connection_id)
+        return Future.failed(NotConnectedError.new) unless can_execute?
+        execute_request(Protocol::QueryRequest.new(cql, consistency))
       rescue => e
         Future.failed(e)
       end
 
       def prepare(cql)
-        return Future.failed(NotConnectedError.new) unless @connected || @connecting
+        return Future.failed(NotConnectedError.new) unless can_execute?
         execute_request(Protocol::PrepareRequest.new(cql))
       rescue => e
         Future.failed(e)
@@ -128,6 +114,10 @@ module Cql
 
       KEYSPACE_NAME_PATTERN = /^\w[\w\d_]*$/
       DEFAULT_CONSISTENCY_LEVEL = :quorum
+
+      def can_execute?
+        @connected || @connecting
+      end
 
       def valid_keyspace_name?(name)
         name =~ KEYSPACE_NAME_PATTERN
@@ -157,8 +147,8 @@ module Cql
           connection_futures = hosts.map { |host| connect_to_host(host) }
           Future.combine(*connection_futures)
         end
-        hosts_connected_future.on_complete do |connection_ids|
-          @connection_ids = connection_ids
+        hosts_connected_future.on_complete do |connections|
+          @connections = connections
         end
         if @initial_keyspace
           initialized_future = hosts_connected_future.flat_map do |*args|
@@ -181,72 +171,36 @@ module Cql
       end
 
       def connect_to_host(host)
-        connected = @io_reactor.add_connection(host, @port)
-        connected.flat_map do |connection_id|
-          started = execute_request(Protocol::StartupRequest.new, connection_id)
-          started.flat_map { |response| maybe_authenticate(response, connection_id) }
+        connected = @io_reactor.connect(host, @port, @connection_timeout)
+        connected.flat_map do |connection|
+          started = execute_request(Protocol::StartupRequest.new, connection)
+          started.flat_map { |response| maybe_authenticate(response, connection) }
         end
       end
 
-      def maybe_authenticate(response, connection_id)
+      def maybe_authenticate(response, connection)
         case response
         when AuthenticationRequired
           if @credentials
             credentials_request = Protocol::CredentialsRequest.new(@credentials)
-            execute_request(credentials_request, connection_id).map { connection_id }
+            execute_request(credentials_request, connection).map { connection }
           else
             Future.failed(AuthenticationError.new('Server requested authentication, but no credentials given'))
           end
         else
-          Future.completed(connection_id)
+          Future.completed(connection)
         end
       end
 
-      def execute_request(request, connection_id=nil)
-        @io_reactor.queue_request(request, connection_id).map do |response, connection_id|
-          interpret_response!(request, response, connection_id)
-        end
-      end
-
-      def interpret_response!(request, response, connection_id)
-        case response
-        when Protocol::ErrorResponse
-          case request
-          when Protocol::QueryRequest
-            raise QueryError.new(response.code, response.message, request.cql)
+      def execute_request(request, connection=nil)
+        f = @request_runner.execute(connection || @connections.sample, request)
+        f.map do |result|
+          if result.is_a?(KeyspaceChanged)
+            use(result.keyspace)
+            nil
           else
-            raise QueryError.new(response.code, response.message)
+            result
           end
-        when Protocol::RowsResultResponse
-          QueryResult.new(response.metadata, response.rows)
-        when Protocol::PreparedResultResponse
-          AsynchronousPreparedStatement.new(self, connection_id, response.id, response.metadata)
-        when Protocol::SetKeyspaceResultResponse
-          @lock.synchronize do
-            @last_keyspace_change = @connection_keyspaces[connection_id] = response.keyspace
-          end
-          nil
-        when Protocol::AuthenticateResponse
-          AuthenticationRequired.new(response.authentication_class)
-        else
-          nil
-        end
-      end
-
-      def ensure_keyspace!
-        ks = nil
-        @lock.synchronize do
-          ks = @last_keyspace_change
-          return unless @last_keyspace_change
-        end
-        use(ks, @connection_ids) if ks
-      end
-
-      class AuthenticationRequired
-        attr_reader :authentication_class
-
-        def initialize(authentication_class)
-          @authentication_class = authentication_class
         end
       end
     end

@@ -4,15 +4,21 @@ module Cql
   module Client
     # @private
     class AsynchronousPreparedStatement < PreparedStatement
-      def initialize(*args)
-        @client, @connection_id, @statement_id, @raw_metadata = args
+      def initialize(connection, statement_id, raw_metadata)
+        @connection = connection
+        @statement_id = statement_id
+        @raw_metadata = raw_metadata
         @metadata = ResultMetadata.new(@raw_metadata)
+        @request_runner = RequestRunner.new
       end
 
       def execute(*args)
         bound_args = args.shift(@raw_metadata.size)
-        consistency_level = args.shift
-        @client.execute_statement(@connection_id, @statement_id, @raw_metadata, bound_args, consistency_level)
+        consistency_level = args.shift || :quorum
+        request = Cql::Protocol::ExecuteRequest.new(@statement_id, @raw_metadata, bound_args, consistency_level)
+        @request_runner.execute(@connection, request)
+      rescue => e
+        Future.failed(e)
       end
     end
   end

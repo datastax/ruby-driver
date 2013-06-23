@@ -13,12 +13,12 @@ shared_context 'client setup' do
     io_reactor.connections
   end
 
-  def connection
-    connections.first
+  def last_connection
+    connections.last
   end
 
   def requests
-    connection[:requests]
+    last_connection.requests
   end
 
   def last_request

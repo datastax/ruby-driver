@@ -6,6 +6,8 @@ require 'socket'
 module Cql
   module Io
     class CqlConnection
+      attr_reader :keyspace
+
       def initialize(socket_handler)
         @socket_handler = socket_handler
         @socket_handler.on_data(&method(:receive_data))
@@ -17,6 +19,7 @@ module Cql
         @event_listeners = []
         @lock = Mutex.new
         @closed_future = Future.new
+        @keyspace = nil
       end
 
       def connected?
@@ -96,6 +99,9 @@ module Cql
           future = @responses[id]
           @responses[id] = nil
           future
+        end
+        if response.is_a?(Protocol::SetKeyspaceResultResponse)
+          @keyspace = response.keyspace
         end
         future.complete!(response)
       end

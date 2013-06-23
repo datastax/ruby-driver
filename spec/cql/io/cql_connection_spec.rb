@@ -134,6 +134,26 @@ module Cql
         end
       end
 
+      describe '#keyspace' do
+        before do
+          socket_handler.stub(:closed?).and_return(false)
+          socket_handler.stub(:connecting?).and_return(false)
+          socket_handler.stub(:connected?).and_return(true)
+          socket_handler.stub(:write)
+        end
+
+        it 'is not in a keyspace initially' do
+          connection.keyspace.should be_nil
+        end
+
+        it 'registers the keyspace it has changed to' do
+          f = connection.send_request(Protocol::QueryRequest.new('USE hello', :one))
+          socket_handler.data_listener.call([0x81, 0, 0, 8, 4 + 2 + 5, 3, 5].pack('C4N2n') + 'hello')
+          f.get
+          connection.keyspace.should == 'hello'
+        end
+      end
+
       [:connected?, :connecting?, :closed?].each do |message|
         describe "##{message}" do
           it 'reflects the underlying connection\'s status' do
