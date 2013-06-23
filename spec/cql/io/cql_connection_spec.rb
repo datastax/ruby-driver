@@ -113,7 +113,7 @@ module Cql
           it 'fails all requests with NotConnectedError' do
             socket_handler.stub(:closed?).and_return(true)
             f = connection.send_request(request)
-            expect { f.get }.to raise_error(Io::NotConnectedError)
+            expect { f.get }.to raise_error(NotConnectedError)
           end
         end
       end

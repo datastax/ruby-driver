@@ -72,7 +72,7 @@ class FakeConnection
 
   def send_request(request)
     if @closed
-      Cql::Future.failed(Cql::Io::NotConnectedError.new)
+      Cql::Future.failed(Cql::NotConnectedError.new)
     else
       @requests << request
       Cql::Future.completed(@responses.shift)

@@ -11,6 +11,7 @@ module Cql
     end
   end
 
+  NotConnectedError = Class.new(CqlError)
   ClientError = Class.new(CqlError)
   AuthenticationError = Class.new(ClientError)
 
