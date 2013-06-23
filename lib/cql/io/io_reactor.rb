@@ -54,7 +54,7 @@ module Cql
       end
 
       def connect(host, port, timeout)
-        socket_handler = SocketHandler.new(host, port, timeout)
+        socket_handler = SocketHandler.new(host, port, timeout, @unblocker)
         f = socket_handler.connect
         connection = @connection_factory.new(socket_handler)
         @lock.synchronize do

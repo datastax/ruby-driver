@@ -7,7 +7,11 @@ module Cql
   module Io
     describe SocketHandler do
       let :handler do
-        described_class.new('example.com', 55555, 5, socket_impl, clock)
+        described_class.new('example.com', 55555, 5, unblocker, socket_impl, clock)
+      end
+
+      let :unblocker do
+        stub(:unblocker, unblock!: nil)
       end
 
       let :socket_impl do
@@ -295,6 +299,11 @@ module Cql
         end
 
         it 'appends to its buffer when #write is called' do
+          handler.write('hello world')
+        end
+
+        it 'unblocks the reactor' do
+          unblocker.should_receive(:unblock!)
           handler.write('hello world')
         end
 

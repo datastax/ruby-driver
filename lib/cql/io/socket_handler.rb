@@ -8,12 +8,14 @@ module Cql
     class SocketHandler
       attr_reader :host, :port, :connection_timeout
 
-      def initialize(host, port, connection_timeout, socket_impl=Socket, clock=Time)
+      def initialize(host, port, connection_timeout, unblocker, socket_impl=Socket, clock=Time)
         @host = host
         @port = port
         @connection_timeout = connection_timeout
+        @unblocker = unblocker
         @socket_impl = socket_impl
         @clock = clock
+        @lock = Mutex.new
         @connected = false
         @write_buffer = ByteBuffer.new
         @connected_future = Future.new
@@ -72,7 +74,10 @@ module Cql
       end
 
       def writable?
-        !(closed? || @write_buffer.empty?)
+        empty_buffer = @lock.synchronize do
+          @write_buffer.empty?
+        end
+        !(closed? || empty_buffer)
       end
 
       def on_data(&listener)
@@ -84,17 +89,23 @@ module Cql
       end
 
       def write(bytes=nil)
-        if block_given?
-          yield @write_buffer
-        elsif bytes
-          @write_buffer.append(bytes)
+        @lock.synchronize do
+          if block_given?
+            yield @write_buffer
+          elsif bytes
+            @write_buffer.append(bytes)
+          end
         end
+        @unblocker.unblock!
       end
 
       def flush
         if writable?
-          bytes_written = @io.write_nonblock(@write_buffer.cheap_peek)
-          @write_buffer.discard(bytes_written)
+          @lock.synchronize do
+            s = @write_buffer.cheap_peek.dup
+            bytes_written = @io.write_nonblock(@write_buffer.cheap_peek)
+            @write_buffer.discard(bytes_written)
+          end
         end
       rescue => e
         close(e)
