@@ -15,7 +15,8 @@ module Cql
         @responses = Array.new(128) { nil }
         @read_buffer = ByteBuffer.new
         @current_frame = Protocol::ResponseFrame.new(@read_buffer)
-        @request_queue = []
+        @request_queue_in = []
+        @request_queue_out = []
         @event_listeners = []
         @lock = Mutex.new
         @closed_future = Future.new
@@ -58,7 +59,7 @@ module Cql
           end
         else
           @lock.synchronize do
-            @request_queue << [request.encode_frame(0), future]
+            @request_queue_in << [request.encode_frame(0), future]
           end
         end
         future
@@ -107,9 +108,15 @@ module Cql
       end
 
       def flush_request_queue
-        while @request_queue.any? && (id = next_stream_id)
+        @lock.synchronize do
+          if @request_queue_out.empty? && !@request_queue_in.empty?
+            @request_queue_out = @request_queue_in
+            @request_queue_in = []
+          end
+        end
+        while @request_queue_out.any? && (id = next_stream_id)
           request_buffer, future = @lock.synchronize do
-            @request_queue.shift
+            @request_queue_out.shift
           end
           if request_buffer
             Protocol::Request.change_stream_id(id, request_buffer)
@@ -127,10 +134,14 @@ module Cql
               @responses[i] = nil
             end
           end
-          @request_queue.each do |_, future|
+          @request_queue_in.each do |_, future|
             future.fail!(cause)
           end
-          @request_queue.clear
+          @request_queue_in.clear
+          @request_queue_out.each do |_, future|
+            future.fail!(cause)
+          end
+          @request_queue_out.clear
           if cause
             @closed_future.fail!(cause)
           else
