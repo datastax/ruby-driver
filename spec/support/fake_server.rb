@@ -1,9 +1,9 @@
 # encoding: utf-8
 
 class FakeServer
-  attr_reader :connects, :disconnects
+  attr_reader :port, :connects, :disconnects
 
-  def initialize(port)
+  def initialize(port=(2**15 + rand(2**15)))
     @port = port
     @state = {}
     @lock = Mutex.new
