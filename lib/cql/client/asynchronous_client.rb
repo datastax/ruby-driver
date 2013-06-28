@@ -8,7 +8,7 @@ module Cql
         @connection_timeout = options[:connection_timeout] || 10
         @host = options[:host] || 'localhost'
         @port = options[:port] || 9042
-        @io_reactor = options[:io_reactor] || Io::IoReactor.new(Io::CqlConnection)
+        @io_reactor = options[:io_reactor] || Io::IoReactor.new(Protocol::CqlProtocolHandler)
         @lock = Mutex.new
         @connected = false
         @connecting = false

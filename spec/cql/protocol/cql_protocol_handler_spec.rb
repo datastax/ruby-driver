@@ -4,8 +4,8 @@ require 'spec_helper'
 
 
 module Cql
-  module Io
-    describe CqlConnection do
+  module Protocol
+    describe CqlProtocolHandler do
       let :connection do
         described_class.new(socket_handler)
       end

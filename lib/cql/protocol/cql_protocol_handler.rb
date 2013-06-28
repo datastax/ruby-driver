@@ -4,8 +4,8 @@ require 'socket'
 
 
 module Cql
-  module Io
-    class CqlConnection
+  module Protocol
+    class CqlProtocolHandler
       attr_reader :keyspace
 
       def initialize(socket_handler)
