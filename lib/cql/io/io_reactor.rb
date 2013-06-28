@@ -57,9 +57,7 @@ module Cql
         socket_handler = SocketHandler.new(host, port, timeout, @unblocker)
         f = socket_handler.connect
         connection = @connection_factory.new(socket_handler)
-        @lock.synchronize do
-          @io_loop.add_socket(socket_handler)
-        end
+        @io_loop.add_socket(socket_handler)
         @unblocker.unblock!
         f.map { connection }
       end
@@ -68,6 +66,7 @@ module Cql
     class Unblocker
       def initialize
         @out, @in = IO.pipe
+        @lock = Mutex.new
       end
 
       def connected?
@@ -87,7 +86,9 @@ module Cql
       end
 
       def unblock!
-        @in.write(PING_BYTE)
+        @lock.synchronize do
+          @in.write(PING_BYTE)
+        end
       end
 
       def read
@@ -123,31 +124,30 @@ module Cql
 
       def add_socket(socket)
         @lock.synchronize do
-          @sockets << socket
+          sockets = @sockets.dup
+          sockets << socket
+          @sockets = sockets
         end
       end
 
       def close_sockets
-        @lock.synchronize do
-          @sockets.each do |s|
-            begin
-              s.close unless s.closed?
-            rescue
-              # the socket had most likely already closed due to an error
-            end
+        @sockets.each do |s|
+          begin
+            s.close unless s.closed?
+          rescue
+            # the socket had most likely already closed due to an error
           end
         end
       end
 
       def tick(timeout=1)
         readables, writables, connecting = [], [], []
-        @lock.synchronize do
-          @sockets.reject! { |s| s.closed? }
-          @sockets.each do |s|
-            readables << s if s.connected?
-            writables << s if s.connecting? || s.writable?
-            connecting << s if s.connecting?
-          end
+        sockets = @sockets
+        sockets.reject! { |s| s.closed? }
+        sockets.each do |s|
+          readables << s if s.connected?
+          writables << s if s.connecting? || s.writable?
+          connecting << s if s.connecting?
         end
         r, w, _ = @selector.select(readables, writables, nil, timeout)
         connecting.each(&:connect)
