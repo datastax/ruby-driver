@@ -4,7 +4,31 @@ module Cql
   module Io
     ReactorError = Class.new(IoError)
 
+    # An IO reactor takes care of all the IO for a client. It handles opening
+    # new connections, and making sure that connections that have data to send
+    # flush to the network, and connections that have data coming in read that
+    # data and delegate it to their protocol handlers.
+    #
+    # All IO is done in a single background thread, regardless of how many
+    # connections you open. It shouldn't have any problems handling hundreds of
+    # connections if needed. All operations are thread safe. You should take
+    # great care when in your protocol handlers to make sure that they don't
+    # do too much work in their data handling callbacks, since those will be
+    # run in the reactor thread, and every cycle you use there is a cycle which
+    # can't be used to handle IO.
+    #
+    # The IO reactor is completely protocol agnostic, and it's up to the
+    # specified protocol handler factory to create objects that can interpret
+    # the bytes received from remote hosts, and to send the correct commands
+    # back.
+    #
     class IoReactor
+      # Initializes a new IO reactor.
+      #
+      # @param connection_factory [Object] a class that will be used create the
+      #   connection objects returned by {#connect}
+      # @param options [Hash] only used to inject behaviour during tests
+      #
       def initialize(connection_factory, options={})
         @connection_factory = connection_factory
         @unblocker = Unblocker.new
@@ -17,14 +41,33 @@ module Cql
         @lock = Mutex.new
       end
 
+      # Register to receive notifications when the reactor shuts down because
+      # on an irrecoverable error.
+      #
+      # The listener block will be called in the reactor thread. Any errors that
+      # it raises will be ignored.
+      #
+      # @yield [error] the error that cause the reactor to stop
+      #
       def on_error(&listener)
         @stopped_future.on_failure(&listener)
       end
 
+      # Returns true as long as the reactor is running. It will be true even
+      # after #stop has been called, but false when the future returned by
+      # #stop completes.
+      #
       def running?
         @running
       end
 
+      # Starts the reactor. This will spawn a background thread that will manage
+      # all connections.
+      #
+      # This method is asynchronous and returns a future which completes when
+      # the reactor has started.
+      #
+      # @return [Cql::Future] a future that will resolve to the reactor itself
       def start
         @lock.synchronize do
           raise ReactorError, 'Cannot start a stopped IO reactor' if @stopped
@@ -48,11 +91,35 @@ module Cql
         @started_future
       end
 
+      # Stops the reactor.
+      #
+      # This method is asynchronous and returns a future which completes when
+      # the reactor has completely stopped, or fails with an error if the reactor
+      # stops or has already stopped because of a failure.
+      #
+      # @return [Cql::Future] a future that will resolve to the reactor itself
+      #
       def stop
         @stopped = true
         @stopped_future
       end
 
+      # Opens a connection to the specified host and port.
+      #
+      # This method is asynchronous and returns a future which completes when
+      # the connection has been established, or fails if the connection cannot
+      # be established for some reason (the connection takes longer than the
+      # specified timeout, the remote host cannot be found, etc.).
+      #
+      # The connection object returned in the future will be an instance of the
+      # class that you passed to {#initialize}.
+      #
+      # @param host [String] the host to connect to
+      # @param port [Integer] the port to connect to
+      # @param timeout [Numeric] the number of seconds to wait for a connection
+      #   before failing
+      # @return [Cql::Future] a future that will resolve to the (connected) connection
+      #
       def connect(host, port, timeout)
         socket_handler = SocketHandler.new(host, port, timeout, @unblocker)
         f = socket_handler.connect
@@ -63,6 +130,7 @@ module Cql
       end
     end
 
+    # @private
     class Unblocker
       def initialize
         @out, @in = IO.pipe
@@ -115,6 +183,7 @@ module Cql
       PING_BYTE = "\0".freeze
     end
 
+    # @private
     class IoLoopBody
       def initialize(options={})
         @selector = options[:selector] || IO
