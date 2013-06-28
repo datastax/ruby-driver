@@ -41,7 +41,7 @@ module Cql
             if $!
               @stopped_future.fail!($!)
             else
-              @stopped_future.complete!
+              @stopped_future.complete!(self)
             end
           end
         end

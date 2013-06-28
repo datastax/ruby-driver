@@ -62,6 +62,11 @@ module Cql
           reactor.stop.get
         end
 
+        it 'returns a future which resolves to the reactor' do
+          reactor.start.get
+          reactor.stop.get.should equal(reactor)
+        end
+
         it 'is not running after being stopped' do
           reactor.start.get
           reactor.stop.get
