@@ -25,12 +25,12 @@ module Cql
     class IoReactor
       # Initializes a new IO reactor.
       #
-      # @param connection_factory [Object] a class that will be used create the
-      #   connection objects returned by {#connect}
+      # @param protocol_handler_factory [Object] a class that will be used
+      #   create the protocol handler objects returned by {#connect}
       # @param options [Hash] only used to inject behaviour during tests
       #
-      def initialize(connection_factory, options={})
-        @connection_factory = connection_factory
+      def initialize(protocol_handler_factory, options={})
+        @protocol_handler_factory = protocol_handler_factory
         @unblocker = Unblocker.new
         @io_loop = IoLoopBody.new(options)
         @io_loop.add_socket(@unblocker)
@@ -111,19 +111,20 @@ module Cql
       # be established for some reason (the connection takes longer than the
       # specified timeout, the remote host cannot be found, etc.).
       #
-      # The connection object returned in the future will be an instance of the
-      # class that you passed to {#initialize}.
+      # The object returned in the future will be an instance of the protocol
+      # handler class you passed to {#initialize}.
       #
       # @param host [String] the host to connect to
       # @param port [Integer] the port to connect to
       # @param timeout [Numeric] the number of seconds to wait for a connection
       #   before failing
-      # @return [Cql::Future] a future that will resolve to the (connected) connection
+      # @return [Cql::Future] a future that will resolve to a protocol handler
+      #   object that will be your interface to interact with the connection
       #
       def connect(host, port, timeout)
         socket_handler = SocketHandler.new(host, port, timeout, @unblocker)
         f = socket_handler.connect
-        connection = @connection_factory.new(socket_handler)
+        connection = @protocol_handler_factory.new(socket_handler)
         @io_loop.add_socket(socket_handler)
         @unblocker.unblock!
         f.map { connection }

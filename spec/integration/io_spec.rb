@@ -47,7 +47,7 @@ describe 'An IO reactor' do
 
   context 'when talking to Redis' do
     let :io_reactor do
-      Cql::Io::IoReactor.new(IoSpec::RedisConnection)
+      Cql::Io::IoReactor.new(IoSpec::RedisProtocolHandler)
     end
 
     let :connection do
@@ -142,7 +142,7 @@ module IoSpec
     end
   end
 
-  class RedisConnection
+  class RedisProtocolHandler
     def initialize(socket_handler)
       @socket_handler = socket_handler
       @socket_handler.on_data(&method(:receive_data))
