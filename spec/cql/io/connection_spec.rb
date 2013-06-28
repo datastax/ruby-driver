@@ -5,7 +5,7 @@ require 'spec_helper'
 
 module Cql
   module Io
-    describe SocketHandler do
+    describe Connection do
       let :handler do
         described_class.new('example.com', 55555, 5, unblocker, socket_impl, clock)
       end

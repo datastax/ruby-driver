@@ -122,12 +122,12 @@ module Cql
       #   object that will be your interface to interact with the connection
       #
       def connect(host, port, timeout)
-        socket_handler = SocketHandler.new(host, port, timeout, @unblocker)
-        f = socket_handler.connect
-        connection = @protocol_handler_factory.new(socket_handler)
-        @io_loop.add_socket(socket_handler)
+        connection = Connection.new(host, port, timeout, @unblocker)
+        f = connection.connect
+        protocol_handler = @protocol_handler_factory.new(connection)
+        @io_loop.add_socket(connection)
         @unblocker.unblock!
-        f.map { connection }
+        f.map { protocol_handler }
       end
     end
 

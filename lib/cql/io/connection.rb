@@ -5,7 +5,7 @@ require 'socket'
 
 module Cql
   module Io
-    class SocketHandler
+    class Connection
       attr_reader :host, :port, :connection_timeout
 
       def initialize(host, port, connection_timeout, unblocker, socket_impl=Socket, clock=Time)

@@ -29,19 +29,19 @@ describe 'An IO reactor' do
     end
 
     it 'receives data' do
-      connection = io_reactor.connect('127.0.0.1', fake_server.port, 1).get
+      protocol_handler = io_reactor.connect('127.0.0.1', fake_server.port, 1).get
       fake_server.await_connects!(1)
       fake_server.broadcast!('hello world')
-      await { connection.data.bytesize > 0 }
-      connection.data.should == 'hello world'
+      await { protocol_handler.data.bytesize > 0 }
+      protocol_handler.data.should == 'hello world'
     end
 
     it 'receives data on multiple connections' do
-      connections = Array.new(10) { io_reactor.connect('127.0.0.1', fake_server.port, 1).get }
+      protocol_handlers = Array.new(10) { io_reactor.connect('127.0.0.1', fake_server.port, 1).get }
       fake_server.await_connects!(10)
       fake_server.broadcast!('hello world')
-      await { connections.all? { |c| c.data.bytesize > 0 } }
-      connections.sample.data.should == 'hello world'
+      await { protocol_handlers.all? { |c| c.data.bytesize > 0 } }
+      protocol_handlers.sample.data.should == 'hello world'
     end
   end
 
@@ -50,7 +50,7 @@ describe 'An IO reactor' do
       Cql::Io::IoReactor.new(IoSpec::RedisProtocolHandler)
     end
 
-    let :connection do
+    let :protocol_handler do
       begin
         io_reactor.connect('127.0.0.1', 6379, 1).get
       rescue Cql::Io::ConnectionError
@@ -67,56 +67,56 @@ describe 'An IO reactor' do
     end
 
     it 'can set a value' do
-      pending('Redis not running', unless: connection)
-      response = connection.send_request('SET', 'foo', 'bar').get
+      pending('Redis not running', unless: protocol_handler)
+      response = protocol_handler.send_request('SET', 'foo', 'bar').get
       response.should == 'OK'
     end
 
     it 'can get a value' do
-      pending('Redis not running', unless: connection)
-      f = connection.send_request('SET', 'foo', 'bar').flat_map do
-        connection.send_request('GET', 'foo')
+      pending('Redis not running', unless: protocol_handler)
+      f = protocol_handler.send_request('SET', 'foo', 'bar').flat_map do
+        protocol_handler.send_request('GET', 'foo')
       end
       f.get.should == 'bar'
     end
 
     it 'can delete values' do
-      pending('Redis not running', unless: connection)
-      f = connection.send_request('SET', 'hello', 'world').flat_map do
-        connection.send_request('DEL', 'hello')
+      pending('Redis not running', unless: protocol_handler)
+      f = protocol_handler.send_request('SET', 'hello', 'world').flat_map do
+        protocol_handler.send_request('DEL', 'hello')
       end
       f.get.should == 1
     end
 
     it 'handles nil values' do
-      pending('Redis not running', unless: connection)
-      f = connection.send_request('DEL', 'hello').flat_map do
-        connection.send_request('GET', 'hello')
+      pending('Redis not running', unless: protocol_handler)
+      f = protocol_handler.send_request('DEL', 'hello').flat_map do
+        protocol_handler.send_request('GET', 'hello')
       end
       f.get.should be_nil
     end
 
     it 'handles errors' do
-      pending('Redis not running', unless: connection)
-      f = connection.send_request('SET', 'foo')
+      pending('Redis not running', unless: protocol_handler)
+      f = protocol_handler.send_request('SET', 'foo')
       expect { f.get }.to raise_error("ERR wrong number of arguments for 'set' command")
     end
 
     it 'handles replies with multiple elements' do
-      pending('Redis not running', unless: connection)
-      f = connection.send_request('DEL', 'stuff')
+      pending('Redis not running', unless: protocol_handler)
+      f = protocol_handler.send_request('DEL', 'stuff')
       f.get
-      f = connection.send_request('RPUSH', 'stuff', 'hello', 'world')
+      f = protocol_handler.send_request('RPUSH', 'stuff', 'hello', 'world')
       f.get.should == 2
-      f = connection.send_request('LRANGE', 'stuff', 0, 2)
+      f = protocol_handler.send_request('LRANGE', 'stuff', 0, 2)
       f.get.should == ['hello', 'world']
     end
 
     it 'handles nil values when reading multiple elements' do
-      pending('Redis not running', unless: connection)
-      connection.send_request('DEL', 'things')
-      connection.send_request('HSET', 'things', 'hello', 'world')
-      f = connection.send_request('HMGET', 'things', 'hello', 'foo')
+      pending('Redis not running', unless: protocol_handler)
+      protocol_handler.send_request('DEL', 'things')
+      protocol_handler.send_request('HSET', 'things', 'hello', 'world')
+      f = protocol_handler.send_request('HMGET', 'things', 'hello', 'foo')
       f.get.should == ['world', nil]
     end
   end
@@ -124,9 +124,9 @@ end
 
 module IoSpec
   class TestConnection
-    def initialize(socket_handler)
-      @socket_handler = socket_handler
-      @socket_handler.on_data(&method(:receive_data))
+    def initialize(connection)
+      @connection = connection
+      @connection.on_data(&method(:receive_data))
       @lock = Mutex.new
       @data = Cql::ByteBuffer.new
     end
@@ -143,9 +143,9 @@ module IoSpec
   end
 
   class RedisProtocolHandler
-    def initialize(socket_handler)
-      @socket_handler = socket_handler
-      @socket_handler.on_data(&method(:receive_data))
+    def initialize(connection)
+      @connection = connection
+      @connection.on_data(&method(:receive_data))
       @lock = Mutex.new
       @buffer = Cql::ByteBuffer.new
       @responses = []
@@ -161,7 +161,7 @@ module IoSpec
         arg_str = arg.to_s
         request << "$#{arg_str.bytesize}\r\n#{arg_str}\r\n"
       end
-      @socket_handler.write(request)
+      @connection.write(request)
       future
     end
 

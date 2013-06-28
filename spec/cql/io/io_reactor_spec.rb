@@ -7,11 +7,11 @@ module Cql
   module Io
     describe IoReactor do
       let :reactor do
-        described_class.new(connection_factory, selector: selector)
+        described_class.new(protocol_handler_factory, selector: selector)
       end
 
-      let :connection_factory do
-        stub(:connection_factory)
+      let :protocol_handler_factory do
+        stub(:protocol_handler_factory)
       end
 
       let! :selector do
@@ -73,16 +73,16 @@ module Cql
           reactor.should_not be_running
         end
 
-        it 'closes all connections' do
-          socket_handler = nil
-          connection_factory.stub(:new) do |sh|
-            socket_handler = sh
-            stub(:connection)
+        it 'closes all sockets' do
+          connection = nil
+          protocol_handler_factory.stub(:new) do |sh|
+            connection = sh
+            stub(:protocol_handler)
           end
           reactor.start.get
           reactor.connect('example.com', 9999, 5)
           reactor.stop.get
-          socket_handler.should be_closed
+          connection.should be_closed
         end
       end
 
@@ -118,15 +118,15 @@ module Cql
       end
 
       describe '#connect' do
-        let :connection do
-          stub(:connection)
+        let :protocol_handler do
+          stub(:protocol_handler)
         end
 
         before do
-          connection_factory.stub(:new) do |socket_handler|
-            socket_handler.to_io.stub(:connect_nonblock)
-            connection.stub(:socket_handler).and_return(socket_handler)
-            connection
+          protocol_handler_factory.stub(:new) do |connection|
+            connection.to_io.stub(:connect_nonblock)
+            protocol_handler.stub(:connection).and_return(connection)
+            protocol_handler
           end
         end
 
@@ -139,27 +139,27 @@ module Cql
           end
         end
 
-        def fake_connected(socket_handler)
-          socket_handler.to_io.stub(:connect_nonblock)
+        def fake_connected(connection)
+          connection.to_io.stub(:connect_nonblock)
         end
 
         after do
           reactor.stop if reactor.running?
         end
 
-        it 'returns a future that resolves to a new connection' do
+        it 'returns a future that resolves to a new protocol handler' do
           reactor.start.get
           f = reactor.connect('example.com', 9999, 5)
-          f.get.should equal(connection)
+          f.get.should equal(protocol_handler)
         end
 
-        it 'returns a new connection which wraps a socket handler' do
+        it 'returns a new protocol handler which wraps a socket handler' do
           reactor.start.get
-          c = reactor.connect('example.com', 9999, 5).get
-          c.socket_handler.should_not be_nil
-          c.socket_handler.host.should == 'example.com'
-          c.socket_handler.port.should == 9999
-          c.socket_handler.connection_timeout.should == 5
+          protocol_handler = reactor.connect('example.com', 9999, 5).get
+          protocol_handler.connection.should_not be_nil
+          protocol_handler.connection.host.should == 'example.com'
+          protocol_handler.connection.port.should == 9999
+          protocol_handler.connection.connection_timeout.should == 5
         end
       end
     end

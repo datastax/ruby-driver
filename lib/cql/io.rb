@@ -10,4 +10,4 @@ module Cql
 end
 
 require 'cql/io/io_reactor'
-require 'cql/io/socket_handler'
+require 'cql/io/connection'

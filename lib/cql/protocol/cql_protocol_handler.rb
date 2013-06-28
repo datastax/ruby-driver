@@ -8,10 +8,10 @@ module Cql
     class CqlProtocolHandler
       attr_reader :keyspace
 
-      def initialize(socket_handler)
-        @socket_handler = socket_handler
-        @socket_handler.on_data(&method(:receive_data))
-        @socket_handler.on_closed(&method(:socket_closed))
+      def initialize(connection)
+        @connection = connection
+        @connection.on_data(&method(:receive_data))
+        @connection.on_closed(&method(:socket_closed))
         @responses = Array.new(128) { nil }
         @read_buffer = ByteBuffer.new
         @current_frame = Protocol::ResponseFrame.new(@read_buffer)
@@ -24,15 +24,15 @@ module Cql
       end
 
       def connected?
-        @socket_handler.connected?
+        @connection.connected?
       end
 
       def connecting?
-        @socket_handler.connecting?
+        @connection.connecting?
       end
 
       def closed?
-        @socket_handler.closed?
+        @connection.closed?
       end
 
       def on_closed(&listener)
@@ -54,7 +54,7 @@ module Cql
           @lock.synchronize do
             @responses[id] = future
           end
-          @socket_handler.write do |buffer|
+          @connection.write do |buffer|
             request.encode_frame(id, buffer)
           end
         else
@@ -66,7 +66,7 @@ module Cql
       end
 
       def close
-        @socket_handler.close
+        @connection.close
         @closed_future
       end
 
@@ -120,7 +120,7 @@ module Cql
           end
           if request_buffer
             Protocol::Request.change_stream_id(id, request_buffer)
-            @socket_handler.write(request_buffer)
+            @connection.write(request_buffer)
             @responses[id] = future
           end
         end
