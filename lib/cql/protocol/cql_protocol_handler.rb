@@ -27,10 +27,7 @@ module Cql
         @connection.connected?
       end
 
-      def connecting?
-        @connection.connecting?
-      end
-
+      # @return [true, false] true if the underlying connection is closed
       def closed?
         @connection.closed?
       end

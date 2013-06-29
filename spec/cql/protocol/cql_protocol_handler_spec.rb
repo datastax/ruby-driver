@@ -45,7 +45,7 @@ module Cql
         before do
           connection.stub(:write).and_yield(buffer)
           connection.stub(:closed?).and_return(false)
-          connection.stub(:connecting?).and_return(false)
+
           connection.stub(:connected?).and_return(true)
         end
 
@@ -137,7 +137,6 @@ module Cql
       describe '#keyspace' do
         before do
           connection.stub(:closed?).and_return(false)
-          connection.stub(:connecting?).and_return(false)
           connection.stub(:connected?).and_return(true)
           connection.stub(:write)
         end
@@ -154,7 +153,7 @@ module Cql
         end
       end
 
-      [:connected?, :connecting?, :closed?].each do |message|
+      [:connected?, :closed?].each do |message|
         describe "##{message}" do
           it 'reflects the underlying protocol handler\'s status' do
             connection.stub(message).and_return(true)
