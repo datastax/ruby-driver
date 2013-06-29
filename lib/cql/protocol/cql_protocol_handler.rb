@@ -124,19 +124,20 @@ module Cql
       end
 
       def socket_closed(cause)
+        request_failure_cause = cause || Io::ConnectionClosedError.new
         @lock.synchronize do
           @responses.each_with_index do |future, i|
             if future
-              @responses[i].fail!(cause)
+              @responses[i].fail!(request_failure_cause)
               @responses[i] = nil
             end
           end
           @request_queue_in.each do |_, future|
-            future.fail!(cause)
+            future.fail!(request_failure_cause)
           end
           @request_queue_in.clear
           @request_queue_out.each do |_, future|
-            future.fail!(cause)
+            future.fail!(request_failure_cause)
           end
           @request_queue_out.clear
           if cause

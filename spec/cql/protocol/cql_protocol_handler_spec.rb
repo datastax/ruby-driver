@@ -100,6 +100,20 @@ module Cql
             futures.should be_all(&:failed?), 'expected all requests to have failed'
           end
 
+          it 'fails all requests with ConnectionClosedError if there is no specific error' do
+            protocol_handler.send_request(request)
+            future = protocol_handler.send_request(request)
+            connection.data_listener.call([0x81, 0, 0, 2, 0].pack('C4N'))
+            connection.closed_listener.call(nil)
+            begin
+              future.get
+            rescue => e
+              e.should be_a(Cql::Io::ConnectionClosedError)
+            else
+              fail('No error was raised!')
+            end
+          end
+
           it 'passes the error that caused the protocol handler to close to the failed requests' do
             error = nil
             future = protocol_handler.send_request(request)
@@ -124,13 +138,11 @@ module Cql
           protocol_handler.close
         end
 
-        context 'returns a future which' do
-          it 'completes when the socket has closed' do
-            connection.stub(:close) do
-              connection.closed_listener.call(nil)
-            end
-            protocol_handler.close.get
+        it 'returns a future which completes when the socket has closed' do
+          connection.stub(:close) do
+            connection.closed_listener.call(nil)
           end
+          protocol_handler.close.get
         end
       end
 
