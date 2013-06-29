@@ -142,13 +142,46 @@ module IoSpec
     end
   end
 
-  class RedisProtocolHandler
+  class LineProtocolHandler
     def initialize(connection)
       @connection = connection
-      @connection.on_data(&method(:receive_data))
+      @connection.on_data(&method(:process_data))
       @lock = Mutex.new
-      @buffer = Cql::ByteBuffer.new
+      @buffer = ''
+      @requests = []
+    end
+
+    def on_line(&listener)
+      @line_listener = listener
+    end
+
+    def write(command_string)
+      @connection.write(command_string)
+    end
+
+    def process_data(new_data)
+      lines = []
+      @lock.synchronize do
+        @buffer << new_data
+        while newline_index = @buffer.index("\r\n")
+          line = @buffer.slice!(0, newline_index + 2)
+          line.chomp!
+          lines << line
+        end
+      end
+      lines.each do |line|
+        @line_listener.call(line) if @line_listener
+      end
+    end
+  end
+
+  class RedisProtocolHandler
+    def initialize(connection)
+      @line_protocol = LineProtocolHandler.new(connection)
+      @line_protocol.on_line(&method(:handle_line))
+      @lock = Mutex.new
       @responses = []
+      @state = BaseState.new(method(:handle_response))
     end
 
     def send_request(*args)
@@ -161,77 +194,89 @@ module IoSpec
         arg_str = arg.to_s
         request << "$#{arg_str.bytesize}\r\n#{arg_str}\r\n"
       end
-      @connection.write(request)
+      @line_protocol.write(request)
       future
     end
 
-    def receive_data(new_data)
-      @lock.synchronize do
-        @buffer << new_data
+    def handle_response(result, error=false)
+      future = @lock.synchronize do
+        @responses.shift
       end
-      deliver_responses
+      if error
+        future.fail!(StandardError.new(result))
+      else
+        future.complete!(result)
+      end
     end
 
-    def deliver_responses
-      while (value = read_line_or_value)
-        if value.start_with?('+')
-          @responses.shift.complete!(value[1, value.bytesize - 1])
-        elsif value.start_with?('$')
-          @next_size = value[1, value.bytesize - 1].to_i
-          if @next_size == -1
-            if @state == :multi_bulk
-              @args << nil
-              @arg_count -= 1
-            else
-              @responses.shift.complete!(nil)
-            end
-            @next_size = nil
-          elsif @state.nil?
-            @state = :bulk
+    def handle_line(line)
+      @state = @state.handle_line(line)
+    end
+
+    class State
+      def initialize(result_handler)
+        @result_handler = result_handler
+      end
+
+      def complete!(result)
+        @result_handler.call(result)
+      end
+
+      def fail!(message)
+        @result_handler.call(message, true)
+      end
+    end
+
+    class BulkState < State
+      def handle_line(line)
+        complete!(line)
+        BaseState.new(@result_handler)
+      end
+    end
+
+    class MultiBulkState < State
+      def initialize(result_handler, expected_elements)
+        super(result_handler)
+        @expected_elements = expected_elements
+        @elements = []
+      end
+
+      def handle_line(line)
+        if line.start_with?('$')
+          line.slice!(0, 1)
+          if line.to_i == -1
+            @elements << nil
           end
-        elsif value.start_with?(':')
-          n = value[1, value.bytesize - 1].to_i
-          @responses.shift.complete!(n)
-        elsif value.start_with?('-')
-          message = value[1, value.bytesize - 1]
-          @responses.shift.fail!(StandardError.new(message))
-        elsif value.start_with?('*')
-          @arg_count = value[1, value.bytesize - 1].to_i
-          @args = []
-          @state = :multi_bulk
         else
-          case @state
-          when :bulk
-            @responses.shift.complete!(value)
-            @state = nil
-          when :multi_bulk
-            @args << value
-            @arg_count -= 1
-          end
+          @elements << line
         end
-        if @arg_count == 0
-          @responses.shift.complete!(@args)
-          @args = nil
-          @arg_count = nil
-          @state = nil
+        if @elements.size == @expected_elements
+          complete!(@elements)
+          BaseState.new(@result_handler)
+        else
+          self
         end
       end
     end
 
-    def read_line_or_value
-      @lock.synchronize do
-        if @next_size
-          if @buffer.bytesize >= @next_size + 2
-            bytes = @buffer.read(@next_size)
-            @buffer.discard(2)
-            @next_size = nil
-            bytes
+    class BaseState < State
+      def handle_line(line)
+        next_state = self
+        first_char = line.slice!(0, 1)
+        case first_char
+        when '+' then complete!(line)
+        when ':' then complete!(line.to_i)
+        when '-' then fail!(line)
+        when '$'
+          if line.to_i == -1
+            complete!(nil)
+          else
+            next_state = BulkState.new(@result_handler)
           end
-        elsif (index = @buffer.cheap_peek.index("\r\n") || @buffer.to_s.index("\r\n"))
-          line = @buffer.read(index)
-          @buffer.discard(2)
-          line
+        when '*'
+          next_state = MultiBulkState.new(@result_handler, line.to_i)
         end
+        next_state
       end
     end
   end
