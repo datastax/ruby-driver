@@ -5,7 +5,21 @@ require 'socket'
 
 module Cql
   module Protocol
+    # This class wraps a single connection and translates between request/
+    # response frames and raw bytes.
+    #
+    # You send requests with #send_request, and receive responses through the
+    # returned future.
+    #
+    # Instances of this class are thread safe.
+    #
+    # @examle Sending an OPTIONS request
+    #   future = protocol_handler.send_request(Cql::Protocol::OptionsRequest.new)
+    #   response = future.get
+    #   puts "These options are supported: #{response.options}"
+    #
     class CqlProtocolHandler
+      # @return [String] the current keyspace for the underlying connection
       attr_reader :keyspace
 
       def initialize(connection)
@@ -23,6 +37,7 @@ module Cql
         @keyspace = nil
       end
 
+      # @return [true, false] true if the underlying connection is connected
       def connected?
         @connection.connected?
       end
@@ -32,17 +47,36 @@ module Cql
         @connection.closed?
       end
 
+      # Register to receive notification when the underlying connection has
+      # closed. If the connection closed abruptly the error will be passed
+      # to the listener, otherwise it will not receive any parameters.
+      #
+      # @yieldparam error [nil, Error] the error that caused the connection to
+      #   close, if any
       def on_closed(&listener)
         @closed_future.on_complete(&listener)
         @closed_future.on_failure(&listener)
       end
 
+      # Register to receive server sent events, like schema changes, nodes going
+      # up or down, etc. To actually receive events you also need to send a
+      # REGISTER request for the events you wish to receive.
+      #
+      # @yieldparam event [Cql::Protocol::EventResponse] an event sent by the server
       def on_event(&listener)
         @lock.synchronize do
           @event_listeners << listener
         end
       end
 
+      # Serializes and send a request over the underlying connection.
+      #
+      # Returns a future that will resolve to the response. When the connection
+      # closes the futures of all active requests will be failed with the error
+      # that caused the connection to close, or nil
+      #
+      # @return [Cql::Future<Cql::Protocol::Response>] a future that resolves to
+      #   the response
       def send_request(request)
         return Future.failed(NotConnectedError.new) if closed?
         id = next_stream_id
@@ -62,6 +96,9 @@ module Cql
         future
       end
 
+      # Closes the underlying connection.
+      #
+      # @return [Cql::Future] a future that completes when the connection has closed
       def close
         @connection.close
         @closed_future
