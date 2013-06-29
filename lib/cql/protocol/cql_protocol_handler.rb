@@ -1,8 +1,5 @@
 # encoding: utf-8
 
-require 'socket'
-
-
 module Cql
   module Protocol
     # This class wraps a single connection and translates between request/
