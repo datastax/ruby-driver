@@ -10,8 +10,8 @@ module Cql
     # data and delegate it to their protocol handlers.
     #
     # All IO is done in a single background thread, regardless of how many
-    # connections you open. It shouldn't have any problems handling hundreds of
-    # connections if needed. All operations are thread safe. You should take
+    # connections you open. There shouldn't be any problems handling hundreds of
+    # connections if needed. All operations are thread safe, but you should take
     # great care when in your protocol handlers to make sure that they don't
     # do too much work in their data handling callbacks, since those will be
     # run in the reactor thread, and every cycle you use there is a cycle which
@@ -20,7 +20,63 @@ module Cql
     # The IO reactor is completely protocol agnostic, and it's up to the
     # specified protocol handler factory to create objects that can interpret
     # the bytes received from remote hosts, and to send the correct commands
-    # back.
+    # back. The way this works is that when you create an IO reactor you provide
+    # a factory that can create protocol handler objects (this factory is most
+    # of the time just class, but it could potentially be any object that
+    # responds to #new). When you #connect a new protocol handler instance is
+    # created and passed a connection. The protocol handler can then register to
+    # receive data that arrives over the socket, and it can write data to the
+    # socket. It can also register to be notified when the socket is closed, or
+    # it can itself close the socket.
+    #
+    # @example A protocol handler that processes whole lines
+    #
+    #   class LineProtocolHandler
+    #     def initialize(connection)
+    #       @connection = connection
+    #       # register a listener method for new data, this must be done in the
+    #       # in the constructor, and only one listener can be registered
+    #       @connection.on_data(&method(:process_data))
+    #       @buffer = ''
+    #     end
+    #
+    #     def process_data(new_data)
+    #       # in this fictional protocol we want to process whole lines, so we
+    #       # append new data to our buffer and then loop as long as there is
+    #       # a newline in the buffer, everything up until a newline is a
+    #       # complete line
+    #       @buffer << new_data
+    #       while newline_index = @buffer.index("\n")
+    #         line = @buffer.slice!(0, newline_index + 1)
+    #         line.chomp!
+    #         # Now do something interesting with the line, but remember that
+    #         # while you're in the data listener method you're executing in the
+    #         # IO reactor thread so you're blocking the reactor from doing
+    #         # other IO work. You should not do any heavy lifting here, but
+    #         # instead hand off the data to your application's other threads.
+    #         # One way of doing that is to create a Cql::Future in the method
+    #         # that sends the request, and then complete the future in this
+    #         # method. How you keep track of which future belongs to which
+    #         # reply is very protocol dependent so you'll have to figure that
+    #         # out yourself.
+    #       end
+    #     end
+    #
+    #     def send_request(command_string)
+    #       # This example primarily shows how to implement a data listener
+    #       # method, but this is how you write data to the connection. The
+    #       # method can be called anything, it doesn't have to be #send_request
+    #       @connection.write(command_string)
+    #       # The connection object itself is threadsafe, but to create any
+    #       # interesting protocol you probably need to set up some state for
+    #       # each request so that you know which request to complete when you
+    #       # get data back.
+    #     end
+    #   end
+    #
+    # See {Cql::Protocol::CqlProtocolHandler} for an example of how the CQL
+    # protocol is implemented, and there is an integration tests that implements
+    # the Redis protocol that you can look at too.
     #
     class IoReactor
       # Initializes a new IO reactor.
