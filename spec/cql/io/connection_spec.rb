@@ -409,6 +409,28 @@ module Cql
           end
         end
       end
+
+      describe '#to_s' do
+        context 'returns a string that' do
+          it 'includes the class name' do
+            handler.to_s.should include('Cql::Io::Connection')
+          end
+
+          it 'includes the host and port' do
+            handler.to_s.should include('example.com:55555')
+          end
+
+          it 'includes the connection state' do
+            handler.to_s.should include('closed')
+            socket.stub(:connect_nonblock).and_raise(Errno::EINPROGRESS)
+            handler.connect
+            handler.to_s.should include('connecting')
+            socket.stub(:connect_nonblock)
+            handler.connect
+            handler.to_s.should include('connected')
+          end
+        end
+      end
     end
   end
 end

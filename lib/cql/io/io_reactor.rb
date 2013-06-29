@@ -185,6 +185,10 @@ module Cql
         @unblocker.unblock!
         f.map { protocol_handler }
       end
+
+      def to_s
+        @io_loop.to_s
+      end
     end
 
     # @private
@@ -279,6 +283,10 @@ module Cql
         connecting.each(&:connect)
         r && r.each(&:read)
         w && w.each(&:flush)
+      end
+
+      def to_s
+        %(#<#{IoReactor.name} @connections=[#{@sockets.map(&:to_s).join(', ')}]>)
       end
     end
   end

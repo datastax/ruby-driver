@@ -162,6 +162,19 @@ module Cql
           protocol_handler.connection.connection_timeout.should == 5
         end
       end
+
+      describe '#to_s' do
+        context 'returns a string that' do
+          it 'includes the class name' do
+            reactor.to_s.should include('Cql::Io::IoReactor')
+          end
+
+          it 'includes a list of its connections' do
+            reactor.to_s.should include('@connections=[')
+            reactor.to_s.should include('#<Cql::Io::Unblocker>')
+          end
+        end
+      end
     end
 
     describe IoLoopBody do
