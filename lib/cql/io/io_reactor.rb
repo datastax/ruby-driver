@@ -135,8 +135,8 @@ module Cql
           begin
             @io_loop.tick until @stopped
           ensure
-            @running = false
             @io_loop.close_sockets
+            @running = false
             if $!
               @stopped_future.fail!($!)
             else

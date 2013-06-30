@@ -104,7 +104,7 @@ module Cql
           reactor.start.get
           await { !reactor.running? }
           reactor.on_error { |e| error = e }
-          error.should_not be_nil
+          await { error }
         end
 
         it 'ignores errors raised by listeners' do
