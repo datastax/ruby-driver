@@ -13,7 +13,6 @@ describe 'Regressions' do
   end
 
   before do
-    client.connect
     client.execute('DROP KEYSPACE cql_rb_client_spec') rescue nil
     client.execute(%(CREATE KEYSPACE cql_rb_client_spec WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}))
     client.use('cql_rb_client_spec')
@@ -21,7 +20,7 @@ describe 'Regressions' do
 
   after do
     client.execute('DROP KEYSPACE cql_rb_client_spec') rescue nil
-    client.close
+    client.close rescue nil
   end
 
   context 'with multibyte characters' do

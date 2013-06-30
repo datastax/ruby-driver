@@ -13,7 +13,7 @@ describe 'A CQL client' do
   end
 
   after do
-    client.close
+    client.close rescue nil
   end
 
   context 'with common operations' do
@@ -78,7 +78,7 @@ describe 'A CQL client' do
     end
 
     after do
-      multi_client.close
+      multi_client.close rescue nil
     end
 
     it 'handles keyspace changes with #use' do

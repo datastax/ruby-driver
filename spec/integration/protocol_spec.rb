@@ -20,7 +20,9 @@ describe 'Protocol parsing and communication' do
   end
 
   after do
-    io_reactor.stop.get if io_reactor.running?
+    if io_reactor.running?
+      io_reactor.stop.get rescue nil
+    end
   end
 
   def raw_execute_request(request)
