@@ -73,8 +73,9 @@ describe 'Protocol parsing and communication' do
     ensure
       begin
         drop_keyspace!
-      rescue  Errno::EPIPE => e
-        # ignore since we're shutting down
+      rescue Cql::NotConnectedError, Errno::EPIPE => e
+        # ignore since we're shutting down, and these errors are likely caused
+        # by the code under test, re-raising them would mask the real errors
       end
     end
   end
