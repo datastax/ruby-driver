@@ -1,6 +1,11 @@
 language: ruby
-script: 'rspec spec/cql'
+script: rspec
 bundler_args: --without development
+before_install:
+  - sudo sh -c "echo 'JVM_OPTS=\"\${JVM_OPTS} -Djava.net.preferIPv4Stack=false\"' >> /usr/local/cassandra/conf/cassandra-env.sh"
+  - sudo service cassandra start
+env:
+  - CASSANDRA_HOST=127.0.0.1
 rvm:
   - 1.9.3
   - 2.0.0
@@ -9,14 +14,9 @@ rvm:
 jdk:
   - openjdk7
   - openjdk6
-# services:
-#   - cassandra
-# env:
-#   - CASSANDRA_HOST=127.0.0.1
 matrix:
   exclude:
     - rvm: 1.9.3
       jdk: openjdk6
     - rvm: 2.0.0
       jdk: openjdk6
-
