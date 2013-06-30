@@ -1,4 +1,5 @@
-rvm jruby-1.6.8 gemset create cql-rb
-rvm jruby-1.7.2 gemset create cql-rb
-rvm 1.9.3-p327 gemset create cql-rb
+for rb in jruby-1.6.8 jruby-1.7.2 1.9.3-p327 ruby-2.0.0-p195; do
+  rvm $rb gemset create cql-rb
+done
+
 rvm use 1.9.3-p327@cql-rb
