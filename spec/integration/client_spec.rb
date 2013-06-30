@@ -20,30 +20,32 @@ describe 'A CQL client' do
     client.close
   end
 
-  it 'executes a query and returns the result' do
-    result = client.execute('SELECT * FROM system.schema_keyspaces')
-    result.should_not be_empty
-  end
+  context 'with common operations' do
+    it 'executes a query and returns the result' do
+      result = client.execute('SELECT * FROM system.schema_keyspaces')
+      result.should_not be_empty
+    end
 
-  it 'knows which keyspace it\'s in' do
-    client.use('system')
-    client.keyspace.should == 'system'
-    client.use('system_auth')
-    client.keyspace.should == 'system_auth'
-  end
+    it 'knows which keyspace it\'s in' do
+      client.use('system')
+      client.keyspace.should == 'system'
+      client.use('system_auth')
+      client.keyspace.should == 'system_auth'
+    end
 
-  it 'is not in a keyspace initially' do
-    client.keyspace.should be_nil
-  end
+    it 'is not in a keyspace initially' do
+      client.keyspace.should be_nil
+    end
 
-  it 'can be initialized with a keyspace' do
-    c = Cql::Client.connect(connection_options.merge(:keyspace => 'system'))
-    c.connect
-    begin
-      c.keyspace.should == 'system'
-      expect { c.execute('SELECT * FROM schema_keyspaces') }.to_not raise_error
-    ensure
-      c.close
+    it 'can be initialized with a keyspace' do
+      c = Cql::Client.connect(connection_options.merge(:keyspace => 'system'))
+      c.connect
+      begin
+        c.keyspace.should == 'system'
+        expect { c.execute('SELECT * FROM schema_keyspaces') }.to_not raise_error
+      ensure
+        c.close
+      end
     end
   end
 
