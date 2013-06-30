@@ -11,6 +11,8 @@ group :development do
   platforms :mri do
     gem 'yard'
     gem 'redcarpet'
+  end
+  platforms :mri_19 do
     gem 'perftools.rb'
   end
 end
