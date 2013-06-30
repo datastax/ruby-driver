@@ -12,10 +12,6 @@ describe 'A CQL client' do
     Cql::Client.connect(connection_options)
   end
 
-  before do
-    client.connect
-  end
-
   after do
     client.close
   end
