@@ -374,11 +374,15 @@ describe 'Protocol parsing and communication' do
 
         it 'handles lots of concurrent requests' do
           in_keyspace_with_table do
-            futures = 2000.times.map do
-              connection.send_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum))
+            threads = Array.new(10) do
+              Thread.new do
+                futures = 200.times.map do
+                  connection.send_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum))
+                end
+                Cql::Future.combine(*futures).get
+              end
             end
-
-            Cql::Future.combine(*futures).get
+            threads.each(&:join)
           end
         end
       end

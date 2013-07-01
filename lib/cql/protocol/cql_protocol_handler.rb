@@ -76,12 +76,14 @@ module Cql
       #   the response
       def send_request(request)
         return Future.failed(NotConnectedError.new) if closed?
-        id = next_stream_id
         future = Future.new
-        if id
-          @lock.synchronize do
+        id = nil
+        @lock.synchronize do
+          if (id = next_stream_id)
             @responses[id] = future
           end
+        end
+        if id
           @connection.write do |buffer|
             request.encode_frame(id, buffer)
           end
@@ -145,14 +147,20 @@ module Cql
             @request_queue_in = []
           end
         end
-        while @request_queue_out.any? && (id = next_stream_id)
-          request_buffer, future = @lock.synchronize do
-            @request_queue_out.shift
+        while true
+          id = nil
+          request_buffer = nil
+          @lock.synchronize do
+            if @request_queue_out.any? && (id = next_stream_id)
+              request_buffer, future = @request_queue_out.shift
+              @responses[id] = future
+            end
           end
-          if request_buffer
+          if id
             Protocol::Request.change_stream_id(id, request_buffer)
             @connection.write(request_buffer)
-            @responses[id] = future
+          else
+            break
           end
         end
       end
@@ -183,10 +191,8 @@ module Cql
       end
 
       def next_stream_id
-        @lock.synchronize do
-          @responses.each_with_index do |task, index|
-            return index if task.nil?
-          end
+        @responses.each_with_index do |task, index|
+          return index if task.nil?
         end
         nil
       end
