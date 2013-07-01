@@ -1,9 +1,5 @@
 # encoding: utf-8
 
-require 'bundler/setup'
-require 'simplecov'; SimpleCov.start
-require 'cql'
-
 ENV['CASSANDRA_HOST'] ||= '127.0.0.1'
 
 require 'bundler/setup'
