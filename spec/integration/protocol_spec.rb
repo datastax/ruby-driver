@@ -21,6 +21,7 @@ describe 'Protocol parsing and communication' do
 
   after do
     if io_reactor.running?
+      drop_keyspace! rescue nil
       io_reactor.stop.get rescue nil
     end
   end
