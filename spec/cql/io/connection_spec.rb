@@ -28,19 +28,19 @@ module Cql
 
       before do
         socket_impl.stub(:getaddrinfo)
-          .with('example.com', 55555, Socket::AF_INET, Socket::SOCK_STREAM)
-          .and_return([[nil, 'PORT', nil, 'IP', 'FAMILY', 'TYPE']])
+          .with('example.com', 55555, nil, Socket::SOCK_STREAM)
+          .and_return([[nil, 'PORT', nil, 'IP1', 'FAMILY1', 'TYPE1'], [nil, 'PORT', nil, 'IP2', 'FAMILY2', 'TYPE2']])
         socket_impl.stub(:sockaddr_in)
-          .with('PORT', 'IP')
-          .and_return('SOCKADDR')
+          .with('PORT', 'IP1')
+          .and_return('SOCKADDR1')
         socket_impl.stub(:new)
-          .with('FAMILY', 'TYPE', 0)
+          .with('FAMILY1', 'TYPE1', 0)
           .and_return(socket)
       end
 
       describe '#connect' do
         it 'creates a socket and calls #connect_nonblock' do
-          socket.should_receive(:connect_nonblock).with('SOCKADDR')
+          socket.should_receive(:connect_nonblock).with('SOCKADDR1')
           handler.connect
         end
 
@@ -110,6 +110,30 @@ module Cql
             f = handler.connect
             f.should_not be_complete
             f.should_not be_failed
+          end
+        end
+
+        context 'when #connect_nonblock raises EINVAL' do
+          before do
+            socket_impl.stub(:sockaddr_in)
+              .with('PORT', 'IP2')
+              .and_return('SOCKADDR2')
+            socket_impl.stub(:new)
+              .with('FAMILY2', 'TYPE2', 0)
+              .and_return(socket)
+            socket.stub(:close)
+          end
+
+          it 'attempts to connect to the next address given by #getaddinfo' do
+            socket.should_receive(:connect_nonblock).with('SOCKADDR1').and_raise(Errno::EINVAL)
+            socket.should_receive(:connect_nonblock).with('SOCKADDR2')
+            handler.connect
+          end
+
+          it 'fails if there are no more addresses to try' do
+            socket.stub(:connect_nonblock).and_raise(Errno::EINVAL)
+            f = handler.connect
+            expect { f.get }.to raise_error(ConnectionError)
           end
         end
 

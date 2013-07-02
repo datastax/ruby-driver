@@ -28,10 +28,12 @@ module Cql
       # @private
       def connect
         begin
-          unless @io
+          unless @addrinfos
             @connection_started_at = @clock.now
-            addrinfo = @socket_impl.getaddrinfo(@host, @port, Socket::AF_INET, Socket::SOCK_STREAM)
-            _, port, _, ip, address_family, socket_type = addrinfo.first
+            @addrinfos = @socket_impl.getaddrinfo(@host, @port, nil, Socket::SOCK_STREAM)
+          end
+          unless @io
+            _, port, _, ip, address_family, socket_type = @addrinfos.shift
             @sockaddr = @socket_impl.sockaddr_in(port, ip)
             @io = @socket_impl.new(address_family, socket_type, 0)
           end
@@ -46,6 +48,13 @@ module Cql
         rescue Errno::EINPROGRESS, Errno::EALREADY
           if @clock.now - @connection_started_at > @connection_timeout
             close(ConnectionTimeoutError.new("Could not connect to #{@host}:#{@port} within #{@connection_timeout}s"))
+          end
+        rescue Errno::EINVAL => e
+          if @addrinfos.empty?
+            close(e)
+          else
+            @io = nil
+            retry
           end
         rescue SystemCallError => e
           close(e)
