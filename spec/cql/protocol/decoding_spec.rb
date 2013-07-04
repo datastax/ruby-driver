@@ -235,10 +235,16 @@ module Cql
           ByteBuffer.new("\xA4\xA7\t\x00$\xE1\x11\xDF\x89$\x00\x1F\xF3Y\x17\x11")
         end
 
-        it 'decodes a UUID' do
+        it 'decodes a UUID as a Cql::Uuid' do
           Decoding.read_uuid!(buffer).should == Uuid.new('a4a70900-24e1-11df-8924-001ff3591711')
         end
         
+        it 'decodes a UUID as a Cql::TimeUuid' do
+          uuid = Decoding.read_uuid!(buffer, TimeUuid)
+          uuid.should == TimeUuid.new('a4a70900-24e1-11df-8924-001ff3591711')
+          uuid.should be_a(TimeUuid)
+        end
+
         it 'consumes the bytes' do
           Decoding.read_uuid!(buffer)
           buffer.should be_empty

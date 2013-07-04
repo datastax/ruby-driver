@@ -41,7 +41,7 @@ describe 'Protocol parsing and communication' do
   end
 
   def create_keyspace!
-    query("CREATE KEYSPACE #{keyspace_name} WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}")
+    query("CREATE KEYSPACE #{keyspace_name} WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
   end
 
   def use_keyspace!

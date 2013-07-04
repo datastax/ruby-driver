@@ -88,7 +88,7 @@ module Cql
           :varchar => method(:bytes_to_varchar),
           :text => method(:bytes_to_varchar),
           :varint => method(:bytes_to_varint),
-          :timeuuid => method(:bytes_to_uuid),
+          :timeuuid => method(:bytes_to_timeuuid),
           :uuid => method(:bytes_to_uuid),
           :inet => method(:bytes_to_inet),
         }
@@ -186,6 +186,11 @@ module Cql
       def bytes_to_uuid(buffer, size_bytes)
         return nil unless read_size(buffer, size_bytes)
         read_uuid!(buffer)
+      end
+
+      def bytes_to_timeuuid(buffer, size_bytes)
+        return nil unless read_size(buffer, size_bytes)
+        read_uuid!(buffer, TimeUuid)
       end
 
       def bytes_to_inet(buffer, size_bytes)
