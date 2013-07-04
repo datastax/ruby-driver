@@ -2,11 +2,13 @@ language: ruby
 script: rspec
 bundler_args: --without development
 before_install:
+  - 'test "$CQL_ENABLE_AUTH" = "1" && sudo perl -pi -e "s/(?<=authenticator: org\.apache\.cassandra\.auth\.)AllowAllAuthenticator/PasswordAuthenticator/" /usr/local/cassandra/conf/cassandra.yaml && echo "Authentication enabled" || echo "Authentication disabled"'
   - sudo sh -c "echo 'JVM_OPTS=\"\${JVM_OPTS} -Djava.net.preferIPv4Stack=false\"' >> /usr/local/cassandra/conf/cassandra-env.sh"
   - sudo service cassandra start
   - sudo service redis-server start || echo 'Redis already running'
 env:
-  - CASSANDRA_HOST=127.0.0.1
+  - CASSANDRA_HOST=127.0.0.1 CQL_ENABLE_AUTH=1
+  - CASSANDRA_HOST=127.0.0.1 CQL_ENABLE_AUTH=0
 rvm:
   - 1.9.3
   - 2.0.0
