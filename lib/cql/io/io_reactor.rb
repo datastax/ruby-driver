@@ -2,54 +2,145 @@
 
 module Cql
   module Io
-    # An instance of IO reactor manages the connections used by a client.
+    ReactorError = Class.new(IoError)
+
+    # An IO reactor takes care of all the IO for a client. It handles opening
+    # new connections, and making sure that connections that have data to send
+    # flush to the network, and connections that have data coming in read that
+    # data and delegate it to their protocol handlers.
     #
-    # The reactor starts a thread in which all IO is performed. The IO reactor
-    # instances are thread safe.
+    # All IO is done in a single background thread, regardless of how many
+    # connections you open. There shouldn't be any problems handling hundreds of
+    # connections if needed. All operations are thread safe, but you should take
+    # great care when in your protocol handlers to make sure that they don't
+    # do too much work in their data handling callbacks, since those will be
+    # run in the reactor thread, and every cycle you use there is a cycle which
+    # can't be used to handle IO.
+    #
+    # The IO reactor is completely protocol agnostic, and it's up to the
+    # specified protocol handler factory to create objects that can interpret
+    # the bytes received from remote hosts, and to send the correct commands
+    # back. The way this works is that when you create an IO reactor you provide
+    # a factory that can create protocol handler objects (this factory is most
+    # of the time just class, but it could potentially be any object that
+    # responds to #new). When you #connect a new protocol handler instance is
+    # created and passed a connection. The protocol handler can then register to
+    # receive data that arrives over the socket, and it can write data to the
+    # socket. It can also register to be notified when the socket is closed, or
+    # it can itself close the socket.
+    #
+    # @example A protocol handler that processes whole lines
+    #
+    #   class LineProtocolHandler
+    #     def initialize(connection)
+    #       @connection = connection
+    #       # register a listener method for new data, this must be done in the
+    #       # in the constructor, and only one listener can be registered
+    #       @connection.on_data(&method(:process_data))
+    #       @buffer = ''
+    #     end
+    #
+    #     def process_data(new_data)
+    #       # in this fictional protocol we want to process whole lines, so we
+    #       # append new data to our buffer and then loop as long as there is
+    #       # a newline in the buffer, everything up until a newline is a
+    #       # complete line
+    #       @buffer << new_data
+    #       while newline_index = @buffer.index("\n")
+    #         line = @buffer.slice!(0, newline_index + 1)
+    #         line.chomp!
+    #         # Now do something interesting with the line, but remember that
+    #         # while you're in the data listener method you're executing in the
+    #         # IO reactor thread so you're blocking the reactor from doing
+    #         # other IO work. You should not do any heavy lifting here, but
+    #         # instead hand off the data to your application's other threads.
+    #         # One way of doing that is to create a Cql::Future in the method
+    #         # that sends the request, and then complete the future in this
+    #         # method. How you keep track of which future belongs to which
+    #         # reply is very protocol dependent so you'll have to figure that
+    #         # out yourself.
+    #       end
+    #     end
+    #
+    #     def send_request(command_string)
+    #       # This example primarily shows how to implement a data listener
+    #       # method, but this is how you write data to the connection. The
+    #       # method can be called anything, it doesn't have to be #send_request
+    #       @connection.write(command_string)
+    #       # The connection object itself is threadsafe, but to create any
+    #       # interesting protocol you probably need to set up some state for
+    #       # each request so that you know which request to complete when you
+    #       # get data back.
+    #     end
+    #   end
+    #
+    # See {Cql::Protocol::CqlProtocolHandler} for an example of how the CQL
+    # protocol is implemented, and there is an integration tests that implements
+    # the Redis protocol that you can look at too.
     #
     class IoReactor
+      # Initializes a new IO reactor.
       #
-      # @param [Hash] options
-      # @option options [Integer] :connection_timeout (5) Max time to wait for a
-      #   connection, in seconds
+      # @param protocol_handler_factory [Object] a class that will be used
+      #   create the protocol handler objects returned by {#connect}
+      # @param options [Hash] only used to inject behaviour during tests
       #
-      def initialize(options={})
-        @connection_timeout = options[:connection_timeout] || 5
-        @lock = Mutex.new
-        @command_queue = []
-        @unblocker = UnblockerConnection.new(*IO.pipe)
-        @connections = [@unblocker]
+      def initialize(protocol_handler_factory, options={})
+        @protocol_handler_factory = protocol_handler_factory
+        @unblocker = Unblocker.new
+        @io_loop = IoLoopBody.new(options)
+        @io_loop.add_socket(@unblocker)
+        @running = false
+        @stopped = false
         @started_future = Future.new
         @stopped_future = Future.new
-        @running = false
+        @lock = Mutex.new
       end
 
-      # Returns whether or not the reactor is running
+      # Register to receive notifications when the reactor shuts down because
+      # on an irrecoverable error.
+      #
+      # The listener block will be called in the reactor thread. Any errors that
+      # it raises will be ignored.
+      #
+      # @yield [error] the error that cause the reactor to stop
+      #
+      def on_error(&listener)
+        @stopped_future.on_failure(&listener)
+      end
+
+      # Returns true as long as the reactor is running. It will be true even
+      # after #stop has been called, but false when the future returned by
+      # #stop completes.
       #
       def running?
         @running
       end
 
-      # Starts the reactor.
+      # Starts the reactor. This will spawn a background thread that will manage
+      # all connections.
       #
-      # Calling this method when the reactor is connecting or is connected has
-      # no effect.
+      # This method is asynchronous and returns a future which completes when
+      # the reactor has started.
       #
-      # @return [Future<nil>] a future which completes when the reactor has started
-      #
+      # @return [Cql::Future] a future that will resolve to the reactor itself
       def start
         @lock.synchronize do
-          unless @running
-            @running = true
-            @reactor_thread = Thread.start do
-              begin
-                @started_future.complete!
-                io_loop
-                @stopped_future.complete!
-              rescue => e
-                @stopped_future.fail!(e)
-                raise
-              end
+          raise ReactorError, 'Cannot start a stopped IO reactor' if @stopped
+          return @started_future if @running
+          @running = true
+        end
+        Thread.start do
+          @started_future.complete!(self)
+          begin
+            @io_loop.tick until @stopped
+          ensure
+            @io_loop.close_sockets
+            @running = false
+            if $!
+              @stopped_future.fail!($!)
+            else
+              @stopped_future.complete!(self)
             end
           end
         end
@@ -58,183 +149,53 @@ module Cql
 
       # Stops the reactor.
       #
-      # Calling this method when the reactor is stopping or has stopped has
-      # no effect.
+      # This method is asynchronous and returns a future which completes when
+      # the reactor has completely stopped, or fails with an error if the reactor
+      # stops or has already stopped because of a failure.
       #
-      # @return [Future<nil>] a future which completes when the reactor has stopped
+      # @return [Cql::Future] a future that will resolve to the reactor itself
       #
       def stop
-        @running = false
-        command_queue_push(nil)
+        @stopped = true
         @stopped_future
       end
 
-      # Establish a new connection.
+      # Opens a connection to the specified host and port.
       #
-      # @param [String] host The hostname to connect to
-      # @param [Integer] port The port to connect to
-      # @return [Future<Object>] a future representing the ID of the newly
-      #   established connection, or connection error if the connection fails.
+      # This method is asynchronous and returns a future which completes when
+      # the connection has been established, or fails if the connection cannot
+      # be established for some reason (the connection takes longer than the
+      # specified timeout, the remote host cannot be found, etc.).
       #
-      def add_connection(host, port)
-        connection = NodeConnection.new(host, port, @connection_timeout)
-        connection.on_close do
-          @lock.synchronize do
-            @connections.delete(connection)
-            connection_commands, @command_queue = @command_queue.partition do |command|
-              command.is_a?(TargetedRequestCommand) && command.connection_id == connection.connection_id
-            end
-            connection_commands.each do |command|
-              command.future.fail!(ConnectionClosedError.new)
-            end
-          end
-        end
-        f = connection.open
-        @lock.synchronize do
-          @connections << connection
-        end
-        command_queue_push(nil)
-        f
-      end
-
-      # Sends a request over a random, or specific connection.
+      # The object returned in the future will be an instance of the protocol
+      # handler class you passed to {#initialize}.
       #
-      # @param [Cql::Protocol::Request] request the request to send
-      # @param [Object] connection_id the ID of the connection which should be
-      #   used to send the request
-      # @return [Future<ResultResponse>] a future representing the result of the request
+      # @param host [String] the host to connect to
+      # @param port [Integer] the port to connect to
+      # @param timeout [Numeric] the number of seconds to wait for a connection
+      #   before failing
+      # @return [Cql::Future] a future that will resolve to a protocol handler
+      #   object that will be your interface to interact with the connection
       #
-      def queue_request(request, connection_id=nil)
-        command = connection_id ? TargetedRequestCommand.new(request, connection_id) : RequestCommand.new(request)
-        command_queue_push(command)
-        command.future
-      end
-
-      # Registers a listener to receive server sent events.
-      #
-      # @yieldparam [Cql::Protocol::EventResponse] event the event sent by the server
-      #
-      def add_event_listener(&listener)
-        command_queue_push(EventListenerCommand.new(listener))
-      end
-
-      private
-
-      def io_loop
-        while running?
-          read_ready_streams = @connections.select(&:connected?)
-          write_ready_streams = @connections.select(&:can_write?)
-          readables, writables, _ = IO.select(read_ready_streams, write_ready_streams, nil, 1)
-          readables && readables.each(&:handle_read)
-          writables && writables.each(&:handle_write)
-          @connections.each do |connection|
-            if connection.connecting?
-              connection.handle_connecting
-            end
-          end
-          if running?
-            perform_queued_commands
-          end
-        end
-      ensure
-        stop
-        @connections.dup.each do |connection|
-          begin
-            connection.close
-          rescue IOError => e
-          end
-        end
-      end
-
-      def command_queue_push(command)
-        if command
-          @lock.synchronize do
-            @command_queue << command
-          end
-        end
+      def connect(host, port, timeout)
+        connection = Connection.new(host, port, timeout, @unblocker)
+        f = connection.connect
+        protocol_handler = @protocol_handler_factory.new(connection)
+        @io_loop.add_socket(connection)
         @unblocker.unblock!
+        f.map { protocol_handler }
       end
 
-      def perform_queued_commands
-        @lock.synchronize do
-          unexecuted_commands = []
-          while (command = @command_queue.shift)
-            case command
-            when EventListenerCommand
-              @connections.each do |connection|
-                connection.on_event(&command.listener)
-              end
-            when TargetedRequestCommand
-              connection = @connections.find { |c| c.connection_id == command.connection_id }
-              if connection && connection.connected? && connection.has_capacity?
-                connection.perform_request(command.request, command.future)
-              elsif connection && connection.connected?
-                unexecuted_commands << command
-              else
-                command.future.fail!(ConnectionNotFoundError.new("Connection ##{command.connection_id} does not exist"))
-              end
-            when RequestCommand
-              connection = @connections.select(&:has_capacity?).sample
-              if connection
-                connection.perform_request(command.request, command.future)
-              else
-                unexecuted_commands << command
-              end
-            end
-          end
-          @command_queue = unexecuted_commands
-        end
+      def to_s
+        @io_loop.to_s
       end
     end
 
-    class EventListenerCommand
-      attr_reader :listener
-
-      def initialize(listener)
-        @listener = listener
-      end
-    end
-
-    class RequestCommand
-      attr_reader :future, :request
-
-      def initialize(request)
-        @request = request
-        @future = Future.new
-      end
-    end
-
-    class TargetedRequestCommand < RequestCommand
-      attr_reader :connection_id
-
-      def initialize(request, connection_id)
-        super(request)
-        @connection_id = connection_id
-      end
-    end
-
-    class UnblockerConnection
-      def initialize(*args)
-        @out, @in = args
-      end
-
-      def unblock!
-        @in.write(PING_BYTE)
-      end
-
-      def to_io
-        @out
-      end
-
-      def close
-      end
-
-      def on_event; end
-
-      def on_close; end
-
-      def connection_id
-        -1
+    # @private
+    class Unblocker
+      def initialize
+        @out, @in = IO.pipe
+        @lock = Mutex.new
       end
 
       def connected?
@@ -245,21 +206,88 @@ module Cql
         false
       end
 
-      def can_write?
+      def writable?
         false
       end
 
-      def has_capacity?
-        false
+      def closed?
+        @in.nil?
       end
 
-      def handle_read
+      def unblock!
+        @lock.synchronize do
+          @in.write(PING_BYTE)
+        end
+      end
+
+      def read
         @out.read_nonblock(2**16)
+      end
+
+      def close
+        @in.close
+        @out.close
+        @in = nil
+        @out = nil
+      end
+
+      def to_io
+        @out
+      end
+
+      def to_s
+        %(#<#{self.class.name}>)
       end
 
       private
 
       PING_BYTE = "\0".freeze
+    end
+
+    # @private
+    class IoLoopBody
+      def initialize(options={})
+        @selector = options[:selector] || IO
+        @lock = Mutex.new
+        @sockets = []
+      end
+
+      def add_socket(socket)
+        @lock.synchronize do
+          sockets = @sockets.dup
+          sockets << socket
+          @sockets = sockets
+        end
+      end
+
+      def close_sockets
+        @sockets.each do |s|
+          begin
+            s.close unless s.closed?
+          rescue
+            # the socket had most likely already closed due to an error
+          end
+        end
+      end
+
+      def tick(timeout=1)
+        readables, writables, connecting = [], [], []
+        sockets = @sockets
+        sockets.reject! { |s| s.closed? }
+        sockets.each do |s|
+          readables << s if s.connected?
+          writables << s if s.connecting? || s.writable?
+          connecting << s if s.connecting?
+        end
+        r, w, _ = @selector.select(readables, writables, nil, timeout)
+        connecting.each(&:connect)
+        r && r.each(&:read)
+        w && w.each(&:flush)
+      end
+
+      def to_s
+        %(#<#{IoReactor.name} @connections=[#{@sockets.map(&:to_s).join(', ')}]>)
+      end
     end
   end
 end

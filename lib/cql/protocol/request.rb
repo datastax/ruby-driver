@@ -19,6 +19,10 @@ module Cql
         buffer.update(offset + 4, [(buffer.bytesize - offset - 8)].pack(Formats::INT_FORMAT))
         buffer
       end
+
+      def self.change_stream_id(new_stream_id, buffer, offset=0)
+        buffer.update(offset + 2, new_stream_id.chr)
+      end
     end
   end
 end

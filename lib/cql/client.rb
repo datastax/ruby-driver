@@ -11,6 +11,7 @@ module Cql
     end
   end
 
+  NotConnectedError = Class.new(CqlError)
   ClientError = Class.new(CqlError)
   AuthenticationError = Class.new(ClientError)
 
@@ -43,7 +44,6 @@ module Cql
   # See {Cql::Client::Client} for the full client API.
   #
   module Client
-    NotConnectedError = Class.new(ClientError)
     InvalidKeyspaceNameError = Class.new(ClientError)
 
     # Create a new client and connects to Cassandra.
@@ -74,13 +74,13 @@ module Cql
       # keyspace will also be changed (otherwise the current keyspace will not
       # be set).
       #
-      # @return self
+      # @return [Cql::Client]
 
       # @!method close
       #
       # Disconnect from all nodes.
       #
-      # @return self
+      # @return [Cql::Client]
 
       # @!method connected?
       #
@@ -93,8 +93,7 @@ module Cql
       # Returns the name of the current keyspace, or `nil` if no keyspace has been
       # set yet.
       #
-      # @param [String] keyspace
-      # @return [nil]
+      # @return [String]
 
       # @!method use(keyspace)
       #
@@ -143,6 +142,11 @@ module Cql
       #
       # @param args [Array] the values for the bound parameters, and optionally
       #   the desired consistency level, as a symbol (defaults to :quorum)
+      # @raise [Cql::NotConnectedError] raised when the client is not connected
+      # @raise [Cql::QueryError] raised when there is an error on the server side
+      # @return [nil, Cql::Client::QueryResult] Most statements have no result and return
+      #   `nil`, but `SELECT` statements return an `Enumerable` of rows
+      #   (see {Cql::Client::QueryResult}).
       def execute(*args)
       end
     end
@@ -156,3 +160,4 @@ require 'cql/client/asynchronous_prepared_statement'
 require 'cql/client/synchronous_prepared_statement'
 require 'cql/client/synchronous_client'
 require 'cql/client/asynchronous_client'
+require 'cql/client/request_runner'

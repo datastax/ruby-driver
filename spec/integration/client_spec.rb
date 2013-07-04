@@ -12,12 +12,8 @@ describe 'A CQL client' do
     Cql::Client.connect(connection_options)
   end
 
-  before do
-    client.connect
-  end
-
   after do
-    client.close
+    client.close rescue nil
   end
 
   context 'with common operations' do
@@ -79,15 +75,14 @@ describe 'A CQL client' do
 
     before do
       client.close
-      multi_client.connect
-      multi_client.use('system')
     end
 
     after do
-      multi_client.close
+      multi_client.close rescue nil
     end
 
     it 'handles keyspace changes with #use' do
+      multi_client.use('system')
       100.times do
         result = multi_client.execute(%<SELECT * FROM schema_keyspaces WHERE keyspace_name = 'system'>)
         result.should have(1).item
@@ -95,6 +90,7 @@ describe 'A CQL client' do
     end
 
     it 'handles keyspace changes with #execute' do
+      multi_client.execute('USE system')
       100.times do
         result = multi_client.execute(%<SELECT * FROM schema_keyspaces WHERE keyspace_name = 'system'>)
         result.should have(1).item
@@ -102,6 +98,7 @@ describe 'A CQL client' do
     end
 
     it 'executes a prepared statement' do
+      multi_client.use('system')
       statement = multi_client.prepare('SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?')
       100.times do
         result = statement.execute('system')
@@ -124,25 +121,22 @@ describe 'A CQL client' do
       end
     end
 
-    it 'send credentials given in :credentials' do
+    it 'sends credentials given in :credentials' do
       client = Cql::Client.connect(connection_options.merge(credentials: {username: 'cassandra', password: 'cassandra'}))
       client.execute('SELECT * FROM system.schema_keyspaces')
     end
 
     it 'raises an error when no credentials have been given' do
-      if authentication_enabled
+      pending('authentication not configured', unless: authentication_enabled) do
         expect { Cql::Client.connect(connection_options.merge(credentials: nil)) }.to raise_error(Cql::AuthenticationError)
-      else
-        pending 'authentication not configured'
       end
     end
 
     it 'raises an error when the credentials are bad' do
-      if authentication_enabled
-        client = Cql::Client.connect(connection_options.merge(credentials: {username: 'foo', password: 'bar'}))
-        expect { client.connect }.to raise_error(Cql::AuthenticationError)
-      else
-        pending 'authentication not configured'
+      pending('authentication not configured', unless: authentication_enabled) do
+        expect {
+          Cql::Client.connect(connection_options.merge(credentials: {username: 'foo', password: 'bar'}))
+        }.to raise_error(Cql::AuthenticationError)
       end
     end
   end

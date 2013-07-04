@@ -44,6 +44,14 @@ module Cql
         v2.should == 'bar'
       end
 
+      it 'notifies all listeners even when one raises an error' do
+        value = nil
+        future.on_complete { |v| raise 'Blurgh' }
+        future.on_complete { |v| value = v }
+        future.complete!('bar')
+        value.should == 'bar'
+      end
+
       it 'notifies new listeners even when already completed' do
         v1, v2 = nil, nil
         future.complete!('bar')
@@ -51,6 +59,11 @@ module Cql
         future.on_complete { |v| v2 = v }
         v1.should == 'bar'
         v2.should == 'bar'
+      end
+
+      it 'does not raise any error when the listener raises an error when already completed' do
+        future.complete!('bar')
+        expect { future.on_complete { |v| raise 'Blurgh' } }.to_not raise_error
       end
 
       it 'blocks on #value until completed' do
@@ -109,6 +122,14 @@ module Cql
         e2.message.should == 'FAIL!'
       end
 
+      it 'notifies all listeners even if one raises an error' do
+        error = nil
+        future.on_failure { |e| raise 'Blurgh' }
+        future.on_failure { |e| error = e }
+        future.fail!(StandardError.new('FAIL!'))
+        error.message.should == 'FAIL!'
+      end
+
       it 'notifies new listeners even when already failed' do
         e1, e2 = nil, nil
         future.fail!(StandardError.new('FAIL!'))
@@ -116,6 +137,11 @@ module Cql
         future.on_failure { |e| e2 = e }
         e1.message.should == 'FAIL!'
         e2.message.should == 'FAIL!'
+      end
+
+      it 'does not raise any error when the listener raises an error when already failed' do
+        future.fail!(StandardError.new('FAIL!'))
+        expect { future.on_failure { |e| raise 'Blurgh' } }.to_not raise_error
       end
 
       it 'cannot be failed again' do
