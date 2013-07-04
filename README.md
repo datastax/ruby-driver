@@ -205,6 +205,7 @@ Open an issue and I'll do my best to help you. Please include the gem version, C
 # Known bugs & limitations
 
 [![Build Status](https://travis-ci.org/iconara/cql-rb.png?branch=master)](https://travis-ci.org/iconara/cql-rb)
+[![Coverage Status](https://coveralls.io/repos/iconara/cql-rb/badge.png?branch=io_reactor_rewrite)](https://coveralls.io/r/iconara/cql-rb?branch=io_reactor_rewrite)
 
 * No automatic peer discovery.
 * No automatic reconnection on connection failures.
