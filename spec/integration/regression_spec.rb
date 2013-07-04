@@ -5,7 +5,7 @@ require 'spec_helper'
 
 describe 'Regressions' do
   let :connection_options do
-    {:host => ENV['CASSANDRA_HOST']}
+    {:host => ENV['CASSANDRA_HOST'], :credentials => {:username => 'cassandra', :password => 'cassandra'}}
   end
 
   let :client do

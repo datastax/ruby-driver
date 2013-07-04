@@ -131,43 +131,35 @@ describe 'Protocol parsing and communication' do
       end
 
       it 'sends STARTUP and receives AUTHENTICATE' do
-        if authentication_enabled
+        pending('authentication not configured', unless: authentication_enabled) do
           response = raw_execute_request(Cql::Protocol::StartupRequest.new)
           response.should be_a(Cql::Protocol::AuthenticateResponse)
-        else
-          pending 'authentication not configured'
         end
       end
 
       it 'ignores the AUTHENTICATE response and receives ERROR' do
-        if authentication_enabled
+        pending('authentication not configured', unless: authentication_enabled) do
           raw_execute_request(Cql::Protocol::StartupRequest.new)
           response = raw_execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
           response.code.should == 10
           response.message.should include('needs authentication')
-        else
-          pending 'authentication not configured'
         end
       end
 
       it 'sends STARTUP followed by CREDENTIALS and receives READY' do
-        if authentication_enabled
+        pending('authentication not configured', unless: authentication_enabled) do
           raw_execute_request(Cql::Protocol::StartupRequest.new)
           response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra'))
           response.should be_a(Cql::Protocol::ReadyResponse)
-        else
-          pending 'authentication not configured'
         end
       end
 
       it 'sends bad username and password in CREDENTIALS and receives ERROR' do
-        if authentication_enabled
+        pending('authentication not configured', unless: authentication_enabled) do
           raw_execute_request(Cql::Protocol::StartupRequest.new)
           response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar'))
           response.code.should == 0x100
           response.message.should include('Username and/or password are incorrect')
-        else
-          pending 'authentication not configured'
         end
       end
     end
@@ -403,7 +395,10 @@ describe 'Protocol parsing and communication' do
       io_reactor = Cql::Io::IoReactor.new(Cql::Protocol::CqlProtocolHandler)
       io_reactor.start.get
       connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1).get
-      connection.send_request(Cql::Protocol::StartupRequest.new).get
+      response = connection.send_request(Cql::Protocol::StartupRequest.new).get
+      if response.is_a?(Cql::Protocol::AuthenticateResponse)
+        connection.send_request(Cql::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra')).get
+      end
       io_reactor.start.get
       response = connection.send_request(Cql::Protocol::QueryRequest.new('USE system', :any)).get
       response.should_not be_a(Cql::Protocol::ErrorResponse)
