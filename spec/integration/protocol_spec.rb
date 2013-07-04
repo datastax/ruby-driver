@@ -147,11 +147,9 @@ describe 'Protocol parsing and communication' do
       end
 
       it 'sends STARTUP followed by CREDENTIALS and receives READY' do
-        pending('authentication not configured', unless: authentication_enabled) do
-          raw_execute_request(Cql::Protocol::StartupRequest.new)
-          response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra'))
-          response.should be_a(Cql::Protocol::ReadyResponse)
-        end
+        raw_execute_request(Cql::Protocol::StartupRequest.new)
+        response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra'))
+        response.should be_a(Cql::Protocol::ReadyResponse)
       end
 
       it 'sends bad username and password in CREDENTIALS and receives ERROR' do
