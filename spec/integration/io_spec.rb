@@ -9,10 +9,6 @@ describe 'An IO reactor' do
       Cql::Io::IoReactor.new(IoSpec::TestConnection)
     end
 
-    let :hostname do
-      'localhost'
-    end
-
     let :fake_server do
       FakeServer.new
     end
@@ -28,12 +24,12 @@ describe 'An IO reactor' do
     end
 
     it 'connects to the server' do
-      io_reactor.connect(hostname, fake_server.port, 1)
+      io_reactor.connect(ENV['CASSANDRA_HOST'], fake_server.port, 1)
       fake_server.await_connects!(1)
     end
 
     it 'receives data' do
-      protocol_handler = io_reactor.connect(hostname, fake_server.port, 1).get
+      protocol_handler = io_reactor.connect(ENV['CASSANDRA_HOST'], fake_server.port, 1).get
       fake_server.await_connects!(1)
       fake_server.broadcast!('hello world')
       await { protocol_handler.data.bytesize > 0 }
@@ -41,7 +37,7 @@ describe 'An IO reactor' do
     end
 
     it 'receives data on multiple connections' do
-      protocol_handlers = Array.new(10) { io_reactor.connect(hostname, fake_server.port, 1).get }
+      protocol_handlers = Array.new(10) { io_reactor.connect(ENV['CASSANDRA_HOST'], fake_server.port, 1).get }
       fake_server.await_connects!(10)
       fake_server.broadcast!('hello world')
       await { protocol_handlers.all? { |c| c.data.bytesize > 0 } }
@@ -54,13 +50,9 @@ describe 'An IO reactor' do
       Cql::Io::IoReactor.new(IoSpec::RedisProtocolHandler)
     end
 
-    let :hostname do
-      'localhost'
-    end
-
     let :protocol_handler do
       begin
-        io_reactor.connect(hostname, 6379, 1).get
+        io_reactor.connect(ENV['CASSANDRA_HOST'], 6379, 1).get
       rescue Cql::Io::ConnectionError
         nil
       end
