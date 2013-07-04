@@ -134,7 +134,7 @@ describe 'A CQL client' do
 
     it 'raises an error when the credentials are bad' do
       pending('authentication not configured', unless: authentication_enabled) do
-        expect { 
+        expect {
           Cql::Client.connect(connection_options.merge(credentials: {username: 'foo', password: 'bar'}))
         }.to raise_error(Cql::AuthenticationError)
       end
