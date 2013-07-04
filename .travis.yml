@@ -19,8 +19,8 @@ jdk:
 matrix:
   exclude:
     - rvm: 1.9.3
-      jdk: openjdk6
-      env: CASSANDRA_HOST=127.0.0.1
-    - rvm: 2.0.0
-      jdk: openjdk6
-      env: CASSANDRA_HOST=127.0.0.1
+      jdk: openjdk7
+      env: CASSANDRA_HOST=127.0.0.1 CQL_ENABLE_AUTH=1
+    - rvm: jruby-head
+      jdk: openjdk7
+      env: CASSANDRA_HOST=127.0.0.1 CQL_ENABLE_AUTH=1
