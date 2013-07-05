@@ -23,6 +23,7 @@ module Cql
           return @connected_future if can_execute?
           @connecting = true
           @connected_future = Future.new
+          @connections = []
         end
         when_not_closing do
           setup_connections
@@ -80,15 +81,11 @@ module Cql
 
       def use(keyspace)
         return Future.failed(NotConnectedError.new) unless can_execute?
-        return Future.failed(InvalidKeyspaceNameError.new(%("#{keyspace}" is not a valid keyspace name))) unless valid_keyspace_name?(keyspace)
         connections = @lock.synchronize do
           @connections.select { |c| c.keyspace != keyspace }
         end
         if connections.any?
-          futures = connections.map do |connection|
-            execute_request(Protocol::QueryRequest.new("USE #{keyspace}", :one), connection)
-          end
-          futures.compact!
+          futures = connections.map { |connection| use_keyspace(keyspace, connection) }
           Future.combine(*futures).map { nil }
         else
           Future.completed(nil)
@@ -144,20 +141,10 @@ module Cql
       def setup_connections
         hosts_connected_future = @io_reactor.start.flat_map do
           hosts = @host.split(',')
-          connection_futures = hosts.map { |host| connect_to_host(host) }
+          connection_futures = hosts.map { |host| connect_to_host(host, @initial_keyspace) }
           Future.combine(*connection_futures)
         end
-        hosts_connected_future.on_complete do |connections|
-          @connections = connections
-        end
-        if @initial_keyspace
-          initialized_future = hosts_connected_future.flat_map do |*args|
-            use(@initial_keyspace)
-          end
-        else
-          initialized_future = hosts_connected_future
-        end
-        initialized_future.on_failure do |e|
+        hosts_connected_future.on_failure do |e|
           close
           if e.is_a?(Cql::QueryError) && e.code == 0x100
             @connected_future.fail!(AuthenticationError.new(e.message))
@@ -165,17 +152,29 @@ module Cql
             @connected_future.fail!(e)
           end
         end
-        initialized_future.on_complete do
+        hosts_connected_future.on_complete do |connections|
+          @connections.concat(connections)
           @connected_future.complete!(self)
         end
       end
 
-      def connect_to_host(host)
+      def connect_to_host(host, keyspace)
         connected = @io_reactor.connect(host, @port, @connection_timeout)
-        connected.flat_map do |connection|
-          started = execute_request(Protocol::StartupRequest.new, connection)
-          started.flat_map { |response| maybe_authenticate(response, connection) }
+        initialized = connected.flat_map do |connection|
+          initialize_connection(connection, keyspace)
         end
+      end
+
+      def initialize_connection(connection, keyspace)
+        started = execute_request(Protocol::StartupRequest.new, connection)
+        authenticated = started.flat_map { |response| maybe_authenticate(response, connection) }
+        authenticated.flat_map { |connection| use_keyspace(keyspace, connection) }
+      end
+
+      def use_keyspace(keyspace, connection)
+        return Future.completed(connection) unless keyspace
+        return Future.failed(InvalidKeyspaceNameError.new(%("#{keyspace}" is not a valid keyspace name))) unless valid_keyspace_name?(keyspace)
+        execute_request(Protocol::QueryRequest.new("USE #{keyspace}", :one), connection).map { connection }
       end
 
       def maybe_authenticate(response, connection)
