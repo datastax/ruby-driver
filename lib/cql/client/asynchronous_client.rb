@@ -80,31 +80,30 @@ module Cql
       end
 
       def use(keyspace)
-        return Future.failed(NotConnectedError.new) unless can_execute?
-        connections = @lock.synchronize do
-          @connections.select { |c| c.keyspace != keyspace }
-        end
-        if connections.any?
-          futures = connections.map { |connection| use_keyspace(keyspace, connection) }
-          Future.combine(*futures).map { nil }
-        else
-          Future.completed(nil)
+        with_failure_handler do
+          connections = @lock.synchronize do
+            @connections.select { |c| c.keyspace != keyspace }
+          end
+          if connections.any?
+            futures = connections.map { |connection| use_keyspace(keyspace, connection) }
+            Future.combine(*futures).map { nil }
+          else
+            Future.completed(nil)
+          end
         end
       end
 
       def execute(cql, consistency=nil)
-        consistency ||= DEFAULT_CONSISTENCY_LEVEL
-        return Future.failed(NotConnectedError.new) unless can_execute?
-        execute_request(Protocol::QueryRequest.new(cql, consistency))
-      rescue => e
-        Future.failed(e)
+        with_failure_handler do
+          consistency ||= DEFAULT_CONSISTENCY_LEVEL
+          execute_request(Protocol::QueryRequest.new(cql, consistency))
+        end
       end
 
       def prepare(cql)
-        return Future.failed(NotConnectedError.new) unless can_execute?
-        execute_request(Protocol::PrepareRequest.new(cql))
-      rescue => e
-        Future.failed(e)
+        with_failure_handler do
+          execute_request(Protocol::PrepareRequest.new(cql))
+        end
       end
 
       private
@@ -118,6 +117,13 @@ module Cql
 
       def valid_keyspace_name?(name)
         name =~ KEYSPACE_NAME_PATTERN
+      end
+
+      def with_failure_handler
+        return Future.failed(NotConnectedError.new) unless can_execute?
+        yield
+      rescue => e
+        Future.failed(e)
       end
 
       def when_not_connecting(&callback)
