@@ -60,6 +60,30 @@ module Cql
           statement.async.should equal(async_statement)
         end
       end
+
+      context 'when exceptions are raised' do
+        it 'replaces the backtrace of the asynchronous call to make it less confusing' do
+          error = CqlError.new('Bork')
+          error.set_backtrace(['Hello', 'World'])
+          future.stub(:get).and_raise(error)
+          async_statement.stub(:execute).and_return(future)
+          begin
+            statement.execute('SELECT * FROM something')
+          rescue CqlError => e
+            e.backtrace.first.should match(%r{/synchronous_prepared_statement.rb:\d+:in `execute'})
+          end
+        end
+
+        it 'does not replace the backtrace of non-CqlError errors' do
+          future.stub(:get).and_raise('Bork')
+          async_statement.stub(:execute).and_return(future)
+          begin
+            statement.execute('SELECT * FROM something')
+          rescue => e
+            e.backtrace.first.should_not match(%r{/synchronous_prepared_statement.rb:\d+:in `execute'})
+          end
+        end
+      end
     end
   end
 end

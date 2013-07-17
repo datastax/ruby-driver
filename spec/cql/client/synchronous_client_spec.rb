@@ -99,6 +99,30 @@ module Cql
           client.async.should equal(async_client)
         end
       end
+
+      context 'when exceptions are raised' do
+        it 'replaces the backtrace of the asynchronous call to make it less confusing' do
+          error = CqlError.new('Bork')
+          error.set_backtrace(['Hello', 'World'])
+          future.stub(:get).and_raise(error)
+          async_client.stub(:execute).and_return(future)
+          begin
+            client.execute('SELECT * FROM something')
+          rescue CqlError => e
+            e.backtrace.first.should match(%r{/synchronous_client.rb:\d+:in `execute'})
+          end
+        end
+
+        it 'does not replace the backtrace of non-CqlError errors' do
+          future.stub(:get).and_raise('Bork')
+          async_client.stub(:execute).and_return(future)
+          begin
+            client.execute('SELECT * FROM something')
+          rescue => e
+            e.backtrace.first.should_not match(%r{/synchronous_client.rb:\d+:in `execute'})
+          end
+        end
+      end
     end
   end
 end

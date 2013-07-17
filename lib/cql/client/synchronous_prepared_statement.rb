@@ -4,19 +4,21 @@ module Cql
   module Client
     # @private
     class SynchronousPreparedStatement < PreparedStatement
+      include SynchronousBacktrace
+
       def initialize(async_statement)
         @async_statement = async_statement
         @metadata = async_statement.metadata
       end
 
       def execute(*args)
-        @async_statement.execute(*args).get
+        synchronous_backtrace { @async_statement.execute(*args).get }
       end
 
       def pipeline
         pl = Pipeline.new(@async_statement)
         yield pl
-        pl.get
+        synchronous_backtrace { pl.get }
       end
 
       def async

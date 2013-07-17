@@ -2,19 +2,30 @@
 
 module Cql
   module Client
+    module SynchronousBacktrace
+      def synchronous_backtrace
+        yield
+      rescue CqlError => e
+        e.set_backtrace(caller.drop(1))
+        raise
+      end
+    end
+
     # @private
     class SynchronousClient < Client
+      include SynchronousBacktrace
+
       def initialize(async_client)
         @async_client = async_client
       end
 
       def connect
-        @async_client.connect.get
+        synchronous_backtrace { @async_client.connect.get }
         self
       end
 
       def close
-        @async_client.close.get
+        synchronous_backtrace { @async_client.close.get }
         self
       end
 
@@ -27,15 +38,15 @@ module Cql
       end
 
       def use(keyspace)
-        @async_client.use(keyspace).get
+        synchronous_backtrace { @async_client.use(keyspace).get }
       end
 
       def execute(cql, consistency=nil)
-        @async_client.execute(cql, consistency).get
+        synchronous_backtrace { @async_client.execute(cql, consistency).get }
       end
 
       def prepare(cql)
-        async_statement = @async_client.prepare(cql).get
+        async_statement = synchronous_backtrace { @async_client.prepare(cql).get }
         SynchronousPreparedStatement.new(async_statement)
       end
 
