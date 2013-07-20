@@ -102,11 +102,15 @@ module Cql
         end
 
         it 'is not connected while connecting' do
+          go = false
           io_reactor.stop.get
-          f = client.connect
-          client.should_not be_connected
-          io_reactor.start.get
-          f.get
+          io_reactor.before_startup { sleep 0.01 until go }
+          client.connect
+          begin
+            client.should_not be_connected
+          ensure
+            go = true
+          end
         end
 
         context 'when the server requests authentication' do

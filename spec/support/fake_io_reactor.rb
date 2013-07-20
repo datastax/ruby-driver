@@ -10,11 +10,11 @@ class FakeIoReactor
     @default_host = nil
     @connection_listeners = []
     @started_future = Cql::Future.new
-    @startup_delay = 0
+    @before_startup_handler = nil
   end
 
-  def startup_delay=(n)
-    @startup_delay = n
+  def before_startup(&handler)
+    @before_startup_handler = handler
   end
 
   def connect(host, port, timeout)
@@ -32,8 +32,13 @@ class FakeIoReactor
 
   def start
     @running = true
-    Thread.start do
-      sleep(@startup_delay)
+    if @before_startup_handler
+      @before_startup_handler = nil
+      Thread.start do
+        @before_startup_handler.call
+        @started_future.complete!(self)
+      end
+    elsif !(@started_future.complete? || @started_future.failed?)
       @started_future.complete!(self)
     end
     @started_future
