@@ -6,9 +6,17 @@ module Cql
       def synchronous_backtrace
         yield
       rescue CqlError => e
-        e.set_backtrace(caller.drop(1))
+        new_backtrace = caller
+        if new_backtrace.first.include?(SYNCHRONOUS_BACKTRACE_METHOD_NAME)
+          new_backtrace = new_backtrace.drop(1)
+        end
+        e.set_backtrace(new_backtrace)
         raise
       end
+
+      private
+
+      SYNCHRONOUS_BACKTRACE_METHOD_NAME = 'synchronous_backtrace'
     end
 
     # @private
