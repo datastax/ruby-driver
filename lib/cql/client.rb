@@ -53,6 +53,10 @@ module Cql
     # connected to the hosts given in `:hosts` the rest of the nodes in the
     # cluster will automatically be discovered and connected to.
     #
+    # The connection will succeed if at least one node is up. Nodes that don't
+    # respond within the specified timeout, or where the connection initialization
+    # fails for some reason, are ignored.
+    #
     # @raise Cql::Io::ConnectionError when a connection couldn't be established
     #   to any node
     # @param [Hash] options
