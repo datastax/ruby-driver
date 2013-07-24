@@ -1,7 +1,6 @@
 # encoding: utf-8
 
 require 'spec_helper'
-require 'cql/client/client_shared'
 
 
 module Cql
@@ -11,7 +10,29 @@ module Cql
         described_class.new(connection_options)
       end
 
-      include_context 'client setup'
+      let :connection_options do
+        {:host => 'example.com', :port => 12321, :io_reactor => io_reactor}
+      end
+
+      let :io_reactor do
+        FakeIoReactor.new
+      end
+
+      def connections
+        io_reactor.connections
+      end
+
+      def last_connection
+        connections.last
+      end
+
+      def requests
+        last_connection.requests
+      end
+
+      def last_request
+        requests.last
+      end
 
       describe '#connect' do
         it 'connects' do
