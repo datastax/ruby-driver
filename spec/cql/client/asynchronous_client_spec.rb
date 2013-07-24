@@ -126,8 +126,11 @@ module Cql
         end
 
         context 'with automatic peer discovery' do
-          let :local_rows do
-            [{'data_center' => 'datacenter1', 'host_id' => Uuid.new('3289d443-a9ac-4d7c-ae63-2a998b615ef7')}]
+          let :local_info do
+            {
+              'data_center' => 'datacenter1',
+              'host_id' => nil,
+            }
           end
 
           let :local_metadata do
@@ -139,8 +142,8 @@ module Cql
 
           let :peer_rows do
             [
-              {'data_center' => 'datacenter1', 'host_id' => Uuid.new('8fcbfb1b-3ac1-4237-8f64-67b2d2b97d34'), 'rpc_address' => IPAddr.new('127.0.0.3')},
-              {'data_center' => 'datacenter1', 'host_id' => Uuid.new('0cbd5c82-93a0-4305-ac0a-9ef944462c56'), 'rpc_address' => IPAddr.new('127.0.0.2')},
+              {'data_center' => 'datacenter1', 'host_id' => nil, 'rpc_address' => IPAddr.new('127.0.0.3')},
+              {'data_center' => 'datacenter1', 'host_id' => nil, 'rpc_address' => IPAddr.new('127.0.0.2')},
             ]
           end
 
@@ -154,7 +157,9 @@ module Cql
           end
 
           before do
+            uuid_generator = TimeUuid::Generator.new
             io_reactor.on_connection do |connection|
+              connection[:spec_host_id] = uuid_generator.next
               connection.handle_request do |request|
                 case request
                 when Protocol::StartupRequest
@@ -162,9 +167,17 @@ module Cql
                 when Protocol::QueryRequest
                   case request.cql
                   when /FROM system\.local/
-                    Protocol::RowsResultResponse.new(local_rows, local_metadata)
+                    row = {'host_id' => connection[:spec_host_id], 'data_center' => 'datacenter1'}
+                    Protocol::RowsResultResponse.new([row], local_metadata)
                   when /FROM system\.peers/
-                    Protocol::RowsResultResponse.new(peer_rows, peer_metadata)
+                    other_host_ids = connections.reject { |c| c[:spec_host_id] == connection[:spec_host_id] }.map { |c| c[:spec_host_id] }
+                    until other_host_ids.size >= 2
+                      other_host_ids << uuid_generator.next
+                    end
+                    rows = other_host_ids.map do |host_id|
+                      {'host_id' => host_id, 'data_center' => 'datacenter1', 'rpc_address' => IPAddr.new("127.0.#{rand(255)}.#{rand(255)}")}
+                    end
+                    Protocol::RowsResultResponse.new(rows, peer_metadata)
                   end
                 end
               end
@@ -181,7 +194,9 @@ module Cql
           end
 
           it 'only connects to the other nodes in the cluster it is not already connected do' do
-            pending
+            c = described_class.new(connection_options.merge(host: 'host1,host2'))
+            c.connect.get
+            connections.should have(3).items
           end
 
           it 'accepts that some nodes are down' do

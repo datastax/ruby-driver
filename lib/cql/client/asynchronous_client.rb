@@ -148,7 +148,10 @@ module Cql
         peers_connected = Future.new
         peer_info = execute('SELECT data_center, host_id, rpc_address FROM system.peers', :one)
         peer_info.on_complete do |result|
-          node_addresses = result.map { |row| row['rpc_address'].to_s }
+          unconnected_peers = result.reject do |row|
+            @connections.any? { |c| c[:host_id] == row['host_id'] }
+          end
+          node_addresses = unconnected_peers.map { |row| row['rpc_address'].to_s }
           connect_to_hosts(node_addresses, keyspace, false)
         end
         peer_info.on_failure do |error|
