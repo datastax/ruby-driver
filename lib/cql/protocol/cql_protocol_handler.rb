@@ -10,7 +10,7 @@ module Cql
     #
     # Instances of this class are thread safe.
     #
-    # @examle Sending an OPTIONS request
+    # @example Sending an OPTIONS request
     #   future = protocol_handler.send_request(Cql::Protocol::OptionsRequest.new)
     #   response = future.get
     #   puts "These options are supported: #{response.options}"
@@ -44,7 +44,7 @@ module Cql
       end
 
       # @see {#[]=}
-      # @returns the value associated with the key
+      # @return the value associated with the key
       def [](key)
         @lock.synchronize { @data[key] }
       end
