@@ -166,8 +166,17 @@ module Cql
             ]
           end
 
+          let :additional_nodes do
+            [
+              IPAddr.new("127.0.#{rand(255)}.#{rand(255)}"),
+              IPAddr.new("127.0.#{rand(255)}.#{rand(255)}"),
+              IPAddr.new("127.0.#{rand(255)}.#{rand(255)}"),
+            ]
+          end
+
           before do
             uuid_generator = TimeUuid::Generator.new
+            additional_rpc_addresses = additional_nodes.dup
             io_reactor.on_connection do |connection|
               connection[:spec_host_id] = uuid_generator.next
               connection.handle_request do |request|
@@ -185,7 +194,7 @@ module Cql
                       other_host_ids << uuid_generator.next
                     end
                     rows = other_host_ids.map do |host_id|
-                      {'host_id' => host_id, 'data_center' => 'datacenter1', 'rpc_address' => IPAddr.new("127.0.#{rand(255)}.#{rand(255)}")}
+                      {'host_id' => host_id, 'data_center' => 'datacenter1', 'rpc_address' => additional_rpc_addresses.shift}
                     end
                     Protocol::RowsResultResponse.new(rows, peer_metadata)
                   end
@@ -209,8 +218,16 @@ module Cql
             connections.should have(3).items
           end
 
+          it 'handles the case when it is already connected to all nodes' do
+            c = described_class.new(connection_options.merge(host: 'host1,host2,host3,host4'))
+            c.connect.get
+            connections.should have(4).items
+          end
+
           it 'accepts that some nodes are down' do
-            pending
+            io_reactor.node_down(additional_nodes.first.to_s)
+            client.connect.get
+            connections.should have(2).items
           end
         end
 

@@ -11,6 +11,11 @@ class FakeIoReactor
     @connection_listeners = []
     @started_future = Cql::Future.new
     @before_startup_handler = nil
+    @down_nodes = []
+  end
+
+  def node_down(hostname)
+    @down_nodes << hostname
   end
 
   def before_startup(&handler)
@@ -18,12 +23,16 @@ class FakeIoReactor
   end
 
   def connect(host, port, timeout)
-    connection = FakeConnection.new(host, port, timeout)
-    @connections << connection
-    @connection_listeners.each do |listener|
-      listener.call(connection)
+    if @down_nodes.include?(host)
+      Cql::Future.failed(Cql::Io::ConnectionError.new('Node down'))
+    else
+      connection = FakeConnection.new(host, port, timeout)
+      @connections << connection
+      @connection_listeners.each do |listener|
+        listener.call(connection)
+      end
+      Cql::Future.completed(connection)
     end
-    Cql::Future.completed(connection)
   end
 
   def on_connection(&listener)
