@@ -111,6 +111,18 @@ module Cql
       KEYSPACE_NAME_PATTERN = /^\w[\w\d_]*$/
       DEFAULT_CONSISTENCY_LEVEL = :quorum
 
+      class FailedConnection
+        attr_reader :error
+
+        def initialize(error)
+          @error = error
+        end
+
+        def connected?
+          false
+        end
+      end
+
       def extract_hosts(options)
         if options[:hosts]
           options[:hosts].uniq
@@ -154,17 +166,21 @@ module Cql
         end
       end
 
-      def discover_peers
-        peer_info = execute('SELECT data_center, host_id, rpc_address FROM system.peers', :one)
+      def discover_peers(seed_connections, initial_keyspace)
+        connected_seeds = seed_connections.select(&:connected?)
+        connection = connected_seeds.sample
+        return Future.completed([]) unless connection
+        request = Protocol::QueryRequest.new('SELECT data_center, host_id, rpc_address FROM system.peers', :one)
+        peer_info = execute_request(request, connection)
         peer_info.flat_map do |result|
           unconnected_peers = result.reject do |row|
-            @connections.any? { |c| c[:host_id] == row['host_id'] }
+            connected_seeds.any? { |c| c[:host_id] == row['host_id'] }
           end
           node_addresses = unconnected_peers.map { |row| row['rpc_address'].to_s }
           if node_addresses.any?
-            connect_to_hosts(node_addresses, keyspace, false)
+            connect_to_hosts(node_addresses, initial_keyspace, false)
           else
-            Future.completed
+            Future.completed([])
           end
         end
       end
@@ -175,6 +191,15 @@ module Cql
         end
         f.on_failure do |e|
           fail_connecting(e)
+        end
+        f.on_complete do |connections|
+          connected_connections = connections.select(&:connected?)
+          if connected_connections.any?
+            @connections = connected_connections
+            @connected_future.complete!(self)
+          else
+            fail_connecting(connections.first.error)
+          end
         end
       end
 
@@ -187,21 +212,22 @@ module Cql
         end
       end
 
-      def connect_to_hosts(hosts, keyspace, peer_discovery)
-        connection_futures = hosts.map { |host| connect_to_host(host, keyspace) }
-        hosts_connected_future = Future.combine(*connection_futures)
-        hosts_connected_future.on_complete do |connections|
-          @connections.concat(connections)
-          done = proc { @connected_future.complete!(self) }
-          if peer_discovery
-            f = discover_peers
-            f.on_complete(&done)
-            f.on_failure(&done)
-          else
-            done.call
+      def connect_to_hosts(hosts, initial_keyspace, peer_discovery)
+        connection_futures = hosts.map do |host|
+          connect_to_host(host, initial_keyspace).recover do |error|
+            FailedConnection.new(error)
           end
         end
-        hosts_connected_future
+        hosts_connected_future = Future.combine(*connection_futures)
+        if peer_discovery
+          hosts_connected_future.flat_map do |connections|
+            discover_peers(connections, initial_keyspace).map do |peer_connections|
+              connections + peer_connections
+            end
+          end
+        else
+          hosts_connected_future
+        end
       end
 
       def connect_to_host(host, keyspace)

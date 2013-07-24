@@ -65,34 +65,45 @@ module Cql
           connections.should have(1).item
         end
 
-        it 'connects to all hosts' do
-          client.close.get
-          io_reactor.stop.get
-          io_reactor.start.get
+        context 'when connecting to multiple hosts' do
+          before do
+            client.close.get
+            io_reactor.stop.get
+          end
 
-          c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h3.example.com]))
-          c.connect.get
-          connections.should have(3).items
-        end
+          it 'connects to all hosts' do
+            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h3.example.com]))
+            c.connect.get
+            connections.should have(3).items
+          end
 
-        it 'connects to all hosts, when given as a comma-sepatated string' do
-          client.close.get
-          io_reactor.stop.get
-          io_reactor.start.get
+          it 'connects to all hosts, when given as a comma-sepatated string' do
+            c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
+            c.connect.get
+            connections.should have(3).items
+          end
 
-          c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
-          c.connect.get
-          connections.should have(3).items
-        end
+          it 'only connects to each host once' do
+            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h2.example.com]))
+            c.connect.get
+            connections.should have(2).items
+          end
 
-        it 'only connects to each host once' do
-          client.close.get
-          io_reactor.stop.get
-          io_reactor.start.get
+          it 'succeeds even if only one of the connections succeeded' do
+            io_reactor.node_down('h1.example.com')
+            io_reactor.node_down('h3.example.com')
+            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h2.example.com]))
+            c.connect.get
+            connections.should have(1).items
+          end
 
-          c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h2.example.com]))
-          c.connect.get
-          connections.should have(2).items
+          it 'fails when all nodes are down' do
+            io_reactor.node_down('h1.example.com')
+            io_reactor.node_down('h2.example.com')
+            io_reactor.node_down('h3.example.com')
+            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h2.example.com]))
+            expect { c.connect.get }.to raise_error(Io::ConnectionError)
+          end
         end
 
         it 'returns itself' do

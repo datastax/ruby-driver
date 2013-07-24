@@ -87,6 +87,10 @@ class FakeConnection
     @data[key] = value
   end
 
+  def connected?
+    !@closed
+  end
+
   def close
     @closed = true
   end
