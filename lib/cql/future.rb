@@ -219,6 +219,81 @@ module Cql
       end
       fp
     end
+
+    # Returns a new future which represents either the value of the original
+    # future, or the result of the given block, if the original future fails.
+    #
+    # This method is similar to{#map}, but is triggered by a failure. You can
+    # also think of it as a `rescue` block for asynchronous operations.
+    #
+    # If the block raises an error a failed future with that error will be
+    # returned (this can be used to transform an error into another error,
+    # instead of tranforming an error into a value).
+    #
+    # @example
+    #   future2 = future1.recover { |error| 'foo' }
+    #   future1.fail!(error)
+    #   future2.get # => 'foo'
+    #
+    # @yieldparam [Object] error the error from the original future
+    # @yieldreturn [Object] the value of the new future
+    # @return [Future] a new future representing a value recovered from the error
+    #
+    def recover(&block)
+      fp = Future.new
+      on_failure do |e|
+        begin
+          vv = block.call(e)
+          fp.complete!(vv)
+        rescue => e
+          fp.fail!(e)
+        end
+      end
+      on_complete do |v|
+        fp.complete!(v)
+      end
+      fp
+    end
+
+    # Returns a new future which represents either the value of the original
+    # future, or the value of the future returned by the given block.
+    #
+    # This is like {#recover} but for cases when the handling of an error is
+    # itself asynchronous.
+    #
+    # If the block raises an error a failed future with that error will be
+    # returned (this can be used to transform an error into another error,
+    # instead of tranforming an error into a value).
+    #
+    # @example
+    #   future2 = future1.fallback { |error| perform_async_operation }
+    #   future1.fail!(error)
+    #   future2.get # => whatever the async operation resolved to
+    #
+    # @yieldparam [Object] error the error from the original future
+    # @yieldreturn [Object] the value of the new future
+    # @return [Future] a new future representing a value recovered from the error
+    #
+    def fallback(&block)
+      fp = Future.new
+      on_failure do |e|
+        begin
+          fpp = block.call(e)
+          fpp.on_failure do |e|
+            fp.fail!(e)
+          end
+          fpp.on_complete do |vv|
+            fp.complete!(vv)
+          end
+        rescue => e
+          fp.fail!(e)
+        end
+      end
+      on_complete do |v|
+        fp.complete!(v)
+      end
+      fp
+    end
   end
 
   # @private

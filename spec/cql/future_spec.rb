@@ -325,6 +325,86 @@ module Cql
       end
     end
 
+    describe '#recover' do
+      context 'returns a new future that' do
+        it 'completes with a value when the source future fails' do
+          f1 = Future.new
+          f2 = f1.recover { 'foo' }
+          f1.fail!(StandardError.new('Bork!'))
+          f2.get.should == 'foo'
+        end
+
+        it 'yields the error to the block' do
+          f1 = Future.new
+          f2 = f1.recover { |e| e.message }
+          f1.fail!(StandardError.new('Bork!'))
+          f2.get.should == 'Bork!'
+        end
+
+        it 'completes with the value of the source future when the source future is successful' do
+          f1 = Future.new
+          f2 = f1.recover { 'foo' }
+          f1.complete!('bar')
+          f2.get.should == 'bar'
+        end
+
+        it 'fails with the error raised in the given block' do
+          f1 = Future.new
+          f2 = f1.recover { raise 'Snork!' }
+          f1.fail!(StandardError.new('Bork!'))
+          expect { f2.get }.to raise_error('Snork!')
+        end
+      end
+    end
+
+    describe '#fallback' do
+      context 'returns a new future that' do
+        it 'completes with the value of the fallback future when the source future fails' do
+          f1 = Future.new
+          f2 = Future.new
+          f3 = f1.fallback { f2 }
+          f1.fail!(StandardError.new('Bork!'))
+          f2.complete!('foo')
+          f3.get.should == 'foo'
+        end
+
+        it 'yields the error to the block' do
+          f1 = Future.new
+          f2 = Future.new
+          f3 = f1.fallback do |error|
+            Future.completed(error.message)
+          end
+          f1.fail!(StandardError.new('Bork!'))
+          f3.get.should == 'Bork!'
+        end
+
+        it 'completes with the value of the source future when the source future succeeds' do
+          f1 = Future.new
+          f2 = Future.new
+          f3 = f1.fallback { f2 }
+          f2.complete!('bar')
+          f1.complete!('foo')
+          f3.get.should == 'foo'
+        end
+
+        it 'fails when the block raises an error' do
+          f1 = Future.new
+          f2 = f1.fallback { raise 'Bork!' }
+          f1.fail!(StandardError.new('Splork!'))
+          expect { f2.get }.to raise_error('Bork!')
+        end
+
+        it 'fails when the fallback future fails' do
+          f1 = Future.new
+          f2 = Future.new
+          f3 = f1.fallback { f2 }
+          f2.fail!(StandardError.new('Bork!'))
+          f1.fail!(StandardError.new('Fnork!'))
+          expect { f3.get }.to raise_error('Bork!')
+        end
+      end
+    end
+
     describe '.completed' do
       let :future do
         described_class.completed('hello world')
