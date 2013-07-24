@@ -173,8 +173,9 @@ module Cql
         request = Protocol::QueryRequest.new('SELECT data_center, host_id, rpc_address FROM system.peers', :one)
         peer_info = execute_request(request, connection)
         peer_info.flat_map do |result|
-          unconnected_peers = result.reject do |row|
-            connected_seeds.any? { |c| c[:host_id] == row['host_id'] }
+          seed_dcs = connected_seeds.map { |c| c[:data_center] }.uniq
+          unconnected_peers = result.select do |row|
+            seed_dcs.include?(row['data_center']) && connected_seeds.none? { |c| c[:host_id] == row['host_id'] }
           end
           node_addresses = unconnected_peers.map { |row| row['rpc_address'].to_s }
           if node_addresses.any?

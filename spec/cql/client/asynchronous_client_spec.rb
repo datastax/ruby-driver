@@ -159,7 +159,7 @@ module Cql
         context 'with automatic peer discovery' do
           let :local_info do
             {
-              'data_center' => 'datacenter1',
+              'data_center' => 'dc1',
               'host_id' => nil,
             }
           end
@@ -168,13 +168,6 @@ module Cql
             [
               ['system', 'local', 'data_center', :text],
               ['system', 'local', 'host_id', :uuid],
-            ]
-          end
-
-          let :peer_rows do
-            [
-              {'data_center' => 'datacenter1', 'host_id' => nil, 'rpc_address' => IPAddr.new('127.0.0.3')},
-              {'data_center' => 'datacenter1', 'host_id' => nil, 'rpc_address' => IPAddr.new('127.0.0.2')},
             ]
           end
 
@@ -187,12 +180,12 @@ module Cql
             ]
           end
 
+          let :data_centers do
+            Hash.new('dc1')
+          end
+
           let :additional_nodes do
-            [
-              IPAddr.new("127.0.#{rand(255)}.#{rand(255)}"),
-              IPAddr.new("127.0.#{rand(255)}.#{rand(255)}"),
-              IPAddr.new("127.0.#{rand(255)}.#{rand(255)}"),
-            ]
+            Array.new(5) { IPAddr.new("127.0.#{rand(255)}.#{rand(255)}") }
           end
 
           before do
@@ -200,6 +193,7 @@ module Cql
             additional_rpc_addresses = additional_nodes.dup
             io_reactor.on_connection do |connection|
               connection[:spec_host_id] = uuid_generator.next
+              connection[:spec_data_center] = data_centers[connection.host]
               connection.handle_request do |request|
                 case request
                 when Protocol::StartupRequest
@@ -207,7 +201,7 @@ module Cql
                 when Protocol::QueryRequest
                   case request.cql
                   when /FROM system\.local/
-                    row = {'host_id' => connection[:spec_host_id], 'data_center' => 'datacenter1'}
+                    row = {'host_id' => connection[:spec_host_id], 'data_center' => connection[:spec_data_center]}
                     Protocol::RowsResultResponse.new([row], local_metadata)
                   when /FROM system\.peers/
                     other_host_ids = connections.reject { |c| c[:spec_host_id] == connection[:spec_host_id] }.map { |c| c[:spec_host_id] }
@@ -215,7 +209,8 @@ module Cql
                       other_host_ids << uuid_generator.next
                     end
                     rows = other_host_ids.map do |host_id|
-                      {'host_id' => host_id, 'data_center' => 'datacenter1', 'rpc_address' => additional_rpc_addresses.shift}
+                      ip = additional_rpc_addresses.shift
+                      {'host_id' => host_id, 'data_center' => data_centers[ip], 'rpc_address' => ip}
                     end
                     Protocol::RowsResultResponse.new(rows, peer_metadata)
                   end
@@ -229,8 +224,18 @@ module Cql
             connections.should have(3).items
           end
 
-          it 'connects to the other nodes in the same datacenter' do
-            pending
+          it 'connects to the other nodes in the same data center' do
+            data_centers[additional_nodes[1]] = 'dc2'
+            client.connect.get
+            connections.should have(2).items
+          end
+
+          it 'connects to the other nodes in same data centers as the seed nodes' do
+            data_centers['host2'] = 'dc2'
+            data_centers[additional_nodes[1]] = 'dc2'
+            c = described_class.new(connection_options.merge(hosts: %w[host1 host2]))
+            c.connect.get
+            connections.should have(3).items
           end
 
           it 'only connects to the other nodes in the cluster it is not already connected do' do
