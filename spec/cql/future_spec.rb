@@ -223,6 +223,60 @@ module Cql
       end
     end
 
+    describe '.first' do
+      context 'it returns a new future which' do
+        it 'is complete when the first of the source futures is complete' do
+          f1 = Future.new
+          f2 = Future.new
+          f3 = Future.new
+          ff = Future.first(f1, f2, f3)
+          f2.complete!
+          ff.should be_complete
+        end
+
+        it 'completes with the value of the first source future' do
+          f1 = Future.new
+          f2 = Future.new
+          f3 = Future.new
+          ff = Future.first(f1, f2, f3)
+          f2.complete!('foo')
+          ff.get.should == 'foo'
+        end
+
+        it 'is unaffected by the completion of the other futures' do
+          f1 = Future.new
+          f2 = Future.new
+          f3 = Future.new
+          ff = Future.first(f1, f2, f3)
+          f2.complete!
+          f1.complete!
+          f3.complete!
+        end
+
+        it 'fails if all of the source futures fail' do
+          f1 = Future.new
+          f2 = Future.new
+          f3 = Future.new
+          ff = Future.first(f1, f2, f3)
+          f2.fail!(StandardError.new('bork'))
+          f1.fail!(StandardError.new('bork'))
+          f3.fail!(StandardError.new('bork'))
+          ff.should be_failed
+        end
+
+        it 'fails with the error of the last future to fail' do
+          f1 = Future.new
+          f2 = Future.new
+          f3 = Future.new
+          ff = Future.first(f1, f2, f3)
+          f2.fail!(StandardError.new('bork2'))
+          f1.fail!(StandardError.new('bork1'))
+          f3.fail!(StandardError.new('bork3'))
+          expect { ff.get }.to raise_error('bork3')
+        end
+      end
+    end
+
     describe '#map' do
       context 'returns a new future that' do
         it 'will complete with the result of the given block' do

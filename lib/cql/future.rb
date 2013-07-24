@@ -33,6 +33,26 @@ module Cql
       end
     end
 
+    # Returns a future which will complete with the value of the first
+    # (successful) of the specified futures. If all of the futures fail, the
+    # returned future will also fail (with the error of the last failed future).
+    #
+    # @param [Array<Future>] futures the futures to monitor
+    # @return [Future] a future which represents the first completing future
+    #
+    def self.first(*futures)
+      ff = Future.new
+      futures.each do |f|
+        f.on_complete do |value|
+          ff.complete!(value) unless ff.complete?
+        end
+        f.on_failure do |e|
+          ff.fail!(e) if futures.all?(&:failed?)
+        end
+      end
+      ff
+    end
+
     # Creates a new future which is completed.
     #
     # @param [Object, nil] value the value of the created future
