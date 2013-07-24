@@ -67,6 +67,7 @@ class FakeConnection
     @closed = false
     @keyspace = nil
     @data = {}
+    @request_handler = method(:default_request_handler)
   end
 
   def [](key)
@@ -81,8 +82,8 @@ class FakeConnection
     @closed = true
   end
 
-  def queue_response(response)
-    @responses << response
+  def handle_request(&handler)
+    @request_handler = handler
   end
 
   def send_request(request)
@@ -90,11 +91,23 @@ class FakeConnection
       Cql::Future.failed(Cql::NotConnectedError.new)
     else
       @requests << request
-      response = @responses.shift
+      response = @request_handler.call(request)
       if response.is_a?(Cql::Protocol::SetKeyspaceResultResponse)
         @keyspace = response.keyspace
       end
       Cql::Future.completed(response)
+    end
+  end
+
+  def default_request_handler(request)
+    response = @responses.shift
+    unless response
+      case request
+      when Cql::Protocol::StartupRequest
+        Cql::Protocol::ReadyResponse.new
+      when Cql::Protocol::QueryRequest
+        Cql::Protocol::RowsResultResponse.new([], [])
+      end
     end
   end
 end

@@ -34,6 +34,25 @@ module Cql
         requests.last
       end
 
+      def handle_request(&handler)
+        @request_handler = handler
+      end
+
+      before do
+        io_reactor.on_connection do |connection|
+          connection.handle_request do |request|
+            response = nil
+            if @request_handler
+              response = @request_handler.call(request, connection, proc { connection.default_request_handler(request) })
+            end
+            unless response
+              response = connection.default_request_handler(request)
+            end
+            response
+          end
+        end
+      end
+
       describe '#connect' do
         it 'connects' do
           client.connect.get
@@ -73,7 +92,7 @@ module Cql
 
         it 'sends a startup request' do
           client.connect.get
-          last_request.should be_a(Protocol::StartupRequest)
+          requests.first.should be_a(Protocol::StartupRequest)
         end
 
         it 'sends a startup request to each connection' do
@@ -84,7 +103,7 @@ module Cql
           c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
           c.connect.get
           connections.each do |cc|
-            cc.requests.last.should be_a(Protocol::StartupRequest)
+            cc.requests.first.should be_a(Protocol::StartupRequest)
           end
         end
 
@@ -96,13 +115,78 @@ module Cql
         it 'changes to the keyspace given as an option' do
           c = described_class.new(connection_options.merge(:keyspace => 'hello_world'))
           c.connect.get
-          last_request.should == Protocol::QueryRequest.new('USE hello_world', :one)
+          request = requests.find { |rq| rq == Protocol::QueryRequest.new('USE hello_world', :one) }
+          request.should_not be_nil, 'expected a USE request to have been sent'
         end
 
         it 'validates the keyspace name before sending the USE command' do
           c = described_class.new(connection_options.merge(:keyspace => 'system; DROP KEYSPACE system'))
           expect { c.connect.get }.to raise_error(InvalidKeyspaceNameError)
           requests.should_not include(Protocol::QueryRequest.new('USE system; DROP KEYSPACE system', :one))
+        end
+
+        context 'with automatic peer discovery' do
+          let :local_rows do
+            [{'data_center' => 'datacenter1', 'host_id' => Uuid.new('3289d443-a9ac-4d7c-ae63-2a998b615ef7')}]
+          end
+
+          let :local_metadata do
+            [
+              ['system', 'local', 'data_center', :text],
+              ['system', 'local', 'host_id', :uuid],
+            ]
+          end
+
+          let :peer_rows do
+            [
+              {'data_center' => 'datacenter1', 'host_id' => Uuid.new('8fcbfb1b-3ac1-4237-8f64-67b2d2b97d34'), 'rpc_address' => IPAddr.new('127.0.0.3')},
+              {'data_center' => 'datacenter1', 'host_id' => Uuid.new('0cbd5c82-93a0-4305-ac0a-9ef944462c56'), 'rpc_address' => IPAddr.new('127.0.0.2')},
+            ]
+          end
+
+          let :peer_metadata do
+            [
+              ['system', 'peers', 'peer', :inet],
+              ['system', 'peers', 'data_center', :varchar],
+              ['system', 'peers', 'host_id', :uuid],
+              ['system', 'peers', 'rpc_address', :inet],
+            ]
+          end
+
+          before do
+            io_reactor.on_connection do |connection|
+              connection.handle_request do |request|
+                case request
+                when Protocol::StartupRequest
+                  Protocol::ReadyResponse.new
+                when Protocol::QueryRequest
+                  case request.cql
+                  when /FROM system\.local/
+                    Protocol::RowsResultResponse.new(local_rows, local_metadata)
+                  when /FROM system\.peers/
+                    Protocol::RowsResultResponse.new(peer_rows, peer_metadata)
+                  end
+                end
+              end
+            end
+          end
+
+          it 'connects to the other nodes in the cluster' do
+            client.connect.get
+            connections.should have(3).items
+          end
+
+          it 'connects to the other nodes in the same datacenter' do
+            pending
+          end
+
+          it 'only connects to the other nodes in the cluster it is not already connected do' do
+            pending
+          end
+
+          it 'accepts that some nodes are down' do
+            pending
+          end
         end
 
         it 're-raises any errors raised' do
@@ -135,16 +219,33 @@ module Cql
         end
 
         context 'when the server requests authentication' do
-          before do
-            io_reactor.on_connection do |connection|
-              connection.queue_response(Protocol::AuthenticateResponse.new('com.example.Auth'))
+          def accepting_request_handler(request, *)
+            case request
+            when Protocol::StartupRequest
+              Protocol::AuthenticateResponse.new('com.example.Auth')
+            when Protocol::CredentialsRequest
+              Protocol::ReadyResponse.new
             end
+          end
+
+          def denying_request_handler(request, *)
+            case request
+            when Protocol::StartupRequest
+              Protocol::AuthenticateResponse.new('com.example.Auth')
+            when Protocol::CredentialsRequest
+              Protocol::ErrorResponse.new(256, 'No way, José')
+            end
+          end
+
+          before do
+            handle_request(&method(:accepting_request_handler))
           end
 
           it 'sends credentials' do
             client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
             client.connect.get
-            last_request.should == Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar')
+            request = requests.find { |rq| rq == Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar') }
+            request.should_not be_nil, 'expected a credentials request to have been sent'
           end
 
           it 'raises an error when no credentials have been given' do
@@ -153,17 +254,13 @@ module Cql
           end
 
           it 'raises an error when the server responds with an error to the credentials request' do
-            io_reactor.on_connection do |connection|
-              connection.queue_response(Protocol::ErrorResponse.new(256, 'No way, José'))
-            end
+            handle_request(&method(:denying_request_handler))
             client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
             expect { client.connect.get }.to raise_error(AuthenticationError)
           end
 
           it 'shuts down the client when there is an authentication error' do
-            io_reactor.on_connection do |connection|
-              connection.queue_response(Protocol::ErrorResponse.new(256, 'No way, José'))
-            end
+            handle_request(&method(:denying_request_handler))
             client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
             client.connect.get rescue nil
             client.should_not be_connected
@@ -200,14 +297,13 @@ module Cql
       end
 
       describe '#use' do
-        before do
-          client.connect.get
-        end
-
         it 'executes a USE query' do
-          io_reactor.on_connection do |connection|
-            connection.queue_response(Protocol::SetKeyspaceResultResponse.new('system'))
+          handle_request do |request|
+            if request.is_a?(Protocol::QueryRequest) && request.cql == 'USE system'
+              Protocol::SetKeyspaceResultResponse.new('system')
+            end
           end
+          client.connect.get
           client.use('system').get
           last_request.should == Protocol::QueryRequest.new('USE system', :one)
         end
@@ -230,12 +326,18 @@ module Cql
         end
 
         it 'knows which keyspace it changed to' do
-          last_connection.queue_response(Protocol::SetKeyspaceResultResponse.new('system'))
+          handle_request do |request|
+            if request.is_a?(Protocol::QueryRequest) && request.cql == 'USE system'
+              Protocol::SetKeyspaceResultResponse.new('system')
+            end
+          end
+          client.connect.get
           client.use('system').get
           client.keyspace.should == 'system'
         end
 
         it 'raises an error if the keyspace name is not valid' do
+          client.connect.get
           expect { client.use('system; DROP KEYSPACE system').get }.to raise_error(InvalidKeyspaceNameError)
         end
       end
@@ -257,7 +359,11 @@ module Cql
 
         context 'with a void CQL query' do
           it 'returns nil' do
-            last_connection.queue_response(Protocol::VoidResultResponse.new)
+            handle_request do |request|
+              if request.is_a?(Protocol::QueryRequest) && request.cql =~ /UPDATE/
+                Protocol::VoidResultResponse.new
+              end
+            end
             result = client.execute('UPDATE stuff SET thing = 1 WHERE id = 3').get
             result.should be_nil
           end
@@ -265,13 +371,21 @@ module Cql
 
         context 'with a USE query' do
           it 'returns nil' do
-            last_connection.queue_response(Protocol::SetKeyspaceResultResponse.new('system'))
+            handle_request do |request|
+              if request.is_a?(Protocol::QueryRequest) && request.cql == 'USE system'
+                Protocol::SetKeyspaceResultResponse.new('system')
+              end
+            end
             result = client.execute('USE system').get
             result.should be_nil
           end
 
           it 'knows which keyspace it changed to' do
-            last_connection.queue_response(Protocol::SetKeyspaceResultResponse.new('system'))
+            handle_request do |request|
+              if request.is_a?(Protocol::QueryRequest) && request.cql == 'USE system'
+                Protocol::SetKeyspaceResultResponse.new('system')
+              end
+            end
             client.execute('USE system').get
             client.keyspace.should == 'system'
           end
@@ -281,12 +395,14 @@ module Cql
             io_reactor.stop.get
             io_reactor.start.get
 
+            handle_request do |request, connection|
+              if request.is_a?(Protocol::QueryRequest) && request.cql == 'USE system'
+                Protocol::SetKeyspaceResultResponse.new('system')
+              end
+            end
+
             c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
             c.connect.get
-
-            connections.find { |c| c.host == 'h1.example.com' }.queue_response(Protocol::SetKeyspaceResultResponse.new('system'))
-            connections.find { |c| c.host == 'h2.example.com' }.queue_response(Protocol::SetKeyspaceResultResponse.new('system'))
-            connections.find { |c| c.host == 'h3.example.com' }.queue_response(Protocol::SetKeyspaceResultResponse.new('system'))
 
             c.execute('USE system', :one).get
             c.keyspace.should == 'system'
@@ -310,8 +426,15 @@ module Cql
           end
 
           let :result do
-            last_connection.queue_response(Protocol::RowsResultResponse.new(rows, metadata))
             client.execute('SELECT * FROM things').get
+          end
+
+          before do
+            handle_request do |request|
+              if request.is_a?(Protocol::QueryRequest) && request.cql =~ /FROM things/
+                Protocol::RowsResultResponse.new(rows, metadata)
+              end
+            end
           end
 
           it 'returns an Enumerable of rows' do
@@ -352,13 +475,19 @@ module Cql
         end
 
         context 'when the response is an error' do
+          before do
+            handle_request do |request|
+              if request.is_a?(Protocol::QueryRequest) && request.cql =~ /FROM things/
+                Protocol::ErrorResponse.new(0xabcd, 'Blurgh')
+              end
+            end
+          end
+
           it 'raises an error' do
-            last_connection.queue_response(Protocol::ErrorResponse.new(0xabcd, 'Blurgh'))
             expect { client.execute('SELECT * FROM things').get }.to raise_error(QueryError, 'Blurgh')
           end
 
           it 'decorates the error with the CQL that caused it' do
-            last_connection.queue_response(Protocol::ErrorResponse.new(0xabcd, 'Blurgh'))
             begin
               client.execute('SELECT * FROM things').get
             rescue QueryError => e
@@ -380,6 +509,14 @@ module Cql
         end
 
         before do
+          handle_request do |request|
+            if request.is_a?(Protocol::PrepareRequest)
+              Protocol::PreparedResultResponse.new(id, metadata)
+            end
+          end
+        end
+
+        before do
           client.connect.get
         end
 
@@ -389,26 +526,22 @@ module Cql
         end
 
         it 'returns a prepared statement' do
-          last_connection.queue_response(Protocol::PreparedResultResponse.new('A' * 32, [['stuff', 'things', 'item', :varchar]]))
           statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').get
           statement.should_not be_nil
         end
 
         it 'executes a prepared statement' do
-          last_connection.queue_response(Protocol::PreparedResultResponse.new(id, metadata))
           statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').get
           statement.execute('foo').get
           last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], :quorum)
         end
 
         it 'returns a prepared statement that knows the metadata' do
-          last_connection.queue_response(Protocol::PreparedResultResponse.new(id, metadata))
           statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').get
           statement.metadata['item'].type == :varchar
         end
 
         it 'executes a prepared statement with a specific consistency level' do
-          last_connection.queue_response(Protocol::PreparedResultResponse.new(id, metadata))
           statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').get
           statement.execute('thing', :local_quorum).get
           last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['thing'], :local_quorum)
@@ -423,7 +556,11 @@ module Cql
 
         context 'when there is an error preparing the request' do
           it 'returns a failed future' do
-            last_connection.queue_response(Protocol::PreparedResultResponse.new(id, metadata))
+            handle_request do |request|
+              if request.is_a?(Protocol::PrepareRequest)
+                Protocol::PreparedResultResponse.new(id, metadata)
+              end
+            end
             statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').get
             f = statement.execute
             expect { f.get }.to raise_error(ArgumentError)
@@ -473,8 +610,12 @@ module Cql
         end
 
         it 'complains when #execute of a prepared statement is called after #close' do
+          handle_request do |request|
+            if request.is_a?(Protocol::PrepareRequest)
+              Protocol::PreparedResultResponse.new('A' * 32, [])
+            end
+          end
           client.connect.get
-          last_connection.queue_response(Protocol::PreparedResultResponse.new('A' * 32, []))
           statement = client.prepare('DELETE FROM stuff WHERE id = 3').get
           client.close.get
           expect { statement.execute.get }.to raise_error(NotConnectedError)

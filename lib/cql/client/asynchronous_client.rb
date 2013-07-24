@@ -144,24 +144,52 @@ module Cql
         end
       end
 
+      def discover_peers
+        peers_connected = Future.new
+        peer_info = execute('SELECT data_center, host_id, rpc_address FROM system.peers', :one)
+        peer_info.on_complete do |result|
+          node_addresses = result.map { |row| row['rpc_address'].to_s }
+          connect_to_hosts(node_addresses, keyspace, false)
+        end
+        peer_info.on_failure do |error|
+          peers_connected.fail!(error)
+        end
+        peers_connected
+      end
+
       def setup_connections
-        hosts_connected_future = @io_reactor.start.flat_map do
-          hosts = @host.split(',')
-          connection_futures = hosts.map { |host| connect_to_host(host, @initial_keyspace) }
-          Future.combine(*connection_futures)
+        f = @io_reactor.start.flat_map do
+          connect_to_hosts(@host.split(','), @initial_keyspace, true)
         end
-        hosts_connected_future.on_failure do |e|
-          close
-          if e.is_a?(Cql::QueryError) && e.code == 0x100
-            @connected_future.fail!(AuthenticationError.new(e.message))
-          else
-            @connected_future.fail!(e)
-          end
+        f.on_failure do |e|
+          fail_connecting(e)
         end
+      end
+
+      def fail_connecting(e)
+        close
+        if e.is_a?(Cql::QueryError) && e.code == 0x100
+          @connected_future.fail!(AuthenticationError.new(e.message))
+        else
+          @connected_future.fail!(e)
+        end
+      end
+
+      def connect_to_hosts(hosts, keyspace, peer_discovery)
+        connection_futures = hosts.map { |host| connect_to_host(host, keyspace) }
+        hosts_connected_future = Future.combine(*connection_futures)
         hosts_connected_future.on_complete do |connections|
           @connections.concat(connections)
-          @connected_future.complete!(self)
+          done = proc { @connected_future.complete!(self) }
+          if peer_discovery
+            f = discover_peers
+            f.on_complete(&done)
+            f.on_failure(&done)
+          else
+            done.call
+          end
         end
+        hosts_connected_future
       end
 
       def connect_to_host(host, keyspace)
@@ -174,7 +202,20 @@ module Cql
       def initialize_connection(connection, keyspace)
         started = execute_request(Protocol::StartupRequest.new, connection)
         authenticated = started.flat_map { |response| maybe_authenticate(response, connection) }
-        authenticated.flat_map { |connection| use_keyspace(keyspace, connection) }
+        identified = authenticated.flat_map { identify_node(connection) }
+        identified.flat_map { use_keyspace(keyspace, connection) }
+      end
+
+      def identify_node(connection)
+        request = Protocol::QueryRequest.new('SELECT data_center, host_id FROM system.local', :one)
+        f = execute_request(request, connection)
+        f.on_complete do |result|
+          unless result.empty?
+            connection[:host_id] = result.first['host_id']
+            connection[:data_center] = result.first['data_center']
+          end
+        end
+        f
       end
 
       def use_keyspace(keyspace, connection)
