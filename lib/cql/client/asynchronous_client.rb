@@ -196,7 +196,7 @@ module Cql
 
       def connect_to_host(host, keyspace)
         connected = @io_reactor.connect(host, @port, @connection_timeout)
-        initialized = connected.flat_map do |connection|
+        connected.flat_map do |connection|
           initialize_connection(connection, keyspace)
         end
       end
