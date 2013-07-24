@@ -78,6 +78,8 @@ module Cql
     # protocol is implemented, and there is an integration tests that implements
     # the Redis protocol that you can look at too.
     #
+    # @private
+    #
     class IoReactor
       # Initializes a new IO reactor.
       #

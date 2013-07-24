@@ -8,6 +8,7 @@ module Cql
     # A wrapper around a socket. Handles connecting to the remote host, reading
     # from and writing to the socket.
     #
+    # @private
     class Connection
       attr_reader :host, :port, :connection_timeout
 

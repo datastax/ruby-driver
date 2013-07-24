@@ -2,6 +2,7 @@
 
 module Cql
   module Client
+    # @private
     module SynchronousBacktrace
       def synchronous_backtrace
         yield
