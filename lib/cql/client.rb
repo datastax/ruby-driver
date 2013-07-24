@@ -46,11 +46,21 @@ module Cql
   module Client
     InvalidKeyspaceNameError = Class.new(ClientError)
 
-    # Create a new client and connects to Cassandra.
+    # Create a new client and connect to Cassandra.
     #
+    # By default the client will connect to localhost port 9042, which can be
+    # overridden with the `:hosts` and `:port` options, respectively. Once
+    # connected to the hosts given in `:hosts` the rest of the nodes in the
+    # cluster will automatically be discovered and connected to.
+    #
+    # @raise Cql::Io::ConnectionError when a connection couldn't be established
+    #   to any node
     # @param [Hash] options
-    # @option options [String] :host ('localhost') One or more (comma separated)
-    #   hostnames for the Cassandra nodes you want to connect to.
+    # @option options [Array<String>] :hosts (['localhost']) One or more
+    #   hostnames used as seed nodes when connecting. Duplicates will be removed.
+    # @option options [String] :host ('localhost') A comma separated list of 
+    #   hostnames to use as seed nodes. This is a backwards-compatible version
+    #   of the :hosts option, and is deprecated.
     # @option options [String] :port (9042) The port to connect to
     # @option options [Integer] :connection_timeout (5) Max time to wait for a
     #   connection, in seconds
@@ -70,9 +80,7 @@ module Cql
       # You must call this method before you call any of the other methods of a
       # client. Calling it again will have no effect.
       #
-      # If `:keyspace` was specified when the client was created the current
-      # keyspace will also be changed (otherwise the current keyspace will not
-      # be set).
+      # @see Cql::Client.connect
       #
       # @return [Cql::Client]
 

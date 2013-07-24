@@ -70,6 +70,16 @@ module Cql
           io_reactor.stop.get
           io_reactor.start.get
 
+          c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h3.example.com]))
+          c.connect.get
+          connections.should have(3).items
+        end
+
+        it 'connects to all hosts, when given as a comma-sepatated string' do
+          client.close.get
+          io_reactor.stop.get
+          io_reactor.start.get
+
           c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
           c.connect.get
           connections.should have(3).items
@@ -80,7 +90,7 @@ module Cql
           io_reactor.stop.get
           io_reactor.start.get
 
-          c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h2.example.com'))
+          c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h2.example.com]))
           c.connect.get
           connections.should have(2).items
         end
@@ -110,7 +120,7 @@ module Cql
           io_reactor.stop.get
           io_reactor.start.get
 
-          c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
+          c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h3.example.com]))
           c.connect.get
           connections.each do |cc|
             cc.requests.first.should be_a(Protocol::StartupRequest)
@@ -213,13 +223,13 @@ module Cql
           end
 
           it 'only connects to the other nodes in the cluster it is not already connected do' do
-            c = described_class.new(connection_options.merge(host: 'host1,host2'))
+            c = described_class.new(connection_options.merge(hosts: %w[host1 host2]))
             c.connect.get
             connections.should have(3).items
           end
 
           it 'handles the case when it is already connected to all nodes' do
-            c = described_class.new(connection_options.merge(host: 'host1,host2,host3,host4'))
+            c = described_class.new(connection_options.merge(hosts: %w[host1 host2 host3 host4]))
             c.connect.get
             connections.should have(4).items
           end
@@ -355,7 +365,7 @@ module Cql
           io_reactor.stop.get
           io_reactor.start.get
 
-          c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
+          c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h3.example.com]))
           c.connect.get
 
           c.use('system').get
@@ -443,7 +453,7 @@ module Cql
               end
             end
 
-            c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
+            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h3.example.com]))
             c.connect.get
 
             c.execute('USE system', :one).get

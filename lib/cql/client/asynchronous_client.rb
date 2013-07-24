@@ -6,7 +6,7 @@ module Cql
     class AsynchronousClient < Client
       def initialize(options={})
         @connection_timeout = options[:connection_timeout] || 10
-        @host = options[:host] || 'localhost'
+        @hosts = extract_hosts(options)
         @port = options[:port] || 9042
         @io_reactor = options[:io_reactor] || Io::IoReactor.new(Protocol::CqlProtocolHandler)
         @lock = Mutex.new
@@ -111,6 +111,16 @@ module Cql
       KEYSPACE_NAME_PATTERN = /^\w[\w\d_]*$/
       DEFAULT_CONSISTENCY_LEVEL = :quorum
 
+      def extract_hosts(options)
+        if options[:hosts]
+          options[:hosts].uniq
+        elsif options[:host]
+          options[:host].split(',').uniq
+        else
+          %w[localhost]
+        end
+      end
+
       def can_execute?
         @connected || @connecting
       end
@@ -161,7 +171,7 @@ module Cql
 
       def setup_connections
         f = @io_reactor.start.flat_map do
-          connect_to_hosts(@host.split(',').uniq, @initial_keyspace, true)
+          connect_to_hosts(@hosts, @initial_keyspace, true)
         end
         f.on_failure do |e|
           fail_connecting(e)
