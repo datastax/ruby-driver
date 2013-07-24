@@ -75,6 +75,16 @@ module Cql
           connections.should have(3).items
         end
 
+        it 'only connects to each host once' do
+          client.close.get
+          io_reactor.stop.get
+          io_reactor.start.get
+
+          c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h2.example.com'))
+          c.connect.get
+          connections.should have(2).items
+        end
+
         it 'returns itself' do
           client.connect.get.should equal(client)
         end

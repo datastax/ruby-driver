@@ -162,7 +162,7 @@ module Cql
 
       def setup_connections
         f = @io_reactor.start.flat_map do
-          connect_to_hosts(@host.split(','), @initial_keyspace, true)
+          connect_to_hosts(@host.split(',').uniq, @initial_keyspace, true)
         end
         f.on_failure do |e|
           fail_connecting(e)
