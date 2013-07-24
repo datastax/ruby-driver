@@ -41,6 +41,13 @@ module Cql
         end
       end
 
+      describe '#[]/#[]=' do
+        it 'is thread safe storage for arbitrary data' do
+          protocol_handler[:host_id] = 42
+          protocol_handler[:host_id].should == 42
+        end
+      end
+
       describe '#send_request' do
         before do
           connection.stub(:write).and_yield(buffer)

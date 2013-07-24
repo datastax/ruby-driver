@@ -29,9 +29,24 @@ module Cql
         @request_queue_in = []
         @request_queue_out = []
         @event_listeners = []
+        @data = {}
         @lock = Mutex.new
         @closed_future = Future.new
         @keyspace = nil
+      end
+
+      # Associate arbitrary data with this protocol handler object. This is
+      # useful in situations where additional metadata can be loaded after the
+      # connection has been set up, or to keep statistics specific to the
+      # connection this protocol handler wraps.
+      def []=(key, value)
+        @lock.synchronize { @data[key] = value }
+      end
+
+      # @see {#[]=}
+      # @returns the value associated with the key
+      def [](key)
+        @lock.synchronize { @data[key] }
       end
 
       # @return [true, false] true if the underlying connection is connected

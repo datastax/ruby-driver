@@ -66,6 +66,15 @@ class FakeConnection
     @responses = []
     @closed = false
     @keyspace = nil
+    @data = {}
+  end
+
+  def [](key)
+    @data[key]
+  end
+
+  def []=(key, value)
+    @data[key] = value
   end
 
   def close
