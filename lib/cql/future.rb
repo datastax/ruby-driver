@@ -8,6 +8,8 @@ module Cql
 
   # A future represents the value of a process that may not yet have completed.
   #
+  # @private
+  #
   class Future
     def initialize
       @complete_listeners = []
