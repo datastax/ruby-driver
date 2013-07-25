@@ -207,13 +207,13 @@ Open an issue and I'll do my best to help you. Please include the gem version, C
 
 # Known bugs & limitations
 
-* No automatic peer discovery.
-* No automatic reconnection on connection failures.
-* JRuby 1.6.8 and earlier is not supported, although it probably works fine. The only known issue is that connection failures aren't handled gracefully.
+* No automatic peer discovery -- _this is in HEAD and will be released with v1.1.0_.
+* No automatic reconnection on connection failures -- _this is planned for v1.1.0_.
+* JRuby 1.6.8 and earlier is not supported, the tests pass in 1.6.8, but 1.6.4 is known not to work. Travis does not support JRuby 1.6.x so there's no way to get good coverage of what works and not. The only known issue in 1.6.8 is that connection failures aren't handled correctly.
 * Compression is not supported.
+* No support for request tracing.
 * Large results are buffered in memory until the whole response has been loaded, the protocol makes it possible to start to deliver rows to the client code as soon as the metadata is loaded, but this is not supported yet.
 * There is no cluster introspection utilities (like the `DESCRIBE` commands in `cqlsh`).
-* No support for request tracing.
 
 ## Copyright
 
