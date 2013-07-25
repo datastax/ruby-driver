@@ -408,6 +408,17 @@ module Cql
           client.connect.get
           expect { client.use('system; DROP KEYSPACE system').get }.to raise_error(InvalidKeyspaceNameError)
         end
+
+        it 'allows the keyspace name to be quoted' do
+          handle_request do |request|
+            if request.is_a?(Protocol::QueryRequest) && request.cql == 'USE "system"'
+              Protocol::SetKeyspaceResultResponse.new('system')
+            end
+          end
+          client.connect.get
+          client.use('"system"').get
+          client.keyspace.should == "system"
+        end
       end
 
       describe '#execute' do

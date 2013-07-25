@@ -108,7 +108,7 @@ module Cql
 
       private
 
-      KEYSPACE_NAME_PATTERN = /^\w[\w\d_]*$/
+      KEYSPACE_NAME_PATTERN = /^\w[\w\d_]*$|^"\w[\w\d_]*"$/
       DEFAULT_CONSISTENCY_LEVEL = :quorum
 
       class FailedConnection
