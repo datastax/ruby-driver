@@ -205,6 +205,10 @@ Yes it is, and your data is probably safe. cql-rb is just not completely there y
 
 Open an issue and I'll do my best to help you. Please include the gem version, Casandra version and Ruby version, and explain as much about what you're doing as you can, preferably the smallest piece of code that reliably triggers the problem.
 
+# Changelog & versioning
+
+Check out the [releases on GitHub](https://github.com/iconara/cql-rb/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
+
 # Known bugs & limitations
 
 * No automatic peer discovery -- _this is in HEAD and will be released with v1.1.0_.
