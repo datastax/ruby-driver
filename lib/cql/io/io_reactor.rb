@@ -89,6 +89,7 @@ module Cql
       #
       def initialize(protocol_handler_factory, options={})
         @protocol_handler_factory = protocol_handler_factory
+        @clock = options[:clock] || Time
         @unblocker = Unblocker.new
         @io_loop = IoLoopBody.new(options)
         @io_loop.add_socket(@unblocker)
@@ -138,6 +139,7 @@ module Cql
             @io_loop.tick until @stopped
           ensure
             @io_loop.close_sockets
+            @io_loop.cancel_timers
             @running = false
             if $!
               @stopped_future.fail!($!)
@@ -180,12 +182,24 @@ module Cql
       #   object that will be your interface to interact with the connection
       #
       def connect(host, port, timeout)
-        connection = Connection.new(host, port, timeout, @unblocker)
+        connection = Connection.new(host, port, timeout, @unblocker, @clock)
         f = connection.connect
         protocol_handler = @protocol_handler_factory.new(connection)
         @io_loop.add_socket(connection)
         @unblocker.unblock!
         f.map { protocol_handler }
+      end
+
+      # Returns a future that completes after the specified number of seconds.
+      #
+      # @param timeout [Float] the number of seconds to wait until the returned
+      #   future is completed
+      # @return [Cql::Future] a future that completes when the timer expires
+      #
+      def schedule_timer(timeout)
+        f = Future.new
+        @io_loop.schedule_timer(timeout, f)
+        f
       end
 
       def to_s
@@ -250,8 +264,10 @@ module Cql
     class IoLoopBody
       def initialize(options={})
         @selector = options[:selector] || IO
+        @clock = options[:clock] || Time
         @lock = Mutex.new
         @sockets = []
+        @timers = []
       end
 
       def add_socket(socket)
@@ -259,6 +275,15 @@ module Cql
           sockets = @sockets.dup
           sockets << socket
           @sockets = sockets
+        end
+      end
+
+      def schedule_timer(timeout, future)
+        @lock.synchronize do
+          timers = @timers.dup
+          timers << [@clock.now + timeout, future]
+          timers.sort_by(&:first)
+          @timers = timers
         end
       end
 
@@ -272,7 +297,27 @@ module Cql
         end
       end
 
+      def cancel_timers
+        @timers.each do |pair|
+          if pair[1]
+            pair[1].fail!(CancelledError.new)
+            pair[1] = nil
+          end
+        end
+      end
+
       def tick(timeout=1)
+        check_sockets!(timeout)
+        check_timers!
+      end
+
+      def to_s
+        %(#<#{IoReactor.name} @connections=[#{@sockets.map(&:to_s).join(', ')}]>)
+      end
+
+      private
+
+      def check_sockets!(timeout)
         readables, writables, connecting = [], [], []
         sockets = @sockets
         sockets.reject! { |s| s.closed? }
@@ -287,8 +332,14 @@ module Cql
         w && w.each(&:flush)
       end
 
-      def to_s
-        %(#<#{IoReactor.name} @connections=[#{@sockets.map(&:to_s).join(', ')}]>)
+      def check_timers!
+        timers = @timers
+        timers.each do |pair|
+          break unless pair[0] <= @clock.now && pair[1]
+          pair[1].complete!
+          pair[1] = nil
+        end
+        timers.reject! { |pair| pair[1].nil? }
       end
     end
   end

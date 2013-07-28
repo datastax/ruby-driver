@@ -7,7 +7,7 @@ module Cql
   module Io
     describe IoReactor do
       let :reactor do
-        described_class.new(protocol_handler_factory, selector: selector)
+        described_class.new(protocol_handler_factory, selector: selector, clock: clock)
       end
 
       let :protocol_handler_factory do
@@ -16,6 +16,10 @@ module Cql
 
       let! :selector do
         IoReactorSpec::FakeSelector.new
+      end
+
+      let :clock do
+        stub(:clock, now: 0)
       end
 
       describe '#start' do
@@ -83,6 +87,19 @@ module Cql
           reactor.connect('example.com', 9999, 5)
           reactor.stop.get
           connection.should be_closed
+        end
+
+        it 'cancels all active timers' do
+          reactor.start.get
+          clock.stub(:now).and_return(1)
+          expired_timer = reactor.schedule_timer(1)
+          active_timer1 = reactor.schedule_timer(999)
+          active_timer2 = reactor.schedule_timer(111)
+          expired_timer.should_not_receive(:fail!)
+          clock.stub(:now).and_return(2)
+          reactor.stop.get
+          active_timer1.should be_failed
+          active_timer2.should be_failed
         end
       end
 
@@ -163,6 +180,23 @@ module Cql
         end
       end
 
+      describe '#schedule_timer' do
+        before do
+          reactor.start.get
+        end
+
+        after do
+          reactor.stop.get
+        end
+
+        it 'returns a future that completes after the specified duration' do
+          clock.stub(:now).and_return(1)
+          f = reactor.schedule_timer(0.1)
+          clock.stub(:now).and_return(1.1)
+          await { f.complete? }
+        end
+      end
+
       describe '#to_s' do
         context 'returns a string that' do
           it 'includes the class name' do
@@ -179,11 +213,15 @@ module Cql
 
     describe IoLoopBody do
       let :loop_body do
-        described_class.new(selector: selector)
+        described_class.new(selector: selector, clock: clock)
       end
 
       let :selector do
         stub(:selector)
+      end
+
+      let :clock do
+        stub(:clock, now: 0)
       end
 
       let :socket do
@@ -252,6 +290,30 @@ module Cql
           selector.should_receive(:select).with(anything, anything, anything, 99).and_return([[], [], []])
           loop_body.tick(99)
         end
+
+        it 'completes timers that have expired' do
+          selector.stub(:select).and_return([nil, nil, nil])
+          clock.stub(:now).and_return(1)
+          future = Future.new
+          loop_body.schedule_timer(1, future)
+          loop_body.tick
+          future.should_not be_complete
+          clock.stub(:now).and_return(2)
+          loop_body.tick
+          future.should be_complete
+        end
+
+        it 'clears out timers that have expired' do
+          selector.stub(:select).and_return([nil, nil, nil])
+          clock.stub(:now).and_return(1)
+          future = Future.new
+          loop_body.schedule_timer(1, future)
+          clock.stub(:now).and_return(2)
+          loop_body.tick
+          future.should be_complete
+          future.should_not_receive(:complete!)
+          loop_body.tick
+        end
       end
 
       describe '#close_sockets' do
@@ -280,6 +342,29 @@ module Cql
           socket.should_not_receive(:close)
           loop_body.add_socket(socket)
           loop_body.close_sockets
+        end
+      end
+
+      describe '#cancel_timers' do
+        before do
+          selector.stub(:select).and_return([nil, nil, nil])
+        end
+
+        it 'fails all active timers with a CancelledError' do
+          f1 = Future.new
+          f2 = Future.new
+          f3 = Future.new
+          clock.stub(:now).and_return(1)
+          loop_body.schedule_timer(1, f1)
+          loop_body.schedule_timer(3, f2)
+          loop_body.schedule_timer(3, f3)
+          clock.stub(:now).and_return(2)
+          loop_body.tick
+          loop_body.cancel_timers
+          f1.should be_complete
+          f2.should be_failed
+          f3.should be_failed
+          expect { f3.get }.to raise_error(CancelledError)
         end
       end
     end

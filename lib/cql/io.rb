@@ -2,6 +2,7 @@
 
 module Cql
   IoError = Class.new(CqlError)
+  CancelledError = Class.new(CqlError)
 
   module Io
     ConnectionError = Class.new(IoError)

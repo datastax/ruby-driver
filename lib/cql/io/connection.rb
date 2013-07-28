@@ -13,13 +13,13 @@ module Cql
       attr_reader :host, :port, :connection_timeout
 
       # @private
-      def initialize(host, port, connection_timeout, unblocker, socket_impl=Socket, clock=Time)
+      def initialize(host, port, connection_timeout, unblocker, clock, socket_impl=Socket)
         @host = host
         @port = port
         @connection_timeout = connection_timeout
         @unblocker = unblocker
-        @socket_impl = socket_impl
         @clock = clock
+        @socket_impl = socket_impl
         @lock = Mutex.new
         @connected = false
         @write_buffer = ByteBuffer.new

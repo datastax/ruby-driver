@@ -7,7 +7,7 @@ module Cql
   module Io
     describe Connection do
       let :handler do
-        described_class.new('example.com', 55555, 5, unblocker, socket_impl, clock)
+        described_class.new('example.com', 55555, 5, unblocker, clock, socket_impl)
       end
 
       let :unblocker do
