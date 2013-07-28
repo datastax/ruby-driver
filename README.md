@@ -28,7 +28,7 @@ rows.each do |row|
 end
 ```
 
-when you're done you can call `#close` to disconnect from Cassandra. You can connect to multiple Cassandra nodes by passing multiple comma separated host names to the `:host` option.
+when you're done you can call `#close` to disconnect from Cassandra. You can connect to multiple Cassandra nodes by passing multiple comma separated host names to the `:host` option -- _this is deprecated, in v1.1.0 there is a new option `:hosts` that takes a list of host names_.
 
 # Usage
 
