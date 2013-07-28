@@ -121,4 +121,11 @@ describe 'Regressions' do
       row['set_column'].should be_nil
     end
   end
+
+  context 'with quoted keyspace names' do
+    it 'handles quoted keyspace names' do
+      client.use('"system"')
+      client.keyspace.should == 'system'
+    end
+  end
 end
