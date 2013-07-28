@@ -219,7 +219,7 @@ Check out the [releases on GitHub](https://github.com/iconara/cql-rb/releases). 
 * Large results are buffered in memory until the whole response has been loaded, the protocol makes it possible to start to deliver rows to the client code as soon as the metadata is loaded, but this is not supported yet.
 * There is no cluster introspection utilities (like the `DESCRIBE` commands in `cqlsh`).
 
-## Copyright
+# Copyright
 
 Copyright 2013 Theo Hultberg/Iconara
 
