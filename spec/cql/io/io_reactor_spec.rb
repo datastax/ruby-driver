@@ -97,6 +97,7 @@ module Cql
           active_timer2 = reactor.schedule_timer(111)
           expired_timer.should_not_receive(:fail!)
           clock.stub(:now).and_return(2)
+          await { expired_timer.complete? }
           reactor.stop.get
           active_timer1.should be_failed
           active_timer2.should be_failed
