@@ -79,9 +79,14 @@ module Cql
       end
 
       describe '#read_long!' do
-        it 'decodes a long' do
+        it 'decodes a positive long' do
           buffer = ByteBuffer.new("\x00\x00\xca\xfe\xba\xbe\x00\x00")
           Decoding.read_long!(buffer).should == 0x0000cafebabe0000
+        end
+
+        it 'decodes a negative long' do
+          buffer = ByteBuffer.new("\xff\xff\xff\xff\xff\xff\xff\xff")
+          Decoding.read_long!(buffer).should == -1
         end
 
         it 'consumes the bytes' do

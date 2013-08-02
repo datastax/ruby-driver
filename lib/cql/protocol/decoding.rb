@@ -38,8 +38,14 @@ module Cql
       end
 
       def read_long!(buffer)
-        top, bottom = buffer.read(8).unpack(Formats::TWO_INTS_FORMAT)
-        (top << 32) | bottom
+        hi, lo = buffer.read(8).unpack(Formats::TWO_INTS_FORMAT)
+        if (hi > 0x7fffffff)
+          hi ^= 0xffffffff
+          lo ^= 0xffffffff
+          0 - (hi << 32) - lo - 1
+        else
+          (hi << 32) + lo
+        end
       rescue RangeError => e
         raise DecodingError, e.message, e.backtrace
       end

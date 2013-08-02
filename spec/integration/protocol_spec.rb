@@ -284,6 +284,17 @@ describe 'Protocol parsing and communication' do
           end
         end
 
+        it 'decodes positive and negative longs' do
+          in_keyspace_with_counters_table do
+            response = query(%<TRUNCATE counters>)
+            response = query(%<UPDATE counters SET c1 = c1 + 1, c2 = c2 - 2 WHERE id = 'stuff'>)
+            response = query(%<SELECT * FROM counters>, :quorum)
+            response.rows.should == [
+              {'id' => 'stuff', 'c1' => 1, 'c2' => -2}
+            ]
+          end
+        end
+
         it 'sends a DELETE command' do
           in_keyspace_with_table do
             response = query(%<DELETE email FROM users WHERE user_name = 'sue'>)
