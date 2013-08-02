@@ -291,12 +291,12 @@ describe 'Protocol parsing and communication' do
           end
         end
 
-        # it 'sends a TRUNCATE command' do
-        #   in_keyspace_with_table do
-        #     response = query(%<TRUNCATE users>)
-        #     response.should be_void
-        #   end
-        # end
+        it 'sends a TRUNCATE command' do
+          in_keyspace_with_table do
+            response = query(%<TRUNCATE users>)
+            response.should be_void
+          end
+        end
 
         it 'sends a BATCH command' do
           in_keyspace_with_table do
