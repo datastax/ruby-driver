@@ -284,13 +284,72 @@ describe 'Protocol parsing and communication' do
           end
         end
 
-        it 'decodes positive and negative longs' do
+        it 'decodes positive counters' do
           in_keyspace_with_counters_table do
-            response = query(%<TRUNCATE counters>)
-            response = query(%<UPDATE counters SET c1 = c1 + 1, c2 = c2 - 2 WHERE id = 'stuff'>)
+            max_long = (1 << 63) -1
+            response = query(%<UPDATE counters SET c1 = c1 + 1, c2 = c2 +#{max_long} WHERE id = 'positive'>)
             response = query(%<SELECT * FROM counters>, :quorum)
             response.rows.should == [
-              {'id' => 'stuff', 'c1' => 1, 'c2' => -2}
+              {'id' => 'positive', 'c1' => 1, 'c2' => max_long},
+            ]
+          end
+        end
+
+        it 'decodes negative counters' do
+          in_keyspace_with_counters_table do
+            min_long = 0 - (1 << 63)
+            response = query(%<UPDATE counters SET c1 = c1 - 1 , c2 = c2 -#{min_long.abs} WHERE id = 'negative'>)
+            response = query(%<SELECT * FROM counters>, :quorum)
+            response.rows.should == [
+              {'id' => 'negative', 'c1' => -1 , 'c2' => min_long}
+            ]
+          end
+        end
+
+        it 'decodes positive bigints' do
+          in_keyspace do
+            max_long = (1 << 63) -1
+            response = query('CREATE TABLE stuff (id VARCHAR, c1 bigint, c2 bigint, PRIMARY KEY (id))')
+            response = query(%<UPDATE stuff SET c1 = 1, c2 = #{max_long} WHERE id = 'stuff'>)
+            response = query(%<SELECT * FROM stuff>, :quorum)
+            response.rows.should == [
+              {'id' => 'stuff', 'c1' => 1, 'c2' => max_long}
+            ]
+          end
+        end
+
+        it 'decodes negative bigints' do
+          in_keyspace do
+            min_long = 0 - (1 << 63)
+            response = query('CREATE TABLE stuff (id VARCHAR, c1 bigint, c2 bigint, PRIMARY KEY (id))')
+            response = query(%<UPDATE stuff SET c1 = -1, c2 = #{min_long} WHERE id = 'stuff'>)
+            response = query(%<SELECT * FROM stuff>, :quorum)
+            response.rows.should == [
+              {'id' => 'stuff', 'c1' => -1, 'c2' => min_long}
+            ]
+          end
+        end
+
+        it 'decodes positive ints' do
+          in_keyspace do
+            max_int = (1 << 31) -1
+            response = query('CREATE TABLE stuff (id VARCHAR, c1 int, c2 int, PRIMARY KEY (id))')
+            response = query(%<UPDATE stuff SET c1 = 1, c2 = #{max_int} WHERE id = 'stuff'>)
+            response = query(%<SELECT * FROM stuff>, :quorum)
+            response.rows.should == [
+              {'id' => 'stuff', 'c1' => 1, 'c2' => max_int}
+            ]
+          end
+        end
+
+        it 'decodes negative ints' do
+          in_keyspace do
+            min_int = 0 - (1 << 31)
+            response = query('CREATE TABLE stuff (id VARCHAR, c1 int, c2 int, PRIMARY KEY (id))')
+            response = query(%<UPDATE stuff SET c1 = -1, c2 = #{min_int} WHERE id = 'stuff'>)
+            response = query(%<SELECT * FROM stuff>, :quorum)
+            response.rows.should == [
+              {'id' => 'stuff', 'c1' => -1, 'c2' => min_int}
             ]
           end
         end
