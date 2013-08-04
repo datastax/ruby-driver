@@ -1,7 +1,7 @@
 # Ruby CQL3 driver
 
 [![Build Status](https://travis-ci.org/iconara/cql-rb.png?branch=master)](https://travis-ci.org/iconara/cql-rb)
-[![Coverage Status](https://coveralls.io/repos/iconara/cql-rb/badge.png?branch=io_reactor_rewrite)](https://coveralls.io/r/iconara/cql-rb?branch=io_reactor_rewrite)
+[![Coverage Status](https://coveralls.io/repos/iconara/cql-rb/badge.png)](https://coveralls.io/r/iconara/cql-rb)
 
 # Requirements
 
