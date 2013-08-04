@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.homepage      = 'http://github.com/iconara/cql-rb'
   s.summary       = %q{Cassandra CQL3 driver}
   s.description   = %q{A pure Ruby CQL3 driver for Cassandra}
-  s.license       = 'Apache'
+  s.license       = 'Apache License 2.0'
   
   s.files         = Dir['lib/**/*.rb', 'bin/*', 'README.md']
   s.test_files    = Dir['spec/**/*.rb']
