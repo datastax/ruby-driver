@@ -122,6 +122,39 @@ describe 'Regressions' do
     end
   end
 
+  context 'with negative numbers' do
+    it 'decodes negative counters' do
+      client.execute(%<CREATE TABLE counters (id ASCII, counter1 COUNTER, PRIMARY KEY (id))>)
+      client.execute(%<UPDATE counters SET counter1 = counter1 - 1 WHERE id = 'foo'>)
+      result = client.execute(%<SELECT counter1 FROM counters WHERE id = 'foo'>)
+      result.first['counter1'].should == -1
+    end
+
+    it 'decodes negative numbers' do
+      client.execute(<<-CQL)
+        CREATE TABLE lots_of_types (
+          id               INT,
+          bigint_column    BIGINT,
+          decimal_column   DECIMAL,
+          double_column    DOUBLE,
+          float_column     FLOAT,
+          int_column       INT,
+          varint_column    VARINT,
+          PRIMARY KEY (id)
+        )
+      CQL
+      client.execute(%<INSERT INTO lots_of_types (id, bigint_column, decimal_column, double_column, float_column, int_column, varint_column) VALUES (3, -1, -1, -1, -1, -1, -1)>)
+      result = client.execute(%<SELECT * FROM lots_of_types WHERE id = 3>)
+      row = result.first
+      row['bigint_column'].should == -1
+      row['decimal_column'].should == -1
+      row['double_column'].should == -1
+      row['float_column'].should == -1
+      row['int_column'].should == -1
+      row['varint_column'].should == -1
+    end
+  end
+
   context 'with quoted keyspace names' do
     it 'handles quoted keyspace names' do
       client.use('"system"')

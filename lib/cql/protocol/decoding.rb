@@ -38,8 +38,14 @@ module Cql
       end
 
       def read_long!(buffer)
-        top, bottom = buffer.read(8).unpack(Formats::TWO_INTS_FORMAT)
-        (top << 32) | bottom
+        hi, lo = buffer.read(8).unpack(Formats::TWO_INTS_FORMAT)
+        if (hi > 0x7fffffff)
+          hi ^= 0xffffffff
+          lo ^= 0xffffffff
+          0 - (hi << 32) - lo - 1
+        else
+          (hi << 32) + lo
+        end
       rescue RangeError => e
         raise DecodingError, e.message, e.backtrace
       end
@@ -57,7 +63,11 @@ module Cql
       end
 
       def read_int!(buffer)
-        buffer.read_int
+        val = buffer.read_int
+        if (val > 0x7fffffff)
+          val = 0 - ((val - 1) ^ 0xffffffff)
+        end
+        val
       rescue RangeError => e
         raise DecodingError, "Not enough bytes available to decode an int: #{e.message}", e.backtrace
       end
