@@ -31,7 +31,20 @@ module Cql
       def read_decimal!(buffer, length=buffer.length)
         size = read_int!(buffer)
         number_string = read_varint!(buffer, length - 4).to_s
-        fraction_string = number_string[0, number_string.length - size] << DECIMAL_POINT << number_string[number_string.length - size, number_string.length]
+        if number_string.length < size
+          if number_string.start_with?(MINUS)
+            number_string = number_string[1, number_string.length - 1]
+            fraction_string = MINUS + ZERO << DECIMAL_POINT
+          else
+            fraction_string = ZERO + DECIMAL_POINT
+          end
+          (size - number_string.length).times { fraction_string << ZERO }
+          fraction_string << number_string
+        else
+          fraction_string = number_string[0, number_string.length - size]
+          fraction_string << DECIMAL_POINT
+          fraction_string << number_string[number_string.length - size, number_string.length]
+        end
         BigDecimal.new(fraction_string)
       rescue RangeError => e
         raise DecodingError, e.message, e.backtrace
@@ -171,6 +184,8 @@ module Cql
 
       private
 
+      MINUS = '-'.freeze
+      ZERO = '0'.freeze
       DECIMAL_POINT = '.'.freeze
     end
   end

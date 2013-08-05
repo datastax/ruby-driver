@@ -144,7 +144,7 @@ describe 'Regressions' do
         )
       CQL
       client.execute(%<INSERT INTO lots_of_types (id, bigint_column, decimal_column, double_column, float_column, int_column, varint_column) VALUES (0, -1, -1, -1, -1, -1, -1)>)
-      client.execute(%<INSERT INTO lots_of_types (id, bigint_column, decimal_column, double_column, float_column, int_column, varint_column) VALUES (1, -9223372036854775808, -342342123412341324.234123434645721234436457356, -2.2250738585072014e-308, -1.175494351e-38, -2147483648, -23454545674351234123365765786894351234567456)>)
+      client.execute(%<INSERT INTO lots_of_types (id, bigint_column, decimal_column, double_column, float_column, int_column, varint_column) VALUES (1, -9223372036854775808, -0.0012095473475870063, -2.2250738585072014e-308, -1.175494351e-38, -2147483648, -23454545674351234123365765786894351234567456)>)
       result = client.execute(%<SELECT * FROM lots_of_types WHERE id IN (0, 1)>)
       row0, row1 = result.to_a
       row0['bigint_column'].should == -1
@@ -154,7 +154,7 @@ describe 'Regressions' do
       row0['int_column'].should == -1
       row0['varint_column'].should == -1
       row1['bigint_column'].should == -9223372036854775808
-      row1['decimal_column'].should == BigDecimal.new('-342342123412341324.234123434645721234436457356')
+      row1['decimal_column'].should == BigDecimal.new('-0.0012095473475870063')
       row1['double_column'].should == be_within(1.0e-308).of(-2.2250738585072014e-308)
       row1['float_column'].should be_within(1.0e-38).of(-1.175494351e-38)
       row1['int_column'].should == -2147483648

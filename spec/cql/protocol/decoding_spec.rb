@@ -62,6 +62,21 @@ module Cql
           Decoding.read_decimal!(buffer).should == BigDecimal.new('1042342234234.123423435647768234')
         end
 
+        it 'decodes a negative decimal' do
+          buffer = ByteBuffer.new("\x00\x00\x00\x12\xF2\xD8\x02\xB6R\x7F\x99\xEE\x98#\x99\xA9V")
+          Decoding.read_decimal!(buffer).should == BigDecimal.new('-1042342234234.123423435647768234')
+        end
+
+        it 'decodes a positive decimal with only fractions' do
+          buffer = ByteBuffer.new("\x00\x00\x00\x13*\xF8\xC4\xDF\xEB]o")
+          Decoding.read_decimal!(buffer).should == BigDecimal.new('0.0012095473475870063')
+        end
+
+        it 'decodes a negative decimal with only fractions' do
+          buffer = ByteBuffer.new("\x00\x00\x00\x13\xD5\a;\x20\x14\xA2\x91")
+          Decoding.read_decimal!(buffer).should == BigDecimal.new('-0.0012095473475870063')
+        end
+
         it 'consumes the bytes' do
           buffer << 'HELLO'
           Decoding.read_decimal!(buffer, buffer.length - 5)
