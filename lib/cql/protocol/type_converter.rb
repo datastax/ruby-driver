@@ -237,7 +237,7 @@ module Cql
       end
 
       def ascii_to_bytes(io, value, size_bytes)
-        v = v && value.encode(::Encoding::ASCII)
+        v = value && value.encode(::Encoding::ASCII)
         if size_bytes == 4
           write_bytes(io, v)
         else
@@ -259,7 +259,7 @@ module Cql
       end
 
       def blob_to_bytes(io, value, size_bytes)
-        v = v && value.encode(::Encoding::BINARY)
+        v = value && value.encode(::Encoding::BINARY)
         if size_bytes == 4
           write_bytes(io, v)
         else
@@ -342,7 +342,7 @@ module Cql
       end
 
       def varchar_to_bytes(io, value, size_bytes)
-        v = v && value.encode(::Encoding::UTF_8)
+        v = value && value.encode(::Encoding::UTF_8)
         if size_bytes == 4
           write_bytes(io, v)
         else
