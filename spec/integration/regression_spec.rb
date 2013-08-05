@@ -65,15 +65,7 @@ describe 'Regressions' do
   end
 
   context 'with null values' do
-    it 'decodes null counters' do
-      client.execute(%<CREATE TABLE counters (id ASCII, counter1 COUNTER, counter2 COUNTER, PRIMARY KEY (id))>)
-      client.execute(%<UPDATE counters SET counter1 = counter1 + 1 WHERE id = 'foo'>)
-      result = client.execute(%<SELECT counter1, counter2 FROM counters WHERE id = 'foo'>)
-      result.first['counter1'].should == 1
-      result.first['counter2'].should be_nil
-    end
-
-    it 'decodes null values' do
+    before do
       client.execute(<<-CQL)
         CREATE TABLE lots_of_types (
           id               INT,
@@ -98,6 +90,24 @@ describe 'Regressions' do
           PRIMARY KEY (id)
         )
       CQL
+      client.execute(<<-CQL)
+        CREATE TABLE counters (
+          id ASCII,
+          counter1 COUNTER,
+          counter2 COUNTER,
+          PRIMARY KEY (id)
+        )
+      CQL
+    end
+
+    it 'decodes null counters' do
+      client.execute(%<UPDATE counters SET counter1 = counter1 + 1 WHERE id = 'foo'>)
+      result = client.execute(%<SELECT counter1, counter2 FROM counters WHERE id = 'foo'>)
+      result.first['counter1'].should == 1
+      result.first['counter2'].should be_nil
+    end
+
+    it 'decodes null values' do
       client.execute(%<INSERT INTO lots_of_types (id) VALUES (3)>)
       result = client.execute(%<SELECT * FROM lots_of_types WHERE id = 3>)
       row = result.first
@@ -119,6 +129,33 @@ describe 'Regressions' do
       row['list_column'].should be_nil
       row['map_column'].should be_nil
       row['set_column'].should be_nil
+    end
+
+    it 'encodes null values' do
+      statement = client.prepare(<<-CQL)
+        UPDATE lots_of_types
+        SET
+          ascii_column = ?,
+          bigint_column = ?,
+          blob_column = ?,
+          boolean_column = ?,
+          decimal_column = ?,
+          double_column = ?,
+          float_column = ?,
+          int_column = ?,
+          text_column = ?,
+          timestamp_column = ?,
+          uuid_column = ?,
+          varchar_column = ?,
+          varint_column = ?,
+          timeuuid_column = ?,
+          inet_column = ?,
+          list_column = ?,
+          map_column = ?,
+          set_column = ?
+        WHERE id = 1
+      CQL
+      statement.execute(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
     end
   end
 

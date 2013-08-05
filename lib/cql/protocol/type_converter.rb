@@ -36,27 +36,35 @@ module Cql
       def to_bytes(io, type, value, size_bytes=4)
         case type
         when Array
-          unless value.is_a?(Enumerable)
+          unless value.nil? || value.is_a?(Enumerable)
             raise InvalidValueError, 'Value for collection must be enumerable'
           end
           case type.first
           when :list, :set
             _, sub_type = type
-            raw = ''
-            write_short(raw, value.size)
-            value.each do |element|
-              to_bytes(raw, sub_type, element, 2)
+            if value
+              raw = ''
+              write_short(raw, value.size)
+              value.each do |element|
+                to_bytes(raw, sub_type, element, 2)
+              end
+              write_bytes(io, raw)
+            else
+              nil_to_bytes(io, size_bytes)
             end
-            write_bytes(io, raw)
           when :map
             _, key_type, value_type = type
-            raw = ''
-            write_short(raw, value.size)
-            value.each do |key, value|
-              to_bytes(raw, key_type, key, 2)
-              to_bytes(raw, value_type, value, 2)
+            if value
+              raw = ''
+              write_short(raw, value.size)
+              value.each do |key, value|
+                to_bytes(raw, key_type, key, 2)
+                to_bytes(raw, value_type, value, 2)
+              end
+              write_bytes(io, raw)
+            else
+              nil_to_bytes(io, size_bytes)
             end
-            write_bytes(io, raw)
           else
             raise UnsupportedColumnTypeError, %(Unsupported column collection type: #{type.first})
           end
@@ -229,7 +237,7 @@ module Cql
       end
 
       def ascii_to_bytes(io, value, size_bytes)
-        v = value.encode(::Encoding::ASCII)
+        v = v && value.encode(::Encoding::ASCII)
         if size_bytes == 4
           write_bytes(io, v)
         else
@@ -238,16 +246,20 @@ module Cql
       end
 
       def bigint_to_bytes(io, value, size_bytes)
-        if size_bytes == 4
-          write_int(io, 8)
+        if value
+          if size_bytes == 4
+            write_int(io, 8)
+          else
+            write_short(io, 8)
+          end
+          write_long(io, value)
         else
-          write_short(io, 8)
+          nil_to_bytes(io, size_bytes)
         end
-        write_long(io, value)
       end
 
       def blob_to_bytes(io, value, size_bytes)
-        v = value.encode(::Encoding::BINARY)
+        v = v && value.encode(::Encoding::BINARY)
         if size_bytes == 4
           write_bytes(io, v)
         else
@@ -256,16 +268,20 @@ module Cql
       end
 
       def boolean_to_bytes(io, value, size_bytes)
-        if size_bytes == 4
-          write_int(io, 1)
+        if !value.nil?
+          if size_bytes == 4
+            write_int(io, 1)
+          else
+            write_short(io, 1)
+          end
+          io << (value ? Constants::TRUE_BYTE : Constants::FALSE_BYTE)
         else
-          write_short(io, 1)
+          nil_to_bytes(io, size_bytes)
         end
-        io << (value ? Constants::TRUE_BYTE : Constants::FALSE_BYTE)
       end
 
       def decimal_to_bytes(io, value, size_bytes)
-        raw = write_decimal('', value)
+        raw = value && write_decimal('', value)
         if size_bytes == 4
           write_bytes(io, raw)
         else
@@ -274,43 +290,59 @@ module Cql
       end
 
       def double_to_bytes(io, value, size_bytes)
-        if size_bytes == 4
-          write_int(io, 8)
+        if value
+          if size_bytes == 4
+            write_int(io, 8)
+          else
+            write_short(io, 8)
+          end
+          write_double(io, value)
         else
-          write_short(io, 8)
+          nil_to_bytes(io, size_bytes)
         end
-        write_double(io, value)
       end
 
       def float_to_bytes(io, value, size_bytes)
-        if size_bytes == 4
-          write_int(io, 4)
+        if value
+          if size_bytes == 4
+            write_int(io, 4)
+          else
+            write_short(io, 4)
+          end
+          write_float(io, value)
         else
-          write_short(io, 4)
+          nil_to_bytes(io, size_bytes)
         end
-        write_float(io, value)
       end
 
       def inet_to_bytes(io, value, size_bytes)
-        if size_bytes == 4
-          write_int(io, value.ipv6? ? 16 : 4)
+        if value
+          if size_bytes == 4
+            write_int(io, value.ipv6? ? 16 : 4)
+          else
+            write_short(io, value.ipv6? ? 16 : 4)
+          end
+          io << value.hton
         else
-          write_short(io, value.ipv6? ? 16 : 4)
+          nil_to_bytes(io, size_bytes)
         end
-        io << value.hton
       end
 
       def int_to_bytes(io, value, size_bytes)
-        if size_bytes == 4
-          write_int(io, 4)
+        if value
+          if size_bytes == 4
+            write_int(io, 4)
+          else
+            write_short(io, 4)
+          end
+          write_int(io, value)
         else
-          write_short(io, 4)
+          nil_to_bytes(io, size_bytes)
         end
-        write_int(io, value)
       end
 
       def varchar_to_bytes(io, value, size_bytes)
-        v = value.encode(::Encoding::UTF_8)
+        v = v && value.encode(::Encoding::UTF_8)
         if size_bytes == 4
           write_bytes(io, v)
         else
@@ -319,30 +351,46 @@ module Cql
       end
 
       def timestamp_to_bytes(io, value, size_bytes)
-        ms = (value.to_f * 1000).to_i
-        if size_bytes == 4
-          write_int(io, 8)
+        if value
+          ms = (value.to_f * 1000).to_i
+          if size_bytes == 4
+            write_int(io, 8)
+          else
+            write_short(io, 8)
+          end
+          write_long(io, ms)
         else
-          write_short(io, 8)
+          nil_to_bytes(io, size_bytes)
         end
-        write_long(io, ms)
       end
 
       def uuid_to_bytes(io, value, size_bytes)
-        if size_bytes == 4
-          write_int(io, 16)
+        if value
+          if size_bytes == 4
+            write_int(io, 16)
+          else
+            write_short(io, 16)
+          end
+          write_uuid(io, value)
         else
-          write_short(io, 16)
+          nil_to_bytes(io, size_bytes)
         end
-        write_uuid(io, value)
       end
 
       def varint_to_bytes(io, value, size_bytes)
-        raw = write_varint('', value)
+        raw = value && write_varint('', value)
         if size_bytes == 4
           write_bytes(io, raw)
         else
           write_short_bytes(io, raw)
+        end
+      end
+
+      def nil_to_bytes(io, size_bytes)
+        if size_bytes == 4
+          write_int(io, -1)
+        else
+          write_short(io, -1)
         end
       end
     end
