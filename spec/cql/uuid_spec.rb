@@ -36,6 +36,10 @@ module Cql
         Uuid.new(276263553384940695775376958868900023510).should eql(Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'))
       end
 
+      it 'is not equal when anything other than a Uuid is passed' do
+        [nil, 123, 'test'].each { |v| Uuid.new(276263553384940695775376958868900023510).should_not eql(v) }
+      end
+
       it 'aliases #== to #eql?' do
         Uuid.new(276263553384940695775376958868900023510).should == Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6')
       end
