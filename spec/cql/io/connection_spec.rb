@@ -11,19 +11,19 @@ module Cql
       end
 
       let :unblocker do
-        stub(:unblocker, unblock!: nil)
+        double(:unblocker, unblock!: nil)
       end
 
       let :socket_impl do
-        stub(:socket_impl)
+        double(:socket_impl)
       end
 
       let :clock do
-        stub(:clock, now: 0)
+        double(:clock, now: 0)
       end
 
       let :socket do
-        stub(:socket)
+        double(:socket)
       end
 
       before do

@@ -20,11 +20,11 @@ module Cql
 
   describe TimeUuid::Generator do
     let :generator do
-      described_class.new(nil, nil, stub(now: clock))
+      described_class.new(nil, nil, double(now: clock))
     end
 
     let :clock do
-      stub(:clock, to_i: 1370771820, usec: 329394)
+      double(:clock, to_i: 1370771820, usec: 329394)
     end
 
     describe '#next' do
@@ -103,17 +103,17 @@ module Cql
 
     context 'when specifying a custom clock ID' do
       it 'uses the lower 14 bits of the specified clock ID' do
-        g = described_class.new(nil, 0x2bad, stub(now: clock))
+        g = described_class.new(nil, 0x2bad, double(now: clock))
         (g.next.value >> 48 & 0x3fff).should == 0x2bad
       end
 
       it 'ensures that the high bit of the clock ID is 1 (the variant)' do
-        g = described_class.new(nil, 0x2bad, stub(now: clock))
+        g = described_class.new(nil, 0x2bad, double(now: clock))
         (g.next.value >> 60 & 0b1000).should == 0b1000
       end
 
       it 'generates a new random clock ID if time has moved backwards' do
-        g = described_class.new(nil, 0x2bad, stub(now: clock))
+        g = described_class.new(nil, 0x2bad, double(now: clock))
         str1 = g.next.to_s.split('-')[3]
         clock.stub(:to_i).and_return(1370771820 - 2)
         str2 = g.next.to_s.split('-')[3]
@@ -123,12 +123,12 @@ module Cql
 
     context 'when specifying a custom node ID' do
       it 'uses the lower 48 bits of the specified node ID' do
-        g = described_class.new(0xd00b1ed00b1ed00b, 0x0000, stub(now: clock))
+        g = described_class.new(0xd00b1ed00b1ed00b, 0x0000, double(now: clock))
         g.next.to_s.should end_with('00-1ed00b1ed00b')
       end
 
       it 'does not modify the multicast bit' do
-        g = described_class.new(0x000000000000, 0x0000, stub(now: clock))
+        g = described_class.new(0x000000000000, 0x0000, double(now: clock))
         g.next.to_s.should end_with('00-000000000000')
       end
     end

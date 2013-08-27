@@ -742,7 +742,7 @@ module Cql
 
         it 'clears out old connections and don\'t reuse them for future requests' do
           connections.first.close
-          expect { 10.times { client.execute('SELECT * FROM something').get } }.to_not raise_error(NotConnectedError)
+          expect { 10.times { client.execute('SELECT * FROM something').get } }.to_not raise_error
         end
 
         it 'raises NotConnectedError when all nodes are down' do

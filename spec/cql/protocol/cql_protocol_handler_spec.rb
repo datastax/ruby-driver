@@ -11,7 +11,7 @@ module Cql
       end
 
       let :connection do
-        stub(:connection)
+        double(:connection)
       end
 
       let :request do

@@ -109,7 +109,7 @@ describe 'A CQL client' do
 
   context 'with authentication' do
     let :client do
-      stub(:client, connect: nil, close: nil)
+      double(:client, connect: nil, close: nil)
     end
 
     let :authentication_enabled do

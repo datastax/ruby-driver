@@ -11,11 +11,11 @@ module Cql
       end
 
       let :async_client do
-        stub(:async_client)
+        double(:async_client)
       end
 
       let :future do
-        stub(:future, get: nil)
+        double(:future, get: nil)
       end
 
       describe '#connect' do
@@ -70,7 +70,7 @@ module Cql
 
       describe '#execute' do
         it 'calls #execute on the async client and waits for, and returns the result' do
-          result = stub(:result)
+          result = double(:result)
           async_client.stub(:execute).with('SELECT * FROM something', :one).and_return(future)
           future.stub(:get).and_return(result)
           client.execute('SELECT * FROM something', :one).should equal(result)
@@ -79,10 +79,10 @@ module Cql
 
       describe '#prepare' do
         it 'calls #prepare on the async client, waits for the result and returns a SynchronousFuture' do
-          result = stub(:result)
-          metadata = stub(:metadata)
-          async_statement = stub(:async_statement, metadata: metadata)
-          another_future = stub(:another_future)
+          result = double(:result)
+          metadata = double(:metadata)
+          async_statement = double(:async_statement, metadata: metadata)
+          another_future = double(:another_future)
           async_client.stub(:prepare).with('SELECT * FROM something').and_return(future)
           future.stub(:get).and_return(async_statement)
           statement = client.prepare('SELECT * FROM something')
