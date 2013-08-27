@@ -134,7 +134,7 @@ module Cql
       end
 
       def can_execute?
-        @connected || @connecting
+        @connecting || (@connected && @connections.any?)
       end
 
       def valid_keyspace_name?(name)

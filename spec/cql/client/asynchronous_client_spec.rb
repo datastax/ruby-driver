@@ -734,6 +734,11 @@ module Cql
           connections.first.close
           expect { 10.times { client.execute('SELECT * FROM something').get } }.to_not raise_error(NotConnectedError)
         end
+
+        it 'raises NotConnectedError when all nodes are down' do
+          connections.each(&:close)
+          expect { client.execute('SELECT * FROM something').get }.to raise_error(NotConnectedError)
+        end
       end
     end
   end
