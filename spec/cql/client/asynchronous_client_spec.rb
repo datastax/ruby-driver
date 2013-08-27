@@ -761,6 +761,19 @@ module Cql
           connections.select(&:connected?).should have(3).items
         end
 
+        it 'eventually reconnects even when the node doesn\'t respond at first' do
+          timer_future = Future.new
+          io_reactor.stub(:schedule_timer).and_return(timer_future)
+          additional_nodes.each { |host| io_reactor.node_down(host.to_s) }
+          connections.first.close
+          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          connections.select(&:connected?).should have(2).items
+          additional_nodes.each { |host| io_reactor.node_up(host.to_s) }
+          timer_future.complete!
+          connections.select(&:connected?).should have(3).items
+        end
+
         it 'connects when it receives a topology change UP event' do
           min_peers[0] = 3
           event = Protocol::TopologyChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)

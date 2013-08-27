@@ -174,7 +174,7 @@ module Cql
         end
       end
 
-       def register_event_listener(connection)
+      def register_event_listener(connection)
         register_request = Protocol::RegisterRequest.new(Protocol::TopologyChangeEventResponse::TYPE, Protocol::StatusChangeEventResponse::TYPE)
         execute_request(register_request, connection)
         connection.on_closed do
@@ -183,9 +183,23 @@ module Cql
         connection.on_event do |event|
           begin
             if event.change == 'UP'
-              discover_peers(@connections, keyspace).on_complete do |connections|
-                register_new_connections(connections)
-              end
+              handle_topology_change
+            end
+          end
+        end
+      end
+
+      def handle_topology_change
+        seed_connections = @lock.synchronize { @connections.dup }
+        f = discover_peers(seed_connections, keyspace)
+        f.on_complete do |connections|
+          connected_connections = connections.select(&:connected?)
+          if connected_connections.any?
+            register_new_connections(connected_connections)
+          else
+            f = @io_reactor.schedule_timer(1)
+            f.on_complete do
+              handle_topology_change
             end
           end
         end

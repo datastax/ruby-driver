@@ -18,6 +18,10 @@ class FakeIoReactor
     @down_nodes << hostname
   end
 
+  def node_up(hostname)
+    @down_nodes.delete(hostname)
+  end
+
   def before_startup(&handler)
     @before_startup_handler = handler
   end
