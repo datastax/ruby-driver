@@ -181,7 +181,7 @@ module Cql
           node_addresses = unconnected_peers.map do |row|
             rpc_address = row['rpc_address'].to_s
             if rpc_address == BIND_ALL_IP
-              row['peer']
+              row['peer'].to_s
             else
               rpc_address
             end
