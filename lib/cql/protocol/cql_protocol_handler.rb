@@ -35,6 +35,20 @@ module Cql
         @keyspace = nil
       end
 
+      # Returns the hostname of the underlying connection
+      #
+      # @return [String] the hostname
+      def host
+        @connection.host
+      end
+
+      # Returns the port of the underlying connection
+      #
+      # @return [Integer] the port
+      def port
+        @connection.port
+      end
+
       # Associate arbitrary data with this protocol handler object. This is
       # useful in situations where additional metadata can be loaded after the
       # connection has been set up, or to keep statistics specific to the

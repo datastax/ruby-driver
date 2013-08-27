@@ -48,6 +48,20 @@ module Cql
         end
       end
 
+      describe '#host' do
+        it 'delegates to the connection' do
+          connection.stub(:host).and_return('example.com')
+          protocol_handler.host.should == 'example.com'
+        end
+      end
+
+      describe '#port' do
+        it 'delegates to the connection' do
+          connection.stub(:port).and_return(9042)
+          protocol_handler.port.should == 9042
+        end
+      end
+
       describe '#send_request' do
         before do
           connection.stub(:write).and_yield(buffer)

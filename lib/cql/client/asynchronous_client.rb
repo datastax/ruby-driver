@@ -8,6 +8,7 @@ module Cql
         @connection_timeout = options[:connection_timeout] || 10
         @hosts = extract_hosts(options)
         @port = options[:port] || 9042
+        @logger = options[:logger] || NullLogger.new
         @io_reactor = options[:io_reactor] || Io::IoReactor.new(Protocol::CqlProtocolHandler)
         @lock = Mutex.new
         @connected = false
@@ -33,12 +34,14 @@ module Cql
           @lock.synchronize do
             @connecting = false
             @connected = true
+            @logger.info('Cluster connection complete')
           end
         end
-        @connected_future.on_failure do
+        @connected_future.on_failure do |e|
           @lock.synchronize do
             @connecting = false
             @connected = false
+            @logger.error('Failed connecting to cluster: %s' % e.message)
           end
         end
         @connected_future
@@ -59,12 +62,14 @@ module Cql
           @lock.synchronize do
             @closing = false
             @connected = false
+            @logger.info('Cluster disconnect complete')
           end
         end
-        @closed_future.on_failure do
+        @closed_future.on_failure do |e|
           @lock.synchronize do
             @closing = false
             @connected = false
+            @logger.error('Cluster disconnect failed: %s' % e.message)
           end
         end
         @closed_future
@@ -113,10 +118,12 @@ module Cql
       DEFAULT_CONSISTENCY_LEVEL = :quorum
 
       class FailedConnection
-        attr_reader :error
+        attr_reader :error, :host, :port
 
-        def initialize(error)
+        def initialize(error, host, port)
           @error = error
+          @host = host
+          @port = port
         end
 
         def connected?
@@ -194,6 +201,7 @@ module Cql
       end
 
       def discover_peers(seed_connections, initial_keyspace)
+        @logger.debug('Looking for additional nodes')
         connected_seeds = seed_connections.select(&:connected?)
         connection = connected_seeds.sample
         return Future.completed([]) unless connection
@@ -204,6 +212,7 @@ module Cql
           unconnected_peers = result.select do |row|
             seed_dcs.include?(row['data_center']) && connected_seeds.none? { |c| c[:host_id] == row['host_id'] }
           end
+          @logger.debug('%d additional nodes found' % unconnected_peers.size)
           node_addresses = unconnected_peers.map do |row|
             rpc_address = row['rpc_address'].to_s
             if rpc_address == '0.0.0.0'
@@ -263,7 +272,19 @@ module Cql
       def connect_to_hosts(hosts, initial_keyspace, peer_discovery)
         connection_futures = hosts.map do |host|
           connect_to_host(host, initial_keyspace).recover do |error|
-            FailedConnection.new(error)
+            FailedConnection.new(error, host, @port)
+          end
+        end
+        connection_futures.each do |cf|
+          cf.on_complete do |c|
+            if c.is_a?(FailedConnection)
+              @logger.warn('Failed connecting to node at %s:%d: %s' % [c.host, c.port, c.error.message])
+            else
+              @logger.info('Connected to node %s at %s:%d in data center %s' % [c[:host_id], c.host, c.port, c[:data_center]])
+            end
+            c.on_closed do
+              @logger.warn('Connection to node %s at %s:%d in data center %s unexpectedly closed' % [c[:host_id], c.host, c.port, c[:data_center]])
+            end
           end
         end
         hosts_connected_future = Future.combine(*connection_futures)
@@ -279,6 +300,7 @@ module Cql
       end
 
       def connect_to_host(host, keyspace)
+        @logger.debug('Connecting to node at %s:%d' % [host, @port])
         connected = @io_reactor.connect(host, @port, @connection_timeout)
         connected.flat_map do |connection|
           initialize_connection(connection, keyspace)

@@ -11,11 +11,15 @@ module Cql
       end
 
       let :connection_options do
-        {:host => 'example.com', :port => 12321, :io_reactor => io_reactor}
+        {:host => 'example.com', :port => 12321, :io_reactor => io_reactor, :logger => logger}
       end
 
       let :io_reactor do
         FakeIoReactor.new
+      end
+
+      let :logger do
+        NullLogger.new
       end
 
       def connections
@@ -768,6 +772,71 @@ module Cql
           connections.select(&:has_event_listener?).should have(1).item
           connections.select(&:has_event_listener?).first.close
           connections.select(&:connected?).select(&:has_event_listener?).should have(1).item
+        end
+      end
+
+      context 'with logging' do
+        include_context 'peer discovery setup'
+
+        it 'logs when connecting to a node' do
+          logger.stub(:debug)
+          client.connect.get
+          logger.should have_received(:debug).with(/Connecting to node at example\.com:12321/)
+        end
+
+        it 'logs when a node is connected' do
+          logger.stub(:info)
+          client.connect.get
+          logger.should have_received(:info).with(/Connected to node .{36} at example\.com:12321 in data center dc1/)
+        end
+
+        it 'logs when all nodes are connected' do
+          logger.stub(:info)
+          client.connect.get
+          logger.should have_received(:info).with(/Cluster connection complete/)
+        end
+
+        it 'logs when the connection fails' do
+          logger.stub(:error)
+          io_reactor.stub(:connect).and_return(Future.failed(StandardError.new('Hurgh blurgh')))
+          client.connect.get rescue nil
+          logger.should have_received(:error).with(/Failed connecting to cluster: Hurgh blurgh/)
+        end
+
+        it 'logs when a single connection fails' do
+          logger.stub(:warn)
+          io_reactor.stub(:connect).and_return(Future.failed(StandardError.new('Hurgh blurgh')))
+          client.connect.get rescue nil
+          logger.should have_received(:warn).with(/Failed connecting to node at example\.com:12321: Hurgh blurgh/)
+        end
+
+        it 'logs when a connection fails' do
+          logger.stub(:warn)
+          client.connect.get
+          connections.sample.close
+          logger.should have_received(:warn).with(/Connection to node .{36} at .+:\d+ in data center .+ unexpectedly closed/)
+        end
+
+        it 'logs when it does a peer discovery' do
+          logger.stub(:debug)
+          client.connect.get
+          logger.should have_received(:debug).with(/Looking for additional nodes/)
+          logger.should have_received(:debug).with(/\d+ additional nodes found/)
+        end
+
+        it 'logs when it disconnects' do
+          logger.stub(:info)
+          client.connect.get
+          client.close.get
+          logger.should have_received(:info).with(/Cluster disconnect complete/)
+        end
+
+        it 'logs when it fails to disconnect' do
+          logger.stub(:error)
+          client.connect.get
+          io_reactor.stub(:stop).and_return(Future.failed(StandardError.new('Hurgh blurgh')))
+          client.close.get rescue nil
+          logger.should have_received(:error).with(/Cluster disconnect failed: Hurgh blurgh/)
         end
       end
     end

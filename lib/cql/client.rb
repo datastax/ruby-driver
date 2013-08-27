@@ -165,6 +165,7 @@ module Cql
   end
 end
 
+require 'cql/client/null_logger'
 require 'cql/client/column_metadata'
 require 'cql/client/result_metadata'
 require 'cql/client/query_result'
