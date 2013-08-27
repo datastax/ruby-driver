@@ -91,7 +91,7 @@ module Cql
       # @yieldparam event [Cql::Protocol::EventResponse] an event sent by the server
       def on_event(&listener)
         @lock.synchronize do
-          @event_listeners << listener
+          @event_listeners += [listener]
         end
       end
 
@@ -149,11 +149,13 @@ module Cql
       end
 
       def notify_event_listeners(event_response)
-        return if @event_listeners.empty?
+        event_listeners = nil
         @lock.synchronize do
-          @event_listeners.each do |listener|
-            listener.call(@current_frame.body) rescue nil
-          end
+          event_listeners = @event_listeners
+          return if event_listeners.empty?
+        end
+        event_listeners.each do |listener|
+          listener.call(@current_frame.body) rescue nil
         end
       end
 
