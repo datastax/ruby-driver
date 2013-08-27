@@ -203,7 +203,6 @@ module Cql
         f.on_complete do |connections|
           connected_connections = connections.select(&:connected?)
           if connected_connections.any?
-            @connections = connected_connections
             register_new_connections(connected_connections)
             @connected_future.complete!(self)
           else
