@@ -110,7 +110,6 @@ module Cql
 
       KEYSPACE_NAME_PATTERN = /^\w[\w\d_]*$|^"\w[\w\d_]*"$/
       DEFAULT_CONSISTENCY_LEVEL = :quorum
-      BIND_ALL_IP = '0.0.0.0'.freeze
 
       class FailedConnection
         attr_reader :error
@@ -180,7 +179,7 @@ module Cql
           end
           node_addresses = unconnected_peers.map do |row|
             rpc_address = row['rpc_address'].to_s
-            if rpc_address == BIND_ALL_IP
+            if rpc_address == '0.0.0.0'
               row['peer'].to_s
             else
               rpc_address
