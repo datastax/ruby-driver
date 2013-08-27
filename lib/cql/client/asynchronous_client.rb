@@ -110,6 +110,7 @@ module Cql
 
       KEYSPACE_NAME_PATTERN = /^\w[\w\d_]*$|^"\w[\w\d_]*"$/
       DEFAULT_CONSISTENCY_LEVEL = :quorum
+      BIND_ALL_IP = '0.0.0.0'.freeze
 
       class FailedConnection
         attr_reader :error
@@ -170,14 +171,21 @@ module Cql
         connected_seeds = seed_connections.select(&:connected?)
         connection = connected_seeds.sample
         return Future.completed([]) unless connection
-        request = Protocol::QueryRequest.new('SELECT data_center, host_id, rpc_address FROM system.peers', :one)
+        request = Protocol::QueryRequest.new('SELECT peer, data_center, host_id, rpc_address FROM system.peers', :one)
         peer_info = execute_request(request, connection)
         peer_info.flat_map do |result|
           seed_dcs = connected_seeds.map { |c| c[:data_center] }.uniq
           unconnected_peers = result.select do |row|
             seed_dcs.include?(row['data_center']) && connected_seeds.none? { |c| c[:host_id] == row['host_id'] }
           end
-          node_addresses = unconnected_peers.map { |row| row['rpc_address'].to_s }
+          node_addresses = unconnected_peers.map do |row|
+            rpc_address = row['rpc_address'].to_s
+            if rpc_address == BIND_ALL_IP
+              row['peer']
+            else
+              rpc_address
+            end
+          end
           if node_addresses.any?
             connect_to_hosts(node_addresses, initial_keyspace, false)
           else

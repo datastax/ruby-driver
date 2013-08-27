@@ -188,6 +188,10 @@ module Cql
             Array.new(5) { IPAddr.new("127.0.#{rand(255)}.#{rand(255)}") }
           end
 
+          let :bind_all_rpc_addresses do
+            false
+          end
+
           before do
             uuid_generator = TimeUuid::Generator.new
             additional_rpc_addresses = additional_nodes.dup
@@ -210,7 +214,12 @@ module Cql
                     end
                     rows = other_host_ids.map do |host_id|
                       ip = additional_rpc_addresses.shift
-                      {'host_id' => host_id, 'data_center' => data_centers[ip], 'rpc_address' => ip}
+                      {
+                        'peer' => ip,
+                        'host_id' => host_id,
+                        'data_center' => data_centers[ip],
+                        'rpc_address' => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip
+                      }
                     end
                     Protocol::RowsResultResponse.new(rows, peer_metadata)
                   end
@@ -222,6 +231,17 @@ module Cql
           it 'connects to the other nodes in the cluster' do
             client.connect.get
             connections.should have(3).items
+          end
+
+          context 'when the nodes have 0.0.0.0 as rpc_address' do
+            let :bind_all_rpc_addresses do
+              true
+            end
+
+            it 'falls back on using the peer column' do
+              client.connect.get
+              connections.should have(3).items
+            end
           end
 
           it 'connects to the other nodes in the same data center' do

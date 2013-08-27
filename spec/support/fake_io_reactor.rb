@@ -23,7 +23,9 @@ class FakeIoReactor
   end
 
   def connect(host, port, timeout)
-    if @down_nodes.include?(host)
+    if host == '0.0.0.0'
+      Cql::Future.failed(Cql::Io::ConnectionError.new('Can\'t connect to 0.0.0.0'))
+    elsif @down_nodes.include?(host)
       Cql::Future.failed(Cql::Io::ConnectionError.new('Node down'))
     else
       connection = FakeConnection.new(host, port, timeout)
