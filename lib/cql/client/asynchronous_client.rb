@@ -204,10 +204,24 @@ module Cql
           connected_connections = connections.select(&:connected?)
           if connected_connections.any?
             @connections = connected_connections
+            register_new_connections(connected_connections)
             @connected_future.complete!(self)
           else
             fail_connecting(connections.first.error)
           end
+        end
+      end
+
+      def register_new_connections(connections)
+        connections.each do |connection|
+          connection.on_closed do
+            @lock.synchronize do
+              @connections.delete(connection)
+            end
+          end
+        end
+        @lock.synchronize do
+          @connections.concat(connections)
         end
       end
 

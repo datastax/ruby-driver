@@ -720,6 +720,21 @@ module Cql
           expect { statement.execute.get }.to raise_error(NotConnectedError)
         end
       end
+
+      context 'when nodes go down' do
+        let :connection_options do
+          {:hosts => %w[host1 host2 host3], :port => 12321, :io_reactor => io_reactor}
+        end
+
+        before do
+          client.connect.get
+        end
+
+        it 'clears out old connections and don\'t reuse them for future requests' do
+          connections.first.close
+          expect { 10.times { client.execute('SELECT * FROM something').get } }.to_not raise_error(NotConnectedError)
+        end
+      end
     end
   end
 end

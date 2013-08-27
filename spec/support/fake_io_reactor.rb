@@ -95,10 +95,15 @@ class FakeConnection
 
   def close
     @closed = true
+    @closed_listener.call if @closed_listener
   end
 
   def handle_request(&handler)
     @request_handler = handler
+  end
+
+  def on_closed(&listener)
+    @closed_listener = listener
   end
 
   def send_request(request)
