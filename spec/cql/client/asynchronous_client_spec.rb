@@ -837,6 +837,25 @@ module Cql
           logger.should have_received(:debug).with(/\d+ additional nodes found/)
         end
 
+        it 'logs when it receives an UP event' do
+          logger.stub(:debug)
+          client.connect.get
+          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          logger.should have_received(:debug).with(/Received UP event/)
+        end
+
+        it 'logs when it fails with a connect after an UP event' do
+          logger.stub(:debug)
+          logger.stub(:warn)
+          additional_nodes.each { |host| io_reactor.node_down(host.to_s) }
+          client.connect.get
+          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          logger.should have_received(:warn).with(/Failed connecting to node/).at_least(1).times
+          logger.should have_received(:debug).with(/Scheduling new peer discovery in \d+s/)
+        end
+
         it 'logs when it disconnects' do
           logger.stub(:info)
           client.connect.get

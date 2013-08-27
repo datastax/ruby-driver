@@ -183,6 +183,7 @@ module Cql
         connection.on_event do |event|
           begin
             if event.change == 'UP'
+              @logger.debug('Received UP event')
               handle_topology_change
             end
           end
@@ -197,6 +198,7 @@ module Cql
           if connected_connections.any?
             register_new_connections(connected_connections)
           else
+            @logger.debug('Scheduling new peer discovery in 1s')
             f = @io_reactor.schedule_timer(1)
             f.on_complete do
               handle_topology_change
