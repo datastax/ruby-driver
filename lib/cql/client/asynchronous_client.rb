@@ -29,6 +29,7 @@ module Cql
           setup_connections
         end
         @connected_future.on_complete do
+          handle_event_listener_closed
           @lock.synchronize do
             @connecting = false
             @connected = true
@@ -163,6 +164,32 @@ module Cql
           @closed_future.on_failure(&callback)
         else
           callback.call
+        end
+      end
+
+       def register_event_listener(connection)
+        register_request = Protocol::RegisterRequest.new(Protocol::TopologyChangeEventResponse::TYPE, Protocol::StatusChangeEventResponse::TYPE)
+        execute_request(register_request, connection)
+        connection.on_closed do
+          handle_event_listener_closed
+        end
+        connection.on_event do |event|
+          begin
+            if event.change == 'UP'
+              discover_peers(@connections, keyspace).on_complete do |connections|
+                register_new_connections(connections)
+              end
+            end
+          end
+        end
+      end
+
+      def handle_event_listener_closed
+        connection = @lock.synchronize do
+          @connections.first
+        end
+        if connection
+          register_event_listener(connection)
         end
       end
 

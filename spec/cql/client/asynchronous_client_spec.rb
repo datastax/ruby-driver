@@ -53,6 +53,83 @@ module Cql
         end
       end
 
+      shared_context 'peer discovery setup' do
+        let :local_info do
+          {
+            'data_center' => 'dc1',
+            'host_id' => nil,
+          }
+        end
+
+        let :local_metadata do
+          [
+            ['system', 'local', 'data_center', :text],
+            ['system', 'local', 'host_id', :uuid],
+          ]
+        end
+
+        let :peer_metadata do
+          [
+            ['system', 'peers', 'peer', :inet],
+            ['system', 'peers', 'data_center', :varchar],
+            ['system', 'peers', 'host_id', :uuid],
+            ['system', 'peers', 'rpc_address', :inet],
+          ]
+        end
+
+        let :data_centers do
+          Hash.new('dc1')
+        end
+
+        let :additional_nodes do
+          Array.new(5) { IPAddr.new("127.0.#{rand(255)}.#{rand(255)}") }
+        end
+
+        let :bind_all_rpc_addresses do
+          false
+        end
+
+        let :min_peers do
+          [2]
+        end
+
+        before do
+          uuid_generator = TimeUuid::Generator.new
+          additional_rpc_addresses = additional_nodes.dup
+          io_reactor.on_connection do |connection|
+            connection[:spec_host_id] = uuid_generator.next
+            connection[:spec_data_center] = data_centers[connection.host]
+            connection.handle_request do |request|
+              case request
+              when Protocol::StartupRequest
+                Protocol::ReadyResponse.new
+              when Protocol::QueryRequest
+                case request.cql
+                when /FROM system\.local/
+                  row = {'host_id' => connection[:spec_host_id], 'data_center' => connection[:spec_data_center]}
+                  Protocol::RowsResultResponse.new([row], local_metadata)
+                when /FROM system\.peers/
+                  other_host_ids = connections.reject { |c| c[:spec_host_id] == connection[:spec_host_id] }.map { |c| c[:spec_host_id] }
+                  until other_host_ids.size >= min_peers[0]
+                    other_host_ids << uuid_generator.next
+                  end
+                  rows = other_host_ids.map do |host_id|
+                    ip = additional_rpc_addresses.shift
+                    {
+                      'peer' => ip,
+                      'host_id' => host_id,
+                      'data_center' => data_centers[ip],
+                      'rpc_address' => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip
+                    }
+                  end
+                  Protocol::RowsResultResponse.new(rows, peer_metadata)
+                end
+              end
+            end
+          end
+        end
+      end
+
       describe '#connect' do
         it 'connects' do
           client.connect.get
@@ -157,76 +234,7 @@ module Cql
         end
 
         context 'with automatic peer discovery' do
-          let :local_info do
-            {
-              'data_center' => 'dc1',
-              'host_id' => nil,
-            }
-          end
-
-          let :local_metadata do
-            [
-              ['system', 'local', 'data_center', :text],
-              ['system', 'local', 'host_id', :uuid],
-            ]
-          end
-
-          let :peer_metadata do
-            [
-              ['system', 'peers', 'peer', :inet],
-              ['system', 'peers', 'data_center', :varchar],
-              ['system', 'peers', 'host_id', :uuid],
-              ['system', 'peers', 'rpc_address', :inet],
-            ]
-          end
-
-          let :data_centers do
-            Hash.new('dc1')
-          end
-
-          let :additional_nodes do
-            Array.new(5) { IPAddr.new("127.0.#{rand(255)}.#{rand(255)}") }
-          end
-
-          let :bind_all_rpc_addresses do
-            false
-          end
-
-          before do
-            uuid_generator = TimeUuid::Generator.new
-            additional_rpc_addresses = additional_nodes.dup
-            io_reactor.on_connection do |connection|
-              connection[:spec_host_id] = uuid_generator.next
-              connection[:spec_data_center] = data_centers[connection.host]
-              connection.handle_request do |request|
-                case request
-                when Protocol::StartupRequest
-                  Protocol::ReadyResponse.new
-                when Protocol::QueryRequest
-                  case request.cql
-                  when /FROM system\.local/
-                    row = {'host_id' => connection[:spec_host_id], 'data_center' => connection[:spec_data_center]}
-                    Protocol::RowsResultResponse.new([row], local_metadata)
-                  when /FROM system\.peers/
-                    other_host_ids = connections.reject { |c| c[:spec_host_id] == connection[:spec_host_id] }.map { |c| c[:spec_host_id] }
-                    until other_host_ids.size >= 2
-                      other_host_ids << uuid_generator.next
-                    end
-                    rows = other_host_ids.map do |host_id|
-                      ip = additional_rpc_addresses.shift
-                      {
-                        'peer' => ip,
-                        'host_id' => host_id,
-                        'data_center' => data_centers[ip],
-                        'rpc_address' => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip
-                      }
-                    end
-                    Protocol::RowsResultResponse.new(rows, peer_metadata)
-                  end
-                end
-              end
-            end
-          end
+          include_context 'peer discovery setup'
 
           it 'connects to the other nodes in the cluster' do
             client.connect.get
@@ -722,6 +730,8 @@ module Cql
       end
 
       context 'when nodes go down' do
+        include_context 'peer discovery setup'
+
         let :connection_options do
           {:hosts => %w[host1 host2 host3], :port => 12321, :io_reactor => io_reactor}
         end
@@ -738,6 +748,26 @@ module Cql
         it 'raises NotConnectedError when all nodes are down' do
           connections.each(&:close)
           expect { client.execute('SELECT * FROM something').get }.to raise_error(NotConnectedError)
+        end
+
+        it 'reconnects when it receives a status change UP event' do
+          connections.first.close
+          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          connections.select(&:connected?).should have(3).items
+        end
+
+        it 'connects when it receives a topology change UP event' do
+          min_peers[0] = 3
+          event = Protocol::TopologyChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          connections.select(&:connected?).should have(4).items
+        end
+
+        it 'registers a new event listener when the current event listening connection closes' do
+          connections.select(&:has_event_listener?).should have(1).item
+          connections.select(&:has_event_listener?).first.close
+          connections.select(&:connected?).select(&:has_event_listener?).should have(1).item
         end
       end
     end

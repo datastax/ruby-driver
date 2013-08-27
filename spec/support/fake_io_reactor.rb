@@ -78,6 +78,9 @@ class FakeConnection
     @closed = false
     @keyspace = nil
     @data = {}
+    @registered_event_types = []
+    @event_listeners = []
+    @closed_listeners = []
     @request_handler = method(:default_request_handler)
   end
 
@@ -95,7 +98,7 @@ class FakeConnection
 
   def close
     @closed = true
-    @closed_listener.call if @closed_listener
+    @closed_listeners.each(&:call)
   end
 
   def handle_request(&handler)
@@ -103,7 +106,21 @@ class FakeConnection
   end
 
   def on_closed(&listener)
-    @closed_listener = listener
+    @closed_listeners << listener
+  end
+
+  def on_event(&listener)
+    @event_listeners << listener
+  end
+
+  def trigger_event(response)
+    if @event_listeners.any? && @registered_event_types.include?(response.type)
+      @event_listeners.each { |l| l.call(response) }
+    end
+  end
+
+  def has_event_listener?
+    @event_listeners.any? && @registered_event_types.any?
   end
 
   def send_request(request)
@@ -111,6 +128,10 @@ class FakeConnection
       Cql::Future.failed(Cql::NotConnectedError.new)
     else
       @requests << request
+      case request
+      when Cql::Protocol::RegisterRequest
+        @registered_event_types.concat(request.events)
+      end
       response = @request_handler.call(request)
       if response.is_a?(Cql::Protocol::SetKeyspaceResultResponse)
         @keyspace = response.keyspace

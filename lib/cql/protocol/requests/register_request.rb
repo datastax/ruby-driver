@@ -3,6 +3,8 @@
 module Cql
   module Protocol
     class RegisterRequest < Request
+      attr_reader :events
+
       def initialize(*events)
         super(11)
         @events = events
