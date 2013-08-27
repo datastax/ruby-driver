@@ -211,11 +211,11 @@ module Cql
             future.fail!(request_failure_cause)
           end
           @request_queue_out.clear
-          if cause
-            @closed_future.fail!(cause)
-          else
-            @closed_future.complete!
-          end
+        end
+        if cause
+          @closed_future.fail!(cause)
+        else
+          @closed_future.complete!
         end
       end
 
