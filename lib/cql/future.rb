@@ -115,14 +115,14 @@ module Cql
     # @return [Object] the value of this future
     #
     def value
-      raise @error if failed?
-      return @value if complete?
-      m = Mutex.new
-      m.synchronize do
+      @state_lock.synchronize do
+        raise @error if failed?
+        return @value if complete?
         t = Thread.current
-        on_complete { |v| t.run }
-        on_failure { |e| t.run }
-        m.sleep
+        u = proc { t.run }
+        @complete_listeners << u
+        @failure_listeners << u
+        @state_lock.sleep
       end
       raise @error if failed?
       @value
