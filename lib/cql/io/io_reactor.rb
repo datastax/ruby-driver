@@ -272,7 +272,7 @@ module Cql
 
       def add_socket(socket)
         @lock.synchronize do
-          sockets = @sockets.reject { |socket| s.closed? }
+          sockets = @sockets.reject { |s| s.closed? }
           sockets << socket
           @sockets = sockets
         end
