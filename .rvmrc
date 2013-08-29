@@ -1,6 +1,0 @@
-for rb in jruby-1.6.8 jruby-1.7.2 1.9.3-p327 ruby-2.0.0-p195; do
-  rvm use $rb
-  rvm $rb gemset create cql-rb
-done
-
-rvm use 1.9.3-p327@cql-rb
