@@ -331,17 +331,15 @@ module Cql
   class CombinedFuture < Future
     def initialize(*futures)
       super()
-      values = [nil] * futures.size
-      completed = [false] * futures.size
+      values = Array.new(futures.size)
+      remaining = futures.size
       futures.each_with_index do |f, i|
         f.on_complete do |v|
-          all_done = false
           @state_lock.synchronize do
             values[i] = v
-            completed[i] = true
-            all_done = completed.all?
+            remaining -= 1
           end
-          if all_done
+          if remaining == 0
             combined_complete!(values)
           end
         end
