@@ -123,6 +123,7 @@ module Cql
       raise @error if @error
       return @value if defined? @value
       @value_barrier.pop
+      @value_barrier << :ping
       raise @error if @error
       return @value
     end

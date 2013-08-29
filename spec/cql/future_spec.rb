@@ -91,6 +91,17 @@ module Cql
         expect { future.value }.to raise_error('FAIL!')
       end
 
+      it 'allows multiple thread to block on #value until completed' do
+        listeners = Array.new(10) do
+          Thread.start do
+            future.value
+          end
+        end
+        sleep 0.1
+        future.complete!(:hello)
+        listeners.map(&:value).should == Array.new(10, :hello)
+      end
+
       it 'cannot be completed again' do
         future.complete!('bar')
         expect { future.complete!('foo') }.to raise_error(FutureError)
