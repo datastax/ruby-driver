@@ -17,6 +17,7 @@ module Cql
         @initial_keyspace = options[:keyspace]
         @credentials = options[:credentials]
         @request_runner = RequestRunner.new
+        @connection_manager = ConnectionManager.new
       end
 
       def connect
@@ -24,13 +25,12 @@ module Cql
           return @connected_future if can_execute?
           @connecting = true
           @connected_future = Future.new
-          @connections = []
         end
         when_not_closing do
           setup_connections
         end
         @connected_future.on_complete do
-          handle_event_listener_closed
+          register_event_listener(@connection_manager.random_connection)
           @lock.synchronize do
             @connecting = false
             @connected = true
@@ -80,16 +80,12 @@ module Cql
       end
 
       def keyspace
-        @lock.synchronize do
-          @connections.first.keyspace
-        end
+        @connection_manager.random_connection.keyspace
       end
 
       def use(keyspace)
         with_failure_handler do
-          connections = @lock.synchronize do
-            @connections.select { |c| c.keyspace != keyspace }
-          end
+          connections = @connection_manager.select_connections { |c| c.keyspace != keyspace }
           if connections.any?
             futures = connections.map { |connection| use_keyspace(keyspace, connection) }
             Future.combine(*futures).map { nil }
@@ -142,7 +138,7 @@ module Cql
       end
 
       def can_execute?
-        @connecting || (@connected && @connections.any?)
+        !@closing && (@connecting || (@connected && @connection_manager.connected?))
       end
 
       def valid_keyspace_name?(name)
@@ -178,7 +174,13 @@ module Cql
         register_request = Protocol::RegisterRequest.new(Protocol::TopologyChangeEventResponse::TYPE, Protocol::StatusChangeEventResponse::TYPE)
         execute_request(register_request, connection)
         connection.on_closed do
-          handle_event_listener_closed
+          if connected?
+            begin
+              register_event_listener(@connection_manager.random_connection)
+            rescue NotConnectedError
+              # we had started closing down after the connection check
+            end
+          end
         end
         connection.on_event do |event|
           begin
@@ -191,12 +193,12 @@ module Cql
       end
 
       def handle_topology_change
-        seed_connections = @lock.synchronize { @connections.dup }
+        seed_connections = @connection_manager.snapshot
         f = discover_peers(seed_connections, keyspace)
         f.on_complete do |connections|
           connected_connections = connections.select(&:connected?)
           if connected_connections.any?
-            register_new_connections(connected_connections)
+            @connection_manager.add_connections(connected_connections)
           else
             @logger.debug('Scheduling new peer discovery in 1s')
             f = @io_reactor.schedule_timer(1)
@@ -207,26 +209,16 @@ module Cql
         end
       end
 
-      def handle_event_listener_closed
-        connection = @lock.synchronize do
-          @connections.first
-        end
-        if connection
-          register_event_listener(connection)
-        end
-      end
-
       def discover_peers(seed_connections, initial_keyspace)
         @logger.debug('Looking for additional nodes')
-        connected_seeds = seed_connections.select(&:connected?)
-        connection = connected_seeds.sample
+        connection = seed_connections.sample
         return Future.completed([]) unless connection
         request = Protocol::QueryRequest.new('SELECT peer, data_center, host_id, rpc_address FROM system.peers', :one)
         peer_info = execute_request(request, connection)
         peer_info.flat_map do |result|
-          seed_dcs = connected_seeds.map { |c| c[:data_center] }.uniq
+          seed_dcs = seed_connections.map { |c| c[:data_center] }.uniq
           unconnected_peers = result.select do |row|
-            seed_dcs.include?(row['data_center']) && connected_seeds.none? { |c| c[:host_id] == row['host_id'] }
+            seed_dcs.include?(row['data_center']) && seed_connections.none? { |c| c[:host_id] == row['host_id'] }
           end
           @logger.debug('%d additional nodes found' % unconnected_peers.size)
           node_addresses = unconnected_peers.map do |row|
@@ -255,24 +247,11 @@ module Cql
         f.on_complete do |connections|
           connected_connections = connections.select(&:connected?)
           if connected_connections.any?
-            register_new_connections(connected_connections)
+            @connection_manager.add_connections(connected_connections)
             @connected_future.complete!(self)
           else
             fail_connecting(connections.first.error)
           end
-        end
-      end
-
-      def register_new_connections(connections)
-        connections.each do |connection|
-          connection.on_closed do
-            @lock.synchronize do
-              @connections.delete(connection)
-            end
-          end
-        end
-        @lock.synchronize do
-          @connections.concat(connections)
         end
       end
 
@@ -306,7 +285,7 @@ module Cql
         hosts_connected_future = Future.combine(*connection_futures)
         if peer_discovery
           hosts_connected_future.flat_map do |connections|
-            discover_peers(connections, initial_keyspace).map do |peer_connections|
+            discover_peers(connections.select(&:connected?), initial_keyspace).map do |peer_connections|
               connections + peer_connections
             end
           end
@@ -363,7 +342,7 @@ module Cql
       end
 
       def execute_request(request, connection=nil)
-        f = @request_runner.execute(connection || @connections.sample, request)
+        f = @request_runner.execute(connection || @connection_manager.random_connection, request)
         f.map do |result|
           if result.is_a?(KeyspaceChanged)
             use(result.keyspace)
