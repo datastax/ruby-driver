@@ -130,10 +130,12 @@ module Cql
         u = proc { t.run }
         @complete_listeners << u
         @failure_listeners << u
-        @state_lock.sleep
+        while true
+          raise @error if failed?
+          return @value if complete?
+          @state_lock.sleep
+        end
       end
-      raise @error if failed?
-      @value
     end
     alias_method :get, :value
 
