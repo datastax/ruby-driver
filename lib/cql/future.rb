@@ -79,12 +79,15 @@ module Cql
     # @param [Object] v the value of the future
     #
     def complete!(v=nil)
+      listeners = nil
       @state_lock.synchronize do
         raise FutureError, 'Future already completed' if complete? || failed?
         @value = v
-        @complete_listeners.each do |listener|
-          listener.call(@value) rescue nil
-        end
+        listeners = @complete_listeners
+        @complete_listeners = nil
+      end
+      listeners.each do |listener|
+        listener.call(v) rescue nil
       end
     end
 
@@ -99,12 +102,16 @@ module Cql
     # @yieldparam [Object] value the value of the completed future
     #
     def on_complete(&listener)
+      run_immediately = false
       @state_lock.synchronize do
         if complete?
-          listener.call(value) rescue nil
+          run_immediately = true
         else
           @complete_listeners << listener
         end
+      end
+      if run_immediately
+        listener.call(value) rescue nil
       end
     end
 
@@ -136,12 +143,15 @@ module Cql
     # @param [Error] error the error which prevented the value from being determined
     #
     def fail!(error)
+      listeners = nil
       @state_lock.synchronize do
         raise FutureError, 'Future already completed' if failed? || complete?
         @error = error
-        @failure_listeners.each do |listener|
-          listener.call(error) rescue nil
-        end
+        listeners = @failure_listeners
+        @failure_listeners = nil
+      end
+      listeners.each do |listener|
+        listener.call(error) rescue nil
       end
     end
 
@@ -156,12 +166,16 @@ module Cql
     # @yieldparam [Error] error the error that failed the future
     #
     def on_failure(&listener)
+      run_immediately = false
       @state_lock.synchronize do
         if failed?
-          listener.call(@error) rescue nil
+          run_immediately = true
         else
           @failure_listeners << listener
         end
+      end
+      if run_immediately
+        listener.call(@error) rescue nil
       end
     end
 
