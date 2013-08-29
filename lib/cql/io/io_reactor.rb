@@ -272,7 +272,7 @@ module Cql
 
       def add_socket(socket)
         @lock.synchronize do
-          sockets = @sockets.dup
+          sockets = @sockets.reject { |socket| s.closed? }
           sockets << socket
           @sockets = sockets
         end
@@ -280,9 +280,8 @@ module Cql
 
       def schedule_timer(timeout, future)
         @lock.synchronize do
-          timers = @timers.dup
+          timers = @timers.reject { |pair| pair[1].nil? }
           timers << [@clock.now + timeout, future]
-          timers.sort_by(&:first)
           @timers = timers
         end
       end
@@ -320,8 +319,8 @@ module Cql
       def check_sockets!(timeout)
         readables, writables, connecting = [], [], []
         sockets = @sockets
-        sockets.reject! { |s| s.closed? }
         sockets.each do |s|
+          next if s.closed?
           readables << s if s.connected?
           writables << s if s.connecting? || s.writable?
           connecting << s if s.connecting?
@@ -335,11 +334,11 @@ module Cql
       def check_timers!
         timers = @timers
         timers.each do |pair|
-          break unless pair[0] <= @clock.now && pair[1]
-          pair[1].complete!
-          pair[1] = nil
+          if pair[1] && pair[0] <= @clock.now
+            pair[1].complete!
+            pair[1] = nil
+          end
         end
-        timers.reject! { |pair| pair[1].nil? }
       end
     end
   end
