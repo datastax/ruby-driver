@@ -14,7 +14,6 @@ module Cql
     def initialize
       @complete_listeners = []
       @failure_listeners = []
-      @value_barrier = Queue.new
       @state_lock = Mutex.new
     end
 
@@ -87,10 +86,6 @@ module Cql
           listener.call(@value) rescue nil
         end
       end
-    ensure
-      @state_lock.synchronize do
-        @value_barrier << :ping
-      end
     end
 
     # Returns whether or not the future is complete
@@ -120,12 +115,14 @@ module Cql
     # @return [Object] the value of this future
     #
     def value
-      raise @error if @error
-      return @value if defined? @value
-      @value_barrier.pop
-      @value_barrier << :ping
-      raise @error if @error
-      return @value
+      raise @error if failed?
+      return @value if complete?
+      queue = Queue.new
+      on_complete { |v| queue << :ping }
+      on_failure { |e| queue << :ping }
+      queue.pop
+      raise @error if failed?
+      @value
     end
     alias_method :get, :value
 
@@ -142,10 +139,6 @@ module Cql
         @failure_listeners.each do |listener|
           listener.call(error) rescue nil
         end
-      end
-    ensure
-      @state_lock.synchronize do
-        @value_barrier << :ping
       end
     end
 
