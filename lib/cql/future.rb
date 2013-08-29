@@ -85,6 +85,7 @@ module Cql
         @value = v
         listeners = @complete_listeners
         @complete_listeners = nil
+        @failure_listeners = nil
       end
       listeners.each do |listener|
         listener.call(v) rescue nil
@@ -106,7 +107,7 @@ module Cql
       @state_lock.synchronize do
         if complete?
           run_immediately = true
-        else
+        elsif !failed?
           @complete_listeners << listener
         end
       end
@@ -149,6 +150,7 @@ module Cql
         @error = error
         listeners = @failure_listeners
         @failure_listeners = nil
+        @complete_listeners = nil
       end
       listeners.each do |listener|
         listener.call(error) rescue nil
@@ -170,7 +172,7 @@ module Cql
       @state_lock.synchronize do
         if failed?
           run_immediately = true
-        else
+        elsif !complete?
           @failure_listeners << listener
         end
       end
