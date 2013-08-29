@@ -117,10 +117,13 @@ module Cql
     def value
       raise @error if failed?
       return @value if complete?
-      queue = Queue.new
-      on_complete { |v| queue << :ping }
-      on_failure { |e| queue << :ping }
-      queue.pop
+      m = Mutex.new
+      m.synchronize do
+        t = Thread.current
+        on_complete { |v| t.run }
+        on_failure { |e| t.run }
+        m.sleep
+      end
       raise @error if failed?
       @value
     end
