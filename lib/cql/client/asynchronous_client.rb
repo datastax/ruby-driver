@@ -85,7 +85,7 @@ module Cql
 
       def use(keyspace)
         with_failure_handler do
-          connections = @connection_manager.select_connections { |c| c.keyspace != keyspace }
+          connections = @connection_manager.select { |c| c.keyspace != keyspace }
           if connections.any?
             futures = connections.map { |connection| use_keyspace(keyspace, connection) }
             Future.combine(*futures).map { nil }

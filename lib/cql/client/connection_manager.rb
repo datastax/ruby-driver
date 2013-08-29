@@ -4,6 +4,8 @@ module Cql
   module Client
     # @private
     class ConnectionManager
+      include Enumerable
+
       def initialize
         @connections = []
         @lock = Mutex.new
@@ -41,11 +43,14 @@ module Cql
         end
       end
 
-      def select_connections(&filter)
+      def each_connection(&callback)
+        return self unless block_given?
+        raise NotConnectedError unless connected?
         @lock.synchronize do
-          @connections.select(&filter)
+          @connections.each(&callback)
         end
       end
+      alias_method :each, :each_connection
     end
   end
 end

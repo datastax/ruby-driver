@@ -70,14 +70,47 @@ module Cql
         end
       end
 
-      describe '#select_connections' do
-        it 'returns a filtered list of connections' do
-          connections[0].stub(:keyspace).and_return('first')
-          connections[1].stub(:keyspace).and_return('second')
-          connections[2].stub(:keyspace).and_return('first')
+      describe '#each_connection' do
+        it 'yields each connection to the given block' do
           manager.add_connections(connections)
-          filtered = manager.select_connections { |c| c.keyspace != 'first' }
-          filtered.should == [connections[1]]
+          yielded = []
+          manager.each_connection { |c| yielded << c }
+          yielded.should == connections
+        end
+
+        it 'is aliased as #each' do
+          manager.add_connections(connections)
+          yielded = []
+          manager.each { |c| yielded << c }
+          yielded.should == connections
+        end
+
+        it 'returns an Enumerable when no block is given' do
+          manager.each.should be_an(Enumerable)
+        end
+
+        it 'raises a NotConnectedError when there are no connections' do
+          expect { manager.each_connection { } }.to raise_error(NotConnectedError)
+        end
+      end
+
+      context 'as an Enumerable' do
+        before do
+          connections.each_with_index { |c, i| c.stub(:index).and_return(i) }
+        end
+
+        it 'can be mapped' do
+          manager.add_connections(connections)
+          manager.map { |c| c.index }.should == [0, 1, 2]
+        end
+
+        it 'can be filtered' do
+          manager.add_connections(connections)
+          manager.select { |c| c.index % 2 == 0 }.should == [connections[0], connections[2]]
+        end
+
+        it 'raises a NotConnectedError when there are no connections' do
+          expect { manager.select { } }.to raise_error(NotConnectedError)
         end
       end
     end
