@@ -104,7 +104,7 @@ module Cql
 
       def prepare(cql)
         with_failure_handler do
-          execute_request(Protocol::PrepareRequest.new(cql))
+          AsynchronousPreparedStatement.prepare(cql, @connection_manager, @logger)
         end
       end
 

@@ -677,6 +677,21 @@ module Cql
             expect { f.get }.to raise_error(ArgumentError)
           end
         end
+
+        context 'with multiple connections' do
+          let :connection_options do
+            {:hosts => %w[host1 host2], :port => 12321, :io_reactor => io_reactor, :logger => logger}
+          end
+
+          it 'prepares the statement on all connections' do
+            statement = client.prepare('SELECT * FROM stuff WHERE item = ?').get
+            10.times { statement.execute('hello').get }
+            connections.map { |c| c.requests.last }.should == [
+              Protocol::ExecuteRequest.new(id, metadata, ['hello'], :quorum),
+              Protocol::ExecuteRequest.new(id, metadata, ['hello'], :quorum),
+            ]
+          end
+        end
       end
 
       context 'when not connected' do
