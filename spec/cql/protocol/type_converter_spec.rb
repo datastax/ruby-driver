@@ -14,7 +14,7 @@ module Cql
         ''
       end
 
-      TYPES = [:ascii, :bigint, :blob, :boolean, :decimal, :double, :float, :inet, :int, :text, :varchar, :timestamp, :timeuuid, :uuid, :varint].freeze
+      TYPES = [:ascii, :bigint, :blob, :boolean, :counter, :decimal, :double, :float, :inet, :int, :text, :varchar, :timestamp, :timeuuid, :uuid, :varint].freeze
 
       describe '#to_bytes' do
         context 'when encoding normal value' do

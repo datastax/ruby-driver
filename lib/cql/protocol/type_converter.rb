@@ -108,6 +108,7 @@ module Cql
           :bigint => method(:bigint_to_bytes),
           :blob => method(:blob_to_bytes),
           :boolean => method(:boolean_to_bytes),
+          :counter => method(:bigint_to_bytes),
           :decimal => method(:decimal_to_bytes),
           :double => method(:double_to_bytes),
           :float => method(:float_to_bytes),
