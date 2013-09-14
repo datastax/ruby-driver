@@ -32,7 +32,7 @@ module Cql
         it 'it calls #execute on the async statement and waits for the result' do
           result = double(:result)
           async_statement.should_receive(:execute).with('one', 'two', :three).and_return(future)
-          future.complete!(result)
+          future.succeed(result)
           statement.execute('one', 'two', :three).should equal(result)
         end
       end
@@ -41,8 +41,8 @@ module Cql
         it 'executes the statement multiple times and waits for all the results' do
           result1 = double(:result1)
           result2 = double(:result2)
-          async_statement.stub(:execute).with('one', 'two', :three).and_return(Future.completed(result1))
-          async_statement.stub(:execute).with('four', 'file', :all).and_return(Future.completed(result2))
+          async_statement.stub(:execute).with('one', 'two', :three).and_return(Future.successful(result1))
+          async_statement.stub(:execute).with('four', 'file', :all).and_return(Future.successful(result2))
           results = statement.pipeline do |p|
             p.execute('one', 'two', :three)
             p.execute('four', 'file', :all)

@@ -85,27 +85,27 @@ module Cql
           protocol_handler.send_request(request).should be_a(Future)
         end
 
-        it 'completes the future when it receives a response frame with the corresponding stream ID' do
+        it 'succeeds the future when it receives a response frame with the corresponding stream ID' do
           3.times { protocol_handler.send_request(request) }
           future = protocol_handler.send_request(request)
           connection.data_listener.call([0x81, 0, 3, 2, 0].pack('C4N'))
-          await(0.1) { future.complete? }
+          await(0.1) { future.successful? }
         end
 
         it 'handles multiple response frames in the same data packet' do
           futures = Array.new(4) { protocol_handler.send_request(request) }
           connection.data_listener.call([0x81, 0, 2, 2, 0].pack('C4N') + [0x81, 0, 3, 2, 0].pack('C4N'))
-          await(0.1) { futures[2].complete? && futures[3].complete? }
+          await(0.1) { futures[2].successful? && futures[3].successful? }
         end
 
         it 'queues the request when there are too many in flight, sending it as soon as a stream is available' do
           connection.stub(:write)
           futures = Array.new(130) { protocol_handler.send_request(request) }
           128.times { |i| connection.data_listener.call([0x81, 0, i, 2, 0].pack('C4N')) }
-          futures[127].should be_complete
-          futures[128].should_not be_complete
+          futures[127].should be_successful
+          futures[128].should_not be_successful
           2.times { |i| connection.data_listener.call([0x81, 0, i, 2, 0].pack('C4N')) }
-          futures[128].should be_complete
+          futures[128].should be_successful
         end
 
         context 'when the protocol handler closes' do
@@ -159,7 +159,7 @@ module Cql
           protocol_handler.close
         end
 
-        it 'returns a future which completes when the socket has closed' do
+        it 'returns a future which succeeds when the socket has closed' do
           connection.stub(:close) do
             connection.closed_listener.call(nil)
           end

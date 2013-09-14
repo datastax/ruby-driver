@@ -37,7 +37,7 @@ class FakeIoReactor
       @connection_listeners.each do |listener|
         listener.call(connection)
       end
-      Cql::Future.completed(connection)
+      Cql::Future.successful(connection)
     end
   end
 
@@ -51,10 +51,10 @@ class FakeIoReactor
       @before_startup_handler = nil
       Thread.start do
         @before_startup_handler.call
-        @started_future.complete!(self)
+        @started_future.succeed(self)
       end
-    elsif !(@started_future.complete? || @started_future.failed?)
-      @started_future.complete!(self)
+    elsif !(@started_future.successful? || @started_future.failed?)
+      @started_future.succeed(self)
     end
     @started_future
   end
@@ -62,7 +62,7 @@ class FakeIoReactor
   def stop
     @running = false
     @connections.each(&:close)
-    Cql::Future.completed
+    Cql::Future.successful
   end
 
   def running?
@@ -140,7 +140,7 @@ class FakeConnection
       if response.is_a?(Cql::Protocol::SetKeyspaceResultResponse)
         @keyspace = response.keyspace
       end
-      Cql::Future.completed(response)
+      Cql::Future.successful(response)
     end
   end
 

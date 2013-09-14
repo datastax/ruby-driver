@@ -41,11 +41,11 @@ module Cql
           unless connected?
             @io.connect_nonblock(@sockaddr)
             @connected = true
-            @connected_future.complete!(self)
+            @connected_future.succeed(self)
           end
         rescue Errno::EISCONN
           @connected = true
-          @connected_future.complete!(self)
+          @connected_future.succeed(self)
         rescue Errno::EINPROGRESS, Errno::EALREADY
           if @clock.now - @connection_started_at > @connection_timeout
             close(ConnectionTimeoutError.new("Could not connect to #{@host}:#{@port} within #{@connection_timeout}s"))
@@ -209,7 +209,7 @@ module Cql
           cause = ConnectionError.new(cause.message)
         end
         unless connected?
-          @connected_future.fail!(cause)
+          @connected_future.fail(cause)
         end
         @connected = false
         if @closed_listener

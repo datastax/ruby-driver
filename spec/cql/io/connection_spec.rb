@@ -76,9 +76,9 @@ module Cql
         end
 
         shared_examples 'on successfull connection' do
-          it 'completes the returned future and returns itself' do
+          it 'succeeds the returned future and returns itself' do
             f = handler.connect
-            f.should be_complete
+            f.should be_successful
             f.get.should equal(handler)
           end
 
@@ -108,7 +108,7 @@ module Cql
           it 'it does nothing' do
             socket.stub(:connect_nonblock).and_raise(Errno::EALREADY)
             f = handler.connect
-            f.should_not be_complete
+            f.should_not be_successful
             f.should_not be_failed
           end
         end

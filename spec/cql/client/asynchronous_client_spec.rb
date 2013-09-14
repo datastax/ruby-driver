@@ -785,7 +785,7 @@ module Cql
           connections.select(&:has_event_listener?).first.trigger_event(event)
           connections.select(&:connected?).should have(2).items
           additional_nodes.each { |host| io_reactor.node_up(host.to_s) }
-          timer_future.complete!
+          timer_future.succeed
           connections.select(&:connected?).should have(3).items
         end
 

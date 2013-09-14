@@ -203,9 +203,9 @@ module IoSpec
         @responses.shift
       end
       if error
-        future.fail!(StandardError.new(result))
+        future.fail(StandardError.new(result))
       else
-        future.complete!(result)
+        future.succeed(result)
       end
     end
 

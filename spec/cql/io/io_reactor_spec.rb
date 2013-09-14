@@ -27,7 +27,7 @@ module Cql
           reactor.stop.get if reactor.running?
         end
 
-        it 'returns a future that completes when the reactor has started' do
+        it 'returns a future that is successful when the reactor has started' do
           reactor.start.get
         end
 
@@ -61,7 +61,7 @@ module Cql
           reactor.stop.get if reactor.running?
         end
 
-        it 'returns a future which completes when the reactor has stopped' do
+        it 'returns a future which is successful when the reactor has stopped' do
           reactor.start.get
           reactor.stop.get
         end
@@ -95,9 +95,9 @@ module Cql
           expired_timer = reactor.schedule_timer(1)
           active_timer1 = reactor.schedule_timer(999)
           active_timer2 = reactor.schedule_timer(111)
-          expired_timer.should_not_receive(:fail!)
+          expired_timer.should_not_receive(:fail)
           clock.stub(:now).and_return(2)
-          await { expired_timer.complete? }
+          await { expired_timer.completed? }
           reactor.stop.get
           active_timer1.should be_failed
           active_timer2.should be_failed
@@ -190,11 +190,11 @@ module Cql
           reactor.stop.get
         end
 
-        it 'returns a future that completes after the specified duration' do
+        it 'returns a future that is successful after the specified duration' do
           clock.stub(:now).and_return(1)
           f = reactor.schedule_timer(0.1)
           clock.stub(:now).and_return(1.1)
-          await { f.complete? }
+          await { f.successful? }
         end
       end
 
@@ -298,10 +298,10 @@ module Cql
           future = Future.new
           loop_body.schedule_timer(1, future)
           loop_body.tick
-          future.should_not be_complete
+          future.should_not be_completed
           clock.stub(:now).and_return(2)
           loop_body.tick
-          future.should be_complete
+          future.should be_completed
         end
 
         it 'clears out timers that have expired' do
@@ -311,8 +311,8 @@ module Cql
           loop_body.schedule_timer(1, future)
           clock.stub(:now).and_return(2)
           loop_body.tick
-          future.should be_complete
-          future.should_not_receive(:complete!)
+          future.should be_completed
+          future.should_not_receive(:succeed)
           loop_body.tick
         end
       end
@@ -362,7 +362,7 @@ module Cql
           clock.stub(:now).and_return(2)
           loop_body.tick
           loop_body.cancel_timers
-          f1.should be_complete
+          f1.should be_completed
           f2.should be_failed
           f3.should be_failed
           expect { f3.get }.to raise_error(CancelledError)

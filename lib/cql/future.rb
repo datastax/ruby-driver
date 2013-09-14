@@ -30,7 +30,7 @@ module Cql
       if futures.any?
         CombinedFuture.new(*futures)
       else
-        completed([])
+        successful([])
       end
     end
 
@@ -44,23 +44,23 @@ module Cql
     def self.first(*futures)
       ff = Future.new
       futures.each do |f|
-        f.on_complete do |value|
-          ff.complete!(value) unless ff.complete?
+        f.on_success do |value|
+          ff.succeed(value) unless ff.successful?
         end
         f.on_failure do |e|
-          ff.fail!(e) if futures.all?(&:failed?)
+          ff.fail(e) if futures.all?(&:failed?)
         end
       end
       ff
     end
 
-    # Creates a new future which is completed.
+    # Creates a new future which is successful.
     #
     # @param [Object, nil] value the value of the created future
-    # @return [Future] a completed future
+    # @return [Future] a successful future
     #
-    def self.completed(value=nil)
-      CompletedFuture.new(value)
+    def self.successful(value=nil)
+      SuccessfulFuture.new(value)
     end
 
     # Creates a new future which is failed.
@@ -72,16 +72,20 @@ module Cql
       FailedFuture.new(error)
     end
 
+    def completed?
+      successful? || failed?
+    end
+
     # Completes the future.
     #
     # This will trigger all completion listeners in the calling thread.
     #
     # @param [Object] v the value of the future
     #
-    def complete!(v=nil)
+    def succeed(v=nil)
       listeners = nil
       @state_lock.synchronize do
-        raise FutureError, 'Future already completed' if complete? || failed?
+        raise FutureError, 'Future already succeeded' if successful? || failed?
         @value = v
         listeners = @complete_listeners
         @complete_listeners = nil
@@ -94,18 +98,18 @@ module Cql
 
     # Returns whether or not the future is complete
     #
-    def complete?
+    def successful?
       defined? @value
     end
 
     # Registers a listener for when this future completes
     #
-    # @yieldparam [Object] value the value of the completed future
+    # @yieldparam [Object] value the value of the successful future
     #
-    def on_complete(&listener)
+    def on_success(&listener)
       run_immediately = false
       @state_lock.synchronize do
-        if complete?
+        if successful?
           run_immediately = true
         elsif !failed?
           @complete_listeners << listener
@@ -125,14 +129,14 @@ module Cql
     def value
       @state_lock.synchronize do
         raise @error if failed?
-        return @value if complete?
+        return @value if successful?
         t = Thread.current
         u = proc { t.run }
         @complete_listeners << u
         @failure_listeners << u
         while true
           raise @error if failed?
-          return @value if complete?
+          return @value if successful?
           @state_lock.sleep
         end
       end
@@ -145,10 +149,10 @@ module Cql
     #
     # @param [Error] error the error which prevented the value from being determined
     #
-    def fail!(error)
+    def fail(error)
       listeners = nil
       @state_lock.synchronize do
-        raise FutureError, 'Future already completed' if failed? || complete?
+        raise FutureError, 'Future already succeeded' if failed? || successful?
         @error = error
         listeners = @failure_listeners
         @failure_listeners = nil
@@ -174,7 +178,7 @@ module Cql
       @state_lock.synchronize do
         if failed?
           run_immediately = true
-        elsif !complete?
+        elsif !successful?
           @failure_listeners << listener
         end
       end
@@ -194,13 +198,13 @@ module Cql
     #
     def map(&block)
       fp = Future.new
-      on_failure { |e| fp.fail!(e) }
-      on_complete do |v|
+      on_failure { |e| fp.fail(e) }
+      on_success do |v|
         begin
           vv = block.call(v)
-          fp.complete!(vv)
+          fp.succeed(vv)
         rescue => e
-          fp.fail!(e)
+          fp.fail(e)
         end
       end
       fp
@@ -220,16 +224,16 @@ module Cql
     #
     def flat_map(&block)
       fp = Future.new
-      on_failure { |e| fp.fail!(e) }
-      on_complete do |v|
+      on_failure { |e| fp.fail(e) }
+      on_success do |v|
         begin
           fpp = block.call(v)
-          fpp.on_failure { |e| fp.fail!(e) }
-          fpp.on_complete do |vv|
-            fp.complete!(vv)
+          fpp.on_failure { |e| fp.fail(e) }
+          fpp.on_success do |vv|
+            fp.succeed(vv)
           end
         rescue => e
-          fp.fail!(e)
+          fp.fail(e)
         end
       end
       fp
@@ -247,7 +251,7 @@ module Cql
     #
     # @example
     #   future2 = future1.recover { |error| 'foo' }
-    #   future1.fail!(error)
+    #   future1.fail(error)
     #   future2.get # => 'foo'
     #
     # @yieldparam [Object] error the error from the original future
@@ -259,13 +263,13 @@ module Cql
       on_failure do |e|
         begin
           vv = block.call(e)
-          fp.complete!(vv)
+          fp.succeed(vv)
         rescue => e
-          fp.fail!(e)
+          fp.fail(e)
         end
       end
-      on_complete do |v|
-        fp.complete!(v)
+      on_success do |v|
+        fp.succeed(v)
       end
       fp
     end
@@ -282,7 +286,7 @@ module Cql
     #
     # @example
     #   future2 = future1.fallback { |error| perform_async_operation }
-    #   future1.fail!(error)
+    #   future1.fail(error)
     #   future2.get # => whatever the async operation resolved to
     #
     # @yieldparam [Object] error the error from the original future
@@ -295,27 +299,27 @@ module Cql
         begin
           fpp = block.call(e)
           fpp.on_failure do |e|
-            fp.fail!(e)
+            fp.fail(e)
           end
-          fpp.on_complete do |vv|
-            fp.complete!(vv)
+          fpp.on_success do |vv|
+            fp.succeed(vv)
           end
         rescue => e
-          fp.fail!(e)
+          fp.fail(e)
         end
       end
-      on_complete do |v|
-        fp.complete!(v)
+      on_success do |v|
+        fp.succeed(v)
       end
       fp
     end
   end
 
   # @private
-  class CompletedFuture < Future
+  class SuccessfulFuture < Future
     def initialize(value=nil)
       super()
-      complete!(value)
+      succeed(value)
     end
   end
 
@@ -323,7 +327,7 @@ module Cql
   class FailedFuture < Future
     def initialize(error)
       super()
-      fail!(error)
+      fail(error)
     end
   end
 
@@ -334,34 +338,34 @@ module Cql
       values = Array.new(futures.size)
       remaining = futures.size
       futures.each_with_index do |f, i|
-        f.on_complete do |v|
+        f.on_success do |v|
           @state_lock.synchronize do
             values[i] = v
             remaining -= 1
           end
           if remaining == 0
-            combined_complete!(values)
+            combined_succeed(values)
           end
         end
         f.on_failure do |e|
           unless failed?
-            combined_fail!(e)
+            combined_fail(e)
           end
         end
       end
     end
 
-    alias_method :combined_complete!, :complete!
-    private :combined_complete!
+    alias_method :combined_succeed, :succeed
+    private :combined_succeed
 
-    alias_method :combined_fail!, :fail!
-    private :combined_fail!
+    alias_method :combined_fail, :fail
+    private :combined_fail
 
-    def complete!(v=nil)
+    def succeed(v=nil)
       raise FutureError, 'Cannot complete a combined future'
     end
 
-    def fail!(e)
+    def fail(e)
       raise FutureError, 'Cannot fail a combined future'
     end
   end

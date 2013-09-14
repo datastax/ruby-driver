@@ -29,7 +29,7 @@ module Cql
         when_not_closing do
           setup_connections
         end
-        @connected_future.on_complete do
+        @connected_future.on_success do
           register_event_listener(@connection_manager.random_connection)
           @lock.synchronize do
             @connecting = false
@@ -55,10 +55,10 @@ module Cql
         end
         when_not_connecting do
           f = @io_reactor.stop
-          f.on_complete { @closed_future.complete!(self) }
-          f.on_failure { |e| @closed_future.fail!(e) }
+          f.on_success { @closed_future.succeed(self) }
+          f.on_failure { |e| @closed_future.fail(e) }
         end
-        @closed_future.on_complete do
+        @closed_future.on_success do
           @lock.synchronize do
             @closing = false
             @connected = false
@@ -90,7 +90,7 @@ module Cql
             futures = connections.map { |connection| use_keyspace(keyspace, connection) }
             Future.combine(*futures).map { nil }
           else
-            Future.completed(nil)
+            Future.successful
           end
         end
       end
@@ -154,7 +154,7 @@ module Cql
 
       def when_not_connecting(&callback)
         if @connecting
-          @connected_future.on_complete(&callback)
+          @connected_future.on_success(&callback)
           @connected_future.on_failure(&callback)
         else
           callback.call
@@ -163,7 +163,7 @@ module Cql
 
       def when_not_closing(&callback)
         if @closing
-          @closed_future.on_complete(&callback)
+          @closed_future.on_success(&callback)
           @closed_future.on_failure(&callback)
         else
           callback.call
@@ -195,14 +195,14 @@ module Cql
       def handle_topology_change
         seed_connections = @connection_manager.snapshot
         f = discover_peers(seed_connections, keyspace)
-        f.on_complete do |connections|
+        f.on_success do |connections|
           connected_connections = connections.select(&:connected?)
           if connected_connections.any?
             @connection_manager.add_connections(connected_connections)
           else
             @logger.debug('Scheduling new peer discovery in 1s')
             f = @io_reactor.schedule_timer(1)
-            f.on_complete do
+            f.on_success do
               handle_topology_change
             end
           end
@@ -212,7 +212,7 @@ module Cql
       def discover_peers(seed_connections, initial_keyspace)
         @logger.debug('Looking for additional nodes')
         connection = seed_connections.sample
-        return Future.completed([]) unless connection
+        return Future.successful([]) unless connection
         request = Protocol::QueryRequest.new('SELECT peer, data_center, host_id, rpc_address FROM system.peers', :one)
         peer_info = execute_request(request, connection)
         peer_info.flat_map do |result|
@@ -232,7 +232,7 @@ module Cql
           if node_addresses.any?
             connect_to_hosts(node_addresses, initial_keyspace, false)
           else
-            Future.completed([])
+            Future.successful([])
           end
         end
       end
@@ -244,11 +244,11 @@ module Cql
         f.on_failure do |e|
           fail_connecting(e)
         end
-        f.on_complete do |connections|
+        f.on_success do |connections|
           connected_connections = connections.select(&:connected?)
           if connected_connections.any?
             @connection_manager.add_connections(connected_connections)
-            @connected_future.complete!(self)
+            @connected_future.succeed(self)
           else
             fail_connecting(connections.first.error)
           end
@@ -258,9 +258,9 @@ module Cql
       def fail_connecting(e)
         close
         if e.is_a?(Cql::QueryError) && e.code == 0x100
-          @connected_future.fail!(AuthenticationError.new(e.message))
+          @connected_future.fail(AuthenticationError.new(e.message))
         else
-          @connected_future.fail!(e)
+          @connected_future.fail(e)
         end
       end
 
@@ -271,7 +271,7 @@ module Cql
           end
         end
         connection_futures.each do |cf|
-          cf.on_complete do |c|
+          cf.on_success do |c|
             if c.is_a?(FailedConnection)
               @logger.warn('Failed connecting to node at %s:%d: %s' % [c.host, c.port, c.error.message])
             else
@@ -312,7 +312,7 @@ module Cql
       def identify_node(connection)
         request = Protocol::QueryRequest.new('SELECT data_center, host_id FROM system.local', :one)
         f = execute_request(request, connection)
-        f.on_complete do |result|
+        f.on_success do |result|
           unless result.empty?
             connection[:host_id] = result.first['host_id']
             connection[:data_center] = result.first['data_center']
@@ -322,7 +322,7 @@ module Cql
       end
 
       def use_keyspace(keyspace, connection)
-        return Future.completed(connection) unless keyspace
+        return Future.successful(connection) unless keyspace
         return Future.failed(InvalidKeyspaceNameError.new(%("#{keyspace}" is not a valid keyspace name))) unless valid_keyspace_name?(keyspace)
         execute_request(Protocol::QueryRequest.new("USE #{keyspace}", :one), connection).map { connection }
       end
@@ -337,7 +337,7 @@ module Cql
             Future.failed(AuthenticationError.new('Server requested authentication, but no credentials given'))
           end
         else
-          Future.completed(connection)
+          Future.successful(connection)
         end
       end
 

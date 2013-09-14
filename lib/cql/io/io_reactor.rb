@@ -134,7 +134,7 @@ module Cql
           @running = true
         end
         Thread.start do
-          @started_future.complete!(self)
+          @started_future.succeed(self)
           begin
             @io_loop.tick until @stopped
           ensure
@@ -142,9 +142,9 @@ module Cql
             @io_loop.cancel_timers
             @running = false
             if $!
-              @stopped_future.fail!($!)
+              @stopped_future.fail($!)
             else
-              @stopped_future.complete!(self)
+              @stopped_future.succeed(self)
             end
           end
         end
@@ -299,7 +299,7 @@ module Cql
       def cancel_timers
         @timers.each do |pair|
           if pair[1]
-            pair[1].fail!(CancelledError.new)
+            pair[1].fail(CancelledError.new)
             pair[1] = nil
           end
         end
@@ -335,7 +335,7 @@ module Cql
         timers = @timers
         timers.each do |pair|
           if pair[1] && pair[0] <= @clock.now
-            pair[1].complete!
+            pair[1].succeed
             pair[1] = nil
           end
         end

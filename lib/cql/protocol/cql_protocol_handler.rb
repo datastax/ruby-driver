@@ -80,7 +80,7 @@ module Cql
       # @yieldparam error [nil, Error] the error that caused the connection to
       #   close, if any
       def on_closed(&listener)
-        @closed_future.on_complete(&listener)
+        @closed_future.on_success(&listener)
         @closed_future.on_failure(&listener)
       end
 
@@ -168,7 +168,7 @@ module Cql
         if response.is_a?(Protocol::SetKeyspaceResultResponse)
           @keyspace = response.keyspace
         end
-        future.complete!(response)
+        future.succeed(response)
       end
 
       def flush_request_queue
@@ -201,23 +201,23 @@ module Cql
         @lock.synchronize do
           @responses.each_with_index do |future, i|
             if future
-              @responses[i].fail!(request_failure_cause)
+              @responses[i].fail(request_failure_cause)
               @responses[i] = nil
             end
           end
           @request_queue_in.each do |_, future|
-            future.fail!(request_failure_cause)
+            future.fail(request_failure_cause)
           end
           @request_queue_in.clear
           @request_queue_out.each do |_, future|
-            future.fail!(request_failure_cause)
+            future.fail(request_failure_cause)
           end
           @request_queue_out.clear
         end
         if cause
-          @closed_future.fail!(cause)
+          @closed_future.fail(cause)
         else
-          @closed_future.complete!
+          @closed_future.succeed
         end
       end
 
