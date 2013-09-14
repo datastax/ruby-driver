@@ -50,7 +50,26 @@ module Cql
       future.on_failure { |e| fail(e) }
     end
 
-    def attempt(*ctx)
+    # Run the given block and fulfill this promise with its result. If the block
+    # raises an error, fail this promise with the error.
+    #
+    # All arguments given will be passed onto the block.
+    #
+    # @example
+    #   promise.try { 3 + 4 }
+    #   promise.future.value # => 7
+    #
+    # @example
+    #   promise.try do
+    #     do_something_that_will_raise_an_error
+    #   end
+    #   promise.future.value # => (raises error)
+    #
+    # @example
+    #   promise.try('foo', 'bar', &proc_taking_two_arguments)
+    #
+    # @yieldparam [Array] ctx the arguments passed to {#try}
+    def try(*ctx)
       fulfill(yield(*ctx))
     rescue => e
       fail(e)
@@ -121,7 +140,7 @@ module Cql
       p = Promise.new
       on_failure { |e| p.fail(e) }
       on_value do |v|
-        p.attempt(v, &block)
+        p.try(v, &block)
       end
       p.future
     end
@@ -172,7 +191,7 @@ module Cql
     def recover(&block)
       p = Promise.new
       on_failure do |e|
-        p.attempt(e, &block)
+        p.try(e, &block)
       end
       on_value do |v|
         p.fulfill(v)

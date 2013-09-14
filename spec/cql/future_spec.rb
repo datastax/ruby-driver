@@ -86,30 +86,30 @@ module Cql
       end
     end
 
-    describe '#attempt' do
+    describe '#try' do
       it 'fulfills the promise with the result of the block' do
-        promise.attempt do
+        promise.try do
           3 + 4
         end
         promise.future.value.should == 7
       end
 
       it 'fails the promise when the block raises an error' do
-        promise.attempt do
+        promise.try do
           raise error
         end
         expect { promise.future.value }.to raise_error(/bork/)
       end
 
       it 'calls the block with the specified arguments' do
-        promise.attempt(:foo, 3) do |a, b|
+        promise.try(:foo, 3) do |a, b|
           a.length + b
         end
         promise.future.value.should == 6
       end
 
       it 'returns nil' do
-        promise.attempt { }.should be_nil
+        promise.try { }.should be_nil
       end
     end
   end
