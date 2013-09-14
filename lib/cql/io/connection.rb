@@ -23,7 +23,7 @@ module Cql
         @lock = Mutex.new
         @connected = false
         @write_buffer = ByteBuffer.new
-        @connected_future = Future.new
+        @connected_promise = Promise.new
       end
 
       # @private
@@ -41,11 +41,11 @@ module Cql
           unless connected?
             @io.connect_nonblock(@sockaddr)
             @connected = true
-            @connected_future.succeed(self)
+            @connected_promise.fulfill(self)
           end
         rescue Errno::EISCONN
           @connected = true
-          @connected_future.succeed(self)
+          @connected_promise.fulfill(self)
         rescue Errno::EINPROGRESS, Errno::EALREADY
           if @clock.now - @connection_started_at > @connection_timeout
             close(ConnectionTimeoutError.new("Could not connect to #{@host}:#{@port} within #{@connection_timeout}s"))
@@ -62,7 +62,7 @@ module Cql
         rescue SocketError => e
           close(e) || closed!(e)
         end
-        @connected_future
+        @connected_promise.future
       end
 
       # Closes the connection
@@ -209,7 +209,7 @@ module Cql
           cause = ConnectionError.new(cause.message)
         end
         unless connected?
-          @connected_future.fail(cause)
+          @connected_promise.fail(cause)
         end
         @connected = false
         if @closed_listener

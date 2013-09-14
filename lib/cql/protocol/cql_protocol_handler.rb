@@ -23,7 +23,7 @@ module Cql
         @connection = connection
         @connection.on_data(&method(:receive_data))
         @connection.on_closed(&method(:socket_closed))
-        @responses = Array.new(128) { nil }
+        @promises = Array.new(128) { nil }
         @read_buffer = ByteBuffer.new
         @current_frame = Protocol::ResponseFrame.new(@read_buffer)
         @request_queue_in = []
@@ -31,7 +31,7 @@ module Cql
         @event_listeners = []
         @data = {}
         @lock = Mutex.new
-        @closed_future = Future.new
+        @closed_promise = Promise.new
         @keyspace = nil
       end
 
@@ -80,8 +80,8 @@ module Cql
       # @yieldparam error [nil, Error] the error that caused the connection to
       #   close, if any
       def on_closed(&listener)
-        @closed_future.on_success(&listener)
-        @closed_future.on_failure(&listener)
+        @closed_promise.future.on_value(&listener)
+        @closed_promise.future.on_failure(&listener)
       end
 
       # Register to receive server sent events, like schema changes, nodes going
@@ -105,11 +105,11 @@ module Cql
       #   the response
       def send_request(request)
         return Future.failed(NotConnectedError.new) if closed?
-        future = Future.new
+        promise = Promise.new
         id = nil
         @lock.synchronize do
           if (id = next_stream_id)
-            @responses[id] = future
+            @promises[id] = promise
           end
         end
         if id
@@ -118,10 +118,10 @@ module Cql
           end
         else
           @lock.synchronize do
-            @request_queue_in << [request.encode_frame(0), future]
+            @request_queue_in << [request.encode_frame(0), promise]
           end
         end
-        future
+        promise.future
       end
 
       # Closes the underlying connection.
@@ -129,7 +129,7 @@ module Cql
       # @return [Cql::Future] a future that completes when the connection has closed
       def close
         @connection.close
-        @closed_future
+        @closed_promise.future
       end
 
       private
@@ -160,15 +160,15 @@ module Cql
       end
 
       def complete_request(id, response)
-        future = @lock.synchronize do
-          future = @responses[id]
-          @responses[id] = nil
-          future
+        promise = @lock.synchronize do
+          promise = @promises[id]
+          @promises[id] = nil
+          promise
         end
         if response.is_a?(Protocol::SetKeyspaceResultResponse)
           @keyspace = response.keyspace
         end
-        future.succeed(response)
+        promise.fulfill(response)
       end
 
       def flush_request_queue
@@ -183,8 +183,8 @@ module Cql
           request_buffer = nil
           @lock.synchronize do
             if @request_queue_out.any? && (id = next_stream_id)
-              request_buffer, future = @request_queue_out.shift
-              @responses[id] = future
+              request_buffer, promise = @request_queue_out.shift
+              @promises[id] = promise
             end
           end
           if id
@@ -199,10 +199,10 @@ module Cql
       def socket_closed(cause)
         request_failure_cause = cause || Io::ConnectionClosedError.new
         @lock.synchronize do
-          @responses.each_with_index do |future, i|
-            if future
-              @responses[i].fail(request_failure_cause)
-              @responses[i] = nil
+          @promises.each_with_index do |promise, i|
+            if promise
+              @promises[i].fail(request_failure_cause)
+              @promises[i] = nil
             end
           end
           @request_queue_in.each do |_, future|
@@ -215,14 +215,14 @@ module Cql
           @request_queue_out.clear
         end
         if cause
-          @closed_future.fail(cause)
+          @closed_promise.fail(cause)
         else
-          @closed_future.succeed
+          @closed_promise.fulfill
         end
       end
 
       def next_stream_id
-        @responses.each_with_index do |task, index|
+        @promises.each_with_index do |task, index|
           return index if task.nil?
         end
         nil

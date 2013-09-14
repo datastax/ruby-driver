@@ -9,7 +9,7 @@ class FakeIoReactor
     @queued_responses = Hash.new { |h, k| h[k] = [] }
     @default_host = nil
     @connection_listeners = []
-    @started_future = Cql::Future.new
+    @started_promise = Cql::Promise.new
     @before_startup_handler = nil
     @down_nodes = []
   end
@@ -37,7 +37,7 @@ class FakeIoReactor
       @connection_listeners.each do |listener|
         listener.call(connection)
       end
-      Cql::Future.successful(connection)
+      Cql::Future.resolved(connection)
     end
   end
 
@@ -51,18 +51,18 @@ class FakeIoReactor
       @before_startup_handler = nil
       Thread.start do
         @before_startup_handler.call
-        @started_future.succeed(self)
+        @started_promise.fulfill(self)
       end
-    elsif !(@started_future.successful? || @started_future.failed?)
-      @started_future.succeed(self)
+    elsif !@started_promise.future.completed?
+      @started_promise.fulfill(self)
     end
-    @started_future
+    @started_promise.future
   end
 
   def stop
     @running = false
     @connections.each(&:close)
-    Cql::Future.successful
+    Cql::Future.resolved
   end
 
   def running?
@@ -140,7 +140,7 @@ class FakeConnection
       if response.is_a?(Cql::Protocol::SetKeyspaceResultResponse)
         @keyspace = response.keyspace
       end
-      Cql::Future.successful(response)
+      Cql::Future.resolved(response)
     end
   end
 

@@ -95,8 +95,8 @@ module Cql
         @io_loop.add_socket(@unblocker)
         @running = false
         @stopped = false
-        @started_future = Future.new
-        @stopped_future = Future.new
+        @started_promise = Promise.new
+        @stopped_promise = Promise.new
         @lock = Mutex.new
       end
 
@@ -109,7 +109,7 @@ module Cql
       # @yield [error] the error that cause the reactor to stop
       #
       def on_error(&listener)
-        @stopped_future.on_failure(&listener)
+        @stopped_promise.future.on_failure(&listener)
       end
 
       # Returns true as long as the reactor is running. It will be true even
@@ -130,11 +130,11 @@ module Cql
       def start
         @lock.synchronize do
           raise ReactorError, 'Cannot start a stopped IO reactor' if @stopped
-          return @started_future if @running
+          return @started_promise.future if @running
           @running = true
         end
         Thread.start do
-          @started_future.succeed(self)
+          @started_promise.fulfill(self)
           begin
             @io_loop.tick until @stopped
           ensure
@@ -142,13 +142,13 @@ module Cql
             @io_loop.cancel_timers
             @running = false
             if $!
-              @stopped_future.fail($!)
+              @stopped_promise.fail($!)
             else
-              @stopped_future.succeed(self)
+              @stopped_promise.fulfill(self)
             end
           end
         end
-        @started_future
+        @started_promise.future
       end
 
       # Stops the reactor.
@@ -161,7 +161,7 @@ module Cql
       #
       def stop
         @stopped = true
-        @stopped_future
+        @stopped_promise.future
       end
 
       # Opens a connection to the specified host and port.
@@ -197,9 +197,9 @@ module Cql
       # @return [Cql::Future] a future that completes when the timer expires
       #
       def schedule_timer(timeout)
-        f = Future.new
-        @io_loop.schedule_timer(timeout, f)
-        f
+        p = Promise.new
+        @io_loop.schedule_timer(timeout, p)
+        p.future
       end
 
       def to_s
@@ -278,10 +278,10 @@ module Cql
         end
       end
 
-      def schedule_timer(timeout, future)
+      def schedule_timer(timeout, promise)
         @lock.synchronize do
           timers = @timers.reject { |pair| pair[1].nil? }
-          timers << [@clock.now + timeout, future]
+          timers << [@clock.now + timeout, promise]
           @timers = timers
         end
       end
@@ -335,7 +335,7 @@ module Cql
         timers = @timers
         timers.each do |pair|
           if pair[1] && pair[0] <= @clock.now
-            pair[1].succeed
+            pair[1].fulfill
             pair[1] = nil
           end
         end

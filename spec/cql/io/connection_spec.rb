@@ -76,10 +76,10 @@ module Cql
         end
 
         shared_examples 'on successfull connection' do
-          it 'succeeds the returned future and returns itself' do
+          it 'fulfilles the returned future and returns itself' do
             f = handler.connect
-            f.should be_successful
-            f.get.should equal(handler)
+            f.should be_resolved
+            f.value.should equal(handler)
           end
 
           it 'is connected' do
@@ -108,7 +108,7 @@ module Cql
           it 'it does nothing' do
             socket.stub(:connect_nonblock).and_raise(Errno::EALREADY)
             f = handler.connect
-            f.should_not be_successful
+            f.should_not be_resolved
             f.should_not be_failed
           end
         end
@@ -133,7 +133,7 @@ module Cql
           it 'fails if there are no more addresses to try' do
             socket.stub(:connect_nonblock).and_raise(Errno::EINVAL)
             f = handler.connect
-            expect { f.get }.to raise_error(ConnectionError)
+            expect { f.value }.to raise_error(ConnectionError)
           end
         end
 
@@ -145,7 +145,7 @@ module Cql
 
           it 'fails the future with a ConnectionError' do
             f = handler.connect
-            expect { f.get }.to raise_error(ConnectionError)
+            expect { f.value }.to raise_error(ConnectionError)
           end
 
           it 'closes the socket' do
@@ -180,7 +180,7 @@ module Cql
 
           it 'fails the returned future with a ConnectionError' do
             f = handler.connect
-            expect { f.get }.to raise_error(ConnectionError)
+            expect { f.value }.to raise_error(ConnectionError)
           end
 
           it 'calls the close listener' do
@@ -217,7 +217,7 @@ module Cql
             clock.stub(:now).and_return(7)
             handler.connect
             f.should be_failed
-            expect { f.get }.to raise_error(ConnectionTimeoutError)
+            expect { f.value }.to raise_error(ConnectionTimeoutError)
           end
 
           it 'closes the connection' do

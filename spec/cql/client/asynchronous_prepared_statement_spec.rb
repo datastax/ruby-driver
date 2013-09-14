@@ -64,7 +64,7 @@ module Cql
       describe '.prepare' do
         it 'prepares a statement on all connections' do
           f = described_class.prepare(cql, connection_manager, logger)
-          f.get
+          f.value
           connections.each do |c|
             c.requests.should include(Protocol::PrepareRequest.new(cql))
           end
@@ -72,19 +72,19 @@ module Cql
 
         it 'returns a prepared statement object' do
           f = described_class.prepare(cql, connection_manager, logger)
-          f.get.should be_a(PreparedStatement)
+          f.value.should be_a(PreparedStatement)
         end
 
         it 'returns a failed future when something goes wrong in the preparation' do
           connections.each(&:close)
           f = described_class.prepare(cql, connection_manager, logger)
-          expect { f.get }.to raise_error(NotConnectedError)
+          expect { f.value }.to raise_error(NotConnectedError)
         end
       end
 
       describe '#metadata' do
         let :statement do
-          described_class.prepare(cql, connection_manager, logger).get
+          described_class.prepare(cql, connection_manager, logger).value
         end
 
         it 'returns the interpreted metadata' do
@@ -95,7 +95,7 @@ module Cql
 
       describe '#execute' do
         let :statement do
-          described_class.prepare(cql, connection_manager, logger).get
+          described_class.prepare(cql, connection_manager, logger).value
         end
 
         it 'executes itself on one of the connections' do
@@ -153,7 +153,7 @@ module Cql
 
         it 'returns a future that resolves to the result' do
           f = statement.execute(11, 'hello')
-          query_result = f.get
+          query_result = f.value
           query_result.metadata['my_other_column'].should == ColumnMetadata.new('my_keyspace', 'my_table', 'my_other_column', :text)
           query_result.first.should == rows.first
         end
@@ -161,8 +161,8 @@ module Cql
         it 'returns a failed future when the number of arguments is wrong' do
           f1 = statement.execute(11, :one)
           f2 = statement.execute(11, 'foo', 22, :one)
-          expect { f1.get }.to raise_error
-          expect { f2.get }.to raise_error
+          expect { f1.value }.to raise_error
+          expect { f2.value }.to raise_error
         end
       end
     end

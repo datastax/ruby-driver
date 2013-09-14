@@ -19,14 +19,14 @@ class FakeServer
       @running = true
     end
     @sockets = [TCPServer.new(@port)]
-    @started = Cql::Future.new
+    @started = Cql::Promise.new
     @thread = Thread.start do
       Thread.current.abort_on_exception = true
       sleep(options[:accept_delay] || 0)
-      @started.complete!
+      @started.fulfill
       io_loop
     end
-    @started.get
+    @started.future.value
     self
   end
 

@@ -59,12 +59,12 @@ module Cql
         end
 
         def run(response, rq=request)
-          connection.stub(:send_request).and_return(Future.successful(response))
-          runner.execute(connection, rq).get
+          connection.stub(:send_request).and_return(Future.resolved(response))
+          runner.execute(connection, rq).value
         end
 
         it 'executes the request' do
-          connection.should_receive(:send_request).and_return(Future.successful(rows_response))
+          connection.should_receive(:send_request).and_return(Future.resolved(rows_response))
           runner.execute(connection, request)
         end
 

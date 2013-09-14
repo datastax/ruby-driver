@@ -17,7 +17,7 @@ module Cql
         futures = connection_manager.map do |connection|
           statement.prepare(connection)
         end
-        Future.combine(*futures).map { statement }
+        Future.all(*futures).map { statement }
       rescue => e
         Future.failed(e)
       end
@@ -39,7 +39,7 @@ module Cql
       def prepare(connection)
         prepare_request = Protocol::PrepareRequest.new(@cql)
         f = connection.send_request(prepare_request)
-        f.on_success do |response|
+        f.on_value do |response|
           connection[self] = response.id
           unless @raw_metadata
             # NOTE: this is not thread safe, but the worst that could happen

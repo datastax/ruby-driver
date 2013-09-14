@@ -136,37 +136,37 @@ module Cql
 
       describe '#connect' do
         it 'connects' do
-          client.connect.get
+          client.connect.value
           connections.should have(1).item
         end
 
         it 'connects only once' do
-          client.connect.get
-          client.connect.get
+          client.connect.value
+          client.connect.value
           connections.should have(1).item
         end
 
         context 'when connecting to multiple hosts' do
           before do
-            client.close.get
-            io_reactor.stop.get
+            client.close.value
+            io_reactor.stop.value
           end
 
           it 'connects to all hosts' do
             c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h3.example.com]))
-            c.connect.get
+            c.connect.value
             connections.should have(3).items
           end
 
           it 'connects to all hosts, when given as a comma-sepatated string' do
             c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
-            c.connect.get
+            c.connect.value
             connections.should have(3).items
           end
 
           it 'only connects to each host once' do
             c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h2.example.com]))
-            c.connect.get
+            c.connect.value
             connections.should have(2).items
           end
 
@@ -174,7 +174,7 @@ module Cql
             io_reactor.node_down('h1.example.com')
             io_reactor.node_down('h3.example.com')
             c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h2.example.com]))
-            c.connect.get
+            c.connect.value
             connections.should have(1).items
           end
 
@@ -183,57 +183,57 @@ module Cql
             io_reactor.node_down('h2.example.com')
             io_reactor.node_down('h3.example.com')
             c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h2.example.com]))
-            expect { c.connect.get }.to raise_error(Io::ConnectionError)
+            expect { c.connect.value }.to raise_error(Io::ConnectionError)
           end
         end
 
         it 'returns itself' do
-          client.connect.get.should equal(client)
+          client.connect.value.should equal(client)
         end
 
         it 'connects to the right host and port' do
-          client.connect.get
+          client.connect.value
           last_connection.host.should == 'example.com'
           last_connection.port.should == 12321
         end
 
         it 'connects with the default connection timeout' do
-          client.connect.get
+          client.connect.value
           last_connection.timeout.should == 10
         end
 
         it 'sends a startup request' do
-          client.connect.get
+          client.connect.value
           requests.first.should be_a(Protocol::StartupRequest)
         end
 
         it 'sends a startup request to each connection' do
-          client.close.get
-          io_reactor.stop.get
-          io_reactor.start.get
+          client.close.value
+          io_reactor.stop.value
+          io_reactor.start.value
 
           c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h3.example.com]))
-          c.connect.get
+          c.connect.value
           connections.each do |cc|
             cc.requests.first.should be_a(Protocol::StartupRequest)
           end
         end
 
         it 'is not in a keyspace' do
-          client.connect.get
+          client.connect.value
           client.keyspace.should be_nil
         end
 
         it 'changes to the keyspace given as an option' do
           c = described_class.new(connection_options.merge(:keyspace => 'hello_world'))
-          c.connect.get
+          c.connect.value
           request = requests.find { |rq| rq == Protocol::QueryRequest.new('USE hello_world', :one) }
           request.should_not be_nil, 'expected a USE request to have been sent'
         end
 
         it 'validates the keyspace name before sending the USE command' do
           c = described_class.new(connection_options.merge(:keyspace => 'system; DROP KEYSPACE system'))
-          expect { c.connect.get }.to raise_error(InvalidKeyspaceNameError)
+          expect { c.connect.value }.to raise_error(InvalidKeyspaceNameError)
           requests.should_not include(Protocol::QueryRequest.new('USE system; DROP KEYSPACE system', :one))
         end
 
@@ -241,7 +241,7 @@ module Cql
           include_context 'peer discovery setup'
 
           it 'connects to the other nodes in the cluster' do
-            client.connect.get
+            client.connect.value
             connections.should have(3).items
           end
 
@@ -251,14 +251,14 @@ module Cql
             end
 
             it 'falls back on using the peer column' do
-              client.connect.get
+              client.connect.value
               connections.should have(3).items
             end
           end
 
           it 'connects to the other nodes in the same data center' do
             data_centers[additional_nodes[1]] = 'dc2'
-            client.connect.get
+            client.connect.value
             connections.should have(2).items
           end
 
@@ -266,49 +266,49 @@ module Cql
             data_centers['host2'] = 'dc2'
             data_centers[additional_nodes[1]] = 'dc2'
             c = described_class.new(connection_options.merge(hosts: %w[host1 host2]))
-            c.connect.get
+            c.connect.value
             connections.should have(3).items
           end
 
           it 'only connects to the other nodes in the cluster it is not already connected do' do
             c = described_class.new(connection_options.merge(hosts: %w[host1 host2]))
-            c.connect.get
+            c.connect.value
             connections.should have(3).items
           end
 
           it 'handles the case when it is already connected to all nodes' do
             c = described_class.new(connection_options.merge(hosts: %w[host1 host2 host3 host4]))
-            c.connect.get
+            c.connect.value
             connections.should have(4).items
           end
 
           it 'accepts that some nodes are down' do
             io_reactor.node_down(additional_nodes.first.to_s)
-            client.connect.get
+            client.connect.value
             connections.should have(2).items
           end
         end
 
         it 're-raises any errors raised' do
           io_reactor.stub(:connect).and_raise(ArgumentError)
-          expect { client.connect.get }.to raise_error(ArgumentError)
+          expect { client.connect.value }.to raise_error(ArgumentError)
         end
 
         it 'is not connected if an error is raised' do
           io_reactor.stub(:connect).and_raise(ArgumentError)
-          client.connect.get rescue nil
+          client.connect.value rescue nil
           client.should_not be_connected
           io_reactor.should_not be_running
         end
 
         it 'is connected after #connect returns' do
-          client.connect.get
+          client.connect.value
           client.should be_connected
         end
 
         it 'is not connected while connecting' do
           go = false
-          io_reactor.stop.get
+          io_reactor.stop.value
           io_reactor.before_startup { sleep 0.01 until go }
           client.connect
           begin
@@ -343,26 +343,26 @@ module Cql
 
           it 'sends credentials' do
             client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
-            client.connect.get
+            client.connect.value
             request = requests.find { |rq| rq == Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar') }
             request.should_not be_nil, 'expected a credentials request to have been sent'
           end
 
           it 'raises an error when no credentials have been given' do
             client = described_class.new(connection_options)
-            expect { client.connect.get }.to raise_error(AuthenticationError)
+            expect { client.connect.value }.to raise_error(AuthenticationError)
           end
 
           it 'raises an error when the server responds with an error to the credentials request' do
             handle_request(&method(:denying_request_handler))
             client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
-            expect { client.connect.get }.to raise_error(AuthenticationError)
+            expect { client.connect.value }.to raise_error(AuthenticationError)
           end
 
           it 'shuts down the client when there is an authentication error' do
             handle_request(&method(:denying_request_handler))
             client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
-            client.connect.get rescue nil
+            client.connect.value rescue nil
             client.should_not be_connected
             io_reactor.should_not be_running
           end
@@ -371,28 +371,28 @@ module Cql
 
       describe '#close' do
         it 'closes the connection' do
-          client.connect.get
-          client.close.get
+          client.connect.value
+          client.close.value
           io_reactor.should_not be_running
         end
 
         it 'does nothing when called before #connect' do
-          client.close.get
+          client.close.value
         end
 
         it 'accepts multiple calls to #close' do
-          client.connect.get
-          client.close.get
-          client.close.get
+          client.connect.value
+          client.close.value
+          client.close.value
         end
 
         it 'returns itself' do
-          client.connect.get.close.get.should equal(client)
+          client.connect.value.close.value.should equal(client)
         end
 
         it 'fails when the IO reactor stop fails' do
           io_reactor.stub(:stop).and_return(Future.failed(StandardError.new('Bork!')))
-          expect { client.close.get }.to raise_error('Bork!')
+          expect { client.close.value }.to raise_error('Bork!')
         end
       end
 
@@ -403,20 +403,20 @@ module Cql
               Protocol::SetKeyspaceResultResponse.new('system')
             end
           end
-          client.connect.get
-          client.use('system').get
+          client.connect.value
+          client.use('system').value
           last_request.should == Protocol::QueryRequest.new('USE system', :one)
         end
 
         it 'executes a USE query for each connection' do
-          client.close.get
-          io_reactor.stop.get
-          io_reactor.start.get
+          client.close.value
+          io_reactor.stop.value
+          io_reactor.start.value
 
           c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h3.example.com]))
-          c.connect.get
+          c.connect.value
 
-          c.use('system').get
+          c.use('system').value
           last_requests = connections.select { |c| c.host =~ /^h\d\.example\.com$/ }.sort_by(&:host).map { |c| c.requests.last }
           last_requests.should == [
             Protocol::QueryRequest.new('USE system', :one),
@@ -431,14 +431,14 @@ module Cql
               Protocol::SetKeyspaceResultResponse.new('system')
             end
           end
-          client.connect.get
-          client.use('system').get
+          client.connect.value
+          client.use('system').value
           client.keyspace.should == 'system'
         end
 
         it 'raises an error if the keyspace name is not valid' do
-          client.connect.get
-          expect { client.use('system; DROP KEYSPACE system').get }.to raise_error(InvalidKeyspaceNameError)
+          client.connect.value
+          expect { client.use('system; DROP KEYSPACE system').value }.to raise_error(InvalidKeyspaceNameError)
         end
 
         it 'allows the keyspace name to be quoted' do
@@ -447,24 +447,24 @@ module Cql
               Protocol::SetKeyspaceResultResponse.new('system')
             end
           end
-          client.connect.get
-          client.use('"system"').get
+          client.connect.value
+          client.use('"system"').value
           client.keyspace.should == "system"
         end
       end
 
       describe '#execute' do
         before do
-          client.connect.get
+          client.connect.value
         end
 
         it 'asks the connection to execute the query' do
-          client.execute('UPDATE stuff SET thing = 1 WHERE id = 3').get
+          client.execute('UPDATE stuff SET thing = 1 WHERE id = 3').value
           last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', :quorum)
         end
 
         it 'uses the specified consistency' do
-          client.execute('UPDATE stuff SET thing = 1 WHERE id = 3', :three).get
+          client.execute('UPDATE stuff SET thing = 1 WHERE id = 3', :three).value
           last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', :three)
         end
 
@@ -475,7 +475,7 @@ module Cql
                 Protocol::VoidResultResponse.new
               end
             end
-            result = client.execute('UPDATE stuff SET thing = 1 WHERE id = 3').get
+            result = client.execute('UPDATE stuff SET thing = 1 WHERE id = 3').value
             result.should be_nil
           end
         end
@@ -487,7 +487,7 @@ module Cql
                 Protocol::SetKeyspaceResultResponse.new('system')
               end
             end
-            result = client.execute('USE system').get
+            result = client.execute('USE system').value
             result.should be_nil
           end
 
@@ -497,14 +497,14 @@ module Cql
                 Protocol::SetKeyspaceResultResponse.new('system')
               end
             end
-            client.execute('USE system').get
+            client.execute('USE system').value
             client.keyspace.should == 'system'
           end
 
           it 'detects that one connection changed to a keyspace and changes the others too' do
-            client.close.get
-            io_reactor.stop.get
-            io_reactor.start.get
+            client.close.value
+            io_reactor.stop.value
+            io_reactor.start.value
 
             handle_request do |request, connection|
               if request.is_a?(Protocol::QueryRequest) && request.cql == 'USE system'
@@ -513,9 +513,9 @@ module Cql
             end
 
             c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h3.example.com]))
-            c.connect.get
+            c.connect.value
 
-            c.execute('USE system', :one).get
+            c.execute('USE system', :one).value
             c.keyspace.should == 'system'
 
             last_requests = connections.select { |c| c.host =~ /^h\d\.example\.com$/ }.sort_by(&:host).map { |c| c.requests.last }
@@ -537,7 +537,7 @@ module Cql
           end
 
           let :result do
-            client.execute('SELECT * FROM things').get
+            client.execute('SELECT * FROM things').value
           end
 
           before do
@@ -581,7 +581,7 @@ module Cql
         context 'when there is an error creating the request' do
           it 'returns a failed future' do
             f = client.execute('SELECT * FROM stuff', :foo)
-            expect { f.get }.to raise_error(ArgumentError)
+            expect { f.value }.to raise_error(ArgumentError)
           end
         end
 
@@ -595,12 +595,12 @@ module Cql
           end
 
           it 'raises an error' do
-            expect { client.execute('SELECT * FROM things').get }.to raise_error(QueryError, 'Blurgh')
+            expect { client.execute('SELECT * FROM things').value }.to raise_error(QueryError, 'Blurgh')
           end
 
           it 'decorates the error with the CQL that caused it' do
             begin
-              client.execute('SELECT * FROM things').get
+              client.execute('SELECT * FROM things').value
             rescue QueryError => e
               e.cql.should == 'SELECT * FROM things'
             else
@@ -628,40 +628,40 @@ module Cql
         end
 
         before do
-          client.connect.get
+          client.connect.value
         end
 
         it 'sends a prepare request' do
-          client.prepare('SELECT * FROM system.peers').get
+          client.prepare('SELECT * FROM system.peers').value
           last_request.should == Protocol::PrepareRequest.new('SELECT * FROM system.peers')
         end
 
         it 'returns a prepared statement' do
-          statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').get
+          statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').value
           statement.should_not be_nil
         end
 
         it 'executes a prepared statement' do
-          statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').get
-          statement.execute('foo').get
+          statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').value
+          statement.execute('foo').value
           last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], :quorum)
         end
 
         it 'returns a prepared statement that knows the metadata' do
-          statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').get
+          statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').value
           statement.metadata['item'].type == :varchar
         end
 
         it 'executes a prepared statement with a specific consistency level' do
-          statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').get
-          statement.execute('thing', :local_quorum).get
+          statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').value
+          statement.execute('thing', :local_quorum).value
           last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['thing'], :local_quorum)
         end
 
         context 'when there is an error creating the request' do
           it 'returns a failed future' do
             f = client.prepare(nil)
-            expect { f.get }.to raise_error(ArgumentError)
+            expect { f.value }.to raise_error(ArgumentError)
           end
         end
 
@@ -672,9 +672,9 @@ module Cql
                 Protocol::PreparedResultResponse.new(id, metadata)
               end
             end
-            statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').get
+            statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').value
             f = statement.execute
-            expect { f.get }.to raise_error(ArgumentError)
+            expect { f.value }.to raise_error(ArgumentError)
           end
         end
 
@@ -684,8 +684,8 @@ module Cql
           end
 
           it 'prepares the statement on all connections' do
-            statement = client.prepare('SELECT * FROM stuff WHERE item = ?').get
-            10.times { statement.execute('hello').get }
+            statement = client.prepare('SELECT * FROM stuff WHERE item = ?').value
+            10.times { statement.execute('hello').value }
             connections.map { |c| c.requests.last }.should == [
               Protocol::ExecuteRequest.new(id, metadata, ['hello'], :quorum),
               Protocol::ExecuteRequest.new(id, metadata, ['hello'], :quorum),
@@ -700,39 +700,39 @@ module Cql
         end
 
         it 'is not connected after #close has been called' do
-          client.connect.get
-          client.close.get
+          client.connect.value
+          client.close.value
           client.should_not be_connected
         end
 
         it 'complains when #use is called before #connect' do
-          expect { client.use('system').get }.to raise_error(NotConnectedError)
+          expect { client.use('system').value }.to raise_error(NotConnectedError)
         end
 
         it 'complains when #use is called after #close' do
-          client.connect.get
-          client.close.get
-          expect { client.use('system').get }.to raise_error(NotConnectedError)
+          client.connect.value
+          client.close.value
+          expect { client.use('system').value }.to raise_error(NotConnectedError)
         end
 
         it 'complains when #execute is called before #connect' do
-          expect { client.execute('DELETE FROM stuff WHERE id = 3').get }.to raise_error(NotConnectedError)
+          expect { client.execute('DELETE FROM stuff WHERE id = 3').value }.to raise_error(NotConnectedError)
         end
 
         it 'complains when #execute is called after #close' do
-          client.connect.get
-          client.close.get
-          expect { client.execute('DELETE FROM stuff WHERE id = 3').get }.to raise_error(NotConnectedError)
+          client.connect.value
+          client.close.value
+          expect { client.execute('DELETE FROM stuff WHERE id = 3').value }.to raise_error(NotConnectedError)
         end
 
         it 'complains when #prepare is called before #connect' do
-          expect { client.prepare('DELETE FROM stuff WHERE id = 3').get }.to raise_error(NotConnectedError)
+          expect { client.prepare('DELETE FROM stuff WHERE id = 3').value }.to raise_error(NotConnectedError)
         end
 
         it 'complains when #prepare is called after #close' do
-          client.connect.get
-          client.close.get
-          expect { client.prepare('DELETE FROM stuff WHERE id = 3').get }.to raise_error(NotConnectedError)
+          client.connect.value
+          client.close.value
+          expect { client.prepare('DELETE FROM stuff WHERE id = 3').value }.to raise_error(NotConnectedError)
         end
 
         it 'complains when #execute of a prepared statement is called after #close' do
@@ -741,10 +741,10 @@ module Cql
               Protocol::PreparedResultResponse.new('A' * 32, [])
             end
           end
-          client.connect.get
-          statement = client.prepare('DELETE FROM stuff WHERE id = 3').get
-          client.close.get
-          expect { statement.execute.get }.to raise_error(NotConnectedError)
+          client.connect.value
+          statement = client.prepare('DELETE FROM stuff WHERE id = 3').value
+          client.close.value
+          expect { statement.execute.value }.to raise_error(NotConnectedError)
         end
       end
 
@@ -756,17 +756,17 @@ module Cql
         end
 
         before do
-          client.connect.get
+          client.connect.value
         end
 
         it 'clears out old connections and don\'t reuse them for future requests' do
           connections.first.close
-          expect { 10.times { client.execute('SELECT * FROM something').get } }.to_not raise_error
+          expect { 10.times { client.execute('SELECT * FROM something').value } }.to_not raise_error
         end
 
         it 'raises NotConnectedError when all nodes are down' do
           connections.each(&:close)
-          expect { client.execute('SELECT * FROM something').get }.to raise_error(NotConnectedError)
+          expect { client.execute('SELECT * FROM something').value }.to raise_error(NotConnectedError)
         end
 
         it 'reconnects when it receives a status change UP event' do
@@ -777,15 +777,15 @@ module Cql
         end
 
         it 'eventually reconnects even when the node doesn\'t respond at first' do
-          timer_future = Future.new
-          io_reactor.stub(:schedule_timer).and_return(timer_future)
+          timer_promise = Promise.new
+          io_reactor.stub(:schedule_timer).and_return(timer_promise.future)
           additional_nodes.each { |host| io_reactor.node_down(host.to_s) }
           connections.first.close
           event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
           connections.select(&:connected?).should have(2).items
           additional_nodes.each { |host| io_reactor.node_up(host.to_s) }
-          timer_future.succeed
+          timer_promise.fulfill
           connections.select(&:connected?).should have(3).items
         end
 
@@ -808,53 +808,53 @@ module Cql
 
         it 'logs when connecting to a node' do
           logger.stub(:debug)
-          client.connect.get
+          client.connect.value
           logger.should have_received(:debug).with(/Connecting to node at example\.com:12321/)
         end
 
         it 'logs when a node is connected' do
           logger.stub(:info)
-          client.connect.get
+          client.connect.value
           logger.should have_received(:info).with(/Connected to node .{36} at example\.com:12321 in data center dc1/)
         end
 
         it 'logs when all nodes are connected' do
           logger.stub(:info)
-          client.connect.get
+          client.connect.value
           logger.should have_received(:info).with(/Cluster connection complete/)
         end
 
         it 'logs when the connection fails' do
           logger.stub(:error)
           io_reactor.stub(:connect).and_return(Future.failed(StandardError.new('Hurgh blurgh')))
-          client.connect.get rescue nil
+          client.connect.value rescue nil
           logger.should have_received(:error).with(/Failed connecting to cluster: Hurgh blurgh/)
         end
 
         it 'logs when a single connection fails' do
           logger.stub(:warn)
           io_reactor.stub(:connect).and_return(Future.failed(StandardError.new('Hurgh blurgh')))
-          client.connect.get rescue nil
+          client.connect.value rescue nil
           logger.should have_received(:warn).with(/Failed connecting to node at example\.com:12321: Hurgh blurgh/)
         end
 
         it 'logs when a connection fails' do
           logger.stub(:warn)
-          client.connect.get
+          client.connect.value
           connections.sample.close
           logger.should have_received(:warn).with(/Connection to node .{36} at .+:\d+ in data center .+ unexpectedly closed/)
         end
 
         it 'logs when it does a peer discovery' do
           logger.stub(:debug)
-          client.connect.get
+          client.connect.value
           logger.should have_received(:debug).with(/Looking for additional nodes/)
           logger.should have_received(:debug).with(/\d+ additional nodes found/)
         end
 
         it 'logs when it receives an UP event' do
           logger.stub(:debug)
-          client.connect.get
+          client.connect.value
           event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
           logger.should have_received(:debug).with(/Received UP event/)
@@ -864,7 +864,7 @@ module Cql
           logger.stub(:debug)
           logger.stub(:warn)
           additional_nodes.each { |host| io_reactor.node_down(host.to_s) }
-          client.connect.get
+          client.connect.value
           event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
           logger.should have_received(:warn).with(/Failed connecting to node/).at_least(1).times
@@ -873,16 +873,16 @@ module Cql
 
         it 'logs when it disconnects' do
           logger.stub(:info)
-          client.connect.get
-          client.close.get
+          client.connect.value
+          client.close.value
           logger.should have_received(:info).with(/Cluster disconnect complete/)
         end
 
         it 'logs when it fails to disconnect' do
           logger.stub(:error)
-          client.connect.get
+          client.connect.value
           io_reactor.stub(:stop).and_return(Future.failed(StandardError.new('Hurgh blurgh')))
-          client.close.get rescue nil
+          client.close.value rescue nil
           logger.should have_received(:error).with(/Cluster disconnect failed: Hurgh blurgh/)
         end
       end

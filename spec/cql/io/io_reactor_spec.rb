@@ -24,56 +24,56 @@ module Cql
 
       describe '#start' do
         after do
-          reactor.stop.get if reactor.running?
+          reactor.stop.value if reactor.running?
         end
 
-        it 'returns a future that is successful when the reactor has started' do
-          reactor.start.get
+        it 'returns a future that is resolved when the reactor has started' do
+          reactor.start.value
         end
 
         it 'returns a future that resolves to the reactor' do
-          reactor.start.get.should equal(reactor)
+          reactor.start.value.should equal(reactor)
         end
 
         it 'is running after being started' do
-          reactor.start.get
+          reactor.start.value
           reactor.should be_running
         end
 
         it 'cannot be started again once stopped' do
-          reactor.start.get
-          reactor.stop.get
+          reactor.start.value
+          reactor.stop.value
           expect { reactor.start }.to raise_error(ReactorError)
         end
 
         it 'calls the selector' do
           called = false
           selector.handler { called = true; [[], [], []] }
-          reactor.start.get
+          reactor.start.value
           await { called }
-          reactor.stop.get
+          reactor.stop.value
           called.should be_true, 'expected the selector to have been called'
         end
       end
 
       describe '#stop' do
         after do
-          reactor.stop.get if reactor.running?
+          reactor.stop.value if reactor.running?
         end
 
-        it 'returns a future which is successful when the reactor has stopped' do
-          reactor.start.get
-          reactor.stop.get
+        it 'returns a future that is resolved when the reactor has stopped' do
+          reactor.start.value
+          reactor.stop.value
         end
 
         it 'returns a future which resolves to the reactor' do
-          reactor.start.get
-          reactor.stop.get.should equal(reactor)
+          reactor.start.value
+          reactor.stop.value.should equal(reactor)
         end
 
         it 'is not running after being stopped' do
-          reactor.start.get
-          reactor.stop.get
+          reactor.start.value
+          reactor.stop.value
           reactor.should_not be_running
         end
 
@@ -83,14 +83,14 @@ module Cql
             connection = sh
             double(:protocol_handler)
           end
-          reactor.start.get
+          reactor.start.value
           reactor.connect('example.com', 9999, 5)
-          reactor.stop.get
+          reactor.stop.value
           connection.should be_closed
         end
 
         it 'cancels all active timers' do
-          reactor.start.get
+          reactor.start.value
           clock.stub(:now).and_return(1)
           expired_timer = reactor.schedule_timer(1)
           active_timer1 = reactor.schedule_timer(999)
@@ -98,7 +98,7 @@ module Cql
           expired_timer.should_not_receive(:fail)
           clock.stub(:now).and_return(2)
           await { expired_timer.completed? }
-          reactor.stop.get
+          reactor.stop.value
           active_timer1.should be_failed
           active_timer2.should be_failed
         end
@@ -119,7 +119,7 @@ module Cql
 
         it 'calls the listener immediately when the reactor has already crashed' do
           error = nil
-          reactor.start.get
+          reactor.start.value
           await { !reactor.running? }
           reactor.on_error { |e| error = e }
           await { error }
@@ -166,14 +166,14 @@ module Cql
         end
 
         it 'returns a future that resolves to a new protocol handler' do
-          reactor.start.get
+          reactor.start.value
           f = reactor.connect('example.com', 9999, 5)
-          f.get.should equal(protocol_handler)
+          f.value.should equal(protocol_handler)
         end
 
         it 'returns a new protocol handler which wraps a socket handler' do
-          reactor.start.get
-          protocol_handler = reactor.connect('example.com', 9999, 5).get
+          reactor.start.value
+          protocol_handler = reactor.connect('example.com', 9999, 5).value
           protocol_handler.connection.should_not be_nil
           protocol_handler.connection.host.should == 'example.com'
           protocol_handler.connection.port.should == 9999
@@ -183,18 +183,18 @@ module Cql
 
       describe '#schedule_timer' do
         before do
-          reactor.start.get
+          reactor.start.value
         end
 
         after do
-          reactor.stop.get
+          reactor.stop.value
         end
 
-        it 'returns a future that is successful after the specified duration' do
+        it 'returns a future that is resolved after the specified duration' do
           clock.stub(:now).and_return(1)
           f = reactor.schedule_timer(0.1)
           clock.stub(:now).and_return(1.1)
-          await { f.successful? }
+          await { f.resolved? }
         end
       end
 
@@ -295,24 +295,24 @@ module Cql
         it 'completes timers that have expired' do
           selector.stub(:select).and_return([nil, nil, nil])
           clock.stub(:now).and_return(1)
-          future = Future.new
-          loop_body.schedule_timer(1, future)
+          promise = Promise.new
+          loop_body.schedule_timer(1, promise)
           loop_body.tick
-          future.should_not be_completed
+          promise.future.should_not be_completed
           clock.stub(:now).and_return(2)
           loop_body.tick
-          future.should be_completed
+          promise.future.should be_completed
         end
 
         it 'clears out timers that have expired' do
           selector.stub(:select).and_return([nil, nil, nil])
           clock.stub(:now).and_return(1)
-          future = Future.new
-          loop_body.schedule_timer(1, future)
+          promise = Promise.new
+          loop_body.schedule_timer(1, promise)
           clock.stub(:now).and_return(2)
           loop_body.tick
-          future.should be_completed
-          future.should_not_receive(:succeed)
+          promise.future.should be_completed
+          promise.should_not_receive(:fulfill)
           loop_body.tick
         end
       end
@@ -352,20 +352,20 @@ module Cql
         end
 
         it 'fails all active timers with a CancelledError' do
-          f1 = Future.new
-          f2 = Future.new
-          f3 = Future.new
+          p1 = Promise.new
+          p2 = Promise.new
+          p3 = Promise.new
           clock.stub(:now).and_return(1)
-          loop_body.schedule_timer(1, f1)
-          loop_body.schedule_timer(3, f2)
-          loop_body.schedule_timer(3, f3)
+          loop_body.schedule_timer(1, p1)
+          loop_body.schedule_timer(3, p2)
+          loop_body.schedule_timer(3, p3)
           clock.stub(:now).and_return(2)
           loop_body.tick
           loop_body.cancel_timers
-          f1.should be_completed
-          f2.should be_failed
-          f3.should be_failed
-          expect { f3.get }.to raise_error(CancelledError)
+          p1.future.should be_completed
+          p2.future.should be_failed
+          p3.future.should be_failed
+          expect { p3.future.value }.to raise_error(CancelledError)
         end
       end
     end

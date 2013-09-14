@@ -89,23 +89,23 @@ module Cql
           3.times { protocol_handler.send_request(request) }
           future = protocol_handler.send_request(request)
           connection.data_listener.call([0x81, 0, 3, 2, 0].pack('C4N'))
-          await(0.1) { future.successful? }
+          await(0.1) { future.resolved? }
         end
 
         it 'handles multiple response frames in the same data packet' do
           futures = Array.new(4) { protocol_handler.send_request(request) }
           connection.data_listener.call([0x81, 0, 2, 2, 0].pack('C4N') + [0x81, 0, 3, 2, 0].pack('C4N'))
-          await(0.1) { futures[2].successful? && futures[3].successful? }
+          await(0.1) { futures[2].resolved? && futures[3].resolved? }
         end
 
         it 'queues the request when there are too many in flight, sending it as soon as a stream is available' do
           connection.stub(:write)
           futures = Array.new(130) { protocol_handler.send_request(request) }
           128.times { |i| connection.data_listener.call([0x81, 0, i, 2, 0].pack('C4N')) }
-          futures[127].should be_successful
-          futures[128].should_not be_successful
+          futures[127].should be_resolved
+          futures[128].should_not be_resolved
           2.times { |i| connection.data_listener.call([0x81, 0, i, 2, 0].pack('C4N')) }
-          futures[128].should be_successful
+          futures[128].should be_resolved
         end
 
         context 'when the protocol handler closes' do
@@ -127,7 +127,7 @@ module Cql
             connection.data_listener.call([0x81, 0, 0, 2, 0].pack('C4N'))
             connection.closed_listener.call(nil)
             begin
-              future.get
+              future.value
             rescue => e
               e.should be_a(Cql::Io::ConnectionClosedError)
             else
@@ -148,7 +148,7 @@ module Cql
           it 'fails all requests with NotConnectedError' do
             connection.stub(:closed?).and_return(true)
             f = protocol_handler.send_request(request)
-            expect { f.get }.to raise_error(NotConnectedError)
+            expect { f.value }.to raise_error(NotConnectedError)
           end
         end
       end
@@ -163,7 +163,7 @@ module Cql
           connection.stub(:close) do
             connection.closed_listener.call(nil)
           end
-          protocol_handler.close.get
+          protocol_handler.close.value
         end
       end
 
@@ -181,7 +181,7 @@ module Cql
         it 'registers the keyspace it has changed to' do
           f = protocol_handler.send_request(Protocol::QueryRequest.new('USE hello', :one))
           connection.data_listener.call([0x81, 0, 0, 8, 4 + 2 + 5, 3, 5].pack('C4N2n') + 'hello')
-          f.get
+          f.value
           protocol_handler.keyspace.should == 'hello'
         end
       end
