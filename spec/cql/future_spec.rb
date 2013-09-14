@@ -32,6 +32,10 @@ module Cql
         promise.fulfill
         expect { promise.fail(error) }.to raise_error(FutureError)
       end
+
+      it 'returns nil' do
+        promise.fulfill(:foo).should be_nil
+      end
     end
 
     describe '#fail' do
@@ -48,6 +52,10 @@ module Cql
       it 'raises an error if fulfilled after being failed' do
         promise.fail(error)
         expect { promise.fulfill }.to raise_error(FutureError)
+      end
+
+      it 'returns nil' do
+        promise.fail(error).should be_nil
       end
     end
 
@@ -72,6 +80,10 @@ module Cql
         promise.fail(error)
         p2.fulfill
       end
+
+      it 'returns nil' do
+        promise.observe(Promise.new.future).should be_nil
+      end
     end
 
     describe '#attempt' do
@@ -94,6 +106,10 @@ module Cql
           a.length + b
         end
         promise.future.value.should == 6
+      end
+
+      it 'returns nil' do
+        promise.attempt { }.should be_nil
       end
     end
   end
@@ -208,6 +224,20 @@ module Cql
           promise.fail(error)
           expect { future.on_complete { |v| raise 'blurgh' } }.to_not raise_error
         end
+
+        it 'returns nil' do
+          future.on_complete { :foo }.should be_nil
+        end
+
+        it 'returns nil when the future is already resolved' do
+          promise.fulfill
+          future.on_complete { :foo }.should be_nil
+        end
+
+        it 'returns nil when the future already has failed' do
+          promise.fail(error)
+          future.on_complete { :foo }.should be_nil
+        end
       end
     end
 
@@ -230,7 +260,7 @@ module Cql
           value.should == 'bar'
         end
 
-        it 'notifies listeners registered after the promise was fulfilled' do
+        it 'notifies listeners registered after the promise was resolved' do
           v1, v2 = nil, nil
           promise.fulfill('bar')
           future.on_value { |v| v1 = v }
@@ -239,9 +269,18 @@ module Cql
           v2.should == 'bar'
         end
 
-        it 'does not raise any error when the listener raises an error when already fulfilled' do
+        it 'does not raise any error when the listener raises an error when already resolved' do
           promise.fulfill('bar')
           expect { future.on_value { |v| raise 'blurgh' } }.to_not raise_error
+        end
+
+        it 'returns nil' do
+          future.on_value { :foo }.should be_nil
+        end
+
+        it 'returns nil when the future is already resolved' do
+          promise.fulfill
+          future.on_failure { :foo }.should be_nil
         end
       end
     end
@@ -252,7 +291,7 @@ module Cql
           e1, e2 = nil, nil
           future.on_failure { |err| e1 = err }
           future.on_failure { |err| e2 = err }
-          future.fail(error)
+          promise.fail(error)
           e1.message.should eql(error.message)
           e2.message.should eql(error.message)
         end
@@ -261,13 +300,13 @@ module Cql
           e = nil
           future.on_failure { |err| raise 'Blurgh' }
           future.on_failure { |err| e = err }
-          future.fail(error)
+          promise.fail(error)
           e.message.should eql(error.message)
         end
 
         it 'notifies new listeners even when already failed' do
           e1, e2 = nil, nil
-          future.fail(error)
+          promise.fail(error)
           future.on_failure { |e| e1 = e }
           future.on_failure { |e| e2 = e }
           e1.message.should eql(error.message)
@@ -275,8 +314,17 @@ module Cql
         end
 
         it 'does not raise any error when the listener raises an error when already failed' do
-          future.fail(error)
+          promise.fail(error)
           expect { future.on_failure { |e| raise 'Blurgh' } }.to_not raise_error
+        end
+
+        it 'returns nil' do
+          future.on_failure { :foo }.should be_nil
+        end
+
+        it 'returns nil when the future already has failed' do
+          promise.fail(error)
+          future.on_failure { :foo }.should be_nil
         end
       end
     end

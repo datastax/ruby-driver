@@ -238,6 +238,7 @@ module Cql
       if run_immediately
         listener.call(self) rescue nil
       end
+      nil
     end
 
     # Registers a listener that will be called when this future becomes
@@ -257,6 +258,7 @@ module Cql
       if run_immediately
         listener.call(value) rescue nil
       end
+      nil
     end
 
     # Registers a listener that will be called when this future fails. The
@@ -276,6 +278,7 @@ module Cql
       if run_immediately
         listener.call(@error) rescue nil
       end
+      nil
     end
   end
 
@@ -357,6 +360,7 @@ module Cql
       complete_listeners.each do |listener|
         listener.call(self) rescue nil
       end
+      nil
     end
 
     def fail(error)
@@ -378,6 +382,7 @@ module Cql
       complete_listeners.each do |listener|
         listener.call(self) rescue nil
       end
+      nil
     end
   end
 
