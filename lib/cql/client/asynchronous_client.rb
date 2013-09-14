@@ -55,8 +55,7 @@ module Cql
         end
         when_not_connecting do
           f = @io_reactor.stop
-          f.on_value { @closed_promise.fulfill(self) }
-          f.on_failure { |e| @closed_promise.fail(e) }
+          @closed_promise.observe(f.map { self })
         end
         @closed_promise.future.on_value do
           @lock.synchronize do
