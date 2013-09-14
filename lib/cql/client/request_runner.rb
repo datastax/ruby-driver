@@ -9,8 +9,6 @@ module Cql
           case response
           when Protocol::RowsResultResponse
             QueryResult.new(response.metadata, response.rows)
-          when Protocol::PreparedResultResponse
-            AsynchronousPreparedStatement.new(connection, response.id, response.metadata)
           when Protocol::ErrorResponse
             cql = request.is_a?(Protocol::QueryRequest) ? request.cql : nil
             raise QueryError.new(response.code, response.message, cql)

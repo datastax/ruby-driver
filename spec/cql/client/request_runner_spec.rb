@@ -78,12 +78,6 @@ module Cql
           result.should be_nil
         end
 
-        it 'transforms a PreparedResultResponse to a prepared statement' do
-          result = run(prepared_response)
-          result.should be_a(AsynchronousPreparedStatement)
-          result.metadata['my_column'].should == ColumnMetadata.new('my_keyspace', 'my_table', 'my_column', :int)
-        end
-
         it 'transforms a AuthenticateResponse to an authentication required object' do
           result = run(authenticate_response)
           result.should be_a(AuthenticationRequired)
