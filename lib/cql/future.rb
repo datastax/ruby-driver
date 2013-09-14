@@ -49,6 +49,12 @@ module Cql
       future.on_value { |v| fulfill(v) }
       future.on_failure { |e| fail(e) }
     end
+
+    def attempt(*ctx)
+      fulfill(yield(*ctx))
+    rescue => e
+      fail(e)
+    end
   end
 
   # @private
@@ -115,12 +121,7 @@ module Cql
       p = Promise.new
       on_failure { |e| p.fail(e) }
       on_value do |v|
-        begin
-          vv = block.call(v)
-          p.fulfill(vv)
-        rescue => e
-          p.fail(e)
-        end
+        p.attempt(v, &block)
       end
       p.future
     end
@@ -171,12 +172,7 @@ module Cql
     def recover(&block)
       p = Promise.new
       on_failure do |e|
-        begin
-          vv = block.call(e)
-          p.fulfill(vv)
-        rescue => e
-          p.fail(e)
-        end
+        p.attempt(e, &block)
       end
       on_value do |v|
         p.fulfill(v)

@@ -73,6 +73,29 @@ module Cql
         p2.fulfill
       end
     end
+
+    describe '#attempt' do
+      it 'fulfills the promise with the result of the block' do
+        promise.attempt do
+          3 + 4
+        end
+        promise.future.value.should == 7
+      end
+
+      it 'fails the promise when the block raises an error' do
+        promise.attempt do
+          raise error
+        end
+        expect { promise.future.value }.to raise_error(/bork/)
+      end
+
+      it 'calls the block with the specified arguments' do
+        promise.attempt(:foo, 3) do |a, b|
+          a.length + b
+        end
+        promise.future.value.should == 6
+      end
+    end
   end
 
   describe Future do
