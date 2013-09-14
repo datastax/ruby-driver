@@ -40,6 +40,15 @@ module Cql
     def fail(error)
       @future.fail(error)
     end
+
+    # Observe a future and fulfill the promise with the future's value when the
+    # future resolves, or fail with the future's error when the future fails.
+    #
+    # @param [Cql::Future] future the future to observe
+    def observe(future)
+      future.on_value { |v| fulfill(v) }
+      future.on_failure { |e| fail(e) }
+    end
   end
 
   # @private
@@ -133,8 +142,7 @@ module Cql
       on_value do |v|
         begin
           f = block.call(v)
-          f.on_failure { |e| p.fail(e) }
-          f.on_value { |vv| p.fulfill(vv) }
+          p.observe(f)
         rescue => e
           p.fail(e)
         end
@@ -203,8 +211,7 @@ module Cql
       on_failure do |e|
         begin
           f = block.call(e)
-          f.on_failure { |e| p.fail(e) }
-          f.on_value { |vv| p.fulfill(vv) }
+          p.observe(f)
         rescue => e
           p.fail(e)
         end

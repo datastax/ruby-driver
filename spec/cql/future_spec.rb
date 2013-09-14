@@ -50,6 +50,29 @@ module Cql
         expect { promise.fulfill }.to raise_error(FutureError)
       end
     end
+
+    describe '#observe' do
+      it 'resolves its future when the specified future is resolved' do
+        p2 = Promise.new
+        promise.observe(p2.future)
+        p2.fulfill
+        promise.future.should be_resolved
+      end
+
+      it 'fails its future when the specified future fails' do
+        p2 = Promise.new
+        promise.observe(p2.future)
+        p2.fail(error)
+        promise.future.should be_failed
+      end
+
+      it 'silently ignores double fulfillment/failure' do
+        p2 = Promise.new
+        promise.observe(p2.future)
+        promise.fail(error)
+        p2.fulfill
+      end
+    end
   end
 
   describe Future do
