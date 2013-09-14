@@ -154,8 +154,7 @@ module Cql
 
       def when_not_connecting(&callback)
         if @connecting
-          @connected_promise.future.on_value(&callback)
-          @connected_promise.future.on_failure(&callback)
+          @connected_promise.future.on_complete(&callback)
         else
           callback.call
         end
@@ -163,8 +162,7 @@ module Cql
 
       def when_not_closing(&callback)
         if @closing
-          @closed_promise.future.on_value(&callback)
-          @closed_promise.future.on_failure(&callback)
+          @closed_promise.future.on_complete(&callback)
         else
           callback.call
         end

@@ -216,58 +216,25 @@ module Cql
     end
   end
 
-  # A future represents the value of a process that may not yet have completed.
-  #
-  # @see Cql::Promise
   # @private
-  class Future
-    extend FutureFactories
-    include FutureCombinators
-
-    def initialize
-      @lock = Mutex.new
-      @resolved = false
-      @failed = false
-      @failure_listeners = []
-      @value_listeners = []
-    end
-
-    # Returns the value of this future, blocking until it is available if
-    # necessary.
+  module FutureCallbacks
+    # Registers a listener that will be called when this future completes,
+    # i.e. resolves or fails. The listener will be called with the future as
+    # solve argument
     #
-    # If the future fails this method will raise the error that failed the
-    # future.
-    #
-    # @return [Object] the value of this future
-    def value
+    # @yieldparam [Cql::Future] future the future
+    def on_complete(&listener)
+      run_immediately = false
       @lock.synchronize do
-        raise @error if @failed
-        return @value if @resolved
-        t = Thread.current
-        u = proc { t.run }
-        @value_listeners << u
-        @failure_listeners << u
-        while true
-          raise @error if @failed
-          return @value if @resolved
-          @lock.sleep
+        if @resolved || @failed
+          run_immediately = true
+        else
+          @complete_listeners << listener
         end
       end
-    end
-
-    # Returns true if this future is resolved or failed
-    def completed?
-      resolved? || failed?
-    end
-
-    # Returns true if this future is resolved
-    def resolved?
-      @lock.synchronize { @resolved }
-    end
-
-    # Returns true if this future has failed
-    def failed?
-      @lock.synchronize { @failed }
+      if run_immediately
+        listener.call(self) rescue nil
+      end
     end
 
     # Registers a listener that will be called when this future becomes
@@ -309,35 +276,104 @@ module Cql
     end
   end
 
+  # A future represents the value of a process that may not yet have completed.
+  #
+  # @see Cql::Promise
+  # @private
+  class Future
+    extend FutureFactories
+    include FutureCombinators
+    include FutureCallbacks
+
+    def initialize
+      @lock = Mutex.new
+      @resolved = false
+      @failed = false
+      @failure_listeners = []
+      @value_listeners = []
+      @complete_listeners = []
+    end
+
+    # Returns the value of this future, blocking until it is available if
+    # necessary.
+    #
+    # If the future fails this method will raise the error that failed the
+    # future.
+    #
+    # @return [Object] the value of this future
+    def value
+      @lock.synchronize do
+        raise @error if @failed
+        return @value if @resolved
+        t = Thread.current
+        u = proc { t.run }
+        @value_listeners << u
+        @failure_listeners << u
+        while true
+          raise @error if @failed
+          return @value if @resolved
+          @lock.sleep
+        end
+      end
+    end
+
+    # Returns true if this future is resolved or failed
+    def completed?
+      resolved? || failed?
+    end
+
+    # Returns true if this future is resolved
+    def resolved?
+      @lock.synchronize { @resolved }
+    end
+
+    # Returns true if this future has failed
+    def failed?
+      @lock.synchronize { @failed }
+    end
+  end
+
   # @private
   class CompletableFuture < Future
     def resolve(v=nil)
-      listeners = nil
+      value_listeners = nil
+      complete_listeners = nil
       @lock.synchronize do
         raise FutureError, 'Future already completed' if @resolved || @failed
         @resolved = true
         @value = v
-        listeners = @value_listeners
+        value_listeners = @value_listeners
+        complete_listeners = @complete_listeners
         @value_listeners = nil
         @failure_listeners = nil
+        @complete_listeners = nil
       end
-      listeners.each do |listener|
+      value_listeners.each do |listener|
         listener.call(v) rescue nil
+      end
+      complete_listeners.each do |listener|
+        listener.call(self) rescue nil
       end
     end
 
     def fail(error)
-      listeners = nil
+      failure_listeners = nil
+      complete_listeners = nil
       @lock.synchronize do
         raise FutureError, 'Future already completed' if @failed || @resolved
         @failed = true
         @error = error
-        listeners = @failure_listeners
-        @failure_listeners = nil
+        failure_listeners = @failure_listeners
+        complete_listeners = @complete_listeners
         @value_listeners = nil
+        @failure_listeners = nil
+        @complete_listeners = nil
       end
-      listeners.each do |listener|
+      failure_listeners.each do |listener|
         listener.call(error) rescue nil
+      end
+      complete_listeners.each do |listener|
+        listener.call(self) rescue nil
       end
     end
   end

@@ -117,6 +117,54 @@ module Cql
       end
     end
 
+    describe '#on_complete' do
+      context 'registers listeners and' do
+        it 'notifies all listeners when the promise is fulfilled' do
+          v1, v2 = nil, nil
+          future.on_complete { |f| v1 = f.value }
+          future.on_complete { |f| v2 = f.value }
+          promise.fulfill('bar')
+          v1.should == 'bar'
+          v2.should == 'bar'
+        end
+
+        it 'notifies all listeners when the promise fails' do
+          e1, e2 = nil, nil
+          future.on_complete { |f| begin; f.value; rescue => err; e1 = err; end }
+          future.on_complete { |f| begin; f.value; rescue => err; e2 = err; end }
+          future.fail(error)
+          e1.message.should == error.message
+          e2.message.should == error.message
+        end
+
+        it 'notifies all listeners when the promise is fulfilled, even when one raises an error' do
+          value = nil
+          future.on_complete { |f| raise 'Blurgh' }
+          future.on_complete { |f| value = f.value }
+          promise.fulfill('bar')
+          value.should == 'bar'
+        end
+
+        it 'notifies all listeners when the promise fails, even when one raises an error' do
+          err = nil
+          future.on_complete { |f| raise 'Blurgh' }
+          future.on_complete { |f| begin; f.value; rescue => err; e = err; end }
+          promise.fail(error)
+          err.message.should == 'bork'
+        end
+
+        it 'notifies listeners registered after the promise was fulfilled' do
+          promise.fulfill('bar')
+          expect { future.on_complete { |v| raise 'blurgh' } }.to_not raise_error
+        end
+
+        it 'notifies listeners registered after the promise failed' do
+          promise.fail(error)
+          expect { future.on_complete { |v| raise 'blurgh' } }.to_not raise_error
+        end
+      end
+    end
+
     describe '#on_value' do
       context 'registers listeners and' do
         it 'notifies all value listeners when the promise is fulfilled' do
