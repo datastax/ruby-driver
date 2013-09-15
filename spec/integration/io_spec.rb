@@ -29,7 +29,7 @@ describe 'An IO reactor' do
     end
 
     it 'receives data' do
-      protocol_handler = io_reactor.connect(ENV['CASSANDRA_HOST'], fake_server.port, 1).get
+      protocol_handler = io_reactor.connect(ENV['CASSANDRA_HOST'], fake_server.port, 1).value
       fake_server.await_connects!(1)
       fake_server.broadcast!('hello world')
       await { protocol_handler.data.bytesize > 0 }
@@ -37,7 +37,7 @@ describe 'An IO reactor' do
     end
 
     it 'receives data on multiple connections' do
-      protocol_handlers = Array.new(10) { io_reactor.connect(ENV['CASSANDRA_HOST'], fake_server.port, 1).get }
+      protocol_handlers = Array.new(10) { io_reactor.connect(ENV['CASSANDRA_HOST'], fake_server.port, 1).value }
       fake_server.await_connects!(10)
       fake_server.broadcast!('hello world')
       await { protocol_handlers.all? { |c| c.data.bytesize > 0 } }
@@ -52,23 +52,23 @@ describe 'An IO reactor' do
 
     let :protocol_handler do
       begin
-        io_reactor.connect(ENV['CASSANDRA_HOST'], 6379, 1).get
+        io_reactor.connect(ENV['CASSANDRA_HOST'], 6379, 1).value
       rescue Cql::Io::ConnectionError
         nil
       end
     end
 
     before do
-      io_reactor.start.get
+      io_reactor.start.value
     end
 
     after do
-      io_reactor.stop.get
+      io_reactor.stop.value
     end
 
     it 'can set a value' do
       pending('Redis not running', unless: protocol_handler)
-      response = protocol_handler.send_request('SET', 'foo', 'bar').get
+      response = protocol_handler.send_request('SET', 'foo', 'bar').value
       response.should == 'OK'
     end
 
@@ -77,7 +77,7 @@ describe 'An IO reactor' do
       f = protocol_handler.send_request('SET', 'foo', 'bar').flat_map do
         protocol_handler.send_request('GET', 'foo')
       end
-      f.get.should == 'bar'
+      f.value.should == 'bar'
     end
 
     it 'can delete values' do
@@ -85,7 +85,7 @@ describe 'An IO reactor' do
       f = protocol_handler.send_request('SET', 'hello', 'world').flat_map do
         protocol_handler.send_request('DEL', 'hello')
       end
-      f.get.should == 1
+      f.value.should == 1
     end
 
     it 'handles nil values' do
@@ -93,23 +93,23 @@ describe 'An IO reactor' do
       f = protocol_handler.send_request('DEL', 'hello').flat_map do
         protocol_handler.send_request('GET', 'hello')
       end
-      f.get.should be_nil
+      f.value.should be_nil
     end
 
     it 'handles errors' do
       pending('Redis not running', unless: protocol_handler)
       f = protocol_handler.send_request('SET', 'foo')
-      expect { f.get }.to raise_error("ERR wrong number of arguments for 'set' command")
+      expect { f.value }.to raise_error("ERR wrong number of arguments for 'set' command")
     end
 
     it 'handles replies with multiple elements' do
       pending('Redis not running', unless: protocol_handler)
       f = protocol_handler.send_request('DEL', 'stuff')
-      f.get
+      f.value
       f = protocol_handler.send_request('RPUSH', 'stuff', 'hello', 'world')
-      f.get.should == 2
+      f.value.should == 2
       f = protocol_handler.send_request('LRANGE', 'stuff', 0, 2)
-      f.get.should == ['hello', 'world']
+      f.value.should == ['hello', 'world']
     end
 
     it 'handles nil values when reading multiple elements' do
@@ -117,7 +117,7 @@ describe 'An IO reactor' do
       protocol_handler.send_request('DEL', 'things')
       protocol_handler.send_request('HSET', 'things', 'hello', 'world')
       f = protocol_handler.send_request('HMGET', 'things', 'hello', 'foo')
-      f.get.should == ['world', nil]
+      f.value.should == ['world', nil]
     end
   end
 end
@@ -185,9 +185,9 @@ module IoSpec
     end
 
     def send_request(*args)
-      future = Cql::Future.new
+      promise = Cql::Promise.new
       @lock.synchronize do
-        @responses << future
+        @responses << promise
       end
       request = "*#{args.size}\r\n"
       args.each do |arg|
@@ -195,17 +195,17 @@ module IoSpec
         request << "$#{arg_str.bytesize}\r\n#{arg_str}\r\n"
       end
       @line_protocol.write(request)
-      future
+      promise.future
     end
 
     def handle_response(result, error=false)
-      future = @lock.synchronize do
+      promise = @lock.synchronize do
         @responses.shift
       end
       if error
-        future.fail!(StandardError.new(result))
+        promise.fail(StandardError.new(result))
       else
-        future.complete!(result)
+        promise.fulfill(result)
       end
     end
 

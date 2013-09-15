@@ -15,13 +15,13 @@ module Cql
       end
 
       let :future do
-        double(:future, get: nil)
+        double(:future, value: nil)
       end
 
       describe '#connect' do
         it 'calls #connect on the async client and waits for the result' do
           async_client.should_receive(:connect).and_return(future)
-          future.should_receive(:get)
+          future.should_receive(:value)
           client.connect
         end
 
@@ -34,7 +34,7 @@ module Cql
       describe '#close' do
         it 'calls #close on the async client and waits for the result' do
           async_client.should_receive(:close).and_return(future)
-          future.should_receive(:get)
+          future.should_receive(:value)
           client.close
         end
 
@@ -63,7 +63,7 @@ module Cql
       describe '#use' do
         it 'calls #use on the async client and waits for the result' do
           async_client.should_receive(:use).with('foo').and_return(future)
-          future.should_receive(:get)
+          future.should_receive(:value)
           client.use('foo')
         end
       end
@@ -72,7 +72,7 @@ module Cql
         it 'calls #execute on the async client and waits for, and returns the result' do
           result = double(:result)
           async_client.stub(:execute).with('SELECT * FROM something', :one).and_return(future)
-          future.stub(:get).and_return(result)
+          future.stub(:value).and_return(result)
           client.execute('SELECT * FROM something', :one).should equal(result)
         end
       end
@@ -84,10 +84,10 @@ module Cql
           async_statement = double(:async_statement, metadata: metadata)
           another_future = double(:another_future)
           async_client.stub(:prepare).with('SELECT * FROM something').and_return(future)
-          future.stub(:get).and_return(async_statement)
+          future.stub(:value).and_return(async_statement)
           statement = client.prepare('SELECT * FROM something')
           async_statement.should_receive(:execute).and_return(another_future)
-          another_future.stub(:get).and_return(result)
+          another_future.stub(:value).and_return(result)
           statement.execute.should equal(result)
           statement.metadata.should equal(metadata)
         end
@@ -103,7 +103,7 @@ module Cql
         it 'replaces the backtrace of the asynchronous call to make it less confusing' do
           error = CqlError.new('Bork')
           error.set_backtrace(['Hello', 'World'])
-          future.stub(:get).and_raise(error)
+          future.stub(:value).and_raise(error)
           async_client.stub(:execute).and_return(future)
           begin
             client.execute('SELECT * FROM something')
@@ -113,7 +113,7 @@ module Cql
         end
 
         it 'does not replace the backtrace of non-CqlError errors' do
-          future.stub(:get).and_raise('Bork')
+          future.stub(:value).and_raise('Bork')
           async_client.stub(:execute).and_return(future)
           begin
             client.execute('SELECT * FROM something')

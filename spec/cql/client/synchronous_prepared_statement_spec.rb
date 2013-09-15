@@ -18,8 +18,12 @@ module Cql
         double(:metadata)
       end
 
+      let :promise do
+        Promise.new
+      end
+
       let :future do
-        Future.new
+        promise.future
       end
 
       describe '#metadata' do
@@ -32,7 +36,7 @@ module Cql
         it 'it calls #execute on the async statement and waits for the result' do
           result = double(:result)
           async_statement.should_receive(:execute).with('one', 'two', :three).and_return(future)
-          future.complete!(result)
+          promise.fulfill(result)
           statement.execute('one', 'two', :three).should equal(result)
         end
       end
@@ -41,8 +45,8 @@ module Cql
         it 'executes the statement multiple times and waits for all the results' do
           result1 = double(:result1)
           result2 = double(:result2)
-          async_statement.stub(:execute).with('one', 'two', :three).and_return(Future.completed(result1))
-          async_statement.stub(:execute).with('four', 'file', :all).and_return(Future.completed(result2))
+          async_statement.stub(:execute).with('one', 'two', :three).and_return(Future.resolved(result1))
+          async_statement.stub(:execute).with('four', 'file', :all).and_return(Future.resolved(result2))
           results = statement.pipeline do |p|
             p.execute('one', 'two', :three)
             p.execute('four', 'file', :all)
@@ -65,7 +69,7 @@ module Cql
         it 'replaces the backtrace of the asynchronous call to make it less confusing' do
           error = CqlError.new('Bork')
           error.set_backtrace(['Hello', 'World'])
-          future.stub(:get).and_raise(error)
+          future.stub(:value).and_raise(error)
           async_statement.stub(:execute).and_return(future)
           begin
             statement.execute('SELECT * FROM something')
@@ -75,7 +79,7 @@ module Cql
         end
 
         it 'does not replace the backtrace of non-CqlError errors' do
-          future.stub(:get).and_raise('Bork')
+          future.stub(:value).and_raise('Bork')
           async_statement.stub(:execute).and_return(future)
           begin
             statement.execute('SELECT * FROM something')

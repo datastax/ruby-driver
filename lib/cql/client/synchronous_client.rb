@@ -29,12 +29,12 @@ module Cql
       end
 
       def connect
-        synchronous_backtrace { @async_client.connect.get }
+        synchronous_backtrace { @async_client.connect.value }
         self
       end
 
       def close
-        synchronous_backtrace { @async_client.close.get }
+        synchronous_backtrace { @async_client.close.value }
         self
       end
 
@@ -47,15 +47,15 @@ module Cql
       end
 
       def use(keyspace)
-        synchronous_backtrace { @async_client.use(keyspace).get }
+        synchronous_backtrace { @async_client.use(keyspace).value }
       end
 
       def execute(cql, consistency=nil)
-        synchronous_backtrace { @async_client.execute(cql, consistency).get }
+        synchronous_backtrace { @async_client.execute(cql, consistency).value }
       end
 
       def prepare(cql)
-        async_statement = synchronous_backtrace { @async_client.prepare(cql).get }
+        async_statement = synchronous_backtrace { @async_client.prepare(cql).value }
         SynchronousPreparedStatement.new(async_statement)
       end
 

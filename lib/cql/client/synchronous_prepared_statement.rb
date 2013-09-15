@@ -12,13 +12,13 @@ module Cql
       end
 
       def execute(*args)
-        synchronous_backtrace { @async_statement.execute(*args).get }
+        synchronous_backtrace { @async_statement.execute(*args).value }
       end
 
       def pipeline
         pl = Pipeline.new(@async_statement)
         yield pl
-        synchronous_backtrace { pl.get }
+        synchronous_backtrace { pl.value }
       end
 
       def async
@@ -37,12 +37,8 @@ module Cql
         @futures << @async_statement.execute(*args)
       end
 
-      def get
-        if @futures.any?
-          Future.combine(*@futures).get
-        else
-          []
-        end
+      def value
+        Future.all(*@futures).value
       end
     end
   end
