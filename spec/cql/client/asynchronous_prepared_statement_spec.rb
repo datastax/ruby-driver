@@ -63,7 +63,7 @@ module Cql
 
       describe '.prepare' do
         it 'prepares a statement on all connections' do
-          f = described_class.prepare(cql, connection_manager, logger)
+          f = described_class.prepare(cql, :one, connection_manager, logger)
           f.value
           connections.each do |c|
             c.requests.should include(Protocol::PrepareRequest.new(cql))
@@ -71,20 +71,20 @@ module Cql
         end
 
         it 'returns a prepared statement object' do
-          f = described_class.prepare(cql, connection_manager, logger)
+          f = described_class.prepare(cql, :two, connection_manager, logger)
           f.value.should be_a(PreparedStatement)
         end
 
         it 'returns a failed future when something goes wrong in the preparation' do
           connections.each(&:close)
-          f = described_class.prepare(cql, connection_manager, logger)
+          f = described_class.prepare(cql, :three, connection_manager, logger)
           expect { f.value }.to raise_error(NotConnectedError)
         end
       end
 
       describe '#metadata' do
         let :statement do
-          described_class.prepare(cql, connection_manager, logger).value
+          described_class.prepare(cql, :all, connection_manager, logger).value
         end
 
         it 'returns the interpreted metadata' do
@@ -95,7 +95,7 @@ module Cql
 
       describe '#execute' do
         let :statement do
-          described_class.prepare(cql, connection_manager, logger).value
+          described_class.prepare(cql, :local_quorum, connection_manager, logger).value
         end
 
         it 'executes itself on one of the connections' do
@@ -115,7 +115,7 @@ module Cql
         it 'sends the default consistency level' do
           statement.execute(11, 'hello')
           request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
-          request.consistency.should == :quorum
+          request.consistency.should == :local_quorum
         end
 
         it 'sends the consistency given as last argument' do

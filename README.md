@@ -118,7 +118,7 @@ A prepared statement can be run many times, but the CQL parsing will only be don
 
 At this time prepared statements are local to a single connection. Even if you connect to multiple nodes a prepared statement is only ever going to be executed against one of the nodes.
 
-# Consistency levels
+# Consistency
 
 The `#execute` (of `Client` and `PreparedStatement`) method supports setting the desired consistency level for the statement:
 
@@ -139,7 +139,7 @@ The possible values are:
 
 The default consistency level is `:quorum`.
 
-Consistency level is ignored for `USE`, `TRUNCATE`, `CREATE` and `ALTER` statements, and some (like `:any`) aren't allowed in all situations.
+Consistency is ignored for `USE`, `TRUNCATE`, `CREATE` and `ALTER` statements, and some (like `:any`) aren't allowed in all situations.
 
 ## CQL3
 

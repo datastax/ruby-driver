@@ -9,6 +9,7 @@ module Cql
         @io_reactor = options[:io_reactor] || Io::IoReactor.new(Protocol::CqlProtocolHandler)
         @hosts = extract_hosts(options)
         @initial_keyspace = options[:keyspace]
+        @default_consistency = options[:default_consistency] || DEFAULT_CONSISTENCY
         @lock = Mutex.new
         @connected = false
         @connecting = false
@@ -88,20 +89,19 @@ module Cql
 
       def execute(cql, consistency=nil)
         with_failure_handler do
-          consistency ||= DEFAULT_CONSISTENCY_LEVEL
-          execute_request(Protocol::QueryRequest.new(cql, consistency))
+          execute_request(Protocol::QueryRequest.new(cql, consistency || @default_consistency))
         end
       end
 
       def prepare(cql)
         with_failure_handler do
-          AsynchronousPreparedStatement.prepare(cql, @connection_manager, @logger)
+          AsynchronousPreparedStatement.prepare(cql, @default_consistency, @connection_manager, @logger)
         end
       end
 
       private
 
-      DEFAULT_CONSISTENCY_LEVEL = :quorum
+      DEFAULT_CONSISTENCY = :quorum
       DEFAULT_PORT = 9042
       DEFAULT_CONNECTION_TIMEOUT = 10
 
