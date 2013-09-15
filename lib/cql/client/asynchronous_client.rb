@@ -22,56 +22,44 @@ module Cql
 
       def connect
         @lock.synchronize do
-          return @connected_promise.future if can_execute?
+          return @connected_future if can_execute?
           @connecting = true
-          @connected_promise = Promise.new
-        end
-        when_not_closing do
-          setup_connections
-        end
-        @connected_promise.future.on_value do
-          register_event_listener(@connection_manager.random_connection)
-          @lock.synchronize do
-            @connecting = false
-            @connected = true
-            @logger.info('Cluster connection complete')
+          @connected_future = begin
+            if @closing
+              f = @closed_future
+              f = f.flat_map { setup_connections }
+              f = f.fallback { setup_connections }
+            else
+              f = setup_connections
+            end
+            f.on_value do |connections|
+              @connection_manager.add_connections(connections)
+              register_event_listener(@connection_manager.random_connection)
+            end
+            f.map { self }
           end
         end
-        @connected_promise.future.on_failure do |e|
-          @lock.synchronize do
-            @connecting = false
-            @connected = false
-            @logger.error('Failed connecting to cluster: %s' % e.message)
-          end
-        end
-        @connected_promise.future
+        @connected_future.on_complete(&method(:connected))
+        @connected_future
       end
 
       def close
         @lock.synchronize do
-          return @closed_promise if @closing
+          return @closed_future if @closing
           @closing = true
-          @closed_promise = Promise.new
-        end
-        when_not_connecting do
-          f = @io_reactor.stop
-          @closed_promise.observe(f.map { self })
-        end
-        @closed_promise.future.on_value do
-          @lock.synchronize do
-            @closing = false
-            @connected = false
-            @logger.info('Cluster disconnect complete')
+          @closed_future = begin
+            if @connecting
+              f = @connected_future
+              f = f.flat_map { @io_reactor.stop }
+              f = f.fallback { @io_reactor.stop }
+            else
+              f = @io_reactor.stop
+            end
+            f.map { self }
           end
         end
-        @closed_promise.future.on_failure do |e|
-          @lock.synchronize do
-            @closing = false
-            @connected = false
-            @logger.error('Cluster disconnect failed: %s' % e.message)
-          end
-        end
-        @closed_promise.future
+        @closed_future.on_complete(&method(:closed))
+        @closed_future
       end
 
       def connected?
@@ -136,6 +124,39 @@ module Cql
         end
       end
 
+      def connected(f)
+        if f.resolved?
+          @lock.synchronize do
+            @connecting = false
+            @connected = true
+          end
+          @logger.info('Cluster connection complete')
+        else
+          @lock.synchronize do
+            @connecting = false
+            @connected = false
+          end
+          f.on_failure do |e|
+            @logger.error('Failed connecting to cluster: %s' % e.message)
+          end
+          close
+        end
+      end
+
+      def closed(f)
+        @lock.synchronize do
+          @closing = false
+          @connected = false
+          if f.resolved?
+            @logger.info('Cluster disconnect complete')
+          else
+            f.on_failure do |e|
+              @logger.error('Cluster disconnect failed: %s' % e.message)
+            end
+          end
+        end
+      end
+
       def can_execute?
         !@closing && (@connecting || (@connected && @connection_manager.connected?))
       end
@@ -149,22 +170,6 @@ module Cql
         yield
       rescue => e
         Future.failed(e)
-      end
-
-      def when_not_connecting(&callback)
-        if @connecting
-          @connected_promise.future.on_complete(&callback)
-        else
-          callback.call
-        end
-      end
-
-      def when_not_closing(&callback)
-        if @closing
-          @closed_promise.future.on_complete(&callback)
-        else
-          callback.call
-        end
       end
 
       def register_event_listener(connection)
@@ -238,27 +243,18 @@ module Cql
         f = @io_reactor.start.flat_map do
           connect_to_hosts(@hosts, @initial_keyspace, true)
         end
-        f.on_failure do |e|
-          fail_connecting(e)
-        end
-        f.on_value do |connections|
+        f = f.map do |connections|
           connected_connections = connections.select(&:connected?)
-          if connected_connections.any?
-            @connection_manager.add_connections(connected_connections)
-            @connected_promise.fulfill(self)
-          else
-            fail_connecting(connections.first.error)
+          if connected_connections.empty?
+            e = connections.first.error
+            if e.is_a?(Cql::QueryError) && e.code == 0x100
+              e = AuthenticationError.new(e.message)
+            end
+            raise e
           end
+          connected_connections
         end
-      end
-
-      def fail_connecting(e)
-        close
-        if e.is_a?(Cql::QueryError) && e.code == 0x100
-          @connected_promise.fail(AuthenticationError.new(e.message))
-        else
-          @connected_promise.fail(e)
-        end
+        f
       end
 
       def connect_to_hosts(hosts, initial_keyspace, peer_discovery)
