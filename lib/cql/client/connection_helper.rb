@@ -4,14 +4,11 @@ module Cql
   module Client
     # @private
     class ConnectionHelper
-      DEFAULT_PORT = 9042
-      DEFAULT_CONNECTION_TIMEOUT = 10
-
       def initialize(io_reactor, port, credentials, connection_timeout, logger)
         @io_reactor = io_reactor
-        @port = port || DEFAULT_PORT
+        @port = port
         @credentials = credentials
-        @connection_timeout = connection_timeout || DEFAULT_CONNECTION_TIMEOUT
+        @connection_timeout = connection_timeout
         @logger = logger
         @request_runner = RequestRunner.new
         @keyspace_changer = KeyspaceChanger.new

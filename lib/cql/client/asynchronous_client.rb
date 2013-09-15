@@ -16,7 +16,10 @@ module Cql
         @request_runner = RequestRunner.new
         @keyspace_changer = KeyspaceChanger.new
         @connection_manager = ConnectionManager.new
-        @connection_helper = ConnectionHelper.new(@io_reactor, options[:port], options[:credentials], options[:connection_timeout], @logger)
+        port = options[:port] || DEFAULT_PORT
+        credentials = options[:credentials]
+        connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
+        @connection_helper = ConnectionHelper.new(@io_reactor, port, credentials, connection_timeout, @logger)
       end
 
       def connect
@@ -99,6 +102,8 @@ module Cql
       private
 
       DEFAULT_CONSISTENCY_LEVEL = :quorum
+      DEFAULT_PORT = 9042
+      DEFAULT_CONNECTION_TIMEOUT = 10
 
       def extract_hosts(options)
         if options[:hosts]
