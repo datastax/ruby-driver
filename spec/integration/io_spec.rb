@@ -185,9 +185,9 @@ module IoSpec
     end
 
     def send_request(*args)
-      future = Cql::Future.new
+      promise = Cql::Promise.new
       @lock.synchronize do
-        @responses << future
+        @responses << promise
       end
       request = "*#{args.size}\r\n"
       args.each do |arg|
@@ -195,17 +195,17 @@ module IoSpec
         request << "$#{arg_str.bytesize}\r\n#{arg_str}\r\n"
       end
       @line_protocol.write(request)
-      future
+      promise.future
     end
 
     def handle_response(result, error=false)
-      future = @lock.synchronize do
+      promise = @lock.synchronize do
         @responses.shift
       end
       if error
-        future.fail(StandardError.new(result))
+        promise.fail(StandardError.new(result))
       else
-        future.succeed(result)
+        promise.fulfill(result)
       end
     end
 
