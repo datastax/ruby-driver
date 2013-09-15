@@ -454,13 +454,24 @@ module Cql
       end
 
       describe '#execute' do
+        let :cql do
+          'UPDATE stuff SET thing = 1 WHERE id = 3'
+        end
+
         before do
           client.connect.value
         end
 
-        it 'asks the connection to execute the query' do
-          client.execute('UPDATE stuff SET thing = 1 WHERE id = 3').value
-          last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', :quorum)
+        it 'asks the connection to execute the query using the default consistency level' do
+          client.execute(cql).value
+          last_request.should == Protocol::QueryRequest.new(cql, :quorum)
+        end
+
+        it 'uses the consistency specified when the client was created' do
+          client = described_class.new(connection_options.merge(default_consistency: :all))
+          client.connect.value
+          client.execute(cql).value
+          last_request.should == Protocol::QueryRequest.new(cql, :all)
         end
 
         it 'uses the specified consistency' do
@@ -619,6 +630,10 @@ module Cql
           [['stuff', 'things', 'item', :varchar]]
         end
 
+        let :cql do
+          'SELECT * FROM stuff.things WHERE item = ?'
+        end
+
         before do
           handle_request do |request|
             if request.is_a?(Protocol::PrepareRequest)
@@ -637,23 +652,31 @@ module Cql
         end
 
         it 'returns a prepared statement' do
-          statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').value
+          statement = client.prepare(cql).value
           statement.should_not be_nil
         end
 
-        it 'executes a prepared statement' do
-          statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').value
+        it 'executes a prepared statement using the default consistency level' do
+          statement = client.prepare(cql).value
           statement.execute('foo').value
           last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], :quorum)
         end
 
+        it 'executes a prepared statement using the consistency specified when the client was created' do
+          client = described_class.new(connection_options.merge(default_consistency: :all))
+          client.connect.value
+          statement = client.prepare(cql).value
+          statement.execute('foo').value
+          last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], :all)
+        end
+
         it 'returns a prepared statement that knows the metadata' do
-          statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').value
+          statement = client.prepare(cql).value
           statement.metadata['item'].type == :varchar
         end
 
         it 'executes a prepared statement with a specific consistency level' do
-          statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').value
+          statement = client.prepare(cql).value
           statement.execute('thing', :local_quorum).value
           last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['thing'], :local_quorum)
         end
@@ -672,7 +695,7 @@ module Cql
                 Protocol::PreparedResultResponse.new(id, metadata)
               end
             end
-            statement = client.prepare('SELECT * FROM stuff.things WHERE item = ?').value
+            statement = client.prepare(cql).value
             f = statement.execute
             expect { f.value }.to raise_error(ArgumentError)
           end

@@ -5,15 +5,16 @@ module Cql
     # @private
     class AsynchronousPreparedStatement < PreparedStatement
       # @private
-      def initialize(cql, connection_manager, logger)
+      def initialize(cql, default_consistency, connection_manager, logger)
         @cql = cql
+        @default_consistency = default_consistency
         @connection_manager = connection_manager
         @logger = logger
         @request_runner = RequestRunner.new
       end
 
-      def self.prepare(cql, connection_manager, logger)
-        statement = new(cql, connection_manager, logger)
+      def self.prepare(cql, default_consistency, connection_manager, logger)
+        statement = new(cql, default_consistency, connection_manager, logger)
         futures = connection_manager.map do |connection|
           statement.prepare(connection)
         end
@@ -57,7 +58,7 @@ module Cql
       def run(args, connection)
         statement_id = connection[self]
         bound_args = args.shift(@raw_metadata.size)
-        consistency_level = args.shift || :quorum
+        consistency_level = args.shift || @default_consistency
         statement_id = connection[self]
         request = Protocol::ExecuteRequest.new(statement_id, @raw_metadata, bound_args, consistency_level)
         @request_runner.execute(connection, request)
