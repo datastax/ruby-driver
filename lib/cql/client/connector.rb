@@ -2,6 +2,7 @@
 
 module Cql
   module Client
+    # @private
     class Connector
       DEFAULT_PORT = 9042
       DEFAULT_CONNECTION_TIMEOUT = 10
