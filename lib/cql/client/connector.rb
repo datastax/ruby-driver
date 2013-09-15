@@ -3,21 +3,22 @@
 module Cql
   module Client
     class Connector
-      def initialize(io_reactor, request_runner, logger, options)
+      DEFAULT_PORT = 9042
+      DEFAULT_CONNECTION_TIMEOUT = 10
+
+      def initialize(io_reactor, port, credentials, connection_timeout, logger)
         @io_reactor = io_reactor
-        @request_runner = request_runner
+        @port = port || DEFAULT_PORT
+        @credentials = credentials
+        @connection_timeout = connection_timeout || DEFAULT_CONNECTION_TIMEOUT
         @logger = logger
-        @hosts = extract_hosts(options)
-        @port = options[:port] || 9042
-        @connection_timeout = options[:connection_timeout] || 10
-        @credentials = options[:credentials]
-        @initial_keyspace = options[:keyspace]
-        @keyspace_changer = KeyspaceChanger.new(@request_runner)
+        @request_runner = RequestRunner.new
+        @keyspace_changer = KeyspaceChanger.new
       end
 
-      def setup_connections
+      def connect(hosts, initial_keyspace)
         f = @io_reactor.start.flat_map do
-          connect_to_hosts(@hosts, @initial_keyspace, true)
+          connect_to_hosts(hosts, initial_keyspace, true)
         end
         f = f.map do |connections|
           connected_connections = connections.select(&:connected?)
@@ -62,16 +63,6 @@ module Cql
       end
 
       private
-
-      def extract_hosts(options)
-        if options[:hosts]
-          options[:hosts].uniq
-        elsif options[:host]
-          options[:host].split(',').uniq
-        else
-          %w[localhost]
-        end
-      end
 
       def connect_to_hosts(hosts, initial_keyspace, peer_discovery)
         connection_futures = hosts.map do |host|

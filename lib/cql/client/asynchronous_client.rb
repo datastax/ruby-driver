@@ -7,14 +7,16 @@ module Cql
       def initialize(options={})
         @logger = options[:logger] || NullLogger.new
         @io_reactor = options[:io_reactor] || Io::IoReactor.new(Protocol::CqlProtocolHandler)
+        @hosts = extract_hosts(options)
+        @initial_keyspace = options[:keyspace]
         @lock = Mutex.new
         @connected = false
         @connecting = false
         @closing = false
         @request_runner = RequestRunner.new
+        @keyspace_changer = KeyspaceChanger.new
         @connection_manager = ConnectionManager.new
-        @connector = Connector.new(@io_reactor, @request_runner, @logger, options)
-        @keyspace_changer = KeyspaceChanger.new(@request_runner)
+        @connector = Connector.new(@io_reactor, options[:port], options[:credentials], options[:connection_timeout], @logger)
       end
 
       def connect
@@ -22,7 +24,7 @@ module Cql
           return @connected_future if can_execute?
           @connecting = true
           @connected_future = begin
-            f = @connector.setup_connections
+            f = @connector.connect(@hosts, @initial_keyspace)
             if @closing
               ff = @closed_future
               ff = ff.flat_map { f }
@@ -97,6 +99,16 @@ module Cql
       private
 
       DEFAULT_CONSISTENCY_LEVEL = :quorum
+
+      def extract_hosts(options)
+        if options[:hosts]
+          options[:hosts].uniq
+        elsif options[:host]
+          options[:host].split(',').uniq
+        else
+          %w[localhost]
+        end
+      end
 
       def connected(f)
         if f.resolved?
