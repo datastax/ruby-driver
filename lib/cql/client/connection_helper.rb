@@ -43,7 +43,11 @@ module Cql
           unconnected_peers = result.select do |row|
             seed_dcs.include?(row['data_center']) && seed_connections.none? { |c| c[:host_id] == row['host_id'] }
           end
-          @logger.debug('%d additional nodes found' % unconnected_peers.size)
+          if unconnected_peers.empty?
+            @logger.debug('No additional nodes found')
+          else
+            @logger.debug('%d additional nodes found' % unconnected_peers.size)
+          end
           node_addresses = unconnected_peers.map do |row|
             rpc_address = row['rpc_address'].to_s
             if rpc_address == '0.0.0.0'
