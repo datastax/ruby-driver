@@ -58,9 +58,9 @@ module Cql
       def run(args, connection)
         statement_id = connection[self]
         bound_args = args.shift(@raw_metadata.size)
-        consistency_level = args.shift || @default_consistency
+        consistency = args.shift || @default_consistency
         statement_id = connection[self]
-        request = Protocol::ExecuteRequest.new(statement_id, @raw_metadata, bound_args, consistency_level)
+        request = Protocol::ExecuteRequest.new(statement_id, @raw_metadata, bound_args, consistency)
         @request_runner.execute(connection, request)
       end
     end

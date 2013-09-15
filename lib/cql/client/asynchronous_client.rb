@@ -9,7 +9,7 @@ module Cql
         @io_reactor = options[:io_reactor] || Io::IoReactor.new(Protocol::CqlProtocolHandler)
         @hosts = extract_hosts(options)
         @initial_keyspace = options[:keyspace]
-        @default_consistency = options[:default_consistency] || DEFAULT_CONSISTENCY_LEVEL
+        @default_consistency = options[:default_consistency] || DEFAULT_CONSISTENCY
         @lock = Mutex.new
         @connected = false
         @connecting = false
@@ -101,7 +101,7 @@ module Cql
 
       private
 
-      DEFAULT_CONSISTENCY_LEVEL = :quorum
+      DEFAULT_CONSISTENCY = :quorum
       DEFAULT_PORT = 9042
       DEFAULT_CONNECTION_TIMEOUT = 10
 

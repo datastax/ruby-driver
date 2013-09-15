@@ -146,7 +146,7 @@ describe 'A CQL client' do
       expect { client.execute('BAD cql') }.to raise_error(Cql::CqlError)
     end
 
-    it 'raises an error for bad consistency levels' do
+    it 'raises an error for bad consistency' do
       expect { client.execute('SELECT * FROM system.peers', :helloworld) }.to raise_error(ArgumentError)
     end
 
