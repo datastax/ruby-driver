@@ -22,18 +22,19 @@ module Cql
           return @connected_future if can_execute?
           @connecting = true
           @connected_future = begin
+            f = @connector.setup_connections
             if @closing
-              f = @closed_future
-              f = f.flat_map { @connector.setup_connections }
-              f = f.fallback { @connector.setup_connections }
+              ff = @closed_future
+              ff = ff.flat_map { f }
+              ff = ff.fallback { f }
             else
-              f = @connector.setup_connections
+              ff = f
             end
-            f.on_value do |connections|
+            ff.on_value do |connections|
               @connection_manager.add_connections(connections)
               register_event_listener(@connection_manager.random_connection)
             end
-            f.map { self }
+            ff.map { self }
           end
         end
         @connected_future.on_complete(&method(:connected))
@@ -45,14 +46,15 @@ module Cql
           return @closed_future if @closing
           @closing = true
           @closed_future = begin
+            f = @io_reactor.stop
             if @connecting
-              f = @connected_future
-              f = f.flat_map { @io_reactor.stop }
-              f = f.fallback { @io_reactor.stop }
+              ff = @connected_future
+              ff = f.flat_map { ff }
+              ff = f.fallback { ff }
             else
-              f = @io_reactor.stop
+              ff = f
             end
-            f.map { self }
+            ff.map { self }
           end
         end
         @closed_future.on_complete(&method(:closed))
