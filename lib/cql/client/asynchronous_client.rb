@@ -16,7 +16,7 @@ module Cql
         @request_runner = RequestRunner.new
         @keyspace_changer = KeyspaceChanger.new
         @connection_manager = ConnectionManager.new
-        @connector = Connector.new(@io_reactor, options[:port], options[:credentials], options[:connection_timeout], @logger)
+        @connection_helper = ConnectionHelper.new(@io_reactor, options[:port], options[:credentials], options[:connection_timeout], @logger)
       end
 
       def connect
@@ -24,7 +24,7 @@ module Cql
           return @connected_future if can_execute?
           @connecting = true
           @connected_future = begin
-            f = @connector.connect(@hosts, @initial_keyspace)
+            f = @connection_helper.connect(@hosts, @initial_keyspace)
             if @closing
               ff = @closed_future
               ff = ff.flat_map { f }
@@ -178,7 +178,7 @@ module Cql
 
       def handle_topology_change
         seed_connections = @connection_manager.snapshot
-        f = @connector.discover_peers(seed_connections, keyspace)
+        f = @connection_helper.discover_peers(seed_connections, keyspace)
         f.on_value do |connections|
           connected_connections = connections.select(&:connected?)
           if connected_connections.any?
