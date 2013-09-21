@@ -27,7 +27,11 @@ module Cql
       end
 
       def write_uuid(buffer, uuid)
-        write_varint(buffer, uuid.value)
+        v = uuid.value
+        write_int(buffer, (v >> 96) & 0xffffffff)
+        write_int(buffer, (v >> 64) & 0xffffffff)
+        write_int(buffer, (v >> 32) & 0xffffffff)
+        write_int(buffer, v & 0xffffffff)
       end
 
       def write_string_list(buffer, strs)

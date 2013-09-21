@@ -121,6 +121,11 @@ module Cql
           buffer.should eql_bytes("\xA4\xA7\t\x00$\xE1\x11\xDF\x89$\x00\x1F\xF3Y\x17\x11")
         end
 
+        it 'encodes a UUID as 16 bytes' do
+          Encoding.write_uuid(buffer, Uuid.new('00000000-24e1-11df-8924-001ff3591711'))
+          buffer.size.should eql(16)
+        end
+
         it 'appends to the buffer' do
           buffer << 'FOO'
           Encoding.write_uuid(buffer, uuid)

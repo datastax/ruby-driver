@@ -44,6 +44,10 @@ describe 'Loading and storing UUIDs' do
       store_statement.execute(Cql::Uuid.new('39bc6ab8-d0f5-11e2-b041-adb2253022a3'), 'hello world')
       client.execute(%<SELECT * FROM ids>).first['id'].should == Cql::Uuid.new('39bc6ab8-d0f5-11e2-b041-adb2253022a3')
     end
+
+    it 'works even when the UUID could be represented as fewer than 16 bytes' do
+      store_statement.execute(Cql::Uuid.new('00853800-5400-11e2-90c5-3409d6a3565d'), 'hello world')
+    end
   end
 
   context Cql::TimeUuid::Generator do
