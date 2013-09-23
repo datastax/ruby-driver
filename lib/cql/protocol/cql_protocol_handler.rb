@@ -19,8 +19,9 @@ module Cql
       # @return [String] the current keyspace for the underlying connection
       attr_reader :keyspace
 
-      def initialize(connection)
+      def initialize(connection, scheduler)
         @connection = connection
+        @scheduler = scheduler
         @connection.on_data(&method(:receive_data))
         @connection.on_closed(&method(:socket_closed))
         @promises = Array.new(128) { nil }
@@ -121,6 +122,9 @@ module Cql
             @request_queue_in << promise
           end
         end
+        @scheduler.schedule_timer(5).on_value do
+          promise.time_out!
+        end
         promise.future
       end
 
@@ -140,7 +144,19 @@ module Cql
 
         def initialize(request)
           @request = request
+          @timed_out = false
           super()
+        end
+
+        def timed_out?
+          @timed_out
+        end
+
+        def time_out!
+          unless future.completed?
+            @timed_out = true
+            fail(TimeoutError.new)
+          end
         end
 
         def encode_frame!
@@ -182,7 +198,9 @@ module Cql
         if response.is_a?(Protocol::SetKeyspaceResultResponse)
           @keyspace = response.keyspace
         end
-        promise.fulfill(response)
+        unless promise.timed_out?
+          promise.fulfill(response)
+        end
       end
 
       def flush_request_queue
@@ -198,8 +216,12 @@ module Cql
           @lock.synchronize do
             if @request_queue_out.any? && (id = next_stream_id)
               promise = @request_queue_out.shift
-              frame = promise.frame
-              @promises[id] = promise
+              if promise.timed_out?
+                id = nil
+              else
+                frame = promise.frame
+                @promises[id] = promise
+              end
             end
           end
           if id

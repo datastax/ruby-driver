@@ -7,11 +7,15 @@ module Cql
   module Protocol
     describe CqlProtocolHandler do
       let :protocol_handler do
-        described_class.new(connection)
+        described_class.new(connection, scheduler)
       end
 
       let :connection do
         double(:connection)
+      end
+
+      let :scheduler do
+        double(:scheduler)
       end
 
       let :request do
@@ -32,6 +36,7 @@ module Cql
         connection.stub(:on_connected) do |&h|
           connection.stub(:connected_listener).and_return(h)
         end
+        scheduler.stub(:schedule_timer).and_return(Promise.new.future)
         protocol_handler
       end
 
@@ -66,7 +71,6 @@ module Cql
         before do
           connection.stub(:write).and_yield(buffer)
           connection.stub(:closed?).and_return(false)
-
           connection.stub(:connected?).and_return(true)
         end
 
@@ -149,6 +153,49 @@ module Cql
             connection.stub(:closed?).and_return(true)
             f = protocol_handler.send_request(request)
             expect { f.value }.to raise_error(NotConnectedError)
+          end
+        end
+
+        context 'when the request times out' do
+          let :timer_promise do
+            Promise.new
+          end
+
+          before do
+            scheduler.stub(:schedule_timer).with(5).and_return(timer_promise.future)
+          end
+
+          it 'raises a TimeoutError' do
+            f = protocol_handler.send_request(request)
+            timer_promise.fulfill
+            expect { f.value }.to raise_error(TimeoutError)
+          end
+
+          it 'does not attempt to fulfill the promise when the request has already timed out' do
+            f = protocol_handler.send_request(request)
+            timer_promise.fulfill
+            expect { connection.data_listener.call([0x81, 0, 0, 2, 0].pack('C4N')) }.to_not raise_error
+          end
+
+          it 'never sends a request when it has already timed out' do
+            write_count = 0
+            connection.stub(:write) do |s, &h|
+              write_count += 1
+              if h
+                h.call(buffer)
+              else
+                buffer << s
+              end
+            end
+            128.times do
+              scheduler.stub(:schedule_timer).with(5).and_return(Promise.new.future)
+              protocol_handler.send_request(request)
+            end
+            scheduler.stub(:schedule_timer).with(5).and_return(timer_promise.future)
+            f = protocol_handler.send_request(request)
+            timer_promise.fulfill
+            128.times { |i| connection.data_listener.call([0x81, 0, i, 2, 0].pack('C4N')) }
+            write_count.should == 128
           end
         end
       end

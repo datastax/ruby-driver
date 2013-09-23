@@ -32,7 +32,7 @@ module Cql
     # @example A protocol handler that processes whole lines
     #
     #   class LineProtocolHandler
-    #     def initialize(connection)
+    #     def initialize(connection, scheduler)
     #       @connection = connection
     #       # register a listener method for new data, this must be done in the
     #       # in the constructor, and only one listener can be registered
@@ -184,7 +184,7 @@ module Cql
       def connect(host, port, timeout)
         connection = Connection.new(host, port, timeout, @unblocker, @clock)
         f = connection.connect
-        protocol_handler = @protocol_handler_factory.new(connection)
+        protocol_handler = @protocol_handler_factory.new(connection, self)
         @io_loop.add_socket(connection)
         @unblocker.unblock!
         f.map { protocol_handler }

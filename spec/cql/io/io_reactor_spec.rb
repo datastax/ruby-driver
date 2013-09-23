@@ -79,7 +79,7 @@ module Cql
 
         it 'closes all sockets' do
           connection = nil
-          protocol_handler_factory.stub(:new) do |sh|
+          protocol_handler_factory.stub(:new) do |sh, _|
             connection = sh
             double(:protocol_handler)
           end
@@ -141,7 +141,7 @@ module Cql
         end
 
         before do
-          protocol_handler_factory.stub(:new) do |connection|
+          protocol_handler_factory.stub(:new) do |connection, _|
             connection.to_io.stub(:connect_nonblock)
             protocol_handler.stub(:connection).and_return(connection)
             protocol_handler
@@ -163,6 +163,12 @@ module Cql
 
         after do
           reactor.stop if reactor.running?
+        end
+
+        it 'calls #new on the protocol handler factory with the connection and the reactor itself' do
+          reactor.start.value
+          reactor.connect('example.com', 9999, 5).value
+          protocol_handler_factory.should have_received(:new).with(an_instance_of(Connection), reactor)
         end
 
         it 'returns a future that resolves to a new protocol handler' do

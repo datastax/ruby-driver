@@ -124,7 +124,7 @@ end
 
 module IoSpec
   class TestConnection
-    def initialize(connection)
+    def initialize(connection, scheduler)
       @connection = connection
       @connection.on_data(&method(:receive_data))
       @lock = Mutex.new
@@ -143,7 +143,7 @@ module IoSpec
   end
 
   class LineProtocolHandler
-    def initialize(connection)
+    def initialize(connection, scheduler)
       @connection = connection
       @connection.on_data(&method(:process_data))
       @lock = Mutex.new
@@ -176,8 +176,8 @@ module IoSpec
   end
 
   class RedisProtocolHandler
-    def initialize(connection)
-      @line_protocol = LineProtocolHandler.new(connection)
+    def initialize(connection, scheduler)
+      @line_protocol = LineProtocolHandler.new(connection, scheduler)
       @line_protocol.on_line(&method(:handle_line))
       @lock = Mutex.new
       @responses = []
