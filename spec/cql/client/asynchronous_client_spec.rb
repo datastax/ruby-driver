@@ -708,7 +708,11 @@ module Cql
 
           it 'prepares the statement on all connections' do
             statement = client.prepare('SELECT * FROM stuff WHERE item = ?').value
-            10.times { statement.execute('hello').value }
+            started_at = Time.now
+            until connections.map { |c| c.requests.last }.all? { |r| r.is_a?(Protocol::ExecuteRequest) }
+              statement.execute('hello').value
+              raise 'Did not receive EXECUTE requests on all connections within 5s' if (Time.now - started_at) > 5
+            end
             connections.map { |c| c.requests.last }.should == [
               Protocol::ExecuteRequest.new(id, metadata, ['hello'], :quorum),
               Protocol::ExecuteRequest.new(id, metadata, ['hello'], :quorum),
