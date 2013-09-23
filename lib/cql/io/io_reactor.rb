@@ -197,9 +197,7 @@ module Cql
       # @return [Cql::Future] a future that completes when the timer expires
       #
       def schedule_timer(timeout)
-        p = Promise.new
-        @io_loop.schedule_timer(timeout, p)
-        p.future
+        @io_loop.schedule_timer(timeout)
       end
 
       def to_s
@@ -278,12 +276,13 @@ module Cql
         end
       end
 
-      def schedule_timer(timeout, promise)
+      def schedule_timer(timeout, promise=Promise.new)
         @lock.synchronize do
           timers = @timers.reject { |pair| pair[1].nil? }
           timers << [@clock.now + timeout, promise]
           @timers = timers
         end
+        promise.future
       end
 
       def close_sockets
