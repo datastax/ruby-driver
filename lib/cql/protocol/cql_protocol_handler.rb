@@ -104,7 +104,7 @@ module Cql
       #   the response
       def send_request(request)
         return Future.failed(NotConnectedError.new) if closed?
-        promise = Promise.new
+        promise = RequestPromise.new(request)
         id = nil
         @lock.synchronize do
           if (id = next_stream_id)
@@ -117,7 +117,8 @@ module Cql
           end
         else
           @lock.synchronize do
-            @request_queue_in << [request.encode_frame(0), promise]
+            promise.encode_frame!
+            @request_queue_in << promise
           end
         end
         promise.future
@@ -132,6 +133,20 @@ module Cql
       end
 
       private
+
+      # @private
+      class RequestPromise < Promise
+        attr_reader :request, :frame
+
+        def initialize(request)
+          @request = request
+          super()
+        end
+
+        def encode_frame!
+          @frame = @request.encode_frame(0)
+        end
+      end
 
       def receive_data(data)
         @current_frame << data
@@ -179,16 +194,17 @@ module Cql
         end
         while true
           id = nil
-          request_buffer = nil
+          frame = nil
           @lock.synchronize do
             if @request_queue_out.any? && (id = next_stream_id)
-              request_buffer, promise = @request_queue_out.shift
+              promise = @request_queue_out.shift
+              frame = promise.frame
               @promises[id] = promise
             end
           end
           if id
-            Protocol::Request.change_stream_id(id, request_buffer)
-            @connection.write(request_buffer)
+            Protocol::Request.change_stream_id(id, frame)
+            @connection.write(frame)
           else
             break
           end
@@ -204,12 +220,12 @@ module Cql
               @promises[i] = nil
             end
           end
-          @request_queue_in.each do |_, future|
-            future.fail(request_failure_cause)
+          @request_queue_in.each do |promise|
+            promise.fail(request_failure_cause)
           end
           @request_queue_in.clear
-          @request_queue_out.each do |_, future|
-            future.fail(request_failure_cause)
+          @request_queue_out.each do |promise|
+            promise.fail(request_failure_cause)
           end
           @request_queue_out.clear
         end
