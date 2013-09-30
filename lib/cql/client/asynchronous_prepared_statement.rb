@@ -39,8 +39,7 @@ module Cql
       # @private
       def prepare(connection)
         prepare_request = Protocol::PrepareRequest.new(@cql)
-        f = connection.send_request(prepare_request)
-        f.on_value do |response|
+        f = @request_runner.execute(connection, prepare_request) do |response|
           connection[self] = response.id
           unless @raw_metadata
             # NOTE: this is not thread safe, but the worst that could happen

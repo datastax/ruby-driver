@@ -80,6 +80,14 @@ module Cql
           f = described_class.prepare(cql, :three, connection_manager, logger)
           expect { f.value }.to raise_error(NotConnectedError)
         end
+
+        it 'returns a failed future if the preparation results in an error' do
+          connections.each do |connection|
+            connection.stub(:send_request).and_return(Future.resolved(Protocol::ErrorResponse.new(99, 'bork')))
+          end
+          f = described_class.prepare(cql, :quorum, connection_manager, logger)
+          expect { f.value }.to raise_error('bork')
+        end
       end
 
       describe '#metadata' do
