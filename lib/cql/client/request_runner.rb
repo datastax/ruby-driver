@@ -17,7 +17,11 @@ module Cql
           when Protocol::AuthenticateResponse
             AuthenticationRequired.new(response.authentication_class)
           else
-            nil
+            if block_given?
+              yield response
+            else
+              nil
+            end
           end
         end
       end

@@ -108,6 +108,12 @@ module Cql
           result = run('hibbly hobbly')
           result.should be_nil
         end
+
+        it 'allows the caller to transform unknown responses' do
+          connection.stub(:send_request).and_return(Future.resolved('hibbly hobbly'))
+          result = runner.execute(connection, request) { |response| response.reverse }.value
+          result.should == 'hibbly hobbly'.reverse
+        end
       end
     end
   end
