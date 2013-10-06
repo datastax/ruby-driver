@@ -162,17 +162,17 @@ module Cql
           end
 
           before do
-            scheduler.stub(:schedule_timer).with(5).and_return(timer_promise.future)
+            scheduler.stub(:schedule_timer).with(3).and_return(timer_promise.future)
           end
 
           it 'raises a TimeoutError' do
-            f = protocol_handler.send_request(request)
+            f = protocol_handler.send_request(request, 3)
             timer_promise.fulfill
             expect { f.value }.to raise_error(TimeoutError)
           end
 
           it 'does not attempt to fulfill the promise when the request has already timed out' do
-            f = protocol_handler.send_request(request)
+            f = protocol_handler.send_request(request, 3)
             timer_promise.fulfill
             expect { connection.data_listener.call([0x81, 0, 0, 2, 0].pack('C4N')) }.to_not raise_error
           end
@@ -192,7 +192,7 @@ module Cql
               protocol_handler.send_request(request)
             end
             scheduler.stub(:schedule_timer).with(5).and_return(timer_promise.future)
-            f = protocol_handler.send_request(request)
+            f = protocol_handler.send_request(request, 5)
             timer_promise.fulfill
             128.times { |i| connection.data_listener.call([0x81, 0, i, 2, 0].pack('C4N')) }
             write_count.should == 128

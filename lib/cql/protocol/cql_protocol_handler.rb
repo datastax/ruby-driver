@@ -99,11 +99,19 @@ module Cql
       #
       # Returns a future that will resolve to the response. When the connection
       # closes the futures of all active requests will be failed with the error
-      # that caused the connection to close, or nil
+      # that caused the connection to close, or nil.
       #
+      # When `timeout` is specified the future will fail with {Cql::TimeoutError}
+      # after that many seconds have passed. If a response arrives after that
+      # time it will be lost. If a response never arrives for the request the
+      # channel occupied by the request will _not_ be reused.
+      #
+      # @param [Cql::Protocol::Request] request
+      # @param [Float] timeout an optional number of seconds to wait until
+      #   failing the request
       # @return [Cql::Future<Cql::Protocol::Response>] a future that resolves to
       #   the response
-      def send_request(request)
+      def send_request(request, timeout=nil)
         return Future.failed(NotConnectedError.new) if closed?
         promise = RequestPromise.new(request)
         id = nil
@@ -122,8 +130,10 @@ module Cql
             @request_queue_in << promise
           end
         end
-        @scheduler.schedule_timer(5).on_value do
-          promise.time_out!
+        if timeout
+          @scheduler.schedule_timer(timeout).on_value do
+            promise.time_out!
+          end
         end
         promise.future
       end
