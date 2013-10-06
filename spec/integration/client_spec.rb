@@ -70,6 +70,7 @@ describe 'A CQL client' do
     let :multi_client do
       opts = connection_options.dup
       opts[:host] = ([opts[:host]] * 10).join(',')
+      opts[:connections_per_node] = 3
       Cql::Client.connect(opts)
     end
 

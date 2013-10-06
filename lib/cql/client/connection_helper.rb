@@ -4,10 +4,11 @@ module Cql
   module Client
     # @private
     class ConnectionHelper
-      def initialize(io_reactor, port, credentials, connection_timeout, logger)
+      def initialize(io_reactor, port, credentials, connections_per_node, connection_timeout, logger)
         @io_reactor = io_reactor
         @port = port
         @credentials = credentials
+        @connections_per_node = connections_per_node
         @connection_timeout = connection_timeout
         @logger = logger
         @request_runner = RequestRunner.new
@@ -67,9 +68,11 @@ module Cql
       private
 
       def connect_to_hosts(hosts, initial_keyspace, peer_discovery)
-        connection_futures = hosts.map do |host|
-          connect_to_host(host, initial_keyspace).recover do |error|
-            FailedConnection.new(error, host, @port)
+        connection_futures = hosts.flat_map do |host|
+          Array.new(@connections_per_node) do
+            connect_to_host(host, initial_keyspace).recover do |error|
+              FailedConnection.new(error, host, @port)
+            end
           end
         end
         connection_futures.each do |cf|
