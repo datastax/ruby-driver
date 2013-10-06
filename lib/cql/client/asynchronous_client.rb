@@ -9,7 +9,6 @@ module Cql
         @io_reactor = options[:io_reactor] || Io::IoReactor.new(Protocol::CqlProtocolHandler)
         @hosts = extract_hosts(options)
         @initial_keyspace = options[:keyspace]
-        @default_consistency = options[:default_consistency] || DEFAULT_CONSISTENCY
         @lock = Mutex.new
         @connected = false
         @connecting = false
@@ -21,6 +20,8 @@ module Cql
         credentials = options[:credentials]
         connections_per_node = options[:connections_per_node] || 1
         connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
+        default_consistency = options[:default_consistency] || DEFAULT_CONSISTENCY
+        @execute_options_decoder = ExecuteOptionsDecoder.new(default_consistency)
         @connection_helper = ConnectionHelper.new(@io_reactor, port, credentials, connections_per_node, connection_timeout, @logger)
       end
 
@@ -88,15 +89,16 @@ module Cql
         end
       end
 
-      def execute(cql, consistency=nil)
+      def execute(cql, options_or_consistency=nil)
         with_failure_handler do
-          execute_request(Protocol::QueryRequest.new(cql, consistency || @default_consistency))
+          consistency, timeout = @execute_options_decoder.decode_options(options_or_consistency)
+          execute_request(Protocol::QueryRequest.new(cql, consistency), timeout)
         end
       end
 
       def prepare(cql)
         with_failure_handler do
-          AsynchronousPreparedStatement.prepare(cql, @default_consistency, @connection_manager, @logger)
+          AsynchronousPreparedStatement.prepare(cql, @execute_options_decoder, @connection_manager, @logger)
         end
       end
 
@@ -162,7 +164,7 @@ module Cql
 
       def register_event_listener(connection)
         register_request = Protocol::RegisterRequest.new(Protocol::TopologyChangeEventResponse::TYPE, Protocol::StatusChangeEventResponse::TYPE)
-        execute_request(register_request, connection)
+        execute_request(register_request, nil, connection)
         connection.on_closed do
           if connected?
             begin
@@ -199,8 +201,8 @@ module Cql
         end
       end
 
-      def execute_request(request, connection=nil)
-        f = @request_runner.execute(connection || @connection_manager.random_connection, request)
+      def execute_request(request, timeout=nil, connection=nil)
+        f = @request_runner.execute(connection || @connection_manager.random_connection, request, timeout)
         f.map do |result|
           if result.is_a?(KeyspaceChanged)
             use(result.keyspace)

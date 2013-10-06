@@ -19,8 +19,9 @@ module Cql
       # @return [String] the current keyspace for the underlying connection
       attr_reader :keyspace
 
-      def initialize(connection)
+      def initialize(connection, scheduler)
         @connection = connection
+        @scheduler = scheduler
         @connection.on_data(&method(:receive_data))
         @connection.on_closed(&method(:socket_closed))
         @promises = Array.new(128) { nil }
@@ -98,11 +99,19 @@ module Cql
       #
       # Returns a future that will resolve to the response. When the connection
       # closes the futures of all active requests will be failed with the error
-      # that caused the connection to close, or nil
+      # that caused the connection to close, or nil.
       #
+      # When `timeout` is specified the future will fail with {Cql::TimeoutError}
+      # after that many seconds have passed. If a response arrives after that
+      # time it will be lost. If a response never arrives for the request the
+      # channel occupied by the request will _not_ be reused.
+      #
+      # @param [Cql::Protocol::Request] request
+      # @param [Float] timeout an optional number of seconds to wait until
+      #   failing the request
       # @return [Cql::Future<Cql::Protocol::Response>] a future that resolves to
       #   the response
-      def send_request(request)
+      def send_request(request, timeout=nil)
         return Future.failed(NotConnectedError.new) if closed?
         promise = RequestPromise.new(request)
         id = nil
@@ -119,6 +128,11 @@ module Cql
           @lock.synchronize do
             promise.encode_frame!
             @request_queue_in << promise
+          end
+        end
+        if timeout
+          @scheduler.schedule_timer(timeout).on_value do
+            promise.time_out!
           end
         end
         promise.future
@@ -140,7 +154,19 @@ module Cql
 
         def initialize(request)
           @request = request
+          @timed_out = false
           super()
+        end
+
+        def timed_out?
+          @timed_out
+        end
+
+        def time_out!
+          unless future.completed?
+            @timed_out = true
+            fail(TimeoutError.new)
+          end
         end
 
         def encode_frame!
@@ -182,7 +208,9 @@ module Cql
         if response.is_a?(Protocol::SetKeyspaceResultResponse)
           @keyspace = response.keyspace
         end
-        promise.fulfill(response)
+        unless promise.timed_out?
+          promise.fulfill(response)
+        end
       end
 
       def flush_request_queue
@@ -198,8 +226,12 @@ module Cql
           @lock.synchronize do
             if @request_queue_out.any? && (id = next_stream_id)
               promise = @request_queue_out.shift
-              frame = promise.frame
-              @promises[id] = promise
+              if promise.timed_out?
+                id = nil
+              else
+                frame = promise.frame
+                @promises[id] = promise
+              end
             end
           end
           if id

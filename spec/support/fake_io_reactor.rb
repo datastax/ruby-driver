@@ -127,7 +127,7 @@ class FakeConnection
     @event_listeners.any? && @registered_event_types.any?
   end
 
-  def send_request(request)
+  def send_request(request, timeout=nil)
     if @closed
       Cql::Future.failed(Cql::NotConnectedError.new)
     else
@@ -136,7 +136,7 @@ class FakeConnection
       when Cql::Protocol::RegisterRequest
         @registered_event_types.concat(request.events)
       end
-      response = @request_handler.call(request)
+      response = @request_handler.call(request, timeout)
       if response.is_a?(Cql::Protocol::SetKeyspaceResultResponse)
         @keyspace = response.keyspace
       end
@@ -144,7 +144,7 @@ class FakeConnection
     end
   end
 
-  def default_request_handler(request)
+  def default_request_handler(request, timeout=nil)
     response = @responses.shift
     unless response
       case request

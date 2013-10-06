@@ -4,8 +4,8 @@ module Cql
   module Client
     # @private
     class RequestRunner
-      def execute(connection, request)
-        connection.send_request(request).map do |response|
+      def execute(connection, request, timeout=nil)
+        connection.send_request(request, timeout).map do |response|
           case response
           when Protocol::RowsResultResponse
             QueryResult.new(response.metadata, response.rows)

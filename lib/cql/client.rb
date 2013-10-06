@@ -12,6 +12,7 @@ module Cql
   end
 
   NotConnectedError = Class.new(CqlError)
+  TimeoutError = Class.new(CqlError)
   ClientError = Class.new(CqlError)
   AuthenticationError = Class.new(ClientError)
 
@@ -171,6 +172,7 @@ require 'cql/client/null_logger'
 require 'cql/client/column_metadata'
 require 'cql/client/result_metadata'
 require 'cql/client/query_result'
+require 'cql/client/execute_options_decoder'
 require 'cql/client/keyspace_changer'
 require 'cql/client/asynchronous_client'
 require 'cql/client/asynchronous_prepared_statement'

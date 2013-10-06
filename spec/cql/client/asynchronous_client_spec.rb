@@ -44,10 +44,10 @@ module Cql
 
       before do
         io_reactor.on_connection do |connection|
-          connection.handle_request do |request|
+          connection.handle_request do |request, timeout|
             response = nil
             if @request_handler
-              response = @request_handler.call(request, connection, proc { connection.default_request_handler(request) })
+              response = @request_handler.call(request, connection, proc { connection.default_request_handler(request) }, timeout)
             end
             unless response
               response = connection.default_request_handler(request)
@@ -480,9 +480,14 @@ module Cql
           last_request.should == Protocol::QueryRequest.new(cql, :all)
         end
 
-        it 'uses the specified consistency' do
+        it 'uses the consistency given as last argument' do
           client.execute('UPDATE stuff SET thing = 1 WHERE id = 3', :three).value
           last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', :three)
+        end
+
+        it 'uses the consistency given as an option' do
+          client.execute('UPDATE stuff SET thing = 1 WHERE id = 3', consistency: :local_quorum).value
+          last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', :local_quorum)
         end
 
         context 'with a void CQL query' do
@@ -623,6 +628,18 @@ module Cql
             else
               fail('No error was raised')
             end
+          end
+        end
+
+        context 'with a timeout' do
+          it 'passes the timeout along with the request' do
+            sent_timeout = nil
+            handle_request do |request, _, _, timeout|
+              sent_timeout = timeout
+              nil
+            end
+            client.execute(cql, timeout: 3).value
+            sent_timeout.should == 3
           end
         end
       end

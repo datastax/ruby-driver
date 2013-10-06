@@ -41,7 +41,7 @@ module Cql
         ]
       end
 
-      def handle_request(connection, request)
+      def handle_request(connection, request, timeout)
         case request
         when Protocol::PrepareRequest
           statement_id = [rand(2**31)].pack('c*')
@@ -56,14 +56,14 @@ module Cql
 
       before do
         connections.each do |c|
-          c.handle_request { |r| handle_request(c, r) }
+          c.handle_request { |r, t| handle_request(c, r, t) }
         end
         connection_manager.add_connections(connections)
       end
 
       describe '.prepare' do
         it 'prepares a statement on all connections' do
-          f = described_class.prepare(cql, :one, connection_manager, logger)
+          f = described_class.prepare(cql, ExecuteOptionsDecoder.new(:one), connection_manager, logger)
           f.value
           connections.each do |c|
             c.requests.should include(Protocol::PrepareRequest.new(cql))
@@ -71,13 +71,13 @@ module Cql
         end
 
         it 'returns a prepared statement object' do
-          f = described_class.prepare(cql, :two, connection_manager, logger)
+          f = described_class.prepare(cql, ExecuteOptionsDecoder.new(:two), connection_manager, logger)
           f.value.should be_a(PreparedStatement)
         end
 
         it 'returns a failed future when something goes wrong in the preparation' do
           connections.each(&:close)
-          f = described_class.prepare(cql, :three, connection_manager, logger)
+          f = described_class.prepare(cql, ExecuteOptionsDecoder.new(:three), connection_manager, logger)
           expect { f.value }.to raise_error(NotConnectedError)
         end
 
@@ -92,7 +92,7 @@ module Cql
 
       describe '#metadata' do
         let :statement do
-          described_class.prepare(cql, :all, connection_manager, logger).value
+          described_class.prepare(cql, ExecuteOptionsDecoder.new(:all), connection_manager, logger).value
         end
 
         it 'returns the interpreted metadata' do
@@ -103,7 +103,7 @@ module Cql
 
       describe '#execute' do
         let :statement do
-          described_class.prepare(cql, :local_quorum, connection_manager, logger).value
+          described_class.prepare(cql, ExecuteOptionsDecoder.new(:local_quorum), connection_manager, logger).value
         end
 
         it 'executes itself on one of the connections' do
@@ -132,6 +132,24 @@ module Cql
           request.consistency.should == :two
         end
 
+        it 'sends the consistency given as an option' do
+          statement.execute(11, 'hello', consistency: :two)
+          request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
+          request.consistency.should == :two
+        end
+
+        it 'uses the specified timeout' do
+          sent_timeout = nil
+          connections.each do |c|
+            c.handle_request do |r, t|
+              sent_timeout = t
+              handle_request(c, r, t)
+            end
+          end
+          statement.execute(11, 'hello', timeout: 3)
+          sent_timeout.should == 3
+        end
+
         context 'when it receives a new connection from the connection manager' do
           let :new_connection do
             FakeConnection.new('h3.example.com', 1234, 5)
@@ -139,7 +157,7 @@ module Cql
 
           before do
             statement
-            new_connection.handle_request { |r| handle_request(new_connection, r) }
+            new_connection.handle_request { |r, t| handle_request(new_connection, r, t) }
             connections.each(&:close)
             connection_manager.add_connections([new_connection])
           end
@@ -169,8 +187,8 @@ module Cql
         it 'returns a failed future when the number of arguments is wrong' do
           f1 = statement.execute(11, :one)
           f2 = statement.execute(11, 'foo', 22, :one)
-          expect { f1.value }.to raise_error
-          expect { f2.value }.to raise_error
+          expect { f1.value }.to raise_error(NoMethodError)
+          expect { f2.value }.to raise_error(ArgumentError)
         end
       end
     end

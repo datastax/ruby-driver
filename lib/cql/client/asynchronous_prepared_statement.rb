@@ -5,16 +5,16 @@ module Cql
     # @private
     class AsynchronousPreparedStatement < PreparedStatement
       # @private
-      def initialize(cql, default_consistency, connection_manager, logger)
+      def initialize(cql, execute_options_decoder, connection_manager, logger)
         @cql = cql
-        @default_consistency = default_consistency
+        @execute_options_decoder = execute_options_decoder
         @connection_manager = connection_manager
         @logger = logger
         @request_runner = RequestRunner.new
       end
 
-      def self.prepare(cql, default_consistency, connection_manager, logger)
-        statement = new(cql, default_consistency, connection_manager, logger)
+      def self.prepare(cql, execute_options_decoder, connection_manager, logger)
+        statement = new(cql, execute_options_decoder, connection_manager, logger)
         futures = connection_manager.map do |connection|
           statement.prepare(connection)
         end
@@ -57,10 +57,13 @@ module Cql
       def run(args, connection)
         statement_id = connection[self]
         bound_args = args.shift(@raw_metadata.size)
-        consistency = args.shift || @default_consistency
+        unless bound_args.size == @raw_metadata.size && args.size <= 1
+          raise ArgumentError, "Expected #{@raw_metadata.size} arguments, got #{bound_args.size}"
+        end
+        consistency, timeout = @execute_options_decoder.decode_options(args.last)
         statement_id = connection[self]
         request = Protocol::ExecuteRequest.new(statement_id, @raw_metadata, bound_args, consistency)
-        @request_runner.execute(connection, request)
+        @request_runner.execute(connection, request, timeout)
       end
     end
   end
