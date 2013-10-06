@@ -68,6 +68,12 @@ module Cql
           runner.execute(connection, request)
         end
 
+        it 'executes the request with the specified timeout' do
+          connection.stub(:send_request).and_return(Future.resolved(rows_response))
+          runner.execute(connection, request, 7)
+          connection.should have_received(:send_request).with(request, 7)
+        end
+
         it 'transforms a RowsResultResponse to a query result' do
           result = run(rows_response)
           result.should have(3).items
