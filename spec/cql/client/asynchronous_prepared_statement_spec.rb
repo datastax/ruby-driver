@@ -187,7 +187,7 @@ module Cql
         it 'returns a failed future when the number of arguments is wrong' do
           f1 = statement.execute(11, :one)
           f2 = statement.execute(11, 'foo', 22, :one)
-          expect { f1.value }.to raise_error(ArgumentError)
+          expect { f1.value }.to raise_error(NoMethodError)
           expect { f2.value }.to raise_error(ArgumentError)
         end
       end
