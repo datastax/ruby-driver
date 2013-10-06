@@ -159,9 +159,5 @@ describe 'A CQL client' do
     it 'fails gracefully when connecting to something that does not run C*' do
       expect { Cql::Client.connect(host: 'google.com') }.to raise_error(Cql::Io::ConnectionTimeoutError)
     end
-
-    it 'fails when the server doesn\'t respond within the specified timeout' do
-      expect { client.execute('SELECT * FROM system.peers', timeout: 0.0) }.to raise_error(Cql::TimeoutError)
-    end
   end
 end
