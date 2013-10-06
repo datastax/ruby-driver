@@ -1,0 +1,140 @@
+#!/usr/bin/env ruby
+# encoding: utf-8
+
+$: << File.expand_path('../../lib', __FILE__)
+
+require 'bundler/setup'
+require 'logger'
+require 'cql'
+
+
+class ClusterController
+  def initialize(cluster_name, logger)
+    @cluster_name = cluster_name
+    @logger = logger
+  end
+
+  def start
+    exec("switch #{@cluster_name}")
+    exec('start')
+  end
+
+  def stop
+    exec('stop')
+  end
+
+  def nodes_up
+    output = exec('status')
+    output.scan(/^([^:]+): UP/).flatten
+  end
+
+  def nodes_down
+    output = exec('status')
+    output.scan(/^([^:]+): DOWN/).flatten
+  end
+
+  def kill_node
+    exec("#{nodes_up.sample} stop --not-gently")
+  end
+
+  def restore
+    nodes_down.each do |node|
+      exec("#{node} start")
+    end
+  end
+
+  def exec(ccm_command)
+    @logger.debug("ccm #{ccm_command}")
+    output = %x(ccm #{ccm_command})
+    raise %(Error when running "ccm #{ccm_command}": #{output}) unless $?.success?
+    output
+  end
+end
+
+ALREADY_EXISTS_ERROR_CODE = 0x2400
+
+logger = Logger.new($stderr)
+
+cluster_controller = ClusterController.new(ENV['CCM_CLUSTER'] || 'cql-rb', logger)
+cluster_controller.start
+
+logger.info(%(Cluster started, #{cluster_controller.nodes_up.size} nodes))
+
+client = Cql::Client.connect(logger: logger)
+
+logger.info('Connected to cluster')
+
+begin
+  client.execute(%<CREATE KEYSPACE cql_rb_chaos_spec WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 3}>)
+rescue Cql::QueryError => e
+  raise unless e.code == ALREADY_EXISTS_ERROR_CODE
+end
+
+client.execute(%<USE cql_rb_chaos_spec>)
+
+begin
+  client.execute(%<CREATE TABLE people (id TEXT PRIMARY KEY, first TEXT, last TEXT)>)
+rescue Cql::QueryError => e
+  raise unless e.code == ALREADY_EXISTS_ERROR_CODE
+end
+
+logger.info('Keyspace and table set up')
+
+people = [
+  'Barbara Liskov',
+  'Grace Hopper',
+  'Edsger Dijkstra',
+  'John McCarthy',
+  'Donald Knuth',
+  'Adele Goldberg',
+  'Leslie Lamport',
+  'Ada Lovelace',
+]
+
+insert_person_statement = client.prepare(%<INSERT INTO people (id, first, last) VALUES (?, ?, ?)>)
+select_person_statement = client.prepare(%<SELECT * FROM people WHERE id = ?>)
+
+logger.info('Statements prepared')
+
+people.each do |person|
+  first, last = person.split(' ')
+  insert_person_statement.execute(last.downcase, first, last)
+end
+
+logger.info('Data inserted')
+logger.info('Go!')
+
+counter = 0
+failures = 0
+
+chaos_thread = Thread.start do
+  while client.connected?
+    sleep(5)
+    logger.info("#{counter} operations done, #{failures} failures")
+    if cluster_controller.nodes_up.size == 1
+      logger.info('Restoring cluster')
+      cluster_controller.restore
+    elsif rand < 0.2
+      logger.info('Killing a node')
+      cluster_controller.kill_node
+    end
+  end
+end
+
+begin
+  loop do
+    id = people.sample.split(' ').last.downcase
+    begin
+      select_person_statement.execute(id)
+    rescue Cql::QueryError, Cql::Io::ConnectionError => e
+      logger.warn("Execute failed: #{e.message}")
+      failures += 1
+    end
+    counter += 1
+  end
+rescue Interrupt
+  logger.info("Stopping")
+end
+
+client.close
+cluster_controller.stop
