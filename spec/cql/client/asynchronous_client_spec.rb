@@ -170,6 +170,12 @@ module Cql
             connections.should have(2).items
           end
 
+          it 'connects to each host the specifie number of times' do
+            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com], connections_per_node: 3))
+            c.connect.value
+            connections.should have(6).items
+          end
+
           it 'succeeds even if only one of the connections succeeded' do
             io_reactor.node_down('h1.example.com')
             io_reactor.node_down('h3.example.com')

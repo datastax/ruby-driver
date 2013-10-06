@@ -19,8 +19,9 @@ module Cql
         @connection_manager = ConnectionManager.new
         port = options[:port] || DEFAULT_PORT
         credentials = options[:credentials]
+        connections_per_node = options[:connections_per_node] || 1
         connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
-        @connection_helper = ConnectionHelper.new(@io_reactor, port, credentials, connection_timeout, @logger)
+        @connection_helper = ConnectionHelper.new(@io_reactor, port, credentials, connections_per_node, connection_timeout, @logger)
       end
 
       def connect
