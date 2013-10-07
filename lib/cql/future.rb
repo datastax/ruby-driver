@@ -331,13 +331,13 @@ module Cql
         raise @error if @failed
         return @value if @resolved
         t = Thread.current
-        u = proc { t.run }
+        u = proc { t.wakeup }
         @value_listeners << u
         @failure_listeners << u
         while true
           raise @error if @failed
           return @value if @resolved
-          @lock.sleep
+          @lock.sleep(1)
         end
       end
     end
