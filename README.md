@@ -212,8 +212,8 @@ Check out the [releases on GitHub](https://github.com/iconara/cql-rb/releases). 
 # Known bugs & limitations
 
 * No automatic peer discovery -- _this is in HEAD and will be released with v1.1.0_.
-* No automatic reconnection on connection failures -- _this is planned for v1.1.0_.
-* No support for request timeouts (other than server-initiated), but requests to a node fail when that node goes down.
+* No automatic reconnection on connection failures -- _this is in HEAD and will be released with v1.1.0_.
+* No support for request timeouts (other than server-initiated), but requests to a node fail when that node goes down -- _this is in HEAD and will be released with v1.1.0_.
 * No support for compression.
 * No support for request tracing.
 * JRuby 1.6.8 and earlier is not supported, the tests pass in 1.6.8, but 1.6.4 is known not to work. Travis does not support JRuby 1.6.x so there's no way to get good coverage of what works and not. The only known issue in 1.6.8 is that connection failures aren't handled correctly.
