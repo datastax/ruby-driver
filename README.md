@@ -151,13 +151,13 @@ Read more about CQL3 in the [CQL3 syntax documentation](https://github.com/apach
 
 ## I get "Deadlock detected" errors
 
-This means that the driver's IO reactor has crashed hard. Most of the time it means that you're using a framework, server or runtime that forks and you call `Client.connect` in the parent process. Check the documentation and see if there's any way you can register to run some piece of code in the child process just after a fork.
+This means that the driver's IO reactor has crashed hard. Most of the time it means that you're using a framework, server or runtime that forks and you call `Client.connect` in the parent process. Check the documentation and see if there's any way you can register to run some piece of code in the child process just after a fork, and connect there.
 
 This is how you do it in Resque:
 
 ```ruby
 Resque.after_fork = proc do
-  # ...
+  # connect to Cassandra here
 end
 ```
 
@@ -166,7 +166,7 @@ and this is how you do it in Passenger:
 ```ruby
 PhusionPassenger.on_event(:starting_worker_process) do |forked|
   if forked
-    # ...
+    # connect to Cassandra here
   end
 end
 ```
@@ -175,7 +175,7 @@ in Unicorn you do it in the config file:
 
 ```ruby
 after_fork do |server, worker|
-  # ...
+  # connect to Cassandra here
 end
 ```
 
