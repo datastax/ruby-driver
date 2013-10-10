@@ -199,7 +199,7 @@ Port 9160 is the old Thrift interface, the binary protocol runs on 9042. This is
 
 ## One of my Cassandra nodes crashed, and my application crashed, isn't Cassandra supposed to be fault tolerant?
 
-Yes it is, and your data is probably safe. cql-rb is just not completely there yet. Ideally it should handle connectivity issues and just talk to the nodes it can talk to and reconnect when things get back to normal. It's on the roadmap.
+Yes it is, and your data is probably safe. cql-rb is just not completely there yet. Ideally it should handle connectivity issues and just talk to the nodes it can talk to and reconnect when things get back to normal. _This is fixed in HEAD and will be released with v1.1.0_.
 
 ## Something else is not working
 
