@@ -327,18 +327,21 @@ module Cql
     #
     # @return [Object] the value of this future
     def value
+      semaphore = nil
       @lock.synchronize do
         raise @error if @failed
         return @value if @resolved
-        t = Thread.current
-        u = proc { t.wakeup }
+        semaphore = Queue.new
+        u = proc { semaphore << :unblock }
         @value_listeners << u
         @failure_listeners << u
-        while true
+      end
+      while true
+        @lock.synchronize do
           raise @error if @failed
           return @value if @resolved
-          @lock.sleep(1)
         end
+        semaphore.pop
       end
     end
 
