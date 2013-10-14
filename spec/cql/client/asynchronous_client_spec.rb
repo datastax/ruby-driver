@@ -400,6 +400,12 @@ module Cql
           io_reactor.stub(:stop).and_return(Future.failed(StandardError.new('Bork!')))
           expect { client.close.value }.to raise_error('Bork!')
         end
+
+        it 'cannot be connected again once closed' do
+          client.connect.value
+          client.close.value
+          expect { client.connect.value }.to raise_error(ClientError)
+        end
       end
 
       describe '#use' do

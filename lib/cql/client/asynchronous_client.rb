@@ -27,22 +27,16 @@ module Cql
 
       def connect
         @lock.synchronize do
+          raise ClientError, 'Cannot connect a closed client' if @closing || @closed
           return @connected_future if can_execute?
           @connecting = true
           @connected_future = begin
             f = @connection_helper.connect(@hosts, @initial_keyspace)
-            if @closing
-              ff = @closed_future
-              ff = ff.flat_map { f }
-              ff = ff.fallback { f }
-            else
-              ff = f
-            end
-            ff.on_value do |connections|
+            f.on_value do |connections|
               @connection_manager.add_connections(connections)
               register_event_listener(@connection_manager.random_connection)
             end
-            ff.map { self }
+            f.map { self }
           end
         end
         @connected_future.on_complete(&method(:connected))
@@ -140,6 +134,7 @@ module Cql
       def closed(f)
         @lock.synchronize do
           @closing = false
+          @closed = true
           @connected = false
           if f.resolved?
             @logger.info('Cluster disconnect complete')
