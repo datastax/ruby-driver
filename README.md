@@ -5,7 +5,7 @@
 
 # Requirements
 
-Cassandra 1.2 with the native transport protocol turned on and a modern Ruby. It's tested continuously in Travis with Ruby 1.9.3, 2.0.0, and JRuby 1.7.x stable and head.
+Cassandra 1.2 or later with the native transport protocol turned on and a modern Ruby. It's tested continuously in Travis with Ruby 1.9.3, 2.0.0, and JRuby 1.7.x stable and head.
 
 # Installation
 
@@ -13,14 +13,14 @@ Cassandra 1.2 with the native transport protocol turned on and a modern Ruby. It
 
 ## Configure Cassandra
 
-If you're running Cassandra 1.2.5 the native transport protocol is enabled by default, if you're running an earlier version (but later than 1.2) you must enable it by editing `cassandra.yaml` and setting `start_native_transport` to `true`.
+If you're running Cassandra 1.2.5 or later the native transport protocol is enabled by default, if you're running an earlier version (but later than 1.2) you must enable it by editing `cassandra.yaml` and setting `start_native_transport` to `true`.
 
 # Quick start
 
 ```ruby
 require 'cql'
 
-client = Cql::Client.connect(host: 'cassandra.example.com')
+client = Cql::Client.connect(hosts: ['cassandra.example.com'])
 client.use('system')
 rows = client.execute('SELECT keyspace_name, columnfamily_name FROM schema_columnfamilies')
 rows.each do |row|
@@ -28,7 +28,13 @@ rows.each do |row|
 end
 ```
 
-when you're done you can call `#close` to disconnect from Cassandra. You can connect to multiple Cassandra nodes by passing multiple comma separated host names to the `:host` option -- _this is deprecated, in v1.1.0 there is a new option `:hosts` that takes a list of host names_.
+The host you specify is just a seed node, the client will automatically connect to all other nodes in the cluster (or nodes in the same data center if you're running multiple rings).
+
+When you're done you can call `#close` to disconnect from Cassandra:
+
+```ruby
+client.close
+```
 
 # Usage
 
@@ -74,6 +80,8 @@ rows = client.execute('SELECT date, description FROM events'
 rows.metadata['date'].type # => :date
 ```
 
+Each call to `#execute` selects a random connection to run the query on.
+
 ## Creating keyspaces and tables
 
 There is no special facility for creating keyspaces and tables, they are created by executing CQL:
@@ -97,11 +105,11 @@ table_definition = <<-TABLEDEF
 TABLEDEF
 
 client.execute(keyspace_definition)
-client.use(measurements)
+client.use('measurements')
 client.execute(table_definition)
 ```
 
-You can also `ALTER` keyspaces and tables.
+You can also `ALTER` keyspaces and tables, and you can read more about that in the [CQL3 syntax documentation](https://github.com/apache/cassandra/blob/cassandra-1.2/doc/cql3/CQL.textile).
 
 ## Prepared statements
 
@@ -116,17 +124,29 @@ A prepared statement can be run many times, but the CQL parsing will only be don
 
 `INSERT`, `UPDATE`, `DELETE` and `SELECT` statements can be prepared, other statements may raise `QueryError`.
 
-At this time prepared statements are local to a single connection. Even if you connect to multiple nodes a prepared statement is only ever going to be executed against one of the nodes.
+Statements are prepared on all connections and each call to `#execute` selects a random connection to run the query on.
 
-# Consistency
+## Consistency
 
-The `#execute` (of `Client` and `PreparedStatement`) method supports setting the desired consistency level for the statement:
+You can specify the default consistency to use when you create a new `Client`:
+
+```ruby
+client = Cql::Client.connect(hosts: %w[localhost], consistency: :all)
+```
+
+The `#execute` (of `Client` and `PreparedStatement`) method also supports setting the desired consistency level on a per-request basis:
+
+```ruby
+client.execute('SELECT * FROM peers', consistency: :local_quorum)
+```
+
+for backwards compatibility with v1.0 you can also pass the consistency as just a symbol:
 
 ```ruby
 client.execute('SELECT * FROM peers', :local_quorum)
 ```
 
-The possible values are: 
+The possible values for consistency are: 
 
 * `:any`
 * `:one`
@@ -137,15 +157,19 @@ The possible values are:
 * `:local_quorum`
 * `:each_quorum`
 
-The default consistency level is `:quorum`.
+The default consistency level unless you've set it yourself is `:quorum`.
 
 Consistency is ignored for `USE`, `TRUNCATE`, `CREATE` and `ALTER` statements, and some (like `:any`) aren't allowed in all situations.
 
-## CQL3
+# CQL3
 
 This is just a driver for the Cassandra native CQL protocol, it doesn't really know anything about CQL. You can run any CQL3 statement and the driver will return whatever Cassandra replies with.
 
 Read more about CQL3 in the [CQL3 syntax documentation](https://github.com/apache/cassandra/blob/cassandra-1.2/doc/cql3/CQL.textile) and the [Cassandra query documentation](http://www.datastax.com/docs/1.2/cql_cli/querying_cql).
+
+# Cassandra 2.0
+
+Cassandra 2.0 introduced a new version of the native protocol with some new features like argument interpolation in non-prepared statements, result set cursors, a new authentication mechanism and the `SERIAL` consistency. These features are not yet supported, but the driver will work with Cassandra 2.0 using the earlier protocol.
 
 # Troubleshooting
 
@@ -185,10 +209,6 @@ If your process does not fork and you still encounter deadlock errors, it might 
 
 There's a known issue with collections that get too big. The protocol uses a short for the size of collections, but there is no way for Cassandra to stop you from creating a collection bigger than 65536 elements, so when you do the size field overflows with strange results. The data is there, you just can't get it back.
 
-## The error backtraces are weird
-
-Yeah, sorry. All IO is asynchronous, and when an error is returned from Cassandra the call stack from when the request was issued is gone. `QueryError` has a `#cql` field that contains the CQL for the request that failed, hopefully that gives you enough information to understand where the error originated.
-
 ## Authentication doesn't work
 
 Please open an issue. It should be working, but it's hard to write tests for, so there may be edge cases that aren't covered.
@@ -196,10 +216,6 @@ Please open an issue. It should be working, but it's hard to write tests for, so
 ## I'm connecting to port 9160 and it doesn't work
 
 Port 9160 is the old Thrift interface, the binary protocol runs on 9042. This is also the default port for cql-rb, so unless you've changed the port in `cassandra.yaml`, don't override the port.
-
-## One of my Cassandra nodes crashed, and my application crashed, isn't Cassandra supposed to be fault tolerant?
-
-Yes it is, and your data is probably safe. cql-rb is just not completely there yet. Ideally it should handle connectivity issues and just talk to the nodes it can talk to and reconnect when things get back to normal. _This is fixed in HEAD and will be released with v1.1.0_.
 
 ## Something else is not working
 
@@ -209,16 +225,20 @@ Open an issue and someone will try to help you out. Please include the gem versi
 
 Check out the [releases on GitHub](https://github.com/iconara/cql-rb/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
 
+Private and experimental APIs, defined as whatever is not in the [public API documentation](http://rubydoc.info/gems/cql-rb/frames) will change without warning. If you've been recommended to try an experimental API by the maintainers, please let them know if you depend on that API. Experimental APIs will eventually become public, and knowing how they are used helps in determining their maturity.
+
+Prereleases will be stable, in the sense that they will have finished and properly tested features only, but may introduce APIs that will change before the final release. Please use the prereleases and report bugs, but don't deploy them to production without consulting the maintainers, or doing extensive testing yourself. If you do deploy to production please let the maintainers know as this helps determining the maturity of the release.
+
 # Known bugs & limitations
 
-* No automatic peer discovery -- _this is in HEAD and will be released with v1.1.0_.
-* No automatic reconnection on connection failures -- _this is in HEAD and will be released with v1.1.0_.
-* No support for request timeouts (other than server-initiated), but requests to a node fail when that node goes down -- _this is in HEAD and will be released with v1.1.0_.
 * No support for compression.
 * No support for request tracing.
-* JRuby 1.6.8 and earlier is not supported, the tests pass in 1.6.8, but 1.6.4 is known not to work. Travis does not support JRuby 1.6.x so there's no way to get good coverage of what works and not. The only known issue in 1.6.8 is that connection failures aren't handled correctly.
+* JRuby 1.6 is not officially supported, although 1.6.8 should work, if you're stuck in JRuby 1.6.8 try and see if it works for you.
 * Large results are buffered in memory until the whole response has been loaded, the protocol makes it possible to start to deliver rows to the client code as soon as the metadata is loaded, but this is not supported yet.
 * There is no cluster introspection utilities (like the `DESCRIBE` commands in `cqlsh`).
+* New features in v2 of the protocol are not supported
+
+Also check out the [issues](https://github.com/iconara/cql-rb/issues) for open bugs.
 
 # How to contribute
 
@@ -234,7 +254,7 @@ Always remember that the maintainers' work on this project in their free time an
 
 # Copyright
 
-Copyright 2013 Theo Hultberg/Iconara
+Copyright 2013 Theo Hultberg/Iconara and contributors
 
 _Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License You may obtain a copy of the License at_
 
