@@ -1,6 +1,10 @@
 # encoding: utf-8
 
 module Cql
+  # This error type represents errors sent by the server, the `code` attribute
+  # can be used to find the exact type, and `cql` contains the request's CQL,
+  # if any. `message` contains the human readable error message sent by the
+  # server.
   class QueryError < CqlError
     attr_reader :code, :cql
 
@@ -19,9 +23,14 @@ module Cql
   # A CQL client manages connections to one or more Cassandra nodes and you use
   # it run queries, insert and update data.
   #
+  # Client instances are threadsafe.
+  #
+  # See {Cql::Client::Client} for the full client API, or {Cql::Client.connect}
+  # for the options available when connecting.
+  #
   # @example Connecting and changing to a keyspace
   #   # create a client and connect to two Cassandra nodes
-  #   client = Cql::Client.connect(host: 'node01.cassandra.local,node02.cassandra.local')
+  #   client = Cql::Client.connect(hosts: %w[node01.cassandra.local node02.cassandra.local])
   #   # change to a keyspace
   #   client.use('stuff')
   #
@@ -39,11 +48,6 @@ module Cql
   #   statement = client.prepare('INSERT INTO things (id, value) VALUES (?, ?)')
   #   statement.execute(9, 'qux')
   #   statement.execute(8, 'baz')
-  #
-  # Client instances are threadsafe.
-  #
-  # See {Cql::Client::Client} for the full client API.
-  #
   module Client
     InvalidKeyspaceNameError = Class.new(ClientError)
 
@@ -54,25 +58,43 @@ module Cql
     # connected to the hosts given in `:hosts` the rest of the nodes in the
     # cluster will automatically be discovered and connected to.
     #
-    # The connection will succeed if at least one node is up. Nodes that don't
-    # respond within the specified timeout, or where the connection initialization
-    # fails for some reason, are ignored.
+    # If you have a multi data center setup the client will connect to all nodes
+    # in the data centers where the nodes you pass to `:hosts` are located. So
+    # if you only want to connect to nodes in one data center, make sure that
+    # you only specify nodes in that data center in `:hosts`.
     #
-    # @raise Cql::Io::ConnectionError when a connection couldn't be established
-    #   to any node
+    # The connection will succeed if at least one node is up and accepts the
+    # connection. Nodes that don't respond within the specified timeout, or
+    # where the connection initialization fails for some reason, are ignored.
+    #
     # @param [Hash] options
     # @option options [Array<String>] :hosts (['localhost']) One or more
     #   hostnames used as seed nodes when connecting. Duplicates will be removed.
     # @option options [String] :host ('localhost') A comma separated list of 
     #   hostnames to use as seed nodes. This is a backwards-compatible version
     #   of the :hosts option, and is deprecated.
-    # @option options [String] :port (9042) The port to connect to
+    # @option options [String] :port (9042) The port to connect to, this port
+    #   will be used for all nodes. Because the `system.peers` table does not
+    #   contain the port that the nodes are listening on, the port must be the
+    #   same for all nodes.
     # @option options [Integer] :connection_timeout (5) Max time to wait for a
-    #   connection, in seconds
+    #   connection, in seconds.
     # @option options [String] :keyspace The keyspace to change to immediately
     #   after all connections have been established, this is optional.
+    # @option options [Integer] :connections_per_node (1) The number of
+    #   connections to open to each node. Each connection can have 128
+    #   concurrent requests, so unless you have a need for more than that (times
+    #   the number of nodes in your cluster), leave this option at its default.
+    # @option options [Integer] :default_consistency (:quorum) The consistency
+    #   to use unless otherwise specified. Consistency can also be specified on
+    #   a per-request basis.
+    # @option options [Integer] :logger If you want the client to log
+    #   significant events pass an object implementing the standard Ruby logger
+    #   interface (e.g. quacks like `Logger` from the standard library) with
+    #   this option.
+    # @raise Cql::Io::ConnectionError when a connection couldn't be established
+    #   to any node
     # @return [Cql::Client::Client]
-    #
     def self.connect(options={})
       SynchronousClient.new(AsynchronousClient.new(options)).connect
     end
@@ -80,13 +102,13 @@ module Cql
     class Client
       # @!method connect
       #
-      # Connect to all nodes.
+      # Connect to all nodes. See {Cql::Client.connect} for the full
+      # documentation.
       #
-      # You must call this method before you call any of the other methods of a
-      # client. Calling it again will have no effect.
+      # This method needs to be called before any other. Calling it again will
+      # have no effect.
       #
       # @see Cql::Client.connect
-      #
       # @return [Cql::Client]
 
       # @!method close
@@ -118,17 +140,26 @@ module Cql
       # @raise [Cql::NotConnectedError] raised when the client is not connected
       # @return [nil]
 
-      # @!method execute(cql, consistency=:quorum)
+      # @!method execute(cql, options_or_consistency=nil)
       #
       # Execute a CQL statement
       #
       # @param [String] cql
-      # @param [Symbol] consistency
+      # @param [Hash] options_or_consistency Either a consistency as a symbol
+      #   (e.g. `:quorum`), or a options hash (see below). Passing a symbol is
+      #   equivalent to passing the options `consistency: <symbol>`.
+      # @option options_or_consistency [Symbol] :consistency (:quorum) The
+      #   consistency to use for this query.
+      # @option options_or_consistency [Symbol] :timeout (nil) How long to wait
+      #   for a response. If this timeout expires a {Cql::TimeoutError} will
+      #   be raised.
       # @raise [Cql::NotConnectedError] raised when the client is not connected
+      # @raise [Cql::TimeoutError] raised when a timeout was specified and no
+      #   response was received within the timeout.
       # @raise [Cql::QueryError] raised when the CQL has syntax errors or for
       #   other situations when the server complains.
-      # @return [nil, Cql::Client::QueryResult] Most statements have no result and return
-      #   `nil`, but `SELECT` statements return an `Enumerable` of rows
+      # @return [nil, Cql::Client::QueryResult] Most queries have no result and
+      #   return `nil`, but `SELECT` statements return an `Enumerable` of rows
       #   (see {Cql::Client::QueryResult}).
 
       # @!method prepare(cql)
@@ -136,30 +167,48 @@ module Cql
       # Returns a prepared statement that can be run over and over again with
       # different values.
       #
-      # @param [String] cql
+      # @see Cql::Client::PreparedStatement
+      # @param [String] cql The CQL to prepare
       # @raise [Cql::NotConnectedError] raised when the client is not connected
-      # @return [Cql::Client::PreparedStatement] an object encapsulating the prepared statement
+      # @raise [Cql::Io::IoError] raised when there is an IO error, for example
+      #   if the server suddenly closes the connection
+      # @raise [Cql::QueryError] raised when there is an error on the server
+      #   side, for example when you specify a malformed CQL query
+      # @return [Cql::Client::PreparedStatement] an object encapsulating the
+      #   prepared statement
     end
 
     class PreparedStatement
       # @return [ResultMetadata]
       attr_reader :metadata
 
-      # Execute the prepared statement with a list of values for the bound parameters.
+      # Execute the prepared statement with a list of values to be bound to the
+      # statements parameters.
       #
-      # The number of arguments must equal the number of bound parameters.
-      # To set the consistency for the request you pass a consistency (as a
-      # symbol) as the last argument. Needless to say, if you pass the value for
-      # one bound parameter too few, and then a consistency, or if you pass too
-      # many values, you will get weird errors.
+      # The number of arguments must equal the number of bound parameters. You
+      # can also specify options as the last argument, or a symbol as a shortcut
+      # for just specifying the consistency.
       #
-      # @param args [Array] the values for the bound parameters, and optionally
-      #   the desired consistency, as a symbol (defaults to :quorum)
+      # Because you can specify options, or not, there is an edge case where if
+      # the last parameter of your prepared statement is a map, and you forget
+      # to specify a value for your map, the options will end up being sent to
+      # Cassandra. Most other cases when you specify the wrong number of
+      # arguments should result in an `ArgumentError` or `TypeError` being
+      # raised.
+      #
+      # @param args [Array] the values for the bound parameters. The last
+      #   argument can also be an options hash or a symbol (as a shortcut for
+      #   specifying the consistency), see {Cql::Client::Client#execute} for
+      #   full details.
+      # @raise [ArgumentError] raised when number of argument does not match
+      #   the number of parameters needed to be bound to the statement.
       # @raise [Cql::NotConnectedError] raised when the client is not connected
+      # @raise [Cql::Io::IoError] raised when there is an IO error, for example
+      #   if the server suddenly closes the connection
       # @raise [Cql::QueryError] raised when there is an error on the server side
-      # @return [nil, Cql::Client::QueryResult] Most statements have no result and return
-      #   `nil`, but `SELECT` statements return an `Enumerable` of rows
-      #   (see {Cql::Client::QueryResult}).
+      # @return [nil, Cql::Client::QueryResult] Most statements have no result
+      #    and return `nil`, but `SELECT` statements return an `Enumerable` of
+      #   rows (see {Cql::Client::QueryResult}).
       def execute(*args)
       end
     end
