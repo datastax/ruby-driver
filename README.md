@@ -17,6 +17,8 @@ If you're running Cassandra 1.2.5 or later the native transport protocol is enab
 
 # Quick start
 
+> Please note that all the examples in this document refer to the current release candidate of v1.1. If you want [the quick start for v1.0 you can find it here](https://github.com/iconara/cql-rb/tree/v1.0.6).
+
 ```ruby
 require 'cql'
 
