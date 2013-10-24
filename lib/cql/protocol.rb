@@ -15,7 +15,7 @@ module Cql
     UnsupportedColumnTypeError = Class.new(ProtocolError)
     UnsupportedEventTypeError = Class.new(ProtocolError)
 
-    CONSISTENCIES = [:any, :one, :two, :three, :quorum, :all, :local_quorum, :each_quorum].freeze
+    CONSISTENCIES = [:any, :one, :two, :three, :quorum, :all, :local_quorum, :each_quorum, nil, nil, nil, nil, nil, nil, nil, nil, :local_one].freeze
 
     module Formats
       CHAR_FORMAT = 'c'.freeze

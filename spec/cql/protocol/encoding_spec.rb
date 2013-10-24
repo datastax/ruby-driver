@@ -237,7 +237,8 @@ module Cql
           :quorum => "\x00\x04",
           :all => "\x00\x05",
           :local_quorum => "\x00\x06",
-          :each_quorum => "\x00\x07"
+          :each_quorum => "\x00\x07",
+          :local_one => "\x00\x10",
         }.each do |consistency, expected_encoding|
           it "encodes #{consistency}" do
             Encoding.write_consistency(buffer, consistency)
