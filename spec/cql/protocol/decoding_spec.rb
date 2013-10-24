@@ -470,9 +470,14 @@ module Cql
           Decoding.read_consistency!(buffer).should == :each_quorum
         end
 
+        it 'decodes LOCAL_ONE' do
+          buffer = ByteBuffer.new("\x00\x10")
+          Decoding.read_consistency!(buffer).should == :local_one
+        end
+
         it 'raises an exception for an unknown consistency' do
-          buffer = ByteBuffer.new("\xff\xff")
-          expect { Decoding.read_consistency!(buffer) }.to raise_error(DecodingError)
+          expect { Decoding.read_consistency!(ByteBuffer.new("\xff\xff")) }.to raise_error(DecodingError)
+          expect { Decoding.read_consistency!(ByteBuffer.new("\x00\x0a")) }.to raise_error(DecodingError)
         end
       end
 

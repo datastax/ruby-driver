@@ -158,7 +158,7 @@ module Cql
 
       def read_consistency!(buffer)
         index = read_short!(buffer)
-        raise DecodingError, "Unknown consistency index #{index}" unless index < CONSISTENCIES.size
+        raise DecodingError, "Unknown consistency index #{index}" if index >= CONSISTENCIES.size || CONSISTENCIES[index].nil?
         CONSISTENCIES[index]
       end
 

@@ -64,7 +64,7 @@ module Cql
 
       def write_consistency(buffer, consistency)
         index = CONSISTENCIES.index(consistency)
-        raise EncodingError, %(Unknown consistency "#{consistency}") unless index
+        raise EncodingError, %(Unknown consistency "#{consistency}") if index.nil? || CONSISTENCIES[index].nil?
         write_short(buffer, index)
       end
 

@@ -7,7 +7,7 @@ module Cql
 
       def initialize(cql, consistency)
         raise ArgumentError, %(No CQL given!) unless cql
-        raise ArgumentError, %(No such consistency: #{consistency.inspect}) unless CONSISTENCIES.include?(consistency)
+        raise ArgumentError, %(No such consistency: #{consistency.inspect}) if consistency.nil? || !CONSISTENCIES.include?(consistency)
         super(7)
         @cql = cql
         @consistency = consistency
