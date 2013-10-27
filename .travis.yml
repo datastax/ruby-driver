@@ -27,7 +27,3 @@ matrix:
     - rvm: rbx-19mode
       jdk: openjdk7
       env: CQL_ENABLE_AUTH=1
-  allow_failures:
-    - rvm: rbx-19mode
-      jdk: openjdk7
-      env: CQL_ENABLE_AUTH=0
