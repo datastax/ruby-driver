@@ -9,7 +9,7 @@ module Cql
         @code, @message = args
       end
 
-      def self.decode!(buffer)
+      def self.decode!(buffer, trace_id=nil)
         code = read_int!(buffer)
         message = read_string!(buffer)
         case code

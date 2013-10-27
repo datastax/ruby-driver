@@ -60,9 +60,9 @@ module Cql
         unless bound_args.size == @raw_metadata.size && args.size <= 1
           raise ArgumentError, "Expected #{@raw_metadata.size} arguments, got #{bound_args.size}"
         end
-        consistency, timeout = @execute_options_decoder.decode_options(args.last)
+        consistency, timeout, trace = @execute_options_decoder.decode_options(args.last)
         statement_id = connection[self]
-        request = Protocol::ExecuteRequest.new(statement_id, @raw_metadata, bound_args, consistency)
+        request = Protocol::ExecuteRequest.new(statement_id, @raw_metadata, bound_args, consistency, trace)
         @request_runner.execute(connection, request, timeout)
       end
     end

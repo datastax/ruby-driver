@@ -10,7 +10,7 @@ module Cql
         @details = details
       end
 
-      def self.decode!(code, message, buffer)
+      def self.decode!(code, message, buffer, trace_id=nil)
         details = {}
         case code
         when 0x1000 # unavailable

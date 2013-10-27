@@ -5,13 +5,14 @@ module Cql
     class RowsResultResponse < ResultResponse
       attr_reader :rows, :metadata
 
-      def initialize(*args)
-        @rows, @metadata = args
+      def initialize(rows, metadata, trace_id)
+        super(trace_id)
+        @rows, @metadata = rows, metadata
       end
 
-      def self.decode!(buffer)
+      def self.decode!(buffer, trace_id=nil)
         column_specs = read_metadata!(buffer)
-        new(read_rows!(buffer, column_specs), column_specs)
+        new(read_rows!(buffer, column_specs), column_specs, trace_id)
       end
 
       def to_s

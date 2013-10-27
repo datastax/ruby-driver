@@ -46,9 +46,9 @@ module Cql
         when Protocol::PrepareRequest
           statement_id = [rand(2**31)].pack('c*')
           connection[:last_prepared_statement_id] = statement_id
-          Protocol::PreparedResultResponse.new(statement_id, raw_metadata)
+          Protocol::PreparedResultResponse.new(statement_id, raw_metadata, nil)
         when Protocol::ExecuteRequest
-          Protocol::RowsResultResponse.new(rows, raw_metadata)
+          Protocol::RowsResultResponse.new(rows, raw_metadata, nil)
         else
           raise %(Unexpected request: #{request})
         end
@@ -189,6 +189,20 @@ module Cql
           f2 = statement.execute(11, 'foo', 22, :one)
           expect { f1.value }.to raise_error(NoMethodError)
           expect { f2.value }.to raise_error(ArgumentError)
+        end
+
+        it 'sets the trace flag' do
+          tracing = false
+          connections.each do |c|
+            c.handle_request do |r, t|
+              if r.is_a?(Protocol::ExecuteRequest)
+                tracing = r.trace
+              end
+              handle_request(c, r, t)
+            end
+          end
+          statement.execute(11, 'hello', trace: true).value
+          tracing.should be_true
         end
       end
     end

@@ -8,10 +8,14 @@ module Cql
       # @return [ResultMetadata]
       attr_reader :metadata
 
+      # @return [QueryTrace]
+      attr_reader :trace
+
       # @private
-      def initialize(metadata, rows)
+      def initialize(metadata, rows, trace=nil)
         @metadata = ResultMetadata.new(metadata)
         @rows = rows
+        @trace = trace
       end
 
       # Returns whether or not there are any rows in this result set

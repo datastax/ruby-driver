@@ -35,15 +35,15 @@ module Cql
 
       describe '#execute' do
         let :rows_response do
-          Protocol::RowsResultResponse.new(rows, metadata)
+          Protocol::RowsResultResponse.new(rows, metadata, nil)
         end
 
         let :void_response do
-          Protocol::VoidResultResponse.new
+          Protocol::VoidResultResponse.new(nil)
         end
 
         let :prepared_response do
-          Protocol::PreparedResultResponse.new("\x2a", metadata)
+          Protocol::PreparedResultResponse.new("\x2a", metadata, nil)
         end
 
         let :error_response do
@@ -55,7 +55,7 @@ module Cql
         end
 
         let :set_keyspace_response do
-          Protocol::SetKeyspaceResultResponse.new('some_keyspace')
+          Protocol::SetKeyspaceResultResponse.new('some_keyspace', nil)
         end
 
         def run(response, rq=request)
@@ -120,6 +120,20 @@ module Cql
           connection.stub(:send_request).and_return(Future.resolved('hibbly hobbly'))
           result = runner.execute(connection, request) { |response| response.reverse }.value
           result.should == 'hibbly hobbly'.reverse
+        end
+
+        it 'loads trace data when the response has a trace ID' do
+          connection.stub(:send_request) do |rq, timeout|
+            if rq == request
+              Future.resolved(Protocol::RowsResultResponse.new(rows, metadata, Uuid.new('63a26b40-3f02-11e3-9531-fb72eff05fbb')))
+            elsif rq.cql == 'SELECT * FROM system_traces.sessions WHERE session_id = 63a26b40-3f02-11e3-9531-fb72eff05fbb'
+              Future.resolved(Protocol::RowsResultResponse.new([], [], nil))
+            elsif rq.cql == 'SELECT * FROM system_traces.events WHERE session_id = 63a26b40-3f02-11e3-9531-fb72eff05fbb'
+              Future.resolved(Protocol::RowsResultResponse.new([], [], nil))
+            end
+          end
+          response = runner.execute(connection, request).value
+          response.trace.should be_a(QueryTrace)
         end
       end
     end
