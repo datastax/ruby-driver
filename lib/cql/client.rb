@@ -154,6 +154,9 @@ module Cql
       # @option options_or_consistency [Symbol] :timeout (nil) How long to wait
       #   for a response. If this timeout expires a {Cql::TimeoutError} will
       #   be raised.
+      # @option options_or_consistency [Symbol] :trace (false) Request tracing
+      #   for this request. See {Cql::Client::QueryResult} for how to retrieve
+      #   the tracing data.
       # @raise [Cql::NotConnectedError] raised when the client is not connected
       # @raise [Cql::TimeoutError] raised when a timeout was specified and no
       #   response was received within the timeout.

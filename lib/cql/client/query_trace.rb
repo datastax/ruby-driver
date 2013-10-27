@@ -5,6 +5,7 @@ module Cql
     class QueryTrace
       attr_reader :coordinator, :cql, :started_at, :duration, :events
 
+      # @private
       def initialize(session, events)
         if session
           raise IncompleteTraceError, 'Trace incomplete, try loading it again' unless session['duration']
@@ -24,6 +25,7 @@ module Cql
     class TraceEvent
       attr_reader :activity, :source, :source_elapsed, :time
 
+      # @private
       def initialize(event)
         @activity = event['activity']
         @source = event['source']
@@ -32,6 +34,7 @@ module Cql
       end
     end
 
+    # @private
     class NullQueryTrace < QueryTrace
       def initialize
         super(nil, nil)

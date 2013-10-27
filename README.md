@@ -233,7 +233,6 @@ Prereleases will be stable, in the sense that they will have finished and proper
 # Known bugs & limitations
 
 * No support for compression.
-* No support for request tracing.
 * JRuby 1.6 is not officially supported, although 1.6.8 should work, if you're stuck in JRuby 1.6.8 try and see if it works for you.
 * Large results are buffered in memory until the whole response has been loaded, the protocol makes it possible to start to deliver rows to the client code as soon as the metadata is loaded, but this is not supported yet.
 * There is no cluster introspection utilities (like the `DESCRIBE` commands in `cqlsh`).
