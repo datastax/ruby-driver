@@ -661,43 +661,22 @@ module Cql
             tracing.should be_true
           end
 
-          it 'fetches the trace data' do
+          it 'loads the trace data when requested' do
             trace_id = Uuid.new('a1028490-3f05-11e3-9531-fb72eff05fbb')
-            sessions_metadata = [
-              ['system_traces', 'sessions', 'session_id', :uuid],
-              ['system_traces', 'sessions', 'coordinator', :inet],
-              ['system_traces', 'sessions', 'parameters', [:map, :text, :text]],
-              ['system_traces', 'sessions', 'request', :text],
-              ['system_traces', 'sessions', 'started_at', :timestamp],
-            ]
-            sessions_rows = [{'session_id' => trace_id, 'coordinator' => IPAddr.new('127.0.0.1'), 'duration' => 1004, 'parameters' => {'query' => cql}, 'request' => 'Execute CQL3 query', 'started_at' => Time.now}]
-            events_metadata = [
-              ['system_traces', 'sessions', 'session_id', :uuid],
-              ['system_traces', 'sessions', 'event_id', :timeuuid],
-              ['system_traces', 'sessions', 'activity', :text],
-              ['system_traces', 'sessions', 'source', :inet],
-              ['system_traces', 'sessions', 'source_elapsed', :int],
-              ['system_traces', 'sessions', 'thread', :text],
-            ]
-            events_rows = [
-              {'session_id' => trace_id, 'event_id' => TimeUuid.new(0), 'activity' => 'Parsing statement', 'source' => IPAddr.new('127.0.0.1'), 'source_elapsed' => 52, 'thread' => 'Native-Transport-Requests:126'},
-              {'session_id' => trace_id, 'event_id' => TimeUuid.new(0), 'activity' => 'Peparing statement', 'source' => IPAddr.new('127.0.0.1'), 'source_elapsed' => 54, 'thread' => 'Native-Transport-Requests:126'},
-            ]
             handle_request do |request|
               if request.is_a?(Protocol::QueryRequest)
                 if request.cql == cql
                   Protocol::RowsResultResponse.new([], [], trace_id)
-                elsif request.cql.include?('SELECT * FROM system_traces.sessions WHERE session_id = a1028490-3f05-11e3-9531-fb72eff05fbb')
-                  Protocol::RowsResultResponse.new(sessions_rows, sessions_metadata, nil)
-                elsif request.cql.include?('SELECT * FROM system_traces.events WHERE session_id = a1028490-3f05-11e3-9531-fb72eff05fbb')
-                  Protocol::RowsResultResponse.new(events_rows, events_metadata, nil)
+                elsif request.cql.include?('system_traces.sessions')
+                  Protocol::RowsResultResponse.new([], [], nil)
+                elsif request.cql.include?('system_traces.events')
+                  Protocol::RowsResultResponse.new([], [], nil)
                 end
               end
             end
             result = client.execute(cql, trace: true).value
-            result.trace.should be_a(QueryTrace)
-            result.trace.coordinator.should == IPAddr.new('127.0.0.1')
-            result.trace.events.should have(2).items
+            trace = result.trace.value
+            trace.should be_a(QueryTrace)
           end
         end
       end

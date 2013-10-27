@@ -19,6 +19,7 @@ module Cql
   TimeoutError = Class.new(CqlError)
   ClientError = Class.new(CqlError)
   AuthenticationError = Class.new(ClientError)
+  IncompleteTraceError = Class.new(ClientError)
 
   # A CQL client manages connections to one or more Cassandra nodes and you use
   # it run queries, insert and update data.

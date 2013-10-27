@@ -7,7 +7,7 @@ module Cql
   module Client
     describe QueryTrace do
       let :trace do
-        described_class.new(session_row, events_rows)
+        described_class.new(session_row, event_rows)
       end
 
       let :started_at do
@@ -27,7 +27,7 @@ module Cql
         }
       end
 
-      let :events_rows do
+      let :event_rows do
         [
           {
             'session_id' => Uuid.new('a1028490-3f05-11e3-9531-fb72eff05fbb'),
@@ -46,6 +46,23 @@ module Cql
             'thread' => 'Native-Transport-Requests:126'
           },
         ]
+      end
+
+      context 'when the session is nil' do
+        it 'returns nil from all methods' do
+          trace = described_class.new(nil, nil)
+          trace.coordinator.should be_nil
+          trace.cql.should be_nil
+          trace.started_at.should be_nil
+          trace.events.should be_empty
+        end
+      end
+
+      context 'when the duration field of the session is nil' do
+        it 'raises an IncompleteTraceError' do
+          session_row['duration'] = nil
+          expect { described_class.new(session_row, event_rows) }.to raise_error(IncompleteTraceError)
+        end
       end
 
       describe '#coordinator' do
@@ -113,19 +130,6 @@ module Cql
             it 'returns the time component from the event ID' do
               event.time.to_i.should == TimeUuid.new('a1028492-3f05-11e3-9531-fb72eff05fbb').to_time.to_i
             end
-          end
-        end
-
-        context 'with nil inputs' do
-          let :trace do
-            described_class.new(nil, nil)
-          end
-
-          it 'returns nil from all methods' do
-            trace.coordinator.should be_nil
-            trace.cql.should be_nil
-            trace.started_at.should be_nil
-            trace.events.should be_empty
           end
         end
       end

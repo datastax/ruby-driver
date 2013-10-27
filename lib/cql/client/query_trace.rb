@@ -7,6 +7,7 @@ module Cql
 
       def initialize(session, events)
         if session
+          raise IncompleteTraceError, 'Trace incomplete, try loading it again' unless session['duration']
           @coordinator = session['coordinator']
           @cql = (parameters = session['parameters']) && parameters['query']
           @started_at = session['started_at']
@@ -28,6 +29,12 @@ module Cql
         @source = event['source']
         @source_elapsed = event['source_elapsed']/1_000_000.0
         @time = event['event_id'].to_time
+      end
+    end
+
+    class NullQueryTrace < QueryTrace
+      def initialize
+        super(nil, nil)
       end
     end
   end

@@ -142,19 +142,6 @@ describe 'A CQL client' do
     end
   end
 
-  context 'with tracing' do
-    it 'requests tracing and returns the trace data' do
-      result = client.execute('SELECT * FROM system.peers', trace: true)
-      result.trace.should_not be_nil
-    end
-
-    it 'requests tracing when executing prepared statements' do
-      statement = client.prepare('SELECT * FROM system.peers')
-      result = statement.execute(trace: true)
-      result.trace.should_not be_nil
-    end
-  end
-
   context 'with error conditions' do
     it 'raises an error for CQL syntax errors' do
       expect { client.execute('BAD cql') }.to raise_error(Cql::CqlError)
