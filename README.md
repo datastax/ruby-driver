@@ -158,6 +158,7 @@ The possible values for consistency are:
 * `:all`
 * `:local_quorum`
 * `:each_quorum`
+* `:local_one`
 
 The default consistency level unless you've set it yourself is `:quorum`.
 
