@@ -5,7 +5,7 @@
 
 # Requirements
 
-Cassandra 1.2 or later with the native transport protocol turned on and a modern Ruby. It's tested continuously in Travis with Ruby 1.9.3, 2.0.0, and JRuby 1.7.x stable and head.
+Cassandra 1.2 or later with the native transport protocol turned on and a modern Ruby. It's tested continuously in Travis with Ruby 1.9.3, 2.0, JRuby 1.7 and Rubinius 2.0.
 
 # Installation
 
