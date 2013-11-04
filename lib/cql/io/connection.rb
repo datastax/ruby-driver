@@ -50,7 +50,7 @@ module Cql
           if @clock.now - @connection_started_at > @connection_timeout
             close(ConnectionTimeoutError.new("Could not connect to #{@host}:#{@port} within #{@connection_timeout}s"))
           end
-        rescue Errno::EINVAL => e
+        rescue Errno::EINVAL, Errno::ECONNREFUSED => e
           if @addrinfos.empty?
             close(e)
           else
