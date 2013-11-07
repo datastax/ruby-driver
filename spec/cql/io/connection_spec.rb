@@ -137,6 +137,30 @@ module Cql
           end
         end
 
+        context 'when #connect_nonblock raises ECONNREFUSED' do
+          before do
+            socket_impl.stub(:sockaddr_in)
+              .with('PORT', 'IP2')
+              .and_return('SOCKADDR2')
+            socket_impl.stub(:new)
+              .with('FAMILY2', 'TYPE2', 0)
+              .and_return(socket)
+            socket.stub(:close)
+          end
+
+          it 'attempts to connect to the next address given by #getaddinfo' do
+            socket.should_receive(:connect_nonblock).with('SOCKADDR1').and_raise(Errno::ECONNREFUSED)
+            socket.should_receive(:connect_nonblock).with('SOCKADDR2')
+            handler.connect
+          end
+
+          it 'fails if there are no more addresses to try' do
+            socket.stub(:connect_nonblock).and_raise(Errno::ECONNREFUSED)
+            f = handler.connect
+            expect { f.value }.to raise_error(ConnectionError)
+          end
+        end
+
         context 'when #connect_nonblock raises SystemCallError' do
           before do
             socket.stub(:connect_nonblock).and_raise(SystemCallError.new('Bork!', 9999))
