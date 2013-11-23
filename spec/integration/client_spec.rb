@@ -25,8 +25,8 @@ describe 'A CQL client' do
     it 'knows which keyspace it\'s in' do
       client.use('system')
       client.keyspace.should == 'system'
-      client.use('system_auth')
-      client.keyspace.should == 'system_auth'
+      client.use('system_traces')
+      client.keyspace.should == 'system_traces'
     end
 
     it 'is not in a keyspace initially' do
