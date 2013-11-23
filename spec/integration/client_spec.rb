@@ -142,6 +142,27 @@ describe 'A CQL client' do
     end
   end
 
+  context 'with tracing' do
+    before do
+      client.execute(%(DROP KEYSPACE cql_rb_client_spec)) rescue nil
+      client.execute(%(CREATE KEYSPACE cql_rb_client_spec WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}))
+      client.use('cql_rb_client_spec')
+      client.execute(%(CREATE TABLE users (user_id VARCHAR PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)))
+    end
+
+    it 'requests tracing and returns the trace ID' do
+      result = client.execute(%(SELECT * FROM users), trace: true)
+      result.trace_id.should_not be_nil
+    end
+
+    it 'requests tracing and returns the trace ID, for void returning operations' do
+      pending 'since void operations return nil, this is currently not possible' do
+        result = client.execute(%(INSERT INTO users (user_id, first, last, age) VALUES ('1', 'Sue', 'Smith', 25)), trace: true)
+        result.trace_id.should_not be_nil
+      end
+    end
+  end
+
   context 'with error conditions' do
     it 'raises an error for CQL syntax errors' do
       expect { client.execute('BAD cql') }.to raise_error(Cql::CqlError)
