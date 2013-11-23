@@ -127,45 +127,10 @@ module Cql
             Uuid.new('63a26b40-3f02-11e3-9531-fb72eff05fbb')
           end
 
-          let :session_rows do
-            [{'session_id' => trace_id, 'coordinator' => IPAddr.new('127.0.0.1'), 'duration' => 1263, 'parameters' => {'query' => 'SELECT * FROM something'}, 'request' => 'Execute CQL3 query', 'started_at' => Time.now}]
-          end
-
-          let :event_rows do
-            [
-              {'session_id' => trace_id, 'event_id' => TimeUuid.new('a1028491-3f05-11e3-9531-fb72eff05fbb'), 'activity' => 'Parsing statement', 'source' => IPAddr.new('127.0.0.1'), 'source_elapsed' => 52, 'thread' => 'Native-Transport-Requests:126'},
-              {'session_id' => trace_id, 'event_id' => TimeUuid.new('a1028492-3f05-11e3-9531-fb72eff05fbb'), 'activity' => 'Peparing statement', 'source' => IPAddr.new('127.0.0.1'), 'source_elapsed' => 54, 'thread' => 'Native-Transport-Requests:126'},
-            ]
-          end
-
-          it 'returns a QueryResult that can load its trace' do
-            connection.stub(:send_request) do |rq, timeout|
-              if rq == request
-                Future.resolved(Protocol::RowsResultResponse.new(rows, metadata, trace_id))
-              elsif rq.cql == 'SELECT * FROM system_traces.sessions WHERE session_id = 63a26b40-3f02-11e3-9531-fb72eff05fbb'
-                Future.resolved(Protocol::RowsResultResponse.new(session_rows, [:fake_metadata], nil))
-              elsif rq.cql == 'SELECT * FROM system_traces.events WHERE session_id = 63a26b40-3f02-11e3-9531-fb72eff05fbb'
-                Future.resolved(Protocol::RowsResultResponse.new(event_rows, [:fake_metadata], nil))
-              end
-            end
+          it 'returns a QueryResult that knows its trace ID' do
+            connection.stub(:send_request).with(request, anything).and_return(Future.resolved(Protocol::RowsResultResponse.new(rows, metadata, trace_id)))
             response = runner.execute(connection, request).value
-            trace = response.trace.value
-            trace.cql.should == 'SELECT * FROM something'
-          end
-
-          it 'raises an error from #trace when the duration field of the trace is nil' do
-            session_rows[0]['duration'] = nil
-            connection.stub(:send_request) do |rq, timeout|
-              if rq == request
-                Future.resolved(Protocol::RowsResultResponse.new(rows, metadata, trace_id))
-              elsif rq.cql == 'SELECT * FROM system_traces.sessions WHERE session_id = 63a26b40-3f02-11e3-9531-fb72eff05fbb'
-                Future.resolved(Protocol::RowsResultResponse.new(session_rows, [:fake_metadata], nil))
-              elsif rq.cql == 'SELECT * FROM system_traces.events WHERE session_id = 63a26b40-3f02-11e3-9531-fb72eff05fbb'
-                Future.resolved(Protocol::RowsResultResponse.new(event_rows, [:fake_metadata], nil))
-              end
-            end
-            response = runner.execute(connection, request).value
-            expect { response.trace.value }.to raise_error(IncompleteTraceError)
+            response.trace_id.should == trace_id
           end
         end
       end

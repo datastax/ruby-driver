@@ -8,26 +8,16 @@ module Cql
       # @return [ResultMetadata]
       attr_reader :metadata
 
+      # The ID of the query trace associated with the query, if any.
+      #
+      # @return [Cql::Uuid]
+      attr_reader :trace_id
+
       # @private
-      def initialize(metadata, rows, trace_loader)
+      def initialize(metadata, rows, trace_id)
         @metadata = ResultMetadata.new(metadata)
         @rows = rows
-        @trace_loader = trace_loader
-      end
-
-      # Load the query trace associated with the query, if any.
-      #
-      # If the trace has not yet been fully written (e.g. the duration field
-      # has not yet been populated), a IncompleteTraceError is returned. When
-      # that happens, try loading the trace again after a short pause.
-      #
-      # @note This method is only available as an asynchronous operation and
-      #   is therefore not part of the public API yet.
-      #
-      # @private
-      # @return [Future<QueryTrace>]
-      def trace
-        @trace_loader.load
+        @trace_id = trace_id
       end
 
       # Returns whether or not there are any rows in this result set

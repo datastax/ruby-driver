@@ -661,22 +661,15 @@ module Cql
             tracing.should be_true
           end
 
-          it 'loads the trace data when requested' do
+          it 'returns the trace ID with the result' do
             trace_id = Uuid.new('a1028490-3f05-11e3-9531-fb72eff05fbb')
             handle_request do |request|
-              if request.is_a?(Protocol::QueryRequest)
-                if request.cql == cql
-                  Protocol::RowsResultResponse.new([], [], trace_id)
-                elsif request.cql.include?('system_traces.sessions')
-                  Protocol::RowsResultResponse.new([], [], nil)
-                elsif request.cql.include?('system_traces.events')
-                  Protocol::RowsResultResponse.new([], [], nil)
-                end
+              if request.is_a?(Protocol::QueryRequest) && request.cql == cql
+                Protocol::RowsResultResponse.new([], [], trace_id)
               end
             end
             result = client.execute(cql, trace: true).value
-            trace = result.trace.value
-            trace.should be_a(QueryTrace)
+            result.trace_id.should == trace_id
           end
         end
       end
