@@ -245,21 +245,17 @@ module Cql
 
       def socket_closed(cause)
         request_failure_cause = cause || Io::ConnectionClosedError.new
+        promises_to_fail = nil
         @lock.synchronize do
-          @promises.each_with_index do |promise, i|
-            if promise
-              @promises[i].fail(request_failure_cause)
-              @promises[i] = nil
-            end
-          end
-          @request_queue_in.each do |promise|
-            promise.fail(request_failure_cause)
-          end
+          promises_to_fail = @promises.compact
+          promises_to_fail.concat(@request_queue_in)
+          promises_to_fail.concat(@request_queue_out)
+          @promises.fill(nil)
           @request_queue_in.clear
-          @request_queue_out.each do |promise|
-            promise.fail(request_failure_cause)
-          end
           @request_queue_out.clear
+        end
+        promises_to_fail.each do |promise|
+          promise.fail(request_failure_cause)
         end
         if cause
           @closed_promise.fail(cause)
