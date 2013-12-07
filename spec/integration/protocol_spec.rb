@@ -142,7 +142,6 @@ describe 'Protocol parsing and communication' do
           raw_execute_request(Cql::Protocol::StartupRequest.new)
           response = raw_execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
           response.code.should == 10
-          response.message.should include('needs authentication')
         end
       end
 
