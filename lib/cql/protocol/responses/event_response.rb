@@ -5,17 +5,16 @@ module Cql
     class EventResponse < ResultResponse
       def self.decode!(buffer)
         type = read_string!(buffer)
-        case type
-        when SchemaChangeEventResponse::TYPE
-          SchemaChangeEventResponse.decode!(buffer)
-        when StatusChangeEventResponse::TYPE
-          StatusChangeEventResponse.decode!(buffer)
-        when TopologyChangeEventResponse::TYPE
-          TopologyChangeEventResponse.decode!(buffer)
-        else
-          raise UnsupportedEventTypeError, %(Unsupported event type: "#{type}")
-        end
+        impl = EVENT_TYPES[type]
+        raise UnsupportedEventTypeError, %(Unsupported event type: "#{type}") unless impl
+        impl.decode!(buffer)
       end
+
+      private
+
+      EVENT_TYPES = {
+        # populated by subclasses
+      }
     end
   end
 end

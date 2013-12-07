@@ -9,6 +9,10 @@ module Cql
         super
         @type = TYPE
       end
+
+      private
+
+      EVENT_TYPES[TYPE] = self
     end
   end
 end

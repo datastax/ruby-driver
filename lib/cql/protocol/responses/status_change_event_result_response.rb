@@ -19,6 +19,10 @@ module Cql
       def to_s
         %(EVENT #@type #@change #@address:#@port)
       end
+
+      private
+
+      EVENT_TYPES[TYPE] = self
     end
   end
 end
