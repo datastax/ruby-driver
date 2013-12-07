@@ -9,7 +9,7 @@ require 'support/await_helper'
 require 'support/fake_server'
 require 'support/fake_io_reactor'
 
-unless ENV['COVERAGE'] == 'no'
+unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
   require 'coveralls'
   require 'simplecov'
 
@@ -26,4 +26,3 @@ unless ENV['COVERAGE'] == 'no'
 end
 
 require 'cql'
-
