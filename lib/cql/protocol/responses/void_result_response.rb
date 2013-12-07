@@ -14,6 +14,10 @@ module Cql
       def void?
         true
       end
+
+      private
+
+      RESULT_TYPES[0x01] = self
     end
   end
 end

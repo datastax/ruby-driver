@@ -20,6 +20,8 @@ module Cql
 
       private
 
+      RESULT_TYPES[0x02] = self
+
       COLUMN_TYPES = [
         nil,
         :ascii,

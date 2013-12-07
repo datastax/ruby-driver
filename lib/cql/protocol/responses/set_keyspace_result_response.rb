@@ -16,6 +16,10 @@ module Cql
       def to_s
         %(RESULT SET_KEYSPACE "#@keyspace")
       end
+
+      private
+
+      RESULT_TYPES[0x03] = self
     end
   end
 end

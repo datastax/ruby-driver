@@ -31,6 +31,10 @@ module Cql
       def to_s
         %(RESULT SCHEMA_CHANGE #@change "#@keyspace" "#@table")
       end
+
+      private
+
+      RESULT_TYPES[0x05] = self
     end
   end
 end

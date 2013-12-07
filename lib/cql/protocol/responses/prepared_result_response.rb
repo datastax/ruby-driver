@@ -18,6 +18,10 @@ module Cql
       def to_s
         %(RESULT PREPARED #{id.each_byte.map { |x| x.to_s(16) }.join('')} #@metadata)
       end
+
+      private
+
+      RESULT_TYPES[0x04] = self
     end
   end
 end
