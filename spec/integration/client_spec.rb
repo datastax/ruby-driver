@@ -163,6 +163,35 @@ describe 'A CQL client' do
     end
   end
 
+  context 'with compression' do
+    let :client do
+      Cql::Client.connect(connection_options.merge(compressor: snappy_compressor))
+    end
+
+    begin
+      require 'snappy'
+
+      let :snappy_compressor do
+        s = double(:snappy_compressor)
+        s.stub(:compress?).and_return(true)
+        s.stub(:algorithm) { 'snappy' }
+        s.stub(:compress) { |str| Snappy.deflate(str) }
+        s.stub(:decompress) { |str| Snappy.inflate(str) }
+        s
+      end
+
+      it 'compresses requests and decompresses responses' do
+        client.execute('SELECT * FROM system.schema_keyspaces')
+        snappy_compressor.should have_received(:compress).at_least(1).times
+        snappy_compressor.should have_received(:decompress).at_least(1).times
+      end
+    rescue LoadError
+      it 'compresses requests and decompresses responses' do
+        pending 'No compressor available for the current platform'
+      end
+    end
+  end
+
   context 'with error conditions' do
     it 'raises an error for CQL syntax errors' do
       expect { client.execute('BAD cql') }.to raise_error(Cql::CqlError)
