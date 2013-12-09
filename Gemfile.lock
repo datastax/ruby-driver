@@ -28,7 +28,7 @@ GEM
     mime-types (1.23)
     multi_json (1.7.7)
     myrrha (1.2.2)
-    perftools.rb (2.0.0)
+    perftools.rb (2.0.1)
     pry (0.9.10)
       coderay (~> 1.0.5)
       method_source (~> 0.8)
