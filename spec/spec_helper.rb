@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-ENV['CASSANDRA_HOST'] ||= '127.0.0.1'
+ENV['CASSANDRA_HOST'] ||= 'localhost'
 
 require 'bundler/setup'
 
