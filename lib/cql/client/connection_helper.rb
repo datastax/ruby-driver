@@ -103,20 +103,37 @@ module Cql
         @logger.debug('Connecting to node at %s:%d' % [host, @port])
         connected = @io_reactor.connect(host, @port, @connection_timeout)
         connected.flat_map do |connection|
-          initialize_connection(connection, keyspace)
+          f = cache_supported_options(connection)
+          f = f.flat_map { send_startup_request(connection) }
+          f = f.flat_map { |response| maybe_authenticate(response, connection) }
+          f = f.flat_map { identify_node(connection) }
+          f = f.flat_map { change_keyspace(keyspace, connection) }
+          f
         end
       end
 
-      def initialize_connection(connection, keyspace)
-        queried = @request_runner.execute(connection, Protocol::OptionsRequest.new)
-        queried.on_value do |supported_options|
+      def cache_supported_options(connection)
+        f = @request_runner.execute(connection, Protocol::OptionsRequest.new)
+        f.on_value do |supported_options|
           connection[:cql_version] = supported_options['CQL_VERSION']
           connection[:compression] = supported_options['COMPRESSION']
         end
-        started = queried.flat_map { @request_runner.execute(connection, Protocol::StartupRequest.new) }
-        authenticated = started.flat_map { |response| maybe_authenticate(response, connection) }
-        identified = authenticated.flat_map { identify_node(connection) }
-        identified.flat_map { @keyspace_changer.use_keyspace(keyspace, connection) }
+        f
+      end
+
+      def send_startup_request(connection)
+        @request_runner.execute(connection, Protocol::StartupRequest.new)
+      end
+
+      def maybe_authenticate(response, connection)
+        return Future.resolved(connection) unless response.is_a?(AuthenticationRequired)
+        return Future.failed(AuthenticationError.new('Server requested authentication, but no credentials given')) unless @credentials
+        send_credentials(@credentials, connection)
+      end
+
+      def send_credentials(credentials, connection)
+        credentials_request = Protocol::CredentialsRequest.new(credentials)
+        @request_runner.execute(connection, credentials_request)
       end
 
       def identify_node(connection)
@@ -131,18 +148,8 @@ module Cql
         f
       end
 
-      def maybe_authenticate(response, connection)
-        case response
-        when AuthenticationRequired
-          if @credentials
-            credentials_request = Protocol::CredentialsRequest.new(@credentials)
-            @request_runner.execute(connection, credentials_request).map { connection }
-          else
-            Future.failed(AuthenticationError.new('Server requested authentication, but no credentials given'))
-          end
-        else
-          Future.resolved(connection)
-        end
+      def change_keyspace(keyspace, connection)
+        @keyspace_changer.use_keyspace(keyspace, connection)
       end
 
       class FailedConnection
