@@ -213,6 +213,20 @@ module Cql
           client.keyspace.should be_nil
         end
 
+        it 'enables compression when a compressor is specified' do
+          handle_request do |request|
+            case request
+            when Protocol::OptionsRequest
+              Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
+            end
+          end
+          compressor = double(:compressor, algorithm: 'lz4')
+          c = described_class.new(connection_options.merge(compressor: compressor))
+          c.connect.value
+          request = requests.find { |rq| rq.is_a?(Protocol::StartupRequest) }
+          request.options.should include('COMPRESSION' => 'lz4')
+        end
+
         it 'changes to the keyspace given as an option' do
           c = described_class.new(connection_options.merge(:keyspace => 'hello_world'))
           c.connect.value
