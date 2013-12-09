@@ -27,7 +27,7 @@ module Cql
         @connection.on_closed(&method(:socket_closed))
         @promises = Array.new(128) { nil }
         @read_buffer = ByteBuffer.new
-        @current_frame = Protocol::ResponseFrame.new(@read_buffer)
+        @current_frame = Protocol::ResponseFrame.new(@read_buffer, @compressor)
         @request_queue_in = []
         @request_queue_out = []
         @event_listeners = []
@@ -185,7 +185,7 @@ module Cql
           else
             complete_request(id, @current_frame.body)
           end
-          @current_frame = Protocol::ResponseFrame.new(@read_buffer)
+          @current_frame = Protocol::ResponseFrame.new(@read_buffer, @compressor)
           flush_request_queue
         end
       end
