@@ -7,7 +7,7 @@ module Cql
   module Client
     describe ConnectionHelper do
       let :connection_helper do
-        described_class.new(io_reactor, 9876, nil, 1, 7, logger)
+        described_class.new(io_reactor, 9876, nil, 1, 7, compressor, logger)
       end
 
       let :io_reactor do
@@ -16,6 +16,10 @@ module Cql
 
       let :logger do
         NullLogger.new
+      end
+
+      let :compressor do
+        nil
       end
 
       describe '#connect' do
@@ -130,7 +134,7 @@ module Cql
 
         it 'authenticates when authentication is required and credentials were specified' do
           credentials = {'username' => 'foo', 'password' => 'bar'}
-          connection_helper = described_class.new(io_reactor, 9876, credentials, 1, 7, logger)
+          connection_helper = described_class.new(io_reactor, 9876, credentials, 1, 7, nil, logger)
           connection = FakeConnection.new('host0', 9876, 7)
           authentication_sent = false
           connection.handle_request do |request|
@@ -196,10 +200,46 @@ module Cql
         end
 
         it 'connects to each node a configurable number of times' do
-          connection_helper = described_class.new(io_reactor, 9876, nil, connections_per_node = 3, 7, logger)
+          connection_helper = described_class.new(io_reactor, 9876, nil, connections_per_node = 3, 7, nil, logger)
           connection_helper.connect(hosts, nil)
           io_reactor.should have_received(:connect).with('host0', 9876, 7).exactly(3).times
           io_reactor.should have_received(:connect).with('host1', 9876, 7).exactly(3).times
+        end
+
+        context 'when a compressor is specified' do
+          let :compressor do
+            double(:compressor, algorithm: 'snappy')
+          end
+
+          let :connection do
+            FakeConnection.new('host0', 9876, 7)
+          end
+
+          it 'enables compression by sending the algorithm with the STARTUP request' do
+            connection.handle_request do |request, timeout|
+              if request.is_a?(Protocol::OptionsRequest)
+                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.1.1], 'COMPRESSION' => %w[lz4 snappy])
+              else
+                connection.default_request_handler(request, timeout)
+              end
+            end
+            io_reactor.stub(:connect).with('host0', 9876, 7).and_return(Future.resolved(connection))
+            connection_helper.connect(hosts.take(1), 'some_keyspace')
+            connection.requests[1].options['COMPRESSION'].should == 'snappy'
+          end
+
+          it 'does not enable compression when the algorithm is not supported' do
+            connection.handle_request do |request, timeout|
+              if request.is_a?(Protocol::OptionsRequest)
+                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.1.1], 'COMPRESSION' => %w[lz4])
+              else
+                connection.default_request_handler(request, timeout)
+              end
+            end
+            io_reactor.stub(:connect).with('host0', 9876, 7).and_return(Future.resolved(connection))
+            connection_helper.connect(hosts.take(1), 'some_keyspace')
+            connection.requests[1].options.should_not have_key('COMPRESSION')
+          end
         end
       end
 
@@ -355,7 +395,7 @@ module Cql
         end
 
         it 'connects to each node a configurable number of times' do
-          connection_helper = described_class.new(io_reactor, 9876, nil, connections_per_node = 3, 7, logger)
+          connection_helper = described_class.new(io_reactor, 9876, nil, connections_per_node = 3, 7, nil, logger)
           connection = FakeConnection.new('host3', 9876, 7)
           io_reactor.stub(:connect).with('1.0.0.3', 9876, 7).and_return(Future.resolved(connection))
           peer_request_response { seed_connection_rows + extra_connection_rows.take(1) }

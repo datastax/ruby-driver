@@ -4,7 +4,7 @@ module Cql
   module Client
     # @private
     class ConnectionHelper
-      def initialize(io_reactor, port, credentials, connections_per_node, connection_timeout, logger)
+      def initialize(io_reactor, port, credentials, connections_per_node, connection_timeout, compressor, logger)
         @io_reactor = io_reactor
         @port = port
         @credentials = credentials
@@ -13,6 +13,7 @@ module Cql
         @logger = logger
         @request_runner = RequestRunner.new
         @keyspace_changer = KeyspaceChanger.new
+        @compressor = compressor
       end
 
       def connect(hosts, initial_keyspace)
@@ -122,7 +123,9 @@ module Cql
       end
 
       def send_startup_request(connection)
-        @request_runner.execute(connection, Protocol::StartupRequest.new)
+        compression = @compressor && connection[:compression].include?(@compressor.algorithm) && @compressor.algorithm
+        request = Protocol::StartupRequest.new(nil, compression)
+        @request_runner.execute(connection, request)
       end
 
       def maybe_authenticate(response, connection)
