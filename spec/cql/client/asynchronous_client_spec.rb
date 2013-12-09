@@ -208,23 +208,6 @@ module Cql
           last_connection.timeout.should == 10
         end
 
-        it 'sends a startup request' do
-          client.connect.value
-          requests.first.should be_a(Protocol::StartupRequest)
-        end
-
-        it 'sends a startup request to each connection' do
-          client.close.value
-          io_reactor.stop.value
-          io_reactor.start.value
-
-          c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h3.example.com]))
-          c.connect.value
-          connections.each do |cc|
-            cc.requests.first.should be_a(Protocol::StartupRequest)
-          end
-        end
-
         it 'is not in a keyspace' do
           client.connect.value
           client.keyspace.should be_nil

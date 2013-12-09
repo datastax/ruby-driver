@@ -108,7 +108,12 @@ module Cql
       end
 
       def initialize_connection(connection, keyspace)
-        started = @request_runner.execute(connection, Protocol::StartupRequest.new)
+        queried = @request_runner.execute(connection, Protocol::OptionsRequest.new)
+        queried.on_value do |supported_options|
+          connection[:cql_version] = supported_options['CQL_VERSION']
+          connection[:compression] = supported_options['COMPRESSION']
+        end
+        started = queried.flat_map { @request_runner.execute(connection, Protocol::StartupRequest.new) }
         authenticated = started.flat_map { |response| maybe_authenticate(response, connection) }
         identified = authenticated.flat_map { identify_node(connection) }
         identified.flat_map { @keyspace_changer.use_keyspace(keyspace, connection) }

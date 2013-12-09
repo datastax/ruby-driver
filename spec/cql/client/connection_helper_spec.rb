@@ -92,10 +92,26 @@ module Cql
           io_reactor.stub(:connect).with('host1', 9876, 7).and_return(Future.resolved(connection1))
           connection_helper.connect(hosts, 'some_keyspace')
           [connection0, connection1].each do |c|
-            c.requests[0].should be_a(Protocol::StartupRequest)
-            c.requests[1].cql.should match(/SELECT .* FROM system.local/)
-            c.requests[2].cql.should == 'USE some_keyspace'
+            c.requests[0].should be_a(Protocol::OptionsRequest)
+            c.requests[1].should be_a(Protocol::StartupRequest)
+            c.requests[2].cql.should match(/SELECT .* FROM system.local/)
+            c.requests[3].cql.should == 'USE some_keyspace'
           end
+        end
+
+        it 'saves the supported CQL version and compression algorithms on the connection' do
+          connection = FakeConnection.new('host0', 9876, 7)
+          connection.handle_request do |request, timeout|
+            if request.is_a?(Protocol::OptionsRequest)
+              Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.1.1], 'COMPRESSION' => %w[lz4 snappy])
+            else
+              connection.default_request_handler(request, timeout)
+            end
+          end
+          io_reactor.stub(:connect).with('host0', 9876, 7).and_return(Future.resolved(connection))
+          connection_helper.connect(hosts.take(1), 'some_keyspace')
+          connection[:cql_version].should == %w[3.1.1]
+          connection[:compression].should == %w[lz4 snappy]
         end
 
         it 'fails if authentication is required and no credentials were specified' do
@@ -308,9 +324,10 @@ module Cql
           peer_request_response { seed_connection_rows + extra_connection_rows.take(1) }
           f = connection_helper.discover_peers(seed_connections, 'some_keyspace')
           f.value
-          connection.requests[0].should be_a(Protocol::StartupRequest)
-          connection.requests[1].cql.should match(/SELECT .* FROM system.local/)
-          connection.requests[2].cql.should == 'USE some_keyspace'
+          connection.requests[0].should be_a(Protocol::OptionsRequest)
+          connection.requests[1].should be_a(Protocol::StartupRequest)
+          connection.requests[2].cql.should match(/SELECT .* FROM system.local/)
+          connection.requests[3].cql.should == 'USE some_keyspace'
         end
 
         it 'connects only to node in the same data centers as the seed nodes' do

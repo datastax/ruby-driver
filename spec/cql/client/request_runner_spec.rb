@@ -111,6 +111,11 @@ module Cql
           end
         end
 
+        it 'transforms a SupportedResponse into its hash of supported options' do
+          result = run(Protocol::SupportedResponse.new('CQL_VERSION' => %w[9.9.9], 'COMPRESSION' => %w[fractal quantum]))
+          result.should eql('CQL_VERSION' => %w[9.9.9], 'COMPRESSION' => %w[fractal quantum])
+        end
+
         it 'transforms all other responses to nil' do
           result = run('hibbly hobbly')
           result.should be_nil

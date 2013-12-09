@@ -16,6 +16,8 @@ module Cql
             KeyspaceChanged.new(response.keyspace)
           when Protocol::AuthenticateResponse
             AuthenticationRequired.new(response.authentication_class)
+          when Protocol::SupportedResponse
+            response.options
           else
             if block_given?
               yield response
