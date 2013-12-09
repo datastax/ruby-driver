@@ -112,6 +112,33 @@ module Cql
           futures[128].should be_resolved
         end
 
+        context 'when a compressor is specified' do
+          let :compressor do
+            double(:compressor)
+          end
+
+          let :request do
+            Protocol::PrepareRequest.new('SELECT * FROM things')
+          end
+
+          before do
+            compressor.stub(:compress?).and_return(true)
+            compressor.stub(:compress).and_return('FAKECOMPRESSEDBODY')
+          end
+
+          it 'compresses request frames' do
+            protocol_handler = described_class.new(connection, scheduler, compressor)
+            protocol_handler.send_request(request)
+            buffer.to_s.should == [1, 1, 0, 9, 18].pack('C4N') + 'FAKECOMPRESSEDBODY'
+          end
+
+          it 'compresses queued request frames' do
+            protocol_handler = described_class.new(connection, scheduler, compressor)
+            130.times { protocol_handler.send_request(request) }
+            compressor.should have_received(:compress).exactly(130).times
+          end
+        end
+
         context 'when the protocol handler closes' do
           it 'fails all requests waiting for a reply' do
             futures = Array.new(5) { protocol_handler.send_request(request) }

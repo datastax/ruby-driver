@@ -19,9 +19,10 @@ module Cql
       # @return [String] the current keyspace for the underlying connection
       attr_reader :keyspace
 
-      def initialize(connection, scheduler)
+      def initialize(connection, scheduler, compressor=nil)
         @connection = connection
         @scheduler = scheduler
+        @compressor = compressor
         @connection.on_data(&method(:receive_data))
         @connection.on_closed(&method(:socket_closed))
         @promises = Array.new(128) { nil }
@@ -113,7 +114,7 @@ module Cql
       #   the response
       def send_request(request, timeout=nil)
         return Future.failed(NotConnectedError.new) if closed?
-        promise = RequestPromise.new(request)
+        promise = RequestPromise.new(request, @compressor)
         id = nil
         @lock.synchronize do
           if (id = next_stream_id)
@@ -122,7 +123,7 @@ module Cql
         end
         if id
           @connection.write do |buffer|
-            request.encode_frame(id, buffer)
+            request.encode_frame(id, buffer, @compressor)
           end
         else
           @lock.synchronize do
@@ -152,8 +153,9 @@ module Cql
       class RequestPromise < Promise
         attr_reader :request, :frame
 
-        def initialize(request)
+        def initialize(request, compressor)
           @request = request
+          @compressor = compressor
           @timed_out = false
           super()
         end
@@ -170,7 +172,7 @@ module Cql
         end
 
         def encode_frame!
-          @frame = @request.encode_frame(0)
+          @frame = @request.encode_frame(0, nil, @compressor)
         end
       end
 
