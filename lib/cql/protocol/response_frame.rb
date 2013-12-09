@@ -3,8 +3,9 @@
 module Cql
   module Protocol
     class ResponseFrame
-      def initialize(buffer=ByteBuffer.new)
-        @headers = FrameHeaders.new(buffer)
+      def initialize(buffer=nil, compressor=nil)
+        @headers = FrameHeaders.new(buffer || ByteBuffer.new)
+        @compressor = compressor
         check_complete!
       end
 
@@ -58,7 +59,7 @@ module Cql
             raise UnsupportedOperationError, "The operation #{@headers.opcode} is not supported"
           end
         end
-        FrameBody.new(@headers.buffer, @headers.length, body_type, @headers.trace_id)
+        FrameBody.new(@headers.buffer, @headers, body_type, @compressor)
       end
 
       class FrameHeaders
@@ -75,11 +76,15 @@ module Cql
         end
 
         def complete?
-          !!@protocol_version && (!@tracing || @trace_id)
+          !!@protocol_version
         end
 
-        def trace_id
-          @trace_id
+        def tracing?
+          @tracing
+        end
+
+        def compressed?
+          @compression
         end
 
         private
@@ -93,11 +98,8 @@ module Cql
             @length = @buffer.read_int
             raise UnsupportedFrameTypeError, 'Request frames are not supported' if @protocol_version > 0
             @protocol_version &= 0x7f
+            @compression = (@flags & 1) == 1
             @tracing = (@flags & 2) == 2
-            if @tracing && @buffer.length >= 16
-              @trace_id = Decoding.read_uuid!(@buffer)
-              @length -= 16
-            end
           end
         end
       end
@@ -105,11 +107,12 @@ module Cql
       class FrameBody
         attr_reader :response, :buffer
 
-        def initialize(buffer, length, type, trace_id)
+        def initialize(buffer, headers, type, compressor)
           @buffer = buffer
-          @length = length
+          @length = headers.length
+          @headers = headers
           @type = type
-          @trace_id = trace_id
+          @compressor = compressor
           check_complete!
         end
 
@@ -126,10 +129,21 @@ module Cql
 
         def check_complete!
           if @buffer.length >= @length
-            extra_length = @buffer.length - @length
-            @response = @type.decode!(@buffer, @trace_id)
-            if @buffer.length > extra_length
-              @buffer.discard(@buffer.length - extra_length)
+            if @headers.compressed?
+              unless @compressor
+                raise UnexpectedCompressionError, 'Compressed frame received, but no compressor specified'
+              end
+              compressed_data = @buffer.read(@length)
+              decompressed_data = ByteBuffer.new(@compressor.decompress(compressed_data))
+              trace_id = @headers.tracing? ? Decoding.read_uuid!(decompressed_data) : nil
+              @response = @type.decode!(decompressed_data, trace_id)
+            else
+              extra_length = @buffer.length - @length
+              trace_id = @headers.tracing? ? Decoding.read_uuid!(@buffer) : nil
+              @response = @type.decode!(@buffer, trace_id)
+              if @buffer.length > extra_length
+                @buffer.discard(@buffer.length - extra_length)
+              end
             end
           end
         end

@@ -99,6 +99,39 @@ module Cql
         end
       end
 
+      context 'when fed a compressed frame' do
+        let :compressor do
+          double(:compressor)
+        end
+
+        it 'decompresses the body' do
+          compressor.stub(:decompress).with('FAKECOMPRESSEDBODY').and_return("\x00\x00\x00\x63\x00\x05Bork!")
+          frame = described_class.new(nil, compressor)
+          frame << "\x81\x01\x00\x00\x00\x00\x00\x12FAKECOMPRESSEDBODY"
+          frame.body.code.should == 99
+          frame.body.message.should == 'Bork!'
+        end
+
+        it 'ignores extra bytes in the compressed body' do
+          compressor.stub(:decompress).with('FAKECOMPRESSEDBODY').and_return("\x00\x00\x00\x63\x00\x05Bork!HELLOWORLD")
+          frame = described_class.new(nil, compressor)
+          frame << "\x81\x01\x00\x00\x00\x00\x00\x12FAKECOMPRESSEDBODY"
+          frame.body.code.should == 99
+          frame.body.message.should == 'Bork!'
+        end
+
+        it 'extracts the trace ID' do
+          compressor.stub(:decompress).with('FAKECOMPRESSEDBODY').and_return("\a\xE4\xBE\x10?\x03\x11\xE3\x951\xFBr\xEF\xF0_\xBB\x00\x00\x00\x01")
+          frame = described_class.new(nil, compressor)
+          frame << "\x81\x03\x00\x08\x00\x00\x00\x12FAKECOMPRESSEDBODY"
+          frame.body.trace_id.should == Uuid.new('07e4be10-3f03-11e3-9531-fb72eff05fbb')
+        end
+
+        it 'raises an error when the frame is compressed but no compressor is specified' do
+          expect { frame << "\x81\x01\x00\x00\x00\x00\x00\x12FAKECOMPRESSEDBODY" }.to raise_error(UnexpectedCompressionError)
+        end
+      end
+
       context 'when fed a complete ERROR frame' do
         before do
           frame << "\x81\x00\x00\x00\x00\x00\x00V\x00\x00\x00\n\x00PProvided version 4.0.0 is not supported by this server (supported: 2.0.0, 3.0.0)"
