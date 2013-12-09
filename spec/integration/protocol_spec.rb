@@ -345,6 +345,30 @@ describe 'Protocol parsing and communication' do
         end
       end
 
+      context 'with tracing' do
+        it 'sends a QUERY request with the tracing flag and receives a RESULT with a trace ID' do
+          in_keyspace_with_table do
+            response = execute_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', :quorum, true))
+            response.trace_id.should_not be_nil
+          end
+        end
+
+        it 'sends an PREPARE request with the tracing flag and receives a RESULT with a trace ID' do
+          in_keyspace_with_table do
+            response = execute_request(Cql::Protocol::PrepareRequest.new('SELECT * FROM users', true))
+            response.trace_id.should_not be_nil
+          end
+        end
+
+        it 'sends an EXECUTE request with the tracing flag and receives a RESULT with a trace ID' do
+          in_keyspace_with_table do
+            prepare_response = execute_request(Cql::Protocol::PrepareRequest.new('SELECT * FROM users'))
+            execute_response = execute_request(Cql::Protocol::ExecuteRequest.new(prepare_response.id, prepare_response.metadata, [], :one, true))
+            execute_response.trace_id.should_not be_nil
+          end
+        end
+      end
+
       context 'with pipelining' do
         let :connection do
           connections.first

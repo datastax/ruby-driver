@@ -5,16 +5,18 @@ module Cql
     class Request
       include Encoding
 
-      attr_reader :opcode
+      attr_reader :opcode, :trace
 
-      def initialize(opcode)
+      def initialize(opcode, trace=false)
         @opcode = opcode
+        @trace = trace
       end
 
       def encode_frame(stream_id=0, buffer=ByteBuffer.new)
         raise InvalidStreamIdError, 'The stream ID must be between 0 and 127' unless 0 <= stream_id && stream_id < 128
         offset = buffer.bytesize
-        buffer << [1, 0, stream_id, opcode, 0].pack(Formats::HEADER_FORMAT)
+        flags = @trace ? 2 : 0
+        buffer << [1, flags, stream_id, opcode, 0].pack(Formats::HEADER_FORMAT)
         write(buffer)
         buffer.update(offset + 4, [(buffer.bytesize - offset - 8)].pack(Formats::INT_FORMAT))
         buffer

@@ -5,9 +5,9 @@ module Cql
     class PrepareRequest < Request
       attr_reader :cql
 
-      def initialize(cql)
+      def initialize(cql, trace=false)
         raise ArgumentError, 'No CQL given!' unless cql
-        super(9)
+        super(9, trace)
         @cql = cql
       end
 

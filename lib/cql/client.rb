@@ -19,6 +19,7 @@ module Cql
   TimeoutError = Class.new(CqlError)
   ClientError = Class.new(CqlError)
   AuthenticationError = Class.new(ClientError)
+  IncompleteTraceError = Class.new(ClientError)
 
   # A CQL client manages connections to one or more Cassandra nodes and you use
   # it run queries, insert and update data.
@@ -153,6 +154,9 @@ module Cql
       # @option options_or_consistency [Symbol] :timeout (nil) How long to wait
       #   for a response. If this timeout expires a {Cql::TimeoutError} will
       #   be raised.
+      # @option options_or_consistency [Symbol] :trace (false) Request tracing
+      #   for this request. See {Cql::Client::QueryResult} for how to retrieve
+      #   the tracing data.
       # @raise [Cql::NotConnectedError] raised when the client is not connected
       # @raise [Cql::TimeoutError] raised when a timeout was specified and no
       #   response was received within the timeout.
@@ -221,6 +225,7 @@ require 'cql/client/null_logger'
 require 'cql/client/column_metadata'
 require 'cql/client/result_metadata'
 require 'cql/client/query_result'
+require 'cql/client/query_trace'
 require 'cql/client/execute_options_decoder'
 require 'cql/client/keyspace_changer'
 require 'cql/client/asynchronous_client'

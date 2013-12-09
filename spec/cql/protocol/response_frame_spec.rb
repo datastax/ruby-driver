@@ -605,6 +605,24 @@ module Cql
             expect { frame << "\x81\x00\x00\b\x00\x00\x00\x05\x00\x00\x00\xffhello" }.to raise_error(UnsupportedResultKindError)
           end
         end
+
+        context 'when the tracing flag is set' do
+          let :frame_bytes do
+            "\x81\x02\x00\b\x00\x00\x00U\a\xE4\xBE\x10?\x03\x11\xE3\x951\xFBr\xEF\xF0_\xBB\x00\x00\x00\x02\x00\x00\x00\x01\x00\x00\x00\x03\x00\ncql_rb_602\x00\x05users\x00\tuser_name\x00\r\x00\x05email\x00\r\x00\bpassword\x00\r\x00\x00\x00\x00"
+          end
+
+          it 'decodes the frame' do
+            frame = described_class.new
+            frame << frame_bytes
+            frame.body.rows
+          end
+
+          it 'extracts the trace ID' do
+            frame = described_class.new
+            frame << frame_bytes
+            frame.body.trace_id.should == Uuid.new('07e4be10-3f03-11e3-9531-fb72eff05fbb')
+          end
+        end
       end
 
       context 'when fed a SCHEMA_CHANGE EVENT frame' do

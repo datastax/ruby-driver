@@ -26,6 +26,11 @@ module Cql
           bytes.should == "\x01\x00\x03\x07\x00\x00\x00\x10\x00\x00\x00\x0aUSE system\x00\x05"
         end
 
+        it 'encodes a QUERY request frame with tracing' do
+          bytes = QueryRequest.new('USE system', :all, true).encode_frame(3)
+          bytes.should == "\x01\x02\x03\x07\x00\x00\x00\x10\x00\x00\x00\x0aUSE system\x00\x05"
+        end
+
         it 'correctly encodes queries with multibyte characters' do
           bytes = QueryRequest.new("INSERT INTO users (user_id, first, last, age) VALUES ('test', 'ümlaut', 'test', 1)", :all).encode_frame(3)
           bytes.should eql_bytes("\x01\x00\x03\a\x00\x00\x00Y\x00\x00\x00SINSERT INTO users (user_id, first, last, age) VALUES ('test', '\xC3\xBCmlaut', 'test', 1)\x00\x05")

@@ -5,9 +5,9 @@ module Cql
     class ExecuteRequest < Request
       attr_reader :id, :metadata, :values, :consistency
 
-      def initialize(id, metadata, values, consistency)
+      def initialize(id, metadata, values, consistency, trace=false)
         raise ArgumentError, "Metadata for #{metadata.size} columns, but #{values.size} values given" if metadata.size != values.size
-        super(10)
+        super(10, trace)
         @id = id
         @metadata = metadata
         @values = values

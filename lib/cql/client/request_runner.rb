@@ -8,7 +8,7 @@ module Cql
         connection.send_request(request, timeout).map do |response|
           case response
           when Protocol::RowsResultResponse
-            QueryResult.new(response.metadata, response.rows)
+            QueryResult.new(response.metadata, response.rows, response.trace_id)
           when Protocol::ErrorResponse
             cql = request.is_a?(Protocol::QueryRequest) ? request.cql : nil
             raise QueryError.new(response.code, response.message, cql)

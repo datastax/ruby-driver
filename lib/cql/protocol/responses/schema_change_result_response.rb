@@ -5,12 +5,13 @@ module Cql
     class SchemaChangeResultResponse < ResultResponse
       attr_reader :change, :keyspace, :table
 
-      def initialize(*args)
-        @change, @keyspace, @table = args
+      def initialize(change, keyspace, table, trace_id)
+        super(trace_id)
+        @change, @keyspace, @table = change, keyspace, table
       end
 
-      def self.decode!(buffer)
-        new(read_string!(buffer), read_string!(buffer), read_string!(buffer))
+      def self.decode!(buffer, trace_id=nil)
+        new(read_string!(buffer), read_string!(buffer), read_string!(buffer), trace_id)
       end
 
       def eql?(other)

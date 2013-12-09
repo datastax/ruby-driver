@@ -3,11 +3,17 @@
 module Cql
   module Protocol
     class ResultResponse < Response
-      def self.decode!(buffer)
+      attr_reader :trace_id
+
+      def initialize(trace_id)
+        @trace_id = trace_id
+      end
+
+      def self.decode!(buffer, trace_id=nil)
         kind = read_int!(buffer)
         impl = RESULT_TYPES[kind]
         raise UnsupportedResultKindError, %(Unsupported result kind: #{kind}) unless impl
-        impl.decode!(buffer)
+        impl.decode!(buffer, trace_id)
       end
 
       def void?

@@ -58,7 +58,7 @@ module Cql
             raise UnsupportedOperationError, "The operation #{@headers.opcode} is not supported"
           end
         end
-        FrameBody.new(@headers.buffer, @headers.length, body_type)
+        FrameBody.new(@headers.buffer, @headers.length, body_type, @headers.trace_id)
       end
 
       class FrameHeaders
@@ -75,7 +75,11 @@ module Cql
         end
 
         def complete?
-          !!@protocol_version
+          !!@protocol_version && (!@tracing || @trace_id)
+        end
+
+        def trace_id
+          @trace_id
         end
 
         private
@@ -89,6 +93,11 @@ module Cql
             @length = @buffer.read_int
             raise UnsupportedFrameTypeError, 'Request frames are not supported' if @protocol_version > 0
             @protocol_version &= 0x7f
+            @tracing = (@flags & 2) == 2
+            if @tracing && @buffer.length >= 16
+              @trace_id = Decoding.read_uuid!(@buffer)
+              @length -= 16
+            end
           end
         end
       end
@@ -96,10 +105,11 @@ module Cql
       class FrameBody
         attr_reader :response, :buffer
 
-        def initialize(buffer, length, type)
+        def initialize(buffer, length, type, trace_id)
           @buffer = buffer
           @length = length
           @type = type
+          @trace_id = trace_id
           check_complete!
         end
 
@@ -117,7 +127,7 @@ module Cql
         def check_complete!
           if @buffer.length >= @length
             extra_length = @buffer.length - @length
-            @response = @type.decode!(@buffer)
+            @response = @type.decode!(@buffer, @trace_id)
             if @buffer.length > extra_length
               @buffer.discard(@buffer.length - extra_length)
             end

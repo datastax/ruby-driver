@@ -111,7 +111,7 @@ module Cql
                 case request.cql
                 when /FROM system\.local/
                   row = {'host_id' => connection[:spec_host_id], 'data_center' => connection[:spec_data_center]}
-                  Protocol::RowsResultResponse.new([row], local_metadata)
+                  Protocol::RowsResultResponse.new([row], local_metadata, nil)
                 when /FROM system\.peers/
                   other_host_ids = connections.reject { |c| c[:spec_host_id] == connection[:spec_host_id] }.map { |c| c[:spec_host_id] }
                   until other_host_ids.size >= min_peers[0]
@@ -126,7 +126,7 @@ module Cql
                       'rpc_address' => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip
                     }
                   end
-                  Protocol::RowsResultResponse.new(rows, peer_metadata)
+                  Protocol::RowsResultResponse.new(rows, peer_metadata, nil)
                 end
               end
             end
@@ -412,7 +412,7 @@ module Cql
         it 'executes a USE query' do
           handle_request do |request|
             if request.is_a?(Protocol::QueryRequest) && request.cql == 'USE system'
-              Protocol::SetKeyspaceResultResponse.new('system')
+              Protocol::SetKeyspaceResultResponse.new('system', nil)
             end
           end
           client.connect.value
@@ -440,7 +440,7 @@ module Cql
         it 'knows which keyspace it changed to' do
           handle_request do |request|
             if request.is_a?(Protocol::QueryRequest) && request.cql == 'USE system'
-              Protocol::SetKeyspaceResultResponse.new('system')
+              Protocol::SetKeyspaceResultResponse.new('system', nil)
             end
           end
           client.connect.value
@@ -456,7 +456,7 @@ module Cql
         it 'allows the keyspace name to be quoted' do
           handle_request do |request|
             if request.is_a?(Protocol::QueryRequest) && request.cql == 'USE "system"'
-              Protocol::SetKeyspaceResultResponse.new('system')
+              Protocol::SetKeyspaceResultResponse.new('system', nil)
             end
           end
           client.connect.value
@@ -500,7 +500,7 @@ module Cql
           it 'returns nil' do
             handle_request do |request|
               if request.is_a?(Protocol::QueryRequest) && request.cql =~ /UPDATE/
-                Protocol::VoidResultResponse.new
+                Protocol::VoidResultResponse.new(nil)
               end
             end
             result = client.execute('UPDATE stuff SET thing = 1 WHERE id = 3').value
@@ -512,7 +512,7 @@ module Cql
           it 'returns nil' do
             handle_request do |request|
               if request.is_a?(Protocol::QueryRequest) && request.cql == 'USE system'
-                Protocol::SetKeyspaceResultResponse.new('system')
+                Protocol::SetKeyspaceResultResponse.new('system', nil)
               end
             end
             result = client.execute('USE system').value
@@ -522,7 +522,7 @@ module Cql
           it 'knows which keyspace it changed to' do
             handle_request do |request|
               if request.is_a?(Protocol::QueryRequest) && request.cql == 'USE system'
-                Protocol::SetKeyspaceResultResponse.new('system')
+                Protocol::SetKeyspaceResultResponse.new('system', nil)
               end
             end
             client.execute('USE system').value
@@ -536,7 +536,7 @@ module Cql
 
             handle_request do |request, connection|
               if request.is_a?(Protocol::QueryRequest) && request.cql == 'USE system'
-                Protocol::SetKeyspaceResultResponse.new('system')
+                Protocol::SetKeyspaceResultResponse.new('system', nil)
               end
             end
 
@@ -571,7 +571,7 @@ module Cql
           before do
             handle_request do |request|
               if request.is_a?(Protocol::QueryRequest) && request.cql =~ /FROM things/
-                Protocol::RowsResultResponse.new(rows, metadata)
+                Protocol::RowsResultResponse.new(rows, metadata, nil)
               end
             end
           end
@@ -648,6 +648,30 @@ module Cql
             sent_timeout.should == 3
           end
         end
+
+        context 'with tracing' do
+          it 'sets the trace flag' do
+            tracing = false
+            handle_request do |request|
+              if request.is_a?(Protocol::QueryRequest)
+                tracing = request.trace
+              end
+            end
+            client.execute(cql, trace: true).value
+            tracing.should be_true
+          end
+
+          it 'returns the trace ID with the result' do
+            trace_id = Uuid.new('a1028490-3f05-11e3-9531-fb72eff05fbb')
+            handle_request do |request|
+              if request.is_a?(Protocol::QueryRequest) && request.cql == cql
+                Protocol::RowsResultResponse.new([], [], trace_id)
+              end
+            end
+            result = client.execute(cql, trace: true).value
+            result.trace_id.should == trace_id
+          end
+        end
       end
 
       describe '#prepare' do
@@ -666,7 +690,7 @@ module Cql
         before do
           handle_request do |request|
             if request.is_a?(Protocol::PrepareRequest)
-              Protocol::PreparedResultResponse.new(id, metadata)
+              Protocol::PreparedResultResponse.new(id, metadata, nil)
             end
           end
         end
@@ -721,7 +745,7 @@ module Cql
           it 'returns a failed future' do
             handle_request do |request|
               if request.is_a?(Protocol::PrepareRequest)
-                Protocol::PreparedResultResponse.new(id, metadata)
+                Protocol::PreparedResultResponse.new(id, metadata, nil)
               end
             end
             statement = client.prepare(cql).value
@@ -794,7 +818,7 @@ module Cql
         it 'complains when #execute of a prepared statement is called after #close' do
           handle_request do |request|
             if request.is_a?(Protocol::PrepareRequest)
-              Protocol::PreparedResultResponse.new('A' * 32, [])
+              Protocol::PreparedResultResponse.new('A' * 32, [], nil)
             end
           end
           client.connect.value

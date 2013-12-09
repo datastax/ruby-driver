@@ -5,12 +5,13 @@ module Cql
     class SetKeyspaceResultResponse < ResultResponse
       attr_reader :keyspace
 
-      def initialize(keyspace)
+      def initialize(keyspace, trace_id)
+        super(trace_id)
         @keyspace = keyspace
       end
 
-      def self.decode!(buffer)
-        new(read_string!(buffer))
+      def self.decode!(buffer, trace_id=nil)
+        new(read_string!(buffer), trace_id)
       end
 
       def to_s
