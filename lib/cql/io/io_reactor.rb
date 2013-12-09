@@ -83,12 +83,17 @@ module Cql
     class IoReactor
       # Initializes a new IO reactor.
       #
-      # @param protocol_handler_factory [Object] a class that will be used
-      #   create the protocol handler objects returned by {#connect}
+      # @param protocol_handler_factory [Proc, Class] a Proc or class that
+      #   will be used create the protocol handler objects returned by
+      #   {#connect}
       # @param options [Hash] only used to inject behaviour during tests
       #
       def initialize(protocol_handler_factory, options={})
-        @protocol_handler_factory = protocol_handler_factory
+        if protocol_handler_factory.respond_to?(:new)
+          @protocol_handler_factory = protocol_handler_factory.method(:new)
+        else
+          @protocol_handler_factory = protocol_handler_factory
+        end
         @clock = options[:clock] || Time
         @unblocker = Unblocker.new
         @io_loop = IoLoopBody.new(options)
@@ -184,7 +189,7 @@ module Cql
       def connect(host, port, timeout)
         connection = Connection.new(host, port, timeout, @unblocker, @clock)
         f = connection.connect
-        protocol_handler = @protocol_handler_factory.new(connection, self)
+        protocol_handler = @protocol_handler_factory.call(connection, self)
         @io_loop.add_socket(connection)
         @unblocker.unblock!
         f.map { protocol_handler }
