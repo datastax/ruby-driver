@@ -7,6 +7,10 @@ module Cql
         super(5)
       end
 
+      def compressable?
+        false
+      end
+
       def write(io)
         io
       end

@@ -6,6 +6,12 @@ require 'spec_helper'
 module Cql
   module Protocol
     describe StartupRequest do
+      describe '#compressable?' do
+        it 'is not compressable' do
+          described_class.new.should_not be_compressable
+        end
+      end
+
       describe '#encode_frame' do
         it 'encodes a STARTUP request frame' do
           bytes = StartupRequest.new('3.0.0', 'snappy').encode_frame(3)

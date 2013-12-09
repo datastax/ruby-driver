@@ -9,6 +9,10 @@ module Cql
         @arguments[COMPRESSION] = compression if compression
       end
 
+      def compressable?
+        false
+      end
+
       def write(io)
         write_string_map(io, @arguments)
       end

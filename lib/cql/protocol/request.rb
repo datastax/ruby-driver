@@ -12,6 +12,10 @@ module Cql
         @trace = trace
       end
 
+      def compressable?
+        true
+      end
+
       def encode_frame(stream_id=0, buffer=ByteBuffer.new)
         raise InvalidStreamIdError, 'The stream ID must be between 0 and 127' unless 0 <= stream_id && stream_id < 128
         offset = buffer.bytesize
