@@ -164,26 +164,23 @@ describe 'A CQL client' do
   end
 
   context 'with compression' do
-    let :client do
-      Cql::Client.connect(connection_options.merge(compressor: snappy_compressor))
-    end
-
     begin
-      require 'snappy'
+      require 'cql/compression/snappy_compressor'
 
-      let :snappy_compressor do
-        s = double(:snappy_compressor)
-        s.stub(:compress?).and_return(true)
-        s.stub(:algorithm) { 'snappy' }
-        s.stub(:compress) { |str| Snappy.deflate(str) }
-        s.stub(:decompress) { |str| Snappy.inflate(str) }
-        s
+      let :client do
+        Cql::Client.connect(connection_options.merge(compressor: compressor))
+      end
+
+      let :compressor do
+        Cql::Compression::SnappyCompressor.new(0)
       end
 
       it 'compresses requests and decompresses responses' do
+        compressor.stub(:compress).and_call_original
+        compressor.stub(:decompress).and_call_original
         client.execute('SELECT * FROM system.schema_keyspaces')
-        snappy_compressor.should have_received(:compress).at_least(1).times
-        snappy_compressor.should have_received(:decompress).at_least(1).times
+        compressor.should have_received(:compress).at_least(1).times
+        compressor.should have_received(:decompress).at_least(1).times
       end
     rescue LoadError
       it 'compresses requests and decompresses responses' do

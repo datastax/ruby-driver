@@ -371,26 +371,23 @@ describe 'Protocol parsing and communication' do
 
       context 'with compression' do
         begin
-          require 'snappy'
+          require 'cql/compression/snappy_compressor'
 
-          let :snappy_compressor do
-            s = double(:snappy_compressor)
-            s.stub(:compress?).and_return(true)
-            s.stub(:algorithm) { 'snappy' }
-            s.stub(:compress) { |str| Snappy.deflate(str) }
-            s.stub(:decompress) { |str| Snappy.inflate(str) }
-            s
+          let :compressor do
+            Cql::Compression::SnappyCompressor.new(0)
           end
 
           it 'sends a compressed request and receives a compressed response' do
-            io_reactor = Cql::Io::IoReactor.new(lambda { |*args| Cql::Protocol::CqlProtocolHandler.new(*args, snappy_compressor) })
+            compressor.stub(:compress).and_call_original
+            compressor.stub(:decompress).and_call_original
+            io_reactor = Cql::Io::IoReactor.new(lambda { |*args| Cql::Protocol::CqlProtocolHandler.new(*args, compressor) })
             io_reactor.start.value
             begin
               connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1).value
               connection.send_request(Cql::Protocol::StartupRequest.new(nil, 'snappy')).value
               connection.send_request(Cql::Protocol::PrepareRequest.new('SELECT * FROM system.peers')).value
-              snappy_compressor.should have_received(:compress).at_least(1).times
-              snappy_compressor.should have_received(:decompress).at_least(1).times
+              compressor.should have_received(:compress).at_least(1).times
+              compressor.should have_received(:decompress).at_least(1).times
             ensure
               io_reactor.stop.value
             end
