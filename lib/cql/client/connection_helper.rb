@@ -123,7 +123,11 @@ module Cql
       end
 
       def send_startup_request(connection)
-        compression = @compressor && connection[:compression].include?(@compressor.algorithm) && @compressor.algorithm
+        compression = @compressor && @compressor.algorithm
+        if @compressor && !connection[:compression].include?(@compressor.algorithm)
+          @logger.warn(%[Compression algorithm "#{@compressor.algorithm}" not supported (server supports "#{connection[:compression].join('", "')}")])
+          compression = nil
+        end
         request = Protocol::StartupRequest.new(nil, compression)
         @request_runner.execute(connection, request)
       end

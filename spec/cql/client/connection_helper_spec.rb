@@ -240,6 +240,20 @@ module Cql
             connection_helper.connect(hosts.take(1), 'some_keyspace')
             connection.requests[1].options.should_not have_key('COMPRESSION')
           end
+
+          it 'logs a warning when compression was disabled because the algorithm was not supported' do
+            logger.stub(:warn)
+            connection.handle_request do |request, timeout|
+              if request.is_a?(Protocol::OptionsRequest)
+                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.1.1], 'COMPRESSION' => %w[lz4])
+              else
+                connection.default_request_handler(request, timeout)
+              end
+            end
+            io_reactor.stub(:connect).with('host0', 9876, 7).and_return(Future.resolved(connection))
+            connection_helper.connect(hosts.take(1), 'some_keyspace')
+            logger.should have_received(:warn).with(/not supported/)
+          end
         end
       end
 
