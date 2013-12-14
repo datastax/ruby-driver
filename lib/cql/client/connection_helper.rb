@@ -101,7 +101,11 @@ module Cql
       end
 
       def connect_to_host(host, keyspace)
-        @logger.debug('Connecting to node at %s:%d' % [host, @port])
+        if @compressor
+          @logger.debug('Connecting to node at %s:%d using "%s" compression' % [host, @port, @compressor.algorithm])
+        else
+          @logger.debug('Connecting to node at %s:%d' % [host, @port])
+        end
         connected = @io_reactor.connect(host, @port, @connection_timeout)
         connected.flat_map do |connection|
           f = cache_supported_options(connection)

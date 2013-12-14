@@ -254,6 +254,13 @@ module Cql
             connection_helper.connect(hosts.take(1), 'some_keyspace')
             logger.should have_received(:warn).with(/not supported/)
           end
+
+          it 'logs the name of the compression algorithm when connecting' do
+            logger.stub(:debug)
+            io_reactor.stub(:connect).with('host0', 9876, 7).and_return(Future.resolved(connection))
+            connection_helper.connect(hosts.take(1), 'some_keyspace')
+            logger.should have_received(:debug).with(/using "snappy" compression/)
+          end
         end
       end
 
