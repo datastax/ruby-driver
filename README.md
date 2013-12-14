@@ -219,6 +219,10 @@ end
 
 If your process does not fork and you still encounter deadlock errors, it might also be a bug. All IO is done is a dedicated thread, and if something happens that makes that thread shut down, Ruby will detect that the locks that the client code is waiting on can't be unlocked.
 
+## I get "Bad file descriptor"
+
+If you're using cql-rb on Windows there's an [experimental branch with Windows support](https://github.com/iconara/cql-rb/tree/windows_support). The problem is that Windows does not support non blocking reads on IO objects other than sockets, and the fix is very small. Unfortunately I have no way of properly testing things in Windows, so therefore the "experimental" label.
+
 ## I'm not getting all elements back from my list/set/map
 
 There's a known issue with collections that get too big. The protocol uses a short for the size of collections, but there is no way for Cassandra to stop you from creating a collection bigger than 65536 elements, so when you do the size field overflows with strange results. The data is there, you just can't get it back.
@@ -246,6 +250,7 @@ Prereleases will be stable, in the sense that they will have finished and proper
 # Known bugs & limitations
 
 * JRuby 1.6 is not officially supported, although 1.6.8 should work, if you're stuck in JRuby 1.6.8 try and see if it works for you.
+* Windows is not supported (there is experimental support in the [`windows` branch](https://github.com/iconara/cql-rb/tree/windows_support)).
 * Large results are buffered in memory until the whole response has been loaded, the protocol makes it possible to start to deliver rows to the client code as soon as the metadata is loaded, but this is not supported yet.
 * There is no cluster introspection utilities (like the `DESCRIBE` commands in `cqlsh`).
 * New features in v2 of the protocol are not supported
