@@ -91,7 +91,9 @@ module Cql
     #   a per-request basis.
     # @option options [Cql::Compression::Compressor] :compressor An object that
     #   can compress and decompress frames. By specifying this option frame
-    #   compression will be enabled.
+    #   compression will be enabled. If the server does not support compression
+    #   or the specific compression algorithm specified by the compressor,
+    #   compression will not be enabled and a warning will be logged.
     # @option options [Integer] :logger If you want the client to log
     #   significant events pass an object implementing the standard Ruby logger
     #   interface (e.g. quacks like `Logger` from the standard library) with
