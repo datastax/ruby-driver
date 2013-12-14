@@ -12,13 +12,23 @@ module Cql
         @trace = trace
       end
 
-      def encode_frame(stream_id=0, buffer=ByteBuffer.new)
+      def compressable?
+        true
+      end
+
+      def encode_frame(stream_id=0, buffer=nil, compressor=nil)
         raise InvalidStreamIdError, 'The stream ID must be between 0 and 127' unless 0 <= stream_id && stream_id < 128
+        buffer ||= ByteBuffer.new
         offset = buffer.bytesize
         flags = @trace ? 2 : 0
-        buffer << [1, flags, stream_id, opcode, 0].pack(Formats::HEADER_FORMAT)
-        write(buffer)
-        buffer.update(offset + 4, [(buffer.bytesize - offset - 8)].pack(Formats::INT_FORMAT))
+        body = write(ByteBuffer.new)
+        if compressor && compressable? && compressor.compress?(body)
+          flags |= 1
+          body = compressor.compress(body)
+        end
+        header = [1, flags, stream_id, opcode, body.bytesize]
+        buffer << header.pack(Formats::HEADER_FORMAT)
+        buffer << body
         buffer
       end
 

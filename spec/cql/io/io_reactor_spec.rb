@@ -141,7 +141,7 @@ module Cql
         end
 
         before do
-          protocol_handler_factory.stub(:new) do |connection, _|
+          protocol_handler_factory.stub(:call) do |connection, _|
             connection.to_io.stub(:connect_nonblock)
             protocol_handler.stub(:connection).and_return(connection)
             protocol_handler
@@ -165,7 +165,14 @@ module Cql
           reactor.stop if reactor.running?
         end
 
+        it 'calls #call on the protocol handler factory with the connection and the reactor itself' do
+          reactor.start.value
+          reactor.connect('example.com', 9999, 5).value
+          protocol_handler_factory.should have_received(:call).with(an_instance_of(Connection), reactor)
+        end
+
         it 'calls #new on the protocol handler factory with the connection and the reactor itself' do
+          protocol_handler_factory.stub(:new)
           reactor.start.value
           reactor.connect('example.com', 9999, 5).value
           protocol_handler_factory.should have_received(:new).with(an_instance_of(Connection), reactor)

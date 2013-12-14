@@ -99,6 +99,39 @@ module Cql
         end
       end
 
+      context 'when fed a compressed frame' do
+        let :compressor do
+          double(:compressor)
+        end
+
+        it 'decompresses the body' do
+          compressor.stub(:decompress).with('FAKECOMPRESSEDBODY').and_return("\x00\x00\x00\x63\x00\x05Bork!")
+          frame = described_class.new(nil, compressor)
+          frame << "\x81\x01\x00\x00\x00\x00\x00\x12FAKECOMPRESSEDBODY"
+          frame.body.code.should == 99
+          frame.body.message.should == 'Bork!'
+        end
+
+        it 'ignores extra bytes in the compressed body' do
+          compressor.stub(:decompress).with('FAKECOMPRESSEDBODY').and_return("\x00\x00\x00\x63\x00\x05Bork!HELLOWORLD")
+          frame = described_class.new(nil, compressor)
+          frame << "\x81\x01\x00\x00\x00\x00\x00\x12FAKECOMPRESSEDBODY"
+          frame.body.code.should == 99
+          frame.body.message.should == 'Bork!'
+        end
+
+        it 'extracts the trace ID' do
+          compressor.stub(:decompress).with('FAKECOMPRESSEDBODY').and_return("\a\xE4\xBE\x10?\x03\x11\xE3\x951\xFBr\xEF\xF0_\xBB\x00\x00\x00\x01")
+          frame = described_class.new(nil, compressor)
+          frame << "\x81\x03\x00\x08\x00\x00\x00\x12FAKECOMPRESSEDBODY"
+          frame.body.trace_id.should == Uuid.new('07e4be10-3f03-11e3-9531-fb72eff05fbb')
+        end
+
+        it 'raises an error when the frame is compressed but no compressor is specified' do
+          expect { frame << "\x81\x01\x00\x00\x00\x00\x00\x12FAKECOMPRESSEDBODY" }.to raise_error(UnexpectedCompressionError)
+        end
+      end
+
       context 'when fed a complete ERROR frame' do
         before do
           frame << "\x81\x00\x00\x00\x00\x00\x00V\x00\x00\x00\n\x00PProvided version 4.0.0 is not supported by this server (supported: 2.0.0, 3.0.0)"
@@ -761,6 +794,78 @@ module Cql
         describe '#hash' do
           it 'has the same hash code as all other ready responses' do
             ReadyResponse.new.hash.should == ReadyResponse.new.hash
+          end
+        end
+      end
+
+      describe PreparedResultResponse do
+        describe '#eql?' do
+          it 'is equal to an identical response' do
+            r1 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], nil)
+            r2 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], nil)
+            r1.should eql(r2)
+          end
+
+          it 'is not equal when the IDs differ' do
+            r1 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], nil)
+            r2 = PreparedResultResponse.new("\x00" * 16, [['ks', 'tbl', 'col', :varchar]], nil)
+            r1.should_not eql(r2)
+          end
+
+          it 'is not equal when the metadata differ' do
+            r1 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], nil)
+            r2 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar], ['ks', 'tbl', 'col2', :uuid]], nil)
+            r1.should_not eql(r2)
+          end
+
+          it 'is not equal when one has a trace ID' do
+            r1 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], Uuid.new('00b69180-d0e1-11e2-8b8b-0800200c9a66'))
+            r2 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], nil)
+            r1.should_not eql(r2)
+          end
+
+          it 'is not equal when the trace IDs differ' do
+            r1 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], Uuid.new('00b69180-d0e1-11e2-8b8b-0800200c9a66'))
+            r2 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], Uuid.new('11111111-d0e1-11e2-8b8b-0800200c9a66'))
+            r1.should_not eql(r2)
+          end
+
+          it 'is aliased as ==' do
+            r1 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], nil)
+            r2 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], nil)
+            r1.should == r2
+          end
+        end
+
+        describe '#hash' do
+          it 'is the same for an identical response' do
+            r1 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], nil)
+            r2 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], nil)
+            r1.hash.should == r2.hash
+          end
+
+          it 'is not the same when the IDs differ' do
+            r1 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], nil)
+            r2 = PreparedResultResponse.new("\x00" * 16, [['ks', 'tbl', 'col', :varchar]], nil)
+            r1.hash.should_not == r2.hash
+          end
+
+          it 'is not the same when the metadata differ' do
+            r1 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], nil)
+            r2 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar], ['ks', 'tbl', 'col2', :uuid]], nil)
+            r1.hash.should_not == r2.hash
+          end
+
+          it 'is not the same when one has a trace ID' do
+            r1 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], Uuid.new('00b69180-d0e1-11e2-8b8b-0800200c9a66'))
+            r2 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], nil)
+            r1.hash.should_not == r2.hash
+          end
+
+          it 'is not equal when the trace IDs differ' do
+            r1 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], Uuid.new('00b69180-d0e1-11e2-8b8b-0800200c9a66'))
+            r2 = PreparedResultResponse.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], Uuid.new('11111111-d0e1-11e2-8b8b-0800200c9a66'))
+            r1.hash.should_not == r2.hash
           end
         end
       end

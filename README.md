@@ -162,6 +162,19 @@ The default consistency level unless you've set it yourself is `:quorum`.
 
 Consistency is ignored for `USE`, `TRUNCATE`, `CREATE` and `ALTER` statements, and some (like `:any`) aren't allowed in all situations.
 
+## Compression
+
+The CQL protocol supports frame compression, which can give you a performance boost if your requests or responses are big. To enable it you can pass a compressor object when you connect.
+
+Cassandra currently supports two compression algorithms: Snappy and LZ4. Support for Snappy compression ships with cql-rb, but in order to use it you will have to install the [snappy](http://rubygems.org/gems/snappy) gem separately. Once it's installed you can enable compression like this:
+
+```ruby
+require 'cql/compression/snappy_compressor'
+
+compressor = Cql::Compression::SnappyCompressor.new
+client = Cql::Client.connect(hosts: %w[localhost], compressor: compressor)
+```
+
 # CQL3
 
 This is just a driver for the Cassandra native CQL protocol, it doesn't really know anything about CQL. You can run any CQL3 statement and the driver will return whatever Cassandra replies with.
@@ -232,7 +245,6 @@ Prereleases will be stable, in the sense that they will have finished and proper
 
 # Known bugs & limitations
 
-* No support for compression.
 * JRuby 1.6 is not officially supported, although 1.6.8 should work, if you're stuck in JRuby 1.6.8 try and see if it works for you.
 * Large results are buffered in memory until the whole response has been loaded, the protocol makes it possible to start to deliver rows to the client code as soon as the metadata is loaded, but this is not supported yet.
 * There is no cluster introspection utilities (like the `DESCRIBE` commands in `cqlsh`).

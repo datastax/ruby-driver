@@ -4,7 +4,7 @@ module Cql
   module Client
     # @private
     class ConnectionHelper
-      def initialize(io_reactor, port, credentials, connections_per_node, connection_timeout, logger)
+      def initialize(io_reactor, port, credentials, connections_per_node, connection_timeout, compressor, logger)
         @io_reactor = io_reactor
         @port = port
         @credentials = credentials
@@ -13,6 +13,7 @@ module Cql
         @logger = logger
         @request_runner = RequestRunner.new
         @keyspace_changer = KeyspaceChanger.new
+        @compressor = compressor
       end
 
       def connect(hosts, initial_keyspace)
@@ -100,7 +101,11 @@ module Cql
       end
 
       def connect_to_host(host, keyspace)
-        @logger.debug('Connecting to node at %s:%d' % [host, @port])
+        if @compressor
+          @logger.debug('Connecting to node at %s:%d using "%s" compression' % [host, @port, @compressor.algorithm])
+        else
+          @logger.debug('Connecting to node at %s:%d' % [host, @port])
+        end
         connected = @io_reactor.connect(host, @port, @connection_timeout)
         connected.flat_map do |connection|
           f = cache_supported_options(connection)
@@ -122,7 +127,13 @@ module Cql
       end
 
       def send_startup_request(connection)
-        @request_runner.execute(connection, Protocol::StartupRequest.new)
+        compression = @compressor && @compressor.algorithm
+        if @compressor && !connection[:compression].include?(@compressor.algorithm)
+          @logger.warn(%[Compression algorithm "#{@compressor.algorithm}" not supported (server supports "#{connection[:compression].join('", "')}")])
+          compression = nil
+        end
+        request = Protocol::StartupRequest.new(nil, compression)
+        @request_runner.execute(connection, request)
       end
 
       def maybe_authenticate(response, connection)

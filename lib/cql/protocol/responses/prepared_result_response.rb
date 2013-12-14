@@ -16,6 +16,21 @@ module Cql
         new(id, metadata, trace_id)
       end
 
+      def eql?(other)
+        self.id == other.id && self.metadata == other.metadata && self.trace_id == other.trace_id
+      end
+      alias_method :==, :eql?
+
+      def hash
+        @h ||= begin
+          h = 0
+          h = ((h & 0x01ffffff) * 31) ^ @id.hash
+          h = ((h & 0x01ffffff) * 31) ^ @metadata.hash
+          h = ((h & 0x01ffffff) * 31) ^ @trace_id.hash
+          h
+        end
+      end
+
       def to_s
         %(RESULT PREPARED #{id.each_byte.map { |x| x.to_s(16) }.join('')} #@metadata)
       end

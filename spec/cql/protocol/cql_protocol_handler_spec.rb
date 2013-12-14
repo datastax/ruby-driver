@@ -112,6 +112,46 @@ module Cql
           futures[128].should be_resolved
         end
 
+        context 'when a compressor is specified' do
+          let :protocol_handler do
+            described_class.new(connection, scheduler, compressor)
+          end
+
+          let :compressor do
+            double(:compressor)
+          end
+
+          let :request do
+            Protocol::PrepareRequest.new('SELECT * FROM things')
+          end
+
+          before do
+            compressor.stub(:compress?).and_return(true)
+            compressor.stub(:compress).and_return('FAKECOMPRESSEDBODY')
+          end
+
+          it 'compresses request frames' do
+            protocol_handler.send_request(request)
+            buffer.to_s.should == [1, 1, 0, 9, 18].pack('C4N') + 'FAKECOMPRESSEDBODY'
+          end
+
+          it 'compresses queued request frames' do
+            130.times { protocol_handler.send_request(request) }
+            compressor.should have_received(:compress).exactly(130).times
+          end
+
+          it 'decompresses response frames' do
+            id = "\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/".force_encoding(::Encoding::BINARY)
+            compressor.stub(:decompress).with('FAKECOMPRESSEDBODY').and_return("\x00\x00\x00\x04" + "\x00\x10" + id + "\x00\x00\x00\x01\x00\x00\x00\x01\x00\ncql_rb_911\x00\x05users\x00\tuser_name\x00\r")
+            f1 = protocol_handler.send_request(request)
+            f2 = protocol_handler.send_request(request)
+            connection.data_listener.call("\x81\x01\x00\x08\x00\x00\x00\x12FAKECOMPRESSEDBODY")
+            connection.data_listener.call("\x81\x01\x01\x08\x00\x00\x00\x12FAKECOMPRESSEDBODY")
+            f1.value.should == Protocol::PreparedResultResponse.new(id, [["cql_rb_911", "users", "user_name", :varchar]], nil)
+            f2.value.should == Protocol::PreparedResultResponse.new(id, [["cql_rb_911", "users", "user_name", :varchar]], nil)
+          end
+        end
+
         context 'when the protocol handler closes' do
           it 'fails all requests waiting for a reply' do
             futures = Array.new(5) { protocol_handler.send_request(request) }

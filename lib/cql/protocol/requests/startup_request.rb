@@ -3,22 +3,29 @@
 module Cql
   module Protocol
     class StartupRequest < Request
-      def initialize(cql_version='3.0.0', compression=nil)
+      attr_reader :options
+
+      def initialize(cql_version=nil, compression=nil)
         super(1)
-        @arguments = {CQL_VERSION => cql_version}
-        @arguments[COMPRESSION] = compression if compression
+        @options = {CQL_VERSION => cql_version || DEFAULT_CQL_VERSION}
+        @options[COMPRESSION] = compression if compression
+      end
+
+      def compressable?
+        false
       end
 
       def write(io)
-        write_string_map(io, @arguments)
+        write_string_map(io, @options)
       end
 
       def to_s
-        %(STARTUP #@arguments)
+        %(STARTUP #@options)
       end
 
       private
 
+      DEFAULT_CQL_VERSION = '3.0.0'.freeze
       CQL_VERSION = 'CQL_VERSION'.freeze
       COMPRESSION = 'COMPRESSION'.freeze
     end
