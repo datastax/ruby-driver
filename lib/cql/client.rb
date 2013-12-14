@@ -89,6 +89,9 @@ module Cql
     # @option options [Integer] :default_consistency (:quorum) The consistency
     #   to use unless otherwise specified. Consistency can also be specified on
     #   a per-request basis.
+    # @option options [Cql::Compression::Compressor] :compressor An object that
+    #   can compress and decompress frames. By specifying this option frame
+    #   compression will be enabled.
     # @option options [Integer] :logger If you want the client to log
     #   significant events pass an object implementing the standard Ruby logger
     #   interface (e.g. quacks like `Logger` from the standard library) with
