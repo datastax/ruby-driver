@@ -2,6 +2,7 @@
 
 module Cql
   module Client
+    # @private
     class QueryTrace
       attr_reader :coordinator, :cql, :started_at, :duration, :events
 
@@ -22,6 +23,7 @@ module Cql
       end
     end
 
+    # @private
     class TraceEvent
       attr_reader :activity, :source, :source_elapsed, :time
 

@@ -2,6 +2,7 @@
 
 module Cql
   module Client
+    # @private
     class ExecuteOptionsDecoder
       def initialize(default_consistency)
         @default_consistency = default_consistency
