@@ -494,14 +494,14 @@ module Cql
         end
 
         context 'with a void CQL query' do
-          it 'returns nil' do
+          it 'returns a VoidResult' do
             handle_request do |request|
               if request.is_a?(Protocol::QueryRequest) && request.cql =~ /UPDATE/
                 Protocol::VoidResultResponse.new(nil)
               end
             end
             result = client.execute('UPDATE stuff SET thing = 1 WHERE id = 3').value
-            result.should be_nil
+            result.should be_a(VoidResult)
           end
         end
 
