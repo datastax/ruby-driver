@@ -254,7 +254,6 @@ Prereleases will be stable, in the sense that they will have finished and proper
 * Large results are buffered in memory until the whole response has been loaded, the protocol makes it possible to start to deliver rows to the client code as soon as the metadata is loaded, but this is not supported yet.
 * There is no cluster introspection utilities (like the `DESCRIBE` commands in `cqlsh`).
 * New features in v2 of the protocol are not supported
-* While it's possible to request tracing for void-returning requests like `UPDATE` there is no way to get the trace ID.
 
 Also check out the [issues](https://github.com/iconara/cql-rb/issues) for open bugs.
 
