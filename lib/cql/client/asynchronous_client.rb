@@ -102,6 +102,7 @@ module Cql
       DEFAULT_CONSISTENCY = :quorum
       DEFAULT_PORT = 9042
       DEFAULT_CONNECTION_TIMEOUT = 10
+      MAX_RECONNECTION_ATTEMPTS = 5
 
       def protocol_handler_factory(compressor)
         lambda { |connection, timeout| Protocol::CqlProtocolHandler.new(connection, timeout, compressor) }
@@ -175,27 +176,37 @@ module Cql
           end
         end
         connection.on_event do |event|
-          begin
-            if event.change == 'UP'
-              @logger.debug('Received UP event')
-              handle_topology_change
+          if event.change == 'UP'
+            @logger.debug('Received UP event')
+            unless @looking_for_nodes
+              @looking_for_nodes = true
+              handle_topology_change.on_complete do |f|
+                @looking_for_nodes = false
+              end
             end
           end
         end
       end
 
-      def handle_topology_change
-        seed_connections = @connection_manager.snapshot
-        f = @connection_helper.discover_peers(seed_connections, keyspace)
-        f.on_value do |connections|
-          connected_connections = connections.select(&:connected?)
-          if connected_connections.any?
-            @connection_manager.add_connections(connected_connections)
-          else
-            @logger.debug('Scheduling new peer discovery in 1s')
-            f = @io_reactor.schedule_timer(1)
-            f.on_value do
-              handle_topology_change
+      def handle_topology_change(remaning_attempts=MAX_RECONNECTION_ATTEMPTS)
+        with_failure_handler do
+          seed_connections = @connection_manager.snapshot
+          f = @connection_helper.discover_peers(seed_connections, keyspace)
+          f.flat_map do |connections|
+            connected_connections = connections.select(&:connected?)
+            if connected_connections.any?
+              @connection_manager.add_connections(connected_connections)
+              Future.resolved
+            elsif remaning_attempts > 0
+              timeout = 2**(MAX_RECONNECTION_ATTEMPTS - remaning_attempts)
+              @logger.debug('Scheduling new peer discovery in %ds' % timeout)
+              f = @io_reactor.schedule_timer(timeout)
+              f.flat_map do
+                handle_topology_change(remaning_attempts - 1)
+              end
+            else
+              @logger.warn('Giving up looking for additional nodes')
+              Future.resolved
             end
           end
         end

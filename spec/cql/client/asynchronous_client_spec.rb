@@ -866,6 +866,41 @@ module Cql
           connections.select(&:connected?).should have(3).items
         end
 
+        it 'eventually stops attempting to reconnect if no new nodes are found' do
+          io_reactor.stub(:schedule_timer).and_return(Future.resolved)
+          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
+          connections.first.close
+          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          io_reactor.should have_received(:schedule_timer).exactly(5).times
+        end
+
+        it 'does not start a new reconnection loop when one is already in progress' do
+          timer_promises = Array.new(5) { Promise.new }
+          io_reactor.stub(:schedule_timer).and_return(*timer_promises.map(&:future))
+          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
+          connections.first.close
+          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          timer_promises.first.fulfill
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          timer_promises.drop(1).each(&:fulfill)
+          io_reactor.should have_received(:schedule_timer).exactly(5).times
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          io_reactor.should have_received(:schedule_timer).exactly(10).times
+        end
+
+        it 'allows a new reconnection loop to start even if the previous failed' do
+          io_reactor.stub(:schedule_timer).and_raise('BORK!')
+          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
+          connections.first.close
+          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          io_reactor.stub(:schedule_timer).and_return(Future.resolved)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          io_reactor.should have_received(:schedule_timer).exactly(6).times
+        end
+
         it 'connects when it receives a topology change UP event' do
           min_peers[0] = 3
           event = Protocol::TopologyChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
@@ -946,6 +981,16 @@ module Cql
           connections.select(&:has_event_listener?).first.trigger_event(event)
           logger.should have_received(:warn).with(/Failed connecting to node/).at_least(1).times
           logger.should have_received(:debug).with(/Scheduling new peer discovery in \d+s/)
+        end
+
+        it 'logs when it gives up attempting to reconnect' do
+          logger.stub(:warn)
+          client.connect.value
+          io_reactor.stub(:schedule_timer).and_return(Future.resolved)
+          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
+          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          logger.should have_received(:warn).with(/Giving up looking for additional nodes/).at_least(1).times
         end
 
         it 'logs when it disconnects' do
