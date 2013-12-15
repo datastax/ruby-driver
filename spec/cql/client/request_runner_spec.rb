@@ -75,14 +75,14 @@ module Cql
           connection.should have_received(:send_request).with(request, 7)
         end
 
-        it 'transforms a RowsResultResponse to a query result' do
+        it 'transforms a RowsResultResponse to a QueryResult' do
           result = run(rows_response)
           result.should have(3).items
         end
 
-        it 'transforms a VoidResultResponse to nil' do
+        it 'transforms a VoidResultResponse to a VoidResult' do
           result = run(void_response)
-          result.should be_nil
+          result.should be_a(VoidResult)
         end
 
         it 'transforms a AuthenticateResponse to an authentication required object' do
@@ -134,6 +134,12 @@ module Cql
 
           it 'returns a QueryResult that knows its trace ID' do
             connection.stub(:send_request).with(request, anything).and_return(Future.resolved(Protocol::RowsResultResponse.new(rows, metadata, trace_id)))
+            response = runner.execute(connection, request).value
+            response.trace_id.should == trace_id
+          end
+
+          it 'returns a VoidResult that knows its trace ID' do
+            connection.stub(:send_request).with(request, anything).and_return(Future.resolved(Protocol::VoidResultResponse.new(trace_id)))
             response = runner.execute(connection, request).value
             response.trace_id.should == trace_id
           end

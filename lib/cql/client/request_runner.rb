@@ -9,6 +9,8 @@ module Cql
           case response
           when Protocol::RowsResultResponse
             QueryResult.new(response.metadata, response.rows, response.trace_id)
+          when Protocol::VoidResultResponse
+            response.trace_id ? VoidResult.new(response.trace_id) : VoidResult::INSTANCE
           when Protocol::ErrorResponse
             cql = request.is_a?(Protocol::QueryRequest) ? request.cql : nil
             raise QueryError.new(response.code, response.message, cql)

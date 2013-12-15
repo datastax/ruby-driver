@@ -150,16 +150,14 @@ describe 'A CQL client' do
       client.execute(%(CREATE TABLE users (user_id VARCHAR PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)))
     end
 
-    it 'requests tracing and returns the trace ID' do
+    it 'requests tracing and returns the trace ID, for row returning operations' do
       result = client.execute(%(SELECT * FROM users), trace: true)
       result.trace_id.should_not be_nil
     end
 
     it 'requests tracing and returns the trace ID, for void returning operations' do
-      pending 'since void operations return nil, this is currently not possible' do
-        result = client.execute(%(INSERT INTO users (user_id, first, last, age) VALUES ('1', 'Sue', 'Smith', 25)), trace: true)
-        result.trace_id.should_not be_nil
-      end
+      result = client.execute(%(INSERT INTO users (user_id, first, last, age) VALUES ('1', 'Sue', 'Smith', 25)), trace: true)
+      result.trace_id.should_not be_nil
     end
   end
 
