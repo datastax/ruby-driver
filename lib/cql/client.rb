@@ -160,16 +160,18 @@ module Cql
       #   for a response. If this timeout expires a {Cql::TimeoutError} will
       #   be raised.
       # @option options_or_consistency [Symbol] :trace (false) Request tracing
-      #   for this request. See {Cql::Client::QueryResult} for how to retrieve
-      #   the tracing data.
+      #   for this request. See {Cql::Client::QueryResult} and
+      #   {Cql::Client::VoidResult} for how to retrieve the tracing data.
       # @raise [Cql::NotConnectedError] raised when the client is not connected
       # @raise [Cql::TimeoutError] raised when a timeout was specified and no
       #   response was received within the timeout.
       # @raise [Cql::QueryError] raised when the CQL has syntax errors or for
       #   other situations when the server complains.
-      # @return [nil, Cql::Client::QueryResult] Most queries have no result and
-      #   return `nil`, but `SELECT` statements return an `Enumerable` of rows
-      #   (see {Cql::Client::QueryResult}).
+      # @return [nil, Cql::Client::QueryResult, Cql::Client::VoidResult] Some
+      #   queries have no result and return `nil`, but `SELECT` statements
+      #   return an `Enumerable` of rows (see {Cql::Client::QueryResult}), and
+      #   `INSERT` and `UPDATE` return a similar type
+      #   (see {Cql::Client::VoidResult}).
 
       # @!method prepare(cql)
       #
@@ -215,9 +217,11 @@ module Cql
       # @raise [Cql::Io::IoError] raised when there is an IO error, for example
       #   if the server suddenly closes the connection
       # @raise [Cql::QueryError] raised when there is an error on the server side
-      # @return [nil, Cql::Client::QueryResult] Most statements have no result
-      #    and return `nil`, but `SELECT` statements return an `Enumerable` of
-      #   rows (see {Cql::Client::QueryResult}).
+      # @return [nil, Cql::Client::QueryResult, Cql::Client::VoidResult] Some
+      #   queries have no result and return `nil`, but `SELECT` statements
+      #   return an `Enumerable` of rows (see {Cql::Client::QueryResult}), and
+      #   `INSERT` and `UPDATE` return a similar type
+      #   (see {Cql::Client::VoidResult}).
       def execute(*args)
       end
     end
