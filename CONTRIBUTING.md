@@ -21,3 +21,7 @@ It takes time to understand other people's code, and even more time to understan
 Feel free to open a pull request before the feature is finished, that way you can have a conversation with the maintainers during the development, and you can make adjustments to the design as you go along instead of having your whole feature rejected because of reasons such as those above. If you do, please make it clear that the pull request is a work in progress, or a request for comment.
 
 Always remember that the maintainers work on this project in their free time and that they don't work for you, or for your benefit. They have no obligation to do what you think is right -- but if you're nice and make it easy for them they might do that anyway.
+
+## Fund the project
+
+[Donate with Gittip](https://www.gittip.com/iconara/).
