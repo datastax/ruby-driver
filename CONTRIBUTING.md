@@ -24,4 +24,4 @@ Always remember that the maintainers work on this project in their free time and
 
 ## Fund the project
 
-[Donate with Gittip](https://www.gittip.com/iconara/).
+[![Donate with Gittip](http://img.shields.io/gittip/iconara.png)](https://www.gittip.com/iconara/ "Donate weekly to this project using Gittip")
