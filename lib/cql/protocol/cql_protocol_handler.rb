@@ -27,7 +27,8 @@ module Cql
         @connection.on_closed(&method(:socket_closed))
         @promises = Array.new(128) { nil }
         @read_buffer = ByteBuffer.new
-        @current_frame = Protocol::ResponseFrame.new(@read_buffer, @compressor)
+        @frame_encoder = FrameEncoder.new(@compressor)
+        @current_frame = ResponseFrame.new(@read_buffer, @compressor)
         @request_queue_in = []
         @request_queue_out = []
         @event_listeners = []
@@ -114,7 +115,7 @@ module Cql
       #   the response
       def send_request(request, timeout=nil)
         return Future.failed(NotConnectedError.new) if closed?
-        promise = RequestPromise.new(request, @compressor)
+        promise = RequestPromise.new(request, @frame_encoder)
         id = nil
         @lock.synchronize do
           if (id = next_stream_id)
@@ -123,7 +124,7 @@ module Cql
         end
         if id
           @connection.write do |buffer|
-            request.encode_frame(id, buffer, @compressor)
+            @frame_encoder.encode_frame(request, id, buffer)
           end
         else
           @lock.synchronize do
@@ -153,9 +154,9 @@ module Cql
       class RequestPromise < Promise
         attr_reader :request, :frame
 
-        def initialize(request, compressor)
+        def initialize(request, frame_encoder)
           @request = request
-          @compressor = compressor
+          @frame_encoder = frame_encoder
           @timed_out = false
           super()
         end
@@ -172,7 +173,7 @@ module Cql
         end
 
         def encode_frame!
-          @frame = @request.encode_frame(0, nil, @compressor)
+          @frame = @frame_encoder.encode_frame(@request)
         end
       end
 
@@ -237,7 +238,7 @@ module Cql
             end
           end
           if id
-            Protocol::Request.change_stream_id(id, frame)
+            @frame_encoder.change_stream_id(id, frame)
             @connection.write(frame)
           else
             break

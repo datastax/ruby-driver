@@ -12,15 +12,15 @@ module Cql
         end
       end
 
-      describe '#encode_frame' do
+      describe '#write' do
         it 'encodes a STARTUP request frame' do
-          bytes = StartupRequest.new('3.0.0', 'snappy').encode_frame(3)
-          bytes.should == "\x01\x00\x03\x01\x00\x00\x00\x2b\x00\x02\x00\x0bCQL_VERSION\x00\x053.0.0\x00\x0bCOMPRESSION\x00\x06snappy"
+          bytes = StartupRequest.new('3.0.0', 'snappy').write('')
+          bytes.should == "\x00\x02\x00\x0bCQL_VERSION\x00\x053.0.0\x00\x0bCOMPRESSION\x00\x06snappy"
         end
 
         it 'defaults to CQL 3.0.0 and no compression' do
-          bytes = StartupRequest.new.encode_frame(3)
-          bytes.should == "\x01\x00\x03\x01\x00\x00\x00\x16\x00\x01\x00\x0bCQL_VERSION\x00\x053.0.0"
+          bytes = StartupRequest.new.write('')
+          bytes.should == "\x00\x01\x00\x0bCQL_VERSION\x00\x053.0.0"
         end
       end
 
