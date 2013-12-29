@@ -37,7 +37,7 @@ module Cql
       end
 
       def to_s
-        %(ERROR #@code "#@message" #@details)
+        "#{super} #{@details}"
       end
     end
   end

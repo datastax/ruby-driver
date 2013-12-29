@@ -21,7 +21,8 @@ module Cql
       end
 
       def to_s
-        %(ERROR #@code "#@message")
+        hex_code = @code.to_s(16).rjust(4, '0').upcase
+        %(ERROR 0x#{hex_code} "#@message")
       end
     end
   end

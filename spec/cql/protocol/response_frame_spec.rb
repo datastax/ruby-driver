@@ -150,7 +150,7 @@ module Cql
         end
 
         it 'has a pretty #to_s representation' do
-          frame.body.to_s.should == 'ERROR 10 "Provided version 4.0.0 is not supported by this server (supported: 2.0.0, 3.0.0)"'
+          frame.body.to_s.should == 'ERROR 0x000A "Provided version 4.0.0 is not supported by this server (supported: 2.0.0, 3.0.0)"'
         end
       end
 
@@ -216,7 +216,7 @@ module Cql
 
         it 'has a pretty #to_s representation' do
           frame = described_class.new(ByteBuffer.new("\x81\x00\x00\x00\x00\x00\x00\x33\x00\x00\x25\x00\x00\x1bUnknown prepared statement!\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/"))
-          frame.body.to_s.should match(/^ERROR 9472 "Unknown prepared statement!" \{:id=>".+?"\}$/)
+          frame.body.to_s.should match(/^ERROR 0x2500 "Unknown prepared statement!" \{:id=>".+?"\}$/)
         end
       end
 
