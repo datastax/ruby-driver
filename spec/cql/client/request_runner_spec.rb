@@ -50,6 +50,10 @@ module Cql
           Protocol::ErrorResponse.new(0xbad, 'Bork')
         end
 
+        let :detailed_error_response do
+          Protocol::DetailedErrorResponse.new(0xbad, 'Bork', {:cl => :quorum, :received => 1, :blockfor => 1, :write_type => 'SINGLE'})
+        end
+
         let :authenticate_response do
           Protocol::AuthenticateResponse.new('TheAuthenticator')
         end
@@ -106,6 +110,16 @@ module Cql
             run(error_response, Protocol::QueryRequest.new('SELECT * FROM everything', :all))
           rescue QueryError => e
             e.cql.should == 'SELECT * FROM everything'
+          else
+            fail('No error was raised')
+          end
+        end
+
+        it 'sets the #details field of QueryError when the response has details' do
+          begin
+            run(detailed_error_response)
+          rescue QueryError => e
+            e.details.should == detailed_error_response.details
           else
             fail('No error was raised')
           end

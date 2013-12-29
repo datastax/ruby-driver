@@ -13,7 +13,8 @@ module Cql
             response.trace_id ? VoidResult.new(response.trace_id) : VoidResult::INSTANCE
           when Protocol::ErrorResponse
             cql = request.is_a?(Protocol::QueryRequest) ? request.cql : nil
-            raise QueryError.new(response.code, response.message, cql)
+            details = response.respond_to?(:details) ? response.details : nil
+            raise QueryError.new(response.code, response.message, cql, details)
           when Protocol::SetKeyspaceResultResponse
             KeyspaceChanged.new(response.keyspace)
           when Protocol::AuthenticateResponse

@@ -6,12 +6,13 @@ module Cql
   # if any. `message` contains the human readable error message sent by the
   # server.
   class QueryError < CqlError
-    attr_reader :code, :cql
+    attr_reader :code, :cql, :details
 
-    def initialize(code, message, cql=nil)
+    def initialize(code, message, cql=nil, details=nil)
       super(message)
       @code = code
       @cql = cql
+      @details = details
     end
   end
 
