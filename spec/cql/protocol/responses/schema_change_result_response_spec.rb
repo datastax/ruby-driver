@@ -6,6 +6,38 @@ require 'spec_helper'
 module Cql
   module Protocol
     describe SchemaChangeResultResponse do
+      describe '.decode!' do
+        let :response do
+          described_class.decode!(ByteBuffer.new("\x00\aUPDATED\x00\ncql_rb_973\x00\x05users"))
+        end
+
+        it 'decodes the description' do
+          response.change.should == 'UPDATED'
+        end
+
+        it 'decodes the keyspace' do
+          response.keyspace.should == 'cql_rb_973'
+        end
+
+        it 'decodes the table' do
+          response.table.should == 'users'
+        end
+      end
+
+      describe '#void?' do
+        it 'is not void' do
+          response = described_class.new('CREATED', 'ks', 'tbl', nil)
+          response.should_not be_void
+        end
+      end
+
+      describe '#to_s' do
+        it 'returns a string with the description, keyspace and table' do
+          response = described_class.new('CREATED', 'ks', 'tbl', nil)
+          response.to_s.should == 'RESULT SCHEMA_CHANGE CREATED "ks" "tbl"'
+        end
+      end
+
       describe '#eql?' do
         it 'is equal to another response with the same change, keyspace and table names' do
           response1 = described_class.new('DROPPED', 'some_keyspace', 'a_table', nil)
