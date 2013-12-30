@@ -28,7 +28,8 @@ module Cql
         @promises = Array.new(128) { nil }
         @read_buffer = ByteBuffer.new
         @frame_encoder = FrameEncoder.new(@compressor)
-        @current_frame = ResponseFrame.new(@read_buffer, @compressor)
+        @frame_decoder = FrameDecoder.new(@compressor)
+        @current_frame = FrameDecoder::NULL_FRAME
         @request_queue_in = []
         @request_queue_out = []
         @event_listeners = []
@@ -178,7 +179,8 @@ module Cql
       end
 
       def receive_data(data)
-        @current_frame << data
+        @read_buffer << data
+        @current_frame = @frame_decoder.decode_frame(@read_buffer, @current_frame)
         while @current_frame.complete?
           id = @current_frame.stream_id
           if id == -1
@@ -186,7 +188,7 @@ module Cql
           else
             complete_request(id, @current_frame.body)
           end
-          @current_frame = Protocol::ResponseFrame.new(@read_buffer, @compressor)
+          @current_frame = @frame_decoder.decode_frame(@read_buffer)
           flush_request_queue
         end
       end
