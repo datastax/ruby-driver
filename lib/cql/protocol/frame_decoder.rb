@@ -49,25 +49,12 @@ module Cql
         end
         extra_length = buffer.length - size 
         trace_id = tracing == 2 ? Decoding.read_uuid!(buffer) : nil
-        response_class = RESPONSE_CLASSES[opcode]
-        if response_class
-          response = response_class.decode!(buffer, trace_id)
-          if buffer.length > extra_length
-            buffer.discard(buffer.length - extra_length)
-          end
-          CompleteFrame.new(stream_id, response)
-        else
-          raise UnsupportedOperationError, "The operation #{opcode} is not supported"
+        response = Response.decode!(opcode, buffer, trace_id)
+        if buffer.length > extra_length
+          buffer.discard(buffer.length - extra_length)
         end
+        CompleteFrame.new(stream_id, response)
       end
-
-      RESPONSE_CLASSES = []
-      RESPONSE_CLASSES[0x00] = ErrorResponse
-      RESPONSE_CLASSES[0x02] = ReadyResponse
-      RESPONSE_CLASSES[0x03] = AuthenticateResponse
-      RESPONSE_CLASSES[0x06] = SupportedResponse
-      RESPONSE_CLASSES[0x08] = ResultResponse
-      RESPONSE_CLASSES[0x0c] = EventResponse
 
       class NullFrame
         def size

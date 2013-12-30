@@ -16,6 +16,10 @@ module Cql
       def to_s
         %(SUPPORTED #{options})
       end
+
+      private
+
+      RESPONSE_TYPES[0x06] = self
     end
   end
 end

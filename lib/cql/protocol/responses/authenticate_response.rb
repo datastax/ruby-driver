@@ -16,6 +16,10 @@ module Cql
       def to_s
         %(AUTHENTICATE #{authentication_class})
       end
+
+      private
+
+      RESPONSE_TYPES[0x03] = self
     end
   end
 end

@@ -12,6 +12,8 @@ module Cql
 
       private
 
+      RESPONSE_TYPES[0x0c] = self
+
       EVENT_TYPES = {
         # populated by subclasses
       }
