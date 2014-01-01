@@ -16,6 +16,8 @@ module Cql
       def write(protocol_version, io)
         write_long_string(io, @cql)
         write_consistency(io, @consistency)
+        io << NO_FLAGS if protocol_version > 1
+        io
       end
 
       def to_s
@@ -30,6 +32,10 @@ module Cql
       def hash
         @h ||= (@cql.hash * 31) ^ consistency.hash
       end
+
+      private
+
+      NO_FLAGS = "\x00".freeze
     end
   end
 end
