@@ -149,7 +149,23 @@ module Cql
 
       # @!method execute(cql, options_or_consistency=nil)
       #
-      # Execute a CQL statement
+      # Execute a CQL statement.
+      #
+      # @example A simple CQL query
+      #   result = client.execute("SELECT * FROM users WHERE user_name = 'sue'")
+      #   result.each do |row|
+      #     p row
+      #   end
+      #
+      # @example Specifying the consistency as a symbol
+      #   client.execute("UPDATE users SET full_name = 'Sue S. Smith' WHERE user_name = 'sue'", consistency: :one)
+      #
+      # @example Specifying the consistency and other options
+      #   client.execute("SELECT * FROM users", consistency: :all, timeout: 1.5)
+      #
+      # @example Activating tracing for a query
+      #   result = client.execute("SELECT * FROM users", tracing: true)
+      #   p result.trace_id
       #
       # @param [String] cql
       # @param [Hash] options_or_consistency Either a consistency as a symbol
