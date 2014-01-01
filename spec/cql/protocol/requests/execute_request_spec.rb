@@ -49,7 +49,7 @@ module Cql
 
       describe '#write' do
         it 'encodes an EXECUTE request frame' do
-          bytes = ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum).write('')
+          bytes = ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum).write(1, '')
           bytes.should == "\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/\x00\x03\x00\x00\x00\x05hello\x00\x00\x00\x04\x00\x00\x00\x2a\x00\x00\x00\x03foo\x00\x07"
         end
 
@@ -84,7 +84,7 @@ module Cql
         specs.each do |type, value, expected_bytes|
           it "encodes #{type} values" do
             metadata = [['ks', 'tbl', 'id_column', type]]
-            buffer = ExecuteRequest.new(id, metadata, [value], :one).write(ByteBuffer.new)
+            buffer = ExecuteRequest.new(id, metadata, [value], :one).write(1, ByteBuffer.new)
             buffer.discard(2 + 16 + 2)
             length = buffer.read_int
             result_bytes = buffer.read(length)

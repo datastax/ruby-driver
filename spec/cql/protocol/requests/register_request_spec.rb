@@ -8,7 +8,7 @@ module Cql
     describe RegisterRequest do
       describe '#write' do
         it 'encodes a REGISTER request frame' do
-          bytes = RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE').write('')
+          bytes = RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE').write(1, '')
           bytes.should == "\x00\x02\x00\x0fTOPOLOGY_CHANGE\x00\x0dSTATUS_CHANGE"
         end
       end

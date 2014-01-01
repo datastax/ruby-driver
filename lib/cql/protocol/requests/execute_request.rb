@@ -15,7 +15,7 @@ module Cql
         @bytes = encode_body
       end
 
-      def write(io)
+      def write(protocol_version, io)
         io << @bytes
       end
 

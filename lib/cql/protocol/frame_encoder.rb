@@ -3,7 +3,8 @@
 module Cql
   module Protocol
     class FrameEncoder
-      def initialize(compressor=nil)
+      def initialize(protocol_version=1, compressor=nil)
+        @protocol_version = protocol_version
         @compressor = compressor
       end
 
@@ -12,12 +13,12 @@ module Cql
         buffer ||= ByteBuffer.new
         offset = buffer.bytesize
         flags = request.trace? ? 2 : 0
-        body = request.write(ByteBuffer.new)
+        body = request.write(@protocol_version, ByteBuffer.new)
         if @compressor && request.compressable? && @compressor.compress?(body)
           flags |= 1
           body = @compressor.compress(body)
         end
-        header = [1, flags, stream_id, request.opcode, body.bytesize]
+        header = [@protocol_version, flags, stream_id, request.opcode, body.bytesize]
         buffer << header.pack(Formats::HEADER_FORMAT)
         buffer << body
         buffer

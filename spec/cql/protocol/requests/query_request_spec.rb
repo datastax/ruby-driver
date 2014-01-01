@@ -22,17 +22,17 @@ module Cql
 
       describe '#write' do
         it 'encodes a QUERY request frame' do
-          bytes = QueryRequest.new('USE system', :all).write('')
+          bytes = QueryRequest.new('USE system', :all).write(1, '')
           bytes.should == "\x00\x00\x00\x0aUSE system\x00\x05"
         end
 
         it 'encodes a QUERY request frame with tracing' do
-          bytes = QueryRequest.new('USE system', :all, true).write('')
+          bytes = QueryRequest.new('USE system', :all, true).write(1, '')
           bytes.should == "\x00\x00\x00\x0aUSE system\x00\x05"
         end
 
         it 'correctly encodes queries with multibyte characters' do
-          bytes = QueryRequest.new("INSERT INTO users (user_id, first, last, age) VALUES ('test', 'ümlaut', 'test', 1)", :all).write('')
+          bytes = QueryRequest.new("INSERT INTO users (user_id, first, last, age) VALUES ('test', 'ümlaut', 'test', 1)", :all).write(1, '')
           bytes.should eql_bytes("\x00\x00\x00SINSERT INTO users (user_id, first, last, age) VALUES ('test', '\xC3\xBCmlaut', 'test', 1)\x00\x05")
         end
       end

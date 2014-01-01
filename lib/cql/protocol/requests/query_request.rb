@@ -13,7 +13,7 @@ module Cql
         @consistency = consistency
       end
 
-      def write(io)
+      def write(protocol_version, io)
         write_long_string(io, @cql)
         write_consistency(io, @consistency)
       end

@@ -6,86 +6,135 @@ require 'spec_helper'
 module Cql
   module Protocol
     describe FrameEncoder do
-      let :encoder do
-        described_class.new
-      end
-
       describe '#encode_frame' do
-        it 'returns a rendered request frame for the specified channel' do
-          request = PrepareRequest.new('SELECT * FROM things')
-          stream_id = 3
-          encoded_frame = encoder.encode_frame(request, stream_id)
-          encoded_frame.to_s.should == "\x01\x00\x03\x09\x00\x00\x00\x18\x00\x00\x00\x14SELECT * FROM things"
+        let :request do
+          double(:request)
         end
 
-        it 'appends a rendered request frame to the specified buffer' do
+        let :compressor do
+          double(:compressor)
+        end
+
+        before do
+          request.stub(:opcode).and_return(0x77)
+          request.stub(:trace?).and_return(false)
+          request.stub(:write) { |pv, bb| bb }
+        end
+
+        it 'asks the request to write itself to a buffer' do
+          encoder = described_class.new(1)
+          encoder.encode_frame(request)
+          request.should have_received(:write).with(anything, an_instance_of(ByteBuffer))
+        end
+
+        it 'appends what the request wrote to the specified buffer, after a header' do
           buffer = ByteBuffer.new('hello')
-          request = PrepareRequest.new('SELECT * FROM things')
-          stream_id = 3
-          encoded_frame = encoder.encode_frame(request, stream_id, buffer)
-          buffer.to_s.should == "hello\x01\x00\x03\x09\x00\x00\x00\x18\x00\x00\x00\x14SELECT * FROM things"
+          request.stub(:write) { |pv, bb| bb << "\x01\x02\x03" }
+          encoder = described_class.new(1)
+          encoder.encode_frame(request, 0, buffer)
+          buffer.to_s[ 0, 5].should == 'hello'
+          buffer.to_s[13, 3].should == "\x01\x02\x03"
         end
 
         it 'returns the specified buffer' do
           buffer = ByteBuffer.new('hello')
-          request = PrepareRequest.new('SELECT * FROM things')
-          stream_id = 3
-          encoded_frame = encoder.encode_frame(request, stream_id, buffer)
-          encoded_frame.should equal(buffer)
+          encoder = described_class.new(1)
+          returned_buffer = encoder.encode_frame(request, 0, buffer)
+          returned_buffer.should equal(buffer)
         end
 
-        context 'with a compressor' do
-          let :encoder do
-            described_class.new(compressor)
-          end
+        it 'passes the protocol version to the request' do
+          encoder = described_class.new(7)
+          encoder.encode_frame(request)
+          request.should have_received(:write).with(7, anything)
+        end
 
-          let :compressor do
-            double(:compressor)
-          end
+        it 'encodes a header with the specified protocol version' do
+          encoder = described_class.new(7)
+          buffer = encoder.encode_frame(request)
+          buffer.to_s[0].should == "\x07"
+        end
 
-          let :request do
-            PrepareRequest.new('SELECT * FROM things')
-          end
+        it 'encodes a header with the tracing flag set' do
+          request.stub(:trace?).and_return(true)
+          encoder = described_class.new(1)
+          buffer = encoder.encode_frame(request)
+          buffer.to_s[1].should == "\x02"
+        end
 
-          let :compressed_frame do
-            encoder.encode_frame(request, 3).to_s
-          end
+        it 'encodes a header with the specified stream ID' do
+          encoder = described_class.new(1)
+          buffer = encoder.encode_frame(request, 9)
+          buffer.to_s[2].should == "\x09"
+        end
 
+        it 'complains when the stream ID is less than 0 or more than 127' do
+          encoder = described_class.new(1)
+          expect { encoder.encode_frame(request, -1) }.to raise_error(InvalidStreamIdError)
+          expect { encoder.encode_frame(request, 128) }.to raise_error(InvalidStreamIdError)
+        end
+
+        it 'encodes a header with the right opcode' do
+          encoder = described_class.new(1)
+          buffer = encoder.encode_frame(request, 9)
+          buffer.to_s[3].should == "\x77"
+        end
+
+        it 'encodes the body size' do
+          request.stub(:write).and_return(ByteBuffer.new('helloworld'))
+          encoder = described_class.new(1)
+          buffer = encoder.encode_frame(request, 9)
+          buffer.to_s[4, 4].should == "\x00\x00\x00\x0a"
+        end
+
+        context 'when a compressor has been specified' do
           before do
-            compressor.stub(:compress?).with("\x00\x00\x00\x14SELECT * FROM things").and_return(true)
-            compressor.stub(:compress).with("\x00\x00\x00\x14SELECT * FROM things").and_return('FAKECOMPRESSEDBODY')
+            request.stub(:compressable?).and_return(true)
+            request.stub(:write).and_return(ByteBuffer.new('helloworld'))
+            compressor.stub(:compress?).and_return(true)
+            compressor.stub(:compress).with('helloworld').and_return('COMPRESSEDFRAME')
+          end
+
+          it 'compresses the request' do
+            encoder = described_class.new(1, compressor)
+            buffer = encoder.encode_frame(request)
+            buffer.to_s[8, 100].should == 'COMPRESSEDFRAME'
           end
 
           it 'sets the compression flag' do
-            compressed_frame[1].should == "\x01"
+            encoder = described_class.new(1, compressor)
+            buffer = encoder.encode_frame(request)
+            buffer.to_s[1, 1].should == "\x01"
           end
 
-          it 'sets the size to the compressed size' do
-            compressed_frame[4, 4].unpack('N').first.should == 18
+          it 'sets both the compression flag and the tracing flag' do
+            request.stub(:trace?).and_return(true)
+            encoder = described_class.new(1, compressor)
+            buffer = encoder.encode_frame(request)
+            buffer.to_s[1, 1].should == "\x03"
           end
 
-          it 'compresses the frame body' do
-            compressed_frame[8, 18].should == 'FAKECOMPRESSEDBODY'
-            compressed_frame.bytesize.should == 26
+          it 'encodes the compressed body size' do
+            encoder = described_class.new(1, compressor)
+            buffer = encoder.encode_frame(request)
+            buffer.to_s[4, 4].should == "\x00\x00\x00\x0f"
           end
 
-          it 'does not clobber the trace flag' do
-            request = PrepareRequest.new('SELECT * FROM things', true)
-            stream_id = 3
-            compressed_frame = encoder.encode_frame(request, stream_id)
-            compressed_frame.to_s[1].should == "\x03"
-          end
-
-          it 'does not compress when the compressor responds to #compress? with false' do
-            compressor.stub(:compress?).and_return(false)
-            compressed_frame[1].should == "\x00"
-            compressed_frame.should include('SELECT * FROM things')
-            compressed_frame.bytesize.should == 32
+          it 'does not compress uncompressable frames' do
+            request.stub(:compressable?).and_return(false)
+            encoder = described_class.new(1, compressor)
+            buffer = encoder.encode_frame(request)
+            compressor.should_not have_received(:compress?)
+            compressor.should_not have_received(:compress)
           end
         end
       end
 
       describe '#change_stream_id' do
+        let :encoder do
+          described_class.new
+        end
+
         it 'changes the stream ID byte' do
           buffer = ByteBuffer.new("\x01\x00\x03\x02\x00\x00\x00\x00")
           encoder.change_stream_id(99, buffer)
