@@ -19,7 +19,7 @@ module Cql
       # @return [String] the current keyspace for the underlying connection
       attr_reader :keyspace
 
-      def initialize(connection, scheduler, protocol_version=1, compressor=nil)
+      def initialize(connection, scheduler, protocol_version, compressor=nil)
         @connection = connection
         @scheduler = scheduler
         @compressor = compressor

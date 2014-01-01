@@ -7,7 +7,7 @@ module Cql
   module Protocol
     describe CqlProtocolHandler do
       let :protocol_handler do
-        described_class.new(connection, scheduler)
+        described_class.new(connection, scheduler, 1)
       end
 
       let :connection do

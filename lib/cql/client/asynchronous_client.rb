@@ -109,7 +109,7 @@ module Cql
       MAX_RECONNECTION_ATTEMPTS = 5
 
       def protocol_handler_factory(compressor)
-        lambda { |connection, timeout| Protocol::CqlProtocolHandler.new(connection, timeout, 1, compressor) }
+        lambda { |connection, timeout| Protocol::CqlProtocolHandler.new(connection, timeout, 2, compressor) }
       end
 
       def extract_hosts(options)
