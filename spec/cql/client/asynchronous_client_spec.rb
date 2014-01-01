@@ -482,6 +482,23 @@ module Cql
           last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', nil, :local_quorum)
         end
 
+        context 'with multiple arguments' do
+          it 'passes the arguments as bound variables' do
+            client.execute('UPDATE stuff SET thing = ? WHERE id = ?', 'foo', 'bar').value
+            last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = ? WHERE id = ?', ['foo', 'bar'], :quorum)
+          end
+
+          it 'detects when the last argument is the consistency' do
+            client.execute('UPDATE stuff SET thing = ? WHERE id = ?', 'foo', 'bar', :each_quorum).value
+            last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = ? WHERE id = ?', ['foo', 'bar'], :each_quorum)
+          end
+
+          it 'detects when the last arguments is an options hash' do
+            client.execute('UPDATE stuff SET thing = ? WHERE id = ?', 'foo', 'bar', consistency: :all, tracing: true).value
+            last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = ? WHERE id = ?', ['foo', 'bar'], :all, true)
+          end
+        end
+
         context 'with a void CQL query' do
           it 'returns a VoidResult' do
             handle_request do |request|

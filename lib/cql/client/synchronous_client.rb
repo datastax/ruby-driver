@@ -50,8 +50,8 @@ module Cql
         synchronous_backtrace { @async_client.use(keyspace).value }
       end
 
-      def execute(cql, consistency=nil)
-        synchronous_backtrace { @async_client.execute(cql, consistency).value }
+      def execute(cql, *values)
+        synchronous_backtrace { @async_client.execute(cql, *values).value }
       end
 
       def prepare(cql)

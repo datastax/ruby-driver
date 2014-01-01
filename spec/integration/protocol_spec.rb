@@ -348,6 +348,16 @@ describe 'Protocol parsing and communication' do
             ]
           end
         end
+
+        it 'guesses the types of bound variables' do
+          in_keyspace do
+            query('CREATE TABLE types (a BIGINT PRIMARY KEY, b DOUBLE, c ASCII, d BOOLEAN, e TIMESTAMP, f UUID, g DECIMAL, h BLOB)')
+            cql = %<UPDATE types SET b = ?, c = ?, d = ?, e = ?, f = ?, g = ?, h = ? WHERE a = ?>
+            values = [123.456, 'foo', true, Time.now, Cql::TimeUuid::Generator.new.next, BigDecimal.new('0.01'), 'hello', 3]
+            response = execute_request(Cql::Protocol::QueryRequest.new(cql, values, :one))
+            response.should be_void
+          end
+        end
       end
 
       context 'with PREPARE requests' do

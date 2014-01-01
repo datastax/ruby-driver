@@ -55,8 +55,12 @@ module Cql
           end
 
           context 'and there are bound variables' do
+            let :cql do
+              'SELECT * FROM something WHERE id = ?'
+            end
+
             let :frame_bytes do
-              QueryRequest.new('SELECT * FROM something WHERE id = ?', ['foobar'], :all).write(2, '')
+              QueryRequest.new(cql, ['foobar'], :all).write(2, '')
             end
 
             it 'encodes the CQL' do
@@ -71,8 +75,38 @@ module Cql
               frame_bytes.to_s[42, 1].should == "\x01"
             end
 
+            it 'encodes the number of bound variables' do
+              frame_bytes.to_s[43, 2].should == "\x00\x01"
+            end
+
             it 'encodes the bound variables' do
-              frame_bytes.to_s[43, 999].should == "\x00\x01\x00\x00\x00\x06foobar"
+              frame_bytes.to_s[45, 999].should == "\x00\x00\x00\x06foobar"
+            end
+
+            [
+              ['foobar', 'VARCHAR', "\x00\x00\x00\x06foobar"],
+              [765438000, 'BIGINT', "\x00\x00\x00\x08\x00\x00\x00\x00\x2d\x9f\xa8\x30"],
+              [Math::PI, 'DOUBLE', "\x00\x00\x00\x08\x40\x09\x21\xfb\x54\x44\x2d\x18"],
+              [67890656781923123918798273492834712837198237, 'VARINT', "\x00\x00\x00\x13\x03\x0b\x58\xb5\x74\x0a\xce\x65\x95\xb4\x03\x26\x7b\x6b\x6a\x6e\x08\x91\x9d"],
+              [BigDecimal.new('1313123123.234234234234234234123'), 'DECIMAL', "\x00\x00\x00\x11\x00\x00\x00\x15\x10\x92\xed\xfd\x4b\x93\x4b\xd7\xa2\xc1\x0c\x65\x0b"],
+              [true, 'BOOLEAN', "\x00\x00\x00\x01\x01"],
+              [nil, 'null', "\xff\xff\xff\xff"],
+              [Uuid.new('00b69180-d0e1-11e2-8b8b-0800200c9a66'), 'UUID', "\x00\x00\x00\x10\x00\xb6\x91\x80\xd0\xe1\x11\xe2\x8b\x8b\x08\x00\x20\x0c\x9a\x66"],
+              [IPAddr.new('200.199.198.197'), 'INET', "\x00\x00\x00\x04\xc8\xc7\xc6\xc5"],
+              [IPAddr.new('2001:0db8:85a3:0000:0000:8a2e:0370:7334'), 'INET', "\x00\x00\x00\x10\x20\x01\x0d\xb8\x85\xa3\x00\x00\x00\x00\x8a\x2e\x03\x70\x73\x34"],
+              [Time.utc(2013, 12, 11, 10, 9, 8), 'TIMESTAMP', "\x00\x00\x00\x08\x00\x00\x01\x42\xe1\x21\xa5\xa0"],
+              [{'foo' => true}, 'MAP<STRING,BOOLEAN>', "\x00\x00\x00\x0a\x00\x01\x00\x03foo\x00\x01\x01"],
+              [[1, 2], 'LIST<BIGINT>', "\x00\x00\x00\x16\x00\x02\x00\x08\x00\x00\x00\x00\x00\x00\x00\x01\x00\x08\x00\x00\x00\x00\x00\x00\x00\x02"],
+              [[Math::PI, Math::PI/2].to_set, 'SET<DOUBLE>', "\x00\x00\x00\x16\x00\x02\x00\x08\x40\x09\x21\xfb\x54\x44\x2d\x18\x00\x08\x3f\xf9\x21\xfb\x54\x44\x2d\x18"],
+            ].each do |value, cql_type, expected_bytes|
+              it "encodes bound #{value.class}s as #{cql_type}" do
+                frame_bytes = QueryRequest.new(cql, [value], :all).write(2, '')
+                frame_bytes.to_s[45, 999].should == expected_bytes
+              end
+            end
+
+            it 'complains if it cannot guess the type to encode a value as' do
+              expect { QueryRequest.new(cql, [self], :all).write(2, '') }.to raise_error(EncodingError)
             end
           end
         end

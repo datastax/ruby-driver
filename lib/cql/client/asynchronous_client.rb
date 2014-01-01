@@ -84,10 +84,14 @@ module Cql
         end
       end
 
-      def execute(cql, options_or_consistency=nil)
+      def execute(cql, *args)
         with_failure_handler do
+          options_or_consistency = nil
+          if args.last.is_a?(Symbol) || args.last.is_a?(Hash)
+            options_or_consistency = args.pop
+          end
           consistency, timeout, trace = @execute_options_decoder.decode_options(options_or_consistency)
-          execute_request(Protocol::QueryRequest.new(cql, nil, consistency, trace), timeout)
+          execute_request(Protocol::QueryRequest.new(cql, args, consistency, trace), timeout)
         end
       end
 

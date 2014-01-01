@@ -187,6 +187,20 @@ describe 'A CQL client' do
     end
   end
 
+  context 'with on-the-fly bound variables' do
+    before do
+      client.execute(%(DROP KEYSPACE cql_rb_client_spec)) rescue nil
+      client.execute(%(CREATE KEYSPACE cql_rb_client_spec WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}))
+      client.use('cql_rb_client_spec')
+      client.execute(%(CREATE TABLE users (user_id VARCHAR PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT)))
+    end
+
+    it 'executes a query and sends the values separately' do
+      result = client.execute(%<INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)>, 'sue', 'Sue', 'Smith', 35)
+      result.should be_empty
+    end
+  end
+
   context 'with error conditions' do
     it 'raises an error for CQL syntax errors' do
       expect { client.execute('BAD cql') }.to raise_error(Cql::CqlError)

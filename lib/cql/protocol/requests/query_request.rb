@@ -19,7 +19,7 @@ module Cql
         write_long_string(io, @cql)
         write_consistency(io, @consistency)
         if protocol_version > 1
-          if @values.any?
+          if @values.size > 0
             io << VALUES_FLAG
             io << @encoded_values
           else
@@ -49,16 +49,43 @@ module Cql
         write_short(buffer, @values.size)
         @values.each do |value|
           type = guess_type(value)
+          raise EncodingError, "Could not guess a suitable type for #{value.inspect}" unless type
           TYPE_CONVERTER.to_bytes(buffer, type, value)
         end
         buffer
       end
 
       def guess_type(value)
-        TYPE_GUESSES[value.class] || :varchar
+        type = TYPE_GUESSES[value.class]
+        if type == :map
+          pair = value.first
+          [type, guess_type(pair[0]), guess_type(pair[1])]
+        elsif type == :list
+          [type, guess_type(value.first)]
+        elsif type == :set
+          [type, guess_type(value.first)]
+        else
+          type
+        end
       end
 
-      TYPE_GUESSES = {}.freeze
+      TYPE_GUESSES = {
+        String => :varchar,
+        Fixnum => :bigint,
+        Float => :double,
+        Bignum => :varint,
+        BigDecimal => :decimal,
+        TrueClass => :boolean,
+        FalseClass => :boolean,
+        NilClass => :bigint,
+        Uuid => :uuid,
+        TimeUuid => :uuid,
+        IPAddr => :inet,
+        Time => :timestamp,
+        Hash => :map,
+        Array => :list,
+        Set => :set,
+      }.freeze
       TYPE_CONVERTER = TypeConverter.new
       NO_VALUES = [].freeze
       NO_FLAGS = "\x00".freeze
