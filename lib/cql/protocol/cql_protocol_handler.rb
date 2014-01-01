@@ -19,7 +19,7 @@ module Cql
       # @return [String] the current keyspace for the underlying connection
       attr_reader :keyspace
 
-      def initialize(connection, scheduler, compressor=nil)
+      def initialize(connection, scheduler, protocol_version=1, compressor=nil)
         @connection = connection
         @scheduler = scheduler
         @compressor = compressor
@@ -27,7 +27,7 @@ module Cql
         @connection.on_closed(&method(:socket_closed))
         @promises = Array.new(128) { nil }
         @read_buffer = ByteBuffer.new
-        @frame_encoder = FrameEncoder.new(1, @compressor)
+        @frame_encoder = FrameEncoder.new(protocol_version, @compressor)
         @frame_decoder = FrameDecoder.new(@compressor)
         @current_frame = FrameDecoder::NULL_FRAME
         @request_queue_in = []

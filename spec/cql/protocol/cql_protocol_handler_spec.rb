@@ -114,7 +114,7 @@ module Cql
 
         context 'when a compressor is specified' do
           let :protocol_handler do
-            described_class.new(connection, scheduler, compressor)
+            described_class.new(connection, scheduler, 1, compressor)
           end
 
           let :compressor do
@@ -149,6 +149,17 @@ module Cql
             connection.data_listener.call("\x81\x01\x01\x08\x00\x00\x00\x12FAKECOMPRESSEDBODY")
             f1.value.should == Protocol::PreparedResultResponse.new(id, [["cql_rb_911", "users", "user_name", :varchar]], nil)
             f2.value.should == Protocol::PreparedResultResponse.new(id, [["cql_rb_911", "users", "user_name", :varchar]], nil)
+          end
+        end
+
+        context 'when a protocol version is specified' do
+          let :protocol_handler do
+            described_class.new(connection, scheduler, 7)
+          end
+
+          it 'sets the protocol version in the header' do
+            protocol_handler.send_request(request)
+            buffer.to_s[0].should == "\x07"
           end
         end
 
