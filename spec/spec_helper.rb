@@ -26,3 +26,4 @@ unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
 end
 
 require 'cql'
+require 'cql/compression/snappy_compressor'

@@ -3,12 +3,12 @@ source 'https://rubygems.org/'
 gemspec
 
 gem 'rake'
+gem 'snappy'
 
 group :development do
   gem 'pry'
   gem 'viiite'
   gem 'travis-lint'
-  gem 'snappy'
   platforms :mri do
     gem 'yard'
     gem 'redcarpet'
