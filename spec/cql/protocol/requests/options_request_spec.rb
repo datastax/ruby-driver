@@ -12,10 +12,10 @@ module Cql
         end
       end
 
-      describe '#encode_frame' do
-        it 'encodes an OPTIONS request frame' do
-          bytes = OptionsRequest.new.encode_frame(3)
-          bytes.should == "\x01\x00\x03\x05\x00\x00\x00\x00"
+      describe '#write' do
+        it 'encodes an OPTIONS request frame (i.e. an empty body)' do
+          bytes = OptionsRequest.new.write('')
+          bytes.should be_empty
         end
       end
 

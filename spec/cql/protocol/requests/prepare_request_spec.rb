@@ -12,10 +12,10 @@ module Cql
         end
       end
 
-      describe '#encode_frame' do
+      describe '#write' do
         it 'encodes a PREPARE request frame' do
-          bytes = PrepareRequest.new('UPDATE users SET email = ? WHERE user_name = ?').encode_frame(3)
-          bytes.should == "\x01\x00\x03\x09\x00\x00\x00\x32\x00\x00\x00\x2eUPDATE users SET email = ? WHERE user_name = ?"
+          bytes = PrepareRequest.new('UPDATE users SET email = ? WHERE user_name = ?').write('')
+          bytes.should == "\x00\x00\x00\x2eUPDATE users SET email = ? WHERE user_name = ?"
         end
       end
 

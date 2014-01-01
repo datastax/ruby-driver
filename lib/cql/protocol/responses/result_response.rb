@@ -22,6 +22,8 @@ module Cql
 
       private
 
+      RESPONSE_TYPES[0x08] = self
+
       RESULT_TYPES = [
         # populated by subclasses
       ]

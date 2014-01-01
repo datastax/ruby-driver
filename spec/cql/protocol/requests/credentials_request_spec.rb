@@ -6,12 +6,10 @@ require 'spec_helper'
 module Cql
   module Protocol
     describe CredentialsRequest do
-      describe '#encode_frame' do
+      describe '#write' do
         it 'encodes a CREDENTIALS request frame' do
-          bytes = CredentialsRequest.new('username' => 'cassandra', 'password' => 'ardnassac').encode_frame(3)
+          bytes = CredentialsRequest.new('username' => 'cassandra', 'password' => 'ardnassac').write('')
           bytes.should == (
-            "\x01\x00\x03\04" +
-            "\x00\x00\x00\x2c" +
             "\x00\x02" +
             "\x00\x08username" +
             "\x00\x09cassandra" +

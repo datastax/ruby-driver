@@ -24,6 +24,10 @@ module Cql
         hex_code = @code.to_s(16).rjust(4, '0').upcase
         %(ERROR 0x#{hex_code} "#@message")
       end
+
+      private
+
+      RESPONSE_TYPES[0x00] = self
     end
   end
 end

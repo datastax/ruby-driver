@@ -19,6 +19,10 @@ module Cql
       def to_s
         'READY'
       end
+
+      private
+
+      RESPONSE_TYPES[0x02] = self
     end
   end
 end
