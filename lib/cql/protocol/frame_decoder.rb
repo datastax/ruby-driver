@@ -39,14 +39,8 @@ module Cql
         stream_id = (stream_id & 0x7f) - (stream_id & 0x80)
         opcode = fields & 0xff
         if compression == 1
-          if @compressor
-            compressed_body = buffer.read(size)
-            decompressed_body = @compressor.decompress(compressed_body)
-            buffer = ByteBuffer.new(decompressed_body)
-            size = buffer.length
-          else
-            raise UnexpectedCompressionError, 'Compressed frame received, but no compressor configured'
-          end
+          buffer = decompress(buffer, size)
+          size = buffer.size
         end
         extra_length = buffer.length - size 
         trace_id = tracing == 2 ? Decoding.read_uuid!(buffer) : nil
@@ -55,6 +49,15 @@ module Cql
           buffer.discard(buffer.length - extra_length)
         end
         CompleteFrame.new(stream_id, response)
+      end
+
+      def decompress(buffer, size)
+        if @compressor
+          compressed_body = buffer.read(size)
+          ByteBuffer.new(@compressor.decompress(compressed_body))
+        else
+          raise UnexpectedCompressionError, 'Compressed frame received, but no compressor configured'
+        end
       end
 
       class NullFrame
