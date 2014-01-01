@@ -5,18 +5,27 @@ module Cql
     class QueryRequest < Request
       attr_reader :cql, :consistency
 
-      def initialize(cql, consistency, trace=false)
+      def initialize(cql, values, consistency, trace=false)
         raise ArgumentError, %(No CQL given!) unless cql
         raise ArgumentError, %(No such consistency: #{consistency.inspect}) if consistency.nil? || !CONSISTENCIES.include?(consistency)
         super(7, trace)
         @cql = cql
+        @values = values || NO_VALUES
+        @encoded_values = encode_values
         @consistency = consistency
       end
 
       def write(protocol_version, io)
         write_long_string(io, @cql)
         write_consistency(io, @consistency)
-        io << NO_FLAGS if protocol_version > 1
+        if protocol_version > 1
+          if @values.any?
+            io << VALUES_FLAG
+            io << @encoded_values
+          else
+            io << NO_FLAGS
+          end
+        end
         io
       end
 
@@ -35,7 +44,25 @@ module Cql
 
       private
 
+      def encode_values
+        buffer = ''
+        write_short(buffer, @values.size)
+        @values.each do |value|
+          type = guess_type(value)
+          TYPE_CONVERTER.to_bytes(buffer, type, value)
+        end
+        buffer
+      end
+
+      def guess_type(value)
+        TYPE_GUESSES[value.class] || :varchar
+      end
+
+      TYPE_GUESSES = {}.freeze
+      TYPE_CONVERTER = TypeConverter.new
+      NO_VALUES = [].freeze
       NO_FLAGS = "\x00".freeze
+      VALUES_FLAG = "\x01".freeze
     end
   end
 end

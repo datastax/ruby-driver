@@ -230,14 +230,14 @@ module Cql
         it 'changes to the keyspace given as an option' do
           c = described_class.new(connection_options.merge(:keyspace => 'hello_world'))
           c.connect.value
-          request = requests.find { |rq| rq == Protocol::QueryRequest.new('USE hello_world', :one) }
+          request = requests.find { |rq| rq == Protocol::QueryRequest.new('USE hello_world', nil, :one) }
           request.should_not be_nil, 'expected a USE request to have been sent'
         end
 
         it 'validates the keyspace name before sending the USE command' do
           c = described_class.new(connection_options.merge(:keyspace => 'system; DROP KEYSPACE system'))
           expect { c.connect.value }.to raise_error(InvalidKeyspaceNameError)
-          requests.should_not include(Protocol::QueryRequest.new('USE system; DROP KEYSPACE system', :one))
+          requests.should_not include(Protocol::QueryRequest.new('USE system; DROP KEYSPACE system', nil, :one))
         end
 
         context 'with automatic peer discovery' do
@@ -414,7 +414,7 @@ module Cql
           end
           client.connect.value
           client.use('system').value
-          last_request.should == Protocol::QueryRequest.new('USE system', :one)
+          last_request.should == Protocol::QueryRequest.new('USE system', nil, :one)
         end
 
         it 'executes a USE query for each connection' do
@@ -428,9 +428,9 @@ module Cql
           c.use('system').value
           last_requests = connections.select { |c| c.host =~ /^h\d\.example\.com$/ }.sort_by(&:host).map { |c| c.requests.last }
           last_requests.should == [
-            Protocol::QueryRequest.new('USE system', :one),
-            Protocol::QueryRequest.new('USE system', :one),
-            Protocol::QueryRequest.new('USE system', :one)
+            Protocol::QueryRequest.new('USE system', nil, :one),
+            Protocol::QueryRequest.new('USE system', nil, :one),
+            Protocol::QueryRequest.new('USE system', nil, :one),
           ]
         end
 
@@ -462,24 +462,24 @@ module Cql
 
         it 'asks the connection to execute the query using the default consistency level' do
           client.execute(cql).value
-          last_request.should == Protocol::QueryRequest.new(cql, :quorum)
+          last_request.should == Protocol::QueryRequest.new(cql, nil, :quorum)
         end
 
         it 'uses the consistency specified when the client was created' do
           client = described_class.new(connection_options.merge(default_consistency: :all))
           client.connect.value
           client.execute(cql).value
-          last_request.should == Protocol::QueryRequest.new(cql, :all)
+          last_request.should == Protocol::QueryRequest.new(cql, nil, :all)
         end
 
         it 'uses the consistency given as last argument' do
           client.execute('UPDATE stuff SET thing = 1 WHERE id = 3', :three).value
-          last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', :three)
+          last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', nil, :three)
         end
 
         it 'uses the consistency given as an option' do
           client.execute('UPDATE stuff SET thing = 1 WHERE id = 3', consistency: :local_quorum).value
-          last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', :local_quorum)
+          last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', nil, :local_quorum)
         end
 
         context 'with a void CQL query' do
@@ -534,9 +534,9 @@ module Cql
 
             last_requests = connections.select { |c| c.host =~ /^h\d\.example\.com$/ }.sort_by(&:host).map { |c| c.requests.last }
             last_requests.should == [
-              Protocol::QueryRequest.new('USE system', :one),
-              Protocol::QueryRequest.new('USE system', :one),
-              Protocol::QueryRequest.new('USE system', :one)
+              Protocol::QueryRequest.new('USE system', nil, :one),
+              Protocol::QueryRequest.new('USE system', nil, :one),
+              Protocol::QueryRequest.new('USE system', nil, :one),
             ]
           end
         end

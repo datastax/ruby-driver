@@ -107,7 +107,7 @@ module Cql
 
         it 'sets the #cql field of QueryError when the request is a query request' do
           begin
-            run(error_response, Protocol::QueryRequest.new('SELECT * FROM everything', :all))
+            run(error_response, Protocol::QueryRequest.new('SELECT * FROM everything', nil, :all))
           rescue QueryError => e
             e.cql.should == 'SELECT * FROM everything'
           else

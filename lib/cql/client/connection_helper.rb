@@ -38,7 +38,7 @@ module Cql
         @logger.debug('Looking for additional nodes')
         connection = seed_connections.sample
         return Future.resolved([]) unless connection
-        request = Protocol::QueryRequest.new('SELECT peer, data_center, host_id, rpc_address FROM system.peers', :one)
+        request = Protocol::QueryRequest.new('SELECT peer, data_center, host_id, rpc_address FROM system.peers', nil, :one)
         peer_info = @request_runner.execute(connection, request)
         peer_info.flat_map do |result|
           seed_dcs = seed_connections.map { |c| c[:data_center] }.uniq
@@ -148,7 +148,7 @@ module Cql
       end
 
       def identify_node(connection)
-        request = Protocol::QueryRequest.new('SELECT data_center, host_id FROM system.local', :one)
+        request = Protocol::QueryRequest.new('SELECT data_center, host_id FROM system.local', nil, :one)
         f = @request_runner.execute(connection, request)
         f.on_value do |result|
           unless result.empty?

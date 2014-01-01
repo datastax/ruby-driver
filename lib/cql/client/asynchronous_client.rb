@@ -87,7 +87,7 @@ module Cql
       def execute(cql, options_or_consistency=nil)
         with_failure_handler do
           consistency, timeout, trace = @execute_options_decoder.decode_options(options_or_consistency)
-          execute_request(Protocol::QueryRequest.new(cql, consistency, trace), timeout)
+          execute_request(Protocol::QueryRequest.new(cql, nil, consistency, trace), timeout)
         end
       end
 
