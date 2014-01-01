@@ -147,7 +147,7 @@ module Cql
       # @raise [Cql::NotConnectedError] raised when the client is not connected
       # @return [nil]
 
-      # @!method execute(cql, options_or_consistency=nil)
+      # @!method execute(cql, *values, options_or_consistency={})
       #
       # Execute a CQL statement.
       #
@@ -156,6 +156,9 @@ module Cql
       #   result.each do |row|
       #     p row
       #   end
+      #
+      # @example Using on-the-fly bound values
+      #   client.execute('INSERT INTO users (user_name, full_name) VALUES (?, ?)', 'sue', 'Sue Smith')
       #
       # @example Specifying the consistency as a symbol
       #   client.execute("UPDATE users SET full_name = 'Sue S. Smith' WHERE user_name = 'sue'", consistency: :one)
@@ -168,6 +171,14 @@ module Cql
       #   p result.trace_id
       #
       # @param [String] cql
+      # @param [Array] values Values to bind to any binding markers in the
+      #   query (i.e. "?" placeholders) -- using this feature is similar to
+      #   using a prepared statement, but without the type checking. The client
+      #   needs to guess which data types to encode the values as, and will err
+      #   on the side of caution, using types like BIGINT instead of INT for
+      #   integers, and DOUBLE instead of FLOAT for floating point numbers. It
+      #   is not recommended to use this feature for anything but convenience,
+      #   and the algorithm used to guess types is to be considered experimental.
       # @param [Hash] options_or_consistency Either a consistency as a symbol
       #   (e.g. `:quorum`), or a options hash (see below). Passing a symbol is
       #   equivalent to passing the options `consistency: <symbol>`.
