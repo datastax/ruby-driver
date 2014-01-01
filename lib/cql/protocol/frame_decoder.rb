@@ -10,10 +10,11 @@ module Cql
       def decode_frame(buffer, partial_frame=nil)
         partial_frame ||= NULL_FRAME
         if partial_frame == NULL_FRAME
-          return NULL_FRAME if buffer.length < 8
+          buffer_length = buffer.length
+          return NULL_FRAME if buffer_length < 8
           fields = buffer.read_int
           size = buffer.read_int
-          if buffer.length >= size
+          if buffer_length >= size
             actual_decode(buffer, fields, size)
           else
             PartialFrame.new(fields, size)
