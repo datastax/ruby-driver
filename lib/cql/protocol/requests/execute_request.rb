@@ -12,11 +12,19 @@ module Cql
         @metadata = metadata
         @values = values
         @consistency = consistency
-        @bytes = encode_body
+        @encoded_values = encode_values
       end
 
       def write(protocol_version, io)
-        io << @bytes
+        write_short_bytes(io, @id)
+        if protocol_version > 1
+          write_consistency(io, @consistency)
+          io << VALUES_FLAG
+          io << @encoded_values
+        else
+          io << @encoded_values
+          write_consistency(io, @consistency)
+        end
       end
 
       def to_s
@@ -42,17 +50,17 @@ module Cql
 
       private
 
-      def encode_body
-        buffer = ByteBuffer.new
-        type_converter = TypeConverter.new
-        write_short_bytes(buffer, @id)
+      def encode_values
+        buffer = ''
         write_short(buffer, @metadata.size)
         @metadata.each_with_index do |(_, _, _, type), index|
-          type_converter.to_bytes(buffer, type, @values[index])
+          TYPE_CONVERTER.to_bytes(buffer, type, @values[index])
         end
-        write_consistency(buffer, @consistency)
-        buffer.to_s
+        buffer
       end
+
+      TYPE_CONVERTER = TypeConverter.new
+      VALUES_FLAG = "\x01".freeze
     end
   end
 end
