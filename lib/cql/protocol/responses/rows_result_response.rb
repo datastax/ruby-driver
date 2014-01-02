@@ -46,6 +46,8 @@ module Cql
         :inet,
       ].freeze
 
+      TYPE_CONVERTER = TypeConverter.new
+
       GLOBAL_TABLES_SPEC_FLAG = 0x01
       HAS_MORE_PAGES_FLAG = 0x02
       NO_METADATA_FLAG = 0x04
@@ -101,13 +103,12 @@ module Cql
       end
 
       def self.read_rows!(protocol_version, buffer, column_specs)
-        type_converter = TypeConverter.new
         rows_count = read_int!(buffer)
         rows = []
         rows_count.times do |row_index|
           row = {}
           column_specs.each do |column_spec|
-            row[column_spec[2]] = type_converter.from_bytes(buffer, column_spec[3])
+            row[column_spec[2]] = TYPE_CONVERTER.from_bytes(buffer, column_spec[3])
           end
           rows << row
         end
