@@ -3,16 +3,16 @@
 module Cql
   module Protocol
     class RowsResultResponse < ResultResponse
-      attr_reader :rows, :metadata
+      attr_reader :rows, :metadata, :paging_state
 
-      def initialize(rows, metadata, trace_id)
+      def initialize(rows, metadata, paging_state, trace_id)
         super(trace_id)
-        @rows, @metadata = rows, metadata
+        @rows, @metadata, @paging_state = rows, metadata, paging_state
       end
 
       def self.decode!(buffer, trace_id=nil)
-        column_specs = read_metadata!(buffer)
-        new(read_rows!(buffer, column_specs), column_specs, trace_id)
+        column_specs, paging_state = read_metadata!(buffer)
+        new(read_rows!(buffer, column_specs), column_specs, paging_state, trace_id)
       end
 
       def to_s
@@ -43,6 +43,10 @@ module Cql
         :inet,
       ].freeze
 
+      GLOBAL_TABLES_SPEC_FLAG = 0x01
+      HAS_MORE_PAGES_FLAG = 0x02
+      NO_METADATA_FLAG = 0x04
+
       def self.read_column_type!(buffer)
         id, type = read_option!(buffer) do |id, b|
           if id > 0 && id <= 0x10
@@ -67,7 +71,14 @@ module Cql
       def self.read_metadata!(buffer)
         flags = read_int!(buffer)
         columns_count = read_int!(buffer)
-        if flags & 0x01 == 0x01
+        paging_state = nil
+        if flags & HAS_MORE_PAGES_FLAG != 0
+          paging_state = read_bytes!(buffer)
+        end
+        if flags & NO_METADATA_FLAG != 0
+          raise UnsupportedFeatureError, 'Cannot decode rows result with no metadata'
+        end
+        if flags & GLOBAL_TABLES_SPEC_FLAG != 0
           global_keyspace_name = read_string!(buffer)
           global_table_name = read_string!(buffer)
         end
@@ -83,6 +94,7 @@ module Cql
           type = read_column_type!(buffer)
           [keyspace_name, table_name, column_name, type]
         end
+        [column_specs, paging_state]
       end
 
       def self.read_rows!(buffer, column_specs)

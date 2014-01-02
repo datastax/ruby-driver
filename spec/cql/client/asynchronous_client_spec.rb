@@ -111,7 +111,7 @@ module Cql
                 case request.cql
                 when /FROM system\.local/
                   row = {'host_id' => connection[:spec_host_id], 'data_center' => connection[:spec_data_center]}
-                  Protocol::RowsResultResponse.new([row], local_metadata, nil)
+                  Protocol::RowsResultResponse.new([row], local_metadata, nil, nil)
                 when /FROM system\.peers/
                   other_host_ids = connections.reject { |c| c[:spec_host_id] == connection[:spec_host_id] }.map { |c| c[:spec_host_id] }
                   until other_host_ids.size >= min_peers[0]
@@ -126,7 +126,7 @@ module Cql
                       'rpc_address' => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip
                     }
                   end
-                  Protocol::RowsResultResponse.new(rows, peer_metadata, nil)
+                  Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
                 end
               end
             end
@@ -574,7 +574,7 @@ module Cql
           before do
             handle_request do |request|
               if request.is_a?(Protocol::QueryRequest) && request.cql =~ /FROM things/
-                Protocol::RowsResultResponse.new(rows, metadata, nil)
+                Protocol::RowsResultResponse.new(rows, metadata, nil, nil)
               end
             end
           end
@@ -668,7 +668,7 @@ module Cql
             trace_id = Uuid.new('a1028490-3f05-11e3-9531-fb72eff05fbb')
             handle_request do |request|
               if request.is_a?(Protocol::QueryRequest) && request.cql == cql
-                Protocol::RowsResultResponse.new([], [], trace_id)
+                Protocol::RowsResultResponse.new([], [], nil, trace_id)
               end
             end
             result = client.execute(cql, trace: true).value

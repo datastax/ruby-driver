@@ -158,7 +158,7 @@ module Cql
           connection.handle_request do |request|
             if request.is_a?(Protocol::QueryRequest) && request.cql =~ /SELECT .* FROM system\.local/
               row = {'data_center' => 'dc1', 'host_id' => Uuid.new('eac69196-1e28-11e3-8e2b-191b6d153d0c')}
-              Protocol::RowsResultResponse.new([row], local_metadata, nil)
+              Protocol::RowsResultResponse.new([row], local_metadata, nil, nil)
             else
               connection.default_request_handler(request)
             end
@@ -309,7 +309,7 @@ module Cql
           seed_connections.each do |c|
             c.handle_request do |request|
               if request.cql =~ /SELECT .* FROM system\.peers/
-                Protocol::RowsResultResponse.new(yield, peer_metadata, nil)
+                Protocol::RowsResultResponse.new(yield, peer_metadata, nil, nil)
               end
             end
           end

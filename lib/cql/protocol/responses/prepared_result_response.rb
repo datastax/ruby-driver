@@ -12,7 +12,7 @@ module Cql
 
       def self.decode!(buffer, trace_id=nil)
         id = read_short_bytes!(buffer)
-        metadata = RowsResultResponse.read_metadata!(buffer)
+        metadata, _ = RowsResultResponse.read_metadata!(buffer)
         new(id, metadata, trace_id)
       end
 

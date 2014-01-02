@@ -48,7 +48,7 @@ module Cql
           connection[:last_prepared_statement_id] = statement_id
           Protocol::PreparedResultResponse.new(statement_id, raw_metadata, nil)
         when Protocol::ExecuteRequest
-          Protocol::RowsResultResponse.new(rows, raw_metadata, nil)
+          Protocol::RowsResultResponse.new(rows, raw_metadata, nil, nil)
         else
           raise %(Unexpected request: #{request})
         end

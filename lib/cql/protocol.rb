@@ -14,6 +14,7 @@ module Cql
     UnsupportedResultKindError = Class.new(ProtocolError)
     UnsupportedColumnTypeError = Class.new(ProtocolError)
     UnsupportedEventTypeError = Class.new(ProtocolError)
+    UnsupportedFeatureError = Class.new(ProtocolError)
     UnexpectedCompressionError = Class.new(ProtocolError)
 
     CONSISTENCIES = [:any, :one, :two, :three, :quorum, :all, :local_quorum, :each_quorum, nil, nil, nil, nil, nil, nil, nil, nil, :local_one].freeze

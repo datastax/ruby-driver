@@ -62,6 +62,37 @@ module Cql
           end
         end
 
+        context 'when there is no metadata' do
+          let :response do
+            buffer = ByteBuffer.new
+            buffer << "\x00\x00\x00\x05" # flags (global_tables_spec | no_metadata)
+            buffer << "\x00\x00\x00\x03" # column count
+            buffer << "\x00\x00\x00\x02\x00\x00\x00\x04phil\x00\x00\x00\rphil@heck.com\xFF\xFF\xFF\xFF\x00\x00\x00\x03sue\x00\x00\x00\rsue@inter.net\xFF\xFF\xFF\xFF"
+            described_class.decode!(buffer)
+          end
+
+          it 'raises an error' do
+            expect { response }.to raise_error(UnsupportedFeatureError)
+          end
+        end
+
+        context 'when there are more pages' do
+          let :response do
+            buffer = ByteBuffer.new
+            buffer << "\x00\x00\x00\x03" # flags (global_tables_spec | has_more_pages)
+            buffer << "\x00\x00\x00\x03" # column count
+            buffer << "\x00\x00\x00\x03foo" # paging state
+            buffer << "\x00\ncql_rb_126\x00\x05users"
+            buffer << "\x00\tuser_name\x00\r\x00\x05email\x00\r\x00\bpassword\x00\r"
+            buffer << "\x00\x00\x00\x02\x00\x00\x00\x04phil\x00\x00\x00\rphil@heck.com\xFF\xFF\xFF\xFF\x00\x00\x00\x03sue\x00\x00\x00\rsue@inter.net\xFF\xFF\xFF\xFF"
+            described_class.decode!(buffer)
+          end
+
+          it 'extracts the paging state' do
+            response.paging_state.should == 'foo'
+          end
+        end
+
         context 'with different column types' do
           let :response do
             # The following test was created by intercepting the frame for the
@@ -257,14 +288,14 @@ module Cql
 
       describe '#void?' do
         it 'is not void' do
-          response = RowsResultResponse.new([{'col' => 'foo'}], [['ks', 'tbl', 'col', :varchar]], nil)
+          response = RowsResultResponse.new([{'col' => 'foo'}], [['ks', 'tbl', 'col', :varchar]], nil, nil)
           response.should_not be_void
         end
       end
 
       describe '#to_s' do
         it 'returns a string with metadata and rows' do
-          response = RowsResultResponse.new([{'col' => 'foo'}], [['ks', 'tbl', 'col', :varchar]], nil)
+          response = RowsResultResponse.new([{'col' => 'foo'}], [['ks', 'tbl', 'col', :varchar]], nil, nil)
           response.to_s.should == 'RESULT ROWS [["ks", "tbl", "col", :varchar]] [{"col"=>"foo"}]'
         end
       end

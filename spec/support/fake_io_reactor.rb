@@ -151,7 +151,7 @@ class FakeConnection
       when Cql::Protocol::StartupRequest
         Cql::Protocol::ReadyResponse.new
       when Cql::Protocol::QueryRequest
-        Cql::Protocol::RowsResultResponse.new([], [], nil)
+        Cql::Protocol::RowsResultResponse.new([], [], nil, nil)
       end
     end
   end

@@ -35,7 +35,7 @@ module Cql
 
       describe '#execute' do
         let :rows_response do
-          Protocol::RowsResultResponse.new(rows, metadata, nil)
+          Protocol::RowsResultResponse.new(rows, metadata, nil, nil)
         end
 
         let :void_response do
@@ -147,7 +147,7 @@ module Cql
           end
 
           it 'returns a QueryResult that knows its trace ID' do
-            connection.stub(:send_request).with(request, anything).and_return(Future.resolved(Protocol::RowsResultResponse.new(rows, metadata, trace_id)))
+            connection.stub(:send_request).with(request, anything).and_return(Future.resolved(Protocol::RowsResultResponse.new(rows, metadata, nil, trace_id)))
             response = runner.execute(connection, request).value
             response.trace_id.should == trace_id
           end
