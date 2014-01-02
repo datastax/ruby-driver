@@ -81,7 +81,8 @@ module Cql
         it 'calls #prepare on the async client, waits for the result and returns a SynchronousFuture' do
           result = double(:result)
           metadata = double(:metadata)
-          async_statement = double(:async_statement, metadata: metadata)
+          result_metadata = double(:result_metadata)
+          async_statement = double(:async_statement, metadata: metadata, result_metadata: result_metadata)
           another_future = double(:another_future)
           async_client.stub(:prepare).with('SELECT * FROM something').and_return(future)
           future.stub(:value).and_return(async_statement)

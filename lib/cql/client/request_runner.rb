@@ -4,9 +4,11 @@ module Cql
   module Client
     # @private
     class RequestRunner
-      def execute(connection, request, timeout=nil)
+      def execute(connection, request, timeout=nil, raw_metadata=nil)
         connection.send_request(request, timeout).map do |response|
           case response
+          when Protocol::RawRowsResultResponse
+            LazyQueryResult.new(raw_metadata, response, response.trace_id)
           when Protocol::RowsResultResponse
             QueryResult.new(response.metadata, response.rows, response.trace_id)
           when Protocol::VoidResultResponse

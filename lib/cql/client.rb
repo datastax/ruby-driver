@@ -218,8 +218,16 @@ module Cql
     end
 
     class PreparedStatement
+      # Metadata describing the bound values
+      #
       # @return [ResultMetadata]
       attr_reader :metadata
+
+      # Metadata about the result (i.e. rows) that is returned when executing
+      # this prepared statement.
+      #
+      # @return [ResultMetadata]
+      attr_reader :result_metadata
 
       # Execute the prepared statement with a list of values to be bound to the
       # statements parameters.

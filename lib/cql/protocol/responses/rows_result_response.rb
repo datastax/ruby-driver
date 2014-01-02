@@ -11,11 +11,15 @@ module Cql
       end
 
       def self.decode!(protocol_version, buffer, length, trace_id=nil)
-        column_specs, paging_state = read_metadata!(protocol_version, buffer)
+        original_buffer_length = buffer.length
+        column_specs, columns_count, paging_state = read_metadata!(protocol_version, buffer)
         if column_specs.nil?
-          raise UnsupportedFeatureError, 'Cannot decode rows without column metadata'
+          consumed_bytes = original_buffer_length - buffer.length
+          remaining_bytes = ByteBuffer.new(buffer.read(length - consumed_bytes))
+          RawRowsResultResponse.new(protocol_version, remaining_bytes, paging_state, trace_id)
+        else
+          new(read_rows!(protocol_version, buffer, column_specs), column_specs, paging_state, trace_id)
         end
-        new(read_rows!(protocol_version, buffer, column_specs), column_specs, paging_state, trace_id)
       end
 
       def to_s
@@ -99,7 +103,7 @@ module Cql
             [keyspace_name, table_name, column_name, type]
           end
         end
-        [column_specs, paging_state]
+        [column_specs, columns_count, paging_state]
       end
 
       def self.read_rows!(protocol_version, buffer, column_specs)

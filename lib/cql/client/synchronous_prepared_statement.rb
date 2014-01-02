@@ -9,6 +9,7 @@ module Cql
       def initialize(async_statement)
         @async_statement = async_statement
         @metadata = async_statement.metadata
+        @result_metadata = async_statement.result_metadata
       end
 
       def execute(*args)

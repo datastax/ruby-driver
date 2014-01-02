@@ -38,6 +38,10 @@ module Cql
           Protocol::RowsResultResponse.new(rows, metadata, nil, nil)
         end
 
+        let :raw_rows_response do
+          Protocol::RawRowsResultResponse.new(2, ByteBuffer.new("\x00\x00\x00\x02\x00\x00\x00\x01a\x00\x00\x00\x01b"), nil, nil)
+        end
+
         let :void_response do
           Protocol::VoidResultResponse.new(nil)
         end
@@ -82,6 +86,13 @@ module Cql
         it 'transforms a RowsResultResponse to a QueryResult' do
           result = run(rows_response)
           result.should have(3).items
+        end
+
+        it 'transforms a RawRowsResultResponse to a LazyQueryResult, and mixes in the specified metadata' do
+          metadata = [['ks', 'tbl', 'col', :varchar]]
+          connection.stub(:send_request).and_return(Future.resolved(raw_rows_response))
+          result = runner.execute(connection, request, nil, metadata).value
+          result.to_a.should == [{'col' => 'a'}, {'col' => 'b'}]
         end
 
         it 'transforms a VoidResultResponse to a VoidResult' do

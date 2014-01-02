@@ -11,11 +11,15 @@ module Cql
       end
 
       let :async_statement do
-        double(:async_statement, metadata: metadata)
+        double(:async_statement, metadata: metadata, result_metadata: result_metadata)
       end
 
       let :metadata do
         double(:metadata)
+      end
+
+      let :result_metadata do
+        double(:result_metadata)
       end
 
       let :promise do
@@ -29,6 +33,12 @@ module Cql
       describe '#metadata' do
         it 'returns the async statement\'s metadata' do
           statement.metadata.should equal(async_statement.metadata)
+        end
+      end
+
+      describe '#result_metadata' do
+        it 'returns the async statement\'s result metadata' do
+          statement.result_metadata.should equal(async_statement.result_metadata)
         end
       end
 

@@ -13,7 +13,7 @@ module Cql
         kind = read_int!(buffer)
         impl = RESULT_TYPES[kind]
         raise UnsupportedResultKindError, %(Unsupported result kind: #{kind}) unless impl
-        impl.decode!(protocol_version, buffer, length, trace_id)
+        impl.decode!(protocol_version, buffer, length - 4, trace_id)
       end
 
       def void?

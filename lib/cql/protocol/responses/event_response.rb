@@ -7,7 +7,8 @@ module Cql
         type = read_string!(buffer)
         impl = EVENT_TYPES[type]
         raise UnsupportedEventTypeError, %(Unsupported event type: "#{type}") unless impl
-        impl.decode!(protocol_version, buffer, length, trace_id)
+        new_length = length - 4 - type.bytesize
+        impl.decode!(protocol_version, buffer, new_length, trace_id)
       end
 
       private

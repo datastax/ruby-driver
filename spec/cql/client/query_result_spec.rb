@@ -5,11 +5,7 @@ require 'spec_helper'
 
 module Cql
   module Client
-    describe QueryResult do
-      let :result do
-        described_class.new(metadata, rows, trace_id)
-      end
-
+    shared_context 'query_result_setup' do
       let :metadata do
         [
           ['ks', 'tbl', 'col1', :varchar],
@@ -17,14 +13,16 @@ module Cql
         ]
       end
 
-      let :rows do
-        [double(:row1), double(:row2), double(:row3)]
-      end
-
       let :trace_id do
         double(:trace_id)
       end
 
+      let :rows do
+        [double(:row1), double(:row2), double(:row3)]
+      end
+    end
+
+    shared_examples 'query_result_shared' do
       describe '#metadata' do
         it 'wraps the raw metadata in a ResultMetadata' do
           result.metadata['col1'].should == ColumnMetadata.new('ks', 'tbl', 'col1', :varchar)
@@ -36,6 +34,13 @@ module Cql
           yielded_rows = []
           result.each { |r| yielded_rows << r }
           yielded_rows.should == rows
+        end
+
+        it 'can be iterated multiple times' do
+          yielded_rows = []
+          result.each { |r| yielded_rows << r }
+          result.each { |r| yielded_rows << r }
+          yielded_rows.should == rows + rows
         end
 
         it 'is aliased as #each_row' do
@@ -60,6 +65,39 @@ module Cql
           result.select { |r| r['col2'] > 0 }.should == rows.drop(1)
         end
       end
+    end
+
+    describe QueryResult do
+      let :result do
+        described_class.new(metadata, rows, trace_id)
+      end
+
+      include_context 'query_result_setup'
+      include_examples 'query_result_shared'
+    end
+
+    describe LazyQueryResult do
+      let :result do
+        described_class.new(metadata, lazy_rows, trace_id)
+      end
+
+      let :lazy_rows do
+        double(:lazy_rows)
+      end
+
+      include_context 'query_result_setup'
+
+      before do
+        lazy_rows.stub(:rows).and_return(nil)
+        lazy_rows.stub(:materialize) do |md|
+          raise '#materialize called twice' if lazy_rows.rows
+          md.should == metadata
+          lazy_rows.stub(:rows).and_return(rows)
+          rows
+        end
+      end
+
+      include_examples 'query_result_shared'
     end
   end
 end

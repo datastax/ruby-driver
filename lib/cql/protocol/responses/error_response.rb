@@ -14,7 +14,8 @@ module Cql
         message = read_string!(buffer)
         case code
         when 0x1000, 0x1100, 0x1200, 0x2400, 0x2500
-          DetailedErrorResponse.decode!(code, message, protocol_version, buffer, length)
+          new_length = length - 4 - 4 - message.bytesize
+          DetailedErrorResponse.decode!(code, message, protocol_version, buffer, new_length)
         else
           new(code, message)
         end

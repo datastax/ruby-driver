@@ -21,12 +21,32 @@ module Cql
         ]
       end
 
+      let :raw_result_metadata do
+        raw_metadata + [
+          ['my_keyspace', 'my_table', 'a_third_column', :double],
+        ]
+      end
+
       let :rows do
         [
-          {'my_column' => 11, 'my_other_column' => 'hello'},
-          {'my_column' => 22, 'my_other_column' => 'foo'},
-          {'my_column' => 33, 'my_other_column' => 'bar'},
+          {'my_column' => 11, 'my_other_column' => 'hello', 'a_third_column' => 0.0},
+          {'my_column' => 22, 'my_other_column' => 'foo', 'a_third_column' => 0.0},
+          {'my_column' => 33, 'my_other_column' => 'bar', 'a_third_column' => 0.0},
         ]
+      end
+
+      let :raw_rows do
+        buffer = ByteBuffer.new("\x00\x00\x00\x03")
+        buffer << "\x00\x00\x00\x04\x00\x00\x00\x0b"
+        buffer << "\x00\x00\x00\x05hello"
+        buffer << "\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00"
+        buffer << "\x00\x00\x00\x04\x00\x00\x00\x18"
+        buffer << "\x00\x00\x00\x03foo"
+        buffer << "\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00"
+        buffer << "\x00\x00\x00\x04\x00\x00\x00\x21"
+        buffer << "\x00\x00\x00\x03bar"
+        buffer << "\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00"
+        buffer
       end
 
       let :cql do
@@ -41,14 +61,22 @@ module Cql
         ]
       end
 
+      let :protocol_version do
+        'v2'
+      end
+
       def handle_request(connection, request, timeout)
         case request
         when Protocol::PrepareRequest
           statement_id = Array.new(16) { [rand(255)].pack('c') }.join('')
           connection[:last_prepared_statement_id] = statement_id
-          Protocol::PreparedResultResponse.new(statement_id, raw_metadata, nil, nil)
+          Protocol::PreparedResultResponse.new(statement_id, raw_metadata, protocol_version == 'v1' ? nil : raw_result_metadata, nil)
         when Protocol::ExecuteRequest
-          Protocol::RowsResultResponse.new(rows, raw_metadata, nil, nil)
+          if request.request_metadata
+            Protocol::RowsResultResponse.new(rows, raw_metadata, nil, nil)
+          else
+            Protocol::RawRowsResultResponse.new(protocol_version[1].to_i, raw_rows, nil, nil)
+          end
         else
           raise %(Unexpected request: #{request})
         end
@@ -101,6 +129,22 @@ module Cql
         end
       end
 
+      describe '#result_metadata' do
+        let :statement do
+          described_class.prepare(cql, ExecuteOptionsDecoder.new(:all), connection_manager, logger).value
+        end
+
+        it 'returns the interpreted result metadata' do
+          statement.result_metadata.should be_a(ResultMetadata)
+          statement.result_metadata['a_third_column'].should be_a(ColumnMetadata)
+        end
+
+        it 'is nil when there is no result metadata' do
+          protocol_version.replace('v1')
+          statement.result_metadata.should be_nil
+        end
+      end
+
       describe '#execute' do
         let :statement do
           described_class.prepare(cql, ExecuteOptionsDecoder.new(:local_quorum), connection_manager, logger).value
@@ -136,6 +180,17 @@ module Cql
           statement.execute(11, 'hello', consistency: :two)
           request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
           request.consistency.should == :two
+        end
+
+        it 'asks the server not to send metadata' do
+          statement.execute(11, 'hello', consistency: :two)
+          request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
+          request.request_metadata.should be_false
+        end
+
+        it 'passes the metadata to the request runner' do
+          response = statement.execute(11, 'hello', consistency: :two)
+          response.value.count.should == 3
         end
 
         it 'uses the specified timeout' do

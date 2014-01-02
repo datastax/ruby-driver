@@ -46,6 +46,10 @@ module Cql
             # is that we assign the same data multiple times
             @raw_metadata = response.metadata
             @metadata = ResultMetadata.new(@raw_metadata)
+            @raw_result_metadata = response.result_metadata
+            if @raw_result_metadata
+              @result_metadata = ResultMetadata.new(@raw_result_metadata)
+            end
           end
           hex_id = response.id.each_byte.map { |x| x.to_s(16).rjust(2, '0') }.join('')
           @logger.debug('Statement %s prepared on node %s (%s:%d)' % [hex_id, connection[:host_id].to_s, connection.host, connection.port])
@@ -62,9 +66,9 @@ module Cql
         end
         consistency, timeout, trace = @execute_options_decoder.decode_options(args.last)
         statement_id = connection[self]
-        request_metadata = true
+        request_metadata = @raw_result_metadata.nil?
         request = Protocol::ExecuteRequest.new(statement_id, @raw_metadata, bound_args, consistency, request_metadata, trace)
-        @request_runner.execute(connection, request, timeout)
+        @request_runner.execute(connection, request, timeout, @raw_result_metadata)
       end
     end
   end

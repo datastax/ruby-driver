@@ -46,6 +46,12 @@ module Cql
           response.metadata.size.should == 3
         end
 
+        it 'decodes a rows result' do
+          buffer = ByteBuffer.new("\x00\x00\x00\x02\x00\x00\x00\x04\x00\x00\x00\x03\x00\x05email\x00\r\x00\bpassword\x00\r\x00\x00\x00\x02\x00\x00\x00\x04phil\x00\x00\x00\rphil@heck.com\xFF\xFF\xFF\xFF\x00\x00\x00\x03sue\x00\x00\x00\rsue@inter.net\xFF\xFF\xFF\xFF")
+          response = described_class.decode!(1, buffer, buffer.length)
+          response.should_not be_void
+        end
+
         it 'decodes a prepared result' do
           buffer = ByteBuffer.new("\x00\x00\x00\x04\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/\x00\x00\x00\x01\x00\x00\x00\x01\x00\ncql_rb_911\x00\x05users\x00\tuser_name\x00\r")
           response = described_class.decode!(1, buffer, buffer.length)

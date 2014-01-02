@@ -34,5 +34,38 @@ module Cql
       end
       alias_method :each_row, :each
     end
+
+    # @private
+    class LazyQueryResult < QueryResult
+      def initialize(metadata, lazy_rows, trace_id)
+        super(metadata, nil, trace_id)
+        @raw_metadata = metadata
+        @lazy_rows = lazy_rows
+        @lock = Mutex.new
+      end
+
+      def empty?
+        ensure_materialized
+        super
+      end
+
+      def each(&block)
+        ensure_materialized
+        super
+      end
+      alias_method :each_row, :each
+
+      private
+
+      def ensure_materialized
+        unless @rows
+          @lock.synchronize do
+            unless @rows
+              @rows = @lazy_rows.materialize(@raw_metadata)
+            end
+          end
+        end
+      end
+    end
   end
 end

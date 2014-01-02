@@ -16,6 +16,7 @@ module Cql
     UnsupportedEventTypeError = Class.new(ProtocolError)
     UnsupportedFeatureError = Class.new(ProtocolError)
     UnexpectedCompressionError = Class.new(ProtocolError)
+    UnmaterializedRowsError = Class.new(ProtocolError)
 
     CONSISTENCIES = [:any, :one, :two, :three, :quorum, :all, :local_quorum, :each_quorum, nil, nil, nil, nil, nil, nil, nil, nil, :local_one].freeze
 
@@ -52,6 +53,7 @@ require 'cql/protocol/responses/supported_response'
 require 'cql/protocol/responses/result_response'
 require 'cql/protocol/responses/void_result_response'
 require 'cql/protocol/responses/rows_result_response'
+require 'cql/protocol/responses/raw_rows_result_response'
 require 'cql/protocol/responses/set_keyspace_result_response'
 require 'cql/protocol/responses/prepared_result_response'
 require 'cql/protocol/responses/schema_change_result_response'

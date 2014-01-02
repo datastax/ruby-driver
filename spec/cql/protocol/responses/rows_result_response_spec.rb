@@ -72,8 +72,17 @@ module Cql
             described_class.decode!(2, buffer, buffer.length)
           end
 
-          it 'raises an error' do
-            expect { response }.to raise_error(UnsupportedFeatureError)
+          it 'returns a RawRowsResultResponse' do
+            metadata = [
+              ['cql_rb_126', 'users', 'user_name', :varchar],
+              ['cql_rb_126', 'users', 'email', :varchar],
+              ['cql_rb_126', 'users', 'password', :varchar]
+            ]
+            response.materialize(metadata)
+            response.rows.should == [
+              {'user_name' => 'phil', 'email' => 'phil@heck.com', 'password' => nil},
+              {'user_name' => 'sue',  'email' => 'sue@inter.net', 'password' => nil}
+            ]
           end
         end
 
