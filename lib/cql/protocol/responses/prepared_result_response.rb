@@ -3,17 +3,21 @@
 module Cql
   module Protocol
     class PreparedResultResponse < ResultResponse
-      attr_reader :id, :metadata
+      attr_reader :id, :metadata, :result_metadata
 
-      def initialize(id, metadata, trace_id)
+      def initialize(id, metadata, result_metadata, trace_id)
         super(trace_id)
-        @id, @metadata = id, metadata
+        @id, @metadata, @result_metadata = id, metadata, result_metadata
       end
 
       def self.decode!(protocol_version, buffer, trace_id=nil)
         id = read_short_bytes!(buffer)
         metadata, _ = RowsResultResponse.read_metadata!(protocol_version, buffer)
-        new(id, metadata, trace_id)
+        result_metadata = nil
+        if protocol_version > 1
+          result_metadata, _ = RowsResultResponse.read_metadata!(protocol_version, buffer)
+        end
+        new(id, metadata, result_metadata, trace_id)
       end
 
       def eql?(other)

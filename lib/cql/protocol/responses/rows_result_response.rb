@@ -12,6 +12,9 @@ module Cql
 
       def self.decode!(protocol_version, buffer, trace_id=nil)
         column_specs, paging_state = read_metadata!(protocol_version, buffer)
+        if column_specs.nil?
+          raise UnsupportedFeatureError, 'Cannot decode rows without column metadata'
+        end
         new(read_rows!(protocol_version, buffer, column_specs), column_specs, paging_state, trace_id)
       end
 
@@ -72,27 +75,27 @@ module Cql
         flags = read_int!(buffer)
         columns_count = read_int!(buffer)
         paging_state = nil
+        column_specs = nil
         if flags & HAS_MORE_PAGES_FLAG != 0
           paging_state = read_bytes!(buffer)
         end
-        if flags & NO_METADATA_FLAG != 0
-          raise UnsupportedFeatureError, 'Cannot decode rows result with no metadata'
-        end
-        if flags & GLOBAL_TABLES_SPEC_FLAG != 0
-          global_keyspace_name = read_string!(buffer)
-          global_table_name = read_string!(buffer)
-        end
-        column_specs = columns_count.times.map do
-          if global_keyspace_name
-            keyspace_name = global_keyspace_name
-            table_name = global_table_name
-          else
-            keyspace_name = read_string!(buffer)
-            table_name = read_string!(buffer)
+        if flags & NO_METADATA_FLAG == 0
+          if flags & GLOBAL_TABLES_SPEC_FLAG != 0
+            global_keyspace_name = read_string!(buffer)
+            global_table_name = read_string!(buffer)
           end
-          column_name = read_string!(buffer)
-          type = read_column_type!(buffer)
-          [keyspace_name, table_name, column_name, type]
+          column_specs = columns_count.times.map do
+            if global_keyspace_name
+              keyspace_name = global_keyspace_name
+              table_name = global_table_name
+            else
+              keyspace_name = read_string!(buffer)
+              table_name = read_string!(buffer)
+            end
+            column_name = read_string!(buffer)
+            type = read_column_type!(buffer)
+            [keyspace_name, table_name, column_name, type]
+          end
         end
         [column_specs, paging_state]
       end

@@ -46,7 +46,7 @@ module Cql
         when Protocol::PrepareRequest
           statement_id = Array.new(16) { [rand(255)].pack('c') }.join('')
           connection[:last_prepared_statement_id] = statement_id
-          Protocol::PreparedResultResponse.new(statement_id, raw_metadata, nil)
+          Protocol::PreparedResultResponse.new(statement_id, raw_metadata, nil, nil)
         when Protocol::ExecuteRequest
           Protocol::RowsResultResponse.new(rows, raw_metadata, nil, nil)
         else

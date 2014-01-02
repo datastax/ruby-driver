@@ -693,7 +693,7 @@ module Cql
         before do
           handle_request do |request|
             if request.is_a?(Protocol::PrepareRequest)
-              Protocol::PreparedResultResponse.new(id, metadata, nil)
+              Protocol::PreparedResultResponse.new(id, metadata, nil, nil)
             end
           end
         end
@@ -748,7 +748,7 @@ module Cql
           it 'returns a failed future' do
             handle_request do |request|
               if request.is_a?(Protocol::PrepareRequest)
-                Protocol::PreparedResultResponse.new(id, metadata, nil)
+                Protocol::PreparedResultResponse.new(id, metadata, nil, nil)
               end
             end
             statement = client.prepare(cql).value
@@ -821,7 +821,7 @@ module Cql
         it 'complains when #execute of a prepared statement is called after #close' do
           handle_request do |request|
             if request.is_a?(Protocol::PrepareRequest)
-              Protocol::PreparedResultResponse.new('A' * 32, [], nil)
+              Protocol::PreparedResultResponse.new('A' * 32, [], nil, nil)
             end
           end
           client.connect.value

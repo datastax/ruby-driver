@@ -43,7 +43,7 @@ module Cql
         end
 
         let :prepared_response do
-          Protocol::PreparedResultResponse.new("\x2a", metadata, nil)
+          Protocol::PreparedResultResponse.new("\x2a", metadata, nil, nil)
         end
 
         let :error_response do
