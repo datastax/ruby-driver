@@ -2,6 +2,7 @@
 
 module Cql
   module Protocol
+    # @private
     class FrameDecoder
       def initialize(compressor=nil)
         @compressor = compressor

@@ -2,6 +2,7 @@
 
 module Cql
   module Protocol
+    # @private
     class FrameEncoder
       def initialize(protocol_version=1, compressor=nil)
         @protocol_version = protocol_version
