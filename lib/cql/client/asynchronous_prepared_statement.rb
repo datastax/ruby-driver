@@ -62,7 +62,8 @@ module Cql
         end
         consistency, timeout, trace = @execute_options_decoder.decode_options(args.last)
         statement_id = connection[self]
-        request = Protocol::ExecuteRequest.new(statement_id, @raw_metadata, bound_args, consistency, trace)
+        request_metadata = true
+        request = Protocol::ExecuteRequest.new(statement_id, @raw_metadata, bound_args, consistency, request_metadata, trace)
         @request_runner.execute(connection, request, timeout)
       end
     end

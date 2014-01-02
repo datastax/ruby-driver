@@ -385,7 +385,7 @@ describe 'Protocol parsing and communication' do
             create_response.should_not be_a(Cql::Protocol::ErrorResponse)
             prepare_response = execute_request(Cql::Protocol::PrepareRequest.new(insert_cql))
             prepare_response.should_not be_a(Cql::Protocol::ErrorResponse)
-            execute_response = execute_request(Cql::Protocol::ExecuteRequest.new(prepare_response.id, prepare_response.metadata, [Cql::Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'), -12312312312, Time.now, 345345.234234, Cql::Uuid.new('a4a70900-24e1-11df-8924-001ff3591711'), "\xab\xcd\xef".force_encoding(::Encoding::BINARY)], :one))
+            execute_response = execute_request(Cql::Protocol::ExecuteRequest.new(prepare_response.id, prepare_response.metadata, [Cql::Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'), -12312312312, Time.now, 345345.234234, Cql::Uuid.new('a4a70900-24e1-11df-8924-001ff3591711'), "\xab\xcd\xef".force_encoding(::Encoding::BINARY)], :one, true))
             execute_response.should_not be_a(Cql::Protocol::ErrorResponse)
           end
         end
@@ -409,7 +409,7 @@ describe 'Protocol parsing and communication' do
         it 'sends an EXECUTE request with the tracing flag and receives a RESULT with a trace ID' do
           in_keyspace_with_table do
             prepare_response = execute_request(Cql::Protocol::PrepareRequest.new('SELECT * FROM users'))
-            execute_response = execute_request(Cql::Protocol::ExecuteRequest.new(prepare_response.id, prepare_response.metadata, [], :one, true))
+            execute_response = execute_request(Cql::Protocol::ExecuteRequest.new(prepare_response.id, prepare_response.metadata, [], :one, true, true))
             execute_response.trace_id.should_not be_nil
           end
         end

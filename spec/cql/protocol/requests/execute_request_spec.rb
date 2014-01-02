@@ -24,33 +24,33 @@ module Cql
 
       describe '#initialize' do
         it 'raises an error when the metadata and values don\'t have the same size' do
-          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42], :each_quorum) }.to raise_error(ArgumentError)
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42], :each_quorum, true) }.to raise_error(ArgumentError)
         end
 
         it 'raises an error for unsupported column types' do
           column_metadata[2][3] = :imaginary
-          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum) }.to raise_error(UnsupportedColumnTypeError)
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum, true) }.to raise_error(UnsupportedColumnTypeError)
         end
 
         it 'raises an error for unsupported column collection types' do
           column_metadata[2][3] = [:imaginary, :varchar]
-          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, ['foo']], :each_quorum) }.to raise_error(UnsupportedColumnTypeError)
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, ['foo']], :each_quorum, true) }.to raise_error(UnsupportedColumnTypeError)
         end
 
         it 'raises an error when collection values are not enumerable' do
           column_metadata[2][3] = [:set, :varchar]
-          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum) }.to raise_error(InvalidValueError)
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum, true) }.to raise_error(InvalidValueError)
         end
 
         it 'raises an error when it cannot encode the argument' do
-          expect { ExecuteRequest.new(id, column_metadata, ['hello', 'not an int', 'foo'], :each_quorum) }.to raise_error(TypeError, /cannot be encoded as INT/)
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 'not an int', 'foo'], :each_quorum, true) }.to raise_error(TypeError, /cannot be encoded as INT/)
         end
       end
 
       describe '#write' do
         context 'when the protocol version is 1' do
           let :frame_bytes do
-            ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum).write(1, '')
+            ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum, true).write(1, '')
           end
 
           it 'writes the statement ID' do
@@ -72,7 +72,7 @@ module Cql
 
         context 'when the protocol version is 2' do
           let :frame_bytes do
-            ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum).write(2, '')
+            ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum, true).write(2, '')
           end
 
           it 'writes the statement ID' do
@@ -88,8 +88,13 @@ module Cql
           end
 
           it 'does not write the bound values flag when there are no values, and does not write anything more' do
-            frame_bytes = ExecuteRequest.new(id, [], [], :each_quorum).write(2, '')
+            frame_bytes = ExecuteRequest.new(id, [], [], :each_quorum, true).write(2, '')
             frame_bytes.to_s[20, 999].should == "\x00"
+          end
+
+          it 'writes flags saying that the result doesn\'t need to contain metadata' do
+            frame_bytes = ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], :each_quorum, false).write(2, '')
+            frame_bytes.to_s[20, 1].should == "\x03"
           end
 
           it 'writes the number of bound values' do
@@ -133,7 +138,7 @@ module Cql
           specs.each do |type, value, expected_bytes|
             it "encodes #{type} values" do
               metadata = [['ks', 'tbl', 'id_column', type]]
-              buffer = ExecuteRequest.new(id, metadata, [value], :one).write(1, ByteBuffer.new)
+              buffer = ExecuteRequest.new(id, metadata, [value], :one, true).write(1, ByteBuffer.new)
               buffer.discard(2 + 16 + 2)
               length = buffer.read_int
               result_bytes = buffer.read(length)
@@ -145,77 +150,77 @@ module Cql
 
       describe '#to_s' do
         it 'returns a pretty string' do
-          request = ExecuteRequest.new(id, column_metadata, values, :each_quorum)
+          request = ExecuteRequest.new(id, column_metadata, values, :each_quorum, true)
           request.to_s.should == 'EXECUTE ca487f1e7a82d23c4e8af3355171a52f ["hello", 42, "foo"] EACH_QUORUM'
         end
       end
 
       describe '#eql?' do
         it 'returns true when the ID, metadata, values and consistency are the same' do
-          e1 = ExecuteRequest.new(id, column_metadata, values, :one)
-          e2 = ExecuteRequest.new(id, column_metadata, values, :one)
+          e1 = ExecuteRequest.new(id, column_metadata, values, :one, true)
+          e2 = ExecuteRequest.new(id, column_metadata, values, :one, true)
           e1.should eql(e2)
         end
 
         it 'returns false when the ID is different' do
-          e1 = ExecuteRequest.new(id, column_metadata, values, :one)
-          e2 = ExecuteRequest.new(id.reverse, column_metadata, values, :one)
+          e1 = ExecuteRequest.new(id, column_metadata, values, :one, true)
+          e2 = ExecuteRequest.new(id.reverse, column_metadata, values, :one, true)
           e1.should_not eql(e2)
         end
 
         it 'returns false when the metadata is different' do
-          e1 = ExecuteRequest.new(id, column_metadata, values, :one)
-          e2 = ExecuteRequest.new(id, column_metadata.reverse, values, :one)
+          e1 = ExecuteRequest.new(id, column_metadata, values, :one, true)
+          e2 = ExecuteRequest.new(id, column_metadata.reverse, values, :one, true)
           e1.should_not eql(e2)
         end
 
         it 'returns false when the values are different' do
-          e1 = ExecuteRequest.new(id, column_metadata, values, :one)
-          e2 = ExecuteRequest.new(id, column_metadata, values.reverse, :one)
+          e1 = ExecuteRequest.new(id, column_metadata, values, :one, true)
+          e2 = ExecuteRequest.new(id, column_metadata, values.reverse, :one, true)
           e1.should_not eql(e2)
         end
 
         it 'returns false when the consistency is different' do
-          e1 = ExecuteRequest.new(id, column_metadata, values, :one)
-          e2 = ExecuteRequest.new(id, column_metadata, values, :two)
+          e1 = ExecuteRequest.new(id, column_metadata, values, :one, true)
+          e2 = ExecuteRequest.new(id, column_metadata, values, :two, true)
           e1.should_not eql(e2)
         end
 
         it 'is aliased as ==' do
-          e1 = ExecuteRequest.new(id, column_metadata, values, :one)
-          e2 = ExecuteRequest.new(id, column_metadata, values, :one)
+          e1 = ExecuteRequest.new(id, column_metadata, values, :one, true)
+          e2 = ExecuteRequest.new(id, column_metadata, values, :one, true)
           e1.should == e2
         end
       end
 
       describe '#hash' do
         it 'has the same hash code as another identical object' do
-          e1 = ExecuteRequest.new(id, column_metadata, values, :one)
-          e2 = ExecuteRequest.new(id, column_metadata, values, :one)
+          e1 = ExecuteRequest.new(id, column_metadata, values, :one, true)
+          e2 = ExecuteRequest.new(id, column_metadata, values, :one, true)
           e1.hash.should == e2.hash
         end
 
         it 'does not have the same hash code when the ID is different' do
-          e1 = ExecuteRequest.new(id, column_metadata, values, :one)
-          e2 = ExecuteRequest.new(id.reverse, column_metadata, values, :one)
+          e1 = ExecuteRequest.new(id, column_metadata, values, :one, true)
+          e2 = ExecuteRequest.new(id.reverse, column_metadata, values, :one, true)
           e1.hash.should_not == e2.hash
         end
 
         it 'does not have the same hash code when the metadata is different' do
-          e1 = ExecuteRequest.new(id, column_metadata, values, :one)
-          e2 = ExecuteRequest.new(id, column_metadata.reverse, values, :one)
+          e1 = ExecuteRequest.new(id, column_metadata, values, :one, true)
+          e2 = ExecuteRequest.new(id, column_metadata.reverse, values, :one, true)
           e1.hash.should_not == e2.hash
         end
 
         it 'does not have the same hash code when the values are different' do
-          e1 = ExecuteRequest.new(id, column_metadata, values, :one)
-          e2 = ExecuteRequest.new(id, column_metadata, values.reverse, :one)
+          e1 = ExecuteRequest.new(id, column_metadata, values, :one, true)
+          e2 = ExecuteRequest.new(id, column_metadata, values.reverse, :one, true)
           e1.hash.should_not == e2.hash
         end
 
         it 'does not have the same hash code when the consistency is different' do
-          e1 = ExecuteRequest.new(id, column_metadata, values, :one)
-          e2 = ExecuteRequest.new(id, column_metadata, values, :two)
+          e1 = ExecuteRequest.new(id, column_metadata, values, :one, true)
+          e2 = ExecuteRequest.new(id, column_metadata, values, :two, true)
           e1.hash.should_not == e2.hash
         end
       end

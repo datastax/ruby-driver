@@ -5,13 +5,14 @@ module Cql
     class ExecuteRequest < Request
       attr_reader :id, :metadata, :values, :consistency
 
-      def initialize(id, metadata, values, consistency, trace=false)
+      def initialize(id, metadata, values, consistency, request_metadata, trace=false)
         raise ArgumentError, "Metadata for #{metadata.size} columns, but #{values.size} values given" if metadata.size != values.size
         super(10, trace)
         @id = id
         @metadata = metadata
         @values = values
         @consistency = consistency
+        @request_metadata = request_metadata
         @encoded_values = encode_values
       end
 
@@ -19,12 +20,14 @@ module Cql
         write_short_bytes(io, @id)
         if protocol_version > 1
           write_consistency(io, @consistency)
+          flags = 0
+          flags |= @values.size > 0 ? 1 : 0
+          flags |= @request_metadata ? 0 : 2
+          io << flags.chr
           if @values.size > 0
-            io << VALUES_FLAG
             io << @encoded_values
-          else
-            io << NO_VALUES_FLAG
           end
+          io
         else
           io << @encoded_values
           write_consistency(io, @consistency)
@@ -64,8 +67,6 @@ module Cql
       end
 
       TYPE_CONVERTER = TypeConverter.new
-      VALUES_FLAG = "\x01".freeze
-      NO_VALUES_FLAG = "\x00".freeze
     end
   end
 end
