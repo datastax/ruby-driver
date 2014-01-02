@@ -15,7 +15,7 @@ module Cql
             buffer << "\x00\x00\x00\x01" # column count
             buffer << "\x00\ncql_rb_911\x00\x05users" # global_tables_spec
             buffer << "\x00\tuser_name\x00\r" # col_spec (name + type)
-            described_class.decode!(1, buffer)
+            described_class.decode!(1, buffer, buffer.length)
           end
 
           it 'decodes the ID' do
@@ -40,7 +40,7 @@ module Cql
             buffer << "\x00\ncql_rb_911\x00\x05users" # global_tables_spec
             buffer << "\x00\tuser_name\x00\r" # col_spec (name + type)
             buffer << "\x00\x05email\x00\r" # col_spec (name + type)
-            described_class.decode!(2, buffer)
+            described_class.decode!(2, buffer, buffer.length)
           end
 
           it 'decodes the ID' do
@@ -69,7 +69,7 @@ module Cql
             buffer << "\x00\tuser_name\x00\r" # col_spec (name + type)
             buffer << "\x00\x00\x00\x04" # flags (no_metadata)
             buffer << "\x00\x00\x00\x00" # column count
-            response = described_class.decode!(2, buffer)
+            response = described_class.decode!(2, buffer, buffer.length)
             response.result_metadata.should be_nil
           end
         end

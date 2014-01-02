@@ -10,7 +10,7 @@ module Cql
         @change, @keyspace, @table = change, keyspace, table
       end
 
-      def self.decode!(protocol_version, buffer, trace_id=nil)
+      def self.decode!(protocol_version, buffer, length, trace_id=nil)
         new(read_string!(buffer), read_string!(buffer), read_string!(buffer), trace_id)
       end
 

@@ -8,7 +8,7 @@ module Cql
     describe SetKeyspaceResultResponse do
       describe '.decode!' do
         let :response do
-          described_class.decode!(1, ByteBuffer.new("\x00\x06system"))
+          described_class.decode!(1, ByteBuffer.new("\x00\x06system"), 8)
         end
 
         it 'decodes the keyspace' do

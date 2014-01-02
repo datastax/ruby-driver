@@ -10,7 +10,7 @@ module Cql
         @rows, @metadata, @paging_state = rows, metadata, paging_state
       end
 
-      def self.decode!(protocol_version, buffer, trace_id=nil)
+      def self.decode!(protocol_version, buffer, length, trace_id=nil)
         column_specs, paging_state = read_metadata!(protocol_version, buffer)
         if column_specs.nil?
           raise UnsupportedFeatureError, 'Cannot decode rows without column metadata'
