@@ -8,7 +8,7 @@ module Cql
     describe PreparedResultResponse do
       describe '.decode!' do
         let :response do
-          described_class.decode!(ByteBuffer.new("\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/\x00\x00\x00\x01\x00\x00\x00\x01\x00\ncql_rb_911\x00\x05users\x00\tuser_name\x00\r"))
+          described_class.decode!(1, ByteBuffer.new("\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/\x00\x00\x00\x01\x00\x00\x00\x01\x00\ncql_rb_911\x00\x05users\x00\tuser_name\x00\r"))
         end
 
         it 'decodes the ID' do

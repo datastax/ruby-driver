@@ -8,7 +8,7 @@ module Cql
     describe AuthenticateResponse do
       describe '.decode!' do
         let :response do
-          described_class.decode!(ByteBuffer.new("\x00\x2forg.apache.cassandra.auth.PasswordAuthenticator"))
+          described_class.decode!(1, ByteBuffer.new("\x00\x2forg.apache.cassandra.auth.PasswordAuthenticator"))
         end
 
         it 'decodes the authentication class' do

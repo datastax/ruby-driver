@@ -12,7 +12,7 @@ module Cql
         @type = TYPE
       end
 
-      def self.decode!(buffer, trace_id=nil)
+      def self.decode!(protocol_version, buffer, trace_id=nil)
         new(read_string!(buffer), *read_inet!(buffer))
       end
 

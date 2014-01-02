@@ -8,7 +8,7 @@ module Cql
     describe TopologyChangeEventResponse do
       describe '.decode!' do
         let :response do
-          described_class.decode!(ByteBuffer.new("\x00\fREMOVED_NODE\x04\x00\x00\x00\x00\x00\x00#R"))
+          described_class.decode!(1, ByteBuffer.new("\x00\fREMOVED_NODE\x04\x00\x00\x00\x00\x00\x00#R"))
         end
 
         it 'decodes the change' do

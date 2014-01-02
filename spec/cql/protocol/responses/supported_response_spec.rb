@@ -8,7 +8,7 @@ module Cql
     describe SupportedResponse do
       describe '.decode!' do
         let :response do
-          described_class.decode!(ByteBuffer.new("\x00\x02\x00\x0bCQL_VERSION\x00\x01\x00\x053.0.0\x00\x0bCOMPRESSION\x00\x00"))
+          described_class.decode!(1, ByteBuffer.new("\x00\x02\x00\x0bCQL_VERSION\x00\x01\x00\x053.0.0\x00\x0bCOMPRESSION\x00\x00"))
         end
 
         it 'decodes the options' do

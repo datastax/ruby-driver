@@ -10,9 +10,9 @@ module Cql
         @id, @metadata = id, metadata
       end
 
-      def self.decode!(buffer, trace_id=nil)
+      def self.decode!(protocol_version, buffer, trace_id=nil)
         id = read_short_bytes!(buffer)
-        metadata, _ = RowsResultResponse.read_metadata!(buffer)
+        metadata, _ = RowsResultResponse.read_metadata!(protocol_version, buffer)
         new(id, metadata, trace_id)
       end
 

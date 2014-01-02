@@ -9,11 +9,11 @@ module Cql
         @trace_id = trace_id
       end
 
-      def self.decode!(buffer, trace_id=nil)
+      def self.decode!(protocol_version, buffer, trace_id=nil)
         kind = read_int!(buffer)
         impl = RESULT_TYPES[kind]
         raise UnsupportedResultKindError, %(Unsupported result kind: #{kind}) unless impl
-        impl.decode!(buffer, trace_id)
+        impl.decode!(protocol_version, buffer, trace_id)
       end
 
       def void?

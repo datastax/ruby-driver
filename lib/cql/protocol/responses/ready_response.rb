@@ -3,7 +3,7 @@
 module Cql
   module Protocol
     class ReadyResponse < Response
-      def self.decode!(buffer, trace_id=nil)
+      def self.decode!(protocol_version, buffer, trace_id=nil)
         new
       end
 

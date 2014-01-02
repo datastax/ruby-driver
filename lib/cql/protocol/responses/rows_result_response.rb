@@ -10,9 +10,9 @@ module Cql
         @rows, @metadata, @paging_state = rows, metadata, paging_state
       end
 
-      def self.decode!(buffer, trace_id=nil)
-        column_specs, paging_state = read_metadata!(buffer)
-        new(read_rows!(buffer, column_specs), column_specs, paging_state, trace_id)
+      def self.decode!(protocol_version, buffer, trace_id=nil)
+        column_specs, paging_state = read_metadata!(protocol_version, buffer)
+        new(read_rows!(protocol_version, buffer, column_specs), column_specs, paging_state, trace_id)
       end
 
       def to_s
@@ -68,7 +68,7 @@ module Cql
         type
       end
 
-      def self.read_metadata!(buffer)
+      def self.read_metadata!(protocol_version, buffer)
         flags = read_int!(buffer)
         columns_count = read_int!(buffer)
         paging_state = nil
@@ -97,7 +97,7 @@ module Cql
         [column_specs, paging_state]
       end
 
-      def self.read_rows!(buffer, column_specs)
+      def self.read_rows!(protocol_version, buffer, column_specs)
         type_converter = TypeConverter.new
         rows_count = read_int!(buffer)
         rows = []
