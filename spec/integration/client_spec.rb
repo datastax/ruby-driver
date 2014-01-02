@@ -64,6 +64,12 @@ describe 'A CQL client' do
       result = statement.execute('system', :one)
       result.should have(1).item
     end
+
+    it 'executes a prepared statement with no bound values' do
+      statement = client.prepare('SELECT * FROM schema_keyspaces')
+      result = statement.execute(:one)
+      result.should_not be_empty
+    end
   end
 
   context 'with multiple connections' do

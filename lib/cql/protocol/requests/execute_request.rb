@@ -19,8 +19,12 @@ module Cql
         write_short_bytes(io, @id)
         if protocol_version > 1
           write_consistency(io, @consistency)
-          io << VALUES_FLAG
-          io << @encoded_values
+          if @values.size > 0
+            io << VALUES_FLAG
+            io << @encoded_values
+          else
+            io << NO_VALUES_FLAG
+          end
         else
           io << @encoded_values
           write_consistency(io, @consistency)
@@ -61,6 +65,7 @@ module Cql
 
       TYPE_CONVERTER = TypeConverter.new
       VALUES_FLAG = "\x01".freeze
+      NO_VALUES_FLAG = "\x00".freeze
     end
   end
 end

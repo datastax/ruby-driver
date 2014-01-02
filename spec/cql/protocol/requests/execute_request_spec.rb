@@ -83,15 +83,20 @@ module Cql
             frame_bytes.to_s[18, 2].should == "\x00\x07"
           end
 
-          it 'writes flags saying that there will be bound variables values' do
+          it 'writes flags saying that there will be bound values values' do
             frame_bytes.to_s[20, 1].should == "\x01"
           end
 
-          it 'writes the number of bound variables' do
+          it 'does not write the bound values flag when there are no values, and does not write anything more' do
+            frame_bytes = ExecuteRequest.new(id, [], [], :each_quorum).write(2, '')
+            frame_bytes.to_s[20, 999].should == "\x00"
+          end
+
+          it 'writes the number of bound values' do
             frame_bytes.to_s[21, 2].should == "\x00\x03"
           end
 
-          it 'writes the bound variables' do
+          it 'writes the bound values' do
             frame_bytes.to_s[23, 999].should == "\x00\x00\x00\x05hello\x00\x00\x00\x04\x00\x00\x00\x2a\x00\x00\x00\x03foo"
           end
         end
