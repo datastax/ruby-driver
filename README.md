@@ -269,6 +269,10 @@ If your requests or responses are big, compression can help decrease the amound 
 
 In read-heavy applications requests are often small, and need no compression, but responses can be big. In these situations you can modify the compressor used to turn off compression for requests completely. The Snappy compressor that comes with cql-rb will not compress frames less than 64 bytes, for example, and you can change this threshold when you create the compressor.
 
+# Try experimental features
+
+To get maximum performance you can't wait for a request to complete before sending the next. At it's core cql-rb embraces this completely and uses non-blocking IO and a completely asynchronous model for the request processing. The synchronous API that you use is just a thin façade on top that exists for convenience. If you need to scale to thousands of requests per second, have a look at the client code and look at the asynchronous core, it works very much like the public API, _but using it they should be considererd **experimental**_. Experimental in this context does not mean buggy, it is the core of cql-rb after all, but it means that you cannot rely on it being backwards compatible.
+
 # Changelog & versioning
 
 Check out the [releases on GitHub](https://github.com/iconara/cql-rb/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
