@@ -245,6 +245,30 @@ Port 9160 is the old Thrift interface, the binary protocol runs on 9042. This is
 
 Open an issue and someone will try to help you out. Please include the gem version, Casandra version and Ruby version, and explain as much about what you're doing as you can, preferably the smallest piece of code that reliably triggers the problem. The more information you give, the better the chances you will get help.
 
+# Performance tips
+
+## Use prepared statements
+
+When you use prepared statements you don't have to smash strings together to create a chunk of CQL to send to the server. Avoiding creating many and large strings in Ruby can be a performance gain in itself. Not sending the query every time, but only the actual data also decreases the traffic over the network, and it decreases the time it takes for the server to handle the request since it doesn't have to parse CQL. Prepared statements are also very convenient, so there is really no reason not to use them.
+
+## Use JRuby
+
+If you want to be serious about Ruby performance you have to use JRuby. The cql-rb client is completely thread safe, and the CQL protocol is pipelined by design so you can spin up as many threads as you like and your requests per second will scale more or less linearly (up to what your cores, network and Cassandra cluster can deliver, obviously).
+
+Applications using cql-rb and JRuby can do over 10,000 write requests per second from a single EC2 m1.large if tuned correctly.
+
+## Try batching
+
+Batching in Cassandra isn't always as good as in other (non-distributed) databases. Since rows are distributed accross the cluster the coordinator node must still send the individual pieces of a batch to other nodes, and you could have done that yourself instead. Batches also mean that in most cases you need to smash strings together to create a big CQL string, so you increase the size of your requests, using up more bandwidth and making the server have to do more CQL parsing. Prepared statements are almost always a better choice for performance.
+
+Cassandra 2.0 introduced a new form of batches where you can send a batch of prepared statement executions as one request, when support for that arrives in cql-rb, this advice should be reconsidered.
+
+## Try compression
+
+If your requests or responses are big, compression can help decrease the amound of traffic over the network, which is often a good thing. If your requests and responses are small, compression often doesn't do anything. You should benchmark and see what works for you. The Snappy compressor that comes with cql-rb uses very little CPU, so most of the time it doesn't hurt to leave it on.
+
+In read-heavy applications requests are often small, and need no compression, but responses can be big. In these situations you can modify the compressor used to turn off compression for requests completely. The Snappy compressor that comes with cql-rb will not compress frames less than 64 bytes, for example, and you can change this threshold when you create the compressor.
+
 # Changelog & versioning
 
 Check out the [releases on GitHub](https://github.com/iconara/cql-rb/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
