@@ -177,7 +177,7 @@ module Cql
         end
         connection.on_event do |event|
           if event.change == 'UP' || event.change == 'NEW_NODE'
-            @logger.debug('Received UP event')
+            @logger.debug('Received %s event' % event.change)
             unless @looking_for_nodes
               @looking_for_nodes = true
               handle_topology_change.on_complete do |f|

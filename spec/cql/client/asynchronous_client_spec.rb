@@ -972,6 +972,14 @@ module Cql
           logger.should have_received(:debug).with(/Received UP event/)
         end
 
+        it 'logs when it receives a NEW_NODE event' do
+          logger.stub(:debug)
+          client.connect.value
+          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          logger.should have_received(:debug).with(/Received NEW_NODE event/)
+        end
+
         it 'logs when it fails with a connect after an UP event' do
           logger.stub(:debug)
           logger.stub(:warn)
