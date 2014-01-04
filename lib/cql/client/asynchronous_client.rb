@@ -176,7 +176,7 @@ module Cql
           end
         end
         connection.on_event do |event|
-          if event.change == 'UP'
+          if event.change == 'UP' || event.change == 'NEW_NODE'
             @logger.debug('Received UP event')
             unless @looking_for_nodes
               @looking_for_nodes = true
