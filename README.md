@@ -187,7 +187,7 @@ Read more about CQL3 in the [CQL3 syntax documentation](https://github.com/apach
 
 # Cassandra 2.0
 
-Cassandra 2.0 introduced a new version of the native protocol with some new features like argument interpolation in non-prepared statements, result set cursors, a new authentication mechanism and the `SERIAL` consistency. These features are not yet supported, but the driver will work with Cassandra 2.0 using the earlier protocol.
+Cassandra 2.0 introduced a new version of the native protocol with some new features like argument interpolation in non-prepared statements, result set cursors, a new authentication mechanism and the `SERIAL` consistency. These features are not yet supported, but the driver will work with Cassandra 2.0 using the earlier protocol. Support for all of the features of the new protocol is being worked on. If there is a particular feature that you would want to see implemented, open an issue and describe your use case. This helps with prioritizing what should be implemented first.
 
 # Troubleshooting
 
@@ -235,6 +235,8 @@ There's a known issue with collections that get too big. The protocol uses a sho
 
 Please open an issue. It should be working, but it's hard to write tests for, so there may be edge cases that aren't covered.
 
+If you are using DataStax Enterprise and authentication it is unfortunately not supported yet. DataStax backported the authentication from Cassandra 2.0 into DSE, even though it only uses Cassandra 1.2. The authentication mechanism in Cassandra 2.0 is very different and you will have to wait until support for Cassandra 2.0 is added to cql-rb before it will work with DSE.
+
 ## I'm connecting to port 9160 and it doesn't work
 
 Port 9160 is the old Thrift interface, the binary protocol runs on 9042. This is also the default port for cql-rb, so unless you've changed the port in `cassandra.yaml`, don't override the port.
@@ -256,8 +258,8 @@ Prereleases will be stable, in the sense that they will have finished and proper
 * JRuby 1.6 is not officially supported, although 1.6.8 should work, if you're stuck in JRuby 1.6.8 try and see if it works for you.
 * Windows is not supported (there is experimental support in the [`windows` branch](https://github.com/iconara/cql-rb/tree/windows_support)).
 * Large results are buffered in memory until the whole response has been loaded, the protocol makes it possible to start to deliver rows to the client code as soon as the metadata is loaded, but this is not supported yet.
-* There is no cluster introspection utilities (like the `DESCRIBE` commands in `cqlsh`).
-* New features in v2 of the protocol are not supported
+* There is no cluster introspection utilities (like the `DESCRIBE` commands in `cqlsh`) -- but it's not clear whether that will ever be added, it would be useful, but it is also something that another gem could add on top.
+* New features in v2 of the protocol are not supported -- this is planned and in progress
 
 Also check out the [issues](https://github.com/iconara/cql-rb/issues) for open bugs.
 
