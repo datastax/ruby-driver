@@ -3,6 +3,8 @@
 [![Build Status](https://travis-ci.org/iconara/cql-rb.png?branch=master)](https://travis-ci.org/iconara/cql-rb)
 [![Coverage Status](https://coveralls.io/repos/iconara/cql-rb/badge.png)](https://coveralls.io/r/iconara/cql-rb)
 
+_Please note that this is the readme for the development version and that some features described here might not yet have been released._
+
 # Requirements
 
 Cassandra 1.2 or later with the native transport protocol turned on and a modern Ruby. It's tested continuously in Travis with Ruby 1.9.3, 2.0, JRuby 1.7 and Rubinius 2.0.
