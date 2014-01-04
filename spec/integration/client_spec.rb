@@ -121,7 +121,7 @@ describe 'A CQL client' do
 
     let :authentication_enabled do
       begin
-        Cql::Client.connect(connection_options.merge(credentials: nil))
+        Cql::Client.connect(connection_options.merge(credentials: nil, protocol_version: 1))
         false
       rescue Cql::AuthenticationError
         true
@@ -129,20 +129,20 @@ describe 'A CQL client' do
     end
 
     it 'sends credentials given in :credentials' do
-      client = Cql::Client.connect(connection_options.merge(credentials: {username: 'cassandra', password: 'cassandra'}))
+      client = Cql::Client.connect(connection_options.merge(credentials: {username: 'cassandra', password: 'cassandra'}, protocol_version: 1))
       client.execute('SELECT * FROM system.schema_keyspaces')
     end
 
     it 'raises an error when no credentials have been given' do
       pending('authentication not configured', unless: authentication_enabled) do
-        expect { Cql::Client.connect(connection_options.merge(credentials: nil)) }.to raise_error(Cql::AuthenticationError)
+        expect { Cql::Client.connect(connection_options.merge(credentials: nil, protocol_version: 1)) }.to raise_error(Cql::AuthenticationError)
       end
     end
 
     it 'raises an error when the credentials are bad' do
       pending('authentication not configured', unless: authentication_enabled) do
         expect {
-          Cql::Client.connect(connection_options.merge(credentials: {username: 'foo', password: 'bar'}))
+          Cql::Client.connect(connection_options.merge(credentials: {username: 'foo', password: 'bar'}, protocol_version: 1))
         }.to raise_error(Cql::AuthenticationError)
       end
     end
