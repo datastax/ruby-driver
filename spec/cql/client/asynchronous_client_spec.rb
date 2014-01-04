@@ -853,6 +853,13 @@ module Cql
           connections.select(&:connected?).should have(3).items
         end
 
+        it 'reconnects when it receives a topology change NEW_NODE event' do
+          connections.first.close
+          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          connections.select(&:connected?).should have(3).items
+        end
+
         it 'eventually reconnects even when the node doesn\'t respond at first' do
           timer_promise = Promise.new
           io_reactor.stub(:schedule_timer).and_return(timer_promise.future)
@@ -870,7 +877,7 @@ module Cql
           io_reactor.stub(:schedule_timer).and_return(Future.resolved)
           io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
           connections.first.close
-          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
           io_reactor.should have_received(:schedule_timer).exactly(5).times
         end
@@ -894,18 +901,11 @@ module Cql
           io_reactor.stub(:schedule_timer).and_raise('BORK!')
           io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
           connections.first.close
-          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
           io_reactor.stub(:schedule_timer).and_return(Future.resolved)
           connections.select(&:has_event_listener?).first.trigger_event(event)
           io_reactor.should have_received(:schedule_timer).exactly(6).times
-        end
-
-        it 'connects when it receives a topology change UP event' do
-          min_peers[0] = 3
-          event = Protocol::TopologyChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
-          connections.select(&:has_event_listener?).first.trigger_event(event)
-          connections.select(&:connected?).should have(4).items
         end
 
         it 'registers a new event listener when the current event listening connection closes' do
@@ -970,6 +970,14 @@ module Cql
           event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
           logger.should have_received(:debug).with(/Received UP event/)
+        end
+
+        it 'logs when it receives a NEW_NODE event' do
+          logger.stub(:debug)
+          client.connect.value
+          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          logger.should have_received(:debug).with(/Received NEW_NODE event/)
         end
 
         it 'logs when it fails with a connect after an UP event' do
