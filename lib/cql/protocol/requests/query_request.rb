@@ -11,7 +11,7 @@ module Cql
         super(7, trace)
         @cql = cql
         @values = values || NO_VALUES
-        @encoded_values = encode_values
+        @encoded_values = self.class.encode_values('', values)
         @consistency = consistency
       end
 
@@ -42,20 +42,23 @@ module Cql
         @h ||= (@cql.hash * 31) ^ consistency.hash
       end
 
-      private
-
-      def encode_values
-        buffer = ''
-        write_short(buffer, @values.size)
-        @values.each do |value|
-          type = guess_type(value)
-          raise EncodingError, "Could not guess a suitable type for #{value.inspect}" unless type
-          TYPE_CONVERTER.to_bytes(buffer, type, value)
+      def self.encode_values(buffer, values)
+        if values && values.size > 0
+          Encoding.write_short(buffer, values.size)
+          values.each do |value|
+            type = guess_type(value)
+            raise EncodingError, "Could not guess a suitable type for #{value.inspect}" unless type
+            TYPE_CONVERTER.to_bytes(buffer, type, value)
+          end
+          buffer
+        else
+          Encoding.write_short(buffer, 0)
         end
-        buffer
       end
 
-      def guess_type(value)
+      private
+
+      def self.guess_type(value)
         type = TYPE_GUESSES[value.class]
         if type == :map
           pair = value.first

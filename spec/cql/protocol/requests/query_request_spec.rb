@@ -52,6 +52,11 @@ module Cql
             it 'encodes an empty flag field' do
               frame_bytes.to_s[16, 999].should == "\x00"
             end
+
+            it 'accepts that the bound variables list is nil' do
+              frame_bytes = QueryRequest.new('USE system', nil, :all).write(2, '')
+              frame_bytes.to_s[16, 999].should == "\x00"
+            end
           end
 
           context 'and there are bound variables' do

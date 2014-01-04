@@ -391,6 +391,27 @@ describe 'Protocol parsing and communication' do
         end
       end
 
+      context 'with BATCH requests' do
+        it 'sends a BATCH request and receives RESULT' do
+          in_keyspace_with_table do
+            cql1 = %<INSERT INTO users (user_name, email) VALUES (?, ?)>
+            cql2 = %<UPDATE users SET email = ? WHERE user_name = 'sue'>
+            cql3 = %<INSERT INTO users (user_name, email) VALUES ('tim', 'tim@pim.com')>
+            prepared_response1 = execute_request(Cql::Protocol::PrepareRequest.new(cql1))
+            prepared_response2 = execute_request(Cql::Protocol::PrepareRequest.new(cql3))
+            request = Cql::Protocol::BatchRequest.new(0, :quorum)
+            request.add_query(cql1, ['sue', 'sue@inter.net'])
+            request.add_query(cql2, ['eve'])
+            request.add_query(cql3)
+            request.add_prepared(prepared_response1.id, prepared_response1.metadata, ['phil', 'phil@heck.com'])
+            request.add_prepared(prepared_response2.id, prepared_response1.metadata, [])
+            response = execute_request(request)
+            p response
+            response.should be_void
+          end
+        end
+      end
+
       context 'with tracing' do
         it 'sends a QUERY request with the tracing flag and receives a RESULT with a trace ID' do
           in_keyspace_with_table do

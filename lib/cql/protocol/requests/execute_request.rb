@@ -13,7 +13,7 @@ module Cql
         @values = values
         @consistency = consistency
         @request_metadata = request_metadata
-        @encoded_values = encode_values
+        @encoded_values = self.class.encode_values('', @metadata, @values)
       end
 
       def write(protocol_version, io)
@@ -55,16 +55,15 @@ module Cql
         end
       end
 
-      private
-
-      def encode_values
-        buffer = ''
-        write_short(buffer, @metadata.size)
-        @metadata.each_with_index do |(_, _, _, type), index|
-          TYPE_CONVERTER.to_bytes(buffer, type, @values[index])
+      def self.encode_values(buffer, metadata, values)
+        Encoding.write_short(buffer, metadata.size)
+        metadata.each_with_index do |(_, _, _, type), index|
+          TYPE_CONVERTER.to_bytes(buffer, type, values[index])
         end
         buffer
       end
+
+      private
 
       TYPE_CONVERTER = TypeConverter.new
     end
