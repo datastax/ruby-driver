@@ -44,6 +44,8 @@ The full [API documentation](http://rubydoc.info/gems/cql-rb/frames) is availabl
 
 ## Changing keyspaces
 
+You can specify a keyspace to change to immediately after connection by passing the `:keyspace` option to `Client.connect`, but you can also use the `#use` method, or `#execute`:
+
 ```ruby
 client.use('measurements')
 ```
@@ -56,7 +58,7 @@ client.execute('USE measurements')
 
 ## Running queries
 
-You run CQL statements by passing them to `#execute`. Most statements don't have any result and the call will return nil.
+You run CQL statements by passing them to `#execute`.
 
 ```ruby
 client.execute("INSERT INTO events (id, date, description) VALUES (23462, '2013-02-24T10:14:23+0000', 'Rang bell, ate food')")
