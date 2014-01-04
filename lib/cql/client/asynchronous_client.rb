@@ -7,6 +7,7 @@ module Cql
       def initialize(options={})
         compressor = options[:compressor]
         @logger = options[:logger] || NullLogger.new
+        @protocol_version = options[:protocol_version] || 2
         @io_reactor = options[:io_reactor] || Io::IoReactor.new(protocol_handler_factory(compressor))
         @hosts = extract_hosts(options)
         @initial_keyspace = options[:keyspace]
@@ -32,7 +33,7 @@ module Cql
           return @connected_future if can_execute?
           @connecting = true
           @connected_future = begin
-            f = @connection_helper.connect(@hosts, @initial_keyspace)
+            f = connect_with_protocol_version_fallback
             f.on_value do |connections|
               @connection_manager.add_connections(connections)
               register_event_listener(@connection_manager.random_connection)
@@ -109,7 +110,7 @@ module Cql
       MAX_RECONNECTION_ATTEMPTS = 5
 
       def protocol_handler_factory(compressor)
-        lambda { |connection, timeout| Protocol::CqlProtocolHandler.new(connection, timeout, 2, compressor) }
+        lambda { |connection, timeout| Protocol::CqlProtocolHandler.new(connection, timeout, @protocol_version, compressor) }
       end
 
       def extract_hosts(options)
@@ -119,6 +120,18 @@ module Cql
           options[:host].split(',').uniq
         else
           %w[localhost]
+        end
+      end
+
+      def connect_with_protocol_version_fallback
+        f = @connection_helper.connect(@hosts, @initial_keyspace)
+        f.fallback do |error|
+          if error.is_a?(QueryError) && error.code == 0x0a && @protocol_version > 1
+            @protocol_version -= 1
+            connect_with_protocol_version_fallback
+          else
+            raise error
+          end
         end
       end
 

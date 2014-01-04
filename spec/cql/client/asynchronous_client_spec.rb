@@ -193,6 +193,48 @@ module Cql
           end
         end
 
+        context 'when negotiating protocol version' do
+          let :client do
+            described_class.new(connection_options.merge(protocol_version: 7))
+          end
+
+          it 'tries decreasing protocol versions until one succeeds' do
+            counter = 0
+            handle_request do |request|
+              if counter == 3
+                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
+              else
+                counter += 1
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              end
+            end
+            client.connect.value
+            client.should be_connected
+          end
+
+          it 'gives up when the protocol version is zero' do
+            handle_request do |request|
+              Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+            end
+            expect { client.connect.value }.to raise_error(QueryError)
+            client.should_not be_connected
+          end
+
+          it 'gives up when a non-protocol version related error is raised' do
+            counter = 0
+            handle_request do |request|
+              if counter == 4
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              else
+                counter += 1
+                Protocol::ErrorResponse.new(0x1001, 'Get off my lawn!')
+              end
+            end
+            expect { client.connect.value }.to raise_error(/Get off my lawn/)
+            client.should_not be_connected
+          end
+        end
+
         it 'returns itself' do
           client.connect.value.should equal(client)
         end
