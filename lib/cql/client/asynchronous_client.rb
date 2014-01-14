@@ -5,10 +5,10 @@ module Cql
     # @private
     class AsynchronousClient < Client
       def initialize(options={})
-        compressor = options[:compressor]
+        @compressor = options[:compressor]
         @logger = options[:logger] || NullLogger.new
         @protocol_version = options[:protocol_version] || 2
-        @io_reactor = options[:io_reactor] || Io::IoReactor.new(protocol_handler_factory(compressor))
+        @io_reactor = options[:io_reactor] || Io::IoReactor.new(protocol_handler_factory(@compressor))
         @hosts = extract_hosts(options)
         @initial_keyspace = options[:keyspace]
         @lock = Mutex.new
@@ -18,13 +18,12 @@ module Cql
         @request_runner = RequestRunner.new
         @keyspace_changer = KeyspaceChanger.new
         @connection_manager = ConnectionManager.new
-        port = options[:port] || DEFAULT_PORT
-        credentials = options[:credentials]
-        connections_per_node = options[:connections_per_node] || 1
-        connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
+        @port = options[:port] || DEFAULT_PORT
+        @authenticator = options[:authenticator]
+        @connections_per_node = options[:connections_per_node] || 1
+        @connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
         default_consistency = options[:default_consistency] || DEFAULT_CONSISTENCY
         @execute_options_decoder = ExecuteOptionsDecoder.new(default_consistency)
-        @connection_helper = ConnectionHelper.new(@io_reactor, port, credentials, connections_per_node, connection_timeout, compressor, @logger)
       end
 
       def connect
@@ -113,6 +112,19 @@ module Cql
         lambda { |connection, timeout| Protocol::CqlProtocolHandler.new(connection, timeout, @protocol_version, compressor) }
       end
 
+      def create_connection_helper
+        ConnectionHelper.new(
+          @io_reactor,
+          @port,
+          @authenticator,
+          @protocol_version,
+          @connections_per_node,
+          @connection_timeout,
+          @compressor,
+          @logger
+        )
+      end
+
       def extract_hosts(options)
         if options[:hosts]
           options[:hosts].uniq
@@ -124,7 +136,8 @@ module Cql
       end
 
       def connect_with_protocol_version_fallback
-        f = @connection_helper.connect(@hosts, @initial_keyspace)
+        connection_helper = create_connection_helper
+        f = connection_helper.connect(@hosts, @initial_keyspace)
         f.fallback do |error|
           if error.is_a?(QueryError) && error.code == 0x0a && @protocol_version > 1
             @protocol_version -= 1
@@ -208,7 +221,8 @@ module Cql
       def handle_topology_change(remaning_attempts=MAX_RECONNECTION_ATTEMPTS)
         with_failure_handler do
           seed_connections = @connection_manager.snapshot
-          f = @connection_helper.discover_peers(seed_connections, keyspace)
+          connection_helper = create_connection_helper
+          f = connection_helper.discover_peers(seed_connections, keyspace)
           f.flat_map do |connections|
             connected_connections = connections.select(&:connected?)
             if connected_connections.any?

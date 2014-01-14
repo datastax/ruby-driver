@@ -5,7 +5,10 @@ require 'spec_helper'
 
 describe 'A CQL client' do
   let :connection_options do
-    {:host => ENV['CASSANDRA_HOST'], :credentials => {:username => 'cassandra', :password => 'cassandra'}}
+    {
+      :host => ENV['CASSANDRA_HOST'],
+      :authenticator => Cql::Client::PasswordAuthenticator.new('cassandra', 'cassandra'),
+    }
   end
 
   let :client do
@@ -119,31 +122,67 @@ describe 'A CQL client' do
       double(:client, connect: nil, close: nil)
     end
 
-    let :authentication_enabled do
-      begin
-        Cql::Client.connect(connection_options.merge(credentials: nil, protocol_version: 1))
-        false
-      rescue Cql::AuthenticationError
-        true
+    context 'and protocol v1' do
+      let :authentication_enabled do
+        begin
+          Cql::Client.connect(connection_options.merge(authenticator: nil, protocol_version: 1))
+          false
+        rescue Cql::AuthenticationError
+          true
+        end
+      end
+
+      it 'sends credentials given in :credentials' do
+        authenticator = Cql::Client::PasswordAuthenticator.new('cassandra', 'cassandra')
+        client = Cql::Client.connect(connection_options.merge(authenticator: authenticator, protocol_version: 1))
+        client.execute('SELECT * FROM system.schema_keyspaces')
+      end
+
+      it 'raises an error when no credentials have been given' do
+        pending('authentication not configured', unless: authentication_enabled) do
+          expect { Cql::Client.connect(connection_options.merge(authenticator: nil, protocol_version: 1)) }.to raise_error(Cql::AuthenticationError)
+        end
+      end
+
+      it 'raises an error when the credentials are bad' do
+        pending('authentication not configured', unless: authentication_enabled) do
+          expect {
+            authenticator = Cql::Client::PasswordAuthenticator.new('foo', 'bar')
+            Cql::Client.connect(connection_options.merge(authenticator: authenticator, protocol_version: 1))
+          }.to raise_error(Cql::AuthenticationError)
+        end
       end
     end
 
-    it 'sends credentials given in :credentials' do
-      client = Cql::Client.connect(connection_options.merge(credentials: {username: 'cassandra', password: 'cassandra'}, protocol_version: 1))
-      client.execute('SELECT * FROM system.schema_keyspaces')
-    end
-
-    it 'raises an error when no credentials have been given' do
-      pending('authentication not configured', unless: authentication_enabled) do
-        expect { Cql::Client.connect(connection_options.merge(credentials: nil, protocol_version: 1)) }.to raise_error(Cql::AuthenticationError)
+    context 'and protocol v2' do
+      let :authentication_enabled do
+        begin
+          Cql::Client.connect(connection_options.merge(authenticator: nil))
+          false
+        rescue Cql::AuthenticationError
+          true
+        end
       end
-    end
 
-    it 'raises an error when the credentials are bad' do
-      pending('authentication not configured', unless: authentication_enabled) do
-        expect {
-          Cql::Client.connect(connection_options.merge(credentials: {username: 'foo', password: 'bar'}, protocol_version: 1))
-        }.to raise_error(Cql::AuthenticationError)
+      it 'sends credentials given in :credentials' do
+        authenticator = Cql::Client::PasswordAuthenticator.new('cassandra', 'cassandra')
+        client = Cql::Client.connect(connection_options.merge(authenticator: authenticator))
+        client.execute('SELECT * FROM system.schema_keyspaces')
+      end
+
+      it 'raises an error when no credentials have been given' do
+        pending('authentication not configured', unless: authentication_enabled) do
+          expect { Cql::Client.connect(connection_options.merge(authenticator: nil)) }.to raise_error(Cql::AuthenticationError)
+        end
+      end
+
+      it 'raises an error when the credentials are bad' do
+        pending('authentication not configured', unless: authentication_enabled) do
+          expect {
+            authenticator = Cql::Client::PasswordAuthenticator.new('foo', 'bar')
+            Cql::Client.connect(connection_options.merge(authenticator: authenticator))
+          }.to raise_error(Cql::AuthenticationError)
+        end
       end
     end
   end

@@ -7,11 +7,15 @@ module Cql
   module Client
     describe ConnectionHelper do
       let :connection_helper do
-        described_class.new(io_reactor, 9876, nil, 1, 7, compressor, logger)
+        described_class.new(io_reactor, 9876, authenticator, 2, 1, 7, compressor, logger)
       end
 
       let :io_reactor do
         double(:io_reactor)
+      end
+
+      let :authenticator do
+        nil
       end
 
       let :logger do
@@ -118,7 +122,7 @@ module Cql
           connection[:compression].should == %w[lz4 snappy]
         end
 
-        it 'fails if authentication is required and no credentials were specified' do
+        it 'fails if authentication is required and no authenticator was given' do
           connection = FakeConnection.new('host0', 9876, 7)
           connection.handle_request do |request|
             if request.is_a?(Protocol::StartupRequest)
@@ -132,25 +136,50 @@ module Cql
           expect { f.value }.to raise_error(AuthenticationError)
         end
 
-        it 'authenticates when authentication is required and credentials were specified' do
-          credentials = {'username' => 'foo', 'password' => 'bar'}
-          connection_helper = described_class.new(io_reactor, 9876, credentials, 1, 7, nil, logger)
-          connection = FakeConnection.new('host0', 9876, 7)
-          authentication_sent = false
-          connection.handle_request do |request|
-            if request.is_a?(Protocol::StartupRequest)
-              Protocol::AuthenticateResponse.new('xyz')
-            elsif request == Protocol::CredentialsRequest.new(credentials)
-              authentication_sent = true
-              Protocol::ReadyResponse.new
-            else
-              connection.default_request_handler(request)
+        context 'with protocol v1' do
+          it 'authenticates when authentication is required and an authenticator was given' do
+            authenticator = PasswordAuthenticator.new('foo', 'bar')
+            connection_helper = described_class.new(io_reactor, 9876, authenticator, 1, 1, 7, nil, logger)
+            connection = FakeConnection.new('host0', 9876, 7)
+            authentication_sent = false
+            connection.handle_request do |request|
+              if request.is_a?(Protocol::StartupRequest)
+                Protocol::AuthenticateResponse.new('org.apache.cassandra.auth.PasswordAuthenticator')
+              elsif request == Protocol::CredentialsRequest.new(username: 'foo', password: 'bar')
+                authentication_sent = true
+                Protocol::ReadyResponse.new
+              else
+                connection.default_request_handler(request)
+              end
             end
+            io_reactor.stub(:connect).with('host0', 9876, 7).and_return(Future.resolved(connection))
+            f = connection_helper.connect(hosts, nil)
+            f.value
+            authentication_sent.should be_true
           end
-          io_reactor.stub(:connect).with('host0', 9876, 7).and_return(Future.resolved(connection))
-          f = connection_helper.connect(hosts, nil)
-          f.value
-          authentication_sent.should be_true
+        end
+
+        context 'with protocol v2' do
+          it 'authenticates when authentication is required and an authenticator was given' do
+            authenticator = PasswordAuthenticator.new('foo', 'bar')
+            connection_helper = described_class.new(io_reactor, 9876, authenticator, 2, 1, 7, nil, logger)
+            connection = FakeConnection.new('host0', 9876, 7)
+            authentication_sent = false
+            connection.handle_request do |request|
+              if request.is_a?(Protocol::StartupRequest)
+                Protocol::AuthenticateResponse.new('org.apache.cassandra.auth.PasswordAuthenticator')
+              elsif request == Protocol::AuthResponseRequest.new("\x00foo\x00bar")
+                authentication_sent = true
+                Protocol::AuthSuccessResponse.new('welcome')
+              else
+                connection.default_request_handler(request)
+              end
+            end
+            io_reactor.stub(:connect).with('host0', 9876, 7).and_return(Future.resolved(connection))
+            f = connection_helper.connect(hosts, nil)
+            f.value
+            authentication_sent.should be_true
+          end
         end
 
         it 'decorates the connections with :host_id and :data_center' do
@@ -200,7 +229,7 @@ module Cql
         end
 
         it 'connects to each node a configurable number of times' do
-          connection_helper = described_class.new(io_reactor, 9876, nil, connections_per_node = 3, 7, nil, logger)
+          connection_helper = described_class.new(io_reactor, 9876, nil, 2, connections_per_node = 3, 7, nil, logger)
           connection_helper.connect(hosts, nil)
           io_reactor.should have_received(:connect).with('host0', 9876, 7).exactly(3).times
           io_reactor.should have_received(:connect).with('host1', 9876, 7).exactly(3).times
@@ -416,7 +445,7 @@ module Cql
         end
 
         it 'connects to each node a configurable number of times' do
-          connection_helper = described_class.new(io_reactor, 9876, nil, connections_per_node = 3, 7, nil, logger)
+          connection_helper = described_class.new(io_reactor, 9876, nil, 2, connections_per_node = 3, 7, nil, logger)
           connection = FakeConnection.new('host3', 9876, 7)
           io_reactor.stub(:connect).with('1.0.0.3', 9876, 7).and_return(Future.resolved(connection))
           peer_request_response { seed_connection_rows + extra_connection_rows.take(1) }

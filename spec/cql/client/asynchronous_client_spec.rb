@@ -364,21 +364,36 @@ module Cql
         end
 
         context 'when the server requests authentication' do
+          let :authenticator do
+            PasswordAuthenticator.new('foo', 'bar')
+          end
+
           def accepting_request_handler(request, *)
             case request
             when Protocol::StartupRequest
-              Protocol::AuthenticateResponse.new('com.example.Auth')
+              Protocol::AuthenticateResponse.new('org.apache.cassandra.auth.PasswordAuthenticator')
             when Protocol::CredentialsRequest
               Protocol::ReadyResponse.new
+            when Protocol::AuthResponseRequest
+              Protocol::AuthSuccessResponse.new('hello!')
             end
           end
 
           def denying_request_handler(request, *)
             case request
             when Protocol::StartupRequest
-              Protocol::AuthenticateResponse.new('com.example.Auth')
+              Protocol::AuthenticateResponse.new('org.apache.cassandra.auth.PasswordAuthenticator')
             when Protocol::CredentialsRequest
               Protocol::ErrorResponse.new(256, 'No way, José')
+            when Protocol::AuthResponseRequest
+              Protocol::ErrorResponse.new(256, 'No way, José')
+            end
+          end
+
+          def custom_request_handler(request, *)
+            case request
+            when Protocol::StartupRequest
+              Protocol::AuthenticateResponse.new('org.acme.Auth')
             end
           end
 
@@ -386,11 +401,22 @@ module Cql
             handle_request(&method(:accepting_request_handler))
           end
 
-          it 'sends credentials' do
-            client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
-            client.connect.value
-            request = requests.find { |rq| rq == Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar') }
-            request.should_not be_nil, 'expected a credentials request to have been sent'
+          context 'with protocol v1' do
+            it 'uses an authenticator to authenticate' do
+              client = described_class.new(connection_options.merge(authenticator: authenticator, protocol_version: 1))
+              client.connect.value
+              request = requests.find { |rq| rq == Protocol::CredentialsRequest.new(username: 'foo', password: 'bar') }
+              request.should_not be_nil, 'expected a credentials request to have been sent'
+            end
+          end
+
+          context 'with protocol v2' do
+            it 'uses an authenticator to authenticate' do
+              client = described_class.new(connection_options.merge(authenticator: authenticator))
+              client.connect.value
+              request = requests.find { |rq| rq == Protocol::AuthResponseRequest.new("\x00foo\x00bar") }
+              request.should_not be_nil, 'expected a credentials request to have been sent'
+            end
           end
 
           it 'raises an error when no credentials have been given' do
@@ -400,13 +426,19 @@ module Cql
 
           it 'raises an error when the server responds with an error to the credentials request' do
             handle_request(&method(:denying_request_handler))
-            client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
+            client = described_class.new(connection_options.merge(connection_options.merge(authenticator: authenticator)))
+            expect { client.connect.value }.to raise_error(AuthenticationError)
+          end
+
+          it 'raises an error when the server requests authentication that the authenticator does not support' do
+            handle_request(&method(:custom_request_handler))
+            client = described_class.new(connection_options.merge(connection_options.merge(authenticator: authenticator)))
             expect { client.connect.value }.to raise_error(AuthenticationError)
           end
 
           it 'shuts down the client when there is an authentication error' do
             handle_request(&method(:denying_request_handler))
-            client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
+            client = described_class.new(connection_options.merge(connection_options.merge(authenticator: authenticator)))
             client.connect.value rescue nil
             client.should_not be_connected
             io_reactor.should_not be_running

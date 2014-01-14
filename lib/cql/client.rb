@@ -21,6 +21,7 @@ module Cql
   ClientError = Class.new(CqlError)
   AuthenticationError = Class.new(ClientError)
   IncompleteTraceError = Class.new(ClientError)
+  UnsupportedProtocolVersionError = Class.new(ClientError)
 
   # A CQL client manages connections to one or more Cassandra nodes and you use
   # it run queries, insert and update data.
@@ -279,3 +280,4 @@ require 'cql/client/asynchronous_prepared_statement'
 require 'cql/client/synchronous_client'
 require 'cql/client/synchronous_prepared_statement'
 require 'cql/client/request_runner'
+require 'cql/client/authenticators'

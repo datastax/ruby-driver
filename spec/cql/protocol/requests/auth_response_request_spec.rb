@@ -23,6 +23,40 @@ module Cql
           described_class.new('bingbongpong').to_s.should == 'AUTH_RESPONSE 12'
         end
       end
+
+      describe '#eql?' do
+        it 'is equal to another with the same token' do
+          r1 = described_class.new('foo')
+          r2 = described_class.new('foo')
+          r1.should eql(r2)
+        end
+
+        it 'is not equal when the token is different' do
+          r1 = described_class.new('foo')
+          r2 = described_class.new('bar')
+          r1.should_not eql(r2)
+        end
+
+        it 'is aliased as #==' do
+          r1 = described_class.new('foo')
+          r2 = described_class.new('foo')
+          r1.should == r2
+        end
+      end
+
+      describe '#hash' do
+        it 'is the same when the token is the same' do
+          r1 = described_class.new('foo')
+          r2 = described_class.new('foo')
+          r1.hash.should == r2.hash
+        end
+
+        it 'is not the same when the token is different' do
+          r1 = described_class.new('foo')
+          r2 = described_class.new('bar')
+          r1.hash.should_not == r2.hash
+        end
+      end
     end
   end
 end

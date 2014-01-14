@@ -4,10 +4,11 @@ module Cql
   module Client
     # @private
     class ConnectionHelper
-      def initialize(io_reactor, port, credentials, connections_per_node, connection_timeout, compressor, logger)
+      def initialize(io_reactor, port, authenticator, protocol_version, connections_per_node, connection_timeout, compressor, logger)
         @io_reactor = io_reactor
         @port = port
-        @credentials = credentials
+        @authenticator = authenticator
+        @protocol_version = protocol_version
         @connections_per_node = connections_per_node
         @connection_timeout = connection_timeout
         @logger = logger
@@ -138,13 +139,18 @@ module Cql
 
       def maybe_authenticate(response, connection)
         return Future.resolved(connection) unless response.is_a?(AuthenticationRequired)
-        return Future.failed(AuthenticationError.new('Server requested authentication, but no credentials given')) unless @credentials
-        send_credentials(@credentials, connection)
+        authenticate(response.authentication_class, connection)
       end
 
-      def send_credentials(credentials, connection)
-        credentials_request = Protocol::CredentialsRequest.new(credentials)
-        @request_runner.execute(connection, credentials_request)
+      def authenticate(authentication_class, connection)
+        if @authenticator && @authenticator.supports?(authentication_class, @protocol_version)
+          auth_request = @authenticator.initial_request(@protocol_version)
+          @request_runner.execute(connection, auth_request)
+        elsif @authenticator
+          Future.failed(AuthenticationError.new('Authenticator does not support the required authentication class "%s" and/or protocol version %d' % [authentication_class, @protocol_version]))
+        else
+          Future.failed(AuthenticationError.new('Server requested authentication, but no authenticator provided'))
+        end
       end
 
       def identify_node(connection)
