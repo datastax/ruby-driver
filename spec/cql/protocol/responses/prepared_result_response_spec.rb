@@ -29,7 +29,7 @@ module Cql
 
       describe '#to_s' do
         it 'returns a string with the ID and metadata' do
-          response = described_class.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/", [['ks', 'tbl', 'col', :varchar]], nil)
+          response = described_class.new("\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\x00/", [['ks', 'tbl', 'col', :varchar]], nil)
           response.to_s.should match(/^RESULT PREPARED [0-9a-f]{32} \[\["ks", "tbl", "col", :varchar\]\]$/)
         end
       end

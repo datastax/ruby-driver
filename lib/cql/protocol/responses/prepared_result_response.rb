@@ -32,7 +32,8 @@ module Cql
       end
 
       def to_s
-        %(RESULT PREPARED #{id.each_byte.map { |x| x.to_s(16) }.join('')} #@metadata)
+        hex_id = @id.each_byte.map { |x| x.to_s(16).rjust(2, '0') }.join('')
+        %(RESULT PREPARED #{hex_id} #@metadata)
       end
 
       private
