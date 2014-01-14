@@ -21,6 +21,11 @@ module Cql
             frame.should_not be_complete
           end
 
+          it 'returns a partial frame less than eight bytes are missing' do
+            frame = decoder.decode_frame(ByteBuffer.new("\x81\x02\x00\x08\x00\x00\x00\x14\a\xE4\xBE\x10?\x03\x11\xE3\x951\xFBr\xEF\xF0_\xBB\x00\x00"))
+            frame.should_not be_complete
+          end
+
           it 'returns a complete frame when all bytes are in the buffer' do
             buffer = ByteBuffer.new
             buffer << "\x81\x00\x00\x06\x00\x00\x00\x27"

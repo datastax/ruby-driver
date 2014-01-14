@@ -14,7 +14,7 @@ module Cql
           return NULL_FRAME if buffer_length < 8
           fields = buffer.read_int
           size = buffer.read_int
-          if buffer_length >= size
+          if buffer_length - 8 >= size
             actual_decode(buffer, fields, size)
           else
             PartialFrame.new(fields, size)
