@@ -44,7 +44,7 @@ module Cql
       def handle_request(connection, request, timeout)
         case request
         when Protocol::PrepareRequest
-          statement_id = [rand(2**31)].pack('c*')
+          statement_id = Array.new(16) { [rand(255)].pack('c') }.join('')
           connection[:last_prepared_statement_id] = statement_id
           Protocol::PreparedResultResponse.new(statement_id, raw_metadata, nil)
         when Protocol::ExecuteRequest
@@ -170,10 +170,11 @@ module Cql
             execute_request.values.should == [11, 'hello']
           end
 
-          it 'logs a message' do
+          it 'logs a message with the host ID, host address and its own ID' do
+            new_connection[:host_id] = Uuid.new('a4a70900-24e1-11df-8924-001ff3591711')
             logger.stub(:debug)
             statement.execute(11, 'hello')
-            logger.should have_received(:debug).with(/Statement prepared/).once
+            logger.should have_received(:debug).with(/Statement [0-9a-f]{32} prepared on node a4a70900-24e1-11df-8924-001ff3591711 \(h3.example.com:1234\)/).once
           end
         end
 
