@@ -8,22 +8,28 @@ module Cql
         @compressor = options[:compressor]
         @logger = options[:logger] || NullLogger.new
         @protocol_version = options[:protocol_version] || 2
-        @io_reactor = options[:io_reactor] || Io::IoReactor.new(protocol_handler_factory(@compressor))
+        @io_reactor = options[:io_reactor] || Io::IoReactor.new(protocol_handler_factory)
         @hosts = extract_hosts(options)
         @initial_keyspace = options[:keyspace]
         @lock = Mutex.new
-        @connected = false
-        @connecting = false
-        @closing = false
         @request_runner = RequestRunner.new
         @keyspace_changer = KeyspaceChanger.new
         @connection_manager = ConnectionManager.new
-        @port = options[:port] || DEFAULT_PORT
-        @authenticator = options[:authenticator]
-        @connections_per_node = options[:connections_per_node] || 1
-        @connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
-        default_consistency = options[:default_consistency] || DEFAULT_CONSISTENCY
-        @execute_options_decoder = ExecuteOptionsDecoder.new(default_consistency)
+        @execute_options_decoder = ExecuteOptionsDecoder.new(options[:default_consistency] || DEFAULT_CONSISTENCY)
+        port = options[:port] || DEFAULT_PORT
+        connections_per_node = options[:connections_per_node] || 1
+        connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
+        authenticator = options[:authenticator]
+        @connection_sequence = ConnectionSequence.new(port, connections_per_node, @logger)
+        @connection_sequence.add_step(ConnectStep.new(@io_reactor, port, connection_timeout, @logger))
+        @connection_sequence.add_step(CacheOptionsStep.new)
+        @connection_sequence.add_step(InitializeStep.new(@compressor, @logger))
+        @connection_sequence.add_step(AuthenticationStep.new(authenticator, @protocol_version))
+        @connection_sequence.add_step(CachePropertiesStep.new)
+        @connection_sequence.add_step(ChangeKeyspaceStep.new)
+        @connected = false
+        @connecting = false
+        @closing = false
       end
 
       def connect
@@ -34,6 +40,7 @@ module Cql
           @connected_future = begin
             f = @io_reactor.start
             f = f.flat_map { connect_with_protocol_version_fallback }
+            f = f.flat_map { |connections| connect_to_all_peers(connections) }
             f.on_value do |connections|
               @connection_manager.add_connections(connections)
               register_event_listener(@connection_manager.random_connection)
@@ -110,21 +117,8 @@ module Cql
       DEFAULT_CONNECTION_TIMEOUT = 10
       MAX_RECONNECTION_ATTEMPTS = 5
 
-      def protocol_handler_factory(compressor)
-        lambda { |connection, timeout| Protocol::CqlProtocolHandler.new(connection, timeout, @protocol_version, compressor) }
-      end
-
-      def create_connection_helper
-        ConnectionHelper.new(
-          @io_reactor,
-          @port,
-          @authenticator,
-          @protocol_version,
-          @connections_per_node,
-          @connection_timeout,
-          @compressor,
-          @logger
-        )
+      def protocol_handler_factory
+        lambda { |connection, timeout| Protocol::CqlProtocolHandler.new(connection, timeout, @protocol_version, @compressor) }
       end
 
       def extract_hosts(options)
@@ -138,14 +132,31 @@ module Cql
       end
 
       def connect_with_protocol_version_fallback
-        connection_helper = create_connection_helper
-        f = connection_helper.connect(@hosts, @initial_keyspace)
+        f = @connection_sequence.connect_all(@hosts, @initial_keyspace)
         f.fallback do |error|
           if error.is_a?(QueryError) && error.code == 0x0a && @protocol_version > 1
             @protocol_version -= 1
             connect_with_protocol_version_fallback
           else
             raise error
+          end
+        end
+      end
+
+      def connect_to_all_peers(seed_connections, initial_keyspace=@initial_keyspace)
+        @logger.debug('Looking for additional nodes')
+        peer_discovery = PeerDiscovery.new(seed_connections)
+        peer_discovery.new_hosts.flat_map do |hosts|
+          if hosts.empty?
+            @logger.debug('No additional nodes found')
+            Future.resolved(seed_connections)
+          else
+            @logger.debug('%d additional nodes found' % hosts.size)
+            connections = @connection_sequence.connect_all(hosts, initial_keyspace)
+            connections = connections.map do |discovered_connections|
+              seed_connections + discovered_connections
+            end
+            connections.recover(seed_connections)
           end
         end
       end
@@ -223,11 +234,10 @@ module Cql
       def handle_topology_change(remaning_attempts=MAX_RECONNECTION_ATTEMPTS)
         with_failure_handler do
           seed_connections = @connection_manager.snapshot
-          connection_helper = create_connection_helper
-          f = connection_helper.discover_peers(seed_connections, keyspace)
-          f.flat_map do |connections|
-            connected_connections = connections.select(&:connected?)
-            if connected_connections.any?
+          f = connect_to_all_peers(seed_connections, keyspace)
+          f.flat_map do |all_connections|
+            new_connections = all_connections - seed_connections
+            if new_connections.size > 0
               @connection_manager.add_connections(connected_connections)
               Future.resolved
             elsif remaning_attempts > 0
