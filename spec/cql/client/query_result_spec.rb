@@ -74,6 +74,16 @@ module Cql
 
       include_context 'query_result_setup'
       include_examples 'query_result_shared'
+
+      describe '#empty?' do
+        it 'returns true when there are no rows' do
+          described_class.new(metadata, [], nil).should be_empty
+        end
+
+        it 'returns false when there are rows' do
+          result.should_not be_empty
+        end
+      end
     end
 
     describe LazyQueryResult do
@@ -98,6 +108,20 @@ module Cql
       end
 
       include_examples 'query_result_shared'
+
+      describe '#empty?' do
+        it 'returns true when there are no rows' do
+          lazy_rows.stub(:materialize) do
+            lazy_rows.stub(:rows).and_return([])
+            []
+          end
+          result.should be_empty
+        end
+
+        it 'returns false when there are rows' do
+          result.should_not be_empty
+        end
+      end
     end
   end
 end
