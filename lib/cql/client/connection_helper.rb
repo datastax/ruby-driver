@@ -7,14 +7,17 @@ module Cql
       def initialize(io_reactor, port, authenticator, protocol_version, connections_per_node, connection_timeout, compressor, logger)
         @io_reactor = io_reactor
         @port = port
-        @authenticator = authenticator
         @protocol_version = protocol_version
         @connections_per_node = connections_per_node
         @connection_timeout = connection_timeout
         @logger = logger
         @request_runner = RequestRunner.new
-        @keyspace_changer = KeyspaceChanger.new
         @compressor = compressor
+
+        @cache_options_phase = CacheOptionsPhase.new(@request_runner)
+        @start_up_phase = StartUpPhase.new(@request_runner, @compressor, @logger)
+        @authentication_phase = AuthenticationPhase.new(@request_runner, authenticator, @protocol_version)
+        @node_identification_phase = NodeIdentificationPhase.new(@request_runner)
       end
 
       def connect(hosts, initial_keyspace)
@@ -102,71 +105,139 @@ module Cql
       end
 
       def connect_to_host(host, keyspace)
-        if @compressor
-          @logger.debug('Connecting to node at %s:%d using "%s" compression' % [host, @port, @compressor.algorithm])
-        else
-          @logger.debug('Connecting to node at %s:%d' % [host, @port])
-        end
-        connected = @io_reactor.connect(host, @port, @connection_timeout)
-        connected.flat_map do |connection|
-          f = cache_supported_options(connection)
-          f = f.flat_map { send_startup_request(connection) }
-          f = f.flat_map { |response| maybe_authenticate(response, connection) }
-          f = f.flat_map { identify_node(connection) }
-          f = f.flat_map { change_keyspace(keyspace, connection) }
-          f
-        end
-      end
-
-      def cache_supported_options(connection)
-        f = @request_runner.execute(connection, Protocol::OptionsRequest.new)
-        f.on_value do |supported_options|
-          connection[:cql_version] = supported_options['CQL_VERSION']
-          connection[:compression] = supported_options['COMPRESSION']
-        end
-        f
-      end
-
-      def send_startup_request(connection)
-        compression = @compressor && @compressor.algorithm
-        if @compressor && !connection[:compression].include?(@compressor.algorithm)
-          @logger.warn(%[Compression algorithm "#{@compressor.algorithm}" not supported (server supports "#{connection[:compression].join('", "')}")])
-          compression = nil
-        end
-        request = Protocol::StartupRequest.new(nil, compression)
-        @request_runner.execute(connection, request)
-      end
-
-      def maybe_authenticate(response, connection)
-        return Future.resolved(connection) unless response.is_a?(AuthenticationRequired)
-        authenticate(response.authentication_class, connection)
-      end
-
-      def authenticate(authentication_class, connection)
-        if @authenticator && @authenticator.supports?(authentication_class, @protocol_version)
-          auth_request = @authenticator.initial_request(@protocol_version)
-          @request_runner.execute(connection, auth_request)
-        elsif @authenticator
-          Future.failed(AuthenticationError.new('Authenticator does not support the required authentication class "%s" and/or protocol version %d' % [authentication_class, @protocol_version]))
-        else
-          Future.failed(AuthenticationError.new('Server requested authentication, but no authenticator provided'))
-        end
-      end
-
-      def identify_node(connection)
-        request = Protocol::QueryRequest.new('SELECT data_center, host_id FROM system.local', nil, :one)
-        f = @request_runner.execute(connection, request)
-        f.on_value do |result|
-          unless result.empty?
-            connection[:host_id] = result.first['host_id']
-            connection[:data_center] = result.first['data_center']
+        @logger.debug('Connecting to node at %s:%d' % [host, @port])
+        phases = [
+          ConnectPhase.new(@io_reactor, host, @port, @connection_timeout),
+          @cache_options_phase,
+          @start_up_phase,
+          @authentication_phase,
+          @node_identification_phase,
+          KeyspaceChangingPhase.new(KeyspaceChanger.new(@request_runner), keyspace),
+        ]
+        phases.reduce(Future.resolved) do |f, phase|
+          f.flat_map do |pending_connection|
+            phase.run(pending_connection)
           end
         end
-        f
       end
 
-      def change_keyspace(keyspace, connection)
-        @keyspace_changer.use_keyspace(keyspace, connection)
+      class ConnectPhase
+        def initialize(io_reactor, host, port, connection_timeout)
+          @io_reactor = io_reactor
+          @host = host
+          @port = port
+          @connection_timeout = connection_timeout
+        end
+
+        def run(*)
+          @io_reactor.connect(@host, @port, @connection_timeout).map do |connection|
+            PendingConnection.new(connection)
+          end
+        end
+      end
+
+      class CacheOptionsPhase
+        def initialize(request_runner)
+          @request_runner = request_runner
+        end
+
+        def run(pending_connection)
+          f = @request_runner.execute(pending_connection.connection, Protocol::OptionsRequest.new)
+          f.on_value do |supported_options|
+            pending_connection.connection[:cql_version] = supported_options['CQL_VERSION']
+            pending_connection.connection[:compression] = supported_options['COMPRESSION']
+          end
+          f.map(pending_connection)
+        end
+      end
+
+      class StartUpPhase
+        def initialize(request_runner, compressor, logger)
+          @request_runner = request_runner
+          @compressor = compressor
+          @logger = logger
+        end
+
+        def run(pending_connection)
+          compression = @compressor && @compressor.algorithm
+          if @compressor && !pending_connection.connection[:compression].include?(@compressor.algorithm)
+            @logger.warn(%[Compression algorithm "#{@compressor.algorithm}" not supported (server supports "#{pending_connection.connection[:compression].join('", "')}")])
+            compression = nil
+          elsif @compressor
+            @logger.debug('Using "%s" compression' % @compressor.algorithm)
+          end
+          request = Protocol::StartupRequest.new(nil, compression)
+          f = @request_runner.execute(pending_connection.connection, request)
+          f.map do |startup_response|
+            if startup_response.is_a?(AuthenticationRequired)
+              PendingConnection.new(pending_connection.connection, startup_response.authentication_class)
+            else
+              pending_connection
+            end
+          end
+        end
+      end
+
+      class AuthenticationPhase
+        def initialize(request_runner, authenticator, protocol_version)
+          @request_runner = request_runner
+          @authenticator = authenticator
+          @protocol_version = protocol_version
+        end
+
+        def run(pending_connection)
+          if pending_connection.authentication_class
+            if @authenticator && @authenticator.supports?(pending_connection.authentication_class, @protocol_version)
+              auth_request = @authenticator.initial_request(@protocol_version)
+              f = @request_runner.execute(pending_connection.connection, auth_request)
+              f.map(pending_connection)
+            elsif @authenticator
+              Future.failed(AuthenticationError.new('Authenticator does not support the required authentication class "%s" and/or protocol version %d' % [pending_connection.authentication_class, @protocol_version]))
+            else
+              Future.failed(AuthenticationError.new('Server requested authentication, but no authenticator provided'))
+            end
+          else
+            Future.resolved(pending_connection)
+          end
+        end
+      end
+
+      class NodeIdentificationPhase
+        def initialize(request_runner)
+          @request_runner = request_runner
+        end
+
+        def run(pending_connection)
+          request = Protocol::QueryRequest.new('SELECT data_center, host_id FROM system.local', nil, :one)
+          f = @request_runner.execute(pending_connection.connection, request)
+          f.on_value do |result|
+            unless result.empty?
+              pending_connection.connection[:host_id] = result.first['host_id']
+              pending_connection.connection[:data_center] = result.first['data_center']
+            end
+          end
+          f.map(pending_connection)
+        end
+      end
+
+      class KeyspaceChangingPhase
+        def initialize(keyspace_changer, keyspace_name)
+          @keyspace_changer = keyspace_changer
+          @keyspace_name = keyspace_name
+        end
+
+        def run(pending_connection)
+          @keyspace_changer.use_keyspace(pending_connection.connection, @keyspace_name)
+        end
+      end
+
+      class PendingConnection
+        attr_reader :connection, :authentication_class
+
+        def initialize(connection, authentication_class=nil)
+          @connection = connection
+          @authentication_class = authentication_class
+        end
       end
 
       class FailedConnection
