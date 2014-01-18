@@ -55,6 +55,12 @@ module Cql
           response.metadata.should == metadata
         end
       end
+
+      describe '#to_s' do
+        it 'returns a static string' do
+          response.to_s.should == 'RESULT ROWS (raw)'
+        end
+      end
     end
   end
 end
