@@ -73,7 +73,7 @@ end
 class FakeConnection
   attr_reader :host, :port, :timeout, :requests, :keyspace
 
-  def initialize(host, port, timeout)
+  def initialize(host, port, timeout, data={})
     @host = host
     @port = port
     @timeout = timeout
@@ -81,7 +81,7 @@ class FakeConnection
     @responses = []
     @closed = false
     @keyspace = nil
-    @data = {}
+    @data = data
     @registered_event_types = []
     @event_listeners = []
     @closed_listeners = []
