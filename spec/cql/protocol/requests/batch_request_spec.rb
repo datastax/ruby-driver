@@ -120,11 +120,27 @@ module Cql
       end
 
       describe '#to_s' do
-        it 'returns a string representation of the batch request' do
-          batch = described_class.new(described_class::LOGGED_TYPE, :local_quorum)
-          batch.add_prepared(statement_id, metadata, ['arg', 3])
-          batch.add_query(%<INSERT INTO things (a, b) VALUES ('arg', 3)>)
-          batch.to_s.should == %(BATCH LOGGED 2 LOCAL_QUORUM)
+        context 'when the type is LOGGED' do
+          it 'returns a string representation of the batch request' do
+            batch = described_class.new(described_class::LOGGED_TYPE, :local_quorum)
+            batch.add_prepared(statement_id, metadata, ['arg', 3])
+            batch.add_query(%<INSERT INTO things (a, b) VALUES ('arg', 3)>)
+            batch.to_s.should == %(BATCH LOGGED 2 LOCAL_QUORUM)
+          end
+        end
+
+        context 'when the type is UNLOGGED' do
+          it 'returns a string representation of the batch request' do
+            batch = described_class.new(described_class::UNLOGGED_TYPE, :one)
+            batch.to_s.should == %(BATCH UNLOGGED 0 ONE)
+          end
+        end
+
+        context 'when the type is COUNTER' do
+          it 'returns a string representation of the batch request' do
+            batch = described_class.new(described_class::COUNTER_TYPE, :two)
+            batch.to_s.should == %(BATCH COUNTER 0 TWO)
+          end
         end
       end
     end
