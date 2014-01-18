@@ -477,6 +477,38 @@ module Cql
           client.close.value
           expect { client.connect.value }.to raise_error(ClientError)
         end
+
+        it 'waits for #connect to complete before attempting to close' do
+          order = []
+          reactor_start_promise = Promise.new
+          io_reactor.stub(:start).and_return(reactor_start_promise.future)
+          io_reactor.stub(:stop).and_return(Future.resolved)
+          connected = client.connect
+          connected.on_value { order << :connected }
+          closed = client.close
+          closed.on_value { order << :closed }
+          connected.should_not be_completed
+          reactor_start_promise.fulfill
+          connected.value
+          closed.value
+          order.should == [:connected, :closed]
+        end
+
+        it 'waits for #connect to complete before attempting to close, when connect fails' do
+          order = []
+          reactor_start_promise = Promise.new
+          io_reactor.stub(:start).and_return(reactor_start_promise.future)
+          io_reactor.stub(:stop).and_return(Future.resolved)
+          connected = client.connect
+          connected.on_failure { order << :connect_failed }
+          closed = client.close
+          closed.on_value { order << :closed }
+          connected.should_not be_completed
+          reactor_start_promise.fail(StandardError.new('bork'))
+          connected.value rescue nil
+          closed.value
+          order.should == [:connect_failed, :closed]
+        end
       end
 
       describe '#use' do

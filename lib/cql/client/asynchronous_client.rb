@@ -49,15 +49,16 @@ module Cql
           return @closed_future if @closing
           @closing = true
           @closed_future = begin
-            f = @io_reactor.stop
             if @connecting
-              ff = @connected_future
-              ff = f.flat_map { ff }
-              ff = f.fallback { ff }
+              f = @connected_future.recover
+              f = f.flat_map { @io_reactor.stop }
+              f = f.map { self }
+              f
             else
-              ff = f
+              f = @io_reactor.stop
+              f = f.map { self }
+              f
             end
-            ff.map { self }
           end
         end
         @closed_future.on_complete(&method(:closed))
