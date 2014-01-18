@@ -211,11 +211,14 @@ module Cql
           it 'tries decreasing protocol versions until one succeeds' do
             counter = 0
             handle_request do |request|
-              if counter == 3
-                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
-              else
+              if counter < 3
                 counter += 1
                 Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              elsif counter == 3
+                counter += 1
+                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
+              else
+                Protocol::RowsResultResponse.new([], [], nil, nil)
               end
             end
             client.connect.value

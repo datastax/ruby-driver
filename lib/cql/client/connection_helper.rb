@@ -27,33 +27,16 @@ module Cql
       end
 
       def discover_peers(seed_connections, initial_keyspace)
+        return Future.resolved([]) if seed_connections.empty?
         @logger.debug('Looking for additional nodes')
-        connection = seed_connections.sample
-        return Future.resolved([]) unless connection
-        request = Protocol::QueryRequest.new('SELECT peer, data_center, host_id, rpc_address FROM system.peers', nil, :one)
-        peer_info = RequestRunner.new.execute(connection, request)
-        peer_info.flat_map do |result|
-          seed_dcs = seed_connections.map { |c| c[:data_center] }.uniq
-          unconnected_peers = result.select do |row|
-            seed_dcs.include?(row['data_center']) && seed_connections.none? { |c| c[:host_id] == row['host_id'] }
-          end
-          if unconnected_peers.empty?
+        peer_discovery = PeerDiscovery.new(seed_connections)
+        peer_discovery.new_hosts.flat_map do |hosts|
+          if hosts.empty?
             @logger.debug('No additional nodes found')
-          else
-            @logger.debug('%d additional nodes found' % unconnected_peers.size)
-          end
-          node_addresses = unconnected_peers.map do |row|
-            rpc_address = row['rpc_address'].to_s
-            if rpc_address == '0.0.0.0'
-              row['peer'].to_s
-            else
-              rpc_address
-            end
-          end
-          if node_addresses.any?
-            connect_to_hosts(node_addresses, initial_keyspace, false)
-          else
             Future.resolved([])
+          else
+            @logger.debug('%d additional nodes found' % hosts.size)
+            connect_to_hosts(hosts, initial_keyspace, false)
           end
         end
       end
@@ -75,6 +58,34 @@ module Cql
           end
         else
           Future.all(*connection_futures)
+        end
+      end
+
+      class PeerDiscovery
+        def initialize(seed_connections)
+          @seed_connections = seed_connections
+          @connection = seed_connections.sample
+          @request_runner = RequestRunner.new
+        end
+
+        def new_hosts
+          request = Protocol::QueryRequest.new('SELECT peer, data_center, host_id, rpc_address FROM system.peers', nil, :one)
+          response = @request_runner.execute(@connection, request)
+          response.map do |result|
+            result.each_with_object([]) do |row, new_peers|
+              if include?(row['host_id'], row['data_center'])
+                rpc_address = row['rpc_address'].to_s
+                rpc_address = row['peer'].to_s if rpc_address == '0.0.0.0'
+                new_peers << rpc_address
+              end
+            end
+          end
+        end
+
+        private
+
+        def include?(host_id, dc)
+          @seed_connections.any? { |c| c[:data_center] == dc } && @seed_connections.none? { |c| c[:host_id] == host_id }
         end
       end
 

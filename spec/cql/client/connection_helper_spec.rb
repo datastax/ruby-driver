@@ -355,7 +355,7 @@ module Cql
 
         it 'logs a message when it begins' do
           logger.stub(:debug)
-          connection_helper.discover_peers([], nil)
+          connection_helper.discover_peers(seed_connections, nil)
           logger.should have_received(:debug).with(/Looking for additional nodes/)
         end
 
