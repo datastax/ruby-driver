@@ -77,7 +77,7 @@ module Cql
         with_failure_handler do
           connections = @connection_manager.select { |c| c.keyspace != keyspace }
           if connections.any?
-            futures = connections.map { |connection| @keyspace_changer.use_keyspace(keyspace, connection) }
+            futures = connections.map { |connection| @keyspace_changer.use_keyspace(connection, keyspace) }
             Future.all(*futures).map(nil)
           else
             Future.resolved
