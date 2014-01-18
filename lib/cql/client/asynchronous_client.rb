@@ -37,7 +37,7 @@ module Cql
               @connection_manager.add_connections(connections)
               register_event_listener(@connection_manager.random_connection)
             end
-            f.map { self }
+            f.map(self)
           end
         end
         @connected_future.on_complete(&method(:connected))
@@ -52,11 +52,11 @@ module Cql
             if @connecting
               f = @connected_future.recover
               f = f.flat_map { @io_reactor.stop }
-              f = f.map { self }
+              f = f.map(self)
               f
             else
               f = @io_reactor.stop
-              f = f.map { self }
+              f = f.map(self)
               f
             end
           end
@@ -78,7 +78,7 @@ module Cql
           connections = @connection_manager.select { |c| c.keyspace != keyspace }
           if connections.any?
             futures = connections.map { |connection| @keyspace_changer.use_keyspace(keyspace, connection) }
-            Future.all(*futures).map { nil }
+            Future.all(*futures).map(nil)
           else
             Future.resolved
           end

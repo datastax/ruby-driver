@@ -18,7 +18,7 @@ module Cql
         futures = connection_manager.map do |connection|
           statement.prepare(connection)
         end
-        Future.all(*futures).map { statement }
+        Future.all(*futures).map(statement)
       rescue => e
         Future.failed(e)
       end
@@ -54,7 +54,7 @@ module Cql
           hex_id = response.id.each_byte.map { |x| x.to_s(16).rjust(2, '0') }.join('')
           @logger.debug('Statement %s prepared on node %s (%s:%d)' % [hex_id, connection[:host_id].to_s, connection.host, connection.port])
         end
-        f.map { self }
+        f.map(self)
       end
 
       private

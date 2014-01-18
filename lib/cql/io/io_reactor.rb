@@ -192,7 +192,7 @@ module Cql
         protocol_handler = @protocol_handler_factory.call(connection, self)
         @io_loop.add_socket(connection)
         @unblocker.unblock!
-        f.map { protocol_handler }
+        f.map(protocol_handler)
       end
 
       # Returns a future that completes after the specified number of seconds.
