@@ -266,7 +266,7 @@ module Cql
 end
 
 require 'cql/client/connection_manager'
-require 'cql/client/connection_helper'
+require 'cql/client/connection_sequence'
 require 'cql/client/null_logger'
 require 'cql/client/column_metadata'
 require 'cql/client/result_metadata'
