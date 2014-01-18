@@ -190,13 +190,18 @@ module Cql
     #   future1.fail(error)
     #   future2.value # => 'foo'
     #
+    # @param [Object] value the value when no block is given
     # @yieldparam [Object] error the error from the original future
     # @yieldreturn [Object] the value of the new future
     # @return [Cql::Future] a new future representing a value recovered from the error
-    def recover(&block)
+    def recover(value=nil, &block)
       p = Promise.new
       on_failure do |e|
-        p.try(e, &block)
+        if block
+          p.try(e, &block)
+        else
+          p.fulfill(value)
+        end
       end
       on_value do |v|
         p.fulfill(v)
