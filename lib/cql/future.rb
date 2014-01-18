@@ -133,14 +133,19 @@ module Cql
     # @example
     #   future2 = future1.map { |value| value * 2 }
     #
+    # @param [Object] value the value of this future (when no block is given)
     # @yieldparam [Object] value the value of this future
     # @yieldreturn [Object] the transformed value
     # @return [Cql::Future] a new future representing the transformed value
-    def map(&block)
+    def map(value=nil, &block)
       p = Promise.new
       on_failure { |e| p.fail(e) }
       on_value do |v|
-        p.try(v, &block)
+        if block
+          p.try(v, &block)
+        else
+          p.fulfill(value)
+        end
       end
       p.future
     end
