@@ -100,9 +100,9 @@ class FakeConnection
     !@closed
   end
 
-  def close
+  def close(cause=nil)
     @closed = true
-    @closed_listeners.each(&:call)
+    @closed_listeners.each { |listener| listener.call(cause) }
   end
 
   def handle_request(&handler)

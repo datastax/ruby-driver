@@ -146,6 +146,16 @@ module Cql
           connections.should have(1).item
         end
 
+        it 'starts the IO reactor' do
+          client.connect.value
+          io_reactor.should be_running
+        end
+
+        it 'fails when the IO reactor fails to start' do
+          io_reactor.stub(:start).and_return(Future.failed(StandardError.new('bork')))
+          expect { client.connect.value }.to raise_error('bork')
+        end
+
         context 'when connecting to multiple hosts' do
           before do
             client.close.value
@@ -1065,8 +1075,8 @@ module Cql
         it 'logs when a connection fails' do
           logger.stub(:warn)
           client.connect.value
-          connections.sample.close
-          logger.should have_received(:warn).with(/Connection to node .{36} at .+:\d+ in data center .+ unexpectedly closed/)
+          connections.sample.close(StandardError.new('bork'))
+          logger.should have_received(:warn).with(/Connection to node .{36} at .+:\d+ in data center .+ unexpectedly closed: bork/)
         end
 
         it 'logs when it does a peer discovery' do

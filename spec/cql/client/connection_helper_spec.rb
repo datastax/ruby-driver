@@ -39,19 +39,7 @@ module Cql
         end
 
         before do
-          io_reactor.stub(:start).and_return(Future.resolved)
           io_reactor.stub(:connect).and_return(Future.resolved)
-        end
-
-        it 'starts the IO reactor' do
-          connection_helper.connect(hosts, nil)
-          io_reactor.should have_received(:start)
-        end
-
-        it 'fails when the IO reactor fails to start' do
-          io_reactor.stub(:start).and_return(Future.failed(StandardError.new('bork')))
-          f = connection_helper.connect(hosts, nil)
-          expect { f.value }.to raise_error('bork')
         end
 
         it 'connects to the specified hosts' do
@@ -198,13 +186,22 @@ module Cql
           connection[:data_center].should == 'dc1'
         end
 
-        it 'registers a close handler that logs when connections close' do
+        it 'registers a close handler that logs when connections closes unexpectedly' do
           logger.stub(:warn)
           connection = FakeConnection.new('host', 9876, 7)
           io_reactor.stub(:connect).and_return(Future.resolved(connection))
           connection_helper.connect(hosts.take(1), nil)
+          connection.close(StandardError.new('bork'))
+          logger.should have_received(:warn).with(/Connection to node .* closed: bork/)
+        end
+
+        it 'registers a close handler that logs when connections close' do
+          logger.stub(:info)
+          connection = FakeConnection.new('host', 9876, 7)
+          io_reactor.stub(:connect).and_return(Future.resolved(connection))
+          connection_helper.connect(hosts.take(1), nil)
           connection.close
-          logger.should have_received(:warn).with(/Connection to node .* closed/)
+          logger.should have_received(:info).with(/Connection to node .* closed/)
         end
 
         it 'initializes a peer discovery when connected to the specified hosts' do

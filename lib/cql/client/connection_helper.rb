@@ -5,24 +5,13 @@ module Cql
     # @private
     class ConnectionHelper
       def initialize(io_reactor, port, authenticator, protocol_version, connections_per_node, connection_timeout, compressor, logger)
-        @io_reactor = io_reactor
-        @port = port
-        @protocol_version = protocol_version
         @connections_per_node = connections_per_node
-        @connection_timeout = connection_timeout
         @logger = logger
-        @request_runner = RequestRunner.new
-        @connect_phase = ConnectPhase.new(@io_reactor, @port, @connection_timeout)
-        @cache_options_phase = CacheOptionsPhase.new
-        @start_up_phase = StartUpPhase.new(compressor, @logger)
-        @authentication_phase = AuthenticationPhase.new(authenticator, @protocol_version)
-        @node_identification_phase = NodeIdentificationPhase.new
+        @connection_pipeline = ConnectionPipeline.new(io_reactor, port, connection_timeout, protocol_version, compressor, authenticator, logger)
       end
 
       def connect(hosts, initial_keyspace)
-        f = @io_reactor.start.flat_map do
-          connect_to_hosts(hosts, initial_keyspace, true)
-        end
+        f = connect_to_hosts(hosts, initial_keyspace, true)
         f = f.map do |connections|
           connected_connections = connections.select(&:connected?)
           if connected_connections.empty?
@@ -42,7 +31,7 @@ module Cql
         connection = seed_connections.sample
         return Future.resolved([]) unless connection
         request = Protocol::QueryRequest.new('SELECT peer, data_center, host_id, rpc_address FROM system.peers', nil, :one)
-        peer_info = @request_runner.execute(connection, request)
+        peer_info = RequestRunner.new.execute(connection, request)
         peer_info.flat_map do |result|
           seed_dcs = seed_connections.map { |c| c[:data_center] }.uniq
           unconnected_peers = result.select do |row|
@@ -74,53 +63,70 @@ module Cql
       def connect_to_hosts(hosts, initial_keyspace, peer_discovery)
         connection_futures = hosts.flat_map do |host|
           Array.new(@connections_per_node) do
-            connect_to_host(host, initial_keyspace).recover do |error|
-              FailedConnection.new(error, host, @port)
-            end
+            @connection_pipeline.run(PendingConnection.new(host, initial_keyspace))
           end
         end
-        connection_futures.each do |cf|
-          cf.on_value do |c|
-            if c.is_a?(FailedConnection)
-              @logger.warn('Failed connecting to node at %s:%d: %s' % [c.host, c.port, c.error.message])
-            else
-              @logger.info('Connected to node %s at %s:%d in data center %s' % [c[:host_id], c.host, c.port, c[:data_center]])
-            end
-            c.on_closed do
-              @logger.warn('Connection to node %s at %s:%d in data center %s unexpectedly closed' % [c[:host_id], c.host, c.port, c[:data_center]])
-            end
-          end
-        end
-        hosts_connected_future = Future.all(*connection_futures)
         if peer_discovery
-          hosts_connected_future.flat_map do |connections|
-            discover_peers(connections.select(&:connected?), initial_keyspace).map do |peer_connections|
+          Future.all(*connection_futures).flat_map do |connections|
+            f = discover_peers(connections.select(&:connected?), initial_keyspace)
+            f.map do |peer_connections|
               connections + peer_connections
             end
           end
         else
-          hosts_connected_future
+          Future.all(*connection_futures)
         end
       end
 
-      def connect_to_host(host, keyspace)
-        @logger.debug('Connecting to node at %s:%d' % [host, @port])
-        phases = [
-          @connect_phase,
-          @cache_options_phase,
-          @start_up_phase,
-          @authentication_phase,
-          @node_identification_phase,
-          KeyspaceChangingPhase.new(keyspace),
-        ]
-        pending_connection = PendingConnection.new(@request_runner, host)
-        f = phases.reduce(Future.resolved(pending_connection)) do |f, phase|
-          f.flat_map do |pending_connection|
-            phase.run(pending_connection)
+      class ConnectionPipeline
+        def initialize(io_reactor, port, connection_timeout, protocol_version, compressor, authenticator, logger)
+          @connection_phases = [
+            ConnectPhase.new(io_reactor, port, connection_timeout),
+            CacheOptionsPhase.new,
+            StartUpPhase.new(compressor, logger),
+            AuthenticationPhase.new(authenticator, protocol_version),
+            NodeIdentificationPhase.new,
+            KeyspaceChangingPhase.new,
+          ]
+          @port = port
+          @logger = logger
+        end
+
+        def run(pending_connection)
+          @logger.debug('Connecting to node at %s:%d' % [pending_connection.host, @port])
+          f = @connection_phases.reduce(Future.resolved(pending_connection)) do |f, phase|
+            f.flat_map do |pending_connection|
+              phase.run(pending_connection)
+            end
+          end
+          f = f.map do |pending_connection|
+            pending_connection.connection
+          end
+          f.on_value do |connection|
+            @logger.info('Connected to node %s at %s:%d in data center %s' % [connection[:host_id], connection.host, connection.port, connection[:data_center]])
+            register_close_logger(connection)
+          end
+          f.on_failure do |error|
+            @logger.warn('Failed connecting to node at %s:%d: %s' % [pending_connection.host, @port, error.message])
+          end
+          f.recover do |error|
+            FailedConnection.new(error, pending_connection.host, @port)
           end
         end
-        f.map do |pending_connection|
-          pending_connection.connection
+
+        private
+
+        def register_close_logger(connection)
+          connection.on_closed do |cause|
+            message = 'Connection to node %s at %s:%d in data center %s ' % [connection[:host_id], connection.host, connection.port, connection[:data_center]]
+            if cause
+              message << ('unexpectedly closed: %s' % cause.message)
+              @logger.warn(message)
+            else
+              message << 'closed'
+              @logger.info(message)
+            end
+          end
         end
       end
 
@@ -213,35 +219,28 @@ module Cql
       end
 
       class KeyspaceChangingPhase
-        def initialize(keyspace_name)
-          @keyspace_name = keyspace_name
-        end
-
         def run(pending_connection)
-          if @keyspace_name
-            pending_connection.use_keyspace(@keyspace_name).map(pending_connection)
-          else
-            Future.resolved(pending_connection)
-          end
+          pending_connection.use_keyspace
         end
       end
 
       class PendingConnection
-        attr_reader :host, :connection, :authentication_class
+        attr_reader :host, :connection, :authentication_class, :initial_keyspace
 
-        def initialize(request_runner, host, connection=nil, authentication_class=nil)
-          @request_runner = request_runner
+        def initialize(host, initial_keyspace, connection=nil, authentication_class=nil)
           @host = host
+          @initial_keyspace = initial_keyspace
           @connection = connection
           @authentication_class = authentication_class
+          @request_runner = RequestRunner.new
         end
 
         def with_connection(connection)
-          self.class.new(@request_runner, host, connection, @authentication_class)
+          self.class.new(host, @initial_keyspace, connection, @authentication_class)
         end
 
         def with_authentication_class(authentication_class)
-          self.class.new(@request_runner, host, @connection, authentication_class)
+          self.class.new(host, @initial_keyspace, @connection, authentication_class)
         end
 
         def [](key)
@@ -256,8 +255,12 @@ module Cql
           @request_runner.execute(@connection, request)
         end
 
-        def use_keyspace(keyspace_name)
-          KeyspaceChanger.new(@request_runner).use_keyspace(@connection, keyspace_name)
+        def use_keyspace
+          if @initial_keyspace
+            KeyspaceChanger.new(@request_runner).use_keyspace(@connection, @initial_keyspace).map(self)
+          else
+            Future.resolved(self)
+          end
         end
       end
 

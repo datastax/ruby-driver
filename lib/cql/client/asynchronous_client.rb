@@ -32,7 +32,8 @@ module Cql
           return @connected_future if can_execute?
           @connecting = true
           @connected_future = begin
-            f = connect_with_protocol_version_fallback
+            f = @io_reactor.start
+            f = f.flat_map { connect_with_protocol_version_fallback }
             f.on_value do |connections|
               @connection_manager.add_connections(connections)
               register_event_listener(@connection_manager.random_connection)
