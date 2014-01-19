@@ -45,19 +45,23 @@ module Cql
         f = f.map do |pending_connection|
           pending_connection.connection
         end
-        f.on_value do |connection|
-          @logger.info('Connected to node %s at %s:%d in data center %s' % [connection[:host_id], connection.host, connection.port, connection[:data_center]])
-          register_close_logger(connection)
-        end
-        f.on_failure do |error|
-          @logger.warn('Failed connecting to node at %s: %s' % [pending_connection.host, error.message])
-        end
+        register_logging(f, pending_connection)
         f.recover do |error|
           FailedConnection.new(error, pending_connection.host)
         end
       end
 
-      def register_close_logger(connection)
+      def register_logging(f, pending_connection)
+        f.on_value do |connection|
+          @logger.info('Connected to node %s at %s:%d in data center %s' % [connection[:host_id], connection.host, connection.port, connection[:data_center]])
+          register_close_logging(connection)
+        end
+        f.on_failure do |error|
+          @logger.warn('Failed connecting to node at %s: %s' % [pending_connection.host, error.message])
+        end
+      end
+
+      def register_close_logging(connection)
         connection.on_closed do |cause|
           message = 'Connection to node %s at %s:%d in data center %s ' % [connection[:host_id], connection.host, connection.port, connection[:data_center]]
           if cause
