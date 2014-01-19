@@ -11,16 +11,16 @@ module Cql
         @io_reactor = options[:io_reactor] || Io::IoReactor.new(protocol_handler_factory)
         @hosts = extract_hosts(options)
         @initial_keyspace = options[:keyspace]
+        @connections_per_node = options[:connections_per_node] || 1
         @lock = Mutex.new
         @request_runner = RequestRunner.new
         @keyspace_changer = KeyspaceChanger.new
         @connection_manager = ConnectionManager.new
         @execute_options_decoder = ExecuteOptionsDecoder.new(options[:default_consistency] || DEFAULT_CONSISTENCY)
         port = options[:port] || DEFAULT_PORT
-        connections_per_node = options[:connections_per_node] || 1
         connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
         authenticator = options[:authenticator]
-        @connection_sequence = ConnectionSequence.new(port, connections_per_node, @logger)
+        @connection_sequence = ConnectionSequence.new(@logger)
         @connection_sequence.add_step(ConnectStep.new(@io_reactor, port, connection_timeout, @logger))
         @connection_sequence.add_step(CacheOptionsStep.new)
         @connection_sequence.add_step(InitializeStep.new(@compressor, @logger))
@@ -132,7 +132,7 @@ module Cql
       end
 
       def connect_with_protocol_version_fallback
-        f = @connection_sequence.connect_all(@hosts, @initial_keyspace)
+        f = @connection_sequence.connect_all(@hosts, @connections_per_node, @initial_keyspace)
         f.fallback do |error|
           if error.is_a?(QueryError) && error.code == 0x0a && @protocol_version > 1
             @protocol_version -= 1
@@ -152,7 +152,7 @@ module Cql
             Future.resolved(seed_connections)
           else
             @logger.debug('%d additional nodes found' % hosts.size)
-            connections = @connection_sequence.connect_all(hosts, initial_keyspace)
+            connections = @connection_sequence.connect_all(hosts, @connections_per_node, initial_keyspace)
             connections = connections.map do |discovered_connections|
               seed_connections + discovered_connections
             end

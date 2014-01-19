@@ -1100,7 +1100,7 @@ module Cql
           logger.stub(:warn)
           io_reactor.stub(:connect).and_return(Future.failed(StandardError.new('Hurgh blurgh')))
           client.connect.value rescue nil
-          logger.should have_received(:warn).with(/Failed connecting to node at example\.com:12321: Hurgh blurgh/)
+          logger.should have_received(:warn).with(/Failed connecting to node at example\.com: Hurgh blurgh/)
         end
 
         it 'logs when a connection fails' do
@@ -1108,6 +1108,13 @@ module Cql
           client.connect.value
           connections.sample.close(StandardError.new('bork'))
           logger.should have_received(:warn).with(/Connection to node .{36} at .+:\d+ in data center .+ unexpectedly closed: bork/)
+        end
+
+        it 'logs when a connection closes' do
+          logger.stub(:info)
+          client.connect.value
+          connections.sample.close
+          logger.should have_received(:info).with(/Connection to node .{36} at .+:\d+ in data center .+ closed/)
         end
 
         it 'logs when it does a peer discovery' do

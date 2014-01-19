@@ -4,9 +4,7 @@ module Cql
   module Client
     # @private
     class ConnectionSequence
-      def initialize(port, connections_per_node, logger)
-        @port = port
-        @connections_per_node = connections_per_node
+      def initialize(logger)
         @logger = logger
         @sequence = []
       end
@@ -15,9 +13,9 @@ module Cql
         @sequence << step
       end
 
-      def connect_all(hosts, initial_keyspace)
+      def connect_all(hosts, connections_per_node, initial_keyspace)
         connections = hosts.flat_map do |host|
-          Array.new(@connections_per_node) do
+          Array.new(connections_per_node) do
             connect(host, initial_keyspace)
           end
         end
@@ -33,6 +31,8 @@ module Cql
           connected_connections
         end
       end
+
+      private
 
       def connect(host, initial_keyspace)
         pending_connection = PendingConnection.new(host, initial_keyspace)
@@ -50,14 +50,12 @@ module Cql
           register_close_logger(connection)
         end
         f.on_failure do |error|
-          @logger.warn('Failed connecting to node at %s:%d: %s' % [pending_connection.host, @port, error.message])
+          @logger.warn('Failed connecting to node at %s: %s' % [pending_connection.host, error.message])
         end
         f.recover do |error|
-          FailedConnection.new(error, pending_connection.host, @port)
+          FailedConnection.new(error, pending_connection.host)
         end
       end
-
-      private
 
       def register_close_logger(connection)
         connection.on_closed do |cause|
@@ -165,7 +163,7 @@ module Cql
 
     class ChangeKeyspaceStep
       def run(pending_connection)
-        pending_connection.use_keyspace
+        pending_connection.use_keyspace.map(pending_connection)
       end
     end
 
@@ -202,20 +200,19 @@ module Cql
 
       def use_keyspace
         if @initial_keyspace
-          KeyspaceChanger.new(@request_runner).use_keyspace(@connection, @initial_keyspace).map(self)
+          KeyspaceChanger.new(@request_runner).use_keyspace(@connection, @initial_keyspace)
         else
-          Future.resolved(self)
+          Future.resolved
         end
       end
     end
 
     class FailedConnection
-      attr_reader :error, :host, :port
+      attr_reader :error, :host
 
-      def initialize(error, host, port)
+      def initialize(error, host)
         @error = error
         @host = host
-        @port = port
       end
 
       def connected?
