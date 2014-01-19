@@ -70,6 +70,7 @@ module Cql
       end
     end
 
+    # @private
     class ConnectStep
       def initialize(io_reactor, port, connection_timeout, logger)
         @io_reactor = io_reactor
@@ -86,6 +87,7 @@ module Cql
       end
     end
 
+    # @private
     class CacheOptionsStep
       def run(pending_connection)
         f = pending_connection.execute(Protocol::OptionsRequest.new)
@@ -97,6 +99,7 @@ module Cql
       end
     end
 
+    # @private
     class InitializeStep
       def initialize(compressor, logger)
         @compressor = compressor
@@ -123,6 +126,7 @@ module Cql
       end
     end
 
+    # @private
     class AuthenticationStep
       def initialize(authenticator, protocol_version)
         @authenticator = authenticator
@@ -146,6 +150,7 @@ module Cql
       end
     end
 
+    # @private
     class CachePropertiesStep
       def run(pending_connection)
         request = Protocol::QueryRequest.new('SELECT data_center, host_id FROM system.local', nil, :one)
@@ -160,12 +165,14 @@ module Cql
       end
     end
 
+    # @private
     class ChangeKeyspaceStep
       def run(pending_connection)
         pending_connection.use_keyspace.map(pending_connection)
       end
     end
 
+    # @private
     class PendingConnection
       attr_reader :host, :connection, :authentication_class, :initial_keyspace
 
@@ -206,6 +213,7 @@ module Cql
       end
     end
 
+    # @private
     class FailedConnection
       attr_reader :error, :host
 
