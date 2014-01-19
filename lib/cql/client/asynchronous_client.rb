@@ -20,13 +20,15 @@ module Cql
         port = options[:port] || DEFAULT_PORT
         connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
         authenticator = options[:authenticator]
-        @connection_sequence = ConnectionSequence.new(@logger)
-        @connection_sequence.add_step(ConnectStep.new(@io_reactor, port, connection_timeout, @logger))
-        @connection_sequence.add_step(CacheOptionsStep.new)
-        @connection_sequence.add_step(InitializeStep.new(@compressor, @logger))
-        @connection_sequence.add_step(AuthenticationStep.new(authenticator, @protocol_version))
-        @connection_sequence.add_step(CachePropertiesStep.new)
-        @connection_sequence.add_step(ChangeKeyspaceStep.new)
+        steps = [
+          ConnectStep.new(@io_reactor, port, connection_timeout, @logger),
+          CacheOptionsStep.new,
+          InitializeStep.new(@compressor, @logger),
+          AuthenticationStep.new(authenticator, @protocol_version),
+          CachePropertiesStep.new,
+          ChangeKeyspaceStep.new,
+        ]
+        @connection_sequence = ConnectionSequence.new(steps, @logger)
         @connected = false
         @connecting = false
         @closing = false

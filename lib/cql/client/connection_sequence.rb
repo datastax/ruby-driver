@@ -4,13 +4,9 @@ module Cql
   module Client
     # @private
     class ConnectionSequence
-      def initialize(logger)
+      def initialize(steps, logger)
+        @steps = steps.dup
         @logger = logger
-        @sequence = []
-      end
-
-      def add_step(step)
-        @sequence << step
       end
 
       def connect_all(hosts, connections_per_node, initial_keyspace)
@@ -37,7 +33,7 @@ module Cql
       def connect(host, initial_keyspace)
         pending_connection = PendingConnection.new(host, initial_keyspace)
         seed = Future.resolved(pending_connection)
-        f = @sequence.reduce(seed) do |f, step|
+        f = @steps.reduce(seed) do |f, step|
           f.flat_map do |pending_connection|
             step.run(pending_connection)
           end
