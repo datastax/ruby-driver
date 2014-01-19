@@ -88,11 +88,8 @@ module Cql
     # @return [Cql::Future<Array>] an array of the values of the constituent
     #   futures
     def all(*futures)
-      if futures.any?
-        CombinedFuture.new(futures)
-      else
-        resolved([])
-      end
+      return resolved([]) if futures.empty?
+      CombinedFuture.new(futures)
     end
 
     # Returns a future which will be resolved with the value of the first
@@ -102,11 +99,8 @@ module Cql
     # @param [Array<Cql::Future>] futures the futures to monitor
     # @return [Cql::Future] a future which represents the first completing future
     def first(*futures)
-      if futures.any?
-        FirstFuture.new(futures)
-      else
-        resolved
-      end
+      return resolved if futures.empty?
+      FirstFuture.new(futures)
     end
 
     # Creates a new pre-resolved future.
