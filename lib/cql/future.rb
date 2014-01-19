@@ -132,16 +132,16 @@ module Cql
     # @yieldreturn [Object] the transformed value
     # @return [Cql::Future] a new future representing the transformed value
     def map(value=nil, &block)
-      p = Promise.new
-      on_failure { |e| p.fail(e) }
-      on_value do |v|
-        if block
-          p.try(v, &block)
-        else
-          p.fulfill(value)
+      CompletableFuture.new.tap do |f|
+        on_failure { |e| f.fail(e) }
+        on_value do |v|
+          begin
+            f.resolve(block ? block.call(v) : value)
+          rescue => e
+            f.fail(e)
+          end
         end
       end
-      p.future
     end
 
     # Returns a new future representing a transformation of this future's value,
@@ -156,17 +156,18 @@ module Cql
     # @yieldreturn [Cql::Future] a future representing the transformed value
     # @return [Cql::Future] a new future representing the transformed value
     def flat_map(&block)
-      p = Promise.new
-      on_failure { |e| p.fail(e) }
-      on_value do |v|
-        begin
-          f = block.call(v)
-          p.observe(f)
-        rescue => e
-          p.fail(e)
+      CompletableFuture.new.tap do |f|
+        on_failure { |e| f.fail(e) }
+        on_value do |v|
+          begin
+            ff = block.call(v)
+            ff.on_failure { |e| f.fail(e) }
+            ff.on_value { |vv| f.resolve(vv) }
+          rescue => e
+            f.fail(e)
+          end
         end
       end
-      p.future
     end
 
     # Returns a new future which represents either the value of the original
@@ -189,18 +190,16 @@ module Cql
     # @yieldreturn [Object] the value of the new future
     # @return [Cql::Future] a new future representing a value recovered from the error
     def recover(value=nil, &block)
-      p = Promise.new
-      on_failure do |e|
-        if block
-          p.try(e, &block)
-        else
-          p.fulfill(value)
+      CompletableFuture.new.tap do |f|
+        on_failure do |e|
+          begin
+            f.resolve(block ? block.call(e) : value)
+          rescue => ee
+            f.fail(ee)
+          end
         end
+        on_value { |v| f.resolve(v) }
       end
-      on_value do |v|
-        p.fulfill(v)
-      end
-      p.future
     end
 
     # Returns a new future which represents either the value of the original
@@ -226,19 +225,18 @@ module Cql
     # @return [Cql::Future] a new future representing a value recovered from the
     #   error
     def fallback(&block)
-      p = Promise.new
-      on_failure do |e|
-        begin
-          f = block.call(e)
-          p.observe(f)
-        rescue => e
-          p.fail(e)
+      CompletableFuture.new.tap do |f|
+        on_failure do |e|
+          begin
+            ff = block.call(e)
+            ff.on_failure { |ee| f.fail(ee) }
+            ff.on_value { |v| f.resolve(v) }
+          rescue => ee
+            f.fail(ee)
+          end
         end
+        on_value { |v| f.resolve(v) }
       end
-      on_value do |v|
-        p.fulfill(v)
-      end
-      p.future
     end
   end
 
