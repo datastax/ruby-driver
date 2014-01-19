@@ -28,7 +28,7 @@ module Cql
           CachePropertiesStep.new,
           ChangeKeyspaceStep.new,
         ]
-        @connection_sequence = ConnectionSequence.new(steps, @logger)
+        @connection_sequence = ClusterConnectionSequence.new(ConnectionSequence.new(steps), @logger)
         @connected = false
         @connecting = false
         @closing = false

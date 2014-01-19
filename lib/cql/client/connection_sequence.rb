@@ -3,16 +3,34 @@
 module Cql
   module Client
     # @private
-    class ConnectionSequence
-      def initialize(steps, logger)
-        @steps = steps.dup
+    class ClusterConnectionSequence
+      def initialize(sequence, logger)
+        @sequence = sequence
         @logger = logger
       end
 
       def connect_all(hosts, connections_per_node, initial_keyspace)
         connections = hosts.flat_map do |host|
           Array.new(connections_per_node) do
-            connect(host, initial_keyspace)
+            f = @sequence.connect(host, initial_keyspace)
+            f.on_value do |connection|
+              args = [connection[:host_id], connection.host, connection.port, connection[:data_center]]
+              @logger.info('Connected to node %s at %s:%d in data center %s' % args)
+              connection.on_closed do |cause|
+                message = 'Connection to node %s at %s:%d in data center %s ' % args
+                if cause
+                  message << ('unexpectedly closed: %s' % cause.message)
+                  @logger.warn(message)
+                else
+                  message << 'closed'
+                  @logger.info(message)
+                end
+              end
+            end
+            f.recover do |error|
+              @logger.warn('Failed connecting to node at %s: %s' % [host, error.message])
+              FailedConnection.new(error, host)
+            end
           end
         end
         Future.all(*connections).map do |connections|
@@ -27,8 +45,13 @@ module Cql
           connected_connections
         end
       end
+    end
 
-      private
+    # @private
+    class ConnectionSequence
+      def initialize(steps)
+        @steps = steps.dup
+      end
 
       def connect(host, initial_keyspace)
         pending_connection = PendingConnection.new(host, initial_keyspace)
@@ -38,35 +61,8 @@ module Cql
             step.run(pending_connection)
           end
         end
-        f = f.map do |pending_connection|
+        f.map do |pending_connection|
           pending_connection.connection
-        end
-        register_logging(f, pending_connection)
-        f.recover do |error|
-          FailedConnection.new(error, pending_connection.host)
-        end
-      end
-
-      def register_logging(f, pending_connection)
-        f.on_value do |connection|
-          @logger.info('Connected to node %s at %s:%d in data center %s' % [connection[:host_id], connection.host, connection.port, connection[:data_center]])
-          register_close_logging(connection)
-        end
-        f.on_failure do |error|
-          @logger.warn('Failed connecting to node at %s: %s' % [pending_connection.host, error.message])
-        end
-      end
-
-      def register_close_logging(connection)
-        connection.on_closed do |cause|
-          message = 'Connection to node %s at %s:%d in data center %s ' % [connection[:host_id], connection.host, connection.port, connection[:data_center]]
-          if cause
-            message << ('unexpectedly closed: %s' % cause.message)
-            @logger.warn(message)
-          else
-            message << 'closed'
-            @logger.info(message)
-          end
         end
       end
     end
