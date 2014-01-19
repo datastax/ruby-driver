@@ -201,5 +201,73 @@ module Cql
         end
       end
     end
+
+    describe ConnectStep do
+      let :step do
+        described_class.new(io_reactor, 1111, 9, logger)
+      end
+
+      let :pending_connection do
+        double(:pending_connection)
+      end
+
+      let :new_pending_connection do
+        double(:new_pending_connection)
+      end
+
+      let :io_reactor do
+        double(:io_reactor)
+      end
+
+      let :logger do
+        NullLogger.new
+      end
+
+      let :connection do
+        double(:connection)
+      end
+
+      describe '#run' do
+        before do
+          pending_connection.stub(:host).and_return('example.com')
+          pending_connection.stub(:with_connection).and_return(new_pending_connection)
+          io_reactor.stub(:connect).and_return(Future.resolved(connection))
+        end
+
+        it 'connects using the connection details given' do
+          step.run(pending_connection)
+          io_reactor.should have_received(:connect).with('example.com', 1111, 9)
+        end
+
+        it 'appends the connection to the given argument and returns the result' do
+          result = step.run(pending_connection)
+          result.value.should equal(new_pending_connection)
+        end
+
+        it 'logs a message when it starts connecting' do
+          logger.stub(:debug)
+          step.run(pending_connection)
+          logger.should have_received(:debug).with(/connecting to node at example\.com:1111/i)
+        end
+
+        it 'returns a failed future when the connection fails' do
+          io_reactor.stub(:connect).and_return(Future.failed(StandardError.new('bork')))
+          result = step.run(pending_connection)
+          expect { result.value }.to raise_error('bork')
+        end
+      end
+    end
+
+    describe CacheOptionsStep do
+    end
+
+    describe InitializeStep do
+    end
+
+    describe AuthenticationStep do
+    end
+
+    describe CachePropertiesStep do
+    end
   end
 end
