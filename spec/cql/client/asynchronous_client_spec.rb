@@ -1107,7 +1107,7 @@ module Cql
           logger.stub(:warn)
           client.connect.value
           connections.sample.close(StandardError.new('bork'))
-          logger.should have_received(:warn).with(/Connection to node .{36} at .+:\d+ in data center .+ unexpectedly closed: bork/)
+          logger.should have_received(:warn).with(/Connection to node .{36} at .+:\d+ in data center .+ closed unexpectedly: bork/)
         end
 
         it 'logs when a connection closes' do

@@ -17,12 +17,11 @@ module Cql
               args = [connection[:host_id], connection.host, connection.port, connection[:data_center]]
               @logger.info('Connected to node %s at %s:%d in data center %s' % args)
               connection.on_closed do |cause|
-                message = 'Connection to node %s at %s:%d in data center %s ' % args
+                message = 'Connection to node %s at %s:%d in data center %s closed' % args
                 if cause
-                  message << ('unexpectedly closed: %s' % cause.message)
+                  message << (' unexpectedly: %s' % cause.message)
                   @logger.warn(message)
                 else
-                  message << 'closed'
                   @logger.info(message)
                 end
               end
@@ -56,8 +55,8 @@ module Cql
       def connect(host, initial_keyspace)
         pending_connection = PendingConnection.new(host, initial_keyspace)
         seed = Future.resolved(pending_connection)
-        f = @steps.reduce(seed) do |f, step|
-          f.flat_map do |pending_connection|
+        f = @steps.reduce(seed) do |chain, step|
+          chain.flat_map do |pending_connection|
             step.run(pending_connection)
           end
         end
