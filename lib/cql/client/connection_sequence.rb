@@ -13,19 +13,7 @@ module Cql
         connections = hosts.flat_map do |host|
           Array.new(connections_per_node) do
             f = @sequence.connect(host, initial_keyspace)
-            f.on_value do |connection|
-              args = [connection[:host_id], connection.host, connection.port, connection[:data_center]]
-              @logger.info('Connected to node %s at %s:%d in data center %s' % args)
-              connection.on_closed do |cause|
-                message = 'Connection to node %s at %s:%d in data center %s closed' % args
-                if cause
-                  message << (' unexpectedly: %s' % cause.message)
-                  @logger.warn(message)
-                else
-                  @logger.info(message)
-                end
-              end
-            end
+            f.on_value { |connection| register_logging(connection) }
             f.recover do |error|
               @logger.warn('Failed connecting to node at %s: %s' % [host, error.message])
               FailedConnection.new(error, host)
@@ -42,6 +30,22 @@ module Cql
             raise e
           end
           connected_connections
+        end
+      end
+
+      private
+
+      def register_logging(connection)
+        args = [connection[:host_id], connection.host, connection.port, connection[:data_center]]
+        @logger.info('Connected to node %s at %s:%d in data center %s' % args)
+        connection.on_closed do |cause|
+          message = 'Connection to node %s at %s:%d in data center %s closed' % args
+          if cause
+            message << (' unexpectedly: %s' % cause.message)
+            @logger.warn(message)
+          else
+            @logger.info(message)
+          end
         end
       end
     end
