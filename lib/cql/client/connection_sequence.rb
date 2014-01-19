@@ -9,10 +9,10 @@ module Cql
         @logger = logger
       end
 
-      def connect_all(hosts, connections_per_node, initial_keyspace)
+      def connect_all(hosts, connections_per_node)
         connections = hosts.flat_map do |host|
           Array.new(connections_per_node) do
-            f = @sequence.connect(host, initial_keyspace)
+            f = @sequence.connect(host)
             f.on_value { |connection| register_logging(connection) }
             f.recover do |error|
               @logger.warn('Failed connecting to node at %s: %s' % [host, error.message])
@@ -56,8 +56,8 @@ module Cql
         @steps = steps.dup
       end
 
-      def connect(host, initial_keyspace)
-        pending_connection = PendingConnection.new(host, initial_keyspace)
+      def connect(host)
+        pending_connection = PendingConnection.new(host)
         seed = Future.resolved(pending_connection)
         f = @steps.reduce(seed) do |chain, step|
           chain.flat_map do |pending_connection|
@@ -166,30 +166,22 @@ module Cql
     end
 
     # @private
-    class ChangeKeyspaceStep
-      def run(pending_connection)
-        pending_connection.use_keyspace.map(pending_connection)
-      end
-    end
-
-    # @private
     class PendingConnection
-      attr_reader :host, :connection, :authentication_class, :initial_keyspace
+      attr_reader :host, :connection, :authentication_class
 
-      def initialize(host, initial_keyspace, connection=nil, authentication_class=nil)
+      def initialize(host, connection=nil, authentication_class=nil)
         @host = host
-        @initial_keyspace = initial_keyspace
         @connection = connection
         @authentication_class = authentication_class
         @request_runner = RequestRunner.new
       end
 
       def with_connection(connection)
-        self.class.new(host, @initial_keyspace, connection, @authentication_class)
+        self.class.new(host, connection, @authentication_class)
       end
 
       def with_authentication_class(authentication_class)
-        self.class.new(host, @initial_keyspace, @connection, authentication_class)
+        self.class.new(host, @connection, authentication_class)
       end
 
       def [](key)
@@ -202,14 +194,6 @@ module Cql
 
       def execute(request)
         @request_runner.execute(@connection, request)
-      end
-
-      def use_keyspace
-        if @initial_keyspace
-          KeyspaceChanger.new(@request_runner).use_keyspace(@connection, @initial_keyspace)
-        else
-          Future.resolved
-        end
       end
     end
 

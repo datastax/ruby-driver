@@ -50,8 +50,8 @@ module Cql
         end
 
         before do
-          node_connector.stub(:connect) do |host, keyspace|
-            connections << [host, keyspace]
+          node_connector.stub(:connect) do |host|
+            connections << host
             if bad_nodes.include?(host)
               Future.failed(failure[0])
             else
@@ -61,34 +61,33 @@ module Cql
         end
 
         it 'connects to each host' do
-          f = cluster_connector.connect_all(%w[host0 host1], 1, 'ks')
+          f = cluster_connector.connect_all(%w[host0 host1], 1)
           f.value
-          connections.should include(['host0', 'ks'])
-          connections.should include(['host1', 'ks'])
+          connections.should include('host0', 'host1')
         end
 
         it 'connects multiple times to each node' do
-          f = cluster_connector.connect_all(%w[host0 host1], 3, 'ks')
+          f = cluster_connector.connect_all(%w[host0 host1], 3)
           f.value
-          connections.select { |c| c == ['host0', 'ks'] }.size.should == 3
-          connections.select { |c| c == ['host1', 'ks'] }.size.should == 3
+          connections.count { |c| c == 'host0' }.should == 3
+          connections.count { |c| c == 'host1' }.should == 3
         end
 
         it 'returns a future that resolves to the connections' do
-          f = cluster_connector.connect_all(%w[host0 host1], 2, 'ks')
+          f = cluster_connector.connect_all(%w[host0 host1], 2)
           f.value.map(&:host).sort.should == %w[host0 host0 host1 host1]
         end
 
         it 'succeeds as long as one connection succeeds' do
           bad_nodes.push('host0')
-          f = cluster_connector.connect_all(%w[host0 host1], 1, 'ks')
+          f = cluster_connector.connect_all(%w[host0 host1], 1)
           f.value.map(&:host).sort.should == %w[host1]
         end
 
         it 'fails when all connections fail' do
           bad_nodes.push('host0')
           bad_nodes.push('host1')
-          f = cluster_connector.connect_all(%w[host0 host1], 1, 'ks')
+          f = cluster_connector.connect_all(%w[host0 host1], 1)
           expect { f.value }.to raise_error
         end
 
@@ -96,13 +95,13 @@ module Cql
           bad_nodes.push('host0')
           bad_nodes.push('host1')
           failure[0] = QueryError.new(0x100, 'bork')
-          f = cluster_connector.connect_all(%w[host0 host1], 1, 'ks')
+          f = cluster_connector.connect_all(%w[host0 host1], 1)
           expect { f.value }.to raise_error(AuthenticationError)
         end
 
         it 'logs when a connection is complete' do
           logger.stub(:info)
-          f = cluster_connector.connect_all(%w[host0 host1], 1, 'ks')
+          f = cluster_connector.connect_all(%w[host0 host1], 1)
           f.value
           logger.should have_received(:info).with(/connected to node .{36} at host0:9999 in data center dc/i)
           logger.should have_received(:info).with(/connected to node .{36} at host1:9999 in data center dc/i)
@@ -111,14 +110,14 @@ module Cql
         it 'logs when a connection fails' do
           logger.stub(:warn)
           bad_nodes.push('host0')
-          f = cluster_connector.connect_all(%w[host0 host1], 1, 'ks')
+          f = cluster_connector.connect_all(%w[host0 host1], 1)
           f.value
           logger.should have_received(:warn).with(/failed connecting to node at host0: bork/i)
         end
 
         it 'registers a listener that logs when a connection closes' do
           logger.stub(:info)
-          f = cluster_connector.connect_all(%w[host0 host1], 1, 'ks')
+          f = cluster_connector.connect_all(%w[host0 host1], 1)
           connection = f.value.first
           connection.closed_listener.call
           logger.should have_received(:info).with(/connection to node .{36} at host0:9999 in data center dc closed/i)
@@ -126,7 +125,7 @@ module Cql
 
         it 'registers a listener that logs when a connection closes unexpectedly' do
           logger.stub(:warn)
-          f = cluster_connector.connect_all(%w[host0 host1], 1, 'ks')
+          f = cluster_connector.connect_all(%w[host0 host1], 1)
           connection = f.value.first
           connection.closed_listener.call(StandardError.new('BORK'))
           logger.should have_received(:warn).with(/connection to node .{36} at host0:9999 in data center dc closed unexpectedly: BORK/i)
@@ -154,9 +153,8 @@ module Cql
             Future.resolved(arg)
           end
           sequence = described_class.new(steps.take(1))
-          result = sequence.connect('host0', 'ks')
+          result = sequence.connect('host0')
           steps[0].arg.host.should == 'host0'
-          steps[0].arg.initial_keyspace.should == 'ks'
         end
 
         it 'expects the last step to return a future that resolves to an object that has a connection' do
@@ -164,7 +162,7 @@ module Cql
             Future.resolved(double(connection: :fake_connection))
           end
           sequence = described_class.new(steps.take(1))
-          result = sequence.connect('host0', nil)
+          result = sequence.connect('host0')
           result.value.should == :fake_connection
         end
 
@@ -181,7 +179,7 @@ module Cql
             Future.resolved(double(connection: :fake_connection))
           end
           sequence = described_class.new(steps)
-          result = sequence.connect('host0', nil)
+          result = sequence.connect('host0')
           steps[1].arg.should == :foo
           steps[2].arg.should == :bar
         end

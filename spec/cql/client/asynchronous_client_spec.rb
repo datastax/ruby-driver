@@ -10,8 +10,12 @@ module Cql
         described_class.new(connection_options)
       end
 
-      let :connection_options do
+      let :default_connection_options do
         {:host => 'example.com', :port => 12321, :io_reactor => io_reactor, :logger => logger}
+      end
+
+      let :connection_options do
+        default_connection_options
       end
 
       let :io_reactor do
@@ -109,6 +113,8 @@ module Cql
                 Protocol::ReadyResponse.new
               when Protocol::QueryRequest
                 case request.cql
+                when /USE\s+"?(\S+)"?/
+                  Cql::Protocol::SetKeyspaceResultResponse.new($1, nil)
                 when /FROM system\.local/
                   row = {'host_id' => connection[:spec_host_id], 'data_center' => connection[:spec_data_center]}
                   Protocol::RowsResultResponse.new([row], local_metadata, nil, nil)
@@ -326,6 +332,10 @@ module Cql
         context 'with automatic peer discovery' do
           include_context 'peer discovery setup'
 
+          let :connection_options do
+            default_connection_options.merge(keyspace: 'foo')
+          end
+
           it 'connects to the other nodes in the cluster' do
             client.connect.value
             connections.should have(3).items
@@ -372,6 +382,15 @@ module Cql
             io_reactor.node_down(additional_nodes.first.to_s)
             client.connect.value
             connections.should have(2).items
+          end
+
+          it 'makes sure the new connections use the specified initial keyspace' do
+            client.connect.value
+            use_keyspace_requests = connections.map { |c| c.requests.find { |r| r.is_a?(Protocol::QueryRequest) && r.cql.include?('USE') }}
+            use_keyspace_requests.should have(3).items
+            use_keyspace_requests.each do |rq|
+              rq.cql.should match(/USE foo/)
+            end
           end
         end
 
@@ -535,7 +554,7 @@ module Cql
           order.should == [:connected, :closed]
         end
 
-        it 'waits for #connect to complete before attempting to close, when connect fails' do
+        it 'waits for #connect to complete before attempting to close, when #connect fails' do
           order = []
           reactor_start_promise = Promise.new
           io_reactor.stub(:start).and_return(reactor_start_promise.future)
@@ -906,7 +925,7 @@ module Cql
 
         context 'with multiple connections' do
           let :connection_options do
-            {:hosts => %w[host1 host2], :port => 12321, :io_reactor => io_reactor, :logger => logger}
+            default_connection_options.merge(hosts: %w[host1 host2])
           end
 
           it 'prepares the statement on all connections' do
@@ -982,7 +1001,7 @@ module Cql
         include_context 'peer discovery setup'
 
         let :connection_options do
-          {:hosts => %w[host1 host2 host3], :port => 12321, :io_reactor => io_reactor}
+          default_connection_options.merge(hosts: %w[host1 host2 host3], keyspace: 'foo')
         end
 
         before do
@@ -1011,6 +1030,14 @@ module Cql
           event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
           connections.select(&:connected?).should have(3).items
+        end
+
+        it 'makes sure the new connections use the same keyspace as the existing' do
+          connections.first.close
+          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          use_keyspace_request = connections.last.requests.find { |r| r.is_a?(Protocol::QueryRequest) && r.cql.include?('USE') }
+          use_keyspace_request.cql.should == 'USE foo'
         end
 
         it 'eventually reconnects even when the node doesn\'t respond at first' do

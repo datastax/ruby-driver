@@ -26,7 +26,6 @@ module Cql
           InitializeStep.new(@compressor, @logger),
           AuthenticationStep.new(authenticator, @protocol_version),
           CachePropertiesStep.new,
-          ChangeKeyspaceStep.new,
         ]
         @connection_sequence = ClusterConnectionSequence.new(ConnectionSequence.new(steps), @logger)
         @connected = false
@@ -43,10 +42,11 @@ module Cql
             f = @io_reactor.start
             f = f.flat_map { connect_with_protocol_version_fallback }
             f = f.flat_map { |connections| connect_to_all_peers(connections) }
-            f.on_value do |connections|
+            f = f.flat_map do |connections|
               @connection_manager.add_connections(connections)
               register_event_listener(@connection_manager.random_connection)
             end
+            f = f.flat_map { use_keyspace(@connection_manager.snapshot, @initial_keyspace) }
             f.map(self)
           end
         end
@@ -86,12 +86,8 @@ module Cql
       def use(keyspace)
         with_failure_handler do
           connections = @connection_manager.select { |c| c.keyspace != keyspace }
-          if connections.any?
-            futures = connections.map { |connection| @keyspace_changer.use_keyspace(connection, keyspace) }
-            Future.all(*futures).map(nil)
-          else
-            Future.resolved
-          end
+          return Future.resolved if connections.empty?
+          use_keyspace(connections, keyspace).map(nil)
         end
       end
 
@@ -134,7 +130,7 @@ module Cql
       end
 
       def connect_with_protocol_version_fallback
-        f = @connection_sequence.connect_all(@hosts, @connections_per_node, @initial_keyspace)
+        f = @connection_sequence.connect_all(@hosts, @connections_per_node)
         f.fallback do |error|
           if error.is_a?(QueryError) && error.code == 0x0a && @protocol_version > 1
             @protocol_version -= 1
@@ -154,11 +150,11 @@ module Cql
             Future.resolved(seed_connections)
           else
             @logger.debug('%d additional nodes found' % hosts.size)
-            connections = @connection_sequence.connect_all(hosts, @connections_per_node, initial_keyspace)
-            connections = connections.map do |discovered_connections|
+            f = @connection_sequence.connect_all(hosts, @connections_per_node)
+            f = f.map do |discovered_connections|
               seed_connections + discovered_connections
             end
-            connections.recover(seed_connections)
+            f.recover(seed_connections)
           end
         end
       end
@@ -208,29 +204,37 @@ module Cql
         Future.failed(e)
       end
 
+      def use_keyspace(connections, keyspace)
+        futures = connections.map { |connection| @keyspace_changer.use_keyspace(connection, keyspace) }
+        Future.all(*futures)
+      end
+
       def register_event_listener(connection)
         register_request = Protocol::RegisterRequest.new(Protocol::TopologyChangeEventResponse::TYPE, Protocol::StatusChangeEventResponse::TYPE)
-        execute_request(register_request, nil, connection)
-        connection.on_closed do
-          if connected?
-            begin
-              register_event_listener(@connection_manager.random_connection)
-            rescue NotConnectedError
-              # we had started closing down after the connection check
+        f = execute_request(register_request, nil, connection)
+        f.on_value do
+          connection.on_closed do
+            if connected?
+              begin
+                register_event_listener(@connection_manager.random_connection)
+              rescue NotConnectedError
+                # we had started closing down after the connection check
+              end
             end
           end
-        end
-        connection.on_event do |event|
-          if event.change == 'UP' || event.change == 'NEW_NODE'
-            @logger.debug('Received %s event' % event.change)
-            unless @looking_for_nodes
-              @looking_for_nodes = true
-              handle_topology_change.on_complete do |f|
-                @looking_for_nodes = false
+          connection.on_event do |event|
+            if event.change == 'UP' || event.change == 'NEW_NODE'
+              @logger.debug('Received %s event' % event.change)
+              unless @looking_for_nodes
+                @looking_for_nodes = true
+                handle_topology_change.on_complete do |f|
+                  @looking_for_nodes = false
+                end
               end
             end
           end
         end
+        f
       end
 
       def handle_topology_change(remaning_attempts=MAX_RECONNECTION_ATTEMPTS)
@@ -240,8 +244,8 @@ module Cql
           f.flat_map do |all_connections|
             new_connections = all_connections - seed_connections
             if new_connections.size > 0
-              @connection_manager.add_connections(connected_connections)
-              Future.resolved
+              @connection_manager.add_connections(new_connections)
+              use(keyspace)
             elsif remaning_attempts > 0
               timeout = 2**(MAX_RECONNECTION_ATTEMPTS - remaning_attempts)
               @logger.debug('Scheduling new peer discovery in %ds' % timeout)
