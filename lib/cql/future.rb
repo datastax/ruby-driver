@@ -134,13 +134,7 @@ module Cql
     def map(value=nil, &block)
       CompletableFuture.new.tap do |f|
         on_failure { |e| f.fail(e) }
-        on_value do |v|
-          begin
-            f.resolve(block ? block.call(v) : value)
-          rescue => e
-            f.fail(e)
-          end
-        end
+        on_value { |v| run(f, value, block, v) }
       end
     end
 
@@ -158,15 +152,7 @@ module Cql
     def flat_map(&block)
       CompletableFuture.new.tap do |f|
         on_failure { |e| f.fail(e) }
-        on_value do |v|
-          begin
-            ff = block.call(v)
-            ff.on_failure { |e| f.fail(e) }
-            ff.on_value { |vv| f.resolve(vv) }
-          rescue => e
-            f.fail(e)
-          end
-        end
+        on_value { |v| chain(f, block, v) }
       end
     end
 
@@ -191,13 +177,7 @@ module Cql
     # @return [Cql::Future] a new future representing a value recovered from the error
     def recover(value=nil, &block)
       CompletableFuture.new.tap do |f|
-        on_failure do |e|
-          begin
-            f.resolve(block ? block.call(e) : value)
-          rescue => ee
-            f.fail(ee)
-          end
-        end
+        on_failure { |e| run(f, value, block, e) }
         on_value { |v| f.resolve(v) }
       end
     end
@@ -226,17 +206,26 @@ module Cql
     #   error
     def fallback(&block)
       CompletableFuture.new.tap do |f|
-        on_failure do |e|
-          begin
-            ff = block.call(e)
-            ff.on_failure { |ee| f.fail(ee) }
-            ff.on_value { |v| f.resolve(v) }
-          rescue => ee
-            f.fail(ee)
-          end
-        end
+        on_failure { |e| chain(f, block, e) }
         on_value { |v| f.resolve(v) }
       end
+    end
+
+    private
+
+    def run(f, value, producer, arg)
+      value = producer ? producer.call(arg) : value
+      f.resolve(value)
+    rescue => e
+      f.fail(e)
+    end
+
+    def chain(f, constructor, arg)
+      ff = constructor.call(arg)
+      ff.on_failure { |e| f.fail(e) }
+      ff.on_value { |v| f.resolve(v) }
+    rescue => e
+      f.fail(e)
     end
   end
 
