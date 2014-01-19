@@ -183,6 +183,22 @@ module Cql
           steps[1].arg.should == :foo
           steps[2].arg.should == :bar
         end
+
+        it 'fails if any of the steps fail' do
+          steps[0].stub(:run) do |arg|
+            Future.resolved(:foo)
+          end
+          steps[1].stub(:run) do |arg|
+            raise 'bork'
+          end
+          steps[2].stub(:run) do |arg|
+            Future.resolved(double(connection: :fake_connection))
+          end
+          sequence = described_class.new(steps)
+          result = sequence.connect('host0')
+          expect { result.value }.to raise_error('bork')
+          steps[2].should_not have_received(:run)
+        end
       end
     end
   end
