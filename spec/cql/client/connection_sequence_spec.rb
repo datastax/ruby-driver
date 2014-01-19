@@ -259,6 +259,37 @@ module Cql
     end
 
     describe CacheOptionsStep do
+      let :step do
+        described_class.new
+      end
+
+      let :pending_connection do
+        double(:pending_connection)
+      end
+
+      describe '#run' do
+        before do
+          response = {'CQL_VERSION' => %w[3.1.2], 'COMPRESSION' => %w[snappy magic]}
+          pending_connection.stub(:execute).with(an_instance_of(Protocol::OptionsRequest)).and_return(Future.resolved(response))
+          pending_connection.stub(:[]=)
+        end
+
+        it 'runs an OPTIONS request and adds the CQL version and compression support to the connection metadata' do
+          step.run(pending_connection)
+          pending_connection.should have_received(:[]=).with(:cql_version, %w[3.1.2])
+          pending_connection.should have_received(:[]=).with(:compression, %w[snappy magic])
+        end
+
+        it 'returns the same argument as it was given' do
+          step.run(pending_connection).value.should equal(pending_connection)
+        end
+
+        it 'returns a failed future when the request fails' do
+          pending_connection.stub(:execute).and_return(Future.failed(StandardError.new('bork')))
+          result = step.run(pending_connection)
+          expect { result.value }.to raise_error('bork')
+        end
+      end
     end
 
     describe InitializeStep do
