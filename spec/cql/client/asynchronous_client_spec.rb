@@ -252,6 +252,40 @@ module Cql
             expect { client.connect.value }.to raise_error(/Get off my lawn/)
             client.should_not be_connected
           end
+
+          it 'passes the protocol version to the authenticator' do
+            auth_class = 'org.apache.cassandra.auth.PasswordAuthenticator'
+            authenticator = double(:authenticator)
+            authenticator.stub(:supports?).with(auth_class, 2).and_return(true)
+            authenticator.stub(:initial_request).with(2).and_return(Protocol::AuthResponseRequest.new("\x00foo\x00bar"))
+            client = described_class.new(connection_options.merge(protocol_version: 4, authenticator: authenticator))
+            protocol_version = 4
+            handle_request do |request|
+              response = begin
+                if protocol_version <= 2
+                  case request
+                  when Protocol::OptionsRequest
+                    Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
+                  when Protocol::StartupRequest
+                    Protocol::AuthenticateResponse.new(auth_class)
+                  when Protocol::AuthResponseRequest
+                    Protocol::AuthSuccessResponse.new('ok')
+                  end
+                else
+                  Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+                end
+              end
+              if request.is_a?(Protocol::OptionsRequest)
+                protocol_version -= 1
+              end
+              response
+            end
+            client.connect.value
+            client.should be_connected
+            authenticator.should have_received(:supports?).with(auth_class, 2)
+            authenticator.should_not have_received(:supports?).with(auth_class, 1)
+            authenticator.should have_received(:initial_request).with(2)
+          end
         end
 
         it 'returns itself' do

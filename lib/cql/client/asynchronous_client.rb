@@ -17,17 +17,9 @@ module Cql
         @keyspace_changer = KeyspaceChanger.new
         @connection_manager = ConnectionManager.new
         @execute_options_decoder = ExecuteOptionsDecoder.new(options[:default_consistency] || DEFAULT_CONSISTENCY)
-        port = options[:port] || DEFAULT_PORT
-        connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
-        authenticator = options[:authenticator]
-        steps = [
-          ConnectStep.new(@io_reactor, port, connection_timeout, @logger),
-          CacheOptionsStep.new,
-          InitializeStep.new(@compressor, @logger),
-          AuthenticationStep.new(authenticator, @protocol_version),
-          CachePropertiesStep.new,
-        ]
-        @connection_sequence = ClusterConnectionSequence.new(ConnectionSequence.new(steps), @logger)
+        @port = options[:port] || DEFAULT_PORT
+        @connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
+        @authenticator = options[:authenticator]
         @connected = false
         @connecting = false
         @closing = false
@@ -129,8 +121,21 @@ module Cql
         end
       end
 
+      def create_connection_sequence
+        ClusterConnectionSequence.new(
+          ConnectionSequence.new([
+            ConnectStep.new(@io_reactor, @port, @connection_timeout, @logger),
+            CacheOptionsStep.new,
+            InitializeStep.new(@compressor, @logger),
+            AuthenticationStep.new(@authenticator, @protocol_version),
+            CachePropertiesStep.new,
+          ]),
+          @logger
+        )
+      end
+
       def connect_with_protocol_version_fallback
-        f = @connection_sequence.connect_all(@hosts, @connections_per_node)
+        f = create_connection_sequence.connect_all(@hosts, @connections_per_node)
         f.fallback do |error|
           if error.is_a?(QueryError) && error.code == 0x0a && @protocol_version > 1
             @protocol_version -= 1
@@ -150,7 +155,7 @@ module Cql
             Future.resolved(seed_connections)
           else
             @logger.debug('%d additional nodes found' % hosts.size)
-            f = @connection_sequence.connect_all(hosts, @connections_per_node)
+            f = create_connection_sequence.connect_all(hosts, @connections_per_node)
             f = f.map do |discovered_connections|
               seed_connections + discovered_connections
             end
