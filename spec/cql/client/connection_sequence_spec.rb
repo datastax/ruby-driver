@@ -293,6 +293,103 @@ module Cql
     end
 
     describe InitializeStep do
+      let :step do
+        described_class.new(compressor, logger)
+      end
+
+      let :compressor do
+        nil
+      end
+
+      let :logger do
+        NullLogger.new
+      end
+
+      let :pending_connection do
+        double(:pending_connection)
+      end
+
+      describe '#run' do
+        before do
+          pending_connection.stub(:[]).with(:compression).and_return(%w[magic snappy])
+          pending_connection.stub(:execute) do |request|
+            pending_connection.stub(:last_request).and_return(request)
+            Future.resolved
+          end
+        end
+
+        it 'sends a STARTUP request' do
+          step.run(pending_connection)
+          pending_connection.last_request.should be_a(Protocol::StartupRequest)
+        end
+
+        it 'does not set the compression option when there is no compressor' do
+          step.run(pending_connection)
+          pending_connection.last_request.options.should_not have_key('COMPRESSION')
+        end
+
+        it 'returns the same argument as it was given' do
+          step.run(pending_connection).value.should equal(pending_connection)
+        end
+
+        it 'returns a failed future when the request fails' do
+          pending_connection.stub(:execute).and_return(Future.failed(StandardError.new('bork')))
+          result = step.run(pending_connection)
+          expect { result.value }.to raise_error('bork')
+        end
+
+        context 'when a compressor is given' do
+          let :compressor do
+            double(:compressor, algorithm: 'magic')
+          end
+
+          it 'sets the compression option to the algorithm supported by the compressor' do
+            step.run(pending_connection)
+            pending_connection.last_request.options.should include('COMPRESSION' => 'magic')
+          end
+
+          it 'does not set the compression option when the algorithm is not supported by the server' do
+            compressor.stub(:algorithm).and_return('bogus')
+            step.run(pending_connection)
+            pending_connection.last_request.options.should_not have_key('COMPRESSION')
+          end
+
+          it 'logs a message when the server supports the algorithm' do
+            logger.stub(:debug)
+            step.run(pending_connection)
+            logger.should have_received(:debug).with(/using "magic" compression/i)
+          end
+
+          it 'logs a message when the algorithm is not supported by the server' do
+            pending_connection.stub(:[]).with(:compression).and_return(%w[foo bar])
+            logger.stub(:warn)
+            step.run(pending_connection)
+            logger.should have_received(:warn).with(/algorithm "magic" not supported/i)
+          end
+
+          it 'logs which algorithms the server supports when there is a mismatch' do
+            pending_connection.stub(:[]).with(:compression).and_return(%w[foo bar])
+            logger.stub(:warn)
+            step.run(pending_connection)
+            logger.should have_received(:warn).with(/server supports "foo", "bar"/i)
+          end
+        end
+
+        context 'when authentication is required' do
+          let :new_pending_connection do
+            double(:new_pending_connection)
+          end
+
+          before do
+            pending_connection.stub(:execute).and_return(Future.resolved(AuthenticationRequired.new('net.acme.Bogus')))
+            pending_connection.stub(:with_authentication_class).and_return(new_pending_connection)
+          end
+
+          it 'appends the authentication class returned by the server to given argument and returns the result' do
+            step.run(pending_connection).value.should equal(new_pending_connection)
+          end
+        end
+      end
     end
 
     describe AuthenticationStep do
