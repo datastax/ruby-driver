@@ -231,6 +231,24 @@ module Cql
             client.should be_connected
           end
 
+          it 'logs when it tries the next protocol version' do
+            logger.stub(:warn)
+            counter = 0
+            handle_request do |request|
+              if counter < 3
+                counter += 1
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              elsif counter == 3
+                counter += 1
+                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
+              else
+                Protocol::RowsResultResponse.new([], [], nil, nil)
+              end
+            end
+            client.connect.value
+            logger.should have_received(:warn).with(/could not connect using protocol version 7 \(will try again with 6\): bork version, dummy!/i)
+          end
+
           it 'gives up when the protocol version is zero' do
             handle_request do |request|
               Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
