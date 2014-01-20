@@ -396,6 +396,47 @@ module Cql
     end
 
     describe CachePropertiesStep do
+      let :step do
+        described_class.new
+      end
+
+      let :pending_connection do
+        double(:pending_connection)
+      end
+
+      describe '#run' do
+        before do
+          node_info = {'data_center' => 'dc', 'host_id' => Uuid.new('11111111-1111-1111-1111-111111111111')}
+          pending_connection.stub(:execute) do |request|
+            pending_connection.stub(:last_request).and_return(request)
+            Future.resolved(QueryResult.new([], [node_info], nil))
+          end
+          pending_connection.stub(:[]=)
+        end
+
+        it 'queries the system table "local" for data center and host ID and adds these to the connection metadata' do
+          step.run(pending_connection)
+          pending_connection.should have_received(:[]=).with(:data_center, 'dc')
+          pending_connection.should have_received(:[]=).with(:host_id, Uuid.new('11111111-1111-1111-1111-111111111111'))
+        end
+
+        it 'handles the case when the query result is empty' do
+          pending_connection.stub(:execute).and_return(Future.resolved(QueryResult.new([], [], nil)))
+          result = step.run(pending_connection)
+          result.should be_resolved
+          pending_connection.should_not have_received(:[]=)
+        end
+
+        it 'returns the same argument as it was given' do
+          step.run(pending_connection).value.should equal(pending_connection)
+        end
+
+        it 'returns a failed future when the request fails' do
+          pending_connection.stub(:execute).and_return(Future.failed(StandardError.new('bork')))
+          result = step.run(pending_connection)
+          expect { result.value }.to raise_error('bork')
+        end
+      end
     end
   end
 end
