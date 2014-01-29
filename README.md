@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/iconara/cql-rb.png?branch=master)](https://travis-ci.org/iconara/cql-rb)
 [![Coverage Status](https://coveralls.io/repos/iconara/cql-rb/badge.png)](https://coveralls.io/r/iconara/cql-rb)
+[![Blog](http://b.repl.ca/v1/blog-cqlrb-ff69b4.png)](http://architecturalatrocities.com/tagged/cqlrb)
 
 _Please note that this is the readme for the development version and that some features described here might not yet have been released._
 
