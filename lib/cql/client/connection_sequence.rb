@@ -3,7 +3,7 @@
 module Cql
   module Client
     # @private
-    class ClusterConnectionSequence
+    class ClusterConnector
       def initialize(sequence, logger)
         @sequence = sequence
         @logger = logger
@@ -51,7 +51,7 @@ module Cql
     end
 
     # @private
-    class ConnectionSequence
+    class Connector
       def initialize(steps)
         @steps = steps.dup
       end

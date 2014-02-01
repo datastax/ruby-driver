@@ -121,9 +121,9 @@ module Cql
         end
       end
 
-      def create_connection_sequence
-        ClusterConnectionSequence.new(
-          ConnectionSequence.new([
+      def create_cluster_connector
+        ClusterConnector.new(
+          Connector.new([
             ConnectStep.new(@io_reactor, @port, @connection_timeout, @logger),
             CacheOptionsStep.new,
             InitializeStep.new(@compressor, @logger),
@@ -135,7 +135,7 @@ module Cql
       end
 
       def connect_with_protocol_version_fallback
-        f = create_connection_sequence.connect_all(@hosts, @connections_per_node)
+        f = create_cluster_connector.connect_all(@hosts, @connections_per_node)
         f.fallback do |error|
           if error.is_a?(QueryError) && error.code == 0x0a && @protocol_version > 1
             @logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@protocol_version, @protocol_version - 1, error.message])
@@ -156,7 +156,7 @@ module Cql
             Future.resolved(seed_connections)
           else
             @logger.debug('%d additional nodes found' % hosts.size)
-            f = create_connection_sequence.connect_all(hosts, @connections_per_node)
+            f = create_cluster_connector.connect_all(hosts, @connections_per_node)
             f = f.map do |discovered_connections|
               seed_connections + discovered_connections
             end

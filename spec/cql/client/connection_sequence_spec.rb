@@ -5,7 +5,7 @@ require 'spec_helper'
 
 module Cql
   module Client
-    describe ClusterConnectionSequence do
+    describe ClusterConnector do
       let :cluster_connector do
         described_class.new(node_connector, logger)
       end
@@ -133,8 +133,8 @@ module Cql
       end
     end
 
-    describe ConnectionSequence do
-      let :sequence do
+    describe Connector do
+      let :connector do
         described_class.new(steps)
       end
 
@@ -152,8 +152,8 @@ module Cql
             steps[0].stub(:arg).and_return(arg)
             Future.resolved(arg)
           end
-          sequence = described_class.new(steps.take(1))
-          result = sequence.connect('host0')
+          connector = described_class.new(steps.take(1))
+          result = connector.connect('host0')
           steps[0].arg.host.should == 'host0'
         end
 
@@ -161,8 +161,8 @@ module Cql
           steps[0].stub(:run) do |arg|
             Future.resolved(double(connection: :fake_connection))
           end
-          sequence = described_class.new(steps.take(1))
-          result = sequence.connect('host0')
+          connector = described_class.new(steps.take(1))
+          result = connector.connect('host0')
           result.value.should == :fake_connection
         end
 
@@ -178,8 +178,8 @@ module Cql
             steps[2].stub(:arg).and_return(arg)
             Future.resolved(double(connection: :fake_connection))
           end
-          sequence = described_class.new(steps)
-          result = sequence.connect('host0')
+          connector = described_class.new(steps)
+          result = connector.connect('host0')
           steps[1].arg.should == :foo
           steps[2].arg.should == :bar
         end
@@ -194,8 +194,8 @@ module Cql
           steps[2].stub(:run) do |arg|
             Future.resolved(double(connection: :fake_connection))
           end
-          sequence = described_class.new(steps)
-          result = sequence.connect('host0')
+          connector = described_class.new(steps)
+          result = connector.connect('host0')
           expect { result.value }.to raise_error('bork')
           steps[2].should_not have_received(:run)
         end
