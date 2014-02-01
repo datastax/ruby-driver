@@ -464,7 +464,6 @@ describe 'Protocol parsing and communication' do
             request.add_prepared(prepared_response1.id, prepared_response1.metadata, ['phil', 'phil@heck.com'])
             request.add_prepared(prepared_response2.id, prepared_response1.metadata, [])
             response = execute_request(request)
-            p response
             response.should be_void
           end
         end
