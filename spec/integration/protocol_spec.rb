@@ -132,25 +132,10 @@ describe 'Protocol parsing and communication' do
     end
 
     context 'when authentication is not required' do
-      context 'and protcol v1' do
-        let :protocol_version do
-          1
-        end
-
-        it 'sends STARTUP and receives READY' do
-          pending('authentication required', if: authentication_enabled?) do
-            response = execute_request(Cql::Protocol::StartupRequest.new, false)
-            response.should be_a(Cql::Protocol::ReadyResponse)
-          end
-        end
-      end
-
-      context 'and protocol v2' do
-        it 'sends STARTUP and receives AUTH_SUCCESS' do
-          pending('authentication required', if: authentication_enabled?) do
-            response = execute_request(Cql::Protocol::StartupRequest.new, false)
-            response.should be_a(Cql::Protocol::AuthSuccessResponse)
-          end
+      it 'sends STARTUP and receives READY' do
+        pending('authentication required', if: authentication_enabled?) do
+          response = execute_request(Cql::Protocol::StartupRequest.new, false)
+          response.should be_a(Cql::Protocol::ReadyResponse)
         end
       end
     end
@@ -177,11 +162,9 @@ describe 'Protocol parsing and communication' do
         end
 
         it 'sends STARTUP followed by CREDENTIALS and receives READY' do
-          pending('authentication not configured', unless: authentication_enabled?) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new)
-            response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra'))
-            response.should be_a(Cql::Protocol::ReadyResponse)
-          end
+          raw_execute_request(Cql::Protocol::StartupRequest.new)
+          response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra'))
+          response.should be_a(Cql::Protocol::ReadyResponse)
         end
 
         it 'sends bad username and password in CREDENTIALS and receives ERROR' do
@@ -559,12 +542,13 @@ describe 'Protocol parsing and communication' do
     end
 
     it 'does nothing the second time #start is called' do
-      io_reactor = Cql::Io::IoReactor.new(lambda { |*args| Cql::Protocol::CqlProtocolHandler.new(*args, protocol_version) })
+      io_reactor = Cql::Io::IoReactor.new(lambda { |*args| Cql::Protocol::CqlProtocolHandler.new(*args, 2) })
       io_reactor.start.value
       connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1).value
       response = connection.send_request(Cql::Protocol::StartupRequest.new).value
       if response.is_a?(Cql::Protocol::AuthenticateResponse)
-        connection.send_request(Cql::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra')).value
+        response = connection.send_request(Cql::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra")).value
+        response.should be_a(Cql::Protocol::AuthSuccessResponse)
       end
       io_reactor.start.value
       response = connection.send_request(Cql::Protocol::QueryRequest.new('USE system', nil, :any)).value
