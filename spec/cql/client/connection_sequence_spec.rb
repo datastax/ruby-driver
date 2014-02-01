@@ -393,6 +393,63 @@ module Cql
     end
 
     describe AuthenticationStep do
+      let :step do
+        described_class.new(authenticator, 5)
+      end
+
+      let :authenticator do
+        double(:authenticator)
+      end
+
+      let :pending_connection do
+        double(:pending_connection)
+      end
+
+      let :request do
+        double(:request)
+      end
+
+      describe '#run' do
+        before do
+          pending_connection.stub(:authentication_class).and_return('org.acme.Auth')
+          pending_connection.stub(:execute).and_return(Future.resolved)
+          authenticator.stub(:supports?).and_return(true)
+          authenticator.stub(:initial_request).and_return(request)
+        end
+
+        it 'returns the pending connection when there\'s no authentication class' do
+          pending_connection.stub(:authentication_class).and_return(nil)
+          result = step.run(pending_connection)
+          result.value.should equal(pending_connection)
+        end
+
+        it 'returns a failed future when there\'s an authentication class but no authenticator' do
+          step = described_class.new(nil, 5)
+          result = step.run(pending_connection)
+          expect { result.value }.to raise_error(AuthenticationError)
+        end
+
+        it 'returns a failed future when the authenticator does not support the authentication class' do
+          authenticator.stub(:supports?).and_return(false)
+          result = step.run(pending_connection)
+          expect { result.value }.to raise_error(AuthenticationError)
+        end
+
+        it 'asks the authenticator to formulate its initial requests, and then executes the request' do
+          step.run(pending_connection)
+          pending_connection.should have_received(:execute).with(request)
+        end
+
+        it 'passes the protocol version to the authenticator' do
+          step.run(pending_connection)
+          authenticator.should have_received(:initial_request).with(5)
+        end
+
+        it 'returns the same argument as it was given' do
+          result = step.run(pending_connection)
+          result.value.should equal(pending_connection)
+        end
+      end
     end
 
     describe CachePropertiesStep do
