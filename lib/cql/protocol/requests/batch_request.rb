@@ -32,8 +32,8 @@ module Cql
       end
 
       def write(protocol_version, io)
-        io << @type.ord
-        write_short(io, @num_queries.ord)
+        io << @type.chr
+        write_short(io, @num_queries)
         io << @encoded_queries
         write_consistency(io, @consistency)
       end
