@@ -132,13 +132,18 @@ describe 'A CQL client' do
         end
       end
 
-      it 'sends credentials given in :credentials' do
+      it 'uses the authenticator given in the :authenticator option' do
         authenticator = Cql::Client::PasswordAuthenticator.new('cassandra', 'cassandra')
         client = Cql::Client.connect(connection_options.merge(authenticator: authenticator, protocol_version: 1))
         client.execute('SELECT * FROM system.schema_keyspaces')
       end
 
-      it 'raises an error when no credentials have been given' do
+      it 'falls back on creating a PasswordAuthenticator using the credentials given in the :credentials option' do
+        client = Cql::Client.connect(connection_options.merge(credendtials: {:username => 'cassandra', :password => 'cassandra'}, protocol_version: 1))
+        client.execute('SELECT * FROM system.schema_keyspaces')
+      end
+
+      it 'raises an error when no authenticator or credentials have been given' do
         pending('authentication not configured', unless: authentication_enabled) do
           expect { Cql::Client.connect(connection_options.merge(authenticator: nil, protocol_version: 1)) }.to raise_error(Cql::AuthenticationError)
         end
@@ -164,13 +169,18 @@ describe 'A CQL client' do
         end
       end
 
-      it 'sends credentials given in :credentials' do
+      it 'uses the authenticator given in the :authenticator option' do
         authenticator = Cql::Client::PasswordAuthenticator.new('cassandra', 'cassandra')
         client = Cql::Client.connect(connection_options.merge(authenticator: authenticator))
         client.execute('SELECT * FROM system.schema_keyspaces')
       end
 
-      it 'raises an error when no credentials have been given' do
+      it 'falls back on creating a PasswordAuthenticator using the credentials given in the :credentials option' do
+        client = Cql::Client.connect(connection_options.merge(credentials: {:username => 'cassandra', :password => 'cassandra'}))
+        client.execute('SELECT * FROM system.schema_keyspaces')
+      end
+
+      it 'raises an error when no authenticator or credentials have been given' do
         pending('authentication not configured', unless: authentication_enabled) do
           expect { Cql::Client.connect(connection_options.merge(authenticator: nil)) }.to raise_error(Cql::AuthenticationError)
         end

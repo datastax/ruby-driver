@@ -19,7 +19,7 @@ module Cql
         @execute_options_decoder = ExecuteOptionsDecoder.new(options[:default_consistency] || DEFAULT_CONSISTENCY)
         @port = options[:port] || DEFAULT_PORT
         @connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
-        @authenticator = options[:authenticator]
+        @authenticator = options[:authenticator] || options.include?(:credentials) && PasswordAuthenticator.new(*options.values_at(:username, :password))
         @connected = false
         @connecting = false
         @closing = false

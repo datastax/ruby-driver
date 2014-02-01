@@ -531,6 +531,11 @@ module Cql
             end
           end
 
+          it 'creates a PasswordAuthenticator when the :credentials options is given' do
+            client = described_class.new(connection_options.merge(credentials: {:username => 'foo', :password => 'bar'}))
+            expect { client.connect.value }.to_not raise_error
+          end
+
           it 'raises an error when no credentials have been given' do
             client = described_class.new(connection_options)
             expect { client.connect.value }.to raise_error(AuthenticationError)
