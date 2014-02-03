@@ -19,6 +19,17 @@ describe 'A CQL client' do
     client.close rescue nil
   end
 
+  def create_keyspace_and_table
+    begin
+      client.execute(%(DROP KEYSPACE cql_rb_client_spec))
+    rescue Cql::QueryError => e
+      raise e unless e.code == 0x2300
+    end
+    client.execute(%(CREATE KEYSPACE cql_rb_client_spec WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}))
+    client.use('cql_rb_client_spec')
+    client.execute(%(CREATE TABLE users (user_id VARCHAR PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)))
+  end
+
   context 'with common operations' do
     it 'executes a query and returns the result' do
       result = client.execute('SELECT * FROM system.schema_keyspaces')
@@ -199,10 +210,7 @@ describe 'A CQL client' do
 
   context 'with tracing' do
     before do
-      client.execute(%(DROP KEYSPACE cql_rb_client_spec)) rescue nil
-      client.execute(%(CREATE KEYSPACE cql_rb_client_spec WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}))
-      client.use('cql_rb_client_spec')
-      client.execute(%(CREATE TABLE users (user_id VARCHAR PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)))
+      create_keyspace_and_table
     end
 
     it 'requests tracing and returns the trace ID, for row returning operations' do
@@ -244,10 +252,7 @@ describe 'A CQL client' do
 
   context 'with on-the-fly bound variables' do
     before do
-      client.execute(%(DROP KEYSPACE cql_rb_client_spec)) rescue nil
-      client.execute(%(CREATE KEYSPACE cql_rb_client_spec WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}))
-      client.use('cql_rb_client_spec')
-      client.execute(%(CREATE TABLE users (user_id VARCHAR PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT)))
+      create_keyspace_and_table
     end
 
     it 'executes a query and sends the values separately' do
