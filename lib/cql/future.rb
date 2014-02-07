@@ -451,18 +451,74 @@ module Cql
   # @private
   class ResolvedFuture < Future
     def initialize(value=nil)
-      super()
-      @value = value
       @resolved = true
+      @failed = false
+      @value = value
+      @error = nil
+    end
+
+    def value
+      @value
+    end
+
+    def completed?
+      true
+    end
+
+    def resolved?
+      true
+    end
+
+    def failed?
+      false
+    end
+
+    def on_complete(&listener)
+      listener.call(self) rescue nil
+    end
+
+    def on_value(&listener)
+      listener.call(value) rescue nil
+    end
+
+    def on_failure
     end
   end
 
   # @private
   class FailedFuture < Future
     def initialize(error)
-      super()
-      @error = error
+      @resolved = false
       @failed = true
+      @value = nil
+      @error = error
+    end
+
+    def value
+      raise @error
+    end
+
+    def completed?
+      true
+    end
+
+    def resolved?
+      false
+    end
+
+    def failed?
+      true
+    end
+
+    def on_complete(&listener)
+      listener.call(self) rescue nil
+    end
+
+    def on_value
+    end
+
+    def on_failure(&listener)
+      listener.call(@error) rescue nil
     end
   end
 end

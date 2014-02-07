@@ -644,7 +644,7 @@ module Cql
           described_class.resolved('hello world')
         end
 
-        it 'returns a future which is resolved' do
+        it 'is resolved' do
           future.should be_resolved
         end
 
