@@ -36,8 +36,15 @@ module Cql
         Uuid.new(276263553384940695775376958868900023510).should eql(Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'))
       end
 
-      it 'is not equal when anything other than a Uuid is passed' do
-        [nil, 123, 'test'].each { |v| Uuid.new(276263553384940695775376958868900023510).should_not eql(v) }
+      it 'uses #value to determine equality' do
+        Uuid.new(276263553384940695775376958868900023510).should eql(Future.resolved(276263553384940695775376958868900023510))
+      end
+
+      it 'does not attempt to call #value on object that do not respond to it' do
+        uuid = Uuid.new(276263553384940695775376958868900023510)
+        expect { uuid.should_not eql(nil) }.to_not raise_error
+        expect { uuid.should_not eql(123) }.to_not raise_error
+        expect { uuid.should_not eql('test') }.to_not raise_error
       end
 
       it 'aliases #== to #eql?' do
