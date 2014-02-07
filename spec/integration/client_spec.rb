@@ -28,6 +28,7 @@ describe 'A CQL client' do
     client.execute(%(CREATE KEYSPACE cql_rb_client_spec WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}))
     client.use('cql_rb_client_spec')
     client.execute(%(CREATE TABLE users (user_id VARCHAR PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)))
+    client.execute(%(CREATE TABLE counters (id VARCHAR PRIMARY KEY, count COUNTER)))
   end
 
   context 'with common operations' do
@@ -73,16 +74,38 @@ describe 'A CQL client' do
     end
 
     it 'executes a prepared statement' do
-      result = statement.execute('system')
+      result = statement.execute('sue')
       result.should have(1).item
-      result = statement.execute('system', :one)
+      result = statement.execute('sue', :one)
       result.should have(1).item
     end
 
     it 'executes a prepared statement with no bound values' do
-      statement = client.prepare('SELECT * FROM schema_keyspaces')
+      statement = client.prepare('SELECT * FROM users')
       result = statement.execute(:one)
       result.should_not be_empty
+    end
+
+    it 'executes a batch' do
+      statement = client.prepare('UPDATE users SET first = ?, last = ?, age = ? WHERE user_id = ?')
+      statement.batch do |batch|
+        batch.add('Sam', 'Miller', 23, 'sam')
+        batch.add('Kim', 'Jones', 62, 'kim')
+      end
+      result = client.execute(%(SELECT * FROM users WHERE user_id = 'kim'))
+      result.first['last'].should == 'Jones'
+    end
+
+    it 'executes a counter batch' do
+      statement = client.prepare('UPDATE counters SET count = count + ? WHERE id = ?')
+      batch = statement.batch(:counter, consistency: :quorum)
+      batch.add(5, 'foo')
+      batch.add(3, 'bar')
+      batch.add(6, 'foo')
+      batch.execute
+      result = client.execute('SELECT * FROM counters')
+      counters = result.each_with_object({}) { |row, acc| acc[row['id']] = row['count'] }
+      counters.should eql('foo' => 11, 'bar' => 3)
     end
   end
 
@@ -258,6 +281,82 @@ describe 'A CQL client' do
     it 'executes a query and sends the values separately' do
       result = client.execute(%<INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)>, 'sue', 'Sue', 'Smith', 35)
       result.should be_empty
+    end
+  end
+
+  context 'when batching operations' do
+    before do
+      create_keyspace_and_table
+    end
+
+    it 'sends the operations as a single request' do
+      batch = client.batch
+      batch.add(%(UPDATE users SET last = 'Smith' WHERE user_id = 'smith'))
+      batch.add(%(UPDATE users SET last = 'Jones' WHERE user_id = 'jones'))
+      batch.execute
+      result = client.execute(%(SELECT * FROM users WHERE user_id = 'jones'))
+      result.first.should include('last' => 'Jones')
+    end
+
+    it 'accepts prepared statements' do
+      prepared_statement = client.prepare(%(UPDATE users SET last = ? WHERE user_id = ?))
+      batch = client.batch
+      batch.add(prepared_statement, 'Smith', 'smith')
+      batch.add(prepared_statement, 'Jones', 'jones')
+      batch.execute
+      result = client.execute(%(SELECT * FROM users WHERE user_id = 'jones'))
+      result.first.should include('last' => 'Jones')
+    end
+
+    it 'accepts a mix of prepared, regular and statements with on-the-fly bound variables' do
+      prepared_statement = client.prepare(%(UPDATE users SET last = ? WHERE user_id = ?))
+      batch = client.batch
+      batch.add(prepared_statement, 'Smith', 'smith')
+      batch.add(%(UPDATE users SET last = 'Jones' WHERE user_id = 'jones'))
+      batch.add(%(UPDATE users SET last = ? WHERE user_id = ?), 'Taylor', 'taylor')
+      batch.execute
+      result = client.execute(%(SELECT * FROM users WHERE user_id = 'jones'))
+      result.first.should include('last' => 'Jones')
+      result = client.execute(%(SELECT * FROM users WHERE user_id = 'taylor'))
+      result.first.should include('last' => 'Taylor')
+    end
+
+    it 'yields the batch to a block and executes it afterwards' do
+      client.batch do |batch|
+        batch.add(%(UPDATE users SET last = 'Jones' WHERE user_id = 'jones'))
+      end
+      result = client.execute(%(SELECT * FROM users WHERE user_id = 'jones'))
+      result.first.should include('last' => 'Jones')
+    end
+
+    it 'can be used for counter increments' do
+      client.batch(:counter) do |batch|
+        batch.add(%(UPDATE counters SET count = count + 1 WHERE id = 'foo'))
+        batch.add(%(UPDATE counters SET count = count + 2 WHERE id = 'bar'))
+        batch.add(%(UPDATE counters SET count = count + 3 WHERE id = 'baz'))
+      end
+      result = client.execute('SELECT * FROM counters')
+      counters = result.each_with_object({}) { |row, acc| acc[row['id']] = row['count'] }
+      counters.should eql('foo' => 1, 'bar' => 2, 'baz' => 3)
+    end
+
+    it 'can be unlogged' do
+      client.batch(:unlogged) do |batch|
+        batch.add(%(UPDATE users SET last = 'Jones' WHERE user_id = 'jones'))
+      end
+      result = client.execute(%(SELECT * FROM users WHERE user_id = 'jones'))
+      result.first.should include('last' => 'Jones')
+    end
+
+    it 'can be traced' do
+      batch = client.batch(:unlogged)
+      batch.add(%(UPDATE users SET last = 'Jones' WHERE user_id = 'jones'))
+      result = batch.execute(trace: true)
+      result.trace_id.should_not be_nil
+      result = client.batch(:unlogged, trace: true) do |batch|
+        batch.add(%(UPDATE users SET last = 'Jones' WHERE user_id = 'jones'))
+      end
+      result.trace_id.should_not be_nil
     end
   end
 

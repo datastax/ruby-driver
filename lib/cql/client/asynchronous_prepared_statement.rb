@@ -57,6 +57,18 @@ module Cql
         f.map(self)
       end
 
+      # @private
+      def add_to_batch(batch, connection, bound_args)
+        statement_id = connection[self]
+        unless statement_id
+          raise NotPreparedError
+        end
+        unless bound_args.size == @raw_metadata.size
+          raise ArgumentError, "Expected #{@raw_metadata.size} arguments, got #{bound_args.size}"
+        end
+        batch.add_prepared(statement_id, @raw_metadata, bound_args)
+      end
+
       private
 
       def run(args, connection)

@@ -261,6 +261,45 @@ module Cql
           tracing.should be_true
         end
       end
+
+      describe '#add_to_batch' do
+        let :statement do
+          described_class.prepare('UPDATE x SET y = ? WHERE z = ?', ExecuteOptionsDecoder.new(:one), connection_manager, logger).value
+        end
+
+        let :batch do
+          double(:batch)
+        end
+
+        let :additions do
+          []
+        end
+
+        before do
+          connections.pop(2)
+          batch.stub(:add_prepared) do |*args|
+            additions << args
+          end
+        end
+
+        it 'calls #add_prepared with the statement ID, metadata and bound variables' do
+          statement.add_to_batch(batch, connections.first, [11, 'foo'])
+          statement_id, metadata, bound_args = additions.first
+          statement_id.should == connections.first[:last_prepared_statement_id]
+          metadata.should == raw_metadata
+          bound_args.should == [11, 'foo']
+        end
+
+        it 'raises an error when the number of bound arguments is not right' do
+          expect { statement.add_to_batch(batch, connections.first, [11, 'foo', 22]) }.to raise_error(ArgumentError)
+        end
+
+        it 'raises an error when the statement has not been prepared on the specified connection' do
+          connection = double(:connection)
+          connection.stub(:[]).with(statement).and_return(nil)
+          expect { statement.add_to_batch(batch, connection, [11, 'foo']) }.to raise_error(NotPreparedError)
+        end
+      end
     end
   end
 end

@@ -1000,6 +1000,46 @@ module Cql
         end
       end
 
+      describe '#batch' do
+        before do
+          client.connect.value
+        end
+
+        context 'when called witout a block' do
+          it 'returns a batch' do
+            batch = client.batch
+            batch.add('UPDATE x SET y = 3 WHERE z = 1')
+            batch.execute.value
+            last_request.should be_a(Protocol::BatchRequest)
+          end
+
+          it 'passes the options to the batch' do
+            batch = client.batch(trace: true)
+            batch.add('UPDATE x SET y = 3 WHERE z = 1')
+            batch.execute.value
+            last_request.trace.should be_true
+          end
+        end
+
+        context 'when called with a block' do
+          it 'yields and executes a batch' do
+            f = client.batch do |batch|
+              batch.add('UPDATE x SET y = 3 WHERE z = 1')
+            end
+            f.value
+            last_request.should be_a(Protocol::BatchRequest)
+          end
+
+          it 'passes the options to the batch\'s #execute' do
+            f = client.batch(:unlogged, trace: true) do |batch|
+              batch.add('UPDATE x SET y = 3 WHERE z = 1')
+            end
+            f.value
+            last_request.trace.should be_true
+          end
+        end
+      end
+
       context 'when not connected' do
         it 'is not connected before #connect has been called' do
           client.should_not be_connected

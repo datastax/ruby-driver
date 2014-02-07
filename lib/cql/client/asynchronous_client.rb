@@ -100,6 +100,20 @@ module Cql
         end
       end
 
+      def batch(type=:logged, options={})
+        if type.is_a?(Hash)
+          options = type
+          type = :logged
+        end
+        b = AsynchronousBatch.new(type, @execute_options_decoder, @connection_manager, options)
+        if block_given?
+          yield b
+          b.execute
+        else
+          b
+        end
+      end
+
       private
 
       DEFAULT_CONSISTENCY = :quorum

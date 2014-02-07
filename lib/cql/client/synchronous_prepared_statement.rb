@@ -25,6 +25,11 @@ module Cql
       def async
         @async_statement
       end
+
+      # @private
+      def add_to_batch(batch, connection, bound_arguments)
+        @async_statement.add_to_batch(batch, connection, bound_arguments)
+      end
     end
 
     # @private

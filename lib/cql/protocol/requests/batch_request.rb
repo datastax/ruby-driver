@@ -7,10 +7,12 @@ module Cql
       UNLOGGED_TYPE = 1
       COUNTER_TYPE = 2
 
+      attr_reader :type, :consistency, :part_count
+
       def initialize(type, consistency, trace=false)
         super(0x0D, trace)
         @type = type
-        @num_queries = 0
+        @part_count = 0
         @encoded_queries = ByteBuffer.new
         @consistency = consistency
       end
@@ -19,7 +21,7 @@ module Cql
         @encoded_queries << QUERY_KIND
         write_long_string(@encoded_queries, cql)
         QueryRequest.encode_values(@encoded_queries, values)
-        @num_queries += 1
+        @part_count += 1
         nil
       end
 
@@ -27,13 +29,13 @@ module Cql
         @encoded_queries << PREPARED_KIND
         write_short_bytes(@encoded_queries, id)
         ExecuteRequest.encode_values(@encoded_queries, metadata, values)
-        @num_queries += 1
+        @part_count += 1
         nil
       end
 
       def write(protocol_version, io)
         io << @type.chr
-        write_short(io, @num_queries)
+        write_short(io, @part_count)
         io << @encoded_queries
         write_consistency(io, @consistency)
       end
@@ -44,7 +46,7 @@ module Cql
           when UNLOGGED_TYPE then 'UNLOGGED'
           when COUNTER_TYPE then 'COUNTER'
         end
-        %(BATCH #{type_str} #{@num_queries} #{@consistency.to_s.upcase})
+        %(BATCH #{type_str} #{@part_count} #{@consistency.to_s.upcase})
       end
 
       private

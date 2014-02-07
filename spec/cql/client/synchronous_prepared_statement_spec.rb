@@ -51,6 +51,17 @@ module Cql
         end
       end
 
+      describe '#add_to_batch' do
+        it 'delegates to the async statement' do
+          batch = double(:batch)
+          connection = double(:connection)
+          bound_arguments = [1, 2, 3]
+          async_statement.stub(:add_to_batch)
+          statement.add_to_batch(batch, connection, bound_arguments)
+          async_statement.should have_received(:add_to_batch).with(batch, connection, bound_arguments)
+        end
+      end
+
       describe '#pipeline' do
         it 'executes the statement multiple times and waits for all the results' do
           result1 = double(:result1)

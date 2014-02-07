@@ -22,6 +22,7 @@ module Cql
   AuthenticationError = Class.new(ClientError)
   IncompleteTraceError = Class.new(ClientError)
   UnsupportedProtocolVersionError = Class.new(ClientError)
+  NotPreparedError = Class.new(ClientError)
 
   # A CQL client manages connections to one or more Cassandra nodes and you use
   # it run queries, insert and update data.
@@ -216,6 +217,45 @@ module Cql
       #   side, for example when you specify a malformed CQL query
       # @return [Cql::Client::PreparedStatement] an object encapsulating the
       #   prepared statement
+
+      # @!method batch(type=:logged, options={})
+      #
+      # Yields a batch when called with a block. The batch is automatically
+      # executed at the end of the block and the result is returned.
+      #
+      # Returns a batch when called wihtout a block. The batch will remember
+      # the options given and merge these with any additional options given
+      # when {Cql::Client::Batch#execute} is called.
+      #
+      # Please note that the batch object returned by this method _is not thread
+      # safe_.
+      #
+      # The type parameter can be ommitted and the options can then be given
+      # as first parameter.
+      #
+      # @example Executing queries in a batch
+      #   client.batch do |batch|
+      #     batch.add(%(INSERT INTO metrics (id, time, value) VALUES (1234, NOW(), 23423)))
+      #     batch.add(%(INSERT INTO metrics (id, time, value) VALUES (2346, NOW(), 13)))
+      #     batch.add(%(INSERT INTO metrics (id, time, value) VALUES (2342, NOW(), 2367)))
+      #     batch.add(%(INSERT INTO metrics (id, time, value) VALUES (4562, NOW(), 1231)))
+      #   end
+      #
+      # @example Using the returned batch object
+      #   batch = client.batch(:counter, trace: true)
+      #   batch.add('UPDATE counts SET value = value + ? WHERE id = ?', 4, 87654)
+      #   batch.add('UPDATE counts SET value = value + ? WHERE id = ?', 3, 6572)
+      #   result = batch.execute(timeout: 10)
+      #   puts result.trace_id
+      #
+      # @see Cql::Client::Batch
+      # @param [Symbol] type the type of batch, must be one of `:logged`,
+      #   `:unlogged` and `:counter`. The precise meaning of these  is defined
+      #   in the CQL specification.
+      # @yieldparam [Cql::Client::Batch] batch the batch
+      # @return [Cql::Client::VoidResult, Cql::Client::Batch] when no block is
+      #   given the batch is returned, when a block is given the result of
+      #   executing the batch is returned (see {Cql::Client::Batch#execute}).
     end
 
     class PreparedStatement
@@ -262,6 +302,37 @@ module Cql
       def execute(*args)
       end
     end
+
+    class Batch
+      # @!method add(cql_or_prepared_statement, *bound_values)
+      #
+      # Add a query or a prepared statement to the batch.
+      #
+      # @example Adding a mix of statements to a batch
+      #   batch.add(%(UPDATE people SET name = 'Miriam' WHERE id = 3435))
+      #   batch.add(%(UPDATE people SET name = ? WHERE id = ?), 'Miriam', 3435)
+      #   batch.add(prepared_statement, 'Miriam', 3435)
+      #
+      # @param [String, Cql::Client::PreparedStatement] cql_or_prepared_statement
+      #   a CQL string or a prepared statement object (obtained through
+      #   {Cql::Client::Client#prepare})
+      # @param [Array] bound_values a list of bound values -- only applies when
+      #   adding prepared statements and when there are binding markers in the
+      #   given CQL.
+      # @return [nil]
+
+      # @!method execute(options={})
+      #
+      # Execute the batch and return the result.
+      #
+      # @param options [Hash] an options hash or a symbol (as a shortcut for
+      #   specifying the consistency), see {Cql::Client::Client#execute} for
+      #   full details about how this value is interpreted.
+      # @raise [Cql::QueryError] raised when there is an error on the server side
+      # @raise [Cql::NotPreparedError] raised in the unlikely event that a
+      #   prepared statement was not prepared on the chosen connection
+      # @return [Cql::Client::VoidResult] a batch always returns a void result
+    end
   end
 end
 
@@ -279,6 +350,7 @@ require 'cql/client/asynchronous_client'
 require 'cql/client/asynchronous_prepared_statement'
 require 'cql/client/synchronous_client'
 require 'cql/client/synchronous_prepared_statement'
+require 'cql/client/batch'
 require 'cql/client/request_runner'
 require 'cql/client/authenticators'
 require 'cql/client/peer_discovery'
