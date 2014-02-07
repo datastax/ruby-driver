@@ -14,11 +14,28 @@ module Cql
         ''
       end
 
-      TYPES = [:ascii, :bigint, :blob, :boolean, :counter, :decimal, :double, :float, :inet, :int, :text, :varchar, :timestamp, :timeuuid, :uuid, :varint].freeze
-
       describe '#to_bytes' do
+        types = [
+          :ascii,
+          :bigint,
+          :blob,
+          :boolean,
+          :counter,
+          :decimal,
+          :double,
+          :float,
+          :inet,
+          :int,
+          :text,
+          :varchar,
+          :timestamp,
+          :timeuuid,
+          :uuid,
+          :varint
+        ]
+
         context 'when encoding normal value' do
-          TYPES.each do |type|
+          types.each do |type|
             it "encodes a null #{type.upcase}" do
               converter.to_bytes(buffer, type, nil, 4).should == "\xff\xff\xff\xff"
             end
@@ -40,7 +57,7 @@ module Cql
         end
 
         context 'when encoding collection values' do
-          TYPES.each do |type|
+          types.each do |type|
             it "encodes a null #{type.upcase}" do
               converter.to_bytes(buffer, type, nil, 2).should == "\xff\xff"
             end
