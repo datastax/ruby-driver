@@ -56,7 +56,6 @@ module Cql
       private
 
       def run(args, connection)
-        statement_id = connection[self]
         bound_args = args.shift(@raw_metadata.size)
         unless bound_args.size == @raw_metadata.size && args.size <= 1
           raise ArgumentError, "Expected #{@raw_metadata.size} arguments, got #{bound_args.size}"
