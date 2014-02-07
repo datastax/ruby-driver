@@ -88,11 +88,8 @@ module Cql
     # @return [Cql::Future<Array>] an array of the values of the constituent
     #   futures
     def all(*futures)
-      if futures.any?
-        CombinedFuture.new(futures)
-      else
-        resolved([])
-      end
+      return resolved([]) if futures.empty?
+      CombinedFuture.new(futures)
     end
 
     # Returns a future which will be resolved with the value of the first
@@ -102,11 +99,8 @@ module Cql
     # @param [Array<Cql::Future>] futures the futures to monitor
     # @return [Cql::Future] a future which represents the first completing future
     def first(*futures)
-      if futures.any?
-        FirstFuture.new(futures)
-      else
-        resolved
-      end
+      return resolved if futures.empty?
+      FirstFuture.new(futures)
     end
 
     # Creates a new pre-resolved future.
@@ -133,16 +127,15 @@ module Cql
     # @example
     #   future2 = future1.map { |value| value * 2 }
     #
+    # @param [Object] value the value of this future (when no block is given)
     # @yieldparam [Object] value the value of this future
     # @yieldreturn [Object] the transformed value
     # @return [Cql::Future] a new future representing the transformed value
-    def map(&block)
-      p = Promise.new
-      on_failure { |e| p.fail(e) }
-      on_value do |v|
-        p.try(v, &block)
+    def map(value=nil, &block)
+      CompletableFuture.new.tap do |f|
+        on_failure { |e| f.fail(e) }
+        on_value { |v| run(f, value, block, v) }
       end
-      p.future
     end
 
     # Returns a new future representing a transformation of this future's value,
@@ -157,17 +150,10 @@ module Cql
     # @yieldreturn [Cql::Future] a future representing the transformed value
     # @return [Cql::Future] a new future representing the transformed value
     def flat_map(&block)
-      p = Promise.new
-      on_failure { |e| p.fail(e) }
-      on_value do |v|
-        begin
-          f = block.call(v)
-          p.observe(f)
-        rescue => e
-          p.fail(e)
-        end
+      CompletableFuture.new.tap do |f|
+        on_failure { |e| f.fail(e) }
+        on_value { |v| chain(f, block, v) }
       end
-      p.future
     end
 
     # Returns a new future which represents either the value of the original
@@ -185,18 +171,15 @@ module Cql
     #   future1.fail(error)
     #   future2.value # => 'foo'
     #
+    # @param [Object] value the value when no block is given
     # @yieldparam [Object] error the error from the original future
     # @yieldreturn [Object] the value of the new future
     # @return [Cql::Future] a new future representing a value recovered from the error
-    def recover(&block)
-      p = Promise.new
-      on_failure do |e|
-        p.try(e, &block)
+    def recover(value=nil, &block)
+      CompletableFuture.new.tap do |f|
+        on_failure { |e| run(f, value, block, e) }
+        on_value { |v| f.resolve(v) }
       end
-      on_value do |v|
-        p.fulfill(v)
-      end
-      p.future
     end
 
     # Returns a new future which represents either the value of the original
@@ -222,19 +205,27 @@ module Cql
     # @return [Cql::Future] a new future representing a value recovered from the
     #   error
     def fallback(&block)
-      p = Promise.new
-      on_failure do |e|
-        begin
-          f = block.call(e)
-          p.observe(f)
-        rescue => e
-          p.fail(e)
-        end
+      CompletableFuture.new.tap do |f|
+        on_failure { |e| chain(f, block, e) }
+        on_value { |v| f.resolve(v) }
       end
-      on_value do |v|
-        p.fulfill(v)
-      end
-      p.future
+    end
+
+    private
+
+    def run(f, value, producer, arg)
+      value = producer ? producer.call(arg) : value
+      f.resolve(value)
+    rescue => e
+      f.fail(e)
+    end
+
+    def chain(f, constructor, arg)
+      ff = constructor.call(arg)
+      ff.on_failure { |e| f.fail(e) }
+      ff.on_value { |v| f.resolve(v) }
+    rescue => e
+      f.fail(e)
     end
   end
 

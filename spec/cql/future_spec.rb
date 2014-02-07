@@ -393,6 +393,33 @@ module Cql
           mapped_value.should == 3 * 2
         end
 
+        it 'will be fulfilled with the specified value' do
+          mapped_value = nil
+          p = Promise.new
+          f = p.future.map(7)
+          f.on_value { |v| mapped_value = v }
+          p.fulfill(3)
+          mapped_value.should == 7
+        end
+
+        it 'will be fulfilled with the result of the given block, even if a value is specified' do
+          mapped_value = nil
+          p = Promise.new
+          f = p.future.map(7) { |v| v * 2 }
+          f.on_value { |v| mapped_value = v }
+          p.fulfill(3)
+          mapped_value.should == 3 * 2
+        end
+
+        it 'will be fulfilled with nil when neither value nor block is specified' do
+          mapped_value = 3
+          p = Promise.new
+          f = p.future.map
+          f.on_value { |v| mapped_value = v }
+          p.fulfill(3)
+          mapped_value.should be_nil
+        end
+
         it 'fails when the original future fails' do
           failed = false
           p = Promise.new
@@ -432,11 +459,32 @@ module Cql
 
     describe '#recover' do
       context 'returns a new future that' do
-        it 'becomes fulfilled with a value when the source future fails' do
+        it 'becomes fulfilled with a value created by the block when the source future fails' do
           p = Promise.new
           f = p.future.recover { 'foo' }
           p.fail(error)
           f.value.should == 'foo'
+        end
+
+        it 'becomes fulfilled with a specfied value when the source future fails' do
+          p = Promise.new
+          f = p.future.recover('bar')
+          p.fail(error)
+          f.value.should == 'bar'
+        end
+
+        it 'becomes fulfilled with a value created by the block even when a value is specified when the source future fails' do
+          p = Promise.new
+          f = p.future.recover('bar') { 'foo' }
+          p.fail(error)
+          f.value.should == 'foo'
+        end
+
+        it 'becomes fulfilled with nil value when no value nor block is specified and the source future fails' do
+          p = Promise.new
+          f = p.future.recover
+          p.fail(error)
+          f.value.should be_nil
         end
 
         it 'yields the error to the block' do
