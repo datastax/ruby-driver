@@ -167,7 +167,6 @@ module Cql
       def flush
         if writable?
           @lock.synchronize do
-            s = @write_buffer.cheap_peek.dup
             bytes_written = @io.write_nonblock(@write_buffer.cheap_peek)
             @write_buffer.discard(bytes_written)
           end
