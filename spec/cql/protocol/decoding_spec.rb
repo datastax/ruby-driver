@@ -169,8 +169,8 @@ module Cql
         end
 
         it 'decodes a negative int' do
-          buffer = ByteBuffer.new("\xff\xff\xff\xff")
-          Decoding.read_int!(buffer).should == -1
+          buffer = ByteBuffer.new("\xff\xee\xdd\xcc")
+          Decoding.read_int!(buffer).should == 0xffeeddcc - 0x100000000
         end
 
         it 'consumes the bytes' do

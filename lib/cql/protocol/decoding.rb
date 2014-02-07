@@ -73,11 +73,9 @@ module Cql
       end
 
       def read_int!(buffer)
-        val = buffer.read_int
-        if (val > 0x7fffffff)
-          val = 0 - ((val - 1) ^ 0xffffffff)
-        end
-        val
+        n = buffer.read_int
+        return n if n <= 0x7fffffff
+        n - 0xffffffff - 1
       rescue RangeError => e
         raise DecodingError, "Not enough bytes available to decode an int: #{e.message}", e.backtrace
       end
