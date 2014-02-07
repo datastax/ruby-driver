@@ -100,8 +100,15 @@ module Cql
         end
 
         it 'decodes a negative long' do
-          buffer = ByteBuffer.new("\xff\xff\xff\xff\xff\xff\xff\xff")
-          Decoding.read_long!(buffer).should == -1
+          buffer = ByteBuffer.new("\xff\xee\xdd\xcc\xbb\xaa\x99\x88")
+          Decoding.read_long!(buffer).should == 0xffeeddccbbaa9988 - 0x10000000000000000
+        end
+
+        it 'bench' do
+          started_at = Time.now
+          100_000.times { Decoding.read_long!(ByteBuffer.new("\xff\xee\xdd\xcc\xbb\xaa\x99\x88")) }
+          time_taken = Time.now - started_at
+          puts time_taken
         end
 
         it 'consumes the bytes' do
