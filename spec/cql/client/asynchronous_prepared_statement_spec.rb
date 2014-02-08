@@ -184,6 +184,12 @@ module Cql
           request.consistency.should == :two
         end
 
+        it 'sends the serial consistency given as an option' do
+          statement.execute(11, 'hello', serial_consistency: :local_serial)
+          request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
+          request.serial_consistency.should == :local_serial
+        end
+
         it 'asks the server not to send metadata' do
           statement.execute(11, 'hello', consistency: :two)
           request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }

@@ -3,16 +3,17 @@
 module Cql
   module Protocol
     class ExecuteRequest < Request
-      attr_reader :id, :metadata, :values, :consistency, :request_metadata
+      attr_reader :id, :metadata, :values, :request_metadata, :consistency, :serial_consistency
 
-      def initialize(id, metadata, values, request_metadata, consistency, trace=false)
+      def initialize(id, metadata, values, request_metadata, consistency, serial_consistency=nil, trace=false)
         raise ArgumentError, "Metadata for #{metadata.size} columns, but #{values.size} values given" if metadata.size != values.size
         super(10, trace)
         @id = id
         @metadata = metadata
         @values = values
-        @consistency = consistency
         @request_metadata = request_metadata
+        @consistency = consistency
+        @serial_consistency = serial_consistency
         @encoded_values = self.class.encode_values('', @metadata, @values)
       end
 
@@ -23,10 +24,12 @@ module Cql
           flags = 0
           flags |= @values.size > 0 ? 1 : 0
           flags |= @request_metadata ? 0 : 2
+          flags |= 0x10 if @serial_consistency
           io << flags.chr
           if @values.size > 0
             io << @encoded_values
           end
+          write_consistency(io, @serial_consistency) if @serial_consistency
           io
         else
           io << @encoded_values
@@ -40,7 +43,7 @@ module Cql
       end
 
       def eql?(rq)
-        self.class === rq && rq.id == self.id && rq.metadata == self.metadata && rq.values == self.values && rq.consistency == self.consistency
+        self.class === rq && rq.id == self.id && rq.metadata == self.metadata && rq.values == self.values && rq.consistency == self.consistency && rq.serial_consistency == self.serial_consistency
       end
       alias_method :==, :eql?
 
@@ -51,6 +54,7 @@ module Cql
           h = ((h & 33554431) * 31) ^ @metadata.hash
           h = ((h & 33554431) * 31) ^ @values.hash
           h = ((h & 33554431) * 31) ^ @consistency.hash
+          h = ((h & 33554431) * 31) ^ @serial_consistency.hash
           h
         end
       end
