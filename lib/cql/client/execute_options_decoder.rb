@@ -6,21 +6,24 @@ module Cql
     class ExecuteOptionsDecoder
       def initialize(default_consistency)
         @default_consistency = default_consistency
+        @default_options = {:consistency => @default_consistency}.freeze
       end
 
       def decode_options(options_or_consistency)
-        consistency = @default_consistency
-        timeout = nil
-        trace = false
         case options_or_consistency
+        when nil
+          @default_options
         when Symbol
-          consistency = options_or_consistency
+          {:consistency => options_or_consistency}
         when Hash
-          consistency = options_or_consistency[:consistency] || consistency
-          timeout = options_or_consistency[:timeout]
-          trace = options_or_consistency[:trace]
+          if options_or_consistency.include?(:consistency)
+            options_or_consistency
+          else
+            options = options_or_consistency.dup
+            options[:consistency] = @default_consistency
+            options
+          end
         end
-        return consistency, timeout, trace
       end
     end
   end

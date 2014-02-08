@@ -25,12 +25,12 @@ module Cql
         else
           options = @options.merge(options)
         end
-        consistency, timeout, trace = @execute_options_decoder.decode_options(options)
+        options = @execute_options_decoder.decode_options(options)
         connection = nil
         attempts = 0
         begin
           connection = @connection_manager.random_connection
-          request = Protocol::BatchRequest.new(BATCH_TYPES[@type], consistency, trace)
+          request = Protocol::BatchRequest.new(BATCH_TYPES[@type], options[:consistency], options[:trace])
           @parts.each do |cql_or_statement, *bound_args|
             if cql_or_statement.is_a?(String)
               request.add_query(cql_or_statement, bound_args)
@@ -46,7 +46,7 @@ module Cql
             raise
           end
         end
-        @request_runner.execute(connection, request, timeout)
+        @request_runner.execute(connection, request, options[:timeout])
       end
 
       private

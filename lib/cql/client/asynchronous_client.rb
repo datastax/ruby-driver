@@ -89,8 +89,8 @@ module Cql
           if args.last.is_a?(Symbol) || args.last.is_a?(Hash)
             options_or_consistency = args.pop
           end
-          consistency, timeout, trace = @execute_options_decoder.decode_options(options_or_consistency)
-          execute_request(Protocol::QueryRequest.new(cql, args, consistency, trace), timeout)
+          options = @execute_options_decoder.decode_options(options_or_consistency)
+          execute_request(Protocol::QueryRequest.new(cql, args, options[:consistency], options[:trace]), options[:timeout])
         end
       end
 
