@@ -943,7 +943,7 @@ module Cql
         it 'executes a prepared statement using the default consistency level' do
           statement = client.prepare(cql).value
           statement.execute('foo').value
-          last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], :quorum, true)
+          last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], true, :quorum)
         end
 
         it 'executes a prepared statement using the consistency specified when the client was created' do
@@ -951,7 +951,7 @@ module Cql
           client.connect.value
           statement = client.prepare(cql).value
           statement.execute('foo').value
-          last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], :all, true)
+          last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], true, :all)
         end
 
         it 'returns a prepared statement that knows the metadata' do
@@ -962,7 +962,7 @@ module Cql
         it 'executes a prepared statement with a specific consistency level' do
           statement = client.prepare(cql).value
           statement.execute('thing', :local_quorum).value
-          last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['thing'], :local_quorum, true)
+          last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['thing'], true, :local_quorum)
         end
 
         context 'when there is an error creating the request' do
@@ -998,8 +998,8 @@ module Cql
               raise 'Did not receive EXECUTE requests on all connections within 5s' if (Time.now - started_at) > 5
             end
             connections.map { |c| c.requests.last }.should == [
-              Protocol::ExecuteRequest.new(id, metadata, ['hello'], :quorum, true),
-              Protocol::ExecuteRequest.new(id, metadata, ['hello'], :quorum, true),
+              Protocol::ExecuteRequest.new(id, metadata, ['hello'], true, :quorum),
+              Protocol::ExecuteRequest.new(id, metadata, ['hello'], true, :quorum),
             ]
           end
         end

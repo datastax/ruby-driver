@@ -94,7 +94,7 @@ module Cql
         options = @execute_options_decoder.decode_options(args.last)
         statement_id = connection[self]
         request_metadata = @raw_result_metadata.nil?
-        request = Protocol::ExecuteRequest.new(statement_id, @raw_metadata, bound_args, options[:consistency], request_metadata, options[:trace])
+        request = Protocol::ExecuteRequest.new(statement_id, @raw_metadata, bound_args, request_metadata, options[:consistency], options[:trace])
         @request_runner.execute(connection, request, options[:timeout], @raw_result_metadata)
       end
     end
