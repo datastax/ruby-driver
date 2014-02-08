@@ -18,7 +18,7 @@ module Cql
     UnexpectedCompressionError = Class.new(ProtocolError)
     UnmaterializedRowsError = Class.new(ProtocolError)
 
-    CONSISTENCIES = [:any, :one, :two, :three, :quorum, :all, :local_quorum, :each_quorum, nil, nil, nil, nil, nil, nil, nil, nil, :local_one].freeze
+    CONSISTENCIES = [:any, :one, :two, :three, :quorum, :all, :local_quorum, :each_quorum, :serial, :local_serial, :local_one].freeze
 
     module Formats
       CHAR_FORMAT = 'c'.freeze

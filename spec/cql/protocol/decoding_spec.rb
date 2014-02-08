@@ -470,14 +470,24 @@ module Cql
           Decoding.read_consistency!(buffer).should == :each_quorum
         end
 
+        it 'decodes SERIAL' do
+          buffer = ByteBuffer.new("\x00\x08")
+          Decoding.read_consistency!(buffer).should == :serial
+        end
+
+        it 'decodes LOCAL_SERIAL' do
+          buffer = ByteBuffer.new("\x00\x09")
+          Decoding.read_consistency!(buffer).should == :local_serial
+        end
+
         it 'decodes LOCAL_ONE' do
-          buffer = ByteBuffer.new("\x00\x10")
+          buffer = ByteBuffer.new("\x00\x0a")
           Decoding.read_consistency!(buffer).should == :local_one
         end
 
         it 'raises an exception for an unknown consistency' do
           expect { Decoding.read_consistency!(ByteBuffer.new("\xff\xff")) }.to raise_error(DecodingError)
-          expect { Decoding.read_consistency!(ByteBuffer.new("\x00\x0a")) }.to raise_error(DecodingError)
+          expect { Decoding.read_consistency!(ByteBuffer.new("\x00\x0f")) }.to raise_error(DecodingError)
         end
       end
 

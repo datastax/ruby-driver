@@ -723,7 +723,7 @@ module Cql
 
           it 'detects when the last arguments is an options hash' do
             client.execute('UPDATE stuff SET thing = ? WHERE id = ?', 'foo', 'bar', consistency: :all, tracing: true).value
-            last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = ? WHERE id = ?', ['foo', 'bar'], nil, :all, true)
+            last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = ? WHERE id = ?', ['foo', 'bar'], nil, :all, nil, true)
           end
         end
 

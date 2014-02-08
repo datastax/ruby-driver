@@ -466,7 +466,7 @@ describe 'Protocol parsing and communication' do
       context 'with tracing' do
         it 'sends a QUERY request with the tracing flag and receives a RESULT with a trace ID' do
           in_keyspace_with_table do
-            response = execute_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :quorum, true))
+            response = execute_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :quorum, nil, true))
             response.trace_id.should_not be_nil
           end
         end

@@ -5,27 +5,33 @@ module Cql
     class QueryRequest < Request
       attr_reader :cql, :consistency
 
-      def initialize(cql, values, type_hints, consistency, trace=false)
+      def initialize(cql, values, type_hints, consistency, serial_consistency=nil, trace=false)
         raise ArgumentError, %(No CQL given!) unless cql
         raise ArgumentError, %(No such consistency: #{consistency.inspect}) if consistency.nil? || !CONSISTENCIES.include?(consistency)
+        raise ArgumentError, %(No such consistency: #{serial_consistency.inspect}) unless serial_consistency.nil? || CONSISTENCIES.include?(serial_consistency)
         raise ArgumentError, %(Bound values and type hints must have the same number of elements (got #{values.size} values and #{type_hints.size} hints)) if values && type_hints && values.size != type_hints.size
         super(7, trace)
         @cql = cql
         @values = values || NO_VALUES
         @encoded_values = self.class.encode_values('', values, type_hints)
         @consistency = consistency
+        @serial_consistency = serial_consistency
       end
 
       def write(protocol_version, io)
         write_long_string(io, @cql)
         write_consistency(io, @consistency)
         if protocol_version > 1
+          flags  = 0
+          flags |= 0x10 if @serial_consistency
           if @values.size > 0
-            io << VALUES_FLAG
+            flags |= 0x01
+            io << flags.chr
             io << @encoded_values
           else
-            io << NO_FLAGS
+            io << flags.chr
           end
+          write_consistency(io, @serial_consistency) if @serial_consistency
         end
         io
       end
@@ -95,7 +101,6 @@ module Cql
       NO_VALUES = [].freeze
       NO_HINTS = [].freeze
       NO_FLAGS = "\x00".freeze
-      VALUES_FLAG = "\x01".freeze
     end
   end
 end

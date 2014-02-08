@@ -199,6 +199,12 @@ module Cql
       #   equivalent to passing the options `consistency: <symbol>`.
       # @option options_or_consistency [Symbol] :consistency (:quorum) The
       #   consistency to use for this query.
+      # @option options_or_consistency [Symbol] :serial_consistency (nil) The
+      #   consistency to use for conditional updates (`:serial` or
+      #   `:local_serial`), see the CQL documentation for the semantics of
+      #   serial consistencies and conditional updates. The default is assumed
+      #   to be `:serial` by the server if none is specified. Ignored for non-
+      #   conditional queries.
       # @option options_or_consistency [Integer] :timeout (nil) How long to wait
       #   for a response. If this timeout expires a {Cql::TimeoutError} will
       #   be raised.

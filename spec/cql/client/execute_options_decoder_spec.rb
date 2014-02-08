@@ -31,6 +31,16 @@ module Cql
           options.should include(consistency: :three)
         end
 
+        it 'defaults to no serial consistency' do
+          options = decoder.decode_options({})
+          options.should_not have_key(:serial_consistency)
+        end
+
+        it 'uses the serial consistency given in the options' do
+          options = decoder.decode_options(serial_consistency: :local_serial)
+          options.should include(serial_consistency: :local_serial)
+        end
+
         it 'defaults to no tracing' do
           options = decoder.decode_options({})
           options.should_not have_key(:trace)
