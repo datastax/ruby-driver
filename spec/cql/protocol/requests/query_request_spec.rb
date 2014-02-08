@@ -26,6 +26,10 @@ module Cql
         it 'raises an error when there are not the same number of type hints as bound values' do
           expect { QueryRequest.new('SELECT * FROM foo WHERE a = ? AND b = ?', ['x', 'y'], [:string], :quorum, nil, nil, nil, false) }.to raise_error(ArgumentError)
         end
+
+        it 'raises an error when a paging state is given but no page size' do
+          expect { QueryRequest.new('USE system', [], [], :quorum, nil, nil, 'foo', false) }.to raise_error(ArgumentError)
+        end
       end
 
       describe '#write' do
@@ -153,12 +157,6 @@ module Cql
               frame_bytes = QueryRequest.new('SELECT * FROM users', nil, nil, :one, nil, 10, nil, false).write(2, '')
               frame_bytes.to_s[25, 1].should == "\x04"
               frame_bytes.to_s[26, 4].should == "\x00\x00\x00\x0a"
-            end
-
-            it 'sets the paging state flag and includes the paging state' do
-              frame_bytes = QueryRequest.new('SELECT * FROM users', nil, nil, :one, nil, nil, 'foo', false).write(2, '')
-              frame_bytes.to_s[25, 1].should == "\x08"
-              frame_bytes.to_s[26, 7].should == "\x00\x00\x00\x03foo"
             end
 
             it 'sets both the page size and paging state flags and includes both the page size and the paging state' do

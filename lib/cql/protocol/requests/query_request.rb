@@ -10,6 +10,7 @@ module Cql
         raise ArgumentError, %(No such consistency: #{consistency.inspect}) if consistency.nil? || !CONSISTENCIES.include?(consistency)
         raise ArgumentError, %(No such consistency: #{serial_consistency.inspect}) unless serial_consistency.nil? || CONSISTENCIES.include?(serial_consistency)
         raise ArgumentError, %(Bound values and type hints must have the same number of elements (got #{values.size} values and #{type_hints.size} hints)) if values && type_hints && values.size != type_hints.size
+        raise ArgumentError, %(Paging state given but no page size) if paging_state && !page_size
         super(7, trace)
         @cql = cql
         @values = values || NO_VALUES

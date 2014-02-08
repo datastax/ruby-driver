@@ -27,6 +27,22 @@ module Cql
           expect { ExecuteRequest.new(id, column_metadata, ['hello', 42], true, :each_quorum, nil, nil, nil, false) }.to raise_error(ArgumentError)
         end
 
+        it 'raises an error when the consistency is nil' do
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, nil, nil, nil, nil, false) }.to raise_error(ArgumentError)
+        end
+
+        it 'raises an error when the consistency is invalid' do
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :hello, nil, nil, nil, false) }.to raise_error(ArgumentError)
+        end
+
+        it 'raises an error when the serial consistency is invalid' do
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :quorum, :foo, nil, nil, false) }.to raise_error(ArgumentError)
+        end
+
+        it 'raises an error when paging state is given but no page size' do
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :quorum, nil, nil, 'foo', false) }.to raise_error(ArgumentError)
+        end
+
         it 'raises an error for unsupported column types' do
           column_metadata[2][3] = :imaginary
           expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :each_quorum, nil, nil, nil, false) }.to raise_error(UnsupportedColumnTypeError)

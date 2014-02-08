@@ -464,10 +464,10 @@ describe 'Protocol parsing and communication' do
             response = execute_request(Cql::Protocol::PrepareRequest.new('SELECT * FROM users'))
             statement_id = response.id
             metadata = response.metadata
-            response = execute_request(Cql::Protocol::ExecuteRequest.new(statement_id, metadata, [], :one, true, 6, nil))
+            response = execute_request(Cql::Protocol::ExecuteRequest.new(statement_id, metadata, [], true, :one, nil, 6, nil))
             response.paging_state.should_not be_nil
             response.rows.size.should == 6
-            response = execute_request(Cql::Protocol::ExecuteRequest.new(statement_id, metadata, [], :one, true, 6, response.paging_state))
+            response = execute_request(Cql::Protocol::ExecuteRequest.new(statement_id, metadata, [], true, :one, nil, 6, response.paging_state))
             response.paging_state.should be_nil
             response.rows.size.should == 4
           end
