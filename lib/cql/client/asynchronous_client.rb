@@ -264,8 +264,11 @@ module Cql
           f.flat_map do |all_connections|
             new_connections = all_connections - seed_connections
             if new_connections.size > 0
-              @connection_manager.add_connections(new_connections)
-              use(keyspace)
+              f = use_keyspace(new_connections, keyspace)
+              f.on_value do
+                @connection_manager.add_connections(new_connections)
+              end
+              f
             elsif remaning_attempts > 0
               timeout = 2**(MAX_RECONNECTION_ATTEMPTS - remaning_attempts)
               @logger.debug('Scheduling new peer discovery in %ds' % timeout)
