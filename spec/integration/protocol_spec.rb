@@ -418,6 +418,20 @@ describe 'Protocol parsing and communication' do
             response.should be_void
           end
         end
+
+        it 'sends a SELECT command with a page size and receives a ROWS RESULT with a paging state' do
+          in_keyspace_with_table do
+            10.times do
+              query(%<INSERT INTO users (user_name, email) VALUES ('#{rand(234234).to_s(36)}', 'someone@somewhere.sx')>)
+            end
+            response = execute_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :one, nil, 6))
+            response.paging_state.should_not be_nil
+            response.rows.size.should == 6
+            response = execute_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :one, nil, 6, response.paging_state))
+            response.paging_state.should be_nil
+            response.rows.size.should == 4
+          end
+        end
       end
 
       context 'with PREPARE requests' do
@@ -439,6 +453,23 @@ describe 'Protocol parsing and communication' do
             prepare_response.should_not be_a(Cql::Protocol::ErrorResponse)
             execute_response = execute_request(Cql::Protocol::ExecuteRequest.new(prepare_response.id, prepare_response.metadata, [Cql::Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'), -12312312312, Time.now, 345345.234234, Cql::Uuid.new('a4a70900-24e1-11df-8924-001ff3591711'), "\xab\xcd\xef".force_encoding(::Encoding::BINARY)], :one, true))
             execute_response.should_not be_a(Cql::Protocol::ErrorResponse)
+          end
+        end
+
+        it 'sends an EXECUTE with a page size and receives a RESULT with a paging state' do
+          in_keyspace_with_table do
+            10.times do
+              query(%<INSERT INTO users (user_name, email) VALUES ('#{rand(234234).to_s(36)}', 'someone@somewhere.sx')>)
+            end
+            response = execute_request(Cql::Protocol::PrepareRequest.new('SELECT * FROM users'))
+            statement_id = response.id
+            metadata = response.metadata
+            response = execute_request(Cql::Protocol::ExecuteRequest.new(statement_id, metadata, [], :one, true, 6, nil))
+            response.paging_state.should_not be_nil
+            response.rows.size.should == 6
+            response = execute_request(Cql::Protocol::ExecuteRequest.new(statement_id, metadata, [], :one, true, 6, response.paging_state))
+            response.paging_state.should be_nil
+            response.rows.size.should == 4
           end
         end
       end

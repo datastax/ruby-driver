@@ -5,7 +5,7 @@ module Cql
     class QueryRequest < Request
       attr_reader :cql, :consistency
 
-      def initialize(cql, values, type_hints, consistency, serial_consistency=nil, trace=false)
+      def initialize(cql, values, type_hints, consistency, serial_consistency=nil, page_size=nil, paging_state=nil, trace=false)
         raise ArgumentError, %(No CQL given!) unless cql
         raise ArgumentError, %(No such consistency: #{consistency.inspect}) if consistency.nil? || !CONSISTENCIES.include?(consistency)
         raise ArgumentError, %(No such consistency: #{serial_consistency.inspect}) unless serial_consistency.nil? || CONSISTENCIES.include?(serial_consistency)
@@ -16,6 +16,8 @@ module Cql
         @encoded_values = self.class.encode_values('', values, type_hints)
         @consistency = consistency
         @serial_consistency = serial_consistency
+        @page_size = page_size
+        @paging_state = paging_state
       end
 
       def write(protocol_version, io)
@@ -23,6 +25,8 @@ module Cql
         write_consistency(io, @consistency)
         if protocol_version > 1
           flags  = 0
+          flags |= 0x04 if @page_size
+          flags |= 0x08 if @paging_state
           flags |= 0x10 if @serial_consistency
           if @values.size > 0
             flags |= 0x01
@@ -31,6 +35,8 @@ module Cql
           else
             io << flags.chr
           end
+          write_int(io, @page_size) if @page_size
+          write_bytes(io, @paging_state) if @paging_state
           write_consistency(io, @serial_consistency) if @serial_consistency
         end
         io

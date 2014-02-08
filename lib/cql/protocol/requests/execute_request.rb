@@ -3,9 +3,9 @@
 module Cql
   module Protocol
     class ExecuteRequest < Request
-      attr_reader :id, :metadata, :values, :request_metadata, :consistency, :serial_consistency
+      attr_reader :id, :metadata, :values, :request_metadata, :consistency, :serial_consistency, :page_size, :paging_state
 
-      def initialize(id, metadata, values, request_metadata, consistency, serial_consistency=nil, trace=false)
+      def initialize(id, metadata, values, request_metadata, consistency, serial_consistency=nil, page_size=nil, paging_state=nil, trace=false)
         raise ArgumentError, "Metadata for #{metadata.size} columns, but #{values.size} values given" if metadata.size != values.size
         super(10, trace)
         @id = id
@@ -14,6 +14,8 @@ module Cql
         @request_metadata = request_metadata
         @consistency = consistency
         @serial_consistency = serial_consistency
+        @page_size = page_size
+        @paging_state = paging_state
         @encoded_values = self.class.encode_values('', @metadata, @values)
       end
 
@@ -21,14 +23,18 @@ module Cql
         write_short_bytes(io, @id)
         if protocol_version > 1
           write_consistency(io, @consistency)
-          flags = 0
-          flags |= @values.size > 0 ? 1 : 0
-          flags |= @request_metadata ? 0 : 2
+          flags  = 0
+          flags |= 0x01 if @values.size > 0
+          flags |= 0x02 unless @request_metadata
+          flags |= 0x04 if @page_size
+          flags |= 0x08 if @paging_state
           flags |= 0x10 if @serial_consistency
           io << flags.chr
           if @values.size > 0
             io << @encoded_values
           end
+          write_int(io, @page_size) if @page_size
+          write_bytes(io, @paging_state) if @paging_state
           write_consistency(io, @serial_consistency) if @serial_consistency
           io
         else
@@ -43,7 +49,7 @@ module Cql
       end
 
       def eql?(rq)
-        self.class === rq && rq.id == self.id && rq.metadata == self.metadata && rq.values == self.values && rq.consistency == self.consistency && rq.serial_consistency == self.serial_consistency
+        self.class === rq && rq.id == self.id && rq.metadata == self.metadata && rq.values == self.values && rq.consistency == self.consistency && rq.serial_consistency == self.serial_consistency && rq.page_size == self.page_size && rq.paging_state == self.paging_state
       end
       alias_method :==, :eql?
 
@@ -55,6 +61,8 @@ module Cql
           h = ((h & 33554431) * 31) ^ @values.hash
           h = ((h & 33554431) * 31) ^ @consistency.hash
           h = ((h & 33554431) * 31) ^ @serial_consistency.hash
+          h = ((h & 33554431) * 31) ^ @page_size.hash
+          h = ((h & 33554431) * 31) ^ @paging_state.hash
           h
         end
       end
