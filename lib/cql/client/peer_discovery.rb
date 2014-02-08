@@ -10,7 +10,7 @@ module Cql
       end
 
       def new_hosts
-        request = Protocol::QueryRequest.new('SELECT peer, data_center, host_id, rpc_address FROM system.peers', nil, :one)
+        request = Protocol::QueryRequest.new('SELECT peer, data_center, host_id, rpc_address FROM system.peers', nil, nil, :one)
         response = @request_runner.execute(@connection, request)
         response.map do |result|
           result.each_with_object([]) do |row, new_peers|

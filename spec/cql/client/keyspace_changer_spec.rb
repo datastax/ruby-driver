@@ -16,13 +16,13 @@ module Cql
 
       describe '#use_keyspace' do
         it 'sends a query request with a USE statement' do
-          connection.stub(:send_request).with(Protocol::QueryRequest.new('USE important_stuff', nil, :one), nil).and_return(Future.resolved)
+          connection.stub(:send_request).with(Protocol::QueryRequest.new('USE important_stuff', nil, nil, :one), nil).and_return(Future.resolved)
           f = keyspace_changer.use_keyspace(connection, 'important_stuff')
           connection.should have_received(:send_request)
         end
 
         it 'accepts quoted keyspace names' do
-          connection.stub(:send_request).with(Protocol::QueryRequest.new('USE "ImportantStuff"', nil, :one), nil).and_return(Future.resolved)
+          connection.stub(:send_request).with(Protocol::QueryRequest.new('USE "ImportantStuff"', nil, nil, :one), nil).and_return(Future.resolved)
           f = keyspace_changer.use_keyspace(connection, '"ImportantStuff"')
           connection.should have_received(:send_request)
         end
@@ -39,7 +39,7 @@ module Cql
           end
 
           it 'resolves to the given connection' do
-            connection.stub(:send_request).with(Protocol::QueryRequest.new('USE important_stuff', nil, :one), nil).and_return(Future.resolved)
+            connection.stub(:send_request).with(Protocol::QueryRequest.new('USE important_stuff', nil, nil, :one), nil).and_return(Future.resolved)
             f = keyspace_changer.use_keyspace(connection, 'important_stuff')
             f.value.should equal(connection)
           end

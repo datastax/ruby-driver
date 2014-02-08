@@ -17,10 +17,10 @@ module Cql
         @consistency = consistency
       end
 
-      def add_query(cql, values=nil)
+      def add_query(cql, values=nil, type_hints=nil)
         @encoded_queries << QUERY_KIND
         write_long_string(@encoded_queries, cql)
-        QueryRequest.encode_values(@encoded_queries, values)
+        QueryRequest.encode_values(@encoded_queries, values, type_hints)
         @part_count += 1
         nil
       end

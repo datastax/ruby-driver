@@ -153,7 +153,7 @@ module Cql
     # @private
     class CachePropertiesStep
       def run(pending_connection)
-        request = Protocol::QueryRequest.new('SELECT data_center, host_id FROM system.local', nil, :one)
+        request = Protocol::QueryRequest.new('SELECT data_center, host_id FROM system.local', nil, nil, :one)
         f = pending_connection.execute(request)
         f.on_value do |result|
           unless result.empty?

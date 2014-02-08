@@ -277,7 +277,7 @@ module Cql
         end
 
         it 'registers the keyspace it has changed to' do
-          f = protocol_handler.send_request(Protocol::QueryRequest.new('USE hello', nil, :one))
+          f = protocol_handler.send_request(Protocol::QueryRequest.new('USE hello', nil, nil, :one))
           connection.data_listener.call([0x81, 0, 0, 8, 4 + 2 + 5, 3, 5].pack('C4N2n') + 'hello')
           f.value
           protocol_handler.keyspace.should == 'hello'

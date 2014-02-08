@@ -65,7 +65,7 @@ describe 'Protocol parsing and communication' do
   end
 
   def query(cql, consistency=:one)
-    response = execute_request(Cql::Protocol::QueryRequest.new(cql, nil, consistency))
+    response = execute_request(Cql::Protocol::QueryRequest.new(cql, nil, nil, consistency))
     raise response.to_s if response.is_a?(Cql::Protocol::ErrorResponse)
     response
   end
@@ -250,7 +250,7 @@ describe 'Protocol parsing and communication' do
         end
 
         it 'sends a bad CQL string and receives ERROR' do
-          response = execute_request(Cql::Protocol::QueryRequest.new('HELLO WORLD', nil, :any))
+          response = execute_request(Cql::Protocol::QueryRequest.new('HELLO WORLD', nil, nil, :any))
           response.should be_a(Cql::Protocol::ErrorResponse)
         end
 
@@ -370,40 +370,51 @@ describe 'Protocol parsing and communication' do
           end
         end
 
-        it 'sends an INSERT command with bound variables' do
+        it 'sends an INSERT command with bound values' do
           in_keyspace_with_table do
             cql = %<INSERT INTO users (user_name, email) VALUES (?, ?)>
-            response = execute_request(Cql::Protocol::QueryRequest.new(cql, ['sue', 'sue@inter.net'], :one))
+            response = execute_request(Cql::Protocol::QueryRequest.new(cql, ['sue', 'sue@inter.net'], nil, :one))
             response.should be_void
           end
         end
 
-        it 'sends an UPDATE command with bound variables' do
+        it 'sends an UPDATE command with bound values' do
           in_keyspace_with_table do
             cql = %<UPDATE users SET email = ? WHERE user_name = ?>
-            response = execute_request(Cql::Protocol::QueryRequest.new(cql, ['sue@inter.net', 'sue'], :one))
+            response = execute_request(Cql::Protocol::QueryRequest.new(cql, ['sue@inter.net', 'sue'], nil, :one))
             response.should be_void
           end
         end
 
-        it 'sends a SELECT command with bound variables' do
+        it 'sends a SELECT command with bound values' do
           in_keyspace_with_table do
             query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
             query(%<INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')>)
             cql = %<SELECT * FROM users WHERE user_name = ?>
-            response = execute_request(Cql::Protocol::QueryRequest.new(cql, ['sue'], :one))
+            response = execute_request(Cql::Protocol::QueryRequest.new(cql, ['sue'], nil, :one))
             response.rows.should == [
               {'user_name' => 'sue',  'email' => 'sue@inter.net', 'password' => nil}
             ]
           end
         end
 
-        it 'guesses the types of bound variables' do
+        it 'guesses the types of bound values' do
           in_keyspace do
             query('CREATE TABLE types (a BIGINT PRIMARY KEY, b DOUBLE, c ASCII, d BOOLEAN, e TIMESTAMP, f UUID, g DECIMAL, h BLOB)')
             cql = %<UPDATE types SET b = ?, c = ?, d = ?, e = ?, f = ?, g = ?, h = ? WHERE a = ?>
             values = [123.456, 'foo', true, Time.now, Cql::TimeUuid::Generator.new.next, BigDecimal.new('0.01'), 'hello', 3]
-            response = execute_request(Cql::Protocol::QueryRequest.new(cql, values, :one))
+            response = execute_request(Cql::Protocol::QueryRequest.new(cql, values, nil, :one))
+            response.should be_void
+          end
+        end
+
+        it 'uses the provided type hints to encode bound values' do
+          in_keyspace do
+            query('CREATE TABLE types (a INT PRIMARY KEY, b FLOAT)')
+            cql = %<UPDATE types SET b = ? WHERE a = ?>
+            values = [123.456, 3]
+            hints = [:float, :int]
+            response = execute_request(Cql::Protocol::QueryRequest.new(cql, values, hints, :one))
             response.should be_void
           end
         end
@@ -422,7 +433,7 @@ describe 'Protocol parsing and communication' do
           in_keyspace do
             create_table_cql = %<CREATE TABLE stuff (id1 UUID, id2 VARINT, id3 TIMESTAMP, value1 DOUBLE, value2 TIMEUUID, value3 BLOB, PRIMARY KEY (id1, id2, id3))>
             insert_cql = %<INSERT INTO stuff (id1, id2, id3, value1, value2, value3) VALUES (?, ?, ?, ?, ?, ?)>
-            create_response = execute_request(Cql::Protocol::QueryRequest.new(create_table_cql, nil, :one))
+            create_response = execute_request(Cql::Protocol::QueryRequest.new(create_table_cql, nil, nil, :one))
             create_response.should_not be_a(Cql::Protocol::ErrorResponse)
             prepare_response = execute_request(Cql::Protocol::PrepareRequest.new(insert_cql))
             prepare_response.should_not be_a(Cql::Protocol::ErrorResponse)
@@ -455,7 +466,7 @@ describe 'Protocol parsing and communication' do
       context 'with tracing' do
         it 'sends a QUERY request with the tracing flag and receives a RESULT with a trace ID' do
           in_keyspace_with_table do
-            response = execute_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, :quorum, true))
+            response = execute_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :quorum, true))
             response.trace_id.should_not be_nil
           end
         end
@@ -506,10 +517,10 @@ describe 'Protocol parsing and communication' do
         it 'handles multiple concurrent requests' do
           in_keyspace_with_table do
             futures = 10.times.map do
-              connection.send_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, :quorum))
+              connection.send_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :quorum))
             end
 
-            futures << connection.send_request(Cql::Protocol::QueryRequest.new(%<INSERT INTO users (user_name, email) VALUES ('sam', 'sam@ham.com')>, nil, :one))
+            futures << connection.send_request(Cql::Protocol::QueryRequest.new(%<INSERT INTO users (user_name, email) VALUES ('sam', 'sam@ham.com')>, nil, nil, :one))
             
             Cql::Future.all(*futures).value
           end
@@ -520,7 +531,7 @@ describe 'Protocol parsing and communication' do
             threads = Array.new(10) do
               Thread.new do
                 futures = 200.times.map do
-                  connection.send_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, :quorum))
+                  connection.send_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :quorum))
                 end
                 Cql::Future.all(*futures).value
               end
@@ -551,7 +562,7 @@ describe 'Protocol parsing and communication' do
         response.should be_a(Cql::Protocol::AuthSuccessResponse)
       end
       io_reactor.start.value
-      response = connection.send_request(Cql::Protocol::QueryRequest.new('USE system', nil, :any)).value
+      response = connection.send_request(Cql::Protocol::QueryRequest.new('USE system', nil, nil, :any)).value
       response.should_not be_a(Cql::Protocol::ErrorResponse)
     end
   end

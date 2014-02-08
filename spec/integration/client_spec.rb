@@ -280,7 +280,12 @@ describe 'A CQL client' do
     end
 
     it 'executes a query and sends the values separately' do
-      result = client.execute(%<INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)>, 'sue', 'Sue', 'Smith', 35)
+      result = client.execute(%<INSERT INTO users (user_id, first, last) VALUES (?, ?, ?)>, 'sue', 'Sue', 'Smith')
+      result.should be_empty
+    end
+
+    it 'encodes the values using the provided type hints' do
+      result = client.execute(%<INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)>, 'sue', 'Sue', 'Smith', 35, type_hints: [nil, nil, nil, :int])
       result.should be_empty
     end
   end
@@ -314,7 +319,7 @@ describe 'A CQL client' do
       batch = client.batch
       batch.add(prepared_statement, 'Smith', 'smith')
       batch.add(%(UPDATE users SET last = 'Jones' WHERE user_id = 'jones'))
-      batch.add(%(UPDATE users SET last = ? WHERE user_id = ?), 'Taylor', 'taylor')
+      batch.add(%(UPDATE users SET last = ?, age = ? WHERE user_id = ?), 'Taylor', 53, 'taylor', type_hints: [nil, :int, nil])
       batch.execute
       result = client.execute(%(SELECT * FROM users WHERE user_id = 'jones'))
       result.first.should include('last' => 'Jones')

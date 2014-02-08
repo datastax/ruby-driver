@@ -5,13 +5,14 @@ module Cql
     class QueryRequest < Request
       attr_reader :cql, :consistency
 
-      def initialize(cql, values, consistency, trace=false)
+      def initialize(cql, values, type_hints, consistency, trace=false)
         raise ArgumentError, %(No CQL given!) unless cql
         raise ArgumentError, %(No such consistency: #{consistency.inspect}) if consistency.nil? || !CONSISTENCIES.include?(consistency)
+        raise ArgumentError, %(Bound values and type hints must have the same number of elements (got #{values.size} values and #{type_hints.size} hints)) if values && type_hints && values.size != type_hints.size
         super(7, trace)
         @cql = cql
         @values = values || NO_VALUES
-        @encoded_values = self.class.encode_values('', values)
+        @encoded_values = self.class.encode_values('', values, type_hints)
         @consistency = consistency
       end
 
@@ -42,11 +43,12 @@ module Cql
         @h ||= (@cql.hash * 31) ^ consistency.hash
       end
 
-      def self.encode_values(buffer, values)
+      def self.encode_values(buffer, values, hints)
         if values && values.size > 0
+          hints ||= NO_HINTS
           Encoding.write_short(buffer, values.size)
-          values.each do |value|
-            type = guess_type(value)
+          values.each_with_index do |value, index|
+            type = hints[index] || guess_type(value)
             raise EncodingError, "Could not guess a suitable type for #{value.inspect}" unless type
             TYPE_CONVERTER.to_bytes(buffer, type, value)
           end
@@ -91,6 +93,7 @@ module Cql
       }.freeze
       TYPE_CONVERTER = TypeConverter.new
       NO_VALUES = [].freeze
+      NO_HINTS = [].freeze
       NO_FLAGS = "\x00".freeze
       VALUES_FLAG = "\x01".freeze
     end

@@ -117,6 +117,13 @@ module Cql
           bytes[3, 1].should == "\x01"
           bytes[39, 1].should == "\x00"
         end
+
+        it 'uses the type hints given to #add_query' do
+          batch = described_class.new(described_class::LOGGED_TYPE, :two)
+          batch.add_query(%<INSERT INTO things (a, b) VALUES (?, ?)>, ['foo', 3], [nil, :int])
+          bytes = batch.write(2, '')
+          bytes[56, 8].should == "\x00\x00\x00\x04\x00\x00\x00\x03"
+        end
       end
 
       describe '#to_s' do

@@ -28,7 +28,12 @@ module Cql
           request = Protocol::BatchRequest.new(BATCH_TYPES[@type], options[:consistency], options[:trace])
           @parts.each do |cql_or_statement, *bound_args|
             if cql_or_statement.is_a?(String)
-              request.add_query(cql_or_statement, bound_args)
+              type_hints = nil
+              if bound_args.last.is_a?(Hash) && bound_args.last.include?(:type_hints)
+                bound_args = bound_args.dup
+                type_hints = bound_args.pop[:type_hints]
+              end
+              request.add_query(cql_or_statement, bound_args, type_hints)
             else
               cql_or_statement.add_to_batch(request, connection, bound_args)
             end

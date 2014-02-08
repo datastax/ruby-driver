@@ -81,9 +81,16 @@ module Cql
           encoded_frame = last_request.write(1, '')
           encoded_frame.should include('UPDATE x SET y = 1 WHERE z = 2')
           encoded_frame.should include('UPDATE x SET y = 2 WHERE z = ?')
-          encoded_frame.should include(Protocol::QueryRequest.encode_values('', [3]))
+          encoded_frame.should include(Protocol::QueryRequest.encode_values('', [3], nil))
           encoded_frame.should include('XXXXXXXXXXXXXXXX')
           encoded_frame.should include(Protocol::ExecuteRequest.encode_values('', metadata, [3, 'foo']))
+        end
+
+        it 'uses the provided type hints' do
+          batch.add('UPDATE x SET y = 2 WHERE z = ?', 3, type_hints: [:int])
+          batch.execute.value
+          encoded_frame = last_request.write(1, '')
+          encoded_frame.should include(Protocol::QueryRequest.encode_values('', [3], [:int]))
         end
 
         it 'tries again when a prepared statement raises NotPreparedError' do

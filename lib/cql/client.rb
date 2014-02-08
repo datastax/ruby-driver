@@ -151,7 +151,17 @@ module Cql
 
       # @!method execute(cql, *values, options_or_consistency={})
       #
-      # Execute a CQL statement.
+      # Execute a CQL statement, optionally passing bound values.
+      #
+      # When passing bound values the request encoder will have to guess what
+      # types to encode the values as. For most types this will be no problem,
+      # but for integers and floating point numbers the larger size will be
+      # chosen (e.g. `BIGINT` and `DOUBLE` and not `INT` and `FLOAT`). You can
+      # override the guessing with the `:type_hint` option. Don't use on-the-fly
+      # bound values when you will issue the request multiple times, prepared
+      # statements are almost always a better choice.
+      #
+      # @note On-the-fly bound values are not supported in Cassandra 1.2
       #
       # @example A simple CQL query
       #   result = client.execute("SELECT * FROM users WHERE user_name = 'sue'")
@@ -161,6 +171,9 @@ module Cql
       #
       # @example Using on-the-fly bound values
       #   client.execute('INSERT INTO users (user_name, full_name) VALUES (?, ?)', 'sue', 'Sue Smith')
+      #
+      # @example Using on-the-fly bound values with type hints
+      #   client.execute('INSERT INTO users (user_name, age) VALUES (?, ?)', 'sue', 33, type_hints: [nil, :int])
       #
       # @example Specifying the consistency as a symbol
       #   client.execute("UPDATE users SET full_name = 'Sue S. Smith' WHERE user_name = 'sue'", consistency: :one)
@@ -186,12 +199,20 @@ module Cql
       #   equivalent to passing the options `consistency: <symbol>`.
       # @option options_or_consistency [Symbol] :consistency (:quorum) The
       #   consistency to use for this query.
-      # @option options_or_consistency [Symbol] :timeout (nil) How long to wait
+      # @option options_or_consistency [Integer] :timeout (nil) How long to wait
       #   for a response. If this timeout expires a {Cql::TimeoutError} will
       #   be raised.
-      # @option options_or_consistency [Symbol] :trace (false) Request tracing
+      # @option options_or_consistency [Boolean] :trace (false) Request tracing
       #   for this request. See {Cql::Client::QueryResult} and
       #   {Cql::Client::VoidResult} for how to retrieve the tracing data.
+      # @option options_or_consistency [Array] :type_hints (nil) When passing
+      #   on-the-fly bound values the request encoder will have to guess what
+      #   types to encode the values as. Using this option you can give it hints
+      #   and avoid it guessing wrong. The hints must be an array that has the
+      #   same number of arguments as the number of bound values, and each
+      #   element should be the type of the corresponding value, or nil if you
+      #   prefer the encoder to guess. The types should be provided as lower
+      #   case symbols, e.g. `:int`, `:time_uuid`, etc.
       # @raise [Cql::NotConnectedError] raised when the client is not connected
       # @raise [Cql::TimeoutError] raised when a timeout was specified and no
       #   response was received within the timeout.
@@ -247,6 +268,11 @@ module Cql
       #   batch.add('UPDATE counts SET value = value + ? WHERE id = ?', 3, 6572)
       #   result = batch.execute(timeout: 10)
       #   puts result.trace_id
+      #
+      # @example Providing type hints for on-the-fly bound values
+      #   batch = client.batch
+      #   batch.add('UPDATE counts SET value = value + ? WHERE id = ?', 4, type_hints: [:int])
+      #   batch.execute
       #
       # @see Cql::Client::Batch
       # @param [Symbol] type the type of batch, must be one of `:logged`,
@@ -318,7 +344,11 @@ module Cql
       #   {Cql::Client::Client#prepare})
       # @param [Array] bound_values a list of bound values -- only applies when
       #   adding prepared statements and when there are binding markers in the
-      #   given CQL.
+      #   given CQL. If the last argument is a hash and it has the key
+      #   `:type_hints` this will be passed as type hints to the request encoder
+      #   (if the last argument is any other hash it will be assumed to be a
+      #   bound value of type MAP). See {Cql::Client::Client#execute} for more
+      #   info on type hints.
       # @return [nil]
 
       # @!method execute(options={})

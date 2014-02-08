@@ -90,7 +90,7 @@ module Cql
             options_or_consistency = args.pop
           end
           options = @execute_options_decoder.decode_options(options_or_consistency)
-          execute_request(Protocol::QueryRequest.new(cql, args, options[:consistency], options[:trace]), options[:timeout])
+          execute_request(Protocol::QueryRequest.new(cql, args, options[:type_hints], options[:consistency], options[:trace]), options[:timeout])
         end
       end
 
