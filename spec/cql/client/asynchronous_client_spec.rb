@@ -1013,6 +1013,13 @@ module Cql
             last_request.should be_a(Protocol::BatchRequest)
           end
 
+          it 'creates a batch of the right type' do
+            batch = client.batch(:unlogged)
+            batch.add('UPDATE x SET y = 3 WHERE z = 1')
+            batch.execute.value
+            last_request.type.should == Protocol::BatchRequest::UNLOGGED_TYPE
+          end
+
           it 'passes the options to the batch' do
             batch = client.batch(trace: true)
             batch.add('UPDATE x SET y = 3 WHERE z = 1')

@@ -77,6 +77,8 @@ module Cql
           else
             Protocol::RawRowsResultResponse.new(protocol_version[1].to_i, raw_rows, nil, nil)
           end
+        when Protocol::BatchRequest
+          Protocol::VoidResultResponse.new(nil)
         else
           raise %(Unexpected request: #{request})
         end
@@ -259,6 +261,58 @@ module Cql
           end
           statement.execute(11, 'hello', trace: true).value
           tracing.should be_true
+        end
+      end
+
+      describe '#batch' do
+        let :statement do
+          described_class.prepare('UPDATE x SET y = ? WHERE z = ?', ExecuteOptionsDecoder.new(:one), connection_manager, logger).value
+        end
+
+        def requests
+          connections.flat_map(&:requests).select { |r| r.is_a?(Protocol::BatchRequest) }
+        end
+
+        context 'when called witout a block' do
+          it 'returns a batch' do
+            batch = statement.batch
+            batch.add(1, 'foo')
+            batch.execute.value
+            requests.first.should be_a(Protocol::BatchRequest)
+          end
+
+          it 'creates a batch of the right type' do
+            batch = statement.batch(:unlogged)
+            batch.add(1, 'foo')
+            batch.execute.value
+            requests.first.type.should == Protocol::BatchRequest::UNLOGGED_TYPE
+          end
+
+          it 'passes the options to the batch' do
+            batch = statement.batch(trace: true)
+            batch.add(1, 'foo')
+            batch.execute.value
+            requests.first.trace.should be_true
+          end
+        end
+
+        context 'when called with a block' do
+          it 'yields and executes a batch' do
+            f = statement.batch do |batch|
+              batch.add(5, 'foo')
+              batch.add(6, 'bar')
+            end
+            f.value
+            requests.first.should be_a(Protocol::BatchRequest)
+          end
+
+          it 'passes the options to the batch\'s #execute' do
+            f = statement.batch(:unlogged, trace: true) do |batch|
+              batch.add(4, 'baz')
+            end
+            f.value
+            requests.first.trace.should be_true
+          end
         end
       end
 

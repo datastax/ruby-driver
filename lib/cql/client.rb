@@ -333,6 +333,25 @@ module Cql
       #   prepared statement was not prepared on the chosen connection
       # @return [Cql::Client::VoidResult] a batch always returns a void result
     end
+
+    class PreparedStatementBatch
+      # @!method add(*bound_values)
+      #
+      # Add the statement to the batch with the specified bound values.
+      #
+      # @param [Array] bound_values the values to bind to the added statement,
+      #   see {Cql::Client::PreparedStatement#execute}.
+      # @return [nil]
+
+      # @!method execute(options={})
+      #
+      # Execute the batch and return the result.
+      #
+      # @raise [Cql::QueryError] raised when there is an error on the server side
+      # @raise [Cql::NotPreparedError] raised in the unlikely event that a
+      #   prepared statement was not prepared on the chosen connection
+      # @return [Cql::Client::VoidResult] a batch always returns a void result
+    end
   end
 end
 

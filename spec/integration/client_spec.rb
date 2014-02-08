@@ -62,11 +62,12 @@ describe 'A CQL client' do
 
   context 'when using prepared statements' do
     before do
-      client.use('system')
+      create_keyspace_and_table
+      client.execute(%(UPDATE users SET first = 'Sue', last = 'Smith', age = 34 WHERE user_id = 'sue'))
     end
 
     let :statement do
-      client.prepare('SELECT * FROM schema_keyspaces WHERE keyspace_name = ?')
+      client.prepare('SELECT * FROM users WHERE user_id = ?')
     end
 
     it 'prepares a statement' do

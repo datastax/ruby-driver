@@ -74,5 +74,38 @@ module Cql
         synchronous_backtrace { @asynchronous_batch.execute(options).value }
       end
     end
+
+    # @private
+    class AsynchronousPreparedStatementBatch < PreparedStatementBatch
+      def initialize(prepared_statement, batch)
+        @prepared_statement = prepared_statement
+        @batch = batch
+      end
+
+      def add(*args)
+        @batch.add(@prepared_statement, *args)
+      end
+
+      def execute(options={})
+        @batch.execute(options)
+      end
+    end
+
+    # @private
+    class SynchronousPreparedStatementBatch < PreparedStatementBatch
+      include SynchronousBacktrace
+
+      def initialize(asynchronous_batch)
+        @asynchronous_batch = asynchronous_batch
+      end
+
+      def add(*args)
+        @asynchronous_batch.add(*args)
+      end
+
+      def execute(options={})
+        synchronous_backtrace { @asynchronous_batch.execute(options).value }
+      end
+    end
   end
 end

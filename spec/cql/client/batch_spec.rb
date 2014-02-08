@@ -193,5 +193,72 @@ module Cql
         end
       end
     end
+
+    describe AsynchronousPreparedStatementBatch do
+      let :prepared_statement_batch do
+        described_class.new(prepared_statement, batch)
+      end
+
+      let :prepared_statement do
+        double(:prepared_statement)
+      end
+
+      let :batch do
+        double(:batch)
+      end
+
+      before do
+        batch.stub(:add)
+        batch.stub(:execute).and_return(Cql::Future.resolved(VoidResult::INSTANCE))
+      end
+
+      describe '#add' do
+        it 'passes the statement and the given arguments to the batch' do
+          prepared_statement_batch.add('foo', 3)
+          batch.should have_received(:add).with(prepared_statement, 'foo', 3)
+        end
+      end
+
+      describe '#execute' do
+        it 'delegates to the batch' do
+          result = prepared_statement_batch.execute(trace: true)
+          batch.should have_received(:execute).with(trace: true)
+          result.value.should == VoidResult::INSTANCE
+        end
+      end
+    end
+
+    describe SynchronousPreparedStatementBatch do
+      let :batch do
+        described_class.new(asynchronous_batch)
+      end
+
+      let :asynchronous_batch do
+        double(:asynchronous_batch)
+      end
+
+      before do
+        asynchronous_batch.stub(:add)
+        asynchronous_batch.stub(:execute).and_return(Cql::Future.resolved(VoidResult::INSTANCE))
+      end
+
+      describe '#add' do
+        it 'delegates to the async batch' do
+          batch.add(3, 'foo', 9)
+          asynchronous_batch.should have_received(:add).with(3, 'foo', 9)
+        end
+      end
+
+      describe '#execute' do
+        it 'delegates to the async batch' do
+          batch.execute(trace: true)
+          asynchronous_batch.should have_received(:execute).with(trace: true)
+        end
+
+        it 'waits for the response' do
+          batch.execute.should == VoidResult::INSTANCE
+        end
+      end
+    end
   end
 end

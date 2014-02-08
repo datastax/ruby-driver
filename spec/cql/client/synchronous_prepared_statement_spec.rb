@@ -51,6 +51,36 @@ module Cql
         end
       end
 
+      describe '#batch' do
+        let :batch do
+          double(:batch)
+        end
+
+        context 'when called without a block' do
+          it 'delegates to the asynchronous statement and wraps the returned object in a synchronous wrapper' do
+            async_statement.stub(:batch).with(:unlogged, trace: true).and_return(batch)
+            batch.stub(:execute).and_return(Cql::Future.resolved(VoidResult.new))
+            b = statement.batch(:unlogged, trace: true)
+            b.execute.should be_a(VoidResult)
+          end
+        end
+
+        context 'when called with a block' do
+          it 'delegates to the asynchronous statement' do
+            async_statement.stub(:batch).with(:counter, trace: true).and_yield(batch).and_return(Cql::Future.resolved(VoidResult.new))
+            yielded_batch = nil
+            statement.batch(:counter, trace: true) { |b| yielded_batch = b }
+            yielded_batch.should equal(batch)
+          end
+
+          it 'waits for the operation to complete' do
+            async_statement.stub(:batch).with(:counter, {}).and_yield(batch).and_return(Cql::Future.resolved(VoidResult.new))
+            result = statement.batch(:counter) { |b| }
+            result.should be_a(VoidResult)
+          end
+        end
+      end
+
       describe '#add_to_batch' do
         it 'delegates to the async statement' do
           batch = double(:batch)
