@@ -4,7 +4,7 @@ module Cql
   module Client
     # @private
     class AsynchronousBatch < Batch
-      def initialize(type, execute_options_decoder, connection_manager, options={})
+      def initialize(type, execute_options_decoder, connection_manager, options=nil)
         raise ArgumentError, "Unknown batch type: #{type}" unless BATCH_TYPES.include?(type)
         @type = type
         @execute_options_decoder = execute_options_decoder
@@ -19,13 +19,8 @@ module Cql
         nil
       end
 
-      def execute(options={})
-        if options.is_a?(Symbol)
-          options = @options.merge(consistency: options)
-        else
-          options = @options.merge(options)
-        end
-        options = @execute_options_decoder.decode_options(options)
+      def execute(options=nil)
+        options = @execute_options_decoder.decode_options(@options, options)
         connection = nil
         attempts = 0
         begin
@@ -70,7 +65,7 @@ module Cql
         @asynchronous_batch.add(*args)
       end
 
-      def execute(options={})
+      def execute(options=nil)
         synchronous_backtrace { @asynchronous_batch.execute(options).value }
       end
     end
@@ -86,7 +81,7 @@ module Cql
         @batch.add(@prepared_statement, *args)
       end
 
-      def execute(options={})
+      def execute(options=nil)
         @batch.execute(options)
       end
     end
@@ -103,7 +98,7 @@ module Cql
         @asynchronous_batch.add(*args)
       end
 
-      def execute(options={})
+      def execute(options=nil)
         synchronous_backtrace { @asynchronous_batch.execute(options).value }
       end
     end

@@ -52,6 +52,28 @@ module Cql
           options = decoder.decode_options(timeout: 3)
           options.should include(timeout: 3)
         end
+
+        context 'when called with multiple options' do
+          it 'merges the options' do
+            options = decoder.decode_options({:tracing => true, :timeout => 3}, {:consistency => :quorum, :timeout => 4})
+            options.should eql(tracing: true, timeout: 4, consistency: :quorum)
+          end
+
+          it 'uses the default consistency' do
+            options = decoder.decode_options({tracing: true, timeout: 3}, {:timeout => 4})
+            options.should eql(tracing: true, timeout: 4, consistency: :two)
+          end
+
+          it 'accepts nil' do
+            options = decoder.decode_options(nil, {tracing: true, timeout: 3}, nil, {:timeout => 4})
+            options.should eql(tracing: true, timeout: 4, consistency: :two)
+          end
+
+          it 'accepts consistencies given as symbols' do
+            options = decoder.decode_options({tracing: true, timeout: 3}, :quorum)
+            options.should eql(tracing: true, timeout: 3, consistency: :quorum)
+          end
+        end
       end
     end
   end

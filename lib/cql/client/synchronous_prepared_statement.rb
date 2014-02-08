@@ -16,7 +16,7 @@ module Cql
         synchronous_backtrace { @async_statement.execute(*args).value }
       end
 
-      def batch(type=:logged, options={}, &block)
+      def batch(type=:logged, options=nil, &block)
         if block_given?
           synchronous_backtrace { @async_statement.batch(type, options, &block).value }
         else

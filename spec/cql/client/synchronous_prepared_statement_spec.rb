@@ -74,7 +74,7 @@ module Cql
           end
 
           it 'waits for the operation to complete' do
-            async_statement.stub(:batch).with(:counter, {}).and_yield(batch).and_return(Cql::Future.resolved(VoidResult.new))
+            async_statement.stub(:batch).with(:counter, anything).and_yield(batch).and_return(Cql::Future.resolved(VoidResult.new))
             result = statement.batch(:counter) { |b| }
             result.should be_a(VoidResult)
           end

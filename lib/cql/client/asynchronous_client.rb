@@ -100,7 +100,7 @@ module Cql
         end
       end
 
-      def batch(type=:logged, options={})
+      def batch(type=:logged, options=nil)
         if type.is_a?(Hash)
           options = type
           type = :logged
