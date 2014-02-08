@@ -77,7 +77,7 @@ module Cql
 
       def use(keyspace)
         with_failure_handler do
-          connections = @connection_manager.select { |c| c.keyspace != keyspace }
+          connections = @connection_manager.reject { |c| c.keyspace == keyspace }
           return Future.resolved if connections.empty?
           use_keyspace(connections, keyspace).map(nil)
         end
