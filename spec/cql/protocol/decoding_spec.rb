@@ -104,13 +104,6 @@ module Cql
           Decoding.read_long!(buffer).should == 0xffeeddccbbaa9988 - 0x10000000000000000
         end
 
-        it 'bench' do
-          started_at = Time.now
-          100_000.times { Decoding.read_long!(ByteBuffer.new("\xff\xee\xdd\xcc\xbb\xaa\x99\x88")) }
-          time_taken = Time.now - started_at
-          puts time_taken
-        end
-
         it 'consumes the bytes' do
           buffer = ByteBuffer.new("\xca\xfe\xba\xbe\xca\xfe\xba\xbe\xca\xfe\xba\xbe")
           Decoding.read_long!(buffer)
