@@ -262,15 +262,21 @@ Applications using cql-rb and JRuby can do over 10,000 write requests per second
 
 ## Try batching
 
-Batching in Cassandra isn't always as good as in other (non-distributed) databases. Since rows are distributed accross the cluster the coordinator node must still send the individual pieces of a batch to other nodes, and you could have done that yourself instead. Batches also mean that in most cases you need to smash strings together to create a big CQL string, so you increase the size of your requests, using up more bandwidth and making the server have to do more CQL parsing. Prepared statements are almost always a better choice for performance.
+Batching in Cassandra isn't always as good as in other (non-distributed) databases. Since rows are distributed accross the cluster the coordinator node must still send the individual pieces of a batch to other nodes, and you could have done that yourself instead.
 
-Cassandra 2.0 introduced a new form of batches where you can send a batch of prepared statement executions as one request, when support for that arrives in cql-rb, this advice should be reconsidered.
+For Cassandra 1.2 it is often best not to use batching at all, you'll have to smash strings together to create the batch statements, and that will waste time on the client side, will take longer to push over the network, and will take longer to parse and process on the server side. Prepared statements are almost always a better choice.
+
+Cassandra 2.0 introduced a new form of batches where you can send a batch of prepared statement executions as one request (you can send non-prepared statements too, but we're talking performance here). These bring the best of both worlds and can be beneficial for some use cases. Some of the same caveats still apply though and you should test it for your use case.
+
+Whenever you use batching, try compression too.
 
 ## Try compression
 
 If your requests or responses are big, compression can help decrease the amound of traffic over the network, which is often a good thing. If your requests and responses are small, compression often doesn't do anything. You should benchmark and see what works for you. The Snappy compressor that comes with cql-rb uses very little CPU, so most of the time it doesn't hurt to leave it on.
 
 In read-heavy applications requests are often small, and need no compression, but responses can be big. In these situations you can modify the compressor used to turn off compression for requests completely. The Snappy compressor that comes with cql-rb will not compress frames less than 64 bytes, for example, and you can change this threshold when you create the compressor.
+
+Compression works best for large requests, so if you use batching you should benchmark if compression gives you a speed boost.
 
 # Try experimental features
 
