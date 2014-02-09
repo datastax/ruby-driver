@@ -153,7 +153,7 @@ module Cql
         end
 
         it 'executes itself on one of the connections' do
-          statement.execute(11, 'hello')
+          statement.execute(11, 'hello').value
           requests = connections.flat_map(&:requests).select { |r| r.is_a?(Protocol::ExecuteRequest) }
           requests.should have(1).item
           requests.first.metadata.should == raw_metadata
@@ -161,44 +161,44 @@ module Cql
         end
 
         it 'uses the right statement ID for the connection' do
-          statement.execute(11, 'hello')
+          statement.execute(11, 'hello').value
           connection, request = connections.map { |c| [c, c.requests.find { |r| r.is_a?(Protocol::ExecuteRequest) }] }.find { |c, r| r }
           request.id.should == connection[:last_prepared_statement_id]
         end
 
         it 'sends the default consistency level' do
-          statement.execute(11, 'hello')
+          statement.execute(11, 'hello').value
           request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
           request.consistency.should == :local_quorum
         end
 
         it 'sends the consistency given as last argument' do
-          statement.execute(11, 'hello', :two)
+          statement.execute(11, 'hello', :two).value
           request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
           request.consistency.should == :two
         end
 
         it 'sends the consistency given as an option' do
-          statement.execute(11, 'hello', consistency: :two)
+          statement.execute(11, 'hello', consistency: :two).value
           request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
           request.consistency.should == :two
         end
 
         it 'sends the serial consistency given as an option' do
-          statement.execute(11, 'hello', serial_consistency: :local_serial)
+          statement.execute(11, 'hello', serial_consistency: :local_serial).value
           request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
           request.serial_consistency.should == :local_serial
         end
 
         it 'asks the server not to send metadata' do
-          statement.execute(11, 'hello', consistency: :two)
+          statement.execute(11, 'hello', consistency: :two).value
           request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
           request.request_metadata.should be_false
         end
 
         it 'passes the metadata to the request runner' do
-          response = statement.execute(11, 'hello', consistency: :two)
-          response.value.count.should == 3
+          response = statement.execute(11, 'hello', consistency: :two).value
+          response.count.should == 3
         end
 
         it 'uses the specified timeout' do
@@ -209,7 +209,7 @@ module Cql
               handle_request(c, r, t)
             end
           end
-          statement.execute(11, 'hello', timeout: 3)
+          statement.execute(11, 'hello', timeout: 3).value
           sent_timeout.should == 3
         end
 
