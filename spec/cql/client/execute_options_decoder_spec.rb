@@ -16,6 +16,11 @@ module Cql
           options.should include(consistency: :two)
         end
 
+        it 'returns the default consistency when given no options' do
+          options = decoder.decode_options
+          options.should include(consistency: :two)
+        end
+
         it 'returns the default consistency when given nil' do
           options = decoder.decode_options(nil)
           options.should include(consistency: :two)
