@@ -14,7 +14,7 @@ services:
 rvm:
   - 1.9.3
   - 2.0.0
-  - jruby-19mode
+  - jruby
   - rbx-2.1.1
 jdk:
   - openjdk7
@@ -23,7 +23,7 @@ matrix:
     - rvm: 1.9.3
       jdk: openjdk7
       env: CQL_ENABLE_AUTH=1
-    - rvm: jruby-19mode
+    - rvm: jruby
       jdk: openjdk7
       env: CQL_ENABLE_AUTH=1
     - rvm: rbx-2.1.1
