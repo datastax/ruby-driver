@@ -190,15 +190,33 @@ module Cql
           q2.should eql(q2)
         end
 
+        it 'returns false when the CQL is different' do
+          q1 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, nil, nil, false)
+          q2 = QueryRequest.new('SELECT * FROM peers', nil, nil, :two, nil, nil, nil, false)
+          q1.should_not eql(q2)
+        end
+
         it 'returns false when the consistency is different' do
           q1 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, nil, nil, false)
           q2 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :three, nil, nil, nil, false)
           q1.should_not eql(q2)
         end
 
-        it 'returns false when the CQL is different' do
-          q1 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, nil, nil, false)
-          q2 = QueryRequest.new('SELECT * FROM peers', nil, nil, :two, nil, nil, nil, false)
+        it 'returns false when the serial consistency is different' do
+          q1 = QueryRequest.new('SELECT * FROM peers', nil, nil, :two, :local_serial, nil, nil, false)
+          q2 = QueryRequest.new('SELECT * FROM peers', nil, nil, :two, :serial, nil, nil, false)
+          q1.should_not eql(q2)
+        end
+
+        it 'returns false when the page size is different' do
+          q1 = QueryRequest.new('SELECT * FROM peers', nil, nil, :two, nil, 10, nil, false)
+          q2 = QueryRequest.new('SELECT * FROM peers', nil, nil, :two, nil, 20, nil, false)
+          q1.should_not eql(q2)
+        end
+
+        it 'returns false when the paging state is different' do
+          q1 = QueryRequest.new('SELECT * FROM peers', nil, nil, :two, nil, 10, 'foo', false)
+          q2 = QueryRequest.new('SELECT * FROM peers', nil, nil, :two, nil, 10, 'bar', false)
           q1.should_not eql(q2)
         end
 
@@ -222,15 +240,33 @@ module Cql
           q1.hash.should == q2.hash
         end
 
+        it 'does not have the same hash code when the CQL is different' do
+          q1 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, nil, nil, false)
+          q2 = QueryRequest.new('SELECT * FROM peers', nil, nil, :two, nil, nil, nil, false)
+          q1.hash.should_not == q2.hash
+        end
+
         it 'does not have the same hash code when the consistency is different' do
           q1 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, nil, nil, false)
           q2 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :three, nil, nil, nil, false)
           q1.hash.should_not == q2.hash
         end
 
-        it 'does not have the same hash code when the CQL is different' do
-          q1 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, nil, nil, false)
-          q2 = QueryRequest.new('SELECT * FROM peers', nil, nil, :two, nil, nil, nil, false)
+        it 'does not have the same hash code when the serial consistency is different' do
+          q1 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, :local_serial, nil, nil, false)
+          q2 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, :serial, nil, nil, false)
+          q1.hash.should_not == q2.hash
+        end
+
+        it 'does not have the same hash code when the page size is different' do
+          q1 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, 10, nil, false)
+          q2 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, 20, nil, false)
+          q1.hash.should_not == q2.hash
+        end
+
+        it 'does not have the same hash code when the paging state is different' do
+          q1 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, 10, 'foo', false)
+          q2 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, 10, 'bar', false)
           q1.hash.should_not == q2.hash
         end
       end

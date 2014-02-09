@@ -3,7 +3,7 @@
 module Cql
   module Protocol
     class QueryRequest < Request
-      attr_reader :cql, :consistency
+      attr_reader :cql, :consistency, :serial_consistency, :page_size, :paging_state
 
       def initialize(cql, values, type_hints, consistency, serial_consistency=nil, page_size=nil, paging_state=nil, trace=false)
         raise ArgumentError, %(No CQL given!) unless cql
@@ -48,12 +48,18 @@ module Cql
       end
 
       def eql?(rq)
-        self.class === rq && rq.cql.eql?(self.cql) && rq.consistency.eql?(self.consistency)
+        self.class === rq && rq.cql == self.cql && rq.consistency == self.consistency && rq.serial_consistency == self.serial_consistency && rq.page_size == self.page_size && rq.paging_state == self.paging_state
       end
       alias_method :==, :eql?
 
       def hash
-        @h ||= (@cql.hash * 31) ^ consistency.hash
+        h = 0xcbf29ce484222325
+        h = (h ^ @cql.hash) * 0x100000001b3
+        h = (h ^ @consistency.hash) * 0x100000001b3
+        h = (h ^ @serial_consistency.hash) * 0x100000001b3
+        h = (h ^ @page_size.hash) * 0x100000001b3
+        h = (h ^ @paging_state.hash) * 0x100000001b3
+        h
       end
 
       def self.encode_values(buffer, values, hints)
