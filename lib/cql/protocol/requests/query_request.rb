@@ -13,8 +13,8 @@ module Cql
         raise ArgumentError, %(Paging state given but no page size) if paging_state && !page_size
         super(7, trace)
         @cql = cql
-        @values = values
-        @type_hints = type_hints
+        @values = values || EMPTY_LIST
+        @type_hints = type_hints || EMPTY_LIST
         @encoded_values = self.class.encode_values('', @values, @type_hints)
         @consistency = consistency
         @serial_consistency = serial_consistency
@@ -49,7 +49,14 @@ module Cql
       end
 
       def eql?(rq)
-        self.class === rq && rq.cql == self.cql && rq.values == self.values && rq.type_hints == self.type_hints && rq.consistency == self.consistency && rq.serial_consistency == self.serial_consistency && rq.page_size == self.page_size && rq.paging_state == self.paging_state
+        self.class === rq &&
+          rq.cql == self.cql &&
+          rq.values == self.values &&
+          rq.type_hints == self.type_hints &&
+          rq.consistency == self.consistency &&
+          rq.serial_consistency == self.serial_consistency &&
+          rq.page_size == self.page_size &&
+          rq.paging_state == self.paging_state
       end
       alias_method :==, :eql?
 

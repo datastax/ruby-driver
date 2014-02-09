@@ -238,6 +238,18 @@ module Cql
           q1.should_not eql(q2)
         end
 
+        it 'does not make a difference between an empty values array and nil' do
+          q1 = QueryRequest.new('SELECT * FROM peers', [], nil, :two, nil, nil, nil, false)
+          q2 = QueryRequest.new('SELECT * FROM peers', nil, nil, :two, nil, nil, nil, false)
+          q1.should eql(q2)
+        end
+
+        it 'does not make a difference between an empty type hints array and nil' do
+          q1 = QueryRequest.new('SELECT * FROM peers', nil, [], :two, nil, nil, nil, false)
+          q2 = QueryRequest.new('SELECT * FROM peers', nil, nil, :two, nil, nil, nil, false)
+          q1.should eql(q2)
+        end
+
         it 'is aliased as ==' do
           q1 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, nil, nil, false)
           q2 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, nil, nil, false)
@@ -292,6 +304,18 @@ module Cql
           q1 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, 10, 'foo', false)
           q2 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, 10, 'bar', false)
           q1.hash.should_not == q2.hash
+        end
+
+        it 'does not make a difference between an empty values array and nil' do
+          q1 = QueryRequest.new('SELECT * FROM peers', [], nil, :two, nil, nil, nil, false)
+          q2 = QueryRequest.new('SELECT * FROM peers', nil, nil, :two, nil, nil, nil, false)
+          q1.hash.should == q2.hash
+        end
+
+        it 'does not make a difference between an empty type hints array and nil' do
+          q1 = QueryRequest.new('SELECT * FROM peers', nil, [], :two, nil, nil, nil, false)
+          q2 = QueryRequest.new('SELECT * FROM peers', nil, nil, :two, nil, nil, nil, false)
+          q1.hash.should == q2.hash
         end
       end
     end
