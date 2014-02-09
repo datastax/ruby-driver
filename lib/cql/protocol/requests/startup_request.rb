@@ -5,9 +5,10 @@ module Cql
     class StartupRequest < Request
       attr_reader :options
 
-      def initialize(cql_version=nil, compression=nil)
+      def initialize(cql_version, compression=nil)
         super(1)
-        @options = {CQL_VERSION => cql_version || DEFAULT_CQL_VERSION}
+        raise ArgumentError, "Invalid CQL version: #{cql_version.inspect}" unless cql_version
+        @options = {CQL_VERSION => cql_version}
         @options[COMPRESSION] = compression if compression
       end
 
@@ -25,7 +26,6 @@ module Cql
 
       private
 
-      DEFAULT_CQL_VERSION = '3.0.0'.freeze
       CQL_VERSION = 'CQL_VERSION'.freeze
       COMPRESSION = 'COMPRESSION'.freeze
     end

@@ -97,12 +97,16 @@ module Cql
     #   compression will be enabled. If the server does not support compression
     #   or the specific compression algorithm specified by the compressor,
     #   compression will not be enabled and a warning will be logged.
+    # @option options [String] :cql_version Specifies which CQL version the
+    #   server should expect.
     # @option options [Integer] :logger If you want the client to log
     #   significant events pass an object implementing the standard Ruby logger
     #   interface (e.g. quacks like `Logger` from the standard library) with
     #   this option.
     # @raise Cql::Io::ConnectionError when a connection couldn't be established
     #   to any node
+    # @raise Cql::Client::QueryError when the specified keyspace does not exist
+    #   or when the specifed CQL version is not supported.
     # @return [Cql::Client::Client]
     def self.connect(options={})
       SynchronousClient.new(AsynchronousClient.new(options)).connect

@@ -294,7 +294,7 @@ module Cql
 
     describe InitializeStep do
       let :step do
-        described_class.new(compressor, logger)
+        described_class.new('3.3.3', compressor, logger)
       end
 
       let :compressor do
@@ -321,6 +321,11 @@ module Cql
         it 'sends a STARTUP request' do
           step.run(pending_connection)
           pending_connection.last_request.should be_a(Protocol::StartupRequest)
+        end
+
+        it 'sets the CQL version' do
+          step.run(pending_connection)
+          pending_connection.last_request.options.should include('CQL_VERSION' => '3.3.3')
         end
 
         it 'does not set the compression option when there is no compressor' do

@@ -6,6 +6,7 @@ module Cql
     class AsynchronousClient < Client
       def initialize(options={})
         @compressor = options[:compressor]
+        @cql_version = options[:cql_version]
         @logger = options[:logger] || NullLogger.new
         @protocol_version = options[:protocol_version] || 2
         @io_reactor = options[:io_reactor] || Io::IoReactor.new(protocol_handler_factory)
@@ -121,6 +122,9 @@ module Cql
 
       private
 
+      DEFAULT_CQL_VERSIONS = {1 => '3.0.0'}
+      DEFAULT_CQL_VERSIONS.default = '3.1.0'
+      DEFAULT_CQL_VERSIONS.freeze
       DEFAULT_CONSISTENCY = :quorum
       DEFAULT_PORT = 9042
       DEFAULT_CONNECTION_TIMEOUT = 10
@@ -141,11 +145,12 @@ module Cql
       end
 
       def create_cluster_connector
+        cql_version = @cql_version || DEFAULT_CQL_VERSIONS[@protocol_version]
         ClusterConnector.new(
           Connector.new([
             ConnectStep.new(@io_reactor, @port, @connection_timeout, @logger),
             CacheOptionsStep.new,
-            InitializeStep.new(@compressor, @logger),
+            InitializeStep.new(cql_version, @compressor, @logger),
             AuthenticationStep.new(@authenticator, @protocol_version),
             CachePropertiesStep.new,
           ]),

@@ -304,6 +304,21 @@ module Cql
             authenticator.should_not have_received(:supports?).with(auth_class, 1)
             authenticator.should have_received(:initial_request).with(2)
           end
+
+          it 'defaults to different CQL versions for the different protocols' do
+            cql_versions = []
+            handle_request do |request|
+              if request.is_a?(Protocol::StartupRequest)
+                cql_versions << request.options['CQL_VERSION']
+              end
+              nil
+            end
+            [1, 2, 3].map do |protocol_version|
+              client = described_class.new(connection_options.merge(protocol_version: protocol_version))
+              client.connect.value
+            end
+            cql_versions.should == ['3.0.0', '3.1.0', '3.1.0']
+          end
         end
 
         it 'returns itself' do
@@ -324,6 +339,13 @@ module Cql
         it 'is not in a keyspace' do
           client.connect.value
           client.keyspace.should be_nil
+        end
+
+        it 'sends the specified CQL version in the startup message' do
+          c = described_class.new(connection_options.merge(cql_version: '5.0.1'))
+          c.connect.value
+          request = requests.find { |rq| rq.is_a?(Protocol::StartupRequest) }
+          request.options.should include('CQL_VERSION' => '5.0.1')
         end
 
         it 'enables compression when a compressor is specified' do

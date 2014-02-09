@@ -101,7 +101,8 @@ module Cql
 
     # @private
     class InitializeStep
-      def initialize(compressor, logger)
+      def initialize(cql_version, compressor, logger)
+        @cql_version = cql_version
         @compressor = compressor
         @logger = logger
       end
@@ -115,7 +116,7 @@ module Cql
         elsif @compressor
           @logger.debug('Using "%s" compression' % @compressor.algorithm)
         end
-        f = pending_connection.execute(Protocol::StartupRequest.new(nil, compression))
+        f = pending_connection.execute(Protocol::StartupRequest.new(@cql_version, compression))
         f.map do |startup_response|
           if startup_response.is_a?(AuthenticationRequired)
             pending_connection.with_authentication_class(startup_response.authentication_class)
