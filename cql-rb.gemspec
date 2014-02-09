@@ -15,7 +15,7 @@ Gem::Specification.new do |s|
   s.description   = %q{A pure Ruby CQL3 driver for Cassandra}
   s.license       = 'Apache License 2.0'
   
-  s.files         = Dir['lib/**/*.rb', 'bin/*', 'README.md']
+  s.files         = Dir['lib/**/*.rb', 'bin/*', 'README.md', '.yardopts']
   s.test_files    = Dir['spec/**/*.rb']
   s.require_paths = %w(lib)
   s.bindir        = 'bin'
