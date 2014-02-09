@@ -196,6 +196,18 @@ module Cql
           q1.should_not eql(q2)
         end
 
+        it 'returns false when the values are different' do
+          q1 = QueryRequest.new('SELECT * FROM peers WHERE data_center = ?', ['dc1'], nil, :two, nil, nil, nil, false)
+          q2 = QueryRequest.new('SELECT * FROM peers WHERE data_center = ?', ['dc2'], nil, :two, nil, nil, nil, false)
+          q1.should_not eql(q2)
+        end
+
+        it 'returns false when the type hints are different' do
+          q1 = QueryRequest.new('SELECT * FROM peers WHERE data_center = ?', ['dc1'], [:text], :two, nil, nil, nil, false)
+          q2 = QueryRequest.new('SELECT * FROM peers WHERE data_center = ?', ['dc1'], [:varchar], :two, nil, nil, nil, false)
+          q1.should_not eql(q2)
+        end
+
         it 'returns false when the consistency is different' do
           q1 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, nil, nil, false)
           q2 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :three, nil, nil, nil, false)
@@ -243,6 +255,18 @@ module Cql
         it 'does not have the same hash code when the CQL is different' do
           q1 = QueryRequest.new('SELECT * FROM system.peers', nil, nil, :two, nil, nil, nil, false)
           q2 = QueryRequest.new('SELECT * FROM peers', nil, nil, :two, nil, nil, nil, false)
+          q1.hash.should_not == q2.hash
+        end
+
+        it 'does not have the same hash code when the values are different' do
+          q1 = QueryRequest.new('SELECT * FROM peers WHERE data_center = ?', ['dc1'], nil, :two, nil, nil, nil, false)
+          q2 = QueryRequest.new('SELECT * FROM peers WHERE data_center = ?', ['dc2'], nil, :two, nil, nil, nil, false)
+          q1.hash.should_not == q2.hash
+        end
+
+        it 'does not have the same hash code when the type hints are different' do
+          q1 = QueryRequest.new('SELECT * FROM peers WHERE data_center = ?', ['dc1'], [:text], :two, nil, nil, nil, false)
+          q2 = QueryRequest.new('SELECT * FROM peers WHERE data_center = ?', ['dc1'], [:varchar], :two, nil, nil, nil, false)
           q1.hash.should_not == q2.hash
         end
 
