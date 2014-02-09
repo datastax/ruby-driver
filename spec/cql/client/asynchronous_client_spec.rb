@@ -903,6 +903,43 @@ module Cql
             result.trace_id.should == trace_id
           end
         end
+
+        context 'with paging' do
+          let :cql do
+            'SELECT * FROM foo'
+          end
+
+          let :rows do
+            [['xyz', 'abc'], ['abc', 'xyz'], ['123', 'xyz']]
+          end
+
+          let :metadata do
+            [['thingies', 'things', 'thing', :text], ['thingies', 'things', 'item', :text]]
+          end
+
+          before do
+            handle_request do |request|
+              if request.is_a?(Protocol::QueryRequest) && request.cql == cql
+                if request.paging_state.nil?
+                  Protocol::RowsResultResponse.new(rows.take(2), metadata, 'foobar', nil)
+                elsif request.paging_state == 'foobar'
+                  Protocol::RowsResultResponse.new(rows.drop(2), metadata, nil, nil)
+                end
+              end
+            end
+          end
+
+          it 'sets the page size' do
+            client.execute(cql, page_size: 100).value
+            last_request.page_size.should == 100
+          end
+
+          it 'sets the page size and paging state' do
+            client.execute(cql, page_size: 100, paging_state: 'foobar').value
+            last_request.page_size.should == 100
+            last_request.paging_state.should == 'foobar'
+          end
+        end
       end
 
       describe '#prepare' do
@@ -1001,6 +1038,43 @@ module Cql
               Protocol::ExecuteRequest.new(id, metadata, ['hello'], true, :quorum),
               Protocol::ExecuteRequest.new(id, metadata, ['hello'], true, :quorum),
             ]
+          end
+        end
+
+        context 'with paging' do
+          let :statement do
+            client.prepare(cql).value
+          end
+
+          let :rows do
+            [['xyz', 'abc'], ['abc', 'xyz'], ['123', 'xyz']]
+          end
+
+          let :metadata do
+            [['thingies', 'things', 'thing', :text], ['thingies', 'things', 'item', :text]]
+          end
+
+          before do
+            handle_request do |request|
+              if request.is_a?(Protocol::ExecuteRequest)
+                if request.paging_state.nil?
+                  Protocol::RowsResultResponse.new(rows.take(2), metadata, 'foobar', nil)
+                elsif request.paging_state == 'foobar'
+                  Protocol::RowsResultResponse.new(rows.drop(2), metadata, nil, nil)
+                end
+              end
+            end
+          end
+
+          it 'sets the page size' do
+            statement.execute('foo', page_size: 100).value
+            last_request.page_size.should == 100
+          end
+
+          it 'sets the page size and paging state' do
+            statement.execute('foo', page_size: 100, paging_state: 'foobar').value
+            last_request.page_size.should == 100
+            last_request.paging_state.should == 'foobar'
           end
         end
       end

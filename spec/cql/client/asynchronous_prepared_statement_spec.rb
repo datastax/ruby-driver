@@ -213,6 +213,19 @@ module Cql
           sent_timeout.should == 3
         end
 
+        it 'sends the page size given as an option' do
+          statement.execute(11, 'hello', page_size: 10)
+          request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
+          request.page_size.should == 10
+        end
+
+        it 'sends the page size and paging state given as options' do
+          statement.execute(11, 'hello', page_size: 10, paging_state: 'foo')
+          request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
+          request.page_size.should == 10
+          request.paging_state.should == 'foo'
+        end
+
         context 'when it receives a new connection from the connection manager' do
           let :new_connection do
             FakeConnection.new('h3.example.com', 1234, 5)
