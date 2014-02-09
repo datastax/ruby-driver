@@ -3,16 +3,23 @@
 module Cql
   module Protocol
     class RowsResultResponse < ResultResponse
-      attr_reader :rows, :metadata
+      attr_reader :rows, :metadata, :paging_state
 
-      def initialize(rows, metadata, trace_id)
+      def initialize(rows, metadata, paging_state, trace_id)
         super(trace_id)
-        @rows, @metadata = rows, metadata
+        @rows, @metadata, @paging_state = rows, metadata, paging_state
       end
 
-      def self.decode!(buffer, trace_id=nil)
-        column_specs = read_metadata!(buffer)
-        new(read_rows!(buffer, column_specs), column_specs, trace_id)
+      def self.decode!(protocol_version, buffer, length, trace_id=nil)
+        original_buffer_length = buffer.length
+        column_specs, columns_count, paging_state = read_metadata!(protocol_version, buffer)
+        if column_specs.nil?
+          consumed_bytes = original_buffer_length - buffer.length
+          remaining_bytes = ByteBuffer.new(buffer.read(length - consumed_bytes))
+          RawRowsResultResponse.new(protocol_version, remaining_bytes, paging_state, trace_id)
+        else
+          new(read_rows!(protocol_version, buffer, column_specs), column_specs, paging_state, trace_id)
+        end
       end
 
       def to_s
@@ -43,6 +50,12 @@ module Cql
         :inet,
       ].freeze
 
+      TYPE_CONVERTER = TypeConverter.new
+
+      GLOBAL_TABLES_SPEC_FLAG = 0x01
+      HAS_MORE_PAGES_FLAG = 0x02
+      NO_METADATA_FLAG = 0x04
+
       def self.read_column_type!(buffer)
         id, type = read_option!(buffer) do |id, b|
           if id > 0 && id <= 0x10
@@ -64,35 +77,42 @@ module Cql
         type
       end
 
-      def self.read_metadata!(buffer)
+      def self.read_metadata!(protocol_version, buffer)
         flags = read_int!(buffer)
         columns_count = read_int!(buffer)
-        if flags & 0x01 == 0x01
-          global_keyspace_name = read_string!(buffer)
-          global_table_name = read_string!(buffer)
+        paging_state = nil
+        column_specs = nil
+        if flags & HAS_MORE_PAGES_FLAG != 0
+          paging_state = read_bytes!(buffer)
         end
-        column_specs = columns_count.times.map do
-          if global_keyspace_name
-            keyspace_name = global_keyspace_name
-            table_name = global_table_name
-          else
-            keyspace_name = read_string!(buffer)
-            table_name = read_string!(buffer)
+        if flags & NO_METADATA_FLAG == 0
+          if flags & GLOBAL_TABLES_SPEC_FLAG != 0
+            global_keyspace_name = read_string!(buffer)
+            global_table_name = read_string!(buffer)
           end
-          column_name = read_string!(buffer)
-          type = read_column_type!(buffer)
-          [keyspace_name, table_name, column_name, type]
+          column_specs = columns_count.times.map do
+            if global_keyspace_name
+              keyspace_name = global_keyspace_name
+              table_name = global_table_name
+            else
+              keyspace_name = read_string!(buffer)
+              table_name = read_string!(buffer)
+            end
+            column_name = read_string!(buffer)
+            type = read_column_type!(buffer)
+            [keyspace_name, table_name, column_name, type]
+          end
         end
+        [column_specs, columns_count, paging_state]
       end
 
-      def self.read_rows!(buffer, column_specs)
-        type_converter = TypeConverter.new
+      def self.read_rows!(protocol_version, buffer, column_specs)
         rows_count = read_int!(buffer)
         rows = []
         rows_count.times do |row_index|
           row = {}
           column_specs.each do |column_spec|
-            row[column_spec[2]] = type_converter.from_bytes(buffer, column_spec[3])
+            row[column_spec[2]] = TYPE_CONVERTER.from_bytes(buffer, column_spec[3])
           end
           rows << row
         end

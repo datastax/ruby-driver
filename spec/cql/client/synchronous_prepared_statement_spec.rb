@@ -11,11 +11,15 @@ module Cql
       end
 
       let :async_statement do
-        double(:async_statement, metadata: metadata)
+        double(:async_statement, metadata: metadata, result_metadata: result_metadata)
       end
 
       let :metadata do
         double(:metadata)
+      end
+
+      let :result_metadata do
+        double(:result_metadata)
       end
 
       let :promise do
@@ -32,12 +36,70 @@ module Cql
         end
       end
 
+      describe '#result_metadata' do
+        it 'returns the async statement\'s result metadata' do
+          statement.result_metadata.should equal(async_statement.result_metadata)
+        end
+      end
+
       describe '#execute' do
         it 'it calls #execute on the async statement and waits for the result' do
           result = double(:result)
           async_statement.should_receive(:execute).with('one', 'two', :three).and_return(future)
           promise.fulfill(result)
           statement.execute('one', 'two', :three).should equal(result)
+        end
+
+        it 'wraps AsynchronousPagedQueryResult in a synchronous wrapper' do
+          request = double(:request, values: ['one', 'two'])
+          async_result = double(:result, paging_state: 'somepagingstate')
+          options = {:page_size => 10}
+          async_statement.stub(:execute).and_return(Future.resolved(AsynchronousPreparedPagedQueryResult.new(async_statement, request, async_result, options)))
+          result1 = statement.execute('one', 'two', options)
+          result2 = result1.next_page
+          async_statement.should have_received(:execute).with('one', 'two', page_size: 10, paging_state: 'somepagingstate')
+          result2.should be_a(SynchronousPagedQueryResult)
+        end
+      end
+
+      describe '#batch' do
+        let :batch do
+          double(:batch)
+        end
+
+        context 'when called without a block' do
+          it 'delegates to the asynchronous statement and wraps the returned object in a synchronous wrapper' do
+            async_statement.stub(:batch).with(:unlogged, trace: true).and_return(batch)
+            batch.stub(:execute).and_return(Cql::Future.resolved(VoidResult.new))
+            b = statement.batch(:unlogged, trace: true)
+            b.execute.should be_a(VoidResult)
+          end
+        end
+
+        context 'when called with a block' do
+          it 'delegates to the asynchronous statement' do
+            async_statement.stub(:batch).with(:counter, trace: true).and_yield(batch).and_return(Cql::Future.resolved(VoidResult.new))
+            yielded_batch = nil
+            statement.batch(:counter, trace: true) { |b| yielded_batch = b }
+            yielded_batch.should equal(batch)
+          end
+
+          it 'waits for the operation to complete' do
+            async_statement.stub(:batch).with(:counter, anything).and_yield(batch).and_return(Cql::Future.resolved(VoidResult.new))
+            result = statement.batch(:counter) { |b| }
+            result.should be_a(VoidResult)
+          end
+        end
+      end
+
+      describe '#add_to_batch' do
+        it 'delegates to the async statement' do
+          batch = double(:batch)
+          connection = double(:connection)
+          bound_arguments = [1, 2, 3]
+          async_statement.stub(:add_to_batch)
+          statement.add_to_batch(batch, connection, bound_arguments)
+          async_statement.should have_received(:add_to_batch).with(batch, connection, bound_arguments)
         end
       end
 

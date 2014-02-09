@@ -73,7 +73,7 @@ end
 class FakeConnection
   attr_reader :host, :port, :timeout, :requests, :keyspace
 
-  def initialize(host, port, timeout)
+  def initialize(host, port, timeout, data={})
     @host = host
     @port = port
     @timeout = timeout
@@ -81,7 +81,7 @@ class FakeConnection
     @responses = []
     @closed = false
     @keyspace = nil
-    @data = {}
+    @data = data
     @registered_event_types = []
     @event_listeners = []
     @closed_listeners = []
@@ -100,9 +100,9 @@ class FakeConnection
     !@closed
   end
 
-  def close
+  def close(cause=nil)
     @closed = true
-    @closed_listeners.each(&:call)
+    @closed_listeners.each { |listener| listener.call(cause) }
   end
 
   def handle_request(&handler)
@@ -151,7 +151,7 @@ class FakeConnection
       when Cql::Protocol::StartupRequest
         Cql::Protocol::ReadyResponse.new
       when Cql::Protocol::QueryRequest
-        Cql::Protocol::RowsResultResponse.new([], [], nil)
+        Cql::Protocol::RowsResultResponse.new([], [], nil, nil)
       end
     end
   end

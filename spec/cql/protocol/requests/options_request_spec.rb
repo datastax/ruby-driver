@@ -14,7 +14,7 @@ module Cql
 
       describe '#write' do
         it 'encodes an OPTIONS request frame (i.e. an empty body)' do
-          bytes = OptionsRequest.new.write('')
+          bytes = OptionsRequest.new.write(1, '')
           bytes.should be_empty
         end
       end

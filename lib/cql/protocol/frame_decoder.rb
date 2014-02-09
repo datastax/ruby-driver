@@ -2,6 +2,7 @@
 
 module Cql
   module Protocol
+    # @private
     class FrameDecoder
       def initialize(compressor=nil)
         @compressor = compressor
@@ -44,7 +45,7 @@ module Cql
         end
         extra_length = buffer.length - size 
         trace_id = tracing == 2 ? Decoding.read_uuid!(buffer) : nil
-        response = Response.decode!(opcode, buffer, trace_id)
+        response = Response.decode!(opcode, protocol_version, buffer, size, trace_id)
         if buffer.length > extra_length
           buffer.discard(buffer.length - extra_length)
         end

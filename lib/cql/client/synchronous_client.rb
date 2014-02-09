@@ -50,13 +50,25 @@ module Cql
         synchronous_backtrace { @async_client.use(keyspace).value }
       end
 
-      def execute(cql, consistency=nil)
-        synchronous_backtrace { @async_client.execute(cql, consistency).value }
+      def execute(cql, *args)
+        synchronous_backtrace do
+          result = @async_client.execute(cql, *args).value
+          result = SynchronousPagedQueryResult.new(result) if result.is_a?(PagedQueryResult)
+          result
+        end
       end
 
       def prepare(cql)
         async_statement = synchronous_backtrace { @async_client.prepare(cql).value }
         SynchronousPreparedStatement.new(async_statement)
+      end
+
+      def batch(type=:logged, options={}, &block)
+        if block_given?
+          synchronous_backtrace { @async_client.batch(type, options, &block).value }
+        else
+          SynchronousBatch.new(@async_client.batch(type, options))
+        end
       end
 
       def async

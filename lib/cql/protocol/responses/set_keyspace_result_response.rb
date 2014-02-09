@@ -10,7 +10,7 @@ module Cql
         @keyspace = keyspace
       end
 
-      def self.decode!(buffer, trace_id=nil)
+      def self.decode!(protocol_version, buffer, length, trace_id=nil)
         new(read_string!(buffer), trace_id)
       end
 

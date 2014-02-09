@@ -10,7 +10,7 @@ module Cql
         @credentials = credentials.dup.freeze
       end
 
-      def write(io)
+      def write(protocol_version, io)
         write_string_map(io, @credentials)
       end
 

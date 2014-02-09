@@ -14,9 +14,11 @@ module Cql
     UnsupportedResultKindError = Class.new(ProtocolError)
     UnsupportedColumnTypeError = Class.new(ProtocolError)
     UnsupportedEventTypeError = Class.new(ProtocolError)
+    UnsupportedFeatureError = Class.new(ProtocolError)
     UnexpectedCompressionError = Class.new(ProtocolError)
+    UnmaterializedRowsError = Class.new(ProtocolError)
 
-    CONSISTENCIES = [:any, :one, :two, :three, :quorum, :all, :local_quorum, :each_quorum, nil, nil, nil, nil, nil, nil, nil, nil, :local_one].freeze
+    CONSISTENCIES = [:any, :one, :two, :three, :quorum, :all, :local_quorum, :each_quorum, :serial, :local_serial, :local_one].freeze
 
     module Formats
       CHAR_FORMAT = 'c'.freeze
@@ -43,6 +45,8 @@ require 'cql/protocol/encoding'
 require 'cql/protocol/decoding'
 require 'cql/protocol/type_converter'
 require 'cql/protocol/response'
+require 'cql/protocol/responses/auth_challenge_response'
+require 'cql/protocol/responses/auth_success_response'
 require 'cql/protocol/responses/error_response'
 require 'cql/protocol/responses/detailed_error_response'
 require 'cql/protocol/responses/ready_response'
@@ -51,6 +55,7 @@ require 'cql/protocol/responses/supported_response'
 require 'cql/protocol/responses/result_response'
 require 'cql/protocol/responses/void_result_response'
 require 'cql/protocol/responses/rows_result_response'
+require 'cql/protocol/responses/raw_rows_result_response'
 require 'cql/protocol/responses/set_keyspace_result_response'
 require 'cql/protocol/responses/prepared_result_response'
 require 'cql/protocol/responses/schema_change_result_response'
@@ -59,6 +64,8 @@ require 'cql/protocol/responses/schema_change_event_response'
 require 'cql/protocol/responses/status_change_event_response'
 require 'cql/protocol/responses/topology_change_event_response'
 require 'cql/protocol/request'
+require 'cql/protocol/requests/auth_response_request'
+require 'cql/protocol/requests/batch_request'
 require 'cql/protocol/requests/startup_request'
 require 'cql/protocol/requests/credentials_request'
 require 'cql/protocol/requests/options_request'

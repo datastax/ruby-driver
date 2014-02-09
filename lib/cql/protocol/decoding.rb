@@ -46,7 +46,7 @@ module Cql
           fraction_string << number_string[number_string.length - size, number_string.length]
         end
         BigDecimal.new(fraction_string)
-      rescue RangeError => e
+      rescue DecodingError => e
         raise DecodingError, e.message, e.backtrace
       end
 
@@ -106,7 +106,7 @@ module Cql
 
       def read_uuid!(buffer, impl=Uuid)
         impl.new(read_varint!(buffer, 16, false))
-      rescue RangeError => e
+      rescue DecodingError => e
         raise DecodingError, "Not enough bytes available to decode a UUID: #{e.message}", e.backtrace
       end
 

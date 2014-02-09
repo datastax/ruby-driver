@@ -11,7 +11,7 @@ module Cql
         false
       end
 
-      def write(io)
+      def write(protocol_version, io)
         io
       end
 

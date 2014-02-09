@@ -21,12 +21,32 @@ module Cql
         ]
       end
 
+      let :raw_result_metadata do
+        raw_metadata + [
+          ['my_keyspace', 'my_table', 'a_third_column', :double],
+        ]
+      end
+
       let :rows do
         [
-          {'my_column' => 11, 'my_other_column' => 'hello'},
-          {'my_column' => 22, 'my_other_column' => 'foo'},
-          {'my_column' => 33, 'my_other_column' => 'bar'},
+          {'my_column' => 11, 'my_other_column' => 'hello', 'a_third_column' => 0.0},
+          {'my_column' => 22, 'my_other_column' => 'foo', 'a_third_column' => 0.0},
+          {'my_column' => 33, 'my_other_column' => 'bar', 'a_third_column' => 0.0},
         ]
+      end
+
+      let :raw_rows do
+        buffer = ByteBuffer.new("\x00\x00\x00\x03")
+        buffer << "\x00\x00\x00\x04\x00\x00\x00\x0b"
+        buffer << "\x00\x00\x00\x05hello"
+        buffer << "\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00"
+        buffer << "\x00\x00\x00\x04\x00\x00\x00\x18"
+        buffer << "\x00\x00\x00\x03foo"
+        buffer << "\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00"
+        buffer << "\x00\x00\x00\x04\x00\x00\x00\x21"
+        buffer << "\x00\x00\x00\x03bar"
+        buffer << "\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00"
+        buffer
       end
 
       let :cql do
@@ -41,14 +61,24 @@ module Cql
         ]
       end
 
+      let :protocol_version do
+        'v2'
+      end
+
       def handle_request(connection, request, timeout)
         case request
         when Protocol::PrepareRequest
           statement_id = Array.new(16) { [rand(255)].pack('c') }.join('')
           connection[:last_prepared_statement_id] = statement_id
-          Protocol::PreparedResultResponse.new(statement_id, raw_metadata, nil)
+          Protocol::PreparedResultResponse.new(statement_id, raw_metadata, protocol_version == 'v1' ? nil : raw_result_metadata, nil)
         when Protocol::ExecuteRequest
-          Protocol::RowsResultResponse.new(rows, raw_metadata, nil)
+          if request.request_metadata
+            Protocol::RowsResultResponse.new(rows, raw_metadata, request.paging_state ? 'page2' : nil, nil)
+          else
+            Protocol::RawRowsResultResponse.new(protocol_version[1].to_i, raw_rows, request.paging_state ? 'page2' : nil, nil)
+          end
+        when Protocol::BatchRequest
+          Protocol::VoidResultResponse.new(nil)
         else
           raise %(Unexpected request: #{request})
         end
@@ -101,13 +131,29 @@ module Cql
         end
       end
 
+      describe '#result_metadata' do
+        let :statement do
+          described_class.prepare(cql, ExecuteOptionsDecoder.new(:all), connection_manager, logger).value
+        end
+
+        it 'returns the interpreted result metadata' do
+          statement.result_metadata.should be_a(ResultMetadata)
+          statement.result_metadata['a_third_column'].should be_a(ColumnMetadata)
+        end
+
+        it 'is nil when there is no result metadata' do
+          protocol_version.replace('v1')
+          statement.result_metadata.should be_nil
+        end
+      end
+
       describe '#execute' do
         let :statement do
           described_class.prepare(cql, ExecuteOptionsDecoder.new(:local_quorum), connection_manager, logger).value
         end
 
         it 'executes itself on one of the connections' do
-          statement.execute(11, 'hello')
+          statement.execute(11, 'hello').value
           requests = connections.flat_map(&:requests).select { |r| r.is_a?(Protocol::ExecuteRequest) }
           requests.should have(1).item
           requests.first.metadata.should == raw_metadata
@@ -115,27 +161,44 @@ module Cql
         end
 
         it 'uses the right statement ID for the connection' do
-          statement.execute(11, 'hello')
+          statement.execute(11, 'hello').value
           connection, request = connections.map { |c| [c, c.requests.find { |r| r.is_a?(Protocol::ExecuteRequest) }] }.find { |c, r| r }
           request.id.should == connection[:last_prepared_statement_id]
         end
 
         it 'sends the default consistency level' do
-          statement.execute(11, 'hello')
+          statement.execute(11, 'hello').value
           request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
           request.consistency.should == :local_quorum
         end
 
         it 'sends the consistency given as last argument' do
-          statement.execute(11, 'hello', :two)
+          statement.execute(11, 'hello', :two).value
           request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
           request.consistency.should == :two
         end
 
         it 'sends the consistency given as an option' do
-          statement.execute(11, 'hello', consistency: :two)
+          statement.execute(11, 'hello', consistency: :two).value
           request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
           request.consistency.should == :two
+        end
+
+        it 'sends the serial consistency given as an option' do
+          statement.execute(11, 'hello', serial_consistency: :local_serial).value
+          request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
+          request.serial_consistency.should == :local_serial
+        end
+
+        it 'asks the server not to send metadata' do
+          statement.execute(11, 'hello', consistency: :two).value
+          request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
+          request.request_metadata.should be_false
+        end
+
+        it 'passes the metadata to the request runner' do
+          response = statement.execute(11, 'hello', consistency: :two).value
+          response.count.should == 3
         end
 
         it 'uses the specified timeout' do
@@ -146,8 +209,36 @@ module Cql
               handle_request(c, r, t)
             end
           end
-          statement.execute(11, 'hello', timeout: 3)
+          statement.execute(11, 'hello', timeout: 3).value
           sent_timeout.should == 3
+        end
+
+        context 'when paging' do
+          it 'sends the page size given as an option' do
+            statement.execute(11, 'hello', page_size: 10).value
+            request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
+            request.page_size.should == 10
+          end
+
+          it 'sends the page size and paging state given as options' do
+            statement.execute(11, 'hello', page_size: 10, paging_state: 'foo').value
+            request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
+            request.page_size.should == 10
+            request.paging_state.should == 'foo'
+          end
+
+          it 'returns a result which can load the next page' do
+            result = statement.execute(11, 'foo', page_size: 2).value
+            result.next_page.value
+            request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
+            request.paging_state.should == result.paging_state
+          end
+
+          it 'returns a result which knows when there are no more pages' do
+            result = statement.execute(11, 'foo', page_size: 2).value
+            result = result.next_page.value
+            result.should be_last_page
+          end
         end
 
         context 'when it receives a new connection from the connection manager' do
@@ -204,6 +295,97 @@ module Cql
           end
           statement.execute(11, 'hello', trace: true).value
           tracing.should be_true
+        end
+      end
+
+      describe '#batch' do
+        let :statement do
+          described_class.prepare('UPDATE x SET y = ? WHERE z = ?', ExecuteOptionsDecoder.new(:one), connection_manager, logger).value
+        end
+
+        def requests
+          connections.flat_map(&:requests).select { |r| r.is_a?(Protocol::BatchRequest) }
+        end
+
+        context 'when called witout a block' do
+          it 'returns a batch' do
+            batch = statement.batch
+            batch.add(1, 'foo')
+            batch.execute.value
+            requests.first.should be_a(Protocol::BatchRequest)
+          end
+
+          it 'creates a batch of the right type' do
+            batch = statement.batch(:unlogged)
+            batch.add(1, 'foo')
+            batch.execute.value
+            requests.first.type.should == Protocol::BatchRequest::UNLOGGED_TYPE
+          end
+
+          it 'passes the options to the batch' do
+            batch = statement.batch(trace: true)
+            batch.add(1, 'foo')
+            batch.execute.value
+            requests.first.trace.should be_true
+          end
+        end
+
+        context 'when called with a block' do
+          it 'yields and executes a batch' do
+            f = statement.batch do |batch|
+              batch.add(5, 'foo')
+              batch.add(6, 'bar')
+            end
+            f.value
+            requests.first.should be_a(Protocol::BatchRequest)
+          end
+
+          it 'passes the options to the batch\'s #execute' do
+            f = statement.batch(:unlogged, trace: true) do |batch|
+              batch.add(4, 'baz')
+            end
+            f.value
+            requests.first.trace.should be_true
+          end
+        end
+      end
+
+      describe '#add_to_batch' do
+        let :statement do
+          described_class.prepare('UPDATE x SET y = ? WHERE z = ?', ExecuteOptionsDecoder.new(:one), connection_manager, logger).value
+        end
+
+        let :batch do
+          double(:batch)
+        end
+
+        let :additions do
+          []
+        end
+
+        before do
+          connections.pop(2)
+          batch.stub(:add_prepared) do |*args|
+            additions << args
+          end
+        end
+
+        it 'calls #add_prepared with the statement ID, metadata and bound variables' do
+          statement.add_to_batch(batch, connections.first, [11, 'foo'])
+          statement_id, metadata, bound_args = additions.first
+          statement_id.should == connections.first[:last_prepared_statement_id]
+          metadata.should == raw_metadata
+          bound_args.should == [11, 'foo']
+        end
+
+        it 'raises an error when the number of bound arguments is not right' do
+          expect { statement.add_to_batch(batch, connections.first, [11, 'foo', 22]) }.to raise_error(ArgumentError)
+        end
+
+        it 'raises an error when the statement has not been prepared on the specified connection' do
+          connection = double(:connection)
+          connection.stub(:[]).with(statement).and_return(nil)
+          expect { statement.add_to_batch(batch, connection, [11, 'foo']) }.to raise_error(NotPreparedError)
         end
       end
     end

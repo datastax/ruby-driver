@@ -35,7 +35,11 @@ module Cql
 
       describe '#execute' do
         let :rows_response do
-          Protocol::RowsResultResponse.new(rows, metadata, nil)
+          Protocol::RowsResultResponse.new(rows, metadata, nil, nil)
+        end
+
+        let :raw_rows_response do
+          Protocol::RawRowsResultResponse.new(2, ByteBuffer.new("\x00\x00\x00\x02\x00\x00\x00\x01a\x00\x00\x00\x01b"), nil, nil)
         end
 
         let :void_response do
@@ -43,7 +47,7 @@ module Cql
         end
 
         let :prepared_response do
-          Protocol::PreparedResultResponse.new("\x2a", metadata, nil)
+          Protocol::PreparedResultResponse.new("\x2a", metadata, nil, nil)
         end
 
         let :error_response do
@@ -84,6 +88,13 @@ module Cql
           result.should have(3).items
         end
 
+        it 'transforms a RawRowsResultResponse to a LazyQueryResult, and mixes in the specified metadata' do
+          metadata = [['ks', 'tbl', 'col', :varchar]]
+          connection.stub(:send_request).and_return(Future.resolved(raw_rows_response))
+          result = runner.execute(connection, request, nil, metadata).value
+          result.to_a.should == [{'col' => 'a'}, {'col' => 'b'}]
+        end
+
         it 'transforms a VoidResultResponse to a VoidResult' do
           result = run(void_response)
           result.should be_a(VoidResult)
@@ -107,7 +118,7 @@ module Cql
 
         it 'sets the #cql field of QueryError when the request is a query request' do
           begin
-            run(error_response, Protocol::QueryRequest.new('SELECT * FROM everything', :all))
+            run(error_response, Protocol::QueryRequest.new('SELECT * FROM everything', nil, nil, :all))
           rescue QueryError => e
             e.cql.should == 'SELECT * FROM everything'
           else
@@ -147,7 +158,7 @@ module Cql
           end
 
           it 'returns a QueryResult that knows its trace ID' do
-            connection.stub(:send_request).with(request, anything).and_return(Future.resolved(Protocol::RowsResultResponse.new(rows, metadata, trace_id)))
+            connection.stub(:send_request).with(request, anything).and_return(Future.resolved(Protocol::RowsResultResponse.new(rows, metadata, nil, trace_id)))
             response = runner.execute(connection, request).value
             response.trace_id.should == trace_id
           end
@@ -156,6 +167,21 @@ module Cql
             connection.stub(:send_request).with(request, anything).and_return(Future.resolved(Protocol::VoidResultResponse.new(trace_id)))
             response = runner.execute(connection, request).value
             response.trace_id.should == trace_id
+          end
+        end
+
+        context 'when the response has a paging state' do
+          it 'returns a QueryResult that knows its paging state' do
+            connection.stub(:send_request).with(request, anything).and_return(Future.resolved(Protocol::RowsResultResponse.new(rows, metadata, 'foobaz', nil)))
+            response = runner.execute(connection, request).value
+            response.paging_state.should == 'foobaz'
+          end
+
+          it 'returns a LazyQueryResult that knows its paging state' do
+            metadata = [['ks', 'tbl', 'col', :varchar]]
+            connection.stub(:send_request).with(request, anything).and_return(Future.resolved(Protocol::RawRowsResultResponse.new(2, ByteBuffer.new("\x00\x00\x00\x02\x00\x00\x00\x01a\x00\x00\x00\x01b"), 'bazbuzz', nil)))
+            response = runner.execute(connection, request, nil, metadata).value
+            response.paging_state.should == 'bazbuzz'
           end
         end
       end

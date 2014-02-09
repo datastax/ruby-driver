@@ -9,10 +9,23 @@ module Cql
       def initialize(async_statement)
         @async_statement = async_statement
         @metadata = async_statement.metadata
+        @result_metadata = async_statement.result_metadata
       end
 
       def execute(*args)
-        synchronous_backtrace { @async_statement.execute(*args).value }
+        synchronous_backtrace do
+          result = @async_statement.execute(*args).value
+          result = SynchronousPagedQueryResult.new(result) if result.is_a?(PagedQueryResult)
+          result
+        end
+      end
+
+      def batch(type=:logged, options=nil, &block)
+        if block_given?
+          synchronous_backtrace { @async_statement.batch(type, options, &block).value }
+        else
+          SynchronousPreparedStatementBatch.new(@async_statement.batch(type, options))
+        end
       end
 
       def pipeline
@@ -23,6 +36,11 @@ module Cql
 
       def async
         @async_statement
+      end
+
+      # @private
+      def add_to_batch(batch, connection, bound_arguments)
+        @async_statement.add_to_batch(batch, connection, bound_arguments)
       end
     end
 

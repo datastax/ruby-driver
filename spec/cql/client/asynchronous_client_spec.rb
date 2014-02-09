@@ -10,8 +10,12 @@ module Cql
         described_class.new(connection_options)
       end
 
-      let :connection_options do
+      let :default_connection_options do
         {:host => 'example.com', :port => 12321, :io_reactor => io_reactor, :logger => logger}
+      end
+
+      let :connection_options do
+        default_connection_options
       end
 
       let :io_reactor do
@@ -109,9 +113,11 @@ module Cql
                 Protocol::ReadyResponse.new
               when Protocol::QueryRequest
                 case request.cql
+                when /USE\s+"?(\S+)"?/
+                  Cql::Protocol::SetKeyspaceResultResponse.new($1, nil)
                 when /FROM system\.local/
                   row = {'host_id' => connection[:spec_host_id], 'data_center' => connection[:spec_data_center]}
-                  Protocol::RowsResultResponse.new([row], local_metadata, nil)
+                  Protocol::RowsResultResponse.new([row], local_metadata, nil, nil)
                 when /FROM system\.peers/
                   other_host_ids = connections.reject { |c| c[:spec_host_id] == connection[:spec_host_id] }.map { |c| c[:spec_host_id] }
                   until other_host_ids.size >= min_peers[0]
@@ -126,7 +132,7 @@ module Cql
                       'rpc_address' => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip
                     }
                   end
-                  Protocol::RowsResultResponse.new(rows, peer_metadata, nil)
+                  Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
                 end
               end
             end
@@ -144,6 +150,16 @@ module Cql
           client.connect.value
           client.connect.value
           connections.should have(1).item
+        end
+
+        it 'starts the IO reactor' do
+          client.connect.value
+          io_reactor.should be_running
+        end
+
+        it 'fails when the IO reactor fails to start' do
+          io_reactor.stub(:start).and_return(Future.failed(StandardError.new('bork')))
+          expect { client.connect.value }.to raise_error('bork')
         end
 
         context 'when connecting to multiple hosts' do
@@ -193,6 +209,103 @@ module Cql
           end
         end
 
+        context 'when negotiating protocol version' do
+          let :client do
+            described_class.new(connection_options.merge(protocol_version: 7))
+          end
+
+          it 'tries decreasing protocol versions until one succeeds' do
+            counter = 0
+            handle_request do |request|
+              if counter < 3
+                counter += 1
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              elsif counter == 3
+                counter += 1
+                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
+              else
+                Protocol::RowsResultResponse.new([], [], nil, nil)
+              end
+            end
+            client.connect.value
+            client.should be_connected
+          end
+
+          it 'logs when it tries the next protocol version' do
+            logger.stub(:warn)
+            counter = 0
+            handle_request do |request|
+              if counter < 3
+                counter += 1
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              elsif counter == 3
+                counter += 1
+                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
+              else
+                Protocol::RowsResultResponse.new([], [], nil, nil)
+              end
+            end
+            client.connect.value
+            logger.should have_received(:warn).with(/could not connect using protocol version 7 \(will try again with 6\): bork version, dummy!/i)
+          end
+
+          it 'gives up when the protocol version is zero' do
+            handle_request do |request|
+              Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+            end
+            expect { client.connect.value }.to raise_error(QueryError)
+            client.should_not be_connected
+          end
+
+          it 'gives up when a non-protocol version related error is raised' do
+            counter = 0
+            handle_request do |request|
+              if counter == 4
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              else
+                counter += 1
+                Protocol::ErrorResponse.new(0x1001, 'Get off my lawn!')
+              end
+            end
+            expect { client.connect.value }.to raise_error(/Get off my lawn/)
+            client.should_not be_connected
+          end
+
+          it 'passes the protocol version to the authenticator' do
+            auth_class = 'org.apache.cassandra.auth.PasswordAuthenticator'
+            authenticator = double(:authenticator)
+            authenticator.stub(:supports?).with(auth_class, 2).and_return(true)
+            authenticator.stub(:initial_request).with(2).and_return(Protocol::AuthResponseRequest.new("\x00foo\x00bar"))
+            client = described_class.new(connection_options.merge(protocol_version: 4, authenticator: authenticator))
+            protocol_version = 4
+            handle_request do |request|
+              response = begin
+                if protocol_version <= 2
+                  case request
+                  when Protocol::OptionsRequest
+                    Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
+                  when Protocol::StartupRequest
+                    Protocol::AuthenticateResponse.new(auth_class)
+                  when Protocol::AuthResponseRequest
+                    Protocol::AuthSuccessResponse.new('ok')
+                  end
+                else
+                  Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+                end
+              end
+              if request.is_a?(Protocol::OptionsRequest)
+                protocol_version -= 1
+              end
+              response
+            end
+            client.connect.value
+            client.should be_connected
+            authenticator.should have_received(:supports?).with(auth_class, 2)
+            authenticator.should_not have_received(:supports?).with(auth_class, 1)
+            authenticator.should have_received(:initial_request).with(2)
+          end
+        end
+
         it 'returns itself' do
           client.connect.value.should equal(client)
         end
@@ -227,21 +340,53 @@ module Cql
           request.options.should include('COMPRESSION' => 'lz4')
         end
 
+        it 'does not enable compression when the algorithm is not supported' do
+          handle_request do |request|
+            case request
+            when Protocol::OptionsRequest
+              Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[snappy])
+            end
+          end
+          compressor = double(:compressor, algorithm: 'lz4')
+          c = described_class.new(connection_options.merge(compressor: compressor))
+          c.connect.value
+          request = requests.find { |rq| rq.is_a?(Protocol::StartupRequest) }
+          request.options.should_not include('COMPRESSION' => 'lz4')
+        end
+
+        it 'logs a warning when compression was disabled because the algorithm was not supported' do
+          logger.stub(:warn)
+          handle_request do |request|
+            case request
+            when Protocol::OptionsRequest
+              Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[snappy])
+            end
+          end
+          compressor = double(:compressor, algorithm: 'lz4')
+          c = described_class.new(connection_options.merge(compressor: compressor))
+          c.connect.value
+          logger.should have_received(:warn).with(/not supported/)
+        end
+
         it 'changes to the keyspace given as an option' do
           c = described_class.new(connection_options.merge(:keyspace => 'hello_world'))
           c.connect.value
-          request = requests.find { |rq| rq == Protocol::QueryRequest.new('USE hello_world', :one) }
+          request = requests.find { |rq| rq == Protocol::QueryRequest.new('USE hello_world', nil, nil, :one) }
           request.should_not be_nil, 'expected a USE request to have been sent'
         end
 
         it 'validates the keyspace name before sending the USE command' do
           c = described_class.new(connection_options.merge(:keyspace => 'system; DROP KEYSPACE system'))
           expect { c.connect.value }.to raise_error(InvalidKeyspaceNameError)
-          requests.should_not include(Protocol::QueryRequest.new('USE system; DROP KEYSPACE system', :one))
+          requests.should_not include(Protocol::QueryRequest.new('USE system; DROP KEYSPACE system', nil, nil, :one))
         end
 
         context 'with automatic peer discovery' do
           include_context 'peer discovery setup'
+
+          let :connection_options do
+            default_connection_options.merge(keyspace: 'foo')
+          end
 
           it 'connects to the other nodes in the cluster' do
             client.connect.value
@@ -290,6 +435,15 @@ module Cql
             client.connect.value
             connections.should have(2).items
           end
+
+          it 'makes sure the new connections use the specified initial keyspace' do
+            client.connect.value
+            use_keyspace_requests = connections.map { |c| c.requests.find { |r| r.is_a?(Protocol::QueryRequest) && r.cql.include?('USE') }}
+            use_keyspace_requests.should have(3).items
+            use_keyspace_requests.each do |rq|
+              rq.cql.should match(/USE foo/)
+            end
+          end
         end
 
         it 're-raises any errors raised' do
@@ -322,21 +476,36 @@ module Cql
         end
 
         context 'when the server requests authentication' do
+          let :authenticator do
+            PasswordAuthenticator.new('foo', 'bar')
+          end
+
           def accepting_request_handler(request, *)
             case request
             when Protocol::StartupRequest
-              Protocol::AuthenticateResponse.new('com.example.Auth')
+              Protocol::AuthenticateResponse.new('org.apache.cassandra.auth.PasswordAuthenticator')
             when Protocol::CredentialsRequest
               Protocol::ReadyResponse.new
+            when Protocol::AuthResponseRequest
+              Protocol::AuthSuccessResponse.new('hello!')
             end
           end
 
           def denying_request_handler(request, *)
             case request
             when Protocol::StartupRequest
-              Protocol::AuthenticateResponse.new('com.example.Auth')
+              Protocol::AuthenticateResponse.new('org.apache.cassandra.auth.PasswordAuthenticator')
             when Protocol::CredentialsRequest
               Protocol::ErrorResponse.new(256, 'No way, José')
+            when Protocol::AuthResponseRequest
+              Protocol::ErrorResponse.new(256, 'No way, José')
+            end
+          end
+
+          def custom_request_handler(request, *)
+            case request
+            when Protocol::StartupRequest
+              Protocol::AuthenticateResponse.new('org.acme.Auth')
             end
           end
 
@@ -344,11 +513,27 @@ module Cql
             handle_request(&method(:accepting_request_handler))
           end
 
-          it 'sends credentials' do
-            client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
-            client.connect.value
-            request = requests.find { |rq| rq == Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar') }
-            request.should_not be_nil, 'expected a credentials request to have been sent'
+          context 'with protocol v1' do
+            it 'uses an authenticator to authenticate' do
+              client = described_class.new(connection_options.merge(authenticator: authenticator, protocol_version: 1))
+              client.connect.value
+              request = requests.find { |rq| rq == Protocol::CredentialsRequest.new(username: 'foo', password: 'bar') }
+              request.should_not be_nil, 'expected a credentials request to have been sent'
+            end
+          end
+
+          context 'with protocol v2' do
+            it 'uses an authenticator to authenticate' do
+              client = described_class.new(connection_options.merge(authenticator: authenticator))
+              client.connect.value
+              request = requests.find { |rq| rq == Protocol::AuthResponseRequest.new("\x00foo\x00bar") }
+              request.should_not be_nil, 'expected a credentials request to have been sent'
+            end
+          end
+
+          it 'creates a PasswordAuthenticator when the :credentials options is given' do
+            client = described_class.new(connection_options.merge(credentials: {:username => 'foo', :password => 'bar'}))
+            expect { client.connect.value }.to_not raise_error
           end
 
           it 'raises an error when no credentials have been given' do
@@ -358,13 +543,19 @@ module Cql
 
           it 'raises an error when the server responds with an error to the credentials request' do
             handle_request(&method(:denying_request_handler))
-            client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
+            client = described_class.new(connection_options.merge(connection_options.merge(authenticator: authenticator)))
+            expect { client.connect.value }.to raise_error(AuthenticationError)
+          end
+
+          it 'raises an error when the server requests authentication that the authenticator does not support' do
+            handle_request(&method(:custom_request_handler))
+            client = described_class.new(connection_options.merge(connection_options.merge(authenticator: authenticator)))
             expect { client.connect.value }.to raise_error(AuthenticationError)
           end
 
           it 'shuts down the client when there is an authentication error' do
             handle_request(&method(:denying_request_handler))
-            client = described_class.new(connection_options.merge(credentials: {'username' => 'foo', 'password' => 'bar'}))
+            client = described_class.new(connection_options.merge(connection_options.merge(authenticator: authenticator)))
             client.connect.value rescue nil
             client.should_not be_connected
             io_reactor.should_not be_running
@@ -403,6 +594,38 @@ module Cql
           client.close.value
           expect { client.connect.value }.to raise_error(ClientError)
         end
+
+        it 'waits for #connect to complete before attempting to close' do
+          order = []
+          reactor_start_promise = Promise.new
+          io_reactor.stub(:start).and_return(reactor_start_promise.future)
+          io_reactor.stub(:stop).and_return(Future.resolved)
+          connected = client.connect
+          connected.on_value { order << :connected }
+          closed = client.close
+          closed.on_value { order << :closed }
+          connected.should_not be_completed
+          reactor_start_promise.fulfill
+          connected.value
+          closed.value
+          order.should == [:connected, :closed]
+        end
+
+        it 'waits for #connect to complete before attempting to close, when #connect fails' do
+          order = []
+          reactor_start_promise = Promise.new
+          io_reactor.stub(:start).and_return(reactor_start_promise.future)
+          io_reactor.stub(:stop).and_return(Future.resolved)
+          connected = client.connect
+          connected.on_failure { order << :connect_failed }
+          closed = client.close
+          closed.on_value { order << :closed }
+          connected.should_not be_completed
+          reactor_start_promise.fail(StandardError.new('bork'))
+          connected.value rescue nil
+          closed.value
+          order.should == [:connect_failed, :closed]
+        end
       end
 
       describe '#use' do
@@ -414,7 +637,7 @@ module Cql
           end
           client.connect.value
           client.use('system').value
-          last_request.should == Protocol::QueryRequest.new('USE system', :one)
+          last_request.should == Protocol::QueryRequest.new('USE system', nil, nil, :one)
         end
 
         it 'executes a USE query for each connection' do
@@ -428,9 +651,9 @@ module Cql
           c.use('system').value
           last_requests = connections.select { |c| c.host =~ /^h\d\.example\.com$/ }.sort_by(&:host).map { |c| c.requests.last }
           last_requests.should == [
-            Protocol::QueryRequest.new('USE system', :one),
-            Protocol::QueryRequest.new('USE system', :one),
-            Protocol::QueryRequest.new('USE system', :one)
+            Protocol::QueryRequest.new('USE system', nil, nil, :one),
+            Protocol::QueryRequest.new('USE system', nil, nil, :one),
+            Protocol::QueryRequest.new('USE system', nil, nil, :one),
           ]
         end
 
@@ -462,24 +685,46 @@ module Cql
 
         it 'asks the connection to execute the query using the default consistency level' do
           client.execute(cql).value
-          last_request.should == Protocol::QueryRequest.new(cql, :quorum)
+          last_request.should == Protocol::QueryRequest.new(cql, nil, nil, :quorum)
         end
 
         it 'uses the consistency specified when the client was created' do
           client = described_class.new(connection_options.merge(default_consistency: :all))
           client.connect.value
           client.execute(cql).value
-          last_request.should == Protocol::QueryRequest.new(cql, :all)
+          last_request.should == Protocol::QueryRequest.new(cql, nil, nil, :all)
         end
 
         it 'uses the consistency given as last argument' do
           client.execute('UPDATE stuff SET thing = 1 WHERE id = 3', :three).value
-          last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', :three)
+          last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', nil, nil, :three)
         end
 
         it 'uses the consistency given as an option' do
           client.execute('UPDATE stuff SET thing = 1 WHERE id = 3', consistency: :local_quorum).value
-          last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', :local_quorum)
+          last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = 1 WHERE id = 3', nil, nil, :local_quorum)
+        end
+
+        context 'with multiple arguments' do
+          it 'passes the arguments as bound values' do
+            client.execute('UPDATE stuff SET thing = ? WHERE id = ?', 'foo', 'bar').value
+            last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = ? WHERE id = ?', ['foo', 'bar'], nil, :quorum)
+          end
+
+          it 'passes the type hints option to the request' do
+            client.execute('UPDATE stuff SET thing = ? WHERE id = ?', 'foo', 3, type_hints: [nil, :int]).value
+            last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = ? WHERE id = ?', ['foo', 3], [nil, :int], :quorum)
+          end
+
+          it 'detects when the last argument is the consistency' do
+            client.execute('UPDATE stuff SET thing = ? WHERE id = ?', 'foo', 'bar', :each_quorum).value
+            last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = ? WHERE id = ?', ['foo', 'bar'], nil, :each_quorum)
+          end
+
+          it 'detects when the last arguments is an options hash' do
+            client.execute('UPDATE stuff SET thing = ? WHERE id = ?', 'foo', 'bar', consistency: :all, tracing: true).value
+            last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = ? WHERE id = ?', ['foo', 'bar'], nil, :all, nil, nil, nil, true)
+          end
         end
 
         context 'with a void CQL query' do
@@ -534,9 +779,9 @@ module Cql
 
             last_requests = connections.select { |c| c.host =~ /^h\d\.example\.com$/ }.sort_by(&:host).map { |c| c.requests.last }
             last_requests.should == [
-              Protocol::QueryRequest.new('USE system', :one),
-              Protocol::QueryRequest.new('USE system', :one),
-              Protocol::QueryRequest.new('USE system', :one)
+              Protocol::QueryRequest.new('USE system', nil, nil, :one),
+              Protocol::QueryRequest.new('USE system', nil, nil, :one),
+              Protocol::QueryRequest.new('USE system', nil, nil, :one),
             ]
           end
         end
@@ -557,7 +802,7 @@ module Cql
           before do
             handle_request do |request|
               if request.is_a?(Protocol::QueryRequest) && request.cql =~ /FROM things/
-                Protocol::RowsResultResponse.new(rows, metadata, nil)
+                Protocol::RowsResultResponse.new(rows, metadata, nil, nil)
               end
             end
           end
@@ -651,11 +896,74 @@ module Cql
             trace_id = Uuid.new('a1028490-3f05-11e3-9531-fb72eff05fbb')
             handle_request do |request|
               if request.is_a?(Protocol::QueryRequest) && request.cql == cql
-                Protocol::RowsResultResponse.new([], [], trace_id)
+                Protocol::RowsResultResponse.new([], [], nil, trace_id)
               end
             end
             result = client.execute(cql, trace: true).value
             result.trace_id.should == trace_id
+          end
+        end
+
+        context 'with paging' do
+          let :cql do
+            'SELECT * FROM foo'
+          end
+
+          let :rows do
+            [['xyz', 'abc'], ['abc', 'xyz'], ['123', 'xyz']]
+          end
+
+          let :metadata do
+            [['thingies', 'things', 'thing', :text], ['thingies', 'things', 'item', :text]]
+          end
+
+          before do
+            handle_request do |request|
+              if request.is_a?(Protocol::QueryRequest) && request.cql == cql
+                if request.paging_state.nil?
+                  Protocol::RowsResultResponse.new(rows.take(2), metadata, 'foobar', nil)
+                elsif request.paging_state == 'foobar'
+                  Protocol::RowsResultResponse.new(rows.drop(2), metadata, nil, nil)
+                end
+              end
+            end
+          end
+
+          it 'sets the page size' do
+            client.execute(cql, page_size: 100).value
+            last_request.page_size.should == 100
+          end
+
+          it 'sets the page size and paging state' do
+            client.execute(cql, page_size: 100, paging_state: 'foobar').value
+            last_request.page_size.should == 100
+            last_request.paging_state.should == 'foobar'
+          end
+
+          it 'returns a result which can load the next page' do
+            result = client.execute(cql, page_size: 2).value
+            result.next_page.value
+            last_request.paging_state.should == 'foobar'
+          end
+
+          it 'returns a result which knows when there are no more pages' do
+            result = client.execute(cql, page_size: 2).value
+            result = result.next_page.value
+            result.should be_last_page
+          end
+
+          it 'passes the same options when loading the next page' do
+            sent_timeout = nil
+            handle_request do |_, _, _, timeout|
+              sent_timeout = timeout
+              nil
+            end
+            result = client.execute('SELECT * FROM something WHERE x = ? AND y = ?', 'foo', 'bar', page_size: 100, paging_state: 'foobar', trace: true, timeout: 3, type_hints: [:varchar, nil]).value
+            result.next_page.value
+            last_request.trace.should be_true
+            last_request.values.should == ['foo', 'bar']
+            last_request.type_hints.should == [:varchar, nil]
+            sent_timeout.should == 3
           end
         end
       end
@@ -676,7 +984,7 @@ module Cql
         before do
           handle_request do |request|
             if request.is_a?(Protocol::PrepareRequest)
-              Protocol::PreparedResultResponse.new(id, metadata, nil)
+              Protocol::PreparedResultResponse.new(id, metadata, nil, nil)
             end
           end
         end
@@ -698,7 +1006,7 @@ module Cql
         it 'executes a prepared statement using the default consistency level' do
           statement = client.prepare(cql).value
           statement.execute('foo').value
-          last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], :quorum)
+          last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], true, :quorum)
         end
 
         it 'executes a prepared statement using the consistency specified when the client was created' do
@@ -706,7 +1014,7 @@ module Cql
           client.connect.value
           statement = client.prepare(cql).value
           statement.execute('foo').value
-          last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], :all)
+          last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['foo'], true, :all)
         end
 
         it 'returns a prepared statement that knows the metadata' do
@@ -717,7 +1025,7 @@ module Cql
         it 'executes a prepared statement with a specific consistency level' do
           statement = client.prepare(cql).value
           statement.execute('thing', :local_quorum).value
-          last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['thing'], :local_quorum)
+          last_request.should == Protocol::ExecuteRequest.new(id, metadata, ['thing'], true, :local_quorum)
         end
 
         context 'when there is an error creating the request' do
@@ -731,7 +1039,7 @@ module Cql
           it 'returns a failed future' do
             handle_request do |request|
               if request.is_a?(Protocol::PrepareRequest)
-                Protocol::PreparedResultResponse.new(id, metadata, nil)
+                Protocol::PreparedResultResponse.new(id, metadata, nil, nil)
               end
             end
             statement = client.prepare(cql).value
@@ -742,7 +1050,7 @@ module Cql
 
         context 'with multiple connections' do
           let :connection_options do
-            {:hosts => %w[host1 host2], :port => 12321, :io_reactor => io_reactor, :logger => logger}
+            default_connection_options.merge(hosts: %w[host1 host2])
           end
 
           it 'prepares the statement on all connections' do
@@ -753,9 +1061,100 @@ module Cql
               raise 'Did not receive EXECUTE requests on all connections within 5s' if (Time.now - started_at) > 5
             end
             connections.map { |c| c.requests.last }.should == [
-              Protocol::ExecuteRequest.new(id, metadata, ['hello'], :quorum),
-              Protocol::ExecuteRequest.new(id, metadata, ['hello'], :quorum),
+              Protocol::ExecuteRequest.new(id, metadata, ['hello'], true, :quorum),
+              Protocol::ExecuteRequest.new(id, metadata, ['hello'], true, :quorum),
             ]
+          end
+        end
+
+        context 'with paging' do
+          let :statement do
+            client.prepare(cql).value
+          end
+
+          let :rows do
+            [['xyz', 'abc'], ['abc', 'xyz'], ['123', 'xyz']]
+          end
+
+          let :metadata do
+            [['thingies', 'things', 'thing', :text]]
+          end
+
+          let :result_metadata do
+            [['thingies', 'things', 'thing', :text], ['thingies', 'things', 'item', :text]]
+          end
+
+          before do
+            handle_request do |request|
+              case request
+              when Protocol::PrepareRequest
+                Protocol::PreparedResultResponse.new(id, metadata, nil, nil)
+              when Protocol::ExecuteRequest
+                if request.paging_state.nil?
+                  Protocol::RowsResultResponse.new(rows.take(2), result_metadata, 'foobar', nil)
+                elsif request.paging_state == 'foobar'
+                  Protocol::RowsResultResponse.new(rows.drop(2), result_metadata, nil, nil)
+                end
+              end
+            end
+          end
+
+          it 'sets the page size' do
+            statement.execute('foo', page_size: 100).value
+            last_request.page_size.should == 100
+          end
+
+          it 'sets the page size and paging state' do
+            statement.execute('foo', page_size: 100, paging_state: 'foobar').value
+            last_request.page_size.should == 100
+            last_request.paging_state.should == 'foobar'
+          end
+        end
+      end
+
+      describe '#batch' do
+        before do
+          client.connect.value
+        end
+
+        context 'when called witout a block' do
+          it 'returns a batch' do
+            batch = client.batch
+            batch.add('UPDATE x SET y = 3 WHERE z = 1')
+            batch.execute.value
+            last_request.should be_a(Protocol::BatchRequest)
+          end
+
+          it 'creates a batch of the right type' do
+            batch = client.batch(:unlogged)
+            batch.add('UPDATE x SET y = 3 WHERE z = 1')
+            batch.execute.value
+            last_request.type.should == Protocol::BatchRequest::UNLOGGED_TYPE
+          end
+
+          it 'passes the options to the batch' do
+            batch = client.batch(trace: true)
+            batch.add('UPDATE x SET y = 3 WHERE z = 1')
+            batch.execute.value
+            last_request.trace.should be_true
+          end
+        end
+
+        context 'when called with a block' do
+          it 'yields and executes a batch' do
+            f = client.batch do |batch|
+              batch.add('UPDATE x SET y = 3 WHERE z = 1')
+            end
+            f.value
+            last_request.should be_a(Protocol::BatchRequest)
+          end
+
+          it 'passes the options to the batch\'s #execute' do
+            f = client.batch(:unlogged, trace: true) do |batch|
+              batch.add('UPDATE x SET y = 3 WHERE z = 1')
+            end
+            f.value
+            last_request.trace.should be_true
           end
         end
       end
@@ -804,7 +1203,7 @@ module Cql
         it 'complains when #execute of a prepared statement is called after #close' do
           handle_request do |request|
             if request.is_a?(Protocol::PrepareRequest)
-              Protocol::PreparedResultResponse.new('A' * 32, [], nil)
+              Protocol::PreparedResultResponse.new('A' * 32, [], nil, nil)
             end
           end
           client.connect.value
@@ -818,7 +1217,7 @@ module Cql
         include_context 'peer discovery setup'
 
         let :connection_options do
-          {:hosts => %w[host1 host2 host3], :port => 12321, :io_reactor => io_reactor}
+          default_connection_options.merge(hosts: %w[host1 host2 host3], keyspace: 'foo')
         end
 
         before do
@@ -847,6 +1246,14 @@ module Cql
           event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
           connections.select(&:connected?).should have(3).items
+        end
+
+        it 'makes sure the new connections use the same keyspace as the existing' do
+          connections.first.close
+          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          use_keyspace_request = connections.last.requests.find { |r| r.is_a?(Protocol::QueryRequest) && r.cql.include?('USE') }
+          use_keyspace_request.cql.should == 'USE foo'
         end
 
         it 'eventually reconnects even when the node doesn\'t respond at first' do
@@ -936,14 +1343,21 @@ module Cql
           logger.stub(:warn)
           io_reactor.stub(:connect).and_return(Future.failed(StandardError.new('Hurgh blurgh')))
           client.connect.value rescue nil
-          logger.should have_received(:warn).with(/Failed connecting to node at example\.com:12321: Hurgh blurgh/)
+          logger.should have_received(:warn).with(/Failed connecting to node at example\.com: Hurgh blurgh/)
         end
 
         it 'logs when a connection fails' do
           logger.stub(:warn)
           client.connect.value
+          connections.sample.close(StandardError.new('bork'))
+          logger.should have_received(:warn).with(/Connection to node .{36} at .+:\d+ in data center .+ closed unexpectedly: bork/)
+        end
+
+        it 'logs when a connection closes' do
+          logger.stub(:info)
+          client.connect.value
           connections.sample.close
-          logger.should have_received(:warn).with(/Connection to node .{36} at .+:\d+ in data center .+ unexpectedly closed/)
+          logger.should have_received(:info).with(/Connection to node .{36} at .+:\d+ in data center .+ closed/)
         end
 
         it 'logs when it does a peer discovery' do

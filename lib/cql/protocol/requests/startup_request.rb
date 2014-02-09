@@ -15,7 +15,7 @@ module Cql
         false
       end
 
-      def write(io)
+      def write(protocol_version, io)
         write_string_map(io, @options)
       end
 

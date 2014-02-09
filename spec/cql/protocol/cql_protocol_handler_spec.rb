@@ -7,7 +7,7 @@ module Cql
   module Protocol
     describe CqlProtocolHandler do
       let :protocol_handler do
-        described_class.new(connection, scheduler)
+        described_class.new(connection, scheduler, 1)
       end
 
       let :connection do
@@ -114,7 +114,7 @@ module Cql
 
         context 'when a compressor is specified' do
           let :protocol_handler do
-            described_class.new(connection, scheduler, compressor)
+            described_class.new(connection, scheduler, 1, compressor)
           end
 
           let :compressor do
@@ -147,8 +147,19 @@ module Cql
             f2 = protocol_handler.send_request(request)
             connection.data_listener.call("\x81\x01\x00\x08\x00\x00\x00\x12FAKECOMPRESSEDBODY")
             connection.data_listener.call("\x81\x01\x01\x08\x00\x00\x00\x12FAKECOMPRESSEDBODY")
-            f1.value.should == Protocol::PreparedResultResponse.new(id, [["cql_rb_911", "users", "user_name", :varchar]], nil)
-            f2.value.should == Protocol::PreparedResultResponse.new(id, [["cql_rb_911", "users", "user_name", :varchar]], nil)
+            f1.value.should == Protocol::PreparedResultResponse.new(id, [["cql_rb_911", "users", "user_name", :varchar]], nil, nil)
+            f2.value.should == Protocol::PreparedResultResponse.new(id, [["cql_rb_911", "users", "user_name", :varchar]], nil, nil)
+          end
+        end
+
+        context 'when a protocol version is specified' do
+          let :protocol_handler do
+            described_class.new(connection, scheduler, 7)
+          end
+
+          it 'sets the protocol version in the header' do
+            protocol_handler.send_request(request)
+            buffer.to_s[0].should == "\x07"
           end
         end
 
@@ -266,7 +277,7 @@ module Cql
         end
 
         it 'registers the keyspace it has changed to' do
-          f = protocol_handler.send_request(Protocol::QueryRequest.new('USE hello', :one))
+          f = protocol_handler.send_request(Protocol::QueryRequest.new('USE hello', nil, nil, :one))
           connection.data_listener.call([0x81, 0, 0, 8, 4 + 2 + 5, 3, 5].pack('C4N2n') + 'hello')
           f.value
           protocol_handler.keyspace.should == 'hello'
