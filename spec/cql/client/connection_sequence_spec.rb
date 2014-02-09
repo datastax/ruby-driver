@@ -466,7 +466,7 @@ module Cql
           node_info = {'data_center' => 'dc', 'host_id' => Uuid.new('11111111-1111-1111-1111-111111111111')}
           pending_connection.stub(:execute) do |request|
             pending_connection.stub(:last_request).and_return(request)
-            Future.resolved(QueryResult.new([], [node_info], nil))
+            Future.resolved(QueryResult.new([], [node_info], nil, nil))
           end
           pending_connection.stub(:[]=)
         end
@@ -478,7 +478,7 @@ module Cql
         end
 
         it 'handles the case when the query result is empty' do
-          pending_connection.stub(:execute).and_return(Future.resolved(QueryResult.new([], [], nil)))
+          pending_connection.stub(:execute).and_return(Future.resolved(QueryResult.new([], [], nil, nil)))
           result = step.run(pending_connection)
           result.should be_resolved
           pending_connection.should_not have_received(:[]=)

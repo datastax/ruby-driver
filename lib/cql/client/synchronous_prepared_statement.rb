@@ -13,7 +13,11 @@ module Cql
       end
 
       def execute(*args)
-        synchronous_backtrace { @async_statement.execute(*args).value }
+        synchronous_backtrace do
+          result = @async_statement.execute(*args).value
+          result = SynchronousPagedQueryResult.new(result) if result.is_a?(PagedQueryResult)
+          result
+        end
       end
 
       def batch(type=:logged, options=nil, &block)

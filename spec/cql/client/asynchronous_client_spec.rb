@@ -939,6 +939,32 @@ module Cql
             last_request.page_size.should == 100
             last_request.paging_state.should == 'foobar'
           end
+
+          it 'returns a result which can load the next page' do
+            result = client.execute(cql, page_size: 2).value
+            result.next_page.value
+            last_request.paging_state.should == 'foobar'
+          end
+
+          it 'returns a result which knows when there are no more pages' do
+            result = client.execute(cql, page_size: 2).value
+            result = result.next_page.value
+            result.should be_last_page
+          end
+
+          it 'passes the same options when loading the next page' do
+            sent_timeout = nil
+            handle_request do |_, _, _, timeout|
+              sent_timeout = timeout
+              nil
+            end
+            result = client.execute('SELECT * FROM something WHERE x = ? AND y = ?', 'foo', 'bar', page_size: 100, paging_state: 'foobar', trace: true, timeout: 3, type_hints: [:varchar, nil]).value
+            result.next_page.value
+            last_request.trace.should be_true
+            last_request.values.should == ['foo', 'bar']
+            last_request.type_hints.should == [:varchar, nil]
+            sent_timeout.should == 3
+          end
         end
       end
 
@@ -1051,16 +1077,23 @@ module Cql
           end
 
           let :metadata do
+            [['thingies', 'things', 'thing', :text]]
+          end
+
+          let :result_metadata do
             [['thingies', 'things', 'thing', :text], ['thingies', 'things', 'item', :text]]
           end
 
           before do
             handle_request do |request|
-              if request.is_a?(Protocol::ExecuteRequest)
+              case request
+              when Protocol::PrepareRequest
+                Protocol::PreparedResultResponse.new(id, metadata, nil, nil)
+              when Protocol::ExecuteRequest
                 if request.paging_state.nil?
-                  Protocol::RowsResultResponse.new(rows.take(2), metadata, 'foobar', nil)
+                  Protocol::RowsResultResponse.new(rows.take(2), result_metadata, 'foobar', nil)
                 elsif request.paging_state == 'foobar'
-                  Protocol::RowsResultResponse.new(rows.drop(2), metadata, nil, nil)
+                  Protocol::RowsResultResponse.new(rows.drop(2), result_metadata, nil, nil)
                 end
               end
             end

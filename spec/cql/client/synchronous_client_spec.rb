@@ -75,6 +75,18 @@ module Cql
           future.stub(:value).and_return(result)
           client.execute('SELECT * FROM something', :one).should equal(result)
         end
+
+        it 'wraps AsynchronousPagedQueryResult in a synchronous wrapper' do
+          cql = 'SELECT * FROM something'
+          request = double(:request, cql: cql, values: [])
+          async_result = double(:result, paging_state: 'somepagingstate')
+          options = {:page_size => 10}
+          async_client.stub(:execute).and_return(Future.resolved(AsynchronousQueryPagedQueryResult.new(async_client, request, async_result, options)))
+          result1 = client.execute(cql, options)
+          result2 = result1.next_page
+          async_client.should have_received(:execute).with('SELECT * FROM something', page_size: 10, paging_state: 'somepagingstate')
+          result2.should be_a(SynchronousPagedQueryResult)
+        end
       end
 
       describe '#prepare' do

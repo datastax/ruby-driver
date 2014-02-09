@@ -366,6 +366,46 @@ describe 'A CQL client' do
     end
   end
 
+  context 'when paging large result sets' do
+    let :row_count do
+      200
+    end
+
+    before do
+      create_keyspace_and_table
+      statement = client.prepare('UPDATE counters SET count = count + ? WHERE id = ?')
+      ids = Set.new
+      ids << rand(234234).to_s(36) until ids.size == row_count
+      ids = ids.to_a
+      client.batch(:counter) do |batch|
+        row_count.times do |i|
+          batch.add(statement, rand(234), ids[i])
+        end
+      end
+    end
+
+    it 'returns the first page, and a way to retrieve the next when using #execute' do
+      page_size = row_count/2 + 10
+      result_page = client.execute('SELECT * FROM counters', page_size: page_size)
+      result_page.count.should == page_size
+      result_page.should_not be_last_page
+      result_page = result_page.next_page
+      result_page.count.should == row_count - page_size
+      result_page.should be_last_page
+    end
+
+    it 'returns the first page, and a way to retrieve the next when using a prepared statement' do
+      page_size = row_count/2 + 10
+      statement = client.prepare('SELECT * FROM counters')
+      result_page = statement.execute(page_size: page_size)
+      result_page.count.should == page_size
+      result_page.should_not be_last_page
+      result_page = result_page.next_page
+      result_page.count.should == row_count - page_size
+      result_page.should be_last_page
+    end
+  end
+
   context 'with error conditions' do
     it 'raises an error for CQL syntax errors' do
       expect { client.execute('BAD cql') }.to raise_error(Cql::CqlError)

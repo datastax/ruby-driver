@@ -8,9 +8,9 @@ module Cql
         connection.send_request(request, timeout).map do |response|
           case response
           when Protocol::RawRowsResultResponse
-            LazyQueryResult.new(raw_metadata, response, response.trace_id)
+            LazyQueryResult.new(raw_metadata, response, response.trace_id, response.paging_state)
           when Protocol::RowsResultResponse
-            QueryResult.new(response.metadata, response.rows, response.trace_id)
+            QueryResult.new(response.metadata, response.rows, response.trace_id, response.paging_state)
           when Protocol::VoidResultResponse
             response.trace_id ? VoidResult.new(response.trace_id) : VoidResult::INSTANCE
           when Protocol::ErrorResponse

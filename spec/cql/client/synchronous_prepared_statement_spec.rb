@@ -49,6 +49,17 @@ module Cql
           promise.fulfill(result)
           statement.execute('one', 'two', :three).should equal(result)
         end
+
+        it 'wraps AsynchronousPagedQueryResult in a synchronous wrapper' do
+          request = double(:request, values: ['one', 'two'])
+          async_result = double(:result, paging_state: 'somepagingstate')
+          options = {:page_size => 10}
+          async_statement.stub(:execute).and_return(Future.resolved(AsynchronousPreparedPagedQueryResult.new(async_statement, request, async_result, options)))
+          result1 = statement.execute('one', 'two', options)
+          result2 = result1.next_page
+          async_statement.should have_received(:execute).with('one', 'two', page_size: 10, paging_state: 'somepagingstate')
+          result2.should be_a(SynchronousPagedQueryResult)
+        end
       end
 
       describe '#batch' do

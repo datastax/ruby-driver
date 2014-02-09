@@ -169,6 +169,21 @@ module Cql
             response.trace_id.should == trace_id
           end
         end
+
+        context 'when the response has a paging state' do
+          it 'returns a QueryResult that knows its paging state' do
+            connection.stub(:send_request).with(request, anything).and_return(Future.resolved(Protocol::RowsResultResponse.new(rows, metadata, 'foobaz', nil)))
+            response = runner.execute(connection, request).value
+            response.paging_state.should == 'foobaz'
+          end
+
+          it 'returns a LazyQueryResult that knows its paging state' do
+            metadata = [['ks', 'tbl', 'col', :varchar]]
+            connection.stub(:send_request).with(request, anything).and_return(Future.resolved(Protocol::RawRowsResultResponse.new(2, ByteBuffer.new("\x00\x00\x00\x02\x00\x00\x00\x01a\x00\x00\x00\x01b"), 'bazbuzz', nil)))
+            response = runner.execute(connection, request, nil, metadata).value
+            response.paging_state.should == 'bazbuzz'
+          end
+        end
       end
     end
   end

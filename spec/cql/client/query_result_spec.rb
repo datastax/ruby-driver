@@ -69,7 +69,7 @@ module Cql
 
     describe QueryResult do
       let :result do
-        described_class.new(metadata, rows, trace_id)
+        described_class.new(metadata, rows, trace_id, nil)
       end
 
       include_context 'query_result_setup'
@@ -77,7 +77,7 @@ module Cql
 
       describe '#empty?' do
         it 'returns true when there are no rows' do
-          described_class.new(metadata, [], nil).should be_empty
+          described_class.new(metadata, [], nil, nil).should be_empty
         end
 
         it 'returns false when there are rows' do
@@ -88,7 +88,7 @@ module Cql
 
     describe LazyQueryResult do
       let :result do
-        described_class.new(metadata, lazy_rows, trace_id)
+        described_class.new(metadata, lazy_rows, trace_id, nil)
       end
 
       let :lazy_rows do
@@ -120,6 +120,225 @@ module Cql
 
         it 'returns false when there are rows' do
           result.should_not be_empty
+        end
+      end
+    end
+
+    shared_examples 'paged_query_result' do
+      let :metadata do
+        ResultMetadata.new([['ks', 'tbl', 'col1', :varchar], ['ks', 'tbl', 'col2', :double]])
+      end
+
+      describe '#metadata' do
+        it 'delegates to the wrapped result' do
+          query_result.stub(:metadata).and_return(metadata)
+          paged_query_result.metadata.should == metadata
+        end
+      end
+
+      describe '#trace_id' do
+        it 'delegates to the wrapped result' do
+          query_result.stub(:trace_id).and_return('foobaz')
+          paged_query_result.trace_id.should == 'foobaz'
+        end
+      end
+
+      describe '#paging_state' do
+        it 'delegates to the wrapped result' do
+          query_result.stub(:paging_state).and_return('foobaz')
+          paged_query_result.paging_state.should == 'foobaz'
+        end
+      end
+
+      describe '#empty?' do
+        it 'delegates to the wrapped result' do
+          query_result.stub(:empty?).and_return(true)
+          paged_query_result.should be_empty
+        end
+      end
+
+      describe '#each' do
+        it 'delegates to the wrapped result' do
+          query_result.stub(:each).and_yield(:row1).and_yield(:row2)
+          rows = paged_query_result.each_with_object([]) { |row, rows| rows << row }
+          rows.should == [:row1, :row2]
+        end
+      end
+    end
+
+    shared_examples 'asynchronous_paged_query_result' do
+      include_examples 'paged_query_result'
+
+      describe '#last_page?' do
+        it 'returns true when the result has no paging state' do
+          query_result.stub(:paging_state).and_return(nil)
+          paged_query_result.should be_last_page
+        end
+
+        it 'returns false when the result has a paging state' do
+          paged_query_result.should_not be_last_page
+        end
+      end
+    end
+
+    describe AsynchronousQueryPagedQueryResult do
+      let :paged_query_result do
+        described_class.new(client, request, query_result, options)
+      end
+
+      let :client do
+        double(:client)
+      end
+
+      let :request do
+        double(:request, cql: 'SELECT * FROM something WHERE id = ?', values: ['foo'])
+      end
+
+      let :query_result do
+        double(:query_result, paging_state: 'thepagingstate')
+      end
+
+      let :options do
+        {:trace => true, :timeout => 3}
+      end
+
+      include_examples 'asynchronous_paged_query_result'
+
+      describe '#next_page' do
+        let :next_query_result do
+          double(:next_query_result, paging_state: 'thenextpagingstate')
+        end
+
+        before do
+          client.stub(:execute).and_return(Future.resolved(next_query_result))
+        end
+
+        it 'calls the client and passes the paging state' do
+          paged_query_result.next_page.value
+          client.should have_received(:execute).with(anything, anything, hash_including(paging_state: 'thepagingstate'))
+        end
+
+        it 'calls the client and passes the options' do
+          paged_query_result.next_page.value
+          client.should have_received(:execute).with(anything, anything, hash_including(options))
+        end
+
+        it 'calls the client and passes the CQL' do
+          paged_query_result.next_page.value
+          client.should have_received(:execute).with(request.cql, anything, anything)
+        end
+
+        it 'calls the client and passes the bound values' do
+          paged_query_result.next_page.value
+          client.should have_received(:execute).with(anything, 'foo', anything)
+        end
+
+        it 'handles the case when there are multiple bound values' do
+          request.stub(:values).and_return(['foo', 3, 'bar', 4])
+          paged_query_result.next_page.value
+          client.should have_received(:execute).with(anything, 'foo', 3, 'bar', 4, anything)
+        end
+
+        it 'handles the case when there are no bound values' do
+          request.stub(:values).and_return(nil)
+          paged_query_result.next_page.value
+          client.should have_received(:execute).with(request.cql, an_instance_of(Hash))
+        end
+
+        it 'returns the result of the call' do
+          f = paged_query_result.next_page
+          f.value.should equal(next_query_result)
+        end
+      end
+    end
+
+    describe AsynchronousPreparedPagedQueryResult do
+      let :paged_query_result do
+        described_class.new(statement, request, query_result, options)
+      end
+
+      let :statement do
+        double(:statement)
+      end
+
+      let :request do
+        double(:request, values: ['foo', 3])
+      end
+
+      let :query_result do
+        double(:query_result, paging_state: 'thepagingstate')
+      end
+
+      let :options do
+        {:trace => true, :timeout => 3}
+      end
+
+      include_examples 'asynchronous_paged_query_result'
+
+      describe '#next_page' do
+        let :next_query_result do
+          double(:next_query_result, paging_state: 'thenextpagingstate')
+        end
+
+        before do
+          statement.stub(:execute).and_return(Future.resolved(next_query_result))
+        end
+
+        it 'calls the statement and passes the paging state' do
+          paged_query_result.next_page.value
+          statement.should have_received(:execute).with(anything, anything, hash_including(paging_state: 'thepagingstate'))
+        end
+
+        it 'calls the statement and passes the options' do
+          paged_query_result.next_page.value
+          statement.should have_received(:execute).with(anything, anything, hash_including(options))
+        end
+
+        it 'calls the statement and passes the bound values' do
+          paged_query_result.next_page.value
+          statement.should have_received(:execute).with('foo', 3, anything)
+        end
+
+        it 'handles the case when there are no bound values' do
+          request.stub(:values).and_return(nil)
+          paged_query_result.next_page.value
+          statement.should have_received(:execute).with(an_instance_of(Hash))
+        end
+
+        it 'returns the result of the call' do
+          f = paged_query_result.next_page
+          f.value.should equal(next_query_result)
+        end
+      end
+    end
+
+    describe SynchronousPagedQueryResult do
+      let :paged_query_result do
+        described_class.new(asynchronous_paged_query_result)
+      end
+
+      let :asynchronous_paged_query_result do
+        double(:asynchronous_paged_query_result)
+      end
+
+      describe '#next_page' do
+        let :next_query_result do
+          double(:next_query_result)
+        end
+
+        it 'delegates to the wrapped query result and wraps the result in an instance of itself' do
+          next_query_result.stub(:next_page).and_return(Future.resolved(next_query_result))
+          asynchronous_paged_query_result.stub(:next_page).and_return(Future.resolved(next_query_result))
+          second_page = paged_query_result.next_page
+          second_page.next_page
+          next_query_result.should have_received(:next_page)
+        end
+      end
+
+      describe '#last_page?' do
+        it 'delegates to the wrapped query result' do
+          asynchronous_paged_query_result.stub(:last_page?).and_return(true)
+          paged_query_result.should be_last_page
         end
       end
     end

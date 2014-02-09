@@ -95,7 +95,11 @@ module Cql
         statement_id = connection[self]
         request_metadata = @raw_result_metadata.nil?
         request = Protocol::ExecuteRequest.new(statement_id, @raw_metadata, bound_args, request_metadata, options[:consistency], options[:serial_consistency], options[:page_size], options[:paging_state], options[:trace])
-        @request_runner.execute(connection, request, options[:timeout], @raw_result_metadata)
+        f = @request_runner.execute(connection, request, options[:timeout], @raw_result_metadata)
+        if options.include?(:page_size)
+          f = f.map { |result| AsynchronousPreparedPagedQueryResult.new(self, request, result, options) }
+        end
+        f
       end
     end
   end

@@ -73,9 +73,9 @@ module Cql
           Protocol::PreparedResultResponse.new(statement_id, raw_metadata, protocol_version == 'v1' ? nil : raw_result_metadata, nil)
         when Protocol::ExecuteRequest
           if request.request_metadata
-            Protocol::RowsResultResponse.new(rows, raw_metadata, nil, nil)
+            Protocol::RowsResultResponse.new(rows, raw_metadata, request.paging_state ? 'page2' : nil, nil)
           else
-            Protocol::RawRowsResultResponse.new(protocol_version[1].to_i, raw_rows, nil, nil)
+            Protocol::RawRowsResultResponse.new(protocol_version[1].to_i, raw_rows, request.paging_state ? 'page2' : nil, nil)
           end
         when Protocol::BatchRequest
           Protocol::VoidResultResponse.new(nil)
@@ -213,17 +213,32 @@ module Cql
           sent_timeout.should == 3
         end
 
-        it 'sends the page size given as an option' do
-          statement.execute(11, 'hello', page_size: 10)
-          request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
-          request.page_size.should == 10
-        end
+        context 'when paging' do
+          it 'sends the page size given as an option' do
+            statement.execute(11, 'hello', page_size: 10).value
+            request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
+            request.page_size.should == 10
+          end
 
-        it 'sends the page size and paging state given as options' do
-          statement.execute(11, 'hello', page_size: 10, paging_state: 'foo')
-          request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
-          request.page_size.should == 10
-          request.paging_state.should == 'foo'
+          it 'sends the page size and paging state given as options' do
+            statement.execute(11, 'hello', page_size: 10, paging_state: 'foo').value
+            request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
+            request.page_size.should == 10
+            request.paging_state.should == 'foo'
+          end
+
+          it 'returns a result which can load the next page' do
+            result = statement.execute(11, 'foo', page_size: 2).value
+            result.next_page.value
+            request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
+            request.paging_state.should == result.paging_state
+          end
+
+          it 'returns a result which knows when there are no more pages' do
+            result = statement.execute(11, 'foo', page_size: 2).value
+            result = result.next_page.value
+            result.should be_last_page
+          end
         end
 
         context 'when it receives a new connection from the connection manager' do

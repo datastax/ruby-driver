@@ -50,8 +50,12 @@ module Cql
         synchronous_backtrace { @async_client.use(keyspace).value }
       end
 
-      def execute(cql, *values)
-        synchronous_backtrace { @async_client.execute(cql, *values).value }
+      def execute(cql, *args)
+        synchronous_backtrace do
+          result = @async_client.execute(cql, *args).value
+          result = SynchronousPagedQueryResult.new(result) if result.is_a?(PagedQueryResult)
+          result
+        end
       end
 
       def prepare(cql)

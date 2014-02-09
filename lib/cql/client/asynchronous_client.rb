@@ -90,7 +90,12 @@ module Cql
             options_or_consistency = args.pop
           end
           options = @execute_options_decoder.decode_options(options_or_consistency)
-          execute_request(Protocol::QueryRequest.new(cql, args, options[:type_hints], options[:consistency], options[:serial_consistency], options[:page_size], options[:paging_state], options[:trace]), options[:timeout])
+          request = Protocol::QueryRequest.new(cql, args, options[:type_hints], options[:consistency], options[:serial_consistency], options[:page_size], options[:paging_state], options[:trace])
+          f = execute_request(request, options[:timeout])
+          if options.include?(:page_size)
+            f = f.map { |result| AsynchronousQueryPagedQueryResult.new(self, request, result, options) }
+          end
+          f
         end
       end
 
