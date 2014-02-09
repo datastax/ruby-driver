@@ -186,10 +186,6 @@ This is just a driver for the Cassandra native CQL protocol, it doesn't really k
 
 Read more about CQL3 in the [CQL3 syntax documentation](https://github.com/apache/cassandra/blob/cassandra-1.2/doc/cql3/CQL.textile) and the [Cassandra query documentation](http://www.datastax.com/docs/1.2/cql_cli/querying_cql).
 
-# Cassandra 2.0
-
-Cassandra 2.0 introduced a new version of the native protocol with some new features like argument interpolation in non-prepared statements, result set cursors, a new authentication mechanism and the `SERIAL` consistency. These features are not yet supported, but the driver will work with Cassandra 2.0 using the earlier protocol. Support for all of the features of the new protocol is being worked on. If there is a particular feature that you would want to see implemented, open an issue and describe your use case. This helps with prioritizing what should be implemented first.
-
 # Troubleshooting
 
 ## I get "connection refused" errors
