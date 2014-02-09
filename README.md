@@ -290,7 +290,6 @@ Prereleases will be stable, in the sense that they will have finished and proper
 * Windows is not supported (there is experimental support in the [`windows` branch](https://github.com/iconara/cql-rb/tree/windows_support)).
 * Large results are buffered in memory until the whole response has been loaded, the protocol makes it possible to start to deliver rows to the client code as soon as the metadata is loaded, but this is not supported yet.
 * There is no cluster introspection utilities (like the `DESCRIBE` commands in `cqlsh`) -- but it's not clear whether that will ever be added, it would be useful, but it is also something that another gem could add on top.
-* New features in v2 of the protocol are not supported -- this is planned and in progress
 
 Also check out the [issues](https://github.com/iconara/cql-rb/issues) for open bugs.
 
