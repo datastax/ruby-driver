@@ -8,15 +8,13 @@ _If you're reading this on GitHub, please note that this is the readme for the d
 
 # Requirements
 
-Cassandra 1.2 or later with the native transport protocol turned on and a modern Ruby. It's tested continuously in Travis with Ruby 1.9.3, 2.0, JRuby 1.7 and Rubinius 2.0.
+Cassandra 1.2 or later with the native transport protocol turned on and a modern Ruby. It's [tested continuously using Travis](https://travis-ci.org/iconara/cql-rb) with Cassandra 2.0.5, Ruby 1.9.3, 2.0, JRuby 1.7 and Rubinius 2.1.
 
 # Installation
 
     gem install cql-rb
 
-## Configure Cassandra
 
-If you're running Cassandra 1.2.5 or later the native transport protocol is enabled by default, if you're running an earlier version (but later than 1.2) you must enable it by editing `cassandra.yaml` and setting `start_native_transport` to `true`.
 
 # Quick start
 
@@ -191,6 +189,12 @@ Read more about CQL3 in the [CQL3 syntax documentation](https://github.com/apach
 Cassandra 2.0 introduced a new version of the native protocol with some new features like argument interpolation in non-prepared statements, result set cursors, a new authentication mechanism and the `SERIAL` consistency. These features are not yet supported, but the driver will work with Cassandra 2.0 using the earlier protocol. Support for all of the features of the new protocol is being worked on. If there is a particular feature that you would want to see implemented, open an issue and describe your use case. This helps with prioritizing what should be implemented first.
 
 # Troubleshooting
+
+## I get "connection refused" errors
+
+Make sure that the native transport protocol is enabled. If you're running Cassandra 1.2.5 or later the native transport protocol is enabled by default, if you're running an earlier version (but later than 1.2) you must enable it by editing `cassandra.yaml` and setting `start_native_transport` to `true`.
+
+To verify that the native transport protocol is enabled, search your logs for the message "Starting listening for CQL clients" and look at which IP and port it is binding to.
 
 ## I get "Deadlock detected" errors
 
