@@ -180,6 +180,18 @@ compressor = Cql::Compression::SnappyCompressor.new
 client = Cql::Client.connect(hosts: %w[localhost], compressor: compressor)
 ```
 
+## Logging
+
+You can pass a standard Ruby logger to the client to get some more information about what is going on:
+
+```ruby
+require 'logger'
+
+client = Cql::Client.connect(logger: Logger.new($stderr))
+```
+
+Most of the logging will be when the driver connects and discovers new nodes, when connections fail and so on, but also when statements are prepared. The logging is designed to not cause much overhead and only relatively rare events are logged (e.g. normal requests are not logged).
+
 # CQL3
 
 This is just a driver for the Cassandra native CQL protocol, it doesn't really know anything about CQL. You can run any CQL3 statement and the driver will return whatever Cassandra replies with.
