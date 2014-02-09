@@ -41,7 +41,7 @@ client.close
 
 # Usage
 
-The full [API documentation](http://rubydoc.info/gems/cql-rb/frames) is available from [rubydoc.info](http://rubydoc.info/).
+The full [API documentation](http://rubydoc.info/github/iconara/cql-rb/frames) is available from [rubydoc.info](http://rubydoc.info/).
 
 ## Changing keyspaces
 
@@ -280,7 +280,7 @@ To get maximum performance you can't wait for a request to complete before sendi
 
 Check out the [releases on GitHub](https://github.com/iconara/cql-rb/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
 
-Private and experimental APIs, defined as whatever is not in the [public API documentation](http://rubydoc.info/gems/cql-rb/frames) will change without warning. If you've been recommended to try an experimental API by the maintainers, please let them know if you depend on that API. Experimental APIs will eventually become public, and knowing how they are used helps in determining their maturity.
+Private and experimental APIs, defined as whatever is not in the [public API documentation](http://rubydoc.info/github/iconara/cql-rb/frames), i.e. classes and methods marked as `@private`, will change without warning. If you've been recommended to try an experimental API by the maintainers, please let them know if you depend on that API. Experimental APIs will eventually become public, and knowing how they are used helps in determining their maturity.
 
 Prereleases will be stable, in the sense that they will have finished and properly tested features only, but may introduce APIs that will change before the final release. Please use the prereleases and report bugs, but don't deploy them to production without consulting the maintainers, or doing extensive testing yourself. If you do deploy to production please let the maintainers know as this helps determining the maturity of the release.
 
