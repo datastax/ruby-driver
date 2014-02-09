@@ -182,6 +182,12 @@ module Cql
         asynchronous_batch.stub(:execute).and_return(Cql::Future.resolved(VoidResult::INSTANCE))
       end
 
+      describe '#async' do
+        it 'returns the asynchronous batch' do
+          batch.async.should equal(asynchronous_batch)
+        end
+      end
+
       describe '#add' do
         it 'delegates to the asynchronous batch' do
           batch.add('UPDATE x SET y = ? WHERE z = ?', 3, 4)

@@ -66,6 +66,10 @@ module Cql
         @asynchronous_batch = asynchronous_batch
       end
 
+      def async
+        @asynchronous_batch
+      end
+
       def add(*args)
         @asynchronous_batch.add(*args)
       end

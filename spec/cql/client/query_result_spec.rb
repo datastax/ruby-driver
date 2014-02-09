@@ -341,6 +341,12 @@ module Cql
           paged_query_result.should be_last_page
         end
       end
+
+      describe '#async' do
+        it 'returns the asynchronous results' do
+          paged_query_result.async.should equal(asynchronous_paged_query_result)
+        end
+      end
     end
   end
 end

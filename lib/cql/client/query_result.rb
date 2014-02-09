@@ -112,6 +112,10 @@ module Cql
         @result = asynchronous_result
       end
 
+      def async
+        @result
+      end
+
       def last_page?
         @result.last_page?
       end
