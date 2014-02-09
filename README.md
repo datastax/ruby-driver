@@ -14,7 +14,9 @@ Cassandra 1.2 or later with the native transport protocol turned on and a modern
 
     gem install cql-rb
 
+if you want to use compression you should also install the [snappy gem](http://rubygems.org/gems/snappy):
 
+    gem install snappy
 
 # Quick start
 
