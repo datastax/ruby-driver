@@ -4,7 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/iconara/cql-rb/badge.png)](https://coveralls.io/r/iconara/cql-rb)
 [![Blog](http://b.repl.ca/v1/blog-cqlrb-ff69b4.png)](http://architecturalatrocities.com/tagged/cqlrb)
 
-_Please note that this is the readme for the development version and that some features described here might not yet have been released._
+_If you're reading this on GitHub, please note that this is the readme for the development version and that some features described here might not yet have been released. You can find the readme for a specific version either through [rubydoc.info](http://rubydoc.info/find/gems?q=cql-rb) or via the release tags ([here is an example](https://github.com/iconara/cql-rb/tree/v1.2.0))._
 
 # Requirements
 
