@@ -129,21 +129,23 @@ module Cql
 
     # @private
     class AuthenticationStep
-      def initialize(authenticator, protocol_version)
-        @authenticator = authenticator
+      def initialize(auth_provider, protocol_version)
+        @auth_provider = auth_provider
         @protocol_version = protocol_version
       end
 
       def run(pending_connection)
         if pending_connection.authentication_class
-          if @authenticator && @authenticator.supports?(pending_connection.authentication_class, @protocol_version)
-            auth_request = @authenticator.initial_request(@protocol_version)
-            f = pending_connection.execute(auth_request)
+          authenticator = @auth_provider && @auth_provider.create_authenticator(pending_connection.authentication_class, @protocol_version)
+          if authenticator
+            token = authenticator.initial_response
+            request = (@protocol_version == 1 ? Protocol::CredentialsRequest : Protocol::AuthResponseRequest).new(token)
+            f = pending_connection.execute(request)
             f.map(pending_connection)
-          elsif @authenticator
-            Future.failed(AuthenticationError.new('Authenticator does not support the required authentication class "%s" and/or protocol version %d' % [pending_connection.authentication_class, @protocol_version]))
+          elsif @auth_provider
+            Future.failed(AuthenticationError.new('Auth provider does not support the required authentication class "%s" and/or protocol version %d' % [pending_connection.authentication_class, @protocol_version]))
           else
-            Future.failed(AuthenticationError.new('Server requested authentication, but no authenticator provided'))
+            Future.failed(AuthenticationError.new('Server requested authentication, but no auth provider found'))
           end
         else
           Future.resolved(pending_connection)

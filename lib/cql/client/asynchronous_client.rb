@@ -20,7 +20,7 @@ module Cql
         @execute_options_decoder = ExecuteOptionsDecoder.new(options[:default_consistency] || DEFAULT_CONSISTENCY)
         @port = options[:port] || DEFAULT_PORT
         @connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
-        @authenticator = options[:authenticator] || options.include?(:credentials) && PasswordAuthenticator.new(*options.values_at(:username, :password))
+        @auth_provider = options[:auth_provider] || options.include?(:credentials) && PlainTextAuthProvider.new(*options.values_at(:username, :password))
         @connected = false
         @connecting = false
         @closing = false
@@ -151,7 +151,7 @@ module Cql
             ConnectStep.new(@io_reactor, @port, @connection_timeout, @logger),
             CacheOptionsStep.new,
             InitializeStep.new(cql_version, @compressor, @logger),
-            AuthenticationStep.new(@authenticator, @protocol_version),
+            AuthenticationStep.new(@auth_provider, @protocol_version),
             CachePropertiesStep.new,
           ]),
           @logger
