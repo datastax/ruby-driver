@@ -35,7 +35,7 @@ describe 'Protocol parsing and communication' do
     ir.start
     connected = ir.connect(ENV['CASSANDRA_HOST'], 9042, 5)
     started = connected.flat_map do |connection|
-      connection.send_request(Cql::Protocol::StartupRequest.new)
+      connection.send_request(Cql::Protocol::StartupRequest.new('3.1.0'))
     end
     response = started.value
     required = response.is_a?(Cql::Protocol::AuthenticateResponse)
@@ -134,7 +134,7 @@ describe 'Protocol parsing and communication' do
     context 'when authentication is not required' do
       it 'sends STARTUP and receives READY' do
         pending('authentication required', if: authentication_enabled?) do
-          response = execute_request(Cql::Protocol::StartupRequest.new, false)
+          response = execute_request(Cql::Protocol::StartupRequest.new('3.1.0'), false)
           response.should be_a(Cql::Protocol::ReadyResponse)
         end
       end
@@ -148,28 +148,28 @@ describe 'Protocol parsing and communication' do
 
         it 'sends STARTUP and receives AUTHENTICATE' do
           pending('authentication not configured', unless: authentication_enabled?) do
-            response = raw_execute_request(Cql::Protocol::StartupRequest.new)
+            response = raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
             response.should be_a(Cql::Protocol::AuthenticateResponse)
           end
         end
 
         it 'ignores the AUTHENTICATE response and receives ERROR' do
           pending('authentication not configured', unless: authentication_enabled?) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new)
+            raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
             response = raw_execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
             response.code.should == 10
           end
         end
 
         it 'sends STARTUP followed by CREDENTIALS and receives READY' do
-          raw_execute_request(Cql::Protocol::StartupRequest.new)
+          raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
           response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra'))
           response.should be_a(Cql::Protocol::ReadyResponse)
         end
 
         it 'sends bad username and password in CREDENTIALS and receives ERROR' do
           pending('authentication not configured', unless: authentication_enabled?) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new)
+            raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
             response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar'))
             response.code.should == 0x100
           end
@@ -179,14 +179,14 @@ describe 'Protocol parsing and communication' do
       context 'and the protocol version is 2' do
         it 'sends STARTUP and receives AUTHENTICATE' do
           pending('authentication not configured', unless: authentication_enabled?) do
-            response = raw_execute_request(Cql::Protocol::StartupRequest.new)
+            response = raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
             response.should be_a(Cql::Protocol::AuthenticateResponse)
           end
         end
 
         it 'ignores the AUTHENTICATE response and receives ERROR' do
           pending('authentication not configured', unless: authentication_enabled?) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new)
+            raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
             response = raw_execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
             response.code.should == 10
           end
@@ -194,7 +194,7 @@ describe 'Protocol parsing and communication' do
 
         it 'sends STARTUP followed by AUTH_RESPONSE and receives AUTH_SUCCESS' do
           pending('authentication not configured', unless: authentication_enabled?) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new)
+            raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
             response = raw_execute_request(Cql::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra"))
             response.should be_a(Cql::Protocol::AuthSuccessResponse)
           end
@@ -202,7 +202,7 @@ describe 'Protocol parsing and communication' do
 
         it 'sends bad username and password in AUTH_RESPONSE and receives ERROR' do
           pending('authentication not configured', unless: authentication_enabled?) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new)
+            raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
             response = raw_execute_request(Cql::Protocol::AuthResponseRequest.new("\x00cassandra\x00ardnassac"))
             response.code.should == 0x100
           end
@@ -213,7 +213,7 @@ describe 'Protocol parsing and communication' do
 
   context 'when set up' do
     before do
-      response = execute_request(Cql::Protocol::StartupRequest.new)
+      response = execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
       response
     end
 
@@ -531,7 +531,7 @@ describe 'Protocol parsing and communication' do
           io_reactor.start.value
           begin
             connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1).value
-            connection.send_request(Cql::Protocol::StartupRequest.new(nil, 'snappy')).value
+            connection.send_request(Cql::Protocol::StartupRequest.new('3.1.0', 'snappy')).value
             connection.send_request(Cql::Protocol::PrepareRequest.new('SELECT * FROM system.peers')).value
             compressor.should have_received(:compress).at_least(1).times
             compressor.should have_received(:decompress).at_least(1).times
@@ -588,7 +588,7 @@ describe 'Protocol parsing and communication' do
       io_reactor = Cql::Io::IoReactor.new(lambda { |*args| Cql::Protocol::CqlProtocolHandler.new(*args, 2) })
       io_reactor.start.value
       connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1).value
-      response = connection.send_request(Cql::Protocol::StartupRequest.new).value
+      response = connection.send_request(Cql::Protocol::StartupRequest.new('3.1.0')).value
       if response.is_a?(Cql::Protocol::AuthenticateResponse)
         response = connection.send_request(Cql::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra")).value
         response.should be_a(Cql::Protocol::AuthSuccessResponse)
