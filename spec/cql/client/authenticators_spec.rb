@@ -44,6 +44,23 @@ module Cql
           response.should == "\x00user\x00pass"
         end
       end
+
+      describe '#challenge_response' do
+        it 'returns nil' do
+          authenticator = described_class.new('user', 'pass')
+          authenticator.initial_response
+          authenticator.challenge_response('?').should be_nil
+        end
+      end
+
+      describe '#authentication_successful' do
+        it 'does nothing' do
+          authenticator = described_class.new('user', 'pass')
+          authenticator.initial_response
+          authenticator.challenge_response('?')
+          authenticator.authentication_successful('ok')
+        end
+      end
     end
 
     describe CredentialsAuthenticator do

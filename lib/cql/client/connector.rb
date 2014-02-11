@@ -139,9 +139,12 @@ module Cql
           authenticator = @auth_provider && @auth_provider.create_authenticator(pending_connection.authentication_class, @protocol_version)
           if authenticator
             token = authenticator.initial_response
-            request = (@protocol_version == 1 ? Protocol::CredentialsRequest : Protocol::AuthResponseRequest).new(token)
-            f = pending_connection.execute(request)
-            f.map(pending_connection)
+            if @protocol_version == 1
+              request = Protocol::CredentialsRequest.new(token)
+              pending_connection.execute(request).map(pending_connection)
+            else
+              challenge_cycle(pending_connection, authenticator, token)
+            end
           elsif @auth_provider
             Future.failed(AuthenticationError.new('Auth provider does not support the required authentication class "%s" and/or protocol version %d' % [pending_connection.authentication_class, @protocol_version]))
           else
@@ -149,6 +152,23 @@ module Cql
           end
         else
           Future.resolved(pending_connection)
+        end
+      end
+
+      def challenge_cycle(pending_connection, authenticator, response_token)
+        request = Protocol::AuthResponseRequest.new(response_token)
+        f = pending_connection.execute(request) { |raw_response| raw_response }
+        f.flat_map do |response|
+          case response
+          when Protocol::AuthChallengeResponse
+            token = authenticator.challenge_response(response.token)
+            challenge_cycle(pending_connection, authenticator, token)
+          when Protocol::AuthSuccessResponse
+            authenticator.authentication_successful(response.token)
+            Future.resolved(pending_connection)
+          else
+            Future.resolved(pending_connection)
+          end
         end
       end
     end
@@ -195,8 +215,8 @@ module Cql
         @connection[key] = value
       end
 
-      def execute(request)
-        @request_runner.execute(@connection, request)
+      def execute(request, &block)
+        @request_runner.execute(@connection, request, nil, nil, &block)
       end
     end
 

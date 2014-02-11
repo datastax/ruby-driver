@@ -32,6 +32,12 @@ module Cql
       def initial_response
         "\x00#{@username}\x00#{@password}"
       end
+
+      def challenge_response(token)
+      end
+
+      def authentication_successful(token)
+      end
     end
 
     class CredentialsAuthenticator
