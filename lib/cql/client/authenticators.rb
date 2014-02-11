@@ -13,13 +13,9 @@ module Cql
         @password = password
       end
 
-      def create_authenticator(authentication_class, protocol_version)
+      def create_authenticator(authentication_class)
         if authentication_class == PASSWORD_AUTHENTICATOR_FQCN
-          if protocol_version == 1
-            CredentialsAuthenticator.new('username' => @username, 'password' => @password)
-          else
-            PlainTextAuthenticator.new(@username, @password)
-          end
+          PlainTextAuthenticator.new(@username, @password)
         end
       end
 
@@ -44,17 +40,6 @@ module Cql
       end
 
       def authentication_successful(token)
-      end
-    end
-
-    # @private
-    class CredentialsAuthenticator
-      def initialize(credentials)
-        @credentials = credentials
-      end
-
-      def initial_response
-        @credentials
       end
     end
   end

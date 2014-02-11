@@ -271,36 +271,49 @@ module Cql
             client.should_not be_connected
           end
 
-          it 'passes the protocol version to the auth provider' do
-            auth_class = 'org.apache.cassandra.auth.PasswordAuthenticator'
-            auth_provider = double(:auth_provider)
-            auth_provider.stub(:create_authenticator).and_return(PlainTextAuthenticator.new('foo', 'bar'))
-            client = described_class.new(connection_options.merge(protocol_version: 4, auth_provider: auth_provider))
-            protocol_version = 4
+          it 'uses different authentication mechanisms for different protocol versions' do
+            client = described_class.new(connection_options.merge(protocol_version: 3, credentials: {username: 'foo', password: 'bar'}))
+            auth_requests = []
             handle_request do |request|
-              response = begin
-                if protocol_version <= 2
-                  case request
-                  when Protocol::OptionsRequest
-                    Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
-                  when Protocol::StartupRequest
-                    Protocol::AuthenticateResponse.new(auth_class)
-                  when Protocol::AuthResponseRequest
-                    Protocol::AuthSuccessResponse.new('ok')
-                  end
-                else
-                  Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              case request
+              when Protocol::OptionsRequest
+                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
+              when Protocol::StartupRequest
+                Protocol::AuthenticateResponse.new('org.apache.cassandra.auth.PasswordAuthenticator')
+              when Protocol::AuthResponseRequest
+                auth_requests << request
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              when Protocol::CredentialsRequest
+                auth_requests << request
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              else
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              end
+            end
+            client.connect.value rescue nil
+            auth_requests[0].should be_a(Protocol::AuthResponseRequest)
+            auth_requests[1].should be_a(Protocol::AuthResponseRequest)
+            auth_requests[2].should be_a(Protocol::CredentialsRequest)
+          end
+
+          it 'fails authenticating when an auth provider has been specified but the protocol is negotiated to v1' do
+            client = described_class.new(connection_options.merge(protocol_version: 2, auth_provider: double(:auth_provider)))
+            counter = 0
+            handle_request do |request|
+              if counter == 0
+                counter += 1
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              else
+                case request
+                when Protocol::OptionsRequest
+                  Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
+                when Protocol::StartupRequest
+                  Protocol::AuthenticateResponse.new('org.apache.cassandra.auth.PasswordAuthenticator')
                 end
               end
-              if request.is_a?(Protocol::OptionsRequest)
-                protocol_version -= 1
-              end
-              response
             end
-            client.connect.value
-            client.should be_connected
-            auth_provider.should have_received(:create_authenticator).with(auth_class, 2)
-            auth_provider.should_not have_received(:create_authenticator).with(auth_class, 1)
+            expect { client.connect.value }.to raise_error(AuthenticationError)
+            counter.should == 1
           end
 
           it 'defaults to different CQL versions for the different protocols' do
@@ -535,10 +548,15 @@ module Cql
 
           context 'with protocol v1' do
             it 'uses an auth provider to authenticate' do
-              client = described_class.new(connection_options.merge(auth_provider: auth_provider, protocol_version: 1))
+              client = described_class.new(connection_options.merge(credentials: {:username => 'foo', :password => 'bar'}, protocol_version: 1))
               client.connect.value
               request = requests.find { |rq| rq.is_a?(Protocol::CredentialsRequest) }
-              request.credentials.should eql('username' => 'foo', 'password' => 'bar')
+              request.credentials.should eql(:username => 'foo', :password => 'bar')
+            end
+
+            it 'fails to authenticate when only an auth provider has been specified' do
+              client = described_class.new(connection_options.merge(auth_provider: auth_provider, protocol_version: 1))
+              expect { client.connect.value }.to raise_error(AuthenticationError)
             end
           end
 
@@ -547,13 +565,15 @@ module Cql
               client = described_class.new(connection_options.merge(auth_provider: auth_provider))
               client.connect.value
               request = requests.find { |rq| rq == Protocol::AuthResponseRequest.new("\x00foo\x00bar") }
-              request.should_not be_nil, 'expected a credentials request to have been sent'
+              request.should_not be_nil, 'expected an auth response request to have been sent'
             end
-          end
 
-          it 'creates a PlainTextAuthProvider when the :credentials options is given' do
-            client = described_class.new(connection_options.merge(credentials: {:username => 'foo', :password => 'bar'}))
-            expect { client.connect.value }.to_not raise_error
+            it 'creates a PlainTextAuthProvider when the :credentials options is given' do
+              client = described_class.new(connection_options.merge(credentials: {:username => 'foo', :password => 'bar'}))
+              client.connect.value
+              request = requests.find { |rq| rq == Protocol::AuthResponseRequest.new("\x00foo\x00bar") }
+              request.should_not be_nil, 'expected a auth response request to have been sent'
+            end
           end
 
           it 'raises an error when no credentials have been given' do

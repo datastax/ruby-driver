@@ -128,24 +128,18 @@ module Cql
     end
 
     # @private
-    class AuthenticationStep
-      def initialize(auth_provider, protocol_version)
+    class SaslAuthenticationStep
+      def initialize(auth_provider)
         @auth_provider = auth_provider
-        @protocol_version = protocol_version
       end
 
       def run(pending_connection)
         if pending_connection.authentication_class
           begin
-            authenticator = @auth_provider && @auth_provider.create_authenticator(pending_connection.authentication_class, @protocol_version)
+            authenticator = @auth_provider && @auth_provider.create_authenticator(pending_connection.authentication_class)
             if authenticator
               token = authenticator.initial_response
-              if @protocol_version == 1
-                request = Protocol::CredentialsRequest.new(token)
-                pending_connection.execute(request).map(pending_connection)
-              else
-                challenge_cycle(pending_connection, authenticator, token)
-              end
+              challenge_cycle(pending_connection, authenticator, token)
             elsif @auth_provider
               Future.failed(AuthenticationError.new('Auth provider does not support the required authentication class "%s" and/or protocol version %d' % [pending_connection.authentication_class, @protocol_version]))
             else
@@ -173,6 +167,26 @@ module Cql
           else
             Future.resolved(pending_connection)
           end
+        end
+      end
+    end
+
+    # @private
+    class CredentialsAuthenticationStep
+      def initialize(credentials)
+        @credentials = credentials
+      end
+
+      def run(pending_connection)
+        if pending_connection.authentication_class
+          if @credentials
+            request = Protocol::CredentialsRequest.new(@credentials)
+            pending_connection.execute(request).map(pending_connection)
+          else
+            Future.failed(AuthenticationError.new('Server requested authentication, but no credentials provided'))
+          end
+        else
+          Future.resolved(pending_connection)
         end
       end
     end

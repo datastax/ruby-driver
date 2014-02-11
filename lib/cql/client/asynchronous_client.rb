@@ -20,7 +20,8 @@ module Cql
         @execute_options_decoder = ExecuteOptionsDecoder.new(options[:default_consistency] || DEFAULT_CONSISTENCY)
         @port = options[:port] || DEFAULT_PORT
         @connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
-        @auth_provider = options[:auth_provider] || options.include?(:credentials) && PlainTextAuthProvider.new(*options.values_at(:username, :password))
+        @credentials = options[:credentials]
+        @auth_provider = options[:auth_provider] || @credentials && PlainTextAuthProvider.new(*@credentials.values_at(:username, :password))
         @connected = false
         @connecting = false
         @closing = false
@@ -146,12 +147,13 @@ module Cql
 
       def create_cluster_connector
         cql_version = @cql_version || DEFAULT_CQL_VERSIONS[@protocol_version]
+        authentication_step = @protocol_version == 1 ? CredentialsAuthenticationStep.new(@credentials) : SaslAuthenticationStep.new(@auth_provider)
         ClusterConnector.new(
           Connector.new([
             ConnectStep.new(@io_reactor, @port, @connection_timeout, @logger),
             CacheOptionsStep.new,
             InitializeStep.new(cql_version, @compressor, @logger),
-            AuthenticationStep.new(@auth_provider, @protocol_version),
+            authentication_step,
             CachePropertiesStep.new,
           ]),
           @logger

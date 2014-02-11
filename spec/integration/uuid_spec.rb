@@ -7,7 +7,7 @@ describe 'Loading and storing UUIDs' do
   let :connection_options do
     {
       :host => ENV['CASSANDRA_HOST'],
-      :auth_provider => Cql::Client::PlainTextAuthProvider.new('cassandra', 'cassandra'),
+      :credentials => {:username => 'cassandra', :password => 'cassandra'},
     }
   end
 

@@ -397,9 +397,9 @@ module Cql
       end
     end
 
-    describe AuthenticationStep do
+    describe SaslAuthenticationStep do
       let :step do
-        described_class.new(auth_provider, 5)
+        described_class.new(auth_provider)
       end
 
       let :auth_provider do
@@ -429,7 +429,7 @@ module Cql
         end
 
         it 'returns a failed future when there\'s an authentication class but no auth provider' do
-          step = described_class.new(nil, 5)
+          step = described_class.new(nil)
           result = step.run(pending_connection)
           expect { result.value }.to raise_error(AuthenticationError)
         end
@@ -457,7 +457,7 @@ module Cql
 
         context 'with multiple challenges and responses' do
           let :step do
-            described_class.new(auth_provider, 2)
+            described_class.new(auth_provider)
           end
 
           before do
@@ -504,20 +504,52 @@ module Cql
           end
         end
 
-        it 'asks the authenticator to formulate its initial response, and sends it as a CredentialsRequest, when the protocol is v1' do
-          step = described_class.new(auth_provider, 1)
-          authenticator.stub(:initial_response).and_return('hello' => 'world')
+        it 'returns the same argument as it was given' do
+          result = step.run(pending_connection)
+          result.value.should equal(pending_connection)
+        end
+      end
+    end
+
+    describe CredentialsAuthenticationStep do
+      let :step do
+        described_class.new(username: 'hello', password: 'world')
+      end
+
+      let :pending_connection do
+        double(:pending_connection)
+      end
+
+      describe '#run' do
+        before do
+          pending_connection.stub(:authentication_class).and_return('org.acme.Auth')
           pending_connection.stub(:execute) do |request|
             pending_connection.stub(:last_request).and_return(request)
             Future.resolved
           end
-          step.run(pending_connection)
-          pending_connection.last_request.should == Protocol::CredentialsRequest.new('hello' => 'world')
         end
 
-        it 'passes the protocol version to the auth provider' do
+        it 'sends a CredentialsRequest with the provided credentials' do
           step.run(pending_connection)
-          auth_provider.should have_received(:create_authenticator).with(anything, 5)
+          pending_connection.last_request.should == Protocol::CredentialsRequest.new(username: 'hello', password: 'world')
+        end
+
+        it 'returns the pending connection when there\'s no authentication class' do
+          pending_connection.stub(:authentication_class).and_return(nil)
+          result = step.run(pending_connection)
+          result.value.should equal(pending_connection)
+        end
+
+        it 'returns a failed future when there\'s an authentication class but no credentials' do
+          step = described_class.new(nil)
+          result = step.run(pending_connection)
+          expect { result.value }.to raise_error(AuthenticationError)
+        end
+
+        it 'returns a failed future when the server responds with an error' do
+          pending_connection.stub(:execute).and_return(Future.failed(QueryError.new(0x99, 'BORK')))
+          result = step.run(pending_connection)
+          expect { result.value }.to raise_error('BORK')
         end
 
         it 'returns the same argument as it was given' do
