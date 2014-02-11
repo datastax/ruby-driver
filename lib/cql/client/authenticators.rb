@@ -2,6 +2,11 @@
 
 module Cql
   module Client
+    # Auth provider used for Cassandra's built in authentication.
+    #
+    # There is no need to create instances of this class to pass as `:auth_provider`
+    # to {Cql::Client.connect}, instead use the `:credentials` option and one
+    # will be created automatically for you.
     class PlainTextAuthProvider
       def initialize(username, password)
         @username = username
@@ -23,6 +28,8 @@ module Cql
       PASSWORD_AUTHENTICATOR_FQCN = 'org.apache.cassandra.auth.PasswordAuthenticator'.freeze
     end
 
+    # Authenticator used for Cassandra's built in authentication,
+    # see {Cql::Client::PlainTextAuthProvider}
     class PlainTextAuthenticator
       def initialize(username, password)
         @username = username
@@ -40,6 +47,7 @@ module Cql
       end
     end
 
+    # @private
     class CredentialsAuthenticator
       def initialize(credentials)
         @credentials = credentials
