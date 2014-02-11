@@ -100,7 +100,7 @@ module Cql
           result.should be_a(VoidResult)
         end
 
-        it 'transforms a AuthenticateResponse to an authentication required object' do
+        it 'transforms an AuthenticateResponse to an authentication required object' do
           result = run(authenticate_response)
           result.should be_a(AuthenticationRequired)
           result.authentication_class.should == 'TheAuthenticator'
