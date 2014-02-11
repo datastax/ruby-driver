@@ -440,6 +440,12 @@ module Cql
           expect { result.value }.to raise_error(AuthenticationError)
         end
 
+        it 'returns a failed future when the auth provider raises an error' do
+          auth_provider.stub(:create_authenticator).and_raise(StandardError.new('BORK'))
+          result = step.run(pending_connection)
+          expect { result.value }.to raise_error(AuthenticationError)
+        end
+
         it 'asks the authenticator to formulate its initial response, and sends it in a AuthResponseRequest' do
           pending_connection.stub(:execute) do |request|
             pending_connection.stub(:last_request).and_return(request)

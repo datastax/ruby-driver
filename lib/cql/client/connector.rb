@@ -136,19 +136,23 @@ module Cql
 
       def run(pending_connection)
         if pending_connection.authentication_class
-          authenticator = @auth_provider && @auth_provider.create_authenticator(pending_connection.authentication_class, @protocol_version)
-          if authenticator
-            token = authenticator.initial_response
-            if @protocol_version == 1
-              request = Protocol::CredentialsRequest.new(token)
-              pending_connection.execute(request).map(pending_connection)
+          begin
+            authenticator = @auth_provider && @auth_provider.create_authenticator(pending_connection.authentication_class, @protocol_version)
+            if authenticator
+              token = authenticator.initial_response
+              if @protocol_version == 1
+                request = Protocol::CredentialsRequest.new(token)
+                pending_connection.execute(request).map(pending_connection)
+              else
+                challenge_cycle(pending_connection, authenticator, token)
+              end
+            elsif @auth_provider
+              Future.failed(AuthenticationError.new('Auth provider does not support the required authentication class "%s" and/or protocol version %d' % [pending_connection.authentication_class, @protocol_version]))
             else
-              challenge_cycle(pending_connection, authenticator, token)
+              Future.failed(AuthenticationError.new('Server requested authentication, but no auth provider found'))
             end
-          elsif @auth_provider
-            Future.failed(AuthenticationError.new('Auth provider does not support the required authentication class "%s" and/or protocol version %d' % [pending_connection.authentication_class, @protocol_version]))
-          else
-            Future.failed(AuthenticationError.new('Server requested authentication, but no auth provider found'))
+          rescue => e
+            Future.failed(AuthenticationError.new('Auth provider raised an error: %s' % e.message))
           end
         else
           Future.resolved(pending_connection)
