@@ -7,7 +7,7 @@ describe 'A CQL client' do
   let :connection_options do
     {
       :host => ENV['CASSANDRA_HOST'],
-      :authenticator => Cql::Client::PasswordAuthenticator.new('cassandra', 'cassandra'),
+      :auth_provider => Cql::Client::PlainTextAuthProvider.new('cassandra', 'cassandra'),
     }
   end
 
@@ -160,35 +160,35 @@ describe 'A CQL client' do
     context 'and protocol v1' do
       let :authentication_enabled do
         begin
-          Cql::Client.connect(connection_options.merge(authenticator: nil, protocol_version: 1))
+          Cql::Client.connect(connection_options.merge(auth_provider: nil, protocol_version: 1))
           false
         rescue Cql::AuthenticationError
           true
         end
       end
 
-      it 'uses the authenticator given in the :authenticator option' do
-        authenticator = Cql::Client::PasswordAuthenticator.new('cassandra', 'cassandra')
-        client = Cql::Client.connect(connection_options.merge(authenticator: authenticator, protocol_version: 1))
+      it 'uses the auth provider given in the :auth_provider option' do
+        auth_provider = Cql::Client::PlainTextAuthProvider.new('cassandra', 'cassandra')
+        client = Cql::Client.connect(connection_options.merge(auth_provider: auth_provider, protocol_version: 1))
         client.execute('SELECT * FROM system.schema_keyspaces')
       end
 
-      it 'falls back on creating a PasswordAuthenticator using the credentials given in the :credentials option' do
+      it 'falls back on creating a PlainTextAuthProvider using the credentials given in the :credentials option' do
         client = Cql::Client.connect(connection_options.merge(credendtials: {:username => 'cassandra', :password => 'cassandra'}, protocol_version: 1))
         client.execute('SELECT * FROM system.schema_keyspaces')
       end
 
-      it 'raises an error when no authenticator or credentials have been given' do
+      it 'raises an error when no auth provider or credentials have been given' do
         pending('authentication not configured', unless: authentication_enabled) do
-          expect { Cql::Client.connect(connection_options.merge(authenticator: nil, protocol_version: 1)) }.to raise_error(Cql::AuthenticationError)
+          expect { Cql::Client.connect(connection_options.merge(auth_provider: nil, protocol_version: 1)) }.to raise_error(Cql::AuthenticationError)
         end
       end
 
       it 'raises an error when the credentials are bad' do
         pending('authentication not configured', unless: authentication_enabled) do
           expect {
-            authenticator = Cql::Client::PasswordAuthenticator.new('foo', 'bar')
-            Cql::Client.connect(connection_options.merge(authenticator: authenticator, protocol_version: 1))
+            auth_provider = Cql::Client::PlainTextAuthProvider.new('foo', 'bar')
+            Cql::Client.connect(connection_options.merge(auth_provider: auth_provider, protocol_version: 1))
           }.to raise_error(Cql::AuthenticationError)
         end
       end
@@ -197,35 +197,35 @@ describe 'A CQL client' do
     context 'and protocol v2' do
       let :authentication_enabled do
         begin
-          Cql::Client.connect(connection_options.merge(authenticator: nil))
+          Cql::Client.connect(connection_options.merge(auth_provider: nil))
           false
         rescue Cql::AuthenticationError
           true
         end
       end
 
-      it 'uses the authenticator given in the :authenticator option' do
-        authenticator = Cql::Client::PasswordAuthenticator.new('cassandra', 'cassandra')
-        client = Cql::Client.connect(connection_options.merge(authenticator: authenticator))
+      it 'uses the auth provider given in the :auth_provider option' do
+        auth_provider = Cql::Client::PlainTextAuthProvider.new('cassandra', 'cassandra')
+        client = Cql::Client.connect(connection_options.merge(auth_provider: auth_provider))
         client.execute('SELECT * FROM system.schema_keyspaces')
       end
 
-      it 'falls back on creating a PasswordAuthenticator using the credentials given in the :credentials option' do
+      it 'falls back on creating a PlainTextAuthProvider using the credentials given in the :credentials option' do
         client = Cql::Client.connect(connection_options.merge(credentials: {:username => 'cassandra', :password => 'cassandra'}))
         client.execute('SELECT * FROM system.schema_keyspaces')
       end
 
-      it 'raises an error when no authenticator or credentials have been given' do
+      it 'raises an error when no auth provider or credentials have been given' do
         pending('authentication not configured', unless: authentication_enabled) do
-          expect { Cql::Client.connect(connection_options.merge(authenticator: nil)) }.to raise_error(Cql::AuthenticationError)
+          expect { Cql::Client.connect(connection_options.merge(auth_provider: nil)) }.to raise_error(Cql::AuthenticationError)
         end
       end
 
       it 'raises an error when the credentials are bad' do
         pending('authentication not configured', unless: authentication_enabled) do
           expect {
-            authenticator = Cql::Client::PasswordAuthenticator.new('foo', 'bar')
-            Cql::Client.connect(connection_options.merge(authenticator: authenticator))
+            auth_provider = Cql::Client::PlainTextAuthProvider.new('foo', 'bar')
+            Cql::Client.connect(connection_options.merge(auth_provider: auth_provider))
           }.to raise_error(Cql::AuthenticationError)
         end
       end

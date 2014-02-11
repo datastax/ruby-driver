@@ -5,58 +5,69 @@ require 'spec_helper'
 
 module Cql
   module Client
-    describe PasswordAuthenticator do
-      let :authenticator do
-        described_class.new('larry', 's3cr3t')
+    describe PlainTextAuthProvider do
+      let :auth_provider do
+        described_class.new('foo', 'bar')
       end
 
-      describe '#supports?' do
-        context 'with protocol v1' do
-          it 'returns true for Cassandra\'s built in PasswordAuthenticator' do
-            authenticator.supports?('org.apache.cassandra.auth.PasswordAuthenticator', 1).should be_true
-          end
+      let :standard_authentication_class do
+        'org.apache.cassandra.auth.PasswordAuthenticator'
+      end
 
-          it 'returns false for all other inputs' do
-            authenticator.supports?('foo.bar.Acme', 1).should be_false
-          end
+      describe '#create_authenticator' do
+        it 'creates a PlainTextAuthenticator for protocol v2' do
+          authenticator = auth_provider.create_authenticator(standard_authentication_class, 2)
+          authenticator.initial_response.should == "\x00foo\x00bar"
         end
 
-        context 'with protocol v2' do
-          it 'returns true with Cassandra\'s built in PasswordAuthenticator' do
-            authenticator.supports?('org.apache.cassandra.auth.PasswordAuthenticator', 2).should be_true
-          end
-
-          it 'returns false for all other inputs' do
-            authenticator.supports?('foo.bar.Acme', 2).should be_false
-          end
+        it 'creates a PlainTextAuthenticator for protocol v2 and above' do
+          authenticator = auth_provider.create_authenticator(standard_authentication_class, 5)
+          authenticator.initial_response.should == "\x00foo\x00bar"
         end
 
-        context 'with another protocol version' do
-          it 'returns false' do
-            authenticator.supports?('org.apache.cassandra.auth.PasswordAuthenticator', 9).should be_false
-          end
+        it 'creates a CredentialsAuthenticator for protocol v1' do
+          authenticator = auth_provider.create_authenticator(standard_authentication_class, 1)
+          authenticator.initial_response.should eql('username' => 'foo', 'password' => 'bar')
+        end
+
+        it 'returns nil when the authentication class is not o.a.c.a.PasswordAuthenticator' do
+          authenticator = auth_provider.create_authenticator('org.acme.Foo', 1)
+          authenticator.should be_nil
+        end
+      end
+    end
+
+    describe PlainTextAuthenticator do
+      describe '#initial_response' do
+        it 'encodes the username and password' do
+          response = described_class.new('user', 'pass').initial_response
+          response.should == "\x00user\x00pass"
         end
       end
 
-      describe '#initial_request' do
-        context 'with protocol v1' do
-          it 'returns a CredentialsRequest with the username and password' do
-            request = authenticator.initial_request(1)
-            request.credentials.should eql(username: 'larry', password: 's3cr3t')
-          end
+      describe '#challenge_response' do
+        it 'returns nil' do
+          authenticator = described_class.new('user', 'pass')
+          authenticator.initial_response
+          authenticator.challenge_response('?').should be_nil
         end
+      end
 
-        context 'with protocol v2' do
-          it 'returns an AuthResponseRequest' do
-            request = authenticator.initial_request(2)
-            request.should == Protocol::AuthResponseRequest.new("\x00larry\x00s3cr3t")
-          end
+      describe '#authentication_successful' do
+        it 'does nothing' do
+          authenticator = described_class.new('user', 'pass')
+          authenticator.initial_response
+          authenticator.challenge_response('?')
+          authenticator.authentication_successful('ok')
         end
+      end
+    end
 
-        context 'with another protocol version' do
-          it 'raises an error' do
-            expect { authenticator.initial_request(9) }.to raise_error(UnsupportedProtocolVersionError)
-          end
+    describe CredentialsAuthenticator do
+      describe '#initial_response' do
+        it 'returns the credentials' do
+          response = described_class.new('username' => 'user', 'password' => 'pass', 'shoe_size' => 34).initial_response
+          response.should eql('username' => 'user', 'password' => 'pass', 'shoe_size' => 34)
         end
       end
     end

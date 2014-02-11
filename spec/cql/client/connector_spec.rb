@@ -399,7 +399,11 @@ module Cql
 
     describe AuthenticationStep do
       let :step do
-        described_class.new(authenticator, 5)
+        described_class.new(auth_provider, 5)
+      end
+
+      let :auth_provider do
+        double(:auth_provider)
       end
 
       let :authenticator do
@@ -410,16 +414,12 @@ module Cql
         double(:pending_connection)
       end
 
-      let :request do
-        double(:request)
-      end
-
       describe '#run' do
         before do
           pending_connection.stub(:authentication_class).and_return('org.acme.Auth')
           pending_connection.stub(:execute).and_return(Future.resolved)
-          authenticator.stub(:supports?).and_return(true)
-          authenticator.stub(:initial_request).and_return(request)
+          auth_provider.stub(:create_authenticator).and_return(authenticator)
+          authenticator.stub(:initial_response).and_return('fooblaha')
         end
 
         it 'returns the pending connection when there\'s no authentication class' do
@@ -428,26 +428,90 @@ module Cql
           result.value.should equal(pending_connection)
         end
 
-        it 'returns a failed future when there\'s an authentication class but no authenticator' do
+        it 'returns a failed future when there\'s an authentication class but no auth provider' do
           step = described_class.new(nil, 5)
           result = step.run(pending_connection)
           expect { result.value }.to raise_error(AuthenticationError)
         end
 
-        it 'returns a failed future when the authenticator does not support the authentication class' do
-          authenticator.stub(:supports?).and_return(false)
+        it 'returns a failed future when the auth provider does not support the authentication class' do
+          auth_provider.stub(:create_authenticator).and_return(nil)
           result = step.run(pending_connection)
           expect { result.value }.to raise_error(AuthenticationError)
         end
 
-        it 'asks the authenticator to formulate its initial requests, and then executes the request' do
+        it 'asks the authenticator to formulate its initial response, and sends it in a AuthResponseRequest' do
+          pending_connection.stub(:execute) do |request|
+            pending_connection.stub(:last_request).and_return(request)
+            Future.resolved
+          end
           step.run(pending_connection)
-          pending_connection.should have_received(:execute).with(request)
+          pending_connection.last_request.should == Protocol::AuthResponseRequest.new('fooblaha')
         end
 
-        it 'passes the protocol version to the authenticator' do
+        context 'with multiple challenges and responses' do
+          let :step do
+            described_class.new(auth_provider, 2)
+          end
+
+          before do
+            authenticator.stub(:initial_response).and_return('1')
+            authenticator.stub(:challenge_response).with('2').and_return('3')
+            authenticator.stub(:challenge_response).with('4').and_return('5')
+            authenticator.stub(:authentication_successful)
+          end
+
+          before do
+            pending_connection.stub(:execute) do |request, &transform|
+              if request.token == '1'
+                response = Protocol::AuthChallengeResponse.new('2')
+              elsif request.token == '3'
+                response = Protocol::AuthChallengeResponse.new('4')
+              elsif request.token == '5'
+                response = Protocol::AuthSuccessResponse.new('6')
+              end
+              Future.resolved(transform.call(response))
+            end
+          end
+
+          it 'asks the authenticator to respond to challenges, sends the response in AuthResponseRequest:s until an AuthSuccess is returned' do
+            step.run(pending_connection)
+            authenticator.should have_received(:authentication_successful).with('6')
+          end
+
+          it 'handles client side failures in the middle of a challenge/response cycle' do
+            authenticator.stub(:challenge_response).with('4').and_raise(StandardError.new('BORK'))
+            f = step.run(pending_connection)
+            expect { f.value }.to raise_error('BORK')
+          end
+
+          it 'handles server side failures in the middle of a challenge/response cycle' do
+            pending_connection.stub(:execute) do |request, &transform|
+              if request.token == '1'
+                Future.resolved(Protocol::AuthChallengeResponse.new('2'))
+              else
+                Future.failed(QueryError.new(0x99, 'BORK'))
+              end
+            end
+            f = step.run(pending_connection)
+            expect { f.value }.to raise_error('BORK')
+          end
+        end
+
+        it 'asks the authenticator to formulate its initial response, and sends it as a CredentialsRequest, when the protocol is v1' do
+          step = described_class.new(auth_provider, 1)
+          authenticator.stub(:initial_response).and_return('hello' => 'world')
+          pending_connection.stub(:execute) do |request|
+            pending_connection.stub(:last_request).and_return(request)
+            Future.resolved
+          end
           step.run(pending_connection)
-          authenticator.should have_received(:initial_request).with(5)
+          pending_connection.last_request.should == Protocol::CredentialsRequest.new('hello' => 'world')
+        end
+
+        it 'passes the protocol version to the auth provider' do
+          step.run(pending_connection)
+          auth_provider.should have_received(:create_authenticator).with(anything, 5)
         end
 
         it 'returns the same argument as it was given' do

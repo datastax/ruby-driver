@@ -271,12 +271,11 @@ module Cql
             client.should_not be_connected
           end
 
-          it 'passes the protocol version to the authenticator' do
+          it 'passes the protocol version to the auth provider' do
             auth_class = 'org.apache.cassandra.auth.PasswordAuthenticator'
-            authenticator = double(:authenticator)
-            authenticator.stub(:supports?).with(auth_class, 2).and_return(true)
-            authenticator.stub(:initial_request).with(2).and_return(Protocol::AuthResponseRequest.new("\x00foo\x00bar"))
-            client = described_class.new(connection_options.merge(protocol_version: 4, authenticator: authenticator))
+            auth_provider = double(:auth_provider)
+            auth_provider.stub(:create_authenticator).and_return(PlainTextAuthenticator.new('foo', 'bar'))
+            client = described_class.new(connection_options.merge(protocol_version: 4, auth_provider: auth_provider))
             protocol_version = 4
             handle_request do |request|
               response = begin
@@ -300,9 +299,8 @@ module Cql
             end
             client.connect.value
             client.should be_connected
-            authenticator.should have_received(:supports?).with(auth_class, 2)
-            authenticator.should_not have_received(:supports?).with(auth_class, 1)
-            authenticator.should have_received(:initial_request).with(2)
+            auth_provider.should have_received(:create_authenticator).with(auth_class, 2)
+            auth_provider.should_not have_received(:create_authenticator).with(auth_class, 1)
           end
 
           it 'defaults to different CQL versions for the different protocols' do
@@ -498,8 +496,8 @@ module Cql
         end
 
         context 'when the server requests authentication' do
-          let :authenticator do
-            PasswordAuthenticator.new('foo', 'bar')
+          let :auth_provider do
+            PlainTextAuthProvider.new('foo', 'bar')
           end
 
           def accepting_request_handler(request, *)
@@ -536,24 +534,24 @@ module Cql
           end
 
           context 'with protocol v1' do
-            it 'uses an authenticator to authenticate' do
-              client = described_class.new(connection_options.merge(authenticator: authenticator, protocol_version: 1))
+            it 'uses an auth provider to authenticate' do
+              client = described_class.new(connection_options.merge(auth_provider: auth_provider, protocol_version: 1))
               client.connect.value
-              request = requests.find { |rq| rq == Protocol::CredentialsRequest.new(username: 'foo', password: 'bar') }
-              request.should_not be_nil, 'expected a credentials request to have been sent'
+              request = requests.find { |rq| rq.is_a?(Protocol::CredentialsRequest) }
+              request.credentials.should eql('username' => 'foo', 'password' => 'bar')
             end
           end
 
           context 'with protocol v2' do
-            it 'uses an authenticator to authenticate' do
-              client = described_class.new(connection_options.merge(authenticator: authenticator))
+            it 'uses an auth provider to authenticate' do
+              client = described_class.new(connection_options.merge(auth_provider: auth_provider))
               client.connect.value
               request = requests.find { |rq| rq == Protocol::AuthResponseRequest.new("\x00foo\x00bar") }
               request.should_not be_nil, 'expected a credentials request to have been sent'
             end
           end
 
-          it 'creates a PasswordAuthenticator when the :credentials options is given' do
+          it 'creates a PlainTextAuthProvider when the :credentials options is given' do
             client = described_class.new(connection_options.merge(credentials: {:username => 'foo', :password => 'bar'}))
             expect { client.connect.value }.to_not raise_error
           end
@@ -565,19 +563,19 @@ module Cql
 
           it 'raises an error when the server responds with an error to the credentials request' do
             handle_request(&method(:denying_request_handler))
-            client = described_class.new(connection_options.merge(connection_options.merge(authenticator: authenticator)))
+            client = described_class.new(connection_options.merge(connection_options.merge(auth_provider: auth_provider)))
             expect { client.connect.value }.to raise_error(AuthenticationError)
           end
 
-          it 'raises an error when the server requests authentication that the authenticator does not support' do
+          it 'raises an error when the server requests authentication that the auth provider does not support' do
             handle_request(&method(:custom_request_handler))
-            client = described_class.new(connection_options.merge(connection_options.merge(authenticator: authenticator)))
+            client = described_class.new(connection_options.merge(connection_options.merge(auth_provider: auth_provider)))
             expect { client.connect.value }.to raise_error(AuthenticationError)
           end
 
           it 'shuts down the client when there is an authentication error' do
             handle_request(&method(:denying_request_handler))
-            client = described_class.new(connection_options.merge(connection_options.merge(authenticator: authenticator)))
+            client = described_class.new(connection_options.merge(connection_options.merge(auth_provider: auth_provider)))
             client.connect.value rescue nil
             client.should_not be_connected
             io_reactor.should_not be_running

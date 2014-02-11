@@ -7,7 +7,7 @@ describe 'Regressions' do
   let :connection_options do
     {
       :host => ENV['CASSANDRA_HOST'],
-      :authenticator => Cql::Client::PasswordAuthenticator.new('cassandra', 'cassandra'),
+      :auth_provider => Cql::Client::PlainTextAuthProvider.new('cassandra', 'cassandra'),
     }
   end
 
