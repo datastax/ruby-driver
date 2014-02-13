@@ -280,6 +280,12 @@ client = Cql::Client.connect(logger: Logger.new($stderr))
 
 Most of the logging will be when the driver connects and discovers new nodes, when connections fail and so on, but also when statements are prepared. The logging is designed to not cause much overhead and only relatively rare events are logged (e.g. normal requests are not logged).
 
+## Thread safety
+
+Except for results and batches everything in cql-rb is thread safe. You only need a single client object in your application, in fact creating more than one is a bad idea. Similarily prepared statements are thread safe and should be shared.
+
+There are two things that you should be aware are not thread safe: result objects and batches. Result objects are wrappers around an array of rows and their primary use case is iteration, something that makes little sense to do concurrently. Because of this they've been designed to not be thread safe to avoid the unnecessary cost of locking. Similarily it creating batches aren't usually built concurrently, so to avoid the cost of locking they are not thread safe. If you, for some reason, need to use results or batches concurrently, you're responsible for locking around them. If you do this, you're probably doing something wrong, though.
+
 # CQL3
 
 This is just a driver for the Cassandra native CQL protocol, it doesn't really know anything about CQL. You can run any CQL3 statement and the driver will return whatever Cassandra replies with.
