@@ -131,6 +131,25 @@ A prepared statement can be run many times, but the CQL parsing will only be don
 
 Statements are prepared on all connections and each call to `#execute` selects a random connection to run the query on.
 
+## Paging
+
+If you're using Cassandra 2.0 or later you can page your query results by adding the `:page_size` option to a query:
+
+```ruby
+result_page = client.execute("SELECT * FROM large_table WHERE id = 'partition_with_lots_of_data'", page_size: 100)
+
+loop do
+  result_page.each do |row|
+    p row
+  end
+  if result_page.last?
+    break
+  else
+    result_page = result_page.next_page
+  end
+end
+```
+
 ## Consistency
 
 You can specify the default consistency to use when you create a new `Client`:
