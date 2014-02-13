@@ -41,7 +41,7 @@ client.close
 
 # Usage
 
-The full [API documentation](http://rubydoc.info/github/iconara/cql-rb/frames) is available from [rubydoc.info](http://rubydoc.info/).
+The full [API documentation][1] is available from [rubydoc.info](http://rubydoc.info/).
 
 ## Changing keyspaces
 
@@ -114,7 +114,7 @@ client.use('measurements')
 client.execute(table_definition)
 ```
 
-You can also `ALTER` keyspaces and tables, and you can read more about that in the [CQL3 syntax documentation](https://github.com/apache/cassandra/blob/cassandra-1.2/doc/cql3/CQL.textile).
+You can also `ALTER` keyspaces and tables, and you can read more about that in the [CQL3 syntax documentation][2].
 
 ## Prepared statements
 
@@ -166,7 +166,7 @@ client.batch do |batch|
 end
 ```
 
-Batches can have one of three different types: `logged`, `unlogged` or `counter`, where `logged` is the default. Their exact semantics are defined in the Cassandra documentation, but this is how you specify which one you want:
+Batches can have one of three different types: `logged`, `unlogged` or `counter`, where `logged` is the default. Their exact semantics are defined in the [Cassandra documentation][3], but this is how you specify which one you want:
 
 ```ruby
 counter_statement = client.prepare("UPDATE my_counter_table SET my_counter = my_counter + ? WHERE id = ?")
@@ -290,7 +290,7 @@ There are two things that you should be aware are not thread safe: result object
 
 This is just a driver for the Cassandra native CQL protocol, it doesn't really know anything about CQL. You can run any CQL3 statement and the driver will return whatever Cassandra replies with.
 
-Read more about CQL3 in the [CQL3 syntax documentation](https://github.com/apache/cassandra/blob/cassandra-1.2/doc/cql3/CQL.textile) and the [Cassandra query documentation](http://www.datastax.com/docs/1.2/cql_cli/querying_cql).
+Read more about CQL3 in the [CQL3 syntax documentation][2] and the [Cassandra query documentation][3].
 
 # Troubleshooting
 
@@ -396,7 +396,7 @@ To get maximum performance you can't wait for a request to complete before sendi
 
 Check out the [releases on GitHub](https://github.com/iconara/cql-rb/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
 
-Private and experimental APIs, defined as whatever is not in the [public API documentation](http://rubydoc.info/github/iconara/cql-rb/frames), i.e. classes and methods marked as `@private`, will change without warning. If you've been recommended to try an experimental API by the maintainers, please let them know if you depend on that API. Experimental APIs will eventually become public, and knowing how they are used helps in determining their maturity.
+Private and experimental APIs, defined as whatever is not in the [public API documentation][1], i.e. classes and methods marked as `@private`, will change without warning. If you've been recommended to try an experimental API by the maintainers, please let them know if you depend on that API. Experimental APIs will eventually become public, and knowing how they are used helps in determining their maturity.
 
 Prereleases will be stable, in the sense that they will have finished and properly tested features only, but may introduce APIs that will change before the final release. Please use the prereleases and report bugs, but don't deploy them to production without consulting the maintainers, or doing extensive testing yourself. If you do deploy to production please let the maintainers know as this helps determining the maturity of the release.
 
@@ -422,3 +422,7 @@ _Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
 
 _Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License._
+
+  [1]: http://rubydoc.info/github/iconara/cql-rb/frames
+  [2]: https://github.com/apache/cassandra/blob/cassandra-2.0/doc/cql3/CQL.textile
+  [3]: http://www.datastax.com/documentation/cql/3.1/webhelp/index.html
