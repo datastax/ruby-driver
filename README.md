@@ -131,6 +131,75 @@ A prepared statement can be run many times, but the CQL parsing will only be don
 
 Statements are prepared on all connections and each call to `#execute` selects a random connection to run the query on.
 
+## Batching
+
+If you're using Cassandra 2.0 or later you can build batch requests, either from regular queries or from prepared statements. Batches can consist of `INSERT`, `UPDATE` and `DELETE` statements.
+
+There are a few different ways to work with batches, one is with a block where you build up a batch that is sent when the block ends:
+
+```ruby
+client.batch do |batch|
+  batch.add("UPDATE users SET name = 'Sue' WHERE user_id = 'unicorn31'")
+  batch.add("UPDATE users SET name = 'Kim' WHERE user_id = 'dudezor13'")
+  batch.add("UPDATE users SET name = 'Jim' WHERE user_id = 'kittenz98'")
+end
+```
+
+Another is by creating a batch and sending it yourself:
+
+```ruby
+batch = client.batch
+batch.add("UPDATE users SET name = 'Sue' WHERE user_id = 'unicorn31'")
+batch.add("UPDATE users SET name = 'Kim' WHERE user_id = 'dudezor13'")
+batch.add("UPDATE users SET name = 'Jim' WHERE user_id = 'kittenz98'")
+batch.execute
+```
+
+You can mix any combination of statements in a batch:
+
+```ruby
+prepared_statement = client.prepare("UPDATE users SET name = ? WHERE user_id = ?")
+client.batch do |batch|
+  batch.add(prepared_statement, 'Sue', 'unicorn31')
+  batch.add("UPDATE users SET age = 19 WHERE user_id = 'unicorn31'")
+  batch.add("INSERT INTO activity (user_id, what, when) VALUES (?, 'login', NOW())", 'unicorn31')
+end
+```
+
+Batches can have one of three different types: `logged`, `unlogged` or `counter`, where `logged` is the default. Their exact semantics are defined in the Cassandra documentation, but this is how you specify which one you want:
+
+```ruby
+counter_statement = client.prepare("UPDATE my_counter_table SET my_counter = my_counter + ? WHERE id = ?")
+client.batch(:counter) do |batch|
+  batch.add(counter_statement, 3, 'some_counter')
+  batch.add(counter_statement, 2, 'another_counter')
+end
+```
+
+You can also specify the regular options such as consistency, timeout and whether or not to enable tracing:
+
+```ruby
+client.batch(:unlogged, trace: true) do |batch|
+  # ...
+end
+
+client.batch(trace: true, consistency: :all) do |batch|
+  # ...
+end
+
+batch = client.batch
+# ...
+batch.execute(consistency: :quorum)
+
+batch = client.batch(trace: true)
+# ...
+batch.execute(consistency: :quorum)
+```
+
+As you can see you can specify the options either when creating the batch or when sending it (when using the variant where you call `#execute` yourself). The options given to `#execute` take precedence. You can omit the batch type and specify the options as the only parameter when you want to use the the default batch type.
+
+Cassandra 1.2 also supported batching, but only as a CQL feature, you had to build the batch as a string, and it didn't really play well with prepared statements.
+
 ## Paging
 
 If you're using Cassandra 2.0 or later you can page your query results by adding the `:page_size` option to a query:
