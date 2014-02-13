@@ -242,6 +242,10 @@ If your process does not fork and you still encounter deadlock errors, it might 
 
 If you're using cql-rb on Windows there's an [experimental branch with Windows support](https://github.com/iconara/cql-rb/tree/windows_support). The problem is that Windows does not support non blocking reads on IO objects other than sockets, and the fix is very small. Unfortunately I have no way of properly testing things in Windows, so therefore the "experimental" label.
 
+## I get `QueryError`
+
+All errors that originate on the server side are raised as `QueryError`. If you get one of these the error is in your CQL or on the server side.
+
 ## I'm not getting all elements back from my list/set/map
 
 There's a known issue with collections that get too big. The protocol uses a short for the size of collections, but there is no way for Cassandra to stop you from creating a collection bigger than 65536 elements, so when you do the size field overflows with strange results. The data is there, you just can't get it back.
