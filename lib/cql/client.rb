@@ -136,51 +136,6 @@ module Cql
       SynchronousClient.new(AsynchronousClient.new(options)).connect
     end
 
-    class PreparedStatement
-      # Metadata describing the bound values
-      #
-      # @return [ResultMetadata]
-      attr_reader :metadata
-
-      # Metadata about the result (i.e. rows) that is returned when executing
-      # this prepared statement.
-      #
-      # @return [ResultMetadata]
-      attr_reader :result_metadata
-
-      # Execute the prepared statement with a list of values to be bound to the
-      # statements parameters.
-      #
-      # The number of arguments must equal the number of bound parameters. You
-      # can also specify options as the last argument, or a symbol as a shortcut
-      # for just specifying the consistency.
-      #
-      # Because you can specify options, or not, there is an edge case where if
-      # the last parameter of your prepared statement is a map, and you forget
-      # to specify a value for your map, the options will end up being sent to
-      # Cassandra. Most other cases when you specify the wrong number of
-      # arguments should result in an `ArgumentError` or `TypeError` being
-      # raised.
-      #
-      # @param args [Array] the values for the bound parameters. The last
-      #   argument can also be an options hash or a symbol (as a shortcut for
-      #   specifying the consistency), see {Cql::Client::Client#execute} for
-      #   full details.
-      # @raise [ArgumentError] raised when number of argument does not match
-      #   the number of parameters needed to be bound to the statement.
-      # @raise [Cql::NotConnectedError] raised when the client is not connected
-      # @raise [Cql::Io::IoError] raised when there is an IO error, for example
-      #   if the server suddenly closes the connection
-      # @raise [Cql::QueryError] raised when there is an error on the server side
-      # @return [nil, Cql::Client::QueryResult, Cql::Client::VoidResult] Some
-      #   queries have no result and return `nil`, but `SELECT` statements
-      #   return an `Enumerable` of rows (see {Cql::Client::QueryResult}), and
-      #   `INSERT` and `UPDATE` return a similar type
-      #   (see {Cql::Client::VoidResult}).
-      def execute(*args)
-      end
-    end
-
     # An auth provider is a factory for {Cql::Client::Authenticator} instances
     # (or objects matching that interface). Its {#create_authenticator} will be
     # called once for each connection that requires authentication.
@@ -262,8 +217,7 @@ require 'cql/client/query_trace'
 require 'cql/client/execute_options_decoder'
 require 'cql/client/keyspace_changer'
 require 'cql/client/client'
-require 'cql/client/asynchronous_prepared_statement'
-require 'cql/client/synchronous_prepared_statement'
+require 'cql/client/prepared_statement'
 require 'cql/client/batch'
 require 'cql/client/query_result'
 require 'cql/client/void_result'

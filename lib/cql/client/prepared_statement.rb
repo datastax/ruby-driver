@@ -2,6 +2,51 @@
 
 module Cql
   module Client
+    class PreparedStatement
+      # Metadata describing the bound values
+      #
+      # @return [ResultMetadata]
+      attr_reader :metadata
+
+      # Metadata about the result (i.e. rows) that is returned when executing
+      # this prepared statement.
+      #
+      # @return [ResultMetadata]
+      attr_reader :result_metadata
+
+      # Execute the prepared statement with a list of values to be bound to the
+      # statements parameters.
+      #
+      # The number of arguments must equal the number of bound parameters. You
+      # can also specify options as the last argument, or a symbol as a shortcut
+      # for just specifying the consistency.
+      #
+      # Because you can specify options, or not, there is an edge case where if
+      # the last parameter of your prepared statement is a map, and you forget
+      # to specify a value for your map, the options will end up being sent to
+      # Cassandra. Most other cases when you specify the wrong number of
+      # arguments should result in an `ArgumentError` or `TypeError` being
+      # raised.
+      #
+      # @param args [Array] the values for the bound parameters. The last
+      #   argument can also be an options hash or a symbol (as a shortcut for
+      #   specifying the consistency), see {Cql::Client::Client#execute} for
+      #   full details.
+      # @raise [ArgumentError] raised when number of argument does not match
+      #   the number of parameters needed to be bound to the statement.
+      # @raise [Cql::NotConnectedError] raised when the client is not connected
+      # @raise [Cql::Io::IoError] raised when there is an IO error, for example
+      #   if the server suddenly closes the connection
+      # @raise [Cql::QueryError] raised when there is an error on the server side
+      # @return [nil, Cql::Client::QueryResult, Cql::Client::VoidResult] Some
+      #   queries have no result and return `nil`, but `SELECT` statements
+      #   return an `Enumerable` of rows (see {Cql::Client::QueryResult}), and
+      #   `INSERT` and `UPDATE` return a similar type
+      #   (see {Cql::Client::VoidResult}).
+      def execute(*args)
+      end
+    end
+
     # @private
     class AsynchronousPreparedStatement < PreparedStatement
       # @private
@@ -100,6 +145,64 @@ module Cql
           f = f.map { |result| AsynchronousPreparedPagedQueryResult.new(self, request, result, options) }
         end
         f
+      end
+    end
+
+    # @private
+    class SynchronousPreparedStatement < PreparedStatement
+      include SynchronousBacktrace
+
+      def initialize(async_statement)
+        @async_statement = async_statement
+        @metadata = async_statement.metadata
+        @result_metadata = async_statement.result_metadata
+      end
+
+      def execute(*args)
+        synchronous_backtrace do
+          result = @async_statement.execute(*args).value
+          result = SynchronousPagedQueryResult.new(result) if result.is_a?(PagedQueryResult)
+          result
+        end
+      end
+
+      def batch(type=:logged, options=nil, &block)
+        if block_given?
+          synchronous_backtrace { @async_statement.batch(type, options, &block).value }
+        else
+          SynchronousPreparedStatementBatch.new(@async_statement.batch(type, options))
+        end
+      end
+
+      def pipeline
+        pl = Pipeline.new(@async_statement)
+        yield pl
+        synchronous_backtrace { pl.value }
+      end
+
+      def async
+        @async_statement
+      end
+
+      # @private
+      def add_to_batch(batch, connection, bound_arguments)
+        @async_statement.add_to_batch(batch, connection, bound_arguments)
+      end
+    end
+
+    # @private
+    class Pipeline
+      def initialize(async_statement)
+        @async_statement = async_statement
+        @futures = []
+      end
+
+      def execute(*args)
+        @futures << @async_statement.execute(*args)
+      end
+
+      def value
+        Future.all(*@futures).value
       end
     end
   end
