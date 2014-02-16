@@ -24,24 +24,30 @@ describe 'Protocol parsing and communication' do
     "cql_rb_#{rand(1000)}"
   end
 
+  before :all do
+    ir = Cql::Io::IoReactor.new
+    protocol_handler_factory = lambda { |connection| Cql::Protocol::CqlProtocolHandler.new(connection, ir, 2) }
+    f = ir.start
+    f = f.flat_map do |reactor|
+      reactor.connect(ENV['CASSANDRA_HOST'], 9042, 5, &protocol_handler_factory)
+    end
+    f = f.flat_map do |connection|
+      connection.send_request(Cql::Protocol::StartupRequest.new('3.1.0'))
+    end
+    f = f.map do |response|
+      response.is_a?(Cql::Protocol::AuthenticateResponse)
+    end
+    f = f.flat_map do |authentication_required|
+      ir.stop.map(authentication_required)
+    end
+    @authentication_enabled = f.value
+  end
+
   after do
     if io_reactor.running?
       drop_keyspace! rescue nil
       io_reactor.stop.value rescue nil
     end
-  end
-
-  def authentication_enabled?
-    ir = Cql::Io::IoReactor.new
-    ir.start
-    connected = ir.connect(ENV['CASSANDRA_HOST'], 9042, 5, &protocol_handler_factory)
-    started = connected.flat_map do |connection|
-      connection.send_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-    end
-    response = started.value
-    required = response.is_a?(Cql::Protocol::AuthenticateResponse)
-    ir.stop.value
-    required
   end
 
   def raw_execute_request(request)
@@ -132,7 +138,7 @@ describe 'Protocol parsing and communication' do
 
     context 'when authentication is not required' do
       it 'sends STARTUP and receives READY' do
-        pending('authentication required', if: authentication_enabled?) do
+        pending('authentication required', if: @authentication_enabled) do
           response = execute_request(Cql::Protocol::StartupRequest.new('3.1.0'), false)
           response.should be_a(Cql::Protocol::ReadyResponse)
         end
@@ -146,14 +152,14 @@ describe 'Protocol parsing and communication' do
         end
 
         it 'sends STARTUP and receives AUTHENTICATE' do
-          pending('authentication not configured', unless: authentication_enabled?) do
+          pending('authentication not configured', unless: @authentication_enabled) do
             response = raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
             response.should be_a(Cql::Protocol::AuthenticateResponse)
           end
         end
 
         it 'ignores the AUTHENTICATE response and receives ERROR' do
-          pending('authentication not configured', unless: authentication_enabled?) do
+          pending('authentication not configured', unless: @authentication_enabled) do
             raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
             response = raw_execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
             response.code.should == 10
@@ -167,7 +173,7 @@ describe 'Protocol parsing and communication' do
         end
 
         it 'sends bad username and password in CREDENTIALS and receives ERROR' do
-          pending('authentication not configured', unless: authentication_enabled?) do
+          pending('authentication not configured', unless: @authentication_enabled) do
             raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
             response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar'))
             response.code.should == 0x100
@@ -177,14 +183,14 @@ describe 'Protocol parsing and communication' do
 
       context 'and the protocol version is 2' do
         it 'sends STARTUP and receives AUTHENTICATE' do
-          pending('authentication not configured', unless: authentication_enabled?) do
+          pending('authentication not configured', unless: @authentication_enabled) do
             response = raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
             response.should be_a(Cql::Protocol::AuthenticateResponse)
           end
         end
 
         it 'ignores the AUTHENTICATE response and receives ERROR' do
-          pending('authentication not configured', unless: authentication_enabled?) do
+          pending('authentication not configured', unless: @authentication_enabled) do
             raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
             response = raw_execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
             response.code.should == 10
@@ -192,7 +198,7 @@ describe 'Protocol parsing and communication' do
         end
 
         it 'sends STARTUP followed by AUTH_RESPONSE and receives AUTH_SUCCESS' do
-          pending('authentication not configured', unless: authentication_enabled?) do
+          pending('authentication not configured', unless: @authentication_enabled) do
             raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
             response = raw_execute_request(Cql::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra"))
             response.should be_a(Cql::Protocol::AuthSuccessResponse)
@@ -200,7 +206,7 @@ describe 'Protocol parsing and communication' do
         end
 
         it 'sends bad username and password in AUTH_RESPONSE and receives ERROR' do
-          pending('authentication not configured', unless: authentication_enabled?) do
+          pending('authentication not configured', unless: @authentication_enabled) do
             raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
             response = raw_execute_request(Cql::Protocol::AuthResponseRequest.new("\x00cassandra\x00ardnassac"))
             response.code.should == 0x100
