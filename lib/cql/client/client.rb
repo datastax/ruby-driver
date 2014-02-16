@@ -191,7 +191,7 @@ module Cql
         @cql_version = options[:cql_version]
         @logger = options[:logger] || NullLogger.new
         @protocol_version = options[:protocol_version] || 2
-        @io_reactor = options[:io_reactor] || Io::IoReactor.new(protocol_handler_factory)
+        @io_reactor = options[:io_reactor] || Io::IoReactor.new
         @hosts = extract_hosts(options)
         @initial_keyspace = options[:keyspace]
         @connections_per_node = options[:connections_per_node] || 1
@@ -313,10 +313,6 @@ module Cql
       DEFAULT_CONNECTION_TIMEOUT = 10
       MAX_RECONNECTION_ATTEMPTS = 5
 
-      def protocol_handler_factory
-        lambda { |connection, timeout| Protocol::CqlProtocolHandler.new(connection, timeout, @protocol_version, @compressor) }
-      end
-
       def extract_hosts(options)
         if options[:hosts]
           options[:hosts].uniq
@@ -330,9 +326,10 @@ module Cql
       def create_cluster_connector
         cql_version = @cql_version || DEFAULT_CQL_VERSIONS[@protocol_version]
         authentication_step = @protocol_version == 1 ? CredentialsAuthenticationStep.new(@credentials) : SaslAuthenticationStep.new(@auth_provider)
+        protocol_handler_factory = lambda { |connection| Protocol::CqlProtocolHandler.new(connection, @io_reactor, @protocol_version, @compressor) }
         ClusterConnector.new(
           Connector.new([
-            ConnectStep.new(@io_reactor, @port, @connection_timeout, @logger),
+            ConnectStep.new(@io_reactor, protocol_handler_factory, @port, @connection_timeout, @logger),
             CacheOptionsStep.new,
             InitializeStep.new(cql_version, @compressor, @logger),
             authentication_step,

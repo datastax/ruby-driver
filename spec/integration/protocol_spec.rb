@@ -8,15 +8,16 @@ describe 'Protocol parsing and communication' do
     2
   end
 
-  let! :io_reactor do
-    ir = Cql::Io::IoReactor.new(lambda { |*args| Cql::Protocol::CqlProtocolHandler.new(*args, protocol_version) })
-    ir.start
-    connections << ir.connect(ENV['CASSANDRA_HOST'], 9042, 5).value
-    ir
+  let :io_reactor do
+    Cql::Io::IoReactor.new.start.value
   end
 
-  let :connections do
-    []
+  let :connection do
+    io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 5, &protocol_handler_factory).value
+  end
+
+  let :protocol_handler_factory do
+    lambda { |connection| Cql::Protocol::CqlProtocolHandler.new(connection, io_reactor, protocol_version) }
   end
 
   let :keyspace_name do
@@ -31,9 +32,9 @@ describe 'Protocol parsing and communication' do
   end
 
   def authentication_enabled?
-    ir = Cql::Io::IoReactor.new(lambda { |*args| Cql::Protocol::CqlProtocolHandler.new(*args, protocol_version) })
+    ir = Cql::Io::IoReactor.new
     ir.start
-    connected = ir.connect(ENV['CASSANDRA_HOST'], 9042, 5)
+    connected = ir.connect(ENV['CASSANDRA_HOST'], 9042, 5, &protocol_handler_factory)
     started = connected.flat_map do |connection|
       connection.send_request(Cql::Protocol::StartupRequest.new('3.1.0'))
     end
@@ -43,9 +44,7 @@ describe 'Protocol parsing and communication' do
     required
   end
 
-
   def raw_execute_request(request)
-    connection = connections.first
     connection.send_request(request).value
   end
 
@@ -227,7 +226,7 @@ describe 'Protocol parsing and communication' do
         semaphore = Queue.new
         event = nil
         execute_request(Cql::Protocol::RegisterRequest.new('SCHEMA_CHANGE'))
-        connections.first.on_event do |event_response|
+        connection.on_event do |event_response|
           event = event_response
           semaphore << :ping
         end
@@ -524,13 +523,17 @@ describe 'Protocol parsing and communication' do
           Cql::Compression::SnappyCompressor.new(0)
         end
 
+        let :protocol_handler_factory do
+          lambda { |connection| Cql::Protocol::CqlProtocolHandler.new(connection, io_reactor, protocol_version, compressor) }
+        end
+
         it 'sends a compressed request and receives a compressed response' do
           compressor.stub(:compress).and_call_original
           compressor.stub(:decompress).and_call_original
-          io_reactor = Cql::Io::IoReactor.new(lambda { |*args| Cql::Protocol::CqlProtocolHandler.new(*args, protocol_version, compressor) })
+          io_reactor = Cql::Io::IoReactor.new
           io_reactor.start.value
           begin
-            connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1).value
+            connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1, &protocol_handler_factory).value
             connection.send_request(Cql::Protocol::StartupRequest.new('3.1.0', 'snappy')).value
             connection.send_request(Cql::Protocol::PrepareRequest.new('SELECT * FROM system.peers')).value
             compressor.should have_received(:compress).at_least(1).times
@@ -542,10 +545,6 @@ describe 'Protocol parsing and communication' do
       end
 
       context 'with pipelining' do
-        let :connection do
-          connections.first
-        end
-
         it 'handles multiple concurrent requests' do
           in_keyspace_with_table do
             futures = 10.times.map do
@@ -577,17 +576,18 @@ describe 'Protocol parsing and communication' do
 
   context 'in special circumstances' do
     it 'raises an exception when it cannot connect to Cassandra' do
-      io_reactor = Cql::Io::IoReactor.new(lambda { |*args| Cql::Protocol::CqlProtocolHandler.new(*args, protocol_version) })
+      io_reactor = Cql::Io::IoReactor.new
       io_reactor.start.value
-      expect { io_reactor.connect('example.com', 9042, 0.1).value }.to raise_error(Cql::Io::ConnectionError)
-      expect { io_reactor.connect('blackhole', 9042, 0.1).value }.to raise_error(Cql::Io::ConnectionError)
+      expect { io_reactor.connect('example.com', 9042, 0.1, &protocol_handler_factory).value }.to raise_error(Cql::Io::ConnectionError)
+      expect { io_reactor.connect('blackhole', 9042, 0.1, &protocol_handler_factory).value }.to raise_error(Cql::Io::ConnectionError)
       io_reactor.stop.value
     end
 
     it 'does nothing the second time #start is called' do
-      io_reactor = Cql::Io::IoReactor.new(lambda { |*args| Cql::Protocol::CqlProtocolHandler.new(*args, 2) })
+      protocol_handler_factory = lambda { |connection| Cql::Protocol::CqlProtocolHandler.new(connection, io_reactor, 2) }
+      io_reactor = Cql::Io::IoReactor.new
       io_reactor.start.value
-      connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1).value
+      connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1, &protocol_handler_factory).value
       response = connection.send_request(Cql::Protocol::StartupRequest.new('3.1.0')).value
       if response.is_a?(Cql::Protocol::AuthenticateResponse)
         response = connection.send_request(Cql::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra")).value

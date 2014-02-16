@@ -204,7 +204,7 @@ module Cql
 
     describe ConnectStep do
       let :step do
-        described_class.new(io_reactor, 1111, 9, logger)
+        described_class.new(io_reactor, protocol_handler_factory, 1111, 9, logger)
       end
 
       let :pending_connection do
@@ -219,6 +219,14 @@ module Cql
         double(:io_reactor)
       end
 
+      let :protocol_handler do
+        double(:protocol_handler)
+      end
+
+      let :protocol_handler_factory do
+        proc { protocol_handler }
+      end
+
       let :logger do
         NullLogger.new
       end
@@ -230,8 +238,10 @@ module Cql
       describe '#run' do
         before do
           pending_connection.stub(:host).and_return('example.com')
-          pending_connection.stub(:with_connection).and_return(new_pending_connection)
-          io_reactor.stub(:connect).and_return(Future.resolved(connection))
+          pending_connection.stub(:with_connection).with(protocol_handler).and_return(new_pending_connection)
+          io_reactor.stub(:connect) do |_, _, _, &block|
+            Future.resolved(block.call(connection))
+          end
         end
 
         it 'connects using the connection details given' do

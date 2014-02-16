@@ -4,9 +4,13 @@ require 'spec_helper'
 
 
 describe 'An IO reactor' do
+  let :io_reactor do
+    Cql::Io::IoReactor.new
+  end
+
   context 'with a generic server' do
-    let :io_reactor do
-      Cql::Io::IoReactor.new(IoSpec::TestConnection)
+    let :protocol_handler_factory do
+      lambda { |c| IoSpec::TestConnection.new(c) }
     end
 
     let :fake_server do
@@ -24,12 +28,12 @@ describe 'An IO reactor' do
     end
 
     it 'connects to the server' do
-      io_reactor.connect(ENV['CASSANDRA_HOST'], fake_server.port, 1)
+      io_reactor.connect(ENV['CASSANDRA_HOST'], fake_server.port, 1, &protocol_handler_factory)
       fake_server.await_connects!(1)
     end
 
     it 'receives data' do
-      protocol_handler = io_reactor.connect(ENV['CASSANDRA_HOST'], fake_server.port, 1).value
+      protocol_handler = io_reactor.connect(ENV['CASSANDRA_HOST'], fake_server.port, 1, &protocol_handler_factory).value
       fake_server.await_connects!(1)
       fake_server.broadcast!('hello world')
       await { protocol_handler.data.bytesize > 0 }
@@ -37,7 +41,7 @@ describe 'An IO reactor' do
     end
 
     it 'receives data on multiple connections' do
-      protocol_handlers = Array.new(10) { io_reactor.connect(ENV['CASSANDRA_HOST'], fake_server.port, 1).value }
+      protocol_handlers = Array.new(10) { io_reactor.connect(ENV['CASSANDRA_HOST'], fake_server.port, 1, &protocol_handler_factory).value }
       fake_server.await_connects!(10)
       fake_server.broadcast!('hello world')
       await { protocol_handlers.all? { |c| c.data.bytesize > 0 } }
@@ -46,13 +50,9 @@ describe 'An IO reactor' do
   end
 
   context 'when talking to Redis' do
-    let :io_reactor do
-      Cql::Io::IoReactor.new(IoSpec::RedisProtocolHandler)
-    end
-
     let :protocol_handler do
       begin
-        io_reactor.connect(ENV['CASSANDRA_HOST'], 6379, 1).value
+        io_reactor.connect(ENV['CASSANDRA_HOST'], 6379, 1) { |c| IoSpec::RedisProtocolHandler.new(c) }.value
       rescue Cql::Io::ConnectionError
         nil
       end
@@ -124,7 +124,7 @@ end
 
 module IoSpec
   class TestConnection
-    def initialize(connection, scheduler)
+    def initialize(connection)
       @connection = connection
       @connection.on_data(&method(:receive_data))
       @lock = Mutex.new
@@ -143,7 +143,7 @@ module IoSpec
   end
 
   class LineProtocolHandler
-    def initialize(connection, scheduler)
+    def initialize(connection)
       @connection = connection
       @connection.on_data(&method(:process_data))
       @lock = Mutex.new
@@ -176,8 +176,8 @@ module IoSpec
   end
 
   class RedisProtocolHandler
-    def initialize(connection, scheduler)
-      @line_protocol = LineProtocolHandler.new(connection, scheduler)
+    def initialize(connection)
+      @line_protocol = LineProtocolHandler.new(connection)
       @line_protocol.on_line(&method(:handle_line))
       @lock = Mutex.new
       @responses = []

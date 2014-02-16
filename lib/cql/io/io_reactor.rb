@@ -17,22 +17,24 @@ module Cql
     # run in the reactor thread, and every cycle you use there is a cycle which
     # can't be used to handle IO.
     #
-    # The IO reactor is completely protocol agnostic, and it's up to the
-    # specified protocol handler factory to create objects that can interpret
-    # the bytes received from remote hosts, and to send the correct commands
-    # back. The way this works is that when you create an IO reactor you provide
-    # a factory that can create protocol handler objects (this factory is most
-    # of the time just class, but it could potentially be any object that
-    # responds to #new). When you #connect a new protocol handler instance is
-    # created and passed a connection. The protocol handler can then register to
-    # receive data that arrives over the socket, and it can write data to the
-    # socket. It can also register to be notified when the socket is closed, or
-    # it can itself close the socket.
+    # The IO reactor is completely protocol agnostic, and it's up to you to
+    # create objects that can interpret the bytes received from remote hosts,
+    # and to send the correct commands back. The way this works is that when you
+    # open a connection you can provide a protocol handler factory as a block,
+    # (or you can simply wrap the returned connection). This factory can be used
+    # to create objects that wrap the raw connections and register to receive
+    # new data, and it can write data to connection. It can also register to be
+    # notified when the socket is closed, or it can itself close the socket.
     #
     # @example A protocol handler that processes whole lines
+    #   io_reactor.connect('example.com', 6543, 10) do |connection|
+    #     LineProtocolHandler.new(connection)
+    #   end
+    #
+    #   # ...
     #
     #   class LineProtocolHandler
-    #     def initialize(connection, scheduler)
+    #     def initialize(connection)
     #       @connection = connection
     #       # register a listener method for new data, this must be done in the
     #       # in the constructor, and only one listener can be registered
@@ -79,21 +81,11 @@ module Cql
     # the Redis protocol that you can look at too.
     #
     # @private
-    #
     class IoReactor
       # Initializes a new IO reactor.
       #
-      # @param protocol_handler_factory [Proc, Class] a Proc or class that
-      #   will be used create the protocol handler objects returned by
-      #   {#connect}
       # @param options [Hash] only used to inject behaviour during tests
-      #
-      def initialize(protocol_handler_factory, options={})
-        if protocol_handler_factory.respond_to?(:new)
-          @protocol_handler_factory = protocol_handler_factory.method(:new)
-        else
-          @protocol_handler_factory = protocol_handler_factory
-        end
+      def initialize(options={})
         @clock = options[:clock] || Time
         @unblocker = Unblocker.new
         @io_loop = IoLoopBody.new(options)
@@ -112,7 +104,6 @@ module Cql
       # it raises will be ignored.
       #
       # @yield [error] the error that cause the reactor to stop
-      #
       def on_error(&listener)
         @stopped_promise.future.on_failure(&listener)
       end
@@ -120,7 +111,6 @@ module Cql
       # Returns true as long as the reactor is running. It will be true even
       # after #stop has been called, but false when the future returned by
       # #stop completes.
-      #
       def running?
         @running
       end
@@ -163,7 +153,6 @@ module Cql
       # stops or has already stopped because of a failure.
       #
       # @return [Cql::Future] a future that will resolve to the reactor itself
-      #
       def stop
         @stopped = true
         @stopped_promise.future
@@ -171,28 +160,21 @@ module Cql
 
       # Opens a connection to the specified host and port.
       #
-      # This method is asynchronous and returns a future which completes when
-      # the connection has been established, or fails if the connection cannot
-      # be established for some reason (the connection takes longer than the
-      # specified timeout, the remote host cannot be found, etc.).
-      #
-      # The object returned in the future will be an instance of the protocol
-      # handler class you passed to {#initialize}.
-      #
       # @param host [String] the host to connect to
       # @param port [Integer] the port to connect to
       # @param timeout [Numeric] the number of seconds to wait for a connection
       #   before failing
-      # @return [Cql::Future] a future that will resolve to a protocol handler
-      #   object that will be your interface to interact with the connection
-      #
-      def connect(host, port, timeout)
+      # @yieldparam [Cql::Io::Connection] connection the newly opened connection
+      # @return [Cql::Future] a future that will resolve when the connection is
+      #   open. The value will be the connection, or when a block is given to
+      #   what the block returns
+      def connect(host, port, timeout, &block)
         connection = Connection.new(host, port, timeout, @unblocker, @clock)
         f = connection.connect
-        protocol_handler = @protocol_handler_factory.call(connection, self)
         @io_loop.add_socket(connection)
         @unblocker.unblock!
-        f.map(protocol_handler)
+        f = f.map(&block) if block_given?
+        f
       end
 
       # Returns a future that completes after the specified number of seconds.
@@ -200,7 +182,6 @@ module Cql
       # @param timeout [Float] the number of seconds to wait until the returned
       #   future is completed
       # @return [Cql::Future] a future that completes when the timer expires
-      #
       def schedule_timer(timeout)
         @io_loop.schedule_timer(timeout)
       end

@@ -7,11 +7,7 @@ module Cql
   module Io
     describe IoReactor do
       let :reactor do
-        described_class.new(protocol_handler_factory, selector: selector, clock: clock)
-      end
-
-      let :protocol_handler_factory do
-        double(:protocol_handler_factory)
+        described_class.new(selector: selector, clock: clock)
       end
 
       let! :selector do
@@ -20,6 +16,25 @@ module Cql
 
       let :clock do
         double(:clock, now: 0)
+      end
+
+      shared_context 'running_reactor' do
+        before do
+          selector.handler do |readables, writables, _, _|
+            writables.each do |writable|
+              fake_connected(writable)
+            end
+            [[], writables, []]
+          end
+        end
+
+        def fake_connected(connection)
+          connection.to_io.stub(:connect_nonblock)
+        end
+
+        after do
+          reactor.stop if reactor.running?
+        end
       end
 
       describe '#start' do
@@ -57,9 +72,7 @@ module Cql
       end
 
       describe '#stop' do
-        after do
-          reactor.stop.value if reactor.running?
-        end
+        include_context 'running_reactor'
 
         it 'returns a future that is resolved when the reactor has stopped' do
           reactor.start.value
@@ -78,13 +91,8 @@ module Cql
         end
 
         it 'closes all sockets' do
-          connection = nil
-          protocol_handler_factory.stub(:new) do |sh, _|
-            connection = sh
-            double(:protocol_handler)
-          end
           reactor.start.value
-          reactor.connect('example.com', 9999, 5)
+          connection = reactor.connect('example.com', 9999, 5).value
           reactor.stop.value
           connection.should be_closed
         end
@@ -136,61 +144,23 @@ module Cql
       end
 
       describe '#connect' do
-        let :protocol_handler do
-          double(:protocol_handler)
-        end
+        include_context 'running_reactor'
 
-        before do
-          protocol_handler_factory.stub(:call) do |connection, _|
-            connection.to_io.stub(:connect_nonblock)
-            protocol_handler.stub(:connection).and_return(connection)
-            protocol_handler
-          end
-        end
-
-        before do
-          selector.handler do |readables, writables, _, _|
-            writables.each do |writable|
-              fake_connected(writable)
-            end
-            [[], writables, []]
-          end
-        end
-
-        def fake_connected(connection)
-          connection.to_io.stub(:connect_nonblock)
-        end
-
-        after do
-          reactor.stop if reactor.running?
-        end
-
-        it 'calls #call on the protocol handler factory with the connection and the reactor itself' do
+        it 'calls the given block with the connection and the reactor itself and returns what it returns' do
+          connection = nil
           reactor.start.value
-          reactor.connect('example.com', 9999, 5).value
-          protocol_handler_factory.should have_received(:call).with(an_instance_of(Connection), reactor)
+          reactor.connect('example.com', 9999, 5) { |c| connection = c }.value
+          connection.should be_a(Connection)
         end
 
-        it 'calls #new on the protocol handler factory with the connection and the reactor itself' do
-          protocol_handler_factory.stub(:new)
+        it 'returns a future that resolves to what the given block returns' do
           reactor.start.value
-          reactor.connect('example.com', 9999, 5).value
-          protocol_handler_factory.should have_received(:new).with(an_instance_of(Connection), reactor)
+          reactor.connect('example.com', 9999, 5) { :foo }.value.should == :foo
         end
 
-        it 'returns a future that resolves to a new protocol handler' do
+        it 'returns the connection when no block is given' do
           reactor.start.value
-          f = reactor.connect('example.com', 9999, 5)
-          f.value.should equal(protocol_handler)
-        end
-
-        it 'returns a new protocol handler which wraps a socket handler' do
-          reactor.start.value
-          protocol_handler = reactor.connect('example.com', 9999, 5).value
-          protocol_handler.connection.should_not be_nil
-          protocol_handler.connection.host.should == 'example.com'
-          protocol_handler.connection.port.should == 9999
-          protocol_handler.connection.connection_timeout.should == 5
+          reactor.connect('example.com', 9999, 5).value.should be_a(Connection)
         end
       end
 
