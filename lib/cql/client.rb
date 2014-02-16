@@ -181,60 +181,6 @@ module Cql
       end
     end
 
-    class Batch
-      # @!method add(cql_or_prepared_statement, *bound_values)
-      #
-      # Add a query or a prepared statement to the batch.
-      #
-      # @example Adding a mix of statements to a batch
-      #   batch.add(%(UPDATE people SET name = 'Miriam' WHERE id = 3435))
-      #   batch.add(%(UPDATE people SET name = ? WHERE id = ?), 'Miriam', 3435)
-      #   batch.add(prepared_statement, 'Miriam', 3435)
-      #
-      # @param [String, Cql::Client::PreparedStatement] cql_or_prepared_statement
-      #   a CQL string or a prepared statement object (obtained through
-      #   {Cql::Client::Client#prepare})
-      # @param [Array] bound_values a list of bound values -- only applies when
-      #   adding prepared statements and when there are binding markers in the
-      #   given CQL. If the last argument is a hash and it has the key
-      #   `:type_hints` this will be passed as type hints to the request encoder
-      #   (if the last argument is any other hash it will be assumed to be a
-      #   bound value of type MAP). See {Cql::Client::Client#execute} for more
-      #   info on type hints.
-      # @return [nil]
-
-      # @!method execute(options={})
-      #
-      # Execute the batch and return the result.
-      #
-      # @param options [Hash] an options hash or a symbol (as a shortcut for
-      #   specifying the consistency), see {Cql::Client::Client#execute} for
-      #   full details about how this value is interpreted.
-      # @raise [Cql::QueryError] raised when there is an error on the server side
-      # @raise [Cql::NotPreparedError] raised in the unlikely event that a
-      #   prepared statement was not prepared on the chosen connection
-      # @return [Cql::Client::VoidResult] a batch always returns a void result
-    end
-
-    class PreparedStatementBatch
-      # @!method add(*bound_values)
-      #
-      # Add the statement to the batch with the specified bound values.
-      #
-      # @param [Array] bound_values the values to bind to the added statement,
-      #   see {Cql::Client::PreparedStatement#execute}.
-      # @return [nil]
-
-      # @!method execute(options={})
-      #
-      # Execute the batch and return the result.
-      #
-      # @raise [Cql::QueryError] raised when there is an error on the server side
-      # @raise [Cql::NotPreparedError] raised in the unlikely event that a
-      #   prepared statement was not prepared on the chosen connection
-      # @return [Cql::Client::VoidResult] a batch always returns a void result
-    end
-
     # An auth provider is a factory for {Cql::Client::Authenticator} instances
     # (or objects matching that interface). Its {#create_authenticator} will be
     # called once for each connection that requires authentication.
