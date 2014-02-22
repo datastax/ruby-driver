@@ -74,7 +74,10 @@ module Cassandra
 
       def self.read_column_type(buffer)
         id, type = buffer.read_option do |id, b|
-          if id > 0 && id <= 0x10
+          if id == 0
+            type_class = buffer.read_string
+            [:custom, type_class]
+          elsif id > 0 && id <= 0x10
             COLUMN_TYPES[id]
           elsif id == 0x20
             sub_type = read_column_type(buffer)

@@ -88,6 +88,34 @@ module Cassandra
             response.result_metadata.should be_nil
           end
         end
+
+        context 'with user defined types' do
+          let :buffer do
+            b = CqlByteBuffer.new
+            b << "\x00\x10\xC8\x90\r\x98\x06t\x97\x96\x94\xDA6\x13\xBB\x9D\xA5\xE1" # statement ID
+            b << "\x00\x00\x00\x00" # flags
+            b << "\x00\x00\x00\x00" # column count
+            b << "\x00\x00\x00\x01" # flags (global_tables_spec)
+            b << "\x00\x00\x00\x03" # column count
+            b << "\x00\x12user_defined_types\x00\x05users" # global_tables_spec
+            b << "\x00\x02id\x00\f" # col_spec (name + type)
+            b << "\x00\taddresses\x00!\x00\r\x00\x00\x01Morg.apache.cassandra.db.marshal.UserType(user_defined_types,61646472657373,737472656574:org.apache.cassandra.db.marshal.UTF8Type,63697479:org.apache.cassandra.db.marshal.UTF8Type,7a69705f636f6465:org.apache.cassandra.db.marshal.Int32Type,70686f6e6573:org.apache.cassandra.db.marshal.SetType(org.apache.cassandra.db.marshal.UTF8Type))" # col_spec (name + type + extra type info)
+            b << "\x00\x04name\x00\r"
+          end
+
+          it 'decodes the full type hierarchy' do
+            response = described_class.decode(2, buffer, buffer.length)
+            column_metadata = response.result_metadata[1]
+            type_description = column_metadata[3]
+            type_description.should == [
+              :map, :varchar,
+              [
+                :custom,
+                'org.apache.cassandra.db.marshal.UserType(user_defined_types,61646472657373,737472656574:org.apache.cassandra.db.marshal.UTF8Type,63697479:org.apache.cassandra.db.marshal.UTF8Type,7a69705f636f6465:org.apache.cassandra.db.marshal.Int32Type,70686f6e6573:org.apache.cassandra.db.marshal.SetType(org.apache.cassandra.db.marshal.UTF8Type))'
+              ]
+            ]
+          end
+        end
       end
 
       describe '#void?' do
