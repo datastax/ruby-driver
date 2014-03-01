@@ -1,15 +1,9 @@
 # encoding: utf-8
 
+require 'ione/io'
+
+
 module Cql
-  IoError = Class.new(CqlError)
-  CancelledError = Class.new(CqlError)
-
-  module Io
-    ConnectionError = Class.new(IoError)
-    ConnectionClosedError = Class.new(ConnectionError)
-    ConnectionTimeoutError = Class.new(ConnectionError)
-  end
+  Io = Ione::Io
+  IoError = Ione::IoError
 end
-
-require 'cql/io/io_reactor'
-require 'cql/io/connection'

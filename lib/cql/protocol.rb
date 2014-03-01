@@ -41,6 +41,7 @@ module Cql
   end
 end
 
+require 'cql/protocol/byte_buffer'
 require 'cql/protocol/encoding'
 require 'cql/protocol/decoding'
 require 'cql/protocol/type_converter'
