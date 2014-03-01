@@ -236,7 +236,7 @@ end
 You can specify the default consistency to use when you create a new `Client`:
 
 ```ruby
-client = Cql::Client.connect(hosts: %w[localhost], consistency: :all)
+client = Cql::Client.connect(hosts: %w[localhost], default_consistency: :all)
 ```
 
 The `#execute` (of `Client` and `PreparedStatement`) method also supports setting the desired consistency level on a per-request basis:
