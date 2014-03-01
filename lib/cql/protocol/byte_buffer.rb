@@ -4,5 +4,7 @@ require 'ione/byte_buffer'
 
 
 module Cql
-  ByteBuffer = Ione::ByteBuffer
+  module Protocol
+    ByteBuffer = Ione::ByteBuffer
+  end
 end
