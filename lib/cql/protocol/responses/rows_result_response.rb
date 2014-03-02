@@ -10,15 +10,15 @@ module Cql
         @rows, @metadata, @paging_state = rows, metadata, paging_state
       end
 
-      def self.decode!(protocol_version, buffer, length, trace_id=nil)
+      def self.decode(protocol_version, buffer, length, trace_id=nil)
         original_buffer_length = buffer.length
-        column_specs, columns_count, paging_state = read_metadata!(protocol_version, buffer)
+        column_specs, columns_count, paging_state = read_metadata(protocol_version, buffer)
         if column_specs.nil?
           consumed_bytes = original_buffer_length - buffer.length
           remaining_bytes = CqlByteBuffer.new(buffer.read(length - consumed_bytes))
           RawRowsResultResponse.new(protocol_version, remaining_bytes, paging_state, trace_id)
         else
-          new(read_rows!(protocol_version, buffer, column_specs), column_specs, paging_state, trace_id)
+          new(read_rows(protocol_version, buffer, column_specs), column_specs, paging_state, trace_id)
         end
       end
 
@@ -56,19 +56,19 @@ module Cql
       HAS_MORE_PAGES_FLAG = 0x02
       NO_METADATA_FLAG = 0x04
 
-      def self.read_column_type!(buffer)
+      def self.read_column_type(buffer)
         id, type = buffer.read_option do |id, b|
           if id > 0 && id <= 0x10
             COLUMN_TYPES[id]
           elsif id == 0x20
-            sub_type = read_column_type!(buffer)
+            sub_type = read_column_type(buffer)
             [:list, sub_type]
           elsif id == 0x21
-            key_type = read_column_type!(buffer)
-            value_type = read_column_type!(buffer)
+            key_type = read_column_type(buffer)
+            value_type = read_column_type(buffer)
             [:map, key_type, value_type]
           elsif id == 0x22
-            sub_type = read_column_type!(buffer)
+            sub_type = read_column_type(buffer)
             [:set, sub_type]
           else
             raise UnsupportedColumnTypeError, %(Unsupported column type: #{id})
@@ -77,7 +77,7 @@ module Cql
         type
       end
 
-      def self.read_metadata!(protocol_version, buffer)
+      def self.read_metadata(protocol_version, buffer)
         flags = buffer.read_int
         columns_count = buffer.read_int
         paging_state = nil
@@ -99,14 +99,14 @@ module Cql
               table_name = buffer.read_string
             end
             column_name = buffer.read_string
-            type = read_column_type!(buffer)
+            type = read_column_type(buffer)
             [keyspace_name, table_name, column_name, type]
           end
         end
         [column_specs, columns_count, paging_state]
       end
 
-      def self.read_rows!(protocol_version, buffer, column_specs)
+      def self.read_rows(protocol_version, buffer, column_specs)
         rows_count = buffer.read_int
         rows = []
         rows_count.times do |row_index|

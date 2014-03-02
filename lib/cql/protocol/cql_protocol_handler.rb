@@ -129,7 +129,7 @@ module Cql
           end
         else
           @lock.synchronize do
-            promise.encode_frame!
+            promise.encode_frame
             @request_queue_in << promise
           end
         end
@@ -173,7 +173,7 @@ module Cql
           end
         end
 
-        def encode_frame!
+        def encode_frame
           @frame = @frame_encoder.encode_frame(@request)
         end
       end
