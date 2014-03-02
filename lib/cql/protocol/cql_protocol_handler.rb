@@ -26,7 +26,7 @@ module Cql
         @connection.on_data(&method(:receive_data))
         @connection.on_closed(&method(:socket_closed))
         @promises = Array.new(128) { nil }
-        @read_buffer = ByteBuffer.new
+        @read_buffer = CqlByteBuffer.new
         @frame_encoder = FrameEncoder.new(protocol_version, @compressor)
         @frame_decoder = FrameDecoder.new(@compressor)
         @current_frame = FrameDecoder::NULL_FRAME

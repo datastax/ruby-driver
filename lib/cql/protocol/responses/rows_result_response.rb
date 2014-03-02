@@ -15,7 +15,7 @@ module Cql
         column_specs, columns_count, paging_state = read_metadata!(protocol_version, buffer)
         if column_specs.nil?
           consumed_bytes = original_buffer_length - buffer.length
-          remaining_bytes = ByteBuffer.new(buffer.read(length - consumed_bytes))
+          remaining_bytes = CqlByteBuffer.new(buffer.read(length - consumed_bytes))
           RawRowsResultResponse.new(protocol_version, remaining_bytes, paging_state, trace_id)
         else
           new(read_rows!(protocol_version, buffer, column_specs), column_specs, paging_state, trace_id)
@@ -57,7 +57,7 @@ module Cql
       NO_METADATA_FLAG = 0x04
 
       def self.read_column_type!(buffer)
-        id, type = read_option!(buffer) do |id, b|
+        id, type = buffer.read_option do |id, b|
           if id > 0 && id <= 0x10
             COLUMN_TYPES[id]
           elsif id == 0x20
@@ -78,27 +78,27 @@ module Cql
       end
 
       def self.read_metadata!(protocol_version, buffer)
-        flags = read_int!(buffer)
-        columns_count = read_int!(buffer)
+        flags = buffer.read_int
+        columns_count = buffer.read_int
         paging_state = nil
         column_specs = nil
         if flags & HAS_MORE_PAGES_FLAG != 0
-          paging_state = read_bytes!(buffer)
+          paging_state = buffer.read_bytes
         end
         if flags & NO_METADATA_FLAG == 0
           if flags & GLOBAL_TABLES_SPEC_FLAG != 0
-            global_keyspace_name = read_string!(buffer)
-            global_table_name = read_string!(buffer)
+            global_keyspace_name = buffer.read_string
+            global_table_name = buffer.read_string
           end
           column_specs = columns_count.times.map do
             if global_keyspace_name
               keyspace_name = global_keyspace_name
               table_name = global_table_name
             else
-              keyspace_name = read_string!(buffer)
-              table_name = read_string!(buffer)
+              keyspace_name = buffer.read_string
+              table_name = buffer.read_string
             end
-            column_name = read_string!(buffer)
+            column_name = buffer.read_string
             type = read_column_type!(buffer)
             [keyspace_name, table_name, column_name, type]
           end
@@ -107,7 +107,7 @@ module Cql
       end
 
       def self.read_rows!(protocol_version, buffer, column_specs)
-        rows_count = read_int!(buffer)
+        rows_count = buffer.read_int
         rows = []
         rows_count.times do |row_index|
           row = {}

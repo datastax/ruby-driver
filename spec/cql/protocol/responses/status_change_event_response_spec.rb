@@ -8,7 +8,7 @@ module Cql
     describe StatusChangeEventResponse do
       describe '.decode!' do
         let :response do
-          buffer = ByteBuffer.new("\x00\x04DOWN\x04\x00\x00\x00\x00\x00\x00#R")
+          buffer = CqlByteBuffer.new("\x00\x04DOWN\x04\x00\x00\x00\x00\x00\x00#R")
           described_class.decode!(1, buffer, buffer.length)
         end
 

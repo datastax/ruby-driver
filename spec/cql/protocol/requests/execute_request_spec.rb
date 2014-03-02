@@ -66,7 +66,7 @@ module Cql
       describe '#write' do
         context 'when the protocol version is 1' do
           let :frame_bytes do
-            ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :each_quorum, nil, nil, nil, false).write(1, '')
+            ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :each_quorum, nil, nil, nil, false).write(1, CqlByteBuffer.new)
           end
 
           it 'writes the statement ID' do
@@ -88,7 +88,7 @@ module Cql
 
         context 'when the protocol version is 2' do
           let :frame_bytes do
-            ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :each_quorum, nil, nil, nil, false).write(2, '')
+            ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :each_quorum, nil, nil, nil, false).write(2, CqlByteBuffer.new)
           end
 
           it 'writes the statement ID' do
@@ -104,12 +104,12 @@ module Cql
           end
 
           it 'does not write the bound values flag when there are no values, and does not write anything more' do
-            frame_bytes = ExecuteRequest.new(id, [], [], true, :each_quorum, nil, nil, nil, false).write(2, '')
+            frame_bytes = ExecuteRequest.new(id, [], [], true, :each_quorum, nil, nil, nil, false).write(2, CqlByteBuffer.new)
             frame_bytes.to_s[20, 999].should == "\x00"
           end
 
           it 'writes flags saying that the result doesn\'t need to contain metadata' do
-            frame_bytes = ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], false, :each_quorum, nil, nil, nil, false).write(2, '')
+            frame_bytes = ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], false, :each_quorum, nil, nil, nil, false).write(2, CqlByteBuffer.new)
             frame_bytes.to_s[20, 1].should == "\x03"
           end
 
@@ -122,22 +122,22 @@ module Cql
           end
 
           it 'sets the serial flag and includes the serial consistency' do
-            frame_bytes = ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], false, :each_quorum, :local_serial, false).write(2, '')
+            frame_bytes = ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], false, :each_quorum, :local_serial, false).write(2, CqlByteBuffer.new)
             frame_bytes.to_s[20, 1].should == "\x13"
             frame_bytes.to_s[47, 2].should == "\x00\x09"
           end
 
           it 'writes the page size flag and page size' do
-            frame_bytes = ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :one, nil, 10, nil, false).write(2, '')
-            (frame_bytes[20, 1].ord & 0x04).should == 0x04
-            frame_bytes[47, 4].should == "\x00\x00\x00\x0a"
+            frame_bytes = ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :one, nil, 10, nil, false).write(2, CqlByteBuffer.new)
+            (frame_bytes.to_s[20, 1].ord & 0x04).should == 0x04
+            frame_bytes.to_s[47, 4].should == "\x00\x00\x00\x0a"
           end
 
           it 'writes the page size and paging state flag and the page size and paging state' do
-            frame_bytes = ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :one, nil, 10, 'foobar', false).write(2, '')
-            (frame_bytes[20, 1].ord & 0x0c).should == 0x0c
-            frame_bytes[47, 4].should == "\x00\x00\x00\x0a"
-            frame_bytes[51, 10].should == "\x00\x00\x00\x06foobar"
+            frame_bytes = ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :one, nil, 10, 'foobar', false).write(2, CqlByteBuffer.new)
+            (frame_bytes.to_s[20, 1].ord & 0x0c).should == 0x0c
+            frame_bytes.to_s[47, 4].should == "\x00\x00\x00\x0a"
+            frame_bytes.to_s[51, 10].should == "\x00\x00\x00\x06foobar"
           end
         end
 
@@ -173,7 +173,7 @@ module Cql
           specs.each do |type, value, expected_bytes|
             it "encodes #{type} values" do
               metadata = [['ks', 'tbl', 'id_column', type]]
-              buffer = ExecuteRequest.new(id, metadata, [value], true, :one, nil, nil, nil, false).write(1, ByteBuffer.new)
+              buffer = ExecuteRequest.new(id, metadata, [value], true, :one, nil, nil, nil, false).write(1, CqlByteBuffer.new)
               buffer.discard(2 + 16 + 2)
               length = buffer.read_int
               result_bytes = buffer.read(length)

@@ -10,8 +10,8 @@ module Cql
         @events = events
       end
 
-      def write(protocol_version, io)
-        write_string_list(io, @events)
+      def write(protocol_version, buffer)
+        buffer.append_string_list(@events)
       end
 
       def to_s

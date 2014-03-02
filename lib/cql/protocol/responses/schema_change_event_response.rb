@@ -13,7 +13,7 @@ module Cql
       end
 
       def self.decode!(protocol_version, buffer, length, trace_id=nil)
-        new(read_string!(buffer), read_string!(buffer), read_string!(buffer))
+        new(buffer.read_string, buffer.read_string, buffer.read_string)
       end
 
       def eql?(rs)

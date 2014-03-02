@@ -11,9 +11,9 @@ module Cql
 
       def encode_frame(request, stream_id=0, buffer=nil)
         raise InvalidStreamIdError, 'The stream ID must be between 0 and 127' unless 0 <= stream_id && stream_id < 128
-        buffer ||= ByteBuffer.new
+        buffer ||= CqlByteBuffer.new
         flags = request.trace? ? 2 : 0
-        body = request.write(@protocol_version, ByteBuffer.new)
+        body = request.write(@protocol_version, CqlByteBuffer.new)
         if @compressor && request.compressable? && @compressor.compress?(body)
           flags |= 1
           body = @compressor.compress(body)

@@ -11,8 +11,8 @@ module Cql
         false
       end
 
-      def write(protocol_version, io)
-        io
+      def write(protocol_version, buffer)
+        buffer
       end
 
       def to_s

@@ -3,8 +3,6 @@
 module Cql
   module Protocol
     class Response
-      extend Decoding
-
       def self.decode!(opcode, protocol_version, buffer, length, trace_id)
         response_class = RESPONSE_TYPES[opcode]
         if response_class

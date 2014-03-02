@@ -7,9 +7,6 @@ require 'set'
 module Cql
   module Protocol
     class TypeConverter
-      include Decoding
-      include Encoding
-
       def initialize
         @from_bytes_converters = from_bytes_converters
         @to_bytes_converters = to_bytes_converters
@@ -33,7 +30,7 @@ module Cql
         end
       end
 
-      def to_bytes(io, type, value, size_bytes=4)
+      def to_bytes(buffer, type, value, size_bytes=4)
         case type
         when Array
           unless value.nil? || value.is_a?(Enumerable)
@@ -43,27 +40,27 @@ module Cql
           when :list, :set
             _, sub_type = type
             if value
-              raw = ''
-              write_short(raw, value.size)
+              raw = CqlByteBuffer.new
+              raw.append_short(value.size)
               value.each do |element|
                 to_bytes(raw, sub_type, element, 2)
               end
-              write_bytes(io, raw)
+              buffer.append_bytes(raw)
             else
-              nil_to_bytes(io, size_bytes)
+              nil_to_bytes(buffer, size_bytes)
             end
           when :map
             _, key_type, value_type = type
             if value
-              raw = ''
-              write_short(raw, value.size)
+              raw = CqlByteBuffer.new
+              raw.append_short(value.size)
               value.each do |key, value|
                 to_bytes(raw, key_type, key, 2)
                 to_bytes(raw, value_type, value, 2)
               end
-              write_bytes(io, raw)
+              buffer.append_bytes(raw)
             else
-              nil_to_bytes(io, size_bytes)
+              nil_to_bytes(buffer, size_bytes)
             end
           else
             raise UnsupportedColumnTypeError, %(Unsupported column collection type: #{type.first})
@@ -73,7 +70,7 @@ module Cql
           unless converter
             raise UnsupportedColumnTypeError, %(Unsupported column type: #{type})
           end
-          converter.call(io, value, size_bytes)
+          converter.call(buffer, value, size_bytes)
         end
       rescue TypeError => e
         raise TypeError, %("#{value}" cannot be encoded as #{type.to_s.upcase}: #{e.message}), e.backtrace
@@ -128,24 +125,24 @@ module Cql
           size = buffer.read_short
           return nil if size & 0x8000 == 0x8000
         else
-          size = buffer.read_int
+          size = buffer.read_signed_int
           return nil if size & 0x80000000 == 0x80000000
         end
         size
       end
 
       def bytes_to_ascii(buffer, size_bytes)
-        bytes = size_bytes == 4 ? read_bytes!(buffer) : read_short_bytes!(buffer)
+        bytes = size_bytes == 4 ? buffer.read_bytes : buffer.read_short_bytes
         bytes ? bytes.force_encoding(::Encoding::ASCII) : nil
       end
 
       def bytes_to_bigint(buffer, size_bytes)
         return nil unless read_size(buffer, size_bytes)
-        read_long!(buffer)
+        buffer.read_long
       end
 
       def bytes_to_blob(buffer, size_bytes)
-        bytes = size_bytes == 4 ? read_bytes!(buffer) : read_short_bytes!(buffer)
+        bytes = size_bytes == 4 ? buffer.read_bytes : buffer.read_short_bytes
         bytes ? bytes : nil
       end
 
@@ -157,49 +154,49 @@ module Cql
       def bytes_to_decimal(buffer, size_bytes)
         size = read_size(buffer, size_bytes)
         return nil unless size
-        read_decimal!(buffer, size)
+        buffer.read_decimal(size)
       end
 
       def bytes_to_double(buffer, size_bytes)
         return nil unless read_size(buffer, size_bytes)
-        read_double!(buffer)
+        buffer.read_double
       end
 
       def bytes_to_float(buffer, size_bytes)
         return nil unless read_size(buffer, size_bytes)
-        read_float!(buffer)
+        buffer.read_float
       end
 
       def bytes_to_int(buffer, size_bytes)
         return nil unless read_size(buffer, size_bytes)
-        read_int!(buffer)
+        buffer.read_signed_int
       end
 
       def bytes_to_timestamp(buffer, size_bytes)
         return nil unless read_size(buffer, size_bytes)
-        timestamp = read_long!(buffer)
+        timestamp = buffer.read_long
         Time.at(timestamp/1000.0)
       end
 
       def bytes_to_varchar(buffer, size_bytes)
-        bytes = size_bytes == 4 ? read_bytes!(buffer) : read_short_bytes!(buffer)
+        bytes = size_bytes == 4 ? buffer.read_bytes : buffer.read_short_bytes
         bytes ? bytes.force_encoding(::Encoding::UTF_8) : nil
       end
 
       def bytes_to_varint(buffer, size_bytes)
         size = read_size(buffer, size_bytes)
         return nil unless size
-        read_varint!(buffer, size)
+        buffer.read_varint(size)
       end
 
       def bytes_to_uuid(buffer, size_bytes)
         return nil unless read_size(buffer, size_bytes)
-        read_uuid!(buffer)
+        buffer.read_uuid
       end
 
       def bytes_to_timeuuid(buffer, size_bytes)
         return nil unless read_size(buffer, size_bytes)
-        read_uuid!(buffer, TimeUuid)
+        buffer.read_uuid(TimeUuid)
       end
 
       def bytes_to_inet(buffer, size_bytes)
@@ -237,137 +234,137 @@ module Cql
         set
       end
 
-      def ascii_to_bytes(io, value, size_bytes)
+      def ascii_to_bytes(buffer, value, size_bytes)
         v = value && value.encode(::Encoding::ASCII)
         if size_bytes == 4
-          write_bytes(io, v)
+          buffer.append_bytes(v)
         else
-          write_short_bytes(io, v)
+          buffer.append_short_bytes(v)
         end
       end
 
-      def bigint_to_bytes(io, value, size_bytes)
+      def bigint_to_bytes(buffer, value, size_bytes)
         if value
-          size_to_bytes(io, 8, size_bytes)
-          write_long(io, value)
+          size_to_bytes(buffer, 8, size_bytes)
+          buffer.append_long(value)
         else
-          nil_to_bytes(io, size_bytes)
+          nil_to_bytes(buffer, size_bytes)
         end
       end
 
-      def blob_to_bytes(io, value, size_bytes)
+      def blob_to_bytes(buffer, value, size_bytes)
         v = value && value.encode(::Encoding::BINARY)
         if size_bytes == 4
-          write_bytes(io, v)
+          buffer.append_bytes(v)
         else
-          write_short_bytes(io, v)
+          buffer.append_short_bytes(v)
         end
       end
 
-      def boolean_to_bytes(io, value, size_bytes)
+      def boolean_to_bytes(buffer, value, size_bytes)
         if !value.nil?
-          size_to_bytes(io, 1, size_bytes)
-          io << (value ? Constants::TRUE_BYTE : Constants::FALSE_BYTE)
+          size_to_bytes(buffer, 1, size_bytes)
+          buffer.append(value ? Constants::TRUE_BYTE : Constants::FALSE_BYTE)
         else
-          nil_to_bytes(io, size_bytes)
+          nil_to_bytes(buffer, size_bytes)
         end
       end
 
-      def decimal_to_bytes(io, value, size_bytes)
-        raw = value && write_decimal('', value)
+      def decimal_to_bytes(buffer, value, size_bytes)
+        raw = value && CqlByteBuffer.new.append_decimal(value)
         if size_bytes == 4
-          write_bytes(io, raw)
+          buffer.append_bytes(raw)
         else
-          write_short_bytes(io, raw)
+          buffer.append_short_bytes(raw)
         end
       end
 
-      def double_to_bytes(io, value, size_bytes)
+      def double_to_bytes(buffer, value, size_bytes)
         if value
-          size_to_bytes(io, 8, size_bytes)
-          write_double(io, value)
+          size_to_bytes(buffer, 8, size_bytes)
+          buffer.append_double(value)
         else
-          nil_to_bytes(io, size_bytes)
+          nil_to_bytes(buffer, size_bytes)
         end
       end
 
-      def float_to_bytes(io, value, size_bytes)
+      def float_to_bytes(buffer, value, size_bytes)
         if value
-          size_to_bytes(io, 4, size_bytes)
-          write_float(io, value)
+          size_to_bytes(buffer, 4, size_bytes)
+          buffer.append_float(value)
         else
-          nil_to_bytes(io, size_bytes)
+          nil_to_bytes(buffer, size_bytes)
         end
       end
 
-      def inet_to_bytes(io, value, size_bytes)
+      def inet_to_bytes(buffer, value, size_bytes)
         if value
-          size_to_bytes(io, value.ipv6? ? 16 : 4, size_bytes)
-          io << value.hton
+          size_to_bytes(buffer, value.ipv6? ? 16 : 4, size_bytes)
+          buffer.append(value.hton)
         else
-          nil_to_bytes(io, size_bytes)
+          nil_to_bytes(buffer, size_bytes)
         end
       end
 
-      def int_to_bytes(io, value, size_bytes)
+      def int_to_bytes(buffer, value, size_bytes)
         if value
-          size_to_bytes(io, 4, size_bytes)
-          write_int(io, value)
+          size_to_bytes(buffer, 4, size_bytes)
+          buffer.append_int(value)
         else
-          nil_to_bytes(io, size_bytes)
+          nil_to_bytes(buffer, size_bytes)
         end
       end
 
-      def varchar_to_bytes(io, value, size_bytes)
+      def varchar_to_bytes(buffer, value, size_bytes)
         v = value && value.encode(::Encoding::UTF_8)
         if size_bytes == 4
-          write_bytes(io, v)
+          buffer.append_bytes(v)
         else
-          write_short_bytes(io, v)
+          buffer.append_short_bytes(v)
         end
       end
 
-      def timestamp_to_bytes(io, value, size_bytes)
+      def timestamp_to_bytes(buffer, value, size_bytes)
         if value
           ms = (value.to_f * 1000).to_i
-          size_to_bytes(io, 8, size_bytes)
-          write_long(io, ms)
+          size_to_bytes(buffer, 8, size_bytes)
+          buffer.append_long(ms)
         else
-          nil_to_bytes(io, size_bytes)
+          nil_to_bytes(buffer, size_bytes)
         end
       end
 
-      def uuid_to_bytes(io, value, size_bytes)
+      def uuid_to_bytes(buffer, value, size_bytes)
         if value
-          size_to_bytes(io, 16, size_bytes)
-          write_uuid(io, value)
+          size_to_bytes(buffer, 16, size_bytes)
+          buffer.append_uuid(value)
         else
-          nil_to_bytes(io, size_bytes)
+          nil_to_bytes(buffer, size_bytes)
         end
       end
 
-      def varint_to_bytes(io, value, size_bytes)
-        raw = value && write_varint('', value)
+      def varint_to_bytes(buffer, value, size_bytes)
+        raw = value && CqlByteBuffer.new.append_varint(value)
         if size_bytes == 4
-          write_bytes(io, raw)
+          buffer.append_bytes(raw)
         else
-          write_short_bytes(io, raw)
+          buffer.append_short_bytes(raw)
         end
       end
 
-      def size_to_bytes(io, size, size_bytes)
+      def size_to_bytes(buffer, size, size_bytes)
         if size_bytes == 4
-          write_int(io, size)
+          buffer.append_int(size)
         else
-          write_short(io, size)
+          buffer.append_short(size)
         end
       end
 
-      def nil_to_bytes(io, size_bytes)
+      def nil_to_bytes(buffer, size_bytes)
         if size_bytes == 4
-          write_int(io, -1)
+          buffer.append_int(-1)
         else
-          write_short(io, -1)
+          buffer.append_short(-1)
         end
       end
     end

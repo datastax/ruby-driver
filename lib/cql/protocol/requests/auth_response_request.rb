@@ -10,8 +10,8 @@ module Cql
         @token = token
       end
 
-      def write(protocol_version, io)
-        write_bytes(io, @token)
+      def write(protocol_version, buffer)
+        buffer.append_bytes(@token)
       end
 
       def to_s

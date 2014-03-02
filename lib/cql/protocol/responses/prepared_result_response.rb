@@ -11,7 +11,7 @@ module Cql
       end
 
       def self.decode!(protocol_version, buffer, length, trace_id=nil)
-        id = read_short_bytes!(buffer)
+        id = buffer.read_short_bytes
         metadata, _ = RowsResultResponse.read_metadata!(protocol_version, buffer)
         result_metadata = nil
         if protocol_version > 1

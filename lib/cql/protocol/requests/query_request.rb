@@ -15,16 +15,16 @@ module Cql
         @cql = cql
         @values = values || EMPTY_LIST
         @type_hints = type_hints || EMPTY_LIST
-        @encoded_values = self.class.encode_values('', @values, @type_hints)
+        @encoded_values = self.class.encode_values(CqlByteBuffer.new, @values, @type_hints)
         @consistency = consistency
         @serial_consistency = serial_consistency
         @page_size = page_size
         @paging_state = paging_state
       end
 
-      def write(protocol_version, io)
-        write_long_string(io, @cql)
-        write_consistency(io, @consistency)
+      def write(protocol_version, buffer)
+        buffer.append_long_string(@cql)
+        buffer.append_consistency(@consistency)
         if protocol_version > 1
           flags  = 0
           flags |= 0x04 if @page_size
@@ -32,16 +32,16 @@ module Cql
           flags |= 0x10 if @serial_consistency
           if @values && @values.size > 0
             flags |= 0x01
-            io << flags.chr
-            io << @encoded_values
+            buffer.append(flags.chr)
+            buffer.append(@encoded_values)
           else
-            io << flags.chr
+            buffer.append(flags.chr)
           end
-          write_int(io, @page_size) if @page_size
-          write_bytes(io, @paging_state) if @paging_state
-          write_consistency(io, @serial_consistency) if @serial_consistency
+          buffer.append_int(@page_size) if @page_size
+          buffer.append_bytes(@paging_state) if @paging_state
+          buffer.append_consistency(@serial_consistency) if @serial_consistency
         end
-        io
+        buffer
       end
 
       def to_s
@@ -74,7 +74,7 @@ module Cql
 
       def self.encode_values(buffer, values, hints)
         if values && values.size > 0
-          Encoding.write_short(buffer, values.size)
+          buffer.append_short(values.size)
           values.each_with_index do |value, index|
             type = (hints && hints[index]) || guess_type(value)
             raise EncodingError, "Could not guess a suitable type for #{value.inspect}" unless type
@@ -82,7 +82,7 @@ module Cql
           end
           buffer
         else
-          Encoding.write_short(buffer, 0)
+          buffer.append_short(0)
         end
       end
 

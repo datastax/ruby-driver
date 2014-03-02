@@ -10,7 +10,7 @@ module Cql
       end
 
       def self.decode!(protocol_version, buffer, length, trace_id=nil)
-        new(read_string_multimap!(buffer))
+        new(buffer.read_string_multimap)
       end
 
       def to_s

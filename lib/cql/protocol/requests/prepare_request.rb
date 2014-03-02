@@ -11,8 +11,8 @@ module Cql
         @cql = cql
       end
 
-      def write(protocol_version, io)
-        write_long_string(io, @cql)
+      def write(protocol_version, buffer)
+        buffer.append_long_string(@cql)
       end
 
       def to_s

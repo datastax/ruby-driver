@@ -8,7 +8,7 @@ module Cql
     describe SchemaChangeEventResponse do
       describe '.decode!' do
         let :response do
-          buffer = ByteBuffer.new("\x00\aDROPPED\x00\ncql_rb_609\x00\x05users")
+          buffer = CqlByteBuffer.new("\x00\aDROPPED\x00\ncql_rb_609\x00\x05users")
           described_class.decode!(1, buffer, buffer.length)
         end
 

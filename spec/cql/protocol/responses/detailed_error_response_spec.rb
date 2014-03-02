@@ -8,7 +8,7 @@ module Cql
     describe DetailedErrorResponse do
       describe '.decode!' do
         it 'decodes an unavailable error' do
-          buffer = ByteBuffer.new("\x00\x05\x00\x00\x00\x03\x00\x00\x00\x02")
+          buffer = CqlByteBuffer.new("\x00\x05\x00\x00\x00\x03\x00\x00\x00\x02")
           response = described_class.decode!(0x1000, '', 1, buffer, buffer.length)
           response.details.should == {
             :cl => :all,
@@ -18,7 +18,7 @@ module Cql
         end
 
         it 'decodes a write_timeout error' do
-          buffer = ByteBuffer.new("\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00\tBATCH_LOG")
+          buffer = CqlByteBuffer.new("\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00\tBATCH_LOG")
           response = described_class.decode!(0x1100, '', 1, buffer, buffer.length)
           response.details.should == {
             :cl => :one,
@@ -29,7 +29,7 @@ module Cql
         end
 
         it 'decodes a read_timeout error' do
-          buffer = ByteBuffer.new("\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x01")
+          buffer = CqlByteBuffer.new("\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x01")
           response = described_class.decode!(0x1200, '', 1, buffer, buffer.length)
           response.details.should == {
             :cl => :one,
@@ -37,7 +37,7 @@ module Cql
             :blockfor => 1,
             :data_present => true
           }
-          buffer = ByteBuffer.new("\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00")
+          buffer = CqlByteBuffer.new("\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00")
           response = described_class.decode!(0x1200, '', 1, buffer, buffer.length)
           response.details.should == {
             :cl => :one,
@@ -48,7 +48,7 @@ module Cql
         end
 
         it 'decodes an already_exists error with a keyspace' do
-          buffer = ByteBuffer.new("\x00\x05stuff\x00\x00")
+          buffer = CqlByteBuffer.new("\x00\x05stuff\x00\x00")
           response = described_class.decode!(0x2400, '', 1, buffer, buffer.length)
           response.details.should == {
             :ks => 'stuff',
@@ -57,7 +57,7 @@ module Cql
         end
 
         it 'decodes an already_exists error with a keyspace and table' do
-          buffer = ByteBuffer.new("\x00\x05stuff\x00\x06things")
+          buffer = CqlByteBuffer.new("\x00\x05stuff\x00\x06things")
           response = described_class.decode!(0x2400, '', 1, buffer, buffer.length)
           response.details.should == {
             :ks => 'stuff',
@@ -66,7 +66,7 @@ module Cql
         end
 
         it 'decodes unprepared error' do
-          buffer = ByteBuffer.new("\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/")
+          buffer = CqlByteBuffer.new("\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/")
           response = described_class.decode!(0x2500, '', 1, buffer, buffer.length)
           response.details.should == {
             :id => "\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/"

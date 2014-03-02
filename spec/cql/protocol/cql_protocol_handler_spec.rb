@@ -23,7 +23,7 @@ module Cql
       end
 
       let :buffer do
-        ByteBuffer.new
+        CqlByteBuffer.new
       end
 
       before do

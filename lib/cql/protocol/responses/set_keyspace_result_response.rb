@@ -11,7 +11,7 @@ module Cql
       end
 
       def self.decode!(protocol_version, buffer, length, trace_id=nil)
-        new(read_string!(buffer), trace_id)
+        new(buffer.read_string, trace_id)
       end
 
       def to_s

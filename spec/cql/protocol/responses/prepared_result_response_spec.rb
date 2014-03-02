@@ -9,7 +9,7 @@ module Cql
       describe '.decode!' do
         context 'with a protocol v1 frame' do
           let :response do
-            buffer = ByteBuffer.new
+            buffer = CqlByteBuffer.new
             buffer << "\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/" # statement ID
             buffer << "\x00\x00\x00\x01" # flags (global_tables_spec)
             buffer << "\x00\x00\x00\x01" # column count
@@ -29,7 +29,7 @@ module Cql
 
         context 'with a protocol v2 frame' do
           let :response do
-            buffer = ByteBuffer.new
+            buffer = CqlByteBuffer.new
             buffer << "\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/" # statement ID
             buffer << "\x00\x00\x00\x01" # flags (global_tables_spec)
             buffer << "\x00\x00\x00\x01" # column count
@@ -61,7 +61,7 @@ module Cql
           end
 
           it 'decodes the absence of result metadata' do
-            buffer = ByteBuffer.new
+            buffer = CqlByteBuffer.new
             buffer << "\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/" # statement ID
             buffer << "\x00\x00\x00\x01" # flags (global_tables_spec)
             buffer << "\x00\x00\x00\x01" # column count

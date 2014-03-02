@@ -19,31 +19,31 @@ module Cql
         @serial_consistency = serial_consistency
         @page_size = page_size
         @paging_state = paging_state
-        @encoded_values = self.class.encode_values('', @metadata, @values)
+        @encoded_values = self.class.encode_values(CqlByteBuffer.new, @metadata, @values)
       end
 
-      def write(protocol_version, io)
-        write_short_bytes(io, @id)
+      def write(protocol_version, buffer)
+        buffer.append_short_bytes(@id)
         if protocol_version > 1
-          write_consistency(io, @consistency)
+          buffer.append_consistency(@consistency)
           flags  = 0
           flags |= 0x01 if @values.size > 0
           flags |= 0x02 unless @request_metadata
           flags |= 0x04 if @page_size
           flags |= 0x08 if @paging_state
           flags |= 0x10 if @serial_consistency
-          io << flags.chr
+          buffer.append(flags.chr)
           if @values.size > 0
-            io << @encoded_values
+            buffer.append(@encoded_values)
           end
-          write_int(io, @page_size) if @page_size
-          write_bytes(io, @paging_state) if @paging_state
-          write_consistency(io, @serial_consistency) if @serial_consistency
-          io
+          buffer.append_int(@page_size) if @page_size
+          buffer.append_bytes(@paging_state) if @paging_state
+          buffer.append_consistency(@serial_consistency) if @serial_consistency
         else
-          io << @encoded_values
-          write_consistency(io, @consistency)
+          buffer.append(@encoded_values)
+          buffer.append_consistency(@consistency)
         end
+        buffer
       end
 
       def to_s
@@ -71,7 +71,7 @@ module Cql
       end
 
       def self.encode_values(buffer, metadata, values)
-        Encoding.write_short(buffer, metadata.size)
+        buffer.append_short(metadata.size)
         metadata.each_with_index do |(_, _, _, type), index|
           TYPE_CONVERTER.to_bytes(buffer, type, values[index])
         end

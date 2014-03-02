@@ -3,8 +3,6 @@
 module Cql
   module Protocol
     class Request
-      include Encoding
-
       attr_reader :opcode, :trace
 
       def initialize(opcode, trace=false)

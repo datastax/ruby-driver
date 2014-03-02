@@ -8,13 +8,13 @@ module Cql
     describe AuthResponseRequest do
       describe '#write' do
         it 'encodes an AUTH_RESPONSE request frame' do
-          bytes = described_class.new('bingbongpong').write(2, '')
-          bytes.should == "\x00\x00\x00\x0cbingbongpong"
+          bytes = described_class.new('bingbongpong').write(2, CqlByteBuffer.new)
+          bytes.should eql_bytes("\x00\x00\x00\x0cbingbongpong")
         end
 
         it 'encodes a nil token' do
-          bytes = described_class.new(nil).write(2, '')
-          bytes.should == "\xff\xff\xff\xff"
+          bytes = described_class.new(nil).write(2, CqlByteBuffer.new)
+          bytes.should eql_bytes("\xff\xff\xff\xff")
         end
       end
 

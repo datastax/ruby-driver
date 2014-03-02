@@ -18,8 +18,8 @@ module Cql
         it 'encodes a BATCH request frame with a single prepared query' do
           batch = described_class.new(described_class::LOGGED_TYPE, :two)
           batch.add_prepared(statement_id, metadata, ['arg', 3])
-          bytes = batch.write(2, '')
-          bytes.should == (
+          bytes = batch.write(2, CqlByteBuffer.new)
+          bytes.should eql_bytes(
             "\x00" +
             "\x00\x01" +
             "\x01" +
@@ -32,8 +32,8 @@ module Cql
         it 'encodes a BATCH request frame with a single query' do
           batch = described_class.new(described_class::LOGGED_TYPE, :one)
           batch.add_query(%<INSERT INTO things (a, b) VALUES ('foo', 3)>)
-          bytes = batch.write(2, '')
-          bytes.should == (
+          bytes = batch.write(2, CqlByteBuffer.new)
+          bytes.should eql_bytes(
             "\x00" +
             "\x00\x01" +
             "\x00" +
@@ -46,8 +46,8 @@ module Cql
         it 'encodes a BATCH request frame with a single query with on-the-fly bound values' do
           batch = described_class.new(described_class::LOGGED_TYPE, :two)
           batch.add_query('INSERT INTO things (a, b) VALUES (?, ?)', ['foo', 5])
-          bytes = batch.write(2, '')
-          bytes.should == (
+          bytes = batch.write(2, CqlByteBuffer.new)
+          bytes.should eql_bytes(
             "\x00" +
             "\x00\x01" +
             "\x00" +
@@ -62,8 +62,8 @@ module Cql
           batch.add_prepared(statement_id, metadata, ['arg', 3])
           batch.add_query(%<INSERT INTO things (a, b) VALUES (?, ?)>, ['foo', 5])
           batch.add_query(%<INSERT INTO things (a, b) VALUES ('foo', 3)>)
-          bytes = batch.write(2, '')
-          bytes.should == (
+          bytes = batch.write(2, CqlByteBuffer.new)
+          bytes.should eql_bytes(
             "\x00" +
             "\x00\x03" +
             "\x01" +
@@ -82,22 +82,22 @@ module Cql
         it 'encodes the type when it is "logged"' do
           batch = described_class.new(described_class::LOGGED_TYPE, :two)
           batch.add_prepared(statement_id, metadata, ['arg', 3])
-          bytes = batch.write(2, '')
-          bytes[0].should == "\x00"
+          bytes = batch.write(2, CqlByteBuffer.new)
+          bytes.to_s[0].should == "\x00"
         end
 
         it 'encodes the type when it is "unlogged"' do
           batch = described_class.new(described_class::UNLOGGED_TYPE, :two)
           batch.add_prepared(statement_id, metadata, ['arg', 3])
-          bytes = batch.write(2, '')
-          bytes[0].should == "\x01"
+          bytes = batch.write(2, CqlByteBuffer.new)
+          bytes.to_s[0].should == "\x01"
         end
 
         it 'encodes the type when it is "counter"' do
           batch = described_class.new(described_class::COUNTER_TYPE, :two)
           batch.add_prepared(statement_id, metadata, ['arg', 3])
-          bytes = batch.write(2, '')
-          bytes[0].should == "\x02"
+          bytes = batch.write(2, CqlByteBuffer.new)
+          bytes.to_s[0].should == "\x02"
         end
 
         it 'encodes the number of statements in the batch' do
@@ -105,24 +105,24 @@ module Cql
           batch.add_prepared(statement_id, metadata, ['arg', 3])
           batch.add_prepared(statement_id, metadata, ['foo', 4])
           batch.add_prepared(statement_id, metadata, ['bar', 5])
-          bytes = batch.write(2, '')
-          bytes[1, 2].should == "\x00\x03"
+          bytes = batch.write(2, CqlByteBuffer.new)
+          bytes.to_s[1, 2].should == "\x00\x03"
         end
 
         it 'encodes the type of each statement' do
           batch = described_class.new(described_class::LOGGED_TYPE, :two)
           batch.add_prepared(statement_id, metadata, ['arg', 3])
           batch.add_query(%<INSERT INTO things (a, b) VALUES ('arg', 3)>)
-          bytes = batch.write(2, '')
-          bytes[3, 1].should == "\x01"
-          bytes[39, 1].should == "\x00"
+          bytes = batch.write(2, CqlByteBuffer.new)
+          bytes.to_s[3, 1].should == "\x01"
+          bytes.to_s[39, 1].should == "\x00"
         end
 
         it 'uses the type hints given to #add_query' do
           batch = described_class.new(described_class::LOGGED_TYPE, :two)
           batch.add_query(%<INSERT INTO things (a, b) VALUES (?, ?)>, ['foo', 3], [nil, :int])
-          bytes = batch.write(2, '')
-          bytes[56, 8].should == "\x00\x00\x00\x04\x00\x00\x00\x03"
+          bytes = batch.write(2, CqlByteBuffer.new)
+          bytes.to_s[56, 8].should == "\x00\x00\x00\x04\x00\x00\x00\x03"
         end
       end
 
