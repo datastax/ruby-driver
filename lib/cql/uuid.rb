@@ -39,7 +39,7 @@ module Cql
     end
 
     def hash
-      @h = (@n & 0xffffffffffffffff) ^ ((@n >> 64) & 0xffffffffffffffff)
+      @h ||= 0x7fffffffffffffff - ((@n & 0xffffffffffffffff) ^ ((@n >> 64) & 0xffffffffffffffff))
     end
 
     # Returns the numerical representation of this UUID

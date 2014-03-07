@@ -60,7 +60,7 @@ module Cql
 
     describe '#hash' do
       it 'calculates a 64 bit hash of the UUID' do
-        h = Uuid.new(276263553384940695775376958868900023510).hash
+        h = Uuid.new(162917432198567078063626261009205865234).hash
         h.should be < 2**63
         h.should be > -2**63
       end
