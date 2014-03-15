@@ -4,6 +4,8 @@ module Cql
   # A variant of UUID which can extract its time component.
   #
   class TimeUuid < Uuid
+    include Comparable
+
     # Returns the time component from this UUID as a Time.
     #
     # @return [Time]
@@ -18,6 +20,10 @@ module Cql
       seconds = t/10_000_000
       microseconds = (t - seconds * 10_000_000)/10.0
       Time.at(seconds, microseconds).utc
+    end
+
+    def <=>(other)
+      self.value <=> other.value
     end
 
     # A UUID version 1, variant 1 generator. It can generate a sequence of UUIDs

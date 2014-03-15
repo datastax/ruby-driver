@@ -12,6 +12,23 @@ module Cql
         x.to_time.should be < Time.utc(2013, 6, 9, 8, 45, 58)
       end
     end
+
+    describe '#<=>' do
+      let :uuids do
+        [
+          TimeUuid.new(175821750227570343682790694234162314858),
+          TimeUuid.new(179047849699804924671695969702288932458),
+          TimeUuid.new(179548637446269962124687370109891231338),
+          TimeUuid.new(180030188594876536196511058046351949418),
+          TimeUuid.new(180518394909134308472692603674640891498),
+          TimeUuid.new(183319310901264713895398493985212841578),
+        ]
+      end
+
+      it 'sorts by the time component' do
+        uuids.shuffle.sort.should == uuids
+      end
+    end
   end
 
   describe TimeUuid::Generator do
