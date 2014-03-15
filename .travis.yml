@@ -10,7 +10,6 @@ env:
     - CQL_ENABLE_AUTH=0
 services:
   - cassandra
-  - redis-server
 rvm:
   - 1.9.3
   - 2.0.0
