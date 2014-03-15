@@ -5,10 +5,6 @@ require 'spec_helper'
 
 module Cql
   describe TimeUuid do
-    let :time do
-      Time.utc(2013, 6, 7, 8, 9, 10)
-    end
-
     describe '#to_time' do
       it 'returns a Time' do
         x = TimeUuid.new('00b69180-d0e1-11e2-8b8b-0800200c9a66')
