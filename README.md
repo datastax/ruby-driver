@@ -223,7 +223,7 @@ loop do
   result_page.each do |row|
     p row
   end
-  if result_page.last?
+  if result_page.last_page?
     break
   else
     result_page = result_page.next_page
