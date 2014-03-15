@@ -10,28 +10,28 @@ module Cql
         @details = details
       end
 
-      def self.decode!(code, message, protocol_version, buffer, length, trace_id=nil)
+      def self.decode(code, message, protocol_version, buffer, length, trace_id=nil)
         details = {}
         case code
         when 0x1000 # unavailable
-          details[:cl] = read_consistency!(buffer)
-          details[:required] = read_int!(buffer)
-          details[:alive] = read_int!(buffer)
+          details[:cl] = buffer.read_consistency
+          details[:required] = buffer.read_int
+          details[:alive] = buffer.read_int
         when 0x1100 # write_timeout
-          details[:cl] = read_consistency!(buffer)
-          details[:received] = read_int!(buffer)
-          details[:blockfor] = read_int!(buffer)
-          details[:write_type] = read_string!(buffer)
+          details[:cl] = buffer.read_consistency
+          details[:received] = buffer.read_int
+          details[:blockfor] = buffer.read_int
+          details[:write_type] = buffer.read_string
         when 0x1200 # read_timeout
-          details[:cl] = read_consistency!(buffer)
-          details[:received] = read_int!(buffer)
-          details[:blockfor] = read_int!(buffer)
-          details[:data_present] = read_byte!(buffer) != 0
+          details[:cl] = buffer.read_consistency
+          details[:received] = buffer.read_int
+          details[:blockfor] = buffer.read_int
+          details[:data_present] = buffer.read_byte != 0
         when 0x2400 # already_exists
-          details[:ks] = read_string!(buffer)
-          details[:table] = read_string!(buffer)
+          details[:ks] = buffer.read_string
+          details[:table] = buffer.read_string
         when 0x2500
-          details[:id] = read_short_bytes!(buffer)
+          details[:id] = buffer.read_short_bytes
         end
         new(code, message, details)
       end

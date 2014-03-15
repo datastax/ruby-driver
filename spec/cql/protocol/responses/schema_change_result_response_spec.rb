@@ -6,10 +6,10 @@ require 'spec_helper'
 module Cql
   module Protocol
     describe SchemaChangeResultResponse do
-      describe '.decode!' do
+      describe '.decode' do
         let :response do
-          buffer = ByteBuffer.new("\x00\aUPDATED\x00\ncql_rb_973\x00\x05users")
-          described_class.decode!(1, buffer, buffer.length)
+          buffer = CqlByteBuffer.new("\x00\aUPDATED\x00\ncql_rb_973\x00\x05users")
+          described_class.decode(1, buffer, buffer.length)
         end
 
         it 'decodes the description' do

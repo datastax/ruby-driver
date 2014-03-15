@@ -6,16 +6,16 @@ require 'spec_helper'
 module Cql
   module Protocol
     describe AuthChallengeResponse do
-      describe '.decode!' do
+      describe '.decode' do
         it 'decodes the token' do
-          buffer = ByteBuffer.new("\x00\x00\x00\x0cbingbongpong")
-          response = described_class.decode!(1, buffer, buffer.length)
+          buffer = CqlByteBuffer.new("\x00\x00\x00\x0cbingbongpong")
+          response = described_class.decode(1, buffer, buffer.length)
           response.token.should == 'bingbongpong'
         end
 
         it 'decodes a nil token' do
-          buffer = ByteBuffer.new("\xff\xff\xff\xff")
-          response = described_class.decode!(1, buffer, buffer.length)
+          buffer = CqlByteBuffer.new("\xff\xff\xff\xff")
+          response = described_class.decode(1, buffer, buffer.length)
           response.token.should be_nil
         end
       end

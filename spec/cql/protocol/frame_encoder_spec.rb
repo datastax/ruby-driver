@@ -24,11 +24,11 @@ module Cql
         it 'asks the request to write itself to a buffer' do
           encoder = described_class.new(1)
           encoder.encode_frame(request)
-          request.should have_received(:write).with(anything, an_instance_of(ByteBuffer))
+          request.should have_received(:write).with(anything, an_instance_of(CqlByteBuffer))
         end
 
         it 'appends what the request wrote to the specified buffer, after a header' do
-          buffer = ByteBuffer.new('hello')
+          buffer = CqlByteBuffer.new('hello')
           request.stub(:write) { |pv, bb| bb << "\x01\x02\x03" }
           encoder = described_class.new(1)
           encoder.encode_frame(request, 0, buffer)
@@ -37,7 +37,7 @@ module Cql
         end
 
         it 'returns the specified buffer' do
-          buffer = ByteBuffer.new('hello')
+          buffer = CqlByteBuffer.new('hello')
           encoder = described_class.new(1)
           returned_buffer = encoder.encode_frame(request, 0, buffer)
           returned_buffer.should equal(buffer)
@@ -81,7 +81,7 @@ module Cql
         end
 
         it 'encodes the body size' do
-          request.stub(:write).and_return(ByteBuffer.new('helloworld'))
+          request.stub(:write).and_return(CqlByteBuffer.new('helloworld'))
           encoder = described_class.new(1)
           buffer = encoder.encode_frame(request, 9)
           buffer.to_s[4, 4].should == "\x00\x00\x00\x0a"
@@ -90,7 +90,7 @@ module Cql
         context 'when a compressor has been specified' do
           before do
             request.stub(:compressable?).and_return(true)
-            request.stub(:write).and_return(ByteBuffer.new('helloworld'))
+            request.stub(:write).and_return(CqlByteBuffer.new('helloworld'))
             compressor.stub(:compress?).and_return(true)
             compressor.stub(:compress).with('helloworld').and_return('COMPRESSEDFRAME')
           end
@@ -136,14 +136,14 @@ module Cql
         end
 
         it 'changes the stream ID byte' do
-          buffer = ByteBuffer.new("\x01\x00\x03\x02\x00\x00\x00\x00")
+          buffer = CqlByteBuffer.new("\x01\x00\x03\x02\x00\x00\x00\x00")
           encoder.change_stream_id(99, buffer)
           buffer.discard(2)
           buffer.read_byte.should == 99
         end
 
         it 'changes the stream ID byte of the frame starting at the specified offset' do
-          buffer = ByteBuffer.new("hello foo\x01\x00\x03\x02\x00\x00\x00\x00")
+          buffer = CqlByteBuffer.new("hello foo\x01\x00\x03\x02\x00\x00\x00\x00")
           encoder.change_stream_id(99, buffer, 9)
           buffer.discard(11)
           buffer.read_byte.should == 99

@@ -10,12 +10,12 @@ module Cql
         @id, @metadata, @result_metadata = id, metadata, result_metadata
       end
 
-      def self.decode!(protocol_version, buffer, length, trace_id=nil)
-        id = read_short_bytes!(buffer)
-        metadata, _ = RowsResultResponse.read_metadata!(protocol_version, buffer)
+      def self.decode(protocol_version, buffer, length, trace_id=nil)
+        id = buffer.read_short_bytes
+        metadata, _ = RowsResultResponse.read_metadata(protocol_version, buffer)
         result_metadata = nil
         if protocol_version > 1
-          result_metadata, _, _ = RowsResultResponse.read_metadata!(protocol_version, buffer)
+          result_metadata, _, _ = RowsResultResponse.read_metadata(protocol_version, buffer)
         end
         new(id, metadata, result_metadata, trace_id)
       end

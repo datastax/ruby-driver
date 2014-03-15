@@ -6,10 +6,10 @@ require 'spec_helper'
 module Cql
   module Protocol
     describe StatusChangeEventResponse do
-      describe '.decode!' do
+      describe '.decode' do
         let :response do
-          buffer = ByteBuffer.new("\x00\x04DOWN\x04\x00\x00\x00\x00\x00\x00#R")
-          described_class.decode!(1, buffer, buffer.length)
+          buffer = CqlByteBuffer.new("\x00\x04DOWN\x04\x00\x00\x00\x00\x00\x00#R")
+          described_class.decode(1, buffer, buffer.length)
         end
 
         it 'decodes the change' do

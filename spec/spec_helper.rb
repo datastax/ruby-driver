@@ -6,7 +6,6 @@ require 'bundler/setup'
 
 require 'support/bytes_helper'
 require 'support/await_helper'
-require 'support/fake_server'
 require 'support/fake_io_reactor'
 
 unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'

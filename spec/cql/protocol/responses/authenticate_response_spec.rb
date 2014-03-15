@@ -6,10 +6,10 @@ require 'spec_helper'
 module Cql
   module Protocol
     describe AuthenticateResponse do
-      describe '.decode!' do
+      describe '.decode' do
         let :response do
-          buffer = ByteBuffer.new("\x00\x2forg.apache.cassandra.auth.PasswordAuthenticator")
-          described_class.decode!(1, buffer, buffer.length)
+          buffer = CqlByteBuffer.new("\x00\x2forg.apache.cassandra.auth.PasswordAuthenticator")
+          described_class.decode(1, buffer, buffer.length)
         end
 
         it 'decodes the authentication class' do

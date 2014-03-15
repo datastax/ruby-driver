@@ -44,8 +44,8 @@ module Cql
           size = buffer.size
         end
         extra_length = buffer.length - size 
-        trace_id = tracing == 2 ? Decoding.read_uuid!(buffer) : nil
-        response = Response.decode!(opcode, protocol_version, buffer, size, trace_id)
+        trace_id = tracing == 2 ? buffer.read_uuid : nil
+        response = Response.decode(opcode, protocol_version, buffer, size, trace_id)
         if buffer.length > extra_length
           buffer.discard(buffer.length - extra_length)
         end
@@ -55,7 +55,7 @@ module Cql
       def decompress(buffer, size)
         if @compressor
           compressed_body = buffer.read(size)
-          ByteBuffer.new(@compressor.decompress(compressed_body))
+          CqlByteBuffer.new(@compressor.decompress(compressed_body))
         else
           raise UnexpectedCompressionError, 'Compressed frame received, but no compressor configured'
         end

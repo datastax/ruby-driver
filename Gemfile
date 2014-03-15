@@ -7,8 +7,6 @@ gem 'snappy'
 
 group :development do
   gem 'pry'
-  gem 'viiite'
-  gem 'travis-lint'
   platforms :mri do
     gem 'yard'
     gem 'redcarpet'

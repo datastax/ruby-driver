@@ -9,13 +9,13 @@ module Cql
         @code, @message = args
       end
 
-      def self.decode!(protocol_version, buffer, length, trace_id=nil)
-        code = read_int!(buffer)
-        message = read_string!(buffer)
+      def self.decode(protocol_version, buffer, length, trace_id=nil)
+        code = buffer.read_int
+        message = buffer.read_string
         case code
         when 0x1000, 0x1100, 0x1200, 0x2400, 0x2500
           new_length = length - 4 - 4 - message.bytesize
-          DetailedErrorResponse.decode!(code, message, protocol_version, buffer, new_length)
+          DetailedErrorResponse.decode(code, message, protocol_version, buffer, new_length)
         else
           new(code, message)
         end

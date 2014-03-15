@@ -39,7 +39,7 @@ module Cql
         end
 
         let :raw_rows_response do
-          Protocol::RawRowsResultResponse.new(2, ByteBuffer.new("\x00\x00\x00\x02\x00\x00\x00\x01a\x00\x00\x00\x01b"), nil, nil)
+          Protocol::RawRowsResultResponse.new(2, Protocol::CqlByteBuffer.new("\x00\x00\x00\x02\x00\x00\x00\x01a\x00\x00\x00\x01b"), nil, nil)
         end
 
         let :void_response do
@@ -179,7 +179,7 @@ module Cql
 
           it 'returns a LazyQueryResult that knows its paging state' do
             metadata = [['ks', 'tbl', 'col', :varchar]]
-            connection.stub(:send_request).with(request, anything).and_return(Future.resolved(Protocol::RawRowsResultResponse.new(2, ByteBuffer.new("\x00\x00\x00\x02\x00\x00\x00\x01a\x00\x00\x00\x01b"), 'bazbuzz', nil)))
+            connection.stub(:send_request).with(request, anything).and_return(Future.resolved(Protocol::RawRowsResultResponse.new(2, Protocol::CqlByteBuffer.new("\x00\x00\x00\x02\x00\x00\x00\x01a\x00\x00\x00\x01b"), 'bazbuzz', nil)))
             response = runner.execute(connection, request, nil, metadata).value
             response.paging_state.should == 'bazbuzz'
           end

@@ -6,10 +6,10 @@ require 'spec_helper'
 module Cql
   module Protocol
     describe ErrorResponse do
-      describe '.decode!' do
+      describe '.decode' do
         let :response do
-          buffer = ByteBuffer.new("\x00\x00\x00\n\x00PProvided version 4.0.0 is not supported by this server (supported: 2.0.0, 3.0.0)")
-          described_class.decode!(1, buffer, buffer.length)
+          buffer = CqlByteBuffer.new("\x00\x00\x00\n\x00PProvided version 4.0.0 is not supported by this server (supported: 2.0.0, 3.0.0)")
+          described_class.decode(1, buffer, buffer.length)
         end
 
         it 'decodes the error code' do
@@ -21,8 +21,8 @@ module Cql
         end
 
         it 'decodes error frames with details' do
-          buffer = ByteBuffer.new("\x00\x00\x11\x00\x000Operation timed out - received only 0 responses.\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00\tBATCH_LOG")
-          response = described_class.decode!(1, buffer, buffer.length)
+          buffer = CqlByteBuffer.new("\x00\x00\x11\x00\x000Operation timed out - received only 0 responses.\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00\tBATCH_LOG")
+          response = described_class.decode(1, buffer, buffer.length)
           response.details.should_not be_nil
         end
       end

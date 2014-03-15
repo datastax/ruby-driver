@@ -6,16 +6,16 @@ require 'spec_helper'
 module Cql
   module Protocol
     describe PreparedResultResponse do
-      describe '.decode!' do
+      describe '.decode' do
         context 'with a protocol v1 frame' do
           let :response do
-            buffer = ByteBuffer.new
+            buffer = CqlByteBuffer.new
             buffer << "\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/" # statement ID
             buffer << "\x00\x00\x00\x01" # flags (global_tables_spec)
             buffer << "\x00\x00\x00\x01" # column count
             buffer << "\x00\ncql_rb_911\x00\x05users" # global_tables_spec
             buffer << "\x00\tuser_name\x00\r" # col_spec (name + type)
-            described_class.decode!(1, buffer, buffer.length)
+            described_class.decode(1, buffer, buffer.length)
           end
 
           it 'decodes the ID' do
@@ -29,7 +29,7 @@ module Cql
 
         context 'with a protocol v2 frame' do
           let :response do
-            buffer = ByteBuffer.new
+            buffer = CqlByteBuffer.new
             buffer << "\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/" # statement ID
             buffer << "\x00\x00\x00\x01" # flags (global_tables_spec)
             buffer << "\x00\x00\x00\x01" # column count
@@ -40,7 +40,7 @@ module Cql
             buffer << "\x00\ncql_rb_911\x00\x05users" # global_tables_spec
             buffer << "\x00\tuser_name\x00\r" # col_spec (name + type)
             buffer << "\x00\x05email\x00\r" # col_spec (name + type)
-            described_class.decode!(2, buffer, buffer.length)
+            described_class.decode(2, buffer, buffer.length)
           end
 
           it 'decodes the ID' do
@@ -61,7 +61,7 @@ module Cql
           end
 
           it 'decodes the absence of result metadata' do
-            buffer = ByteBuffer.new
+            buffer = CqlByteBuffer.new
             buffer << "\x00\x10\xCAH\x7F\x1Ez\x82\xD2<N\x8A\xF35Qq\xA5/" # statement ID
             buffer << "\x00\x00\x00\x01" # flags (global_tables_spec)
             buffer << "\x00\x00\x00\x01" # column count
@@ -69,7 +69,7 @@ module Cql
             buffer << "\x00\tuser_name\x00\r" # col_spec (name + type)
             buffer << "\x00\x00\x00\x04" # flags (no_metadata)
             buffer << "\x00\x00\x00\x00" # column count
-            response = described_class.decode!(2, buffer, buffer.length)
+            response = described_class.decode(2, buffer, buffer.length)
             response.result_metadata.should be_nil
           end
         end

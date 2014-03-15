@@ -5,8 +5,8 @@ module Cql
     class AuthChallengeResponse < Response
       attr_reader :token
 
-      def self.decode!(protocol_version, buffer, length, trace_id=nil)
-        new(read_bytes!(buffer))
+      def self.decode(protocol_version, buffer, length, trace_id=nil)
+        new(buffer.read_bytes)
       end
 
       def initialize(token)

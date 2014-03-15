@@ -11,7 +11,7 @@ module Cql
 
       def materialize(metadata)
         @metadata = metadata
-        @rows = RowsResultResponse.read_rows!(@protocol_version, @raw_rows, @metadata)
+        @rows = RowsResultResponse.read_rows(@protocol_version, @raw_rows, @metadata)
       end
 
       def rows

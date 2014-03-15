@@ -2,14 +2,11 @@ PATH
   remote: .
   specs:
     cql-rb (2.0.0.pre0)
+      ione
 
 GEM
   remote: https://rubygems.org/
   specs:
-    alf (0.10.1)
-      highline (~> 1.6.2)
-      myrrha (~> 1.2.1)
-      quickl (~> 0.4.1)
     coderay (1.0.8)
     colorize (0.5.8)
     coveralls (0.6.7)
@@ -19,15 +16,10 @@ GEM
       simplecov (>= 0.7)
       thor
     diff-lcs (1.2.4)
-    gnuplot (2.3.6)
-    hashr (0.0.22)
-    highline (1.6.15)
-    json (1.7.6)
-    json (1.7.6-java)
+    ione (1.0.0)
     method_source (0.8.1)
     mime-types (1.23)
     multi_json (1.7.7)
-    myrrha (1.2.2)
     perftools.rb (2.0.1)
     pry (0.9.10)
       coderay (~> 1.0.5)
@@ -38,7 +30,6 @@ GEM
       method_source (~> 0.8)
       slop (~> 3.3.1)
       spoon (~> 0.0)
-    quickl (0.4.3)
     rake (10.0.2)
     redcarpet (2.2.2)
     rest-client (1.6.7)
@@ -62,12 +53,6 @@ GEM
     snappy-jars (1.1.0.1.2-java)
     spoon (0.0.1)
     thor (0.18.1)
-    travis-lint (1.7.0)
-      hashr (~> 0.0.22)
-    viiite (0.2.0)
-      alf (~> 0.10.1)
-      gnuplot (~> 2.3.6)
-      json
     yard (0.8.4.1)
 
 PLATFORMS
@@ -84,6 +69,4 @@ DEPENDENCIES
   rspec
   simplecov
   snappy
-  travis-lint
-  viiite
   yard

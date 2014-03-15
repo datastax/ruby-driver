@@ -5,8 +5,8 @@ module Cql
     class AuthenticateResponse < Response
       attr_reader :authentication_class
 
-      def self.decode!(protocol_version, buffer, length, trace_id=nil)
-        new(read_string!(buffer))
+      def self.decode(protocol_version, buffer, length, trace_id=nil)
+        new(buffer.read_string)
       end
 
       def initialize(authentication_class)

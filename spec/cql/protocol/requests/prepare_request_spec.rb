@@ -14,8 +14,8 @@ module Cql
 
       describe '#write' do
         it 'encodes a PREPARE request frame' do
-          bytes = PrepareRequest.new('UPDATE users SET email = ? WHERE user_name = ?').write(1, '')
-          bytes.should == "\x00\x00\x00\x2eUPDATE users SET email = ? WHERE user_name = ?"
+          bytes = PrepareRequest.new('UPDATE users SET email = ? WHERE user_name = ?').write(1, CqlByteBuffer.new)
+          bytes.should eql_bytes("\x00\x00\x00\x2eUPDATE users SET email = ? WHERE user_name = ?")
         end
       end
 

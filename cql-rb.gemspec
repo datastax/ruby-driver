@@ -21,5 +21,7 @@ Gem::Specification.new do |s|
   s.bindir        = 'bin'
 
   s.platform = Gem::Platform::RUBY
-  s.required_ruby_version = '>= 1.9.2'
+  s.required_ruby_version = '>= 1.9.3'
+
+  s.add_dependency 'ione'
 end

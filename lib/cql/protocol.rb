@@ -41,8 +41,7 @@ module Cql
   end
 end
 
-require 'cql/protocol/encoding'
-require 'cql/protocol/decoding'
+require 'cql/protocol/cql_byte_buffer'
 require 'cql/protocol/type_converter'
 require 'cql/protocol/response'
 require 'cql/protocol/responses/auth_challenge_response'

@@ -6,9 +6,9 @@ require 'spec_helper'
 module Cql
   module Protocol
     describe SetKeyspaceResultResponse do
-      describe '.decode!' do
+      describe '.decode' do
         let :response do
-          described_class.decode!(1, ByteBuffer.new("\x00\x06system"), 8)
+          described_class.decode(1, CqlByteBuffer.new("\x00\x06system"), 8)
         end
 
         it 'decodes the keyspace' do
