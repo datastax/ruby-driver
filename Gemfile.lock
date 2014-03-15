@@ -23,7 +23,7 @@ GEM
     gnuplot (2.3.6)
     hashr (0.0.22)
     highline (1.6.15)
-    ione (1.0.0.pre1)
+    ione (1.0.0.pre2)
     json (1.7.6)
     json (1.7.6-java)
     method_source (0.8.1)
