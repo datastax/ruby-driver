@@ -82,6 +82,10 @@ module Cql
       it 'returns the numeric value' do
         Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6').value.should == 276263553384940695775376958868900023510
       end
+
+      it 'is aliased as #to_i' do
+        Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6').to_i.should == 276263553384940695775376958868900023510
+      end
     end
   end
 end

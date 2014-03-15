@@ -49,6 +49,7 @@ module Cql
     def value
       @n
     end
+    alias_method :to_i, :value
 
     # @private
     def eql?(other)
