@@ -28,13 +28,12 @@ module Cql
     #
     def to_s
       @s ||= begin
-        parts = []
-        parts << (@n >> (24 * 4)).to_s(16).rjust(8, '0')
-        parts << ((@n >> (20 * 4)) & 0xffff).to_s(16).rjust(4, '0')
-        parts << ((@n >> (16 * 4)) & 0xffff).to_s(16).rjust(4, '0')
-        parts << ((@n >> (12 * 4)) & 0xffff).to_s(16).rjust(4, '0')
-        parts << (@n & 0xffffffffffff).to_s(16).rjust(12, '0')
-        parts.join('-').force_encoding(::Encoding::ASCII)
+        s = RAW_FORMAT % @n
+        s.insert(20, HYPHEN)
+        s.insert(16, HYPHEN)
+        s.insert(12, HYPHEN)
+        s.insert( 8, HYPHEN)
+        s
       end
     end
 
@@ -59,6 +58,8 @@ module Cql
 
     private
 
+    RAW_FORMAT = '%032x'.freeze
+    HYPHEN = '-'.freeze
     HEX_STRING_PATTERN = /^[0-9a-fA-F]+$/
 
     def from_s(str)
