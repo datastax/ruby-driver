@@ -63,7 +63,7 @@ module Cql
 
     def from_s(str)
       str = str.gsub('-', '')
-      raise ArgumentError, "Expected 32 chars but got #{str.length}" unless str.length == 32
+      raise ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}" unless str.length == 32
       Integer(str, 16)
     end
   end
