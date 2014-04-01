@@ -59,7 +59,7 @@ module Cql
     private
 
     RAW_FORMAT = '%032x'.force_encoding(Encoding::ASCII).freeze
-    HYPHEN = '-'.freeze
+    HYPHEN = '-'.force_encoding(Encoding::ASCII).freeze
 
     def from_s(str)
       str = str.gsub('-', '')
