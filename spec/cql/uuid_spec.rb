@@ -56,6 +56,11 @@ module Cql
       it 'returns a UUID standard format' do
         Uuid.new('a4a70900-24e1-11df-8924-001ff3591711').to_s.should == 'a4a70900-24e1-11df-8924-001ff3591711'
       end
+
+      it 'returns an ASCII string' do
+        s = Uuid.new('a4a70900-24e1-11df-8924-001ff3591711').to_s
+        s.encoding.should == Encoding::ASCII
+      end
     end
 
     describe '#hash' do
