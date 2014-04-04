@@ -5,28 +5,26 @@ before_install:
   - 'test "$CQL_ENABLE_AUTH" = "1" && sudo perl -pi -e "s/(?<=authenticator: )AllowAllAuthenticator/PasswordAuthenticator/" /usr/local/cassandra/conf/cassandra.yaml && echo "Authentication enabled" || echo "Authentication disabled"'
   - 'test "$CQL_ENABLE_AUTH" = "1" && sudo service cassandra restart || :'
 env:
-  matrix:
-    - CQL_ENABLE_AUTH=1
+  global:
     - CQL_ENABLE_AUTH=0
 services:
   - cassandra
 rvm:
   - 1.9.3
   - 2.0.0
+  - 2.1.1
   - jruby
   - rbx
 jdk:
   - openjdk7
 matrix:
-  exclude:
-    - rvm: 1.9.3
-      jdk: openjdk7
+  include:
+    - rvm: 2.1.1
       env: CQL_ENABLE_AUTH=1
+      jdk: openjdk7
     - rvm: jruby
-      jdk: openjdk7
-      env: CQL_ENABLE_AUTH=1
-    - rvm: rbx
-      jdk: openjdk7
-      env: CQL_ENABLE_AUTH=1
+      env: CQL_ENABLE_AUTH=0
+      jdk: oraclejdk8
   allow_failures:
     - rvm: rbx
+  fast_finish: true
