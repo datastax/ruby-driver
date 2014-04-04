@@ -159,7 +159,10 @@ module Cql
 
       describe '#each' do
         it 'delegates to the wrapped result' do
-          query_result.stub(:each).and_yield(:row1).and_yield(:row2)
+          query_result.stub(:each) do |&block|
+            block.call(:row1)
+            block.call(:row2)
+          end
           rows = paged_query_result.each_with_object([]) { |row, rows| rows << row }
           rows.should == [:row1, :row2]
         end
