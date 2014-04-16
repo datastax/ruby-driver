@@ -1,6 +1,25 @@
 #!/usr/bin/env ruby
 # encoding: utf-8
 
+# Stress test of the client reconnection features.
+#
+# Requires CCM (https://github.com/pcmanus/ccm) and a cluster of at least three
+# nodes. Expects the cluster to be called "cql-rb" by default, but uses the
+# value of the CCM_CLUSTER environment variable if it exists.
+#
+# Install CCM by following the installation instructions (make sure to add
+# the 127.0.0.x aliases if you're on OS X) and then create a five node cluster:
+#
+#   ccm create -d -v 2.0.6 -n 5 cql-rb
+#
+# Then run chaos:
+#
+#   ./spec/bin/chaos
+#
+# You should see lots of output. Every five seconds the node statuses are
+# printed, and a node will be killed with 20% probability. When only a single
+# node remains all other nodes will be restarted.
+
 $: << File.expand_path('../../lib', __FILE__)
 
 require 'bundler/setup'
