@@ -23,14 +23,24 @@ class ClusterController
     exec('stop')
   end
 
-  def nodes_up
+  def status
     output = exec('status')
-    output.scan(/^([^:]+): UP/).flatten
+    s = {}
+    output.each_line do |line|
+      node, state = line.scan(/^([^:]+): (UP|DOWN)/).flatten
+      s[node] = state
+    end
+    s
+  end
+
+  def nodes_up
+    s = status
+    s.select { |node| s[node] == 'UP' }.keys
   end
 
   def nodes_down
-    output = exec('status')
-    output.scan(/^([^:]+): DOWN/).flatten
+    s = status
+    s.select { |node| s[node] == 'DOWN' }.keys
   end
 
   def kill_node
@@ -51,32 +61,33 @@ class ClusterController
   end
 end
 
-ALREADY_EXISTS_ERROR_CODE = 0x2400
+def log_node_states(cluster_controller, logger)
+  logger.debug(cluster_controller.status.to_a.map { |node, state| "#{node}: #{state}" }.join(', '))
+end
 
 logger = Logger.new($stderr)
 
 cluster_controller = ClusterController.new(ENV['CCM_CLUSTER'] || 'cql-rb', logger)
 cluster_controller.start
 
-logger.info(%(Cluster started, #{cluster_controller.nodes_up.size} nodes))
+log_node_states(cluster_controller, logger)
 
-client = Cql::Client.connect(logger: logger)
+logger.info(%(Cluster started, #{cluster_controller.status.size} nodes))
+
+client = Cql::Client.connect(logger: logger, hosts: %w[127.0.0.1 127.0.0.3])
 
 logger.info('Connected to cluster')
 
-begin
-  client.execute(%<CREATE KEYSPACE cql_rb_chaos_spec WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 3}>)
-rescue Cql::QueryError => e
-  raise unless e.code == ALREADY_EXISTS_ERROR_CODE
-end
 
-client.execute(%<USE cql_rb_chaos_spec>)
+client.execute(%<CREATE KEYSPACE IF NOT EXISTS cql_rb_chaos_spec WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 3}>)
 
 begin
-  client.execute(%<CREATE TABLE people (id TEXT PRIMARY KEY, first TEXT, last TEXT)>)
-rescue Cql::QueryError => e
-  raise unless e.code == ALREADY_EXISTS_ERROR_CODE
+  client.execute(%<USE cql_rb_chaos_spec>)
+rescue Cql::QueryError
+  retry
 end
+
+client.execute(%<CREATE TABLE IF NOT EXISTS people (id TEXT PRIMARY KEY, first TEXT, last TEXT)>)
 
 logger.info('Keyspace and table set up')
 
@@ -105,12 +116,14 @@ logger.info('Data inserted')
 logger.info('Go!')
 
 counter = 0
-failures = 0
+connection_failures = 0
+server_errors = 0
 
 chaos_thread = Thread.start do
   while client.connected?
     sleep(5)
-    logger.info("#{counter} operations done, #{failures} failures")
+    logger.info("#{counter} operations done, #{connection_failures} connection failures and #{server_errors} server errors")
+    log_node_states(cluster_controller, logger)
     if cluster_controller.nodes_up.size == 1
       logger.info('Restoring cluster')
       cluster_controller.restore
@@ -126,12 +139,18 @@ begin
     id = people.sample.split(' ').last.downcase
     begin
       select_person_statement.execute(id)
-    rescue Cql::QueryError, Cql::Io::ConnectionError => e
-      logger.warn("Execute failed: #{e.message}")
-      failures += 1
+    rescue Cql::QueryError => e
+      logger.warn("Execute failed with #{e.class.name} ##{e.code.to_s(16)}: #{e.message}")
+      server_errors += 1
+    rescue Cql::Io::ConnectionError => e
+      logger.warn("Execute failed with #{e.class.name}: #{e.message}")
+      connection_failures += 1
     end
     counter += 1
   end
+rescue Cql::NotConnectedError => e
+  logger.error("Caught not connected error, exiting: #{e.message}")
+  log_node_states(cluster_controller, logger)
 rescue Interrupt
   logger.info("Stopping")
 end
