@@ -86,6 +86,17 @@ module Cql
           encoded_frame.to_s.should include(Protocol::ExecuteRequest.encode_values(Protocol::CqlByteBuffer.new, metadata, [3, 'foo']))
         end
 
+        it 'resets the batch so that it can be used again' do
+          batch.add('UPDATE x SET y = 1 WHERE z = 2')
+          batch.execute.value
+          batch.add('UPDATE x SET y = 2 WHERE z = 3')
+          batch.execute.value
+          first_request, second_request = requests.map { |r| r[0].write(1, Protocol::CqlByteBuffer.new).to_s }
+          first_request.should include('UPDATE x SET y = 1 WHERE z = 2')
+          second_request.should include('UPDATE x SET y = 2 WHERE z = 3')
+          second_request.should_not include('UPDATE x SET y = 1 WHERE z = 2')
+        end
+
         it 'uses the provided type hints' do
           batch.add('UPDATE x SET y = 2 WHERE z = ?', 3, type_hints: [:int])
           batch.execute.value

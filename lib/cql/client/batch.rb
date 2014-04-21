@@ -100,6 +100,7 @@ module Cql
             raise
           end
         end
+        @parts = []
         @request_runner.execute(connection, request, options[:timeout])
       end
 
