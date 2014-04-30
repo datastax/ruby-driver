@@ -60,19 +60,20 @@ module Cql
 
     RAW_FORMAT = '%032x'.force_encoding(Encoding::ASCII).freeze
     HYPHEN = '-'.force_encoding(Encoding::ASCII).freeze
+    EMPTY_STRING = ''.freeze
 
     if RUBY_ENGINE == 'jruby'
       HEX_RE = /^[A-Fa-f0-9]+$/
       # See https://github.com/jruby/jruby/issues/1608
       def from_s(str)
-        str = str.gsub('-', '')
+        str = str.gsub(HYPHEN, EMPTY_STRING)
         raise ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}" unless str.length == 32
         raise ArgumentError, "invalid value for Integer(): \"#{str}\"" unless str =~ HEX_RE
         Integer(str, 16)
       end
     else
       def from_s(str)
-        str = str.gsub('-', '')
+        str = str.gsub(HYPHEN, EMPTY_STRING)
         raise ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}" unless str.length == 32
         Integer(str, 16)
       end
