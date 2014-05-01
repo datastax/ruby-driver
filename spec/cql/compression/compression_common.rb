@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 
-shared_examples 'compressor' do |algorithm|
+shared_examples 'compressor' do |algorithm, compressed_string|
   describe '#algorithm' do
     it %(returns "#{algorithm}") do
       described_class.new.algorithm.should == algorithm
@@ -37,7 +37,7 @@ shared_examples 'compressor' do |algorithm|
     end
 
     it 'decompresses compressed strings' do
-      input = "\x19\x10helloN\x05\x00"
+      input = compressed_string
       decompressed = compressor.decompress(input)
       decompressed.should == 'hellohellohellohellohello'
     end
