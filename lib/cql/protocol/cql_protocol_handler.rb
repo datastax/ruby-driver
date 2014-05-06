@@ -84,7 +84,8 @@ module Cql
       # @yieldparam error [nil, Error] the error that caused the connection to
       #   close, if any
       def on_closed(&listener)
-        @closed_promise.future.on_complete(&listener)
+        @closed_promise.future.on_value(&listener)
+        @closed_promise.future.on_failure(&listener)
       end
 
       # Register to receive server sent events, like schema changes, nodes going

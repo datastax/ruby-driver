@@ -322,6 +322,13 @@ module Cql
           called.should be_true, 'expected the close listener to have been called'
         end
 
+        it 'passes the error that made the connection close to the listener' do
+          error = nil
+          protocol_handler.on_closed { |e| error = e }
+          connection.closed_listener.call(StandardError.new('Blurgh'))
+          error.message.should == 'Blurgh'
+        end
+
         it 'ignores errors raised by the listener' do
           called = false
           protocol_handler.on_closed { |e| raise 'Blurgh' }
