@@ -36,10 +36,12 @@ module Cql
         true
       end
 
+      # Always returns true
       def last_page?
         true
       end
 
+      # Always returns nil
       def next_page
         nil
       end
