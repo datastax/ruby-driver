@@ -2,6 +2,7 @@
 
 module Cql
   module Client
+    # @see Cql::Client.connect
     class Client
       # @!method connect
       #

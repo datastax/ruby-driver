@@ -2,6 +2,7 @@
 
 module Cql
   module Client
+    # @see Cql::Client::Client#batch
     class Batch
       # @!method add(cql_or_prepared_statement, *bound_values)
       #
@@ -37,6 +38,7 @@ module Cql
       # @return [Cql::Client::VoidResult] a batch always returns a void result
     end
 
+    # @see Cql::Client::PreparedStatement#batch
     class PreparedStatementBatch
       # @!method add(*bound_values)
       #
