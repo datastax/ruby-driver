@@ -20,7 +20,6 @@ module Cql
   TimeoutError = Class.new(CqlError)
   ClientError = Class.new(CqlError)
   AuthenticationError = Class.new(ClientError)
-  IncompleteTraceError = Class.new(ClientError)
   UnsupportedProtocolVersionError = Class.new(ClientError)
   NotPreparedError = Class.new(ClientError)
 
