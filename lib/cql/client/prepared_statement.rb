@@ -56,10 +56,22 @@ module Cql
       # arguments should result in an `ArgumentError` or `TypeError` being
       # raised.
       #
-      # @param args [Array] the values for the bound parameters. The last
-      #   argument can also be an options hash or a symbol (as a shortcut for
-      #   specifying the consistency), see {Cql::Client::Client#execute} for
-      #   full details.
+      # @example Preparing and executing an `INSERT` statement
+      #   statement = client.prepare(%(INSERT INTO metrics (id, time, value) VALUES (?, NOW(), ?)))
+      #   statement.execute(1234, 23432)
+      #   statement.execute(2345, 34543, tracing: true)
+      #   statement.execute(3456, 45654, consistency: :one)
+      #
+      # @example Preparing and executing a `SELECT` statement
+      #   statement = client.prepare(%(SELECT * FROM metrics WHERE id = ? AND time > ?))
+      #   result = statement.execute(1234, Time.now - 3600)
+      #   result.each do |row|
+      #     p row
+      #   end
+      #
+      # @param args [Array] the values for the bound parameters, and an optional
+      #   hash of options as last argument – see {Cql::Client::Client#execute}
+      #   for details on which options are available.
       # @raise [ArgumentError] raised when number of argument does not match
       #   the number of parameters needed to be bound to the statement.
       # @raise [Cql::NotConnectedError] raised when the client is not connected
