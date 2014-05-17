@@ -2,6 +2,9 @@
 
 module Cql
   module Client
+    # A collection of metadata (keyspace, table, name and type) of a result set.
+    #
+    # @see Cql::Client::ColumnMetadata
     class ResultMetadata
       include Enumerable
 

@@ -2,6 +2,16 @@
 
 module Cql
   module Client
+    # Many CQL queries do not return any rows, but they can still return
+    # data about the query, for example the trace ID. This class exist to make
+    # that data available.
+    #
+    # It has the exact same API as {Cql::Client::QueryResult} so that you don't
+    # need to check the return value of for example {Cql::Client::Client#execute}.
+    #
+    # @see Cql::Client::QueryResult
+    # @see Cql::Client::Client#execute
+    # @see Cql::Client::PreparedStatement#execute
     class VoidResult
       include Enumerable
 

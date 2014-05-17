@@ -2,6 +2,16 @@
 
 module Cql
   module Client
+    # Query results encapsulate the rows returned by a query.
+    #
+    # In addition to containing the rows it contains metadata about the data
+    # types of the columns of the rows, and it knows the ID of the trace,
+    # if tracing was requested for the query.
+    #
+    # When paging over a big result you can use {#last_page?} to find out if the
+    # page is the last, or {#next_page} to retrieve the next page.
+    #
+    # `QueryResult` is an `Enumerable` so it can be mapped, filtered, reduced, etc.
     class QueryResult
       include Enumerable
 

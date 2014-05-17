@@ -2,6 +2,27 @@
 
 module Cql
   module Client
+    # A CQL client manages connections to one or more Cassandra nodes and you use
+    # it run queries, insert and update data, prepare statements and switch
+    # keyspaces.
+    #
+    # To get a reference to a client you call {Cql::Client.connect}. When you
+    # don't need the client anymore you can call {#close} to close all connections.
+    #
+    # Internally the client runs an IO reactor in a background thread. The reactor
+    # handles all IO and manages the connections to the Cassandra nodes. This
+    # makes it possible for the client to handle highly concurrent applications
+    # very efficiently.
+    #
+    # Client instances are threadsafe and you only need a single instance for in
+    # an application. Using multiple instances is more likely to lead to worse
+    # performance than better.
+    #
+    # Because the client opens sockets, and runs threads it cannot be used by
+    # the child created when forking a process. If your application forks (for
+    # example applications running in the Unicorn application server or Resque
+    # task queue) you _must_ connect after forking.
+    #
     # @see Cql::Client.connect
     class Client
       # @!method close
