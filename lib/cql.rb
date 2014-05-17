@@ -5,11 +5,16 @@ require 'ione'
 
 module Cql
   CqlError = Class.new(StandardError)
-
-  Promise = Ione::Promise
-  Future = Ione::Future
-  Io = Ione::Io
   IoError = Ione::IoError
+
+  # @private
+  Promise = Ione::Promise
+
+  # @private
+  Future = Ione::Future
+
+  # @private
+  Io = Ione::Io
 end
 
 require 'cql/uuid'
