@@ -4,7 +4,7 @@ require 'spec_helper'
 
 
 module Cql
-  module Client
+  module Auth
     describe PlainTextAuthProvider do
       let :auth_provider do
         described_class.new('foo', 'bar')

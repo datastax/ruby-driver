@@ -510,7 +510,7 @@ module Cql
 
         context 'when the server requests authentication' do
           let :auth_provider do
-            PlainTextAuthProvider.new('foo', 'bar')
+            Auth::PlainTextAuthProvider.new('foo', 'bar')
           end
 
           def accepting_request_handler(request, *)

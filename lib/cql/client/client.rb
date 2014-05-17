@@ -226,7 +226,7 @@ module Cql
         @port = options[:port] || DEFAULT_PORT
         @connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
         @credentials = options[:credentials]
-        @auth_provider = options[:auth_provider] || @credentials && PlainTextAuthProvider.new(*@credentials.values_at(:username, :password))
+        @auth_provider = options[:auth_provider] || @credentials && Auth::PlainTextAuthProvider.new(*@credentials.values_at(:username, :password))
         @connected = false
         @connecting = false
         @closing = false
