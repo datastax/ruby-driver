@@ -231,15 +231,11 @@ If you're using Cassandra 2.0 or later you can page your query results by adding
 ```ruby
 result_page = client.execute("SELECT * FROM large_table WHERE id = 'partition_with_lots_of_data'", page_size: 100)
 
-loop do
+while result_page
   result_page.each do |row|
     p row
   end
-  if result_page.last_page?
-    break
-  else
-    result_page = result_page.next_page
-  end
+  result_page = result_page.next_page
 end
 ```
 

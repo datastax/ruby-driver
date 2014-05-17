@@ -75,6 +75,15 @@ module Cql
       # @example Specifying the consistency and other options
       #   client.execute("SELECT * FROM users", consistency: :all, timeout: 1.5)
       #
+      # @example Loading a big result page by page
+      #   result_page = client.execute("SELECT * FROM large_table WHERE id = 'partition_with_lots_of_data'", page_size: 100)
+      #   while result_page
+      #     result_page.each do |row|
+      #       p row
+      #     end
+      #     result_page = result_page.next_page
+      #   end
+      #
       # @example Activating tracing for a query
       #   result = client.execute("SELECT * FROM users", tracing: true)
       #   p result.trace_id
@@ -105,6 +114,10 @@ module Cql
       # @option options_or_consistency [Boolean] :trace (false) Request tracing
       #   for this request. See {Cql::Client::QueryResult} and
       #   {Cql::Client::VoidResult} for how to retrieve the tracing data.
+      # @option options_or_consistency [Integer] :page_size (nil) Instead of
+      #   returning all rows, return the response in pages of this size. The
+      #   first result will contain the first page, to load subsequent pages
+      #   use {Cql::Client::QueryResult#next_page}.
       # @option options_or_consistency [Array] :type_hints (nil) When passing
       #   on-the-fly bound values the request encoder will have to guess what
       #   types to encode the values as. Using this option you can give it hints
