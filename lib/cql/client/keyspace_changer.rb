@@ -5,7 +5,7 @@ module Cql
     # @private
     class KeyspaceChanger
       KEYSPACE_NAME_PATTERN = /^\w[\w\d_]*$|^"\w[\w\d_]*"$/
-      
+
       def initialize(request_runner=RequestRunner.new)
         @request_runner = request_runner
       end

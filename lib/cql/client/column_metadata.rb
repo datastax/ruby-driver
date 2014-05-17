@@ -7,7 +7,7 @@ module Cql
     # the type as a symbol (e.g. `:varchar`, `:int`, `:date`).
     class ColumnMetadata
       attr_reader :keyspace, :table, :column_name, :type
-      
+
       # @private
       def initialize(*args)
         @keyspace, @table, @column_name, @type = args

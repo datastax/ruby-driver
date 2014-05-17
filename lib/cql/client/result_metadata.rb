@@ -16,7 +16,6 @@ module Cql
       # Returns the column metadata
       #
       # @return [ColumnMetadata] column_metadata the metadata for the column
-      #
       def [](column_name)
         @metadata[column_name]
       end
@@ -25,7 +24,6 @@ module Cql
       #
       # @yieldparam [ColumnMetadata] metadata the metadata for each column
       # @return [Enumerable<ColumnMetadata>]
-      #
       def each(&block)
         @metadata.each_value(&block)
       end
