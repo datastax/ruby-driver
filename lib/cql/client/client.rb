@@ -45,7 +45,8 @@ module Cql
       # bound values when you will issue the request multiple times, prepared
       # statements are almost always a better choice.
       #
-      # @note On-the-fly bound values are not supported in Cassandra 1.2
+      # _Please note that on-the-fly bound values are only supported by Cassandra
+      # 2.0 and above._
       #
       # @example A simple CQL query
       #   result = client.execute("SELECT * FROM users WHERE user_name = 'sue'")
