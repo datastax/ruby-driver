@@ -337,7 +337,7 @@ module Cql
       MAX_RECONNECTION_ATTEMPTS = 5
 
       def extract_hosts(options)
-        if options[:hosts]
+        if options[:hosts] && options[:hosts].any?
           options[:hosts].uniq
         elsif options[:host]
           options[:host].split(',').uniq
