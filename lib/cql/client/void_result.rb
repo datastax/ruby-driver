@@ -26,6 +26,14 @@ module Cql
         true
       end
 
+      def last_page?
+        true
+      end
+
+      def next_page
+        nil
+      end
+
       # No-op for API compatibility with {QueryResult}.
       #
       # @return [Enumerable]

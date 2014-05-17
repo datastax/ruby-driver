@@ -12,6 +12,18 @@ module Cql
         end
       end
 
+      describe '#last_page?' do
+        it 'is true' do
+          described_class.new.should be_last_page
+        end
+      end
+
+      describe '#next_page' do
+        it 'returns nil' do
+          described_class.new.next_page.should be_nil
+        end
+      end
+
       describe '#trace_id' do
         it 'is nil' do
           described_class.new.trace_id.should be_nil
