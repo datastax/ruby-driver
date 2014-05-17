@@ -4,17 +4,6 @@ module Cql
   module Client
     # @see Cql::Client.connect
     class Client
-      # @!method connect
-      #
-      # Connect to all nodes. See {Cql::Client.connect} for the full
-      # documentation.
-      #
-      # This method needs to be called before any other. Calling it again will
-      # have no effect.
-      #
-      # @see Cql::Client.connect
-      # @return [Cql::Client]
-
       # @!method close
       #
       # Disconnect from all nodes.
