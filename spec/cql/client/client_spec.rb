@@ -11,7 +11,7 @@ module Cql
       end
 
       let :default_connection_options do
-        {:host => 'example.com', :port => 12321, :io_reactor => io_reactor, :logger => logger}
+        {:hosts => %w[example.com], :port => 12321, :io_reactor => io_reactor, :logger => logger}
       end
 
       let :connection_options do
@@ -175,6 +175,7 @@ module Cql
           end
 
           it 'connects to all hosts, when given as a comma-sepatated string' do
+            connection_options.delete(:hosts)
             c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
             c.connect.value
             connections.should have(3).items
