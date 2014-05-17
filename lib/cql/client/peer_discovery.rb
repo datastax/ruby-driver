@@ -2,6 +2,7 @@
 
 module Cql
   module Client
+    # @private
     class PeerDiscovery
       def initialize(seed_connections)
         @seed_connections = seed_connections
