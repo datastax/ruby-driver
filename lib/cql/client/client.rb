@@ -33,7 +33,7 @@ module Cql
       # @raise [Cql::NotConnectedError] raised when the client is not connected
       # @return [nil]
 
-      # @!method execute(cql, *values, options_or_consistency={})
+      # @!method execute(cql, *values, options={})
       #
       # Execute a CQL statement, optionally passing bound values.
       #
@@ -88,28 +88,26 @@ module Cql
       #   integers, and DOUBLE instead of FLOAT for floating point numbers. It
       #   is not recommended to use this feature for anything but convenience,
       #   and the algorithm used to guess types is to be considered experimental.
-      # @param [Hash] options_or_consistency Either a consistency as a symbol
-      #   (e.g. `:quorum`), or a options hash (see below). Passing a symbol is
-      #   equivalent to passing the options `consistency: <symbol>`.
-      # @option options_or_consistency [Symbol] :consistency (:quorum) The
+      # @param [Hash] options
+      # @option options [Symbol] :consistency (:quorum) The
       #   consistency to use for this query.
-      # @option options_or_consistency [Symbol] :serial_consistency (nil) The
+      # @option options [Symbol] :serial_consistency (nil) The
       #   consistency to use for conditional updates (`:serial` or
       #   `:local_serial`), see the CQL documentation for the semantics of
       #   serial consistencies and conditional updates. The default is assumed
       #   to be `:serial` by the server if none is specified. Ignored for non-
       #   conditional queries.
-      # @option options_or_consistency [Integer] :timeout (nil) How long to wait
+      # @option options [Integer] :timeout (nil) How long to wait
       #   for a response. If this timeout expires a {Cql::TimeoutError} will
       #   be raised.
-      # @option options_or_consistency [Boolean] :trace (false) Request tracing
+      # @option options [Boolean] :trace (false) Request tracing
       #   for this request. See {Cql::Client::QueryResult} and
       #   {Cql::Client::VoidResult} for how to retrieve the tracing data.
-      # @option options_or_consistency [Integer] :page_size (nil) Instead of
+      # @option options [Integer] :page_size (nil) Instead of
       #   returning all rows, return the response in pages of this size. The
       #   first result will contain the first page, to load subsequent pages
       #   use {Cql::Client::QueryResult#next_page}.
-      # @option options_or_consistency [Array] :type_hints (nil) When passing
+      # @option options [Array] :type_hints (nil) When passing
       #   on-the-fly bound values the request encoder will have to guess what
       #   types to encode the values as. Using this option you can give it hints
       #   and avoid it guessing wrong. The hints must be an array that has the
