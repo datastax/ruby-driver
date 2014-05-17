@@ -408,6 +408,18 @@ describe 'A CQL client' do
       result_page.count.should == row_count - page_size
       result_page.should be_last_page
     end
+
+    it 'returns nil from #next_page when the last page has been returned' do
+      page_size = row_count/5 + 1
+      statement = client.prepare('SELECT * FROM counters')
+      result_page = statement.execute(page_size: page_size)
+      page_count = 0
+      while result_page
+        page_count += 1
+        result_page = result_page.next_page
+      end
+      page_count.should == 5
+    end
   end
 
   context 'with error conditions' do
