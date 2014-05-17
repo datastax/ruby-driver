@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     cql-rb (2.0.0.rc0)
-      ione
+      ione (~> 1)
 
 GEM
   remote: https://rubygems.org/
