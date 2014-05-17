@@ -127,7 +127,7 @@ module Cql
       # @!method prepare(cql)
       #
       # Returns a prepared statement that can be run over and over again with
-      # different values.
+      # different bound values.
       #
       # @see Cql::Client::PreparedStatement
       # @param [String] cql The CQL to prepare

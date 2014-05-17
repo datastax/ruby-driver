@@ -143,6 +143,8 @@ A prepared statement can be run many times, but the CQL parsing will only be don
 
 Statements are prepared on all connections and each call to `#execute` selects a random connection to run the query on.
 
+You should only create a prepared statement for a query once, and then reuse the prepared statement object. Preparing the same CQL over and over again is bad for performance since each preparation requires a roundtrip to _all_ connected Cassandra nodes.
+
 ## Batching
 
 If you're using Cassandra 2.0 or later you can build batch requests, either from regular queries or from prepared statements. Batches can consist of `INSERT`, `UPDATE` and `DELETE` statements.

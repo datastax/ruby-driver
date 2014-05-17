@@ -2,6 +2,34 @@
 
 module Cql
   module Client
+    # A prepared statement are CQL queries that have been sent to the server
+    # to be precompiled, so that when executed only their ID and not the whole
+    # CQL string need to be sent. They support bound values, or placeholders
+    # for values.
+    #
+    # Using a prepared statement for any query that you execute more than once
+    # is highly recommended. Besides the benefit of having less network overhead,
+    # and less processing overhead on the server side, they don't require you
+    # to build CQL strings and escape special characters, or format non-character
+    # data such as UUIDs, different numeric types, or collections, in the
+    # correct way.
+    #
+    # You should only prepare a statement once and reuse the prepared statement
+    # object every time you want to execute that particular query. The statement
+    # object will make sure that it is prepared on all connections, and will
+    # (lazily, but transparently) make sure it is prepared on any new connections.
+    #
+    # It is an anti-pattern to prepare the same query over and over again. It is
+    # bad for performance, since every preparation requires a roundtrip to all
+    # connected servers, and because of some bookeeping that is done to support
+    # automatic preparation on new connections, it will lead to unnecessary
+    # extra memory usage. There is no performance benefit in creating multiple
+    # prepared statement objects for the same query.
+    #
+    # Prepared statement objects are completely thread safe and can be shared
+    # across all threads in your application.
+    #
+    # @see Cql::Client::Client#prepare
     class PreparedStatement
       # Metadata describing the bound values
       #
