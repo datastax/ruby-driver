@@ -45,6 +45,45 @@ module Cql
       #   (see {Cql::Client::VoidResult}).
       def execute(*args)
       end
+
+      # Yields a batch when called with a block. The batch is automatically
+      # executed at the end of the block and the result is returned.
+      #
+      # Returns a batch when called wihtout a block. The batch will remember
+      # the options given and merge these with any additional options given
+      # when {Cql::Client::PreparedStatementBatch#execute} is called.
+      #
+      # The batch yielded or returned by this method is not identical to the
+      # regular batch objects yielded or returned by {Cql::Client::Client#batch}.
+      # These prepared statement batch objects can be used only to add multiple
+      # executions of the same prepared statement.
+      #
+      # Please note that the batch object returned by this method _is not thread
+      # safe_.
+      #
+      # The type parameter can be ommitted and the options can then be given
+      # as first parameter.
+      #
+      # @example Executing a prepared statement in a batch
+      #   statement = client.prepare(%(INSERT INTO metrics (id, time, value) VALUES (?, NOW(), ?)))
+      #   statement.batch do |batch|
+      #     batch.add(1234, 23423)
+      #     batch.add(2346, 13)
+      #     batch.add(2342, 2367)
+      #     batch.add(4562, 1231)
+      #   end
+      #
+      # @see Cql::Client::PreparedStatementBatch
+      # @see Cql::Client::Client#batch
+      # @param [Symbol] type the type of batch, must be one of `:logged`,
+      #   `:unlogged` and `:counter`. The precise meaning of these  is defined
+      #   in the CQL specification.
+      # @yieldparam [Cql::Client::PreparedStatementBatch] batch the batch
+      # @return [Cql::Client::VoidResult, Cql::Client::Batch] when no block is
+      #   given the batch is returned, when a block is given the result of
+      #   executing the batch is returned (see {Cql::Client::Batch#execute}).
+      def batch(type=:logged, options={})
+      end
     end
 
     # @private

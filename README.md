@@ -210,6 +210,16 @@ batch.execute(consistency: :quorum)
 
 As you can see you can specify the options either when creating the batch or when sending it (when using the variant where you call `#execute` yourself). The options given to `#execute` take precedence. You can omit the batch type and specify the options as the only parameter when you want to use the the default batch type.
 
+If you want to execute the same prepared statement multiple times in a batch there is a special variant of the batching feature available from `PreparedStatement`:
+
+```ruby
+# the same counter_statement as in the example above
+counter_statement.batch do |batch|
+  batch.add(3, 'some_counter')
+  batch.add(2, 'another_counter')
+end
+```
+
 Cassandra 1.2 also supported batching, but only as a CQL feature, you had to build the batch as a string, and it didn't really play well with prepared statements.
 
 ## Paging
