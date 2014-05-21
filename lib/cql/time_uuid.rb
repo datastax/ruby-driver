@@ -23,8 +23,16 @@ module Cql
     end
 
     def <=>(other)
-      self.value <=> other.value
+      c = self.to_time <=> other.to_time
+      return c unless c == 0
+      (self.value & LOWER_HALF_MASK) <=> (other.value & LOWER_HALF_MASK)
     end
+
+    private
+
+    LOWER_HALF_MASK = 0xffffffff_ffffffff
+
+    public
 
     # A UUID version 1, variant 1 generator. It can generate a sequence of UUIDs
     # with reasonable uniqueness guarantees:

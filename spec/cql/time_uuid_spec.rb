@@ -14,14 +14,18 @@ module Cql
     end
 
     describe '#<=>' do
+      let :generator do
+        TimeUuid::Generator.new
+      end
+
       let :uuids do
         [
-          TimeUuid.new(175821750227570343682790694234162314858),
-          TimeUuid.new(179047849699804924671695969702288932458),
-          TimeUuid.new(179548637446269962124687370109891231338),
-          TimeUuid.new(180030188594876536196511058046351949418),
-          TimeUuid.new(180518394909134308472692603674640891498),
-          TimeUuid.new(183319310901264713895398493985212841578),
+          generator.from_time(Time.utc(2014, 5,  1,  2, 3, 4, 1)),
+          generator.from_time(Time.utc(2014, 5,  1,  2, 3, 4, 2)),
+          generator.from_time(Time.utc(2014, 5,  1,  2, 3, 5, 0)),
+          generator.from_time(Time.utc(2014, 5, 11, 14, 3, 4, 0)),
+          generator.from_time(Time.utc(2014, 5, 20,  2, 3, 4, 0)),
+          generator.from_time(Time.utc(2014, 6,  7,  2, 3, 4, 0)),
         ]
       end
 
