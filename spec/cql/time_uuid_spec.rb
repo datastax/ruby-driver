@@ -20,12 +20,12 @@ module Cql
 
       let :uuids do
         [
-          generator.from_time(Time.utc(2014, 5,  1,  2, 3, 4, 1)),
-          generator.from_time(Time.utc(2014, 5,  1,  2, 3, 4, 2)),
-          generator.from_time(Time.utc(2014, 5,  1,  2, 3, 5, 0)),
-          generator.from_time(Time.utc(2014, 5, 11, 14, 3, 4, 0)),
-          generator.from_time(Time.utc(2014, 5, 20,  2, 3, 4, 0)),
-          generator.from_time(Time.utc(2014, 6,  7,  2, 3, 4, 0)),
+          generator.from_time(Time.utc(2014, 5,  1,  2, 3, 4, 1), 0),
+          generator.from_time(Time.utc(2014, 5,  1,  2, 3, 4, 2), 0),
+          generator.from_time(Time.utc(2014, 5,  1,  2, 3, 5, 0), 0),
+          generator.from_time(Time.utc(2014, 5, 11, 14, 3, 4, 0), 0),
+          generator.from_time(Time.utc(2014, 5, 20,  2, 3, 4, 0), 0),
+          generator.from_time(Time.utc(2014, 6,  7,  2, 3, 4, 0), 0),
         ]
       end
 
