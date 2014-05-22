@@ -11,7 +11,7 @@ module Cql
     # A compressor that uses the LZ4 compression library.
     #
     # @note This compressor requires the [lz4-ruby](http://rubygems.org/gems/lz4-ruby)
-    #   gem (v0.3.1 or later required).
+    #   gem (v0.3.2 or later required).
     class Lz4Compressor
       # @return [String]
       attr_reader :algorithm
