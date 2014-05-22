@@ -288,7 +288,7 @@ describe 'A CQL client' do
   context 'with LZ4 compression' do
     begin
       require 'cql/compression/lz4_compressor'
-      include_examples 'with_compressor', Cql::Compression::SnappyCompressor
+      include_examples 'with_compressor', Cql::Compression::Lz4Compressor
     rescue LoadError
       include_examples 'no_compressor'
     end
