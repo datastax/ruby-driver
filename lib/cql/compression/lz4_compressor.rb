@@ -30,11 +30,11 @@ module Cql
       end
 
       def compress(str)
-        [str.bytesize, LZ4::Raw.compress(str).first].pack(BUFFER_FORMAT)
+        [str.bytesize, LZ4::Raw.compress(str.to_s).first].pack(BUFFER_FORMAT)
       end
 
       def decompress(str)
-        decompressed_size, compressed_data = str.unpack(BUFFER_FORMAT)
+        decompressed_size, compressed_data = str.to_s.unpack(BUFFER_FORMAT)
         LZ4::Raw.decompress(compressed_data, decompressed_size).first
       end
 

@@ -36,8 +36,20 @@ shared_examples 'compressor' do |algorithm, compressed_string|
       compressed.bytesize.should be < input.bytesize
     end
 
+    it 'compresses byte buffers' do
+      input = Cql::Protocol::CqlByteBuffer.new('hello' * 100)
+      compressed = compressor.compress(input)
+      compressed.should == compressor.compress(input.to_s)
+    end
+
     it 'decompresses compressed strings' do
       input = compressed_string
+      decompressed = compressor.decompress(input)
+      decompressed.should == 'hellohellohellohellohello'
+    end
+
+    it 'decompresses byte buffers' do
+      input = Cql::Protocol::CqlByteBuffer.new(compressed_string)
       decompressed = compressor.decompress(input)
       decompressed.should == 'hellohellohellohellohello'
     end
