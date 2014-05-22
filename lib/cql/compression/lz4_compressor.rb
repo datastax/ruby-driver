@@ -30,13 +30,17 @@ module Cql
       end
 
       def compress(str)
-        [str.bytesize].pack('N') << LZ4::Raw.compress(str).first
+        [str.bytesize, LZ4::Raw.compress(str).first].pack(BUFFER_FORMAT)
       end
 
       def decompress(str)
-        decompressed_size = str[0, 4].unpack('N').first
-        LZ4::Raw.decompress(str[4, str.bytesize - 4], decompressed_size).first
+        decompressed_size, compressed_data = str.unpack(BUFFER_FORMAT)
+        LZ4::Raw.decompress(compressed_data, decompressed_size).first
       end
+
+      private
+
+      BUFFER_FORMAT = 'Na*'.freeze
     end
   end
 end
