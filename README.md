@@ -14,9 +14,7 @@ Cassandra 1.2 or later with the native transport protocol turned on and a modern
 
     gem install cql-rb
 
-if you want to use compression you should also install the [snappy gem](http://rubygems.org/gems/snappy):
-
-    gem install snappy
+if you want to use compression you should also install [snappy](http://rubygems.org/gems/snappy) or [lz4-ruby](http://rubygems.org/gems/lz4-ruby). See below for more information about compression.
 
 # Quick start
 
@@ -270,7 +268,7 @@ Consistency is ignored for `USE`, `TRUNCATE`, `CREATE` and `ALTER` statements, a
 
 The CQL protocol supports frame compression, which can give you a performance boost if your requests or responses are big. To enable it you can pass a compressor object when you connect.
 
-Cassandra currently supports two compression algorithms: Snappy and LZ4. Support for Snappy compression ships with cql-rb, but in order to use it you will have to install the [snappy](http://rubygems.org/gems/snappy) gem separately. Once it's installed you can enable compression like this:
+Cassandra currently supports two compression algorithms: Snappy and LZ4. cql-rb supports both, but in order to use them you will have to install the [snappy](http://rubygems.org/gems/snappy) or [lz4-ruby](http://rubygems.org/gems/lz4-ruby) gems separately. Once it's installed you can enable compression like this:
 
 ```ruby
 require 'cql/compression/snappy_compressor'
@@ -278,6 +276,17 @@ require 'cql/compression/snappy_compressor'
 compressor = Cql::Compression::SnappyCompressor.new
 client = Cql::Client.connect(hosts: %w[localhost], compressor: compressor)
 ```
+
+or
+
+```ruby
+require 'cql/compression/lz4_compressor'
+
+compressor = Cql::Compression::Lz4Compressor.new
+client = Cql::Client.connect(hosts: %w[localhost], compressor: compressor)
+```
+
+Which one should you choose? On paper the LZ4 algorithm is more efficient and the one Cassandra defaults to for SSTable compression. They both achieve roughly the same compression ratio, but LZ4 does it quicker.
 
 ## Logging
 
