@@ -194,28 +194,6 @@ client.batch(:counter) do |batch|
 end
 ```
 
-You can also specify the regular options such as consistency, timeout and whether or not to enable tracing:
-
-```ruby
-client.batch(:unlogged, trace: true) do |batch|
-  # ...
-end
-
-client.batch(trace: true, consistency: :all) do |batch|
-  # ...
-end
-
-batch = client.batch
-# ...
-batch.execute(consistency: :quorum)
-
-batch = client.batch(trace: true)
-# ...
-batch.execute(consistency: :quorum)
-```
-
-As you can see you can specify the options either when creating the batch or when sending it (when using the variant where you call `#execute` yourself). The options given to `#execute` take precedence. You can omit the batch type and specify the options as the only parameter when you want to use the the default batch type.
-
 If you want to execute the same prepared statement multiple times in a batch there is a special variant of the batching feature available from `PreparedStatement`:
 
 ```ruby
@@ -251,11 +229,26 @@ You can specify the default consistency to use when you create a new `Client`:
 client = Cql::Client.connect(hosts: %w[localhost], default_consistency: :all)
 ```
 
-The `#execute` (of `Client` and `PreparedStatement`) method also supports setting the desired consistency level on a per-request basis:
+The `#execute` (of `Client`, `PreparedStatement` and `Batch`) method also supports setting the desired consistency level on a per-request basis:
 
 ```ruby
-client.execute('SELECT * FROM peers', consistency: :local_quorum)
+client.execute('SELECT * FROM users', consistency: :local_quorum)
+
+statement = client.prepared('SELECT * FROM users')
+statement.execute(consistency: :one)
+
+batch = client.batch
+batch.add("UPDATE users SET email = 'sue@foobar.com' WHERE id = 'sue'")
+batch.add("UPDATE users SET email = 'tom@foobar.com' WHERE id = 'tom'")
+batch.execute(consistency: :all)
+
+batch = client.batch(consistency: :quorum) do |batch|
+  batch.add("UPDATE users SET email = 'sue@foobar.com' WHERE id = 'sue'")
+  batch.add("UPDATE users SET email = 'tom@foobar.com' WHERE id = 'tom'")
+end
 ```
+
+For batches the options given to `#execute` take precedence over options given to `#batch`.
 
 The possible values for consistency are:
 
