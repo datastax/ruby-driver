@@ -291,6 +291,20 @@ client = Cql::Client.connect(logger: Logger.new($stderr))
 
 Most of the logging will be when the driver connects and discovers new nodes, when connections fail and so on, but also when statements are prepared. The logging is designed to not cause much overhead and only relatively rare events are logged (e.g. normal requests are not logged).
 
+## Tracing
+
+You can request that Cassandra traces a request and records what each node had to do to process the request. To request that a query is traced you can specify the `:trace` option to `#execute`. The request will proceed as normal, but you will also get a trace ID back in your response. This ID can then be used to load up the trace data:
+
+```ruby
+result = client.execute("SELECT * FROM users", trace: true)
+session_result = client.execute("SELECT * FROM system_traces.sessions WHERE session_id = ?", result.trace_id, consistency: :one)
+events_result = client.execute("SELECT * FROM system_traces.events WHERE session_id = ?", result.trace_id, consistency: :one)
+```
+
+Notice how you can query tables in other keyspaces by prefixing their names with the keyspace name.
+
+The `system_traces.sessions` table contains information about the request itself; which node was the coordinator, the CQL, the total duration, etc. (if the `duration` column is `null` the trace hasn't been completely written yet and you should load it again later). The `events` table contains information about what happened on each node and at what time. Note that each event only contains the number of seconds that elapsed from when the node started processing the request – you can't easily sort these events in a global order.
+
 ## Thread safety
 
 Except for results and batches everything in cql-rb is thread safe. You only need a single client object in your application, in fact creating more than one is a bad idea. Similarily prepared statements are thread safe and should be shared.
