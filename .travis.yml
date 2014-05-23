@@ -14,7 +14,7 @@ rvm:
   - 2.0.0
   - 2.1.1
   - jruby
-  - rbx
+  - rbx-2
 jdk:
   - openjdk7
 matrix:
@@ -26,5 +26,5 @@ matrix:
       env: CQL_ENABLE_AUTH=0
       jdk: oraclejdk8
   allow_failures:
-    - rvm: rbx
+    - rvm: rbx-2
   fast_finish: true
