@@ -253,13 +253,7 @@ The `#execute` (of `Client` and `PreparedStatement`) method also supports settin
 client.execute('SELECT * FROM peers', consistency: :local_quorum)
 ```
 
-for backwards compatibility with v1.0 you can also pass the consistency as just a symbol:
-
-```ruby
-client.execute('SELECT * FROM peers', :local_quorum)
-```
-
-The possible values for consistency are: 
+The possible values for consistency are:
 
 * `:any`
 * `:one`
