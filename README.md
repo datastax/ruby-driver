@@ -134,10 +134,14 @@ The driver supports prepared statements. Use `#prepare` to create a statement ob
 
 ```ruby
 statement = client.prepare('SELECT date, description FROM events WHERE id = ?')
-rows = statement.execute(1235)
+
+[123, 234, 345].each do |id|
+  rows = statement.execute(id)
+  # ...
+end
 ```
 
-A prepared statement can be run many times, but the CQL parsing will only be done once. Use prepared statements for queries you run over and over again.
+A prepared statement can be run many times, but the CQL parsing will only be done once on each node. Use prepared statements for queries you run over and over again.
 
 `INSERT`, `UPDATE`, `DELETE` and `SELECT` statements can be prepared, other statements may raise `QueryError`.
 
