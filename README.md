@@ -415,7 +415,7 @@ Compression works best for large requests, so if you use batching you should ben
 
 # Try experimental features
 
-To get maximum performance you can't wait for a request to complete before sending the next. At it's core cql-rb embraces this completely and uses non-blocking IO and a completely asynchronous model for the request processing. The synchronous API that you use is just a thin façade on top that exists for convenience. If you need to scale to thousands of requests per second, have a look at the client code and look at the asynchronous core, it works very much like the public API, _but using it they should be considererd **experimental**_. Experimental in this context does not mean buggy, it is the core of cql-rb after all, but it means that you cannot rely on it being backwards compatible.
+To get maximum performance you can't wait for a request to complete before sending the next. At it's core cql-rb embraces this completely and uses non-blocking IO and an asynchronous model for the request processing. The synchronous API that you use is just a thin façade on top that exists for convenience. If you need to scale to thousands of requests per second, have a look at the client code and look at the asynchronous core, it works very much like the public API, _but using it they should be considererd **experimental**_. Experimental in this context does not mean buggy, it is the core of cql-rb after all, but it means that you cannot rely on it being backwards compatible.
 
 # Changelog & versioning
 
