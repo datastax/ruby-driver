@@ -23,7 +23,6 @@ matrix:
       env: CQL_ENABLE_AUTH=1
       jdk: openjdk7
     - rvm: jruby
-      env: CQL_ENABLE_AUTH=0
       jdk: oraclejdk8
   allow_failures:
     - rvm: rbx-2
