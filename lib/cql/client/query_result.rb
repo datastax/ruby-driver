@@ -187,10 +187,13 @@ module Cql
 
       def ensure_materialized
         unless @rows
-          @lock.synchronize do
+          @lock.lock
+          begin
             unless @rows
               @rows = @lazy_rows.materialize(@raw_metadata)
             end
+          ensure
+            @lock.unlock
           end
         end
       end

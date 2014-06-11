@@ -58,13 +58,19 @@ module Cql
       # connection has been set up, or to keep statistics specific to the
       # connection this protocol handler wraps.
       def []=(key, value)
-        @lock.synchronize { @data[key] = value }
+        @lock.lock
+        @data[key] = value
+      ensure
+        @lock.unlock
       end
 
       # @see {#[]=}
       # @return the value associated with the key
       def [](key)
-        @lock.synchronize { @data[key] }
+        @lock.lock
+        @data[key]
+      ensure
+        @lock.unlock
       end
 
       # @return [true, false] true if the underlying connection is connected
@@ -94,9 +100,10 @@ module Cql
       #
       # @yieldparam event [Cql::Protocol::EventResponse] an event sent by the server
       def on_event(&listener)
-        @lock.synchronize do
-          @event_listeners += [listener]
-        end
+        @lock.lock
+        @event_listeners += [listener]
+      ensure
+        @lock.unlock
       end
 
       # Serializes and send a request over the underlying connection.
@@ -119,19 +126,25 @@ module Cql
         return Future.failed(NotConnectedError.new) if closed?
         promise = RequestPromise.new(request, @frame_encoder)
         id = nil
-        @lock.synchronize do
+        @lock.lock
+        begin
           if (id = next_stream_id)
             @promises[id] = promise
           end
+        ensure
+          @lock.unlock
         end
         if id
           @connection.write do |buffer|
             @frame_encoder.encode_frame(request, id, buffer)
           end
         else
-          @lock.synchronize do
+          @lock.lock
+          begin
             promise.encode_frame
             @request_queue_in << promise
+          ensure
+            @lock.unlock
           end
         end
         if timeout
@@ -196,9 +209,12 @@ module Cql
 
       def notify_event_listeners(event_response)
         event_listeners = nil
-        @lock.synchronize do
+        @lock.lock
+        begin
           event_listeners = @event_listeners
           return if event_listeners.empty?
+        ensure
+          @lock.unlock
         end
         event_listeners.each do |listener|
           listener.call(@current_frame.body) rescue nil
@@ -206,10 +222,13 @@ module Cql
       end
 
       def complete_request(id, response)
-        promise = @lock.synchronize do
+        promise = nil
+        @lock.lock
+        begin
           promise = @promises[id]
           @promises[id] = nil
-          promise
+        ensure
+          @lock.unlock
         end
         if response.is_a?(Protocol::SetKeyspaceResultResponse)
           @keyspace = response.keyspace
@@ -220,16 +239,20 @@ module Cql
       end
 
       def flush_request_queue
-        @lock.synchronize do
+        @lock.lock
+        begin
           if @request_queue_out.empty? && !@request_queue_in.empty?
             @request_queue_out = @request_queue_in
             @request_queue_in = []
           end
+        ensure
+          @lock.unlock
         end
         while true
           id = nil
           frame = nil
-          @lock.synchronize do
+          @lock.lock
+          begin
             if @request_queue_out.any? && (id = next_stream_id)
               promise = @request_queue_out.shift
               if promise.timed_out?
@@ -239,6 +262,8 @@ module Cql
                 @promises[id] = promise
               end
             end
+          ensure
+            @lock.unlock
           end
           if id
             @frame_encoder.change_stream_id(id, frame)
