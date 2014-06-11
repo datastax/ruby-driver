@@ -271,10 +271,11 @@ module Cql
       end
 
       def next_stream_id
-        @promises.each_with_index do |task, index|
-          return index if task.nil?
+        if (stream_id = @promises.index(nil))
+          stream_id
+        else
+          nil
         end
-        nil
       end
     end
   end
