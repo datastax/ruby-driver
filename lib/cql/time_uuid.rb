@@ -18,9 +18,9 @@ module Cql
     end
 
     def <=>(other)
-      c = self.time_bits <=> other.time_bits
-      return c unless c == 0
-      (self.value & LOWER_HALF_MASK) <=> (other.value & LOWER_HALF_MASK)
+      c = self.value <=> other.value
+      return c if c == 0
+      self.time_bits <=> other.time_bits
     end
 
     protected
