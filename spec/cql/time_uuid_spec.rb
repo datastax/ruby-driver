@@ -32,6 +32,12 @@ module Cql
       it 'sorts by the time component' do
         uuids.shuffle.sort.should == uuids
       end
+
+      it 'allows comparison of UUID and TimeUUID' do
+        x = generator.next
+        y = Uuid.new(x.value)
+        x.should == y
+      end
     end
   end
 
