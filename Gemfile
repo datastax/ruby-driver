@@ -4,6 +4,7 @@ gemspec
 
 gem 'rake'
 gem 'snappy'
+gem 'lz4-ruby'
 
 group :development do
   gem 'pry'

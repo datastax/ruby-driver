@@ -17,6 +17,8 @@ GEM
       thor
     diff-lcs (1.2.4)
     ione (1.0.0)
+    lz4-ruby (0.3.2)
+    lz4-ruby (0.3.2-java)
     method_source (0.8.1)
     mime-types (1.23)
     multi_json (1.7.7)
@@ -62,6 +64,7 @@ PLATFORMS
 DEPENDENCIES
   coveralls
   cql-rb!
+  lz4-ruby
   perftools.rb
   pry
   rake

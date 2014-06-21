@@ -252,29 +252,45 @@ describe 'A CQL client' do
     end
   end
 
-  context 'with compression' do
+  shared_examples 'with_compressor' do |compressor_impl|
+    let :client do
+      Cql::Client.connect(connection_options.merge(compressor: compressor))
+    end
+
+    let :compressor do
+      compressor_impl.new(0)
+    end
+
+    it 'compresses requests and decompresses responses' do
+      compressor.stub(:compress).and_call_original
+      compressor.stub(:decompress).and_call_original
+      client.execute('SELECT * FROM system.schema_keyspaces')
+      compressor.should have_received(:compress).at_least(1).times
+      compressor.should have_received(:decompress).at_least(1).times
+    end
+  end
+
+  shared_examples 'no_compressor' do
+    it 'compresses requests and decompresses responses' do
+      pending 'No compressor available for the current platform'
+    end
+  end
+
+  context 'with Snappy compression' do
     begin
       require 'cql/compression/snappy_compressor'
-
-      let :client do
-        Cql::Client.connect(connection_options.merge(compressor: compressor))
-      end
-
-      let :compressor do
-        Cql::Compression::SnappyCompressor.new(0)
-      end
-
-      it 'compresses requests and decompresses responses' do
-        compressor.stub(:compress).and_call_original
-        compressor.stub(:decompress).and_call_original
-        client.execute('SELECT * FROM system.schema_keyspaces')
-        compressor.should have_received(:compress).at_least(1).times
-        compressor.should have_received(:decompress).at_least(1).times
-      end
+      include_examples 'with_compressor', Cql::Compression::SnappyCompressor
     rescue LoadError
-      it 'compresses requests and decompresses responses' do
-        pending 'No compressor available for the current platform'
-      end
+      include_examples 'no_compressor'
+    end
+  end
+
+  context 'with LZ4 compression' do
+    begin
+      require 'cql/compression/lz4_compressor'
+      include_examples 'with_compressor', Cql::Compression::Lz4Compressor
+    rescue LoadError
+      include_examples 'no_compressor'
     end
   end
 

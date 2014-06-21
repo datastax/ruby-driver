@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 
-shared_examples 'compressor' do |algorithm|
+shared_examples 'compressor' do |algorithm, compressed_string|
   describe '#algorithm' do
     it %(returns "#{algorithm}") do
       described_class.new.algorithm.should == algorithm
@@ -36,8 +36,20 @@ shared_examples 'compressor' do |algorithm|
       compressed.bytesize.should be < input.bytesize
     end
 
+    it 'compresses byte buffers' do
+      input = Cql::Protocol::CqlByteBuffer.new('hello' * 100)
+      compressed = compressor.compress(input)
+      compressed.should == compressor.compress(input.to_s)
+    end
+
     it 'decompresses compressed strings' do
-      input = "\x19\x10helloN\x05\x00"
+      input = compressed_string
+      decompressed = compressor.decompress(input)
+      decompressed.should == 'hellohellohellohellohello'
+    end
+
+    it 'decompresses byte buffers' do
+      input = Cql::Protocol::CqlByteBuffer.new(compressed_string)
       decompressed = compressor.decompress(input)
       decompressed.should == 'hellohellohellohellohello'
     end
