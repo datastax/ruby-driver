@@ -251,10 +251,14 @@ module Cql
       def append_varint(n)
         num = n
         bytes = []
-        until num == 0
-          bytes << (num & 0xff)
-          num = num >> 8
-          break if num == -1
+        if num == 0
+          bytes << 0
+        else
+          until num == 0
+            bytes << (num & 0xff)
+            num = num >> 8
+            break if num == -1
+          end
         end
         append(bytes.reverse.pack(Formats::BYTES_FORMAT))
       end

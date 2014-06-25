@@ -810,6 +810,11 @@ module Cql
       end
 
       describe '#append_varint' do
+        it 'encodes zero' do
+          buffer.append_varint(0)
+          buffer.should eql_bytes("\x00")
+        end
+
         it 'encodes a variable length integer' do
           buffer.append_varint(1231312312331283012830129382342342412123)
           buffer.should eql_bytes("\x03\x9EV \x15\f\x03\x9DK\x18\xCDI\\$?\a[")
@@ -841,6 +846,11 @@ module Cql
         it 'encodes a BigDecimal as a decimal' do
           buffer.append_decimal(BigDecimal.new('1042342234234.123423435647768234'))
           buffer.should eql_bytes("\x00\x00\x00\x12\r'\xFDI\xAD\x80f\x11g\xDCfV\xAA")
+        end
+
+        it 'encodes a 0.0 BigDecimal' do
+          buffer.append_decimal(BigDecimal.new('0.0'))
+          buffer.should eql_bytes("\x00\x00\x00\x01\x00")
         end
 
         it 'appends to the buffer' do
