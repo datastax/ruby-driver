@@ -12,29 +12,30 @@ Feature: basic authentication
       require 'cql'
       
       begin
-        cluster  = Cql.cluster                                 \
-                    .with_contact_points(["127.0.0.1"])                     \
+        cluster = Cql.cluster                                           \
+                    .with_contact_points(["127.0.0.1"])                 \
                     .with_credentials(ENV['USERNAME'], ENV['PASSWORD']) \
                     .build
-        
-        cluster.close
+        session = cluster.connect
         puts "authentication successful"
       rescue => e
         puts "#{e.class.name}: #{e.message}"
         puts "authentication failed"
+      ensure
+        cluster.close
       end
       """
 
   Scenario: authentication is successful
     When it is executed with a valid username and password in the environment
-    Then its output should match:
+    Then its output should contain:
       """
       authentication successful
       """
 
-  Scenario: bad credentials fail authentication
+  Scenario: authentication fails
     When it is executed with an invalid username and password in the environment
-    Then its output should match:
+    Then its output should contain:
       """
       authentication failed
       """
