@@ -8,8 +8,8 @@ module Cql
 
     def execute_async(cql, *args)
       case cql
-      when Client::AsynchronousBatch
-        cql.execute(args.shift)
+      when Client::AsynchronousBatch, Client::AsynchronousPreparedStatement
+        cql.execute(*args)
       else
         @client.execute(cql, *args)
       end
