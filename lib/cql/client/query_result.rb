@@ -39,6 +39,12 @@ module Cql
         @rows.empty?
       end
 
+      # Returns count of underlying rows
+      def size
+        @rows.size
+      end
+      alias :length :size
+
       # Iterates over each row in the result set.
       #
       # @yieldparam [Hash] row each row in the result set as a hash
