@@ -183,6 +183,12 @@ module Cql
         super
       end
 
+      def size
+        ensure_materialized
+        super
+      end
+      alias :length :size
+
       def each(&block)
         ensure_materialized
         super
