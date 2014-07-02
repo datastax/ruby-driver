@@ -8,12 +8,13 @@ Feature: asynchronous query execution
   Background:
     Given a cassandra cluster with schema "simplex" with table "songs"
 
+  @wip
   Scenario: an asynchronous query returns a promise that is fulfilled later
     Given the following example:
       """ruby
       require 'cql'
 
-      cluster = Cql.builder \
+      cluster = Cql.cluster \
                   .with_contact_points(["127.0.0.1", "127.0.0.2"]) \
                   .build
 
@@ -43,7 +44,7 @@ Feature: asynchronous query execution
       """ruby
       require 'cql'
 
-      cluster = Cql.builder \
+      cluster = Cql.cluster \
                   .with_contact_points(["127.0.0.1", "127.0.0.2"]) \
                   .with_retry_policy(Cql::Policies::ReducingConsistencyRetryPolicy.new) \
                   .with_reconnection_policy(Cql::Policies::ConstantReconnectionPolicy.new(100))

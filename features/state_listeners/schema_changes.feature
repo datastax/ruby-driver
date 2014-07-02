@@ -33,8 +33,8 @@ Feature: schema change detection
       require 'cql'
 
       listener = PrintingListener.new($stderr)
-      cluster  = Cql.builder             \
-                  .add_contact_point("127.0.0.1") \
+      cluster  = Cql.cluster             \
+                  .with_contact_points(["127.0.0.1"]) \
                   .build
 
       cluster.register(listener)

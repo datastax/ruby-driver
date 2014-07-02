@@ -12,8 +12,8 @@ Feature: basic authentication
       require 'cql'
       
       begin
-        cluster  = Cql.builder                                 \
-                    .add_contact_point("127.0.0.1")                     \
+        cluster  = Cql.cluster                                 \
+                    .with_contact_points(["127.0.0.1"])                     \
                     .with_credentials(ENV['USERNAME'], ENV['PASSWORD']) \
                     .build
         

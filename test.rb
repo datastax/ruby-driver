@@ -16,6 +16,7 @@ errors  = 0
 
 futures.each do |future|
   begin
+    future.value
     success += 1
   rescue => e
     puts "#{e.class.name}: #{e.message}"
