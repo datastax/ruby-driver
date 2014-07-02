@@ -33,7 +33,7 @@ Feature: asynchronous query execution
     Then its output should contain:
       """
       driver is fetching rows from cassandra
-      JosÃ©phine Baker: La Petite Tonkinoise / Bye Bye Blackbird
-      Willi Ostermann: Die MÃ¶sch / In Gold
+      Joséphine Baker: La Petite Tonkinoise / Bye Bye Blackbird
+      Willi Ostermann: Die Mösch / In Gold
       Mick Jager: Memo From Turner / Performance
       """

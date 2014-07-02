@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+@todo
 Feature: schema change detection
 
   Cluster object allows registering state listeners. It then gurantees that
