@@ -364,6 +364,8 @@ after_fork do |server, worker|
 end
 ```
 
+Since prepared statements are tied to a particular connection, you'll need to recreate those after forking as well.
+
 If your process does not fork and you still encounter deadlock errors, it might also be a bug. All IO is done is a dedicated thread, and if something happens that makes that thread shut down, Ruby will detect that the locks that the client code is waiting on can't be unlocked.
 
 ## I get "Bad file descriptor"
