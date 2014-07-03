@@ -36,6 +36,10 @@ module Cassandra
             bytes_to_map(buffer, @from_bytes_converters[type[1]], @from_bytes_converters[type[2]])
           when :set
             bytes_to_set(buffer, @from_bytes_converters[type[1]])
+          when :udt
+            bytes_to_udt_value(buffer, type)
+          when :custom
+            bytes_to_custom(buffer, type)
           end
         else
           @from_bytes_converters[type].call(buffer, size_bytes)
@@ -244,6 +248,18 @@ module Cassandra
           set << value_converter.call(buffer, 2)
         end
         set
+      end
+
+      def bytes_to_udt_value(buffer, type)
+        value = {}
+        type[1].each do |name, subtype|
+          value[name] = from_bytes(buffer, subtype)
+        end
+        value
+      end
+
+      def bytes_to_custom(buffer, type)
+        nil
       end
 
       def ascii_to_bytes(buffer, value, size_bytes)

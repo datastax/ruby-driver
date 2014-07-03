@@ -107,13 +107,7 @@ module Cassandra
             response = described_class.decode(2, buffer, buffer.length)
             column_metadata = response.result_metadata[1]
             type_description = column_metadata[3]
-            type_description.should == [
-              :map, :varchar,
-              [
-                :custom,
-                'org.apache.cassandra.db.marshal.UserType(user_defined_types,61646472657373,737472656574:org.apache.cassandra.db.marshal.UTF8Type,63697479:org.apache.cassandra.db.marshal.UTF8Type,7a69705f636f6465:org.apache.cassandra.db.marshal.Int32Type,70686f6e6573:org.apache.cassandra.db.marshal.SetType(org.apache.cassandra.db.marshal.UTF8Type))'
-              ]
-            ]
+            type_description.should == [:map, :varchar, [:udt, {'street' => :text, 'city' => :text, 'zip_code' => :int, 'phones' => [:set, :text]}]]
           end
         end
       end

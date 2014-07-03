@@ -72,11 +72,32 @@ module Cassandra
       HAS_MORE_PAGES_FLAG = 0x02
       NO_METADATA_FLAG = 0x04
 
+      MARSHAL_TYPE_MAP = {
+        'org.apache.cassandra.db.marshal.AsciiType' => :ascii,
+        'org.apache.cassandra.db.marshal.BooleanType' => :boolean,
+        'org.apache.cassandra.db.marshal.BytesType' => :bytes,
+        'org.apache.cassandra.db.marshal.CounterColumnType' => :counter,
+        'org.apache.cassandra.db.marshal.DateType' => :date,
+        'org.apache.cassandra.db.marshal.DecimalType' => :decimal,
+        'org.apache.cassandra.db.marshal.DoubleType' => :double,
+        'org.apache.cassandra.db.marshal.FloatType' => :float,
+        'org.apache.cassandra.db.marshal.InetAddressType' => :inet,
+        'org.apache.cassandra.db.marshal.Int32Type' => :int,
+        'org.apache.cassandra.db.marshal.IntegerType' => :int,
+        'org.apache.cassandra.db.marshal.ListType' => :list,
+        'org.apache.cassandra.db.marshal.LongType' => :long,
+        'org.apache.cassandra.db.marshal.MapType' => :map,
+        'org.apache.cassandra.db.marshal.SetType' => :set,
+        'org.apache.cassandra.db.marshal.TimeUUIDType' => :time_uuid,
+        'org.apache.cassandra.db.marshal.TimestampType' => :timestamp,
+        'org.apache.cassandra.db.marshal.UTF8Type' => :text,
+        'org.apache.cassandra.db.marshal.UUIDType' => :uuid,
+      }.freeze
+
       def self.read_column_type(buffer)
         id, type = buffer.read_option do |id, b|
           if id == 0
-            type_class = buffer.read_string
-            [:custom, type_class]
+            decode_custom_type_description(buffer.read_string)
           elsif id > 0 && id <= 0x10
             COLUMN_TYPES[id]
           elsif id == 0x20
@@ -94,6 +115,45 @@ module Cassandra
           end
         end
         type
+      end
+
+      def self.decode_custom_type_description(description)
+        parenthesis_index = description.index('(')
+        type = description[0, parenthesis_index]
+        if type == 'org.apache.cassandra.db.marshal.UserType'
+          rest = description[parenthesis_index + 1, description.bytesize - parenthesis_index - 2]
+          skip_index = rest.index(',', rest.index(',') + 1)
+          field_descriptions = rest[skip_index + 1, rest.bytesize - skip_index]
+          [:udt, decode_fields({}, field_descriptions)]
+        else
+          [:custom, description]
+        end
+      end
+
+      def self.decode_fields(acc, str)
+        next_index = nil
+        if (index = str.index(','))
+          field_description = str[0, index]
+          next_index = index + 1
+        else
+          field_description = str
+          next_index = str.bytesize
+        end
+        name, type = field_description.split(':')
+        name = [name].pack('H*')
+        if (parenthesis_index = type.index('('))
+          subtype = type[parenthesis_index + 1, type.bytesize - parenthesis_index - 2]
+          type = type[0, parenthesis_index]
+          type = [MARSHAL_TYPE_MAP[type], MARSHAL_TYPE_MAP[subtype]]
+        else
+          type = MARSHAL_TYPE_MAP[type]
+        end
+        acc[name] = type
+        if next_index == str.bytesize
+          acc
+        else
+          decode_fields(acc, str[next_index, str.bytesize - next_index])
+        end
       end
 
       def self.read_metadata(protocol_version, buffer)

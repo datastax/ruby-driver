@@ -81,6 +81,10 @@ module Cassandra
           end
         end
 
+        context 'when encoding custom values' do
+          it 'encodes a null custom value'
+        end
+
         context 'when encoding and decoding negative numbers' do
           numeric_types.each do |type|
             it "encodes and decodes a -1 #{type.upcase}" do
