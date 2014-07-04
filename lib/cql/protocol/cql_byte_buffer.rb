@@ -264,9 +264,12 @@ module Cql
       end
 
       def append_decimal(n)
-        sign, number_string, _, size = n.split
+        str = n.to_s(FLOAT_STRING_FORMAT)
+        size = str.index(DECIMAL_POINT)
+        number_string = str.gsub(DECIMAL_POINT, NO_CHAR)
+
         num = number_string.to_i
-        raw = self.class.new.append_varint(sign * num)
+        raw = self.class.new.append_varint(num)
         append_int(number_string.length - size)
         append(raw)
       end
@@ -284,6 +287,8 @@ module Cql
       MINUS = '-'.freeze
       ZERO = '0'.freeze
       DECIMAL_POINT = '.'.freeze
+      FLOAT_STRING_FORMAT = 'F'.freeze
+      NO_CHAR = ''.freeze
     end
   end
 end
