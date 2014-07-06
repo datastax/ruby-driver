@@ -307,7 +307,7 @@ module Cassandra
           end
         end
 
-        context 'with custom column type' do
+        context 'with user defined types' do
           let :buffer do
             b = CqlByteBuffer.new
             b << "\x00\x00\x00\x01"
@@ -330,7 +330,7 @@ module Cassandra
             described_class.decode(2, buffer, buffer.length)
           end
 
-          it 'decodes the custom type' do
+          it 'decodes the type metadata' do
             type_description = response.metadata[1]
             type_description.should == [
               'cql_rb_client_spec',
@@ -340,7 +340,7 @@ module Cassandra
             ]
           end
 
-          it 'decodes the column to a hash' do
+          it 'decodes the column value to a hash' do
             custom_value = response.rows[0]['primary_address']
             custom_value.should eql(
               'street' => '123 Some St.',
