@@ -461,7 +461,7 @@ describe 'A CQL client', :integration do
       pending 'User defined types are not available in C* before 2.1.0' unless release_version[0, 5] >= '2.1.0'
       create_keyspace
       client.execute(%(CREATE TYPE address (street TEXT, city TEXT, zip INT)))
-      client.execute(%(CREATE TABLE users (id VARCHAR PRIMARY KEY, primary_address address)))
+      client.execute(%(CREATE TABLE users (id VARCHAR PRIMARY KEY, primary_address address, secondary_addresses MAP<TEXT, address>)))
     end
 
     it 'inserts records into a table with a user defined type' do
@@ -473,8 +473,21 @@ describe 'A CQL client', :integration do
 
     it 'reads records from a table with a user defined type' do
       client.execute(%(INSERT INTO users (id, primary_address) VALUES ('sue', {street: '123 Some St.', city: 'Frans Sanisco', zip: 76543})))
-      result = client.execute(%(SELECT * FROM users WHERE id = 'sue'))
+      result = client.execute(%(SELECT primary_address FROM users WHERE id = 'sue'))
       result.first['primary_address'].should eql('street' => '123 Some St.', 'city' => 'Frans Sanisco', 'zip' => 76543)
+    end
+
+    it 'reads records from a table with a user defined type in a collection' do
+      client.execute(<<-CQL)
+      INSERT INTO users (id, primary_address, secondary_addresses)
+      VALUES (
+        'sue',
+        {street: '123 Some St.', city: 'Frans Sanisco', zip: 76543},
+        {'secret_lair': {street: '4 Some Other St.', city: 'Gos Latos', zip: 87654}}
+      )
+      CQL
+      result = client.execute(%(SELECT secondary_addresses FROM users WHERE id = 'sue'))
+      result.first['secondary_addresses'].should eql('secret_lair' => {'street' => '4 Some Other St.', 'city' => 'Gos Latos', 'zip' => 87654})
     end
   end
 

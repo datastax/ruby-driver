@@ -350,6 +350,53 @@ module Cassandra
           end
         end
 
+        context 'with user defined types inside of collection types' do
+          let :buffer do
+            b = CqlByteBuffer.new
+            b << "\x00\x00\x00\x01"
+            b << "\x00\x00\x00\x01"
+            b << "\x00\x12cql_rb_client_spec"
+            b << "\x00\x05users"
+            b << "\x00\x13secondary_addresses"
+            b << "\x00!"
+            b << "\x00\r"
+            b << "\x00\x00\x00\xE4org.apache.cassandra.db.marshal.UserType(cql_rb_client_spec,61646472657373,737472656574:org.apache.cassandra.db.marshal.UTF8Type,63697479:org.apache.cassandra.db.marshal.UTF8Type,7a6970:org.apache.cassandra.db.marshal.Int32Type)"
+            b << "\x00\x00\x00\x01"
+            b << "\x00\x00\x00:"
+            b << "\x00\x01\x00\vsecret_lair"
+            b << "\x00)\x00"
+            b << "\x00\x00\x104 Some Other St."
+            b << "\x00\x00\x00\tGos Latos"
+            b << "\x00\x00\x00\x04\x00\x01Vf"
+            b
+          end
+
+          let :response do
+            described_class.decode(2, buffer, buffer.length)
+          end
+
+          it 'decodes the type metadata' do
+            type_description = response.metadata[0]
+            type_description.should == [
+              'cql_rb_client_spec',
+              'users',
+              'secondary_addresses',
+              [:map, :varchar, [:udt, {'street' => :text, 'city' => :text, 'zip' => :int}]]
+            ]
+          end
+
+          it 'decodes the column value to a hash' do
+            custom_value = response.rows[0]['secondary_addresses']
+            custom_value.should eql(
+              'secret_lair' => {
+                'street' => '4 Some Other St.',
+                'city' => 'Gos Latos',
+                'zip' => 87654,
+              }
+            )
+          end
+        end
+
         context 'with an unknown column type' do
           it 'raises an error when encountering an unknown column type' do
             buffer = CqlByteBuffer.new("\x00\x00\x00\x01\x00\x00\x00\x03\x00\ncql_rb_328\x00\x05users\x00\tuser_name\x00\xff\x00\x05email\x00\r\x00\bpassword\x00\r\x00\x00\x00\x00")
