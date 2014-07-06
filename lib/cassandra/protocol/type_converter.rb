@@ -31,11 +31,11 @@ module Cassandra
           return nil unless read_size(buffer, size_bytes)
           case type.first
           when :list
-            bytes_to_list(buffer, @from_bytes_converters[type[1]])
+            bytes_to_list(buffer, type[1])
           when :map
-            bytes_to_map(buffer, @from_bytes_converters[type[1]], @from_bytes_converters[type[2]])
+            bytes_to_map(buffer, type[1], type[2])
           when :set
-            bytes_to_set(buffer, @from_bytes_converters[type[1]])
+            bytes_to_set(buffer, type[1])
           when :udt
             bytes_to_udt_value(buffer, type)
           when :custom
@@ -221,31 +221,31 @@ module Cassandra
         IPAddr.new_ntoh(buffer.read(size))
       end
 
-      def bytes_to_list(buffer, value_converter)
+      def bytes_to_list(buffer, subtype)
         list = []
         size = buffer.read_short
         size.times do
-          list << value_converter.call(buffer, 2)
+          list << from_bytes(buffer, subtype, 2)
         end
         list
       end
 
-      def bytes_to_map(buffer, key_converter, value_converter)
+      def bytes_to_map(buffer, key_type, value_type)
         map = {}
         size = buffer.read_short
         size.times do
-          key = key_converter.call(buffer, 2)
-          value = value_converter.call(buffer, 2)
+          key = from_bytes(buffer, key_type, 2)
+          value = from_bytes(buffer, value_type, 2)
           map[key] = value
         end
         map
       end
 
-      def bytes_to_set(buffer, value_converter)
+      def bytes_to_set(buffer, subtype)
         set = Set.new
         size = buffer.read_short
         size.times do
-          set << value_converter.call(buffer, 2)
+          set << from_bytes(buffer, subtype, 2)
         end
         set
       end
