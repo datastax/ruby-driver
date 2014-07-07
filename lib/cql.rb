@@ -23,14 +23,14 @@ module Cql
   end
 end
 
-require 'cql/builder'
-require 'cql/cluster'
-require 'cql/session'
-require 'cql/thread_safe'
-
 require 'cql/uuid'
 require 'cql/time_uuid'
 require 'cql/compression'
 require 'cql/protocol'
 require 'cql/auth'
 require 'cql/client'
+
+require 'cql/builder'
+require 'cql/cluster'
+require 'cql/session'
+require 'cql/thread_safe'
