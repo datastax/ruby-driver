@@ -1,8 +1,5 @@
 # encoding: utf-8
 
-require 'bigdecimal'
-
-
 module Cql
   module Protocol
     class CqlByteBuffer < Ione::ByteBuffer

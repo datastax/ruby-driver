@@ -1,7 +1,11 @@
 # encoding: utf-8
 
 require 'ione'
+
 require 'monitor'
+require 'ipaddr'
+require 'set'
+require 'bigdecimal'
 
 module Cql
   CqlError = Class.new(StandardError)

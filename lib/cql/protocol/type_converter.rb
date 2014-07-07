@@ -1,9 +1,5 @@
 # encoding: utf-8
 
-require 'ipaddr'
-require 'set'
-
-
 module Cql
   module Protocol
     class TypeConverter
