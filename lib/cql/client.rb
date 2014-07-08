@@ -16,6 +16,16 @@ module Cql
     end
   end
 
+  class NoHostsAvailable < CqlError
+    attr_reader :errors
+
+    def initialize(errors = {})
+      super("no hosts available, check #errors property for details")
+
+      @errors = errors
+    end
+  end
+
   NotConnectedError = Class.new(CqlError)
   TimeoutError = Class.new(CqlError)
   ClientError = Class.new(CqlError)
