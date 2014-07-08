@@ -40,7 +40,26 @@ module Cql
   end
 
   class Builder
-    Settings = Struct.new(:addresses, :port, :protocol_version, :connection_timeout, :default_consistency, :logger, :compressor, :credentials, :auth_provider)
+    class Settings
+      attr_reader   :addresses
+      attr_accessor :port, :protocol_version, :connection_timeout,
+                    :default_consistency, :logger, :compressor, :credentials,
+                    :auth_provider
+
+      def initialize(addresses, port, protocol_version, connection_timeout,
+                     default_consistency, logger, compressor, credentials,
+                     auth_provider)
+        @addresses           = addresses
+        @port                = port
+        @protocol_version    = protocol_version
+        @connection_timeout  = connection_timeout
+        @default_consistency = default_consistency
+        @logger              = logger
+        @compressor          = compressor
+        @credentials         = credentials
+        @auth_provider       = auth_provider
+      end
+    end
 
     def initialize
       @settings = Settings.new(Set.new, 9042, 2, 10, :one, Client::NullLogger.new, nil, nil, nil)
