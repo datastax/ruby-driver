@@ -35,6 +35,7 @@ require 'cql/auth'
 require 'cql/client'
 
 require 'cql/builder'
+require 'cql/container'
 require 'cql/cluster'
 require 'cql/host'
 require 'cql/session'
