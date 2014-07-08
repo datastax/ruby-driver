@@ -2,14 +2,13 @@
 
 module Cql
   class Cluster
-    State = Struct.new(:hosts)
+    State = Struct.new(:hosts, :clients)
     Host  = Struct.new(:ip, :id, :rack, :datacenter, :release_version)
 
     def initialize(control_connection, cluster_state, client_options)
       @control_connection = control_connection
       @state              = cluster_state
       @options            = client_options
-      @sessions           = ThreadSafe.new(::Set.new)
     end
 
     def hosts
@@ -23,9 +22,9 @@ module Cql
       })
 
       client  = Client::AsynchronousClient.new(options)
-      session = Session.new(@sessions, client)
+      session = Session.new(@state.clients, client)
 
-      client.connect.map { @sessions << session; session }
+      client.connect.map { @state.clients << client; session }
     end
 
     def connect(keyspace = nil)
@@ -33,8 +32,19 @@ module Cql
     end
 
     def close_async
-      f = Future.all(*(@sessions.map {|s| s.close_async}))
-      f = f.flat_map { @control_connection.close_async }
+      if @state.clients.empty?
+        f = @control_connection.close_async
+      else
+        futures = @state.clients.map do |client|
+                    f = client.close
+                    f.on_complete { @state.clients.delete(client) }
+                    f.map(self)
+                  end
+
+        f = Future.all(*futures)
+        f = f.flat_map { @control_connection.close_async }
+      end
+
       f.map(self)
     end
 

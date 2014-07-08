@@ -10,7 +10,7 @@ module Cql
     let(:request_runner)   { Client::RequestRunner.new }
     let(:keyspace_changer) { Client::KeyspaceChanger.new(request_runner) }
     let(:io_reactor)       { Io::IoReactor.new }
-    let(:cluster_state)    { Cluster::State.new(hosts) }
+    let(:cluster_state)    { Cluster::State.new(hosts, ThreadSafe.new(::Set.new)) }
 
     let(:control_connection) { Cluster::ControlConnection.new(io_reactor, request_runner, cluster_state, @settings) }
 

@@ -2,9 +2,9 @@
 
 module Cql
   class Session
-    def initialize(sessions, client)
-      @sessions = sessions
-      @client   = client
+    def initialize(clients, client)
+      @clients = clients
+      @client  = client
     end
 
     def execute_async(cql, *args)
@@ -49,7 +49,8 @@ module Cql
 
     def close_async
       f = @client.close
-      f.map { @sessions.delete(self); self }
+      f.on_complete { @clients.delete(@client) }
+      f.map(self)
     end
 
     def close
