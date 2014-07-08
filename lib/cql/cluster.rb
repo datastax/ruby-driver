@@ -5,11 +5,10 @@ module Cql
     State = Struct.new(:hosts)
     Host  = Struct.new(:ip, :rack, :datacenter, :release_version)
 
-    def initialize(control_connection, cluster_state, client_options, settings)
+    def initialize(control_connection, cluster_state, client_options)
       @control_connection = control_connection
       @state              = cluster_state
       @options            = client_options
-      @settings           = settings
       @sessions           = ThreadSafe.new(::Set.new)
     end
 
@@ -19,17 +18,8 @@ module Cql
 
     def connect_async(keyspace = nil)
       options = @options.merge({
-        :compressor           => @settings.compressor,
-        :logger               => @settings.logger,
-        :protocol_version     => @settings.protocol_version,
         :hosts                => @state.hosts.values.map {|host| host.ip},
         :keyspace             => keyspace,
-        :connections_per_node => 1,
-        :default_consistency  => @settings.default_consistency,
-        :port                 => @settings.port,
-        :connection_timeout   => @settings.connection_timeout,
-        :credentials          => @settings.credentials,
-        :auth_provider        => @settings.auth_provider
       })
 
       client  = Client::AsynchronousClient.new(options)

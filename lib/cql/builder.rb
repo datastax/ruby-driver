@@ -1,66 +1,7 @@
 # encoding: utf-8
 
 module Cql
-  class Container
-    def self.let(name, &block)
-      define_method(name) { @services[name] ||= instance_eval(&block) }
-      private name
-    end
-
-    let(:request_runner)   { Client::RequestRunner.new }
-    let(:keyspace_changer) { Client::KeyspaceChanger.new(request_runner) }
-    let(:io_reactor)       { Io::IoReactor.new }
-    let(:cluster_state)    { Cluster::State.new(hosts) }
-
-    let(:control_connection) { Cluster::ControlConnection.new(io_reactor, request_runner, cluster_state, @settings) }
-
-    let(:cluster) { Cluster.new(control_connection, cluster_state, client_options, @settings) }
-
-    let(:client_options) { {
-                             :io_reactor       => io_reactor,
-                             :request_runner   => request_runner,
-                             :keyspace_changer => keyspace_changer
-                           } }
-
-    public :cluster, :control_connection, :io_reactor
-
-    def initialize(settings)
-      @settings = settings
-      @services = {}
-    end
-
-    private
-
-    def hosts
-      hosts = {}
-      @settings.addresses.each {|ip| hosts[ip.to_s] = Cluster::Host.new(ip.to_s)}
-
-      ThreadSafe.new(hosts)
-    end
-  end
-
   class Builder
-    class Settings
-      attr_reader   :addresses
-      attr_accessor :port, :protocol_version, :connection_timeout,
-                    :default_consistency, :logger, :compressor, :credentials,
-                    :auth_provider
-
-      def initialize(addresses, port, protocol_version, connection_timeout,
-                     default_consistency, logger, compressor, credentials,
-                     auth_provider)
-        @addresses           = addresses
-        @port                = port
-        @protocol_version    = protocol_version
-        @connection_timeout  = connection_timeout
-        @default_consistency = default_consistency
-        @logger              = logger
-        @compressor          = compressor
-        @credentials         = credentials
-        @auth_provider       = auth_provider
-      end
-    end
-
     def initialize
       @settings = Settings.new(Set.new, 9042, 2, 10, :one, Client::NullLogger.new, nil, nil, nil)
     end
@@ -133,3 +74,5 @@ module Cql
     end
   end
 end
+
+require 'cql/builder/settings'
