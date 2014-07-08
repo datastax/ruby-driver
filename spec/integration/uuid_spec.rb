@@ -6,7 +6,7 @@ require 'spec_helper'
 describe 'Loading and storing UUIDs' do
   let :connection_options do
     {
-      :host => ENV['CASSANDRA_HOST'],
+      :hosts => [ENV['CASSANDRA_HOST']],
       :credentials => {:username => 'cassandra', :password => 'cassandra'},
     }
   end
