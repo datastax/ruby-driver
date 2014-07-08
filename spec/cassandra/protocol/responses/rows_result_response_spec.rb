@@ -397,6 +397,64 @@ module Cassandra
           end
         end
 
+        context 'with user defined types inside of other user defined types and collection types' do
+          let :buffer1 do
+            b = CqlByteBuffer.new
+            b << "\x00\x00\x00\x01"
+            b << "\x00\x00\x00\x01"
+            b << "\x00\x12cql_rb_client_spec"
+            b << "\x00\x05users"
+            b << "\x00\temployers"
+            b << "\x00\""
+            b << "\x00\x00\x01\x9Forg.apache.cassandra.db.marshal.UserType(cql_rb_client_spec,636f6d70616e79,6e616d65:org.apache.cassandra.db.marshal.UTF8Type,616464726573736573:org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.UserType(cql_rb_client_spec,61646472657373,737472656574:org.apache.cassandra.db.marshal.UTF8Type,63697479:org.apache.cassandra.db.marshal.UTF8Type,7a6970:org.apache.cassandra.db.marshal.Int32Type)))"
+            b << "\x00\x00\x00\x01"
+            b << "\x00\x00\x00\x8C"
+            b << "\x00\x02"
+            b << "\x00S"
+            b << "\x00\x00\x00\tAcme Corp"
+            b << "\x00\x00\x00B"
+            b << "\x00\x00\x00\x02"
+            b << "\x00\x00\x00\e"
+            b << "\x00\x00\x00\x051 St."
+            b << "\x00\x00\x00\x061 City"
+            b << "\x00\x00\x00\x04\x00\x00+g"
+            b << "\x00\x00\x00\e"
+            b << "\x00\x00\x00\x052 St."
+            b << "\x00\x00\x00\x062 City"
+            b << "\x00\x00\x00\x04\x00\x00V\xCE"
+            b << "\x003"
+            b << "\x00\x00\x00\bFoo Inc."
+            b << "\x00\x00\x00#"
+            b << "\x00\x00\x00\x01"
+            b << "\x00\x00\x00\e"
+            b << "\x00\x00\x00\x053 St."
+            b << "\x00\x00\x00\x063 City"
+            b << "\x00\x00\x00\x04\x00\x00\x825"
+          end
+
+          let :response do
+            described_class.decode(2, buffer1, buffer1.length)
+          end
+
+          it 'decodes the type metadata' do
+            type_description = response.metadata[0]
+            type_description.should == [
+              'cql_rb_client_spec',
+              'users',
+              'employers',
+              [:set, [:udt, {'name' => :text, 'addresses' => [:list, [:udt, {'street' => :text, 'city' => :text, 'zip' => :int}]]}]]
+            ]
+          end
+
+          it 'decodes the column value to a hash' do
+            custom_value = response.rows[0]['employers']
+            custom_value.should eql(Set.new([
+              {'name' => 'Acme Corp', 'addresses' => [{'street' => '1 St.', 'city' => '1 City', 'zip' => 11111}, {'street' => '2 St.', 'city' => '2 City', 'zip' => 22222}]},
+              {'name' => 'Foo Inc.', 'addresses' => [{'street' => '3 St.', 'city' => '3 City', 'zip' => 33333}]}
+            ]))
+          end
+        end
+
         context 'with an unknown column type' do
           it 'raises an error when encountering an unknown column type' do
             buffer = CqlByteBuffer.new("\x00\x00\x00\x01\x00\x00\x00\x03\x00\ncql_rb_328\x00\x05users\x00\tuser_name\x00\xff\x00\x05email\x00\r\x00\bpassword\x00\r\x00\x00\x00\x00")

@@ -461,7 +461,8 @@ describe 'A CQL client', :integration do
       pending 'User defined types are not available in C* before 2.1.0' unless release_version[0, 5] >= '2.1.0'
       create_keyspace
       client.execute(%(CREATE TYPE address (street TEXT, city TEXT, zip INT)))
-      client.execute(%(CREATE TABLE users (id VARCHAR PRIMARY KEY, primary_address address, secondary_addresses MAP<TEXT, address>)))
+      client.execute(%(CREATE TYPE company (name TEXT, addresses LIST<address>)))
+      client.execute(%(CREATE TABLE users (id VARCHAR PRIMARY KEY, primary_address address, secondary_addresses MAP<TEXT, address>, employers SET<company>)))
     end
 
     it 'inserts records into a table with a user defined type' do
@@ -488,6 +489,24 @@ describe 'A CQL client', :integration do
       CQL
       result = client.execute(%(SELECT secondary_addresses FROM users WHERE id = 'sue'))
       result.first['secondary_addresses'].should eql('secret_lair' => {'street' => '4 Some Other St.', 'city' => 'Gos Latos', 'zip' => 87654})
+    end
+
+    it 'reads records from a table with user defined types nested in other user defined types, and collections' do
+      client.execute(<<-CQL)
+      INSERT INTO users (id, employers)
+      VALUES (
+        'sue',
+        {
+          {name: 'Acme Corp', addresses: [{street: '1 St.', city: '1 City', zip: 11111}, {street: '2 St.', city: '2 City', zip: 22222}]},
+          {name: 'Foo Inc.', addresses: [{street: '3 St.', city: '3 City', zip: 33333}]}
+        }
+      )
+      CQL
+      result = client.execute(%(SELECT employers FROM users WHERE id = 'sue'))
+      result.first['employers'].should eql(Set.new([
+        {'name' => 'Acme Corp', 'addresses' => [{'street' => '1 St.', 'city' => '1 City', 'zip' => 11111}, {'street' => '2 St.', 'city' => '2 City', 'zip' => 22222}]},
+        {'name' => 'Foo Inc.', 'addresses' => [{'street' => '3 St.', 'city' => '3 City', 'zip' => 33333}]}
+      ]))
     end
   end
 
