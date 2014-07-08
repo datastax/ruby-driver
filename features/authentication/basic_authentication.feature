@@ -16,7 +16,6 @@ Feature: basic authentication
                     .with_contact_points(["127.0.0.1"])                 \
                     .with_credentials(ENV['USERNAME'], ENV['PASSWORD']) \
                     .build
-        session = cluster.connect
         puts "authentication successful"
       rescue => e
         puts "#{e.class.name}: #{e.message}"
