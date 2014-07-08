@@ -36,5 +36,6 @@ require 'cql/client'
 
 require 'cql/builder'
 require 'cql/cluster'
+require 'cql/host'
 require 'cql/session'
 require 'cql/thread_safe'
