@@ -33,9 +33,9 @@ module Cql
 
     public :cluster, :control_connection, :io_reactor
 
-    def initialize(settings)
+    def initialize(settings, services = {})
       @settings = settings
-      @services = {}
+      @services = services
     end
 
     private
