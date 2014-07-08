@@ -162,13 +162,6 @@ module Cql
           expect { client.connect.value }.to raise_error('bork')
         end
 
-        it 'connects to localhost by default' do
-          connection_options.delete(:hosts)
-          c = described_class.new(connection_options)
-          c.connect.value
-          connections.map(&:host).should == %w[localhost]
-        end
-
         it 'connects to localhost when an empty list of hosts is given' do
           c = described_class.new(connection_options.merge(hosts: []))
           c.connect.value
