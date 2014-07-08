@@ -102,8 +102,7 @@ module Cql
 
     # @private
     class InitializeStep
-      def initialize(cql_version, compressor, logger)
-        @cql_version = cql_version
+      def initialize(compressor, logger)
         @compressor = compressor
         @logger = logger
       end
@@ -111,13 +110,17 @@ module Cql
       def run(pending_connection)
         compression = @compressor && @compressor.algorithm
         supported_algorithms = pending_connection[:compression]
-        if @compressor && !supported_algorithms.include?(@compressor.algorithm)
-          @logger.warn(%[Compression algorithm "#{@compressor.algorithm}" not supported (server supports "#{supported_algorithms.join('", "')}")])
+        if compression && !supported_algorithms.include?(compression)
+          @logger.warn(%[Compression algorithm "#{compression}" not supported (server supports "#{supported_algorithms.join('", "')}")])
           compression = nil
-        elsif @compressor
-          @logger.debug('Using "%s" compression' % @compressor.algorithm)
         end
-        f = pending_connection.execute(Protocol::StartupRequest.new(@cql_version, compression))
+        @logger.debug('Using "%s" compression' % compression) if compression
+        f = pending_connection.execute(
+              Protocol::StartupRequest.new(
+                pending_connection[:cql_version] ? pending_connection[:cql_version].first : '3.1.0',
+                compression
+              )
+            )
         f.map do |startup_response|
           if startup_response.is_a?(AuthenticationRequired)
             pending_connection.with_authentication_class(startup_response.authentication_class)
