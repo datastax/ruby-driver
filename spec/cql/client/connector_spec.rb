@@ -304,7 +304,7 @@ module Cql
 
     describe InitializeStep do
       let :step do
-        described_class.new('3.3.3', compressor, logger)
+        described_class.new(compressor, logger)
       end
 
       let :compressor do
@@ -322,6 +322,7 @@ module Cql
       describe '#run' do
         before do
           pending_connection.stub(:[]).with(:compression).and_return(%w[magic snappy])
+          pending_connection.stub(:[]).with(:cql_version).and_return(%w[3.3.3])
           pending_connection.stub(:execute) do |request|
             pending_connection.stub(:last_request).and_return(request)
             Future.resolved
