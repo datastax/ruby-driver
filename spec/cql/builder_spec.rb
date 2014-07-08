@@ -56,6 +56,11 @@ module Cql
         builder.build
         connections.map(&:host).should == %w[127.0.0.1]
       end
+
+      it 'connects to localhost when an empty list of hosts is given' do
+        builder.with_contact_points([]).build
+        connections.map(&:host).should == %w[127.0.0.1]
+      end
     end
   end
 end
