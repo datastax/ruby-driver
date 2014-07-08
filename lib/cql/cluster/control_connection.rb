@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 module Cql
+  NOT_CONNECTED = NotConnectedError.new("not connected")
   SELECT_LOCAL  = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, release_version FROM system.local', nil, nil, :one)
   SELECT_PEERS  = Protocol::QueryRequest.new('SELECT peer, rack, data_center, host_id, rpc_address, release_version FROM system.peers', nil, nil, :one)
   REGISTER      = Protocol::RegisterRequest.new(
@@ -26,6 +27,8 @@ module Cql
       end
 
       def register_async
+        raise NOT_CONNECTED if @connection.nil?
+
         @request_runner.execute(@connection, REGISTER).map do
           @connection.on_event do |event|
             if event.change == 'UP' || event.change == 'NEW_NODE'
@@ -44,6 +47,8 @@ module Cql
       end
 
       def refresh_hosts_async
+        raise NOT_CONNECTED if @connection.nil?
+
         local_ip = @connection.host
         ips      = ::Set[local_ip]
 
