@@ -211,16 +211,15 @@ module Cql
     class AsynchronousClient < Client
       def initialize(options={})
         @compressor = options[:compressor]
-        @cql_version = options[:cql_version]
         @logger = options[:logger] || NullLogger.new
         @protocol_version = options[:protocol_version] || 2
         @io_reactor = options[:io_reactor] || Io::IoReactor.new
-        @hosts = extract_hosts(options)
+        @hosts = options[:hosts]
         @initial_keyspace = options[:keyspace]
         @connections_per_node = options[:connections_per_node] || 1
         @lock = Mutex.new
-        @request_runner = RequestRunner.new
-        @keyspace_changer = KeyspaceChanger.new
+        @request_runner = options[:request_runner] || RequestRunner.new
+        @keyspace_changer = options[:keyspace_changer] || KeyspaceChanger.new
         @connection_manager = ConnectionManager.new
         @execute_options_decoder = ExecuteOptionsDecoder.new(options[:default_consistency] || DEFAULT_CONSISTENCY)
         @port = options[:port] || DEFAULT_PORT
@@ -239,13 +238,11 @@ module Cql
           @connecting = true
           @connected_future = begin
             f = @io_reactor.start
-            f = f.flat_map { connect_with_protocol_version_fallback }
-            f = f.flat_map { |connections| connect_to_all_peers(connections) }
+            f = f.flat_map { create_cluster_connector.connect_all(@hosts, @connections_per_node) }
             f = f.flat_map do |connections|
               @connection_manager.add_connections(connections)
-              register_event_listener(@connection_manager.random_connection)
+              use_keyspace(@connection_manager.snapshot, @initial_keyspace)
             end
-            f = f.flat_map { use_keyspace(@connection_manager.snapshot, @initial_keyspace) }
             f.map(self)
           end
         end
@@ -336,61 +333,19 @@ module Cql
       DEFAULT_CONNECTION_TIMEOUT = 10
       MAX_RECONNECTION_ATTEMPTS = 5
 
-      def extract_hosts(options)
-        if options[:hosts] && options[:hosts].any?
-          options[:hosts].uniq
-        elsif options[:host]
-          options[:host].split(',').uniq
-        else
-          %w[localhost]
-        end
-      end
-
       def create_cluster_connector
-        cql_version = @cql_version || DEFAULT_CQL_VERSIONS[@protocol_version]
         authentication_step = @protocol_version == 1 ? CredentialsAuthenticationStep.new(@credentials) : SaslAuthenticationStep.new(@auth_provider)
         protocol_handler_factory = lambda { |connection| Protocol::CqlProtocolHandler.new(connection, @io_reactor, @protocol_version, @compressor) }
         ClusterConnector.new(
           Connector.new([
             ConnectStep.new(@io_reactor, protocol_handler_factory, @port, @connection_timeout, @logger),
             CacheOptionsStep.new,
-            InitializeStep.new(cql_version, @compressor, @logger),
+            InitializeStep.new(@compressor, @logger),
             authentication_step,
             CachePropertiesStep.new,
           ]),
           @logger
         )
-      end
-
-      def connect_with_protocol_version_fallback
-        f = create_cluster_connector.connect_all(@hosts, @connections_per_node)
-        f.fallback do |error|
-          if error.is_a?(QueryError) && error.code == 0x0a && @protocol_version > 1
-            @logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@protocol_version, @protocol_version - 1, error.message])
-            @protocol_version -= 1
-            connect_with_protocol_version_fallback
-          else
-            raise error
-          end
-        end
-      end
-
-      def connect_to_all_peers(seed_connections, initial_keyspace=@initial_keyspace)
-        @logger.debug('Looking for additional nodes')
-        peer_discovery = PeerDiscovery.new(seed_connections)
-        peer_discovery.new_hosts.flat_map do |hosts|
-          if hosts.empty?
-            @logger.debug('No additional nodes found')
-            Future.resolved(seed_connections)
-          else
-            @logger.debug('%d additional nodes found' % hosts.size)
-            f = create_cluster_connector.connect_all(hosts, @connections_per_node)
-            f = f.map do |discovered_connections|
-              seed_connections + discovered_connections
-            end
-            f.recover(seed_connections)
-          end
-        end
       end
 
       def connected(f)
