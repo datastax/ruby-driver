@@ -51,7 +51,7 @@ module Cql
         peers = @request_runner.execute(@connection, SELECT_PEERS)
 
         Future.all(local, peers).map do |(local, peers)|
-          populate_host(local_ip, local.first)
+          populate_host(local_ip, local.first) unless local.empty?
 
           peers.each do |data|
             ip   = peer_ip(data)
