@@ -117,7 +117,7 @@ module Cql
         @logger.debug('Using "%s" compression' % compression) if compression
         f = pending_connection.execute(
               Protocol::StartupRequest.new(
-                pending_connection[:cql_version] ? pending_connection[:cql_version].first : '3.1.0',
+                pending_connection[:cql_version].empty? ? '3.1.0' : pending_connection[:cql_version].first,
                 compression
               )
             )

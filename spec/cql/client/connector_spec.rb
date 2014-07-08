@@ -334,9 +334,22 @@ module Cql
           pending_connection.last_request.should be_a(Protocol::StartupRequest)
         end
 
-        it 'sets the CQL version' do
+        it 'sets the first supported CQL version' do
+          [
+            [%w[3.3.3 3.3.4, 3.3.5], '3.3.3'],
+            [%w[3.1.15 3.3.4, 3.3.5], '3.1.15'],
+            [%w[3.2.3 3.3.4, 3.3.5], '3.2.3'],
+          ].each do |supported_versions, version_used|
+            pending_connection.stub(:[]).with(:cql_version).and_return(supported_versions)
+            step.run(pending_connection)
+            pending_connection.last_request.options.should include('CQL_VERSION' => version_used)
+          end
+        end
+
+        it 'defaults CQL version to 3.1.0' do
+          pending_connection.stub(:[]).with(:cql_version).and_return([])
           step.run(pending_connection)
-          pending_connection.last_request.options.should include('CQL_VERSION' => '3.3.3')
+          pending_connection.last_request.options.should include('CQL_VERSION' => '3.1.0')
         end
 
         it 'does not set the compression option when there is no compressor' do

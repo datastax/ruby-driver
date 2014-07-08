@@ -353,13 +353,6 @@ module Cql
           client.keyspace.should be_nil
         end
 
-        it 'sends the specified CQL version in the startup message' do
-          c = described_class.new(connection_options.merge(cql_version: '5.0.1'))
-          c.connect.value
-          request = requests.find { |rq| rq.is_a?(Protocol::StartupRequest) }
-          request.options.should include('CQL_VERSION' => '5.0.1')
-        end
-
         it 'enables compression when a compressor is specified' do
           handle_request do |request|
             case request
