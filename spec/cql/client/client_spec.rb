@@ -202,121 +202,28 @@ module Cql
             described_class.new(connection_options.merge(protocol_version: 7))
           end
 
-          it 'tries decreasing protocol versions until one succeeds' do
-            counter = 0
-            handle_request do |request|
-              if counter < 3
-                counter += 1
-                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
-              elsif counter == 3
-                counter += 1
-                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
-              else
-                Protocol::RowsResultResponse.new([], [], nil, nil)
-              end
-            end
-            client.connect.value
-            client.should be_connected
-          end
-
-          it 'logs when it tries the next protocol version' do
-            logger.stub(:warn)
-            counter = 0
-            handle_request do |request|
-              if counter < 3
-                counter += 1
-                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
-              elsif counter == 3
-                counter += 1
-                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
-              else
-                Protocol::RowsResultResponse.new([], [], nil, nil)
-              end
-            end
-            client.connect.value
-            logger.should have_received(:warn).with(/could not connect using protocol version 7 \(will try again with 6\): bork version, dummy!/i)
-          end
-
-          it 'gives up when the protocol version is zero' do
-            handle_request do |request|
-              Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
-            end
-            expect { client.connect.value }.to raise_error(QueryError)
-            client.should_not be_connected
-          end
-
-          it 'gives up when a non-protocol version related error is raised' do
-            counter = 0
-            handle_request do |request|
-              if counter == 4
-                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
-              else
-                counter += 1
-                Protocol::ErrorResponse.new(0x1001, 'Get off my lawn!')
-              end
-            end
-            expect { client.connect.value }.to raise_error(/Get off my lawn/)
-            client.should_not be_connected
-          end
-
-          it 'uses different authentication mechanisms for different protocol versions' do
-            client = described_class.new(connection_options.merge(protocol_version: 3, credentials: {username: 'foo', password: 'bar'}))
-            auth_requests = []
-            handle_request do |request|
-              case request
-              when Protocol::OptionsRequest
-                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
-              when Protocol::StartupRequest
-                Protocol::AuthenticateResponse.new('org.apache.cassandra.auth.PasswordAuthenticator')
-              when Protocol::AuthResponseRequest
-                auth_requests << request
-                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
-              when Protocol::CredentialsRequest
-                auth_requests << request
-                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
-              else
-                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
-              end
-            end
-            client.connect.value rescue nil
-            auth_requests[0].should be_a(Protocol::AuthResponseRequest)
-            auth_requests[1].should be_a(Protocol::AuthResponseRequest)
-            auth_requests[2].should be_a(Protocol::CredentialsRequest)
-          end
-
-          it 'fails authenticating when an auth provider has been specified but the protocol is negotiated to v1' do
-            client = described_class.new(connection_options.merge(protocol_version: 2, auth_provider: double(:auth_provider)))
-            counter = 0
-            handle_request do |request|
-              if counter == 0
-                counter += 1
-                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
-              else
+          [
+            [3, Protocol::AuthResponseRequest],
+            [2, Protocol::AuthResponseRequest],
+            [1, Protocol::CredentialsRequest],
+          ].each do |(protocol_version, request_kind)|
+            it "uses #{request_kind.inspect} for protocol version #{protocol_version}" do
+              client = described_class.new(connection_options.merge(protocol_version: protocol_version, credentials: {username: 'foo', password: 'bar'}))
+              auth_request = nil
+              handle_request do |request|
                 case request
                 when Protocol::OptionsRequest
                   Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
                 when Protocol::StartupRequest
                   Protocol::AuthenticateResponse.new('org.apache.cassandra.auth.PasswordAuthenticator')
+                when Protocol::AuthResponseRequest, Protocol::CredentialsRequest
+                  auth_request = request
+                  Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
                 end
               end
+              client.connect.value rescue nil
+              auth_request.should be_a(request_kind)
             end
-            expect { client.connect.value }.to raise_error(AuthenticationError)
-            counter.should == 1
-          end
-
-          it 'defaults to different CQL versions for the different protocols' do
-            cql_versions = []
-            handle_request do |request|
-              if request.is_a?(Protocol::StartupRequest)
-                cql_versions << request.options['CQL_VERSION']
-              end
-              nil
-            end
-            [1, 2, 3].map do |protocol_version|
-              client = described_class.new(connection_options.merge(protocol_version: protocol_version))
-              client.connect.value
-            end
-            cql_versions.should == ['3.0.0', '3.1.0', '3.1.0']
           end
         end
 
@@ -395,53 +302,13 @@ module Cql
           requests.should_not include(Protocol::QueryRequest.new('USE system; DROP KEYSPACE system', nil, nil, :one))
         end
 
-        context 'with automatic peer discovery' do
-          include_context 'peer discovery setup'
+        context 'with peers discovered' do
+          let :additional_nodes do
+            Array.new(5) { IPAddr.new("127.0.#{rand(255)}.#{rand(255)}") }
+          end
 
           let :connection_options do
-            default_connection_options.merge(keyspace: 'foo')
-          end
-
-          it 'connects to the other nodes in the cluster' do
-            client.connect.value
-            connections.should have(3).items
-          end
-
-          context 'when the nodes have 0.0.0.0 as rpc_address' do
-            let :bind_all_rpc_addresses do
-              true
-            end
-
-            it 'falls back on using the peer column' do
-              client.connect.value
-              connections.should have(3).items
-            end
-          end
-
-          it 'connects to the other nodes in the same data center' do
-            data_centers[additional_nodes[1]] = 'dc2'
-            client.connect.value
-            connections.should have(2).items
-          end
-
-          it 'connects to the other nodes in same data centers as the seed nodes' do
-            data_centers['host2'] = 'dc2'
-            data_centers[additional_nodes[1]] = 'dc2'
-            c = described_class.new(connection_options.merge(hosts: %w[host1 host2]))
-            c.connect.value
-            connections.should have(3).items
-          end
-
-          it 'only connects to the other nodes in the cluster it is not already connected do' do
-            c = described_class.new(connection_options.merge(hosts: %w[host1 host2]))
-            c.connect.value
-            connections.should have(3).items
-          end
-
-          it 'handles the case when it is already connected to all nodes' do
-            c = described_class.new(connection_options.merge(hosts: %w[host1 host2 host3 host4]))
-            c.connect.value
-            connections.should have(4).items
+            default_connection_options.merge(keyspace: 'foo', hosts: additional_nodes.slice(0, 3).map(&:to_s))
           end
 
           it 'accepts that some nodes are down' do
