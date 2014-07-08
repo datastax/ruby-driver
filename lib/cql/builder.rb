@@ -2,7 +2,8 @@
 
 module Cql
   class Builder
-    def initialize
+    def initialize(services = {})
+      @services = services
       @settings = Settings.new(Set.new, 9042, 2, 10, :one, Client::NullLogger.new, nil, nil, nil)
     end
 
@@ -53,7 +54,7 @@ module Cql
     private
 
     def create_cluster
-      container = Container.new(@settings)
+      container = Container.new(@settings, @services)
 
       control_connection = container.control_connection
       io_reactor         = container.io_reactor
