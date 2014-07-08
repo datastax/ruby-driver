@@ -47,7 +47,7 @@ module Cassandra
         end
       end
 
-      def to_bytes(buffer, type, value, size_bytes=4)
+      def to_bytes(buffer, type, value, size_bytes=4, override_size=false)
         case type
         when Array
           unless value.nil? || value.is_a?(Enumerable)
@@ -55,30 +55,42 @@ module Cassandra
           end
           case type.first
           when :list, :set
+            size_bytes = override_size ? size_bytes : 2
             _, sub_type = type
             if value
               raw = CqlByteBuffer.new
-              raw.append_short(value.size)
+              if size_bytes == 2
+                raw.append_short(value.size)
+              else
+                raw.append_int(value.size)
+              end
               value.each do |element|
-                to_bytes(raw, sub_type, element, 2)
+                to_bytes(raw, sub_type, element, size_bytes, override_size)
               end
               buffer.append_bytes(raw)
             else
               nil_to_bytes(buffer, size_bytes)
             end
           when :map
+            size_bytes = override_size ? size_bytes : 2
             _, key_type, value_type = type
             if value
               raw = CqlByteBuffer.new
-              raw.append_short(value.size)
+              if size_bytes == 2
+                raw.append_short(value.size)
+              else
+                raw.append_int(value.size)
+              end
               value.each do |key, value|
-                to_bytes(raw, key_type, key, 2)
-                to_bytes(raw, value_type, value, 2)
+                to_bytes(raw, key_type, key, size_bytes, override_size)
+                to_bytes(raw, value_type, value, size_bytes, override_size)
               end
               buffer.append_bytes(raw)
             else
               nil_to_bytes(buffer, size_bytes)
             end
+          when :udt
+            udt_to_bytes(buffer, type[1], value, size_bytes)
           else
             raise UnsupportedColumnTypeError, %(Unsupported column collection type: #{type.first})
           end
@@ -395,6 +407,17 @@ module Cassandra
         else
           buffer.append_short(-1)
         end
+      end
+
+      def udt_to_bytes(buffer, type, value, size_bytes)
+        offset = buffer.length
+        size_to_bytes(buffer, 0, size_bytes)
+        type.each do |field_name, field_type|
+          field_value = value[field_name]
+          to_bytes(buffer, field_type, field_value, 4, true)
+        end
+        buffer.update(offset, size_to_bytes(CqlByteBuffer.new, buffer.length - offset - size_bytes, size_bytes))
+        buffer
       end
     end
   end
