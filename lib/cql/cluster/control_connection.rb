@@ -1,13 +1,13 @@
 # encoding: utf-8
 
 module Cql
-  SELECT_PEERS = Protocol::QueryRequest.new('SELECT peer, rack, data_center, host_id, rpc_address, release_version FROM system.peers', nil, nil, :one)
-  SELECT_LOCAL = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, release_version FROM system.local', nil, nil, :one)
-  REGISTER     = Protocol::RegisterRequest.new(
-                   Protocol::TopologyChangeEventResponse::TYPE,
-                   Protocol::StatusChangeEventResponse::TYPE,
-                   Protocol::SchemaChangeEventResponse::TYPE
-                 )
+  SELECT_LOCAL  = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, release_version FROM system.local', nil, nil, :one)
+  SELECT_PEERS  = Protocol::QueryRequest.new('SELECT peer, rack, data_center, host_id, rpc_address, release_version FROM system.peers', nil, nil, :one)
+  REGISTER      = Protocol::RegisterRequest.new(
+                    Protocol::TopologyChangeEventResponse::TYPE,
+                    Protocol::StatusChangeEventResponse::TYPE,
+                    Protocol::SchemaChangeEventResponse::TYPE
+                  )
 
   class Cluster
     class ControlConnection
@@ -111,6 +111,7 @@ module Cql
         host                 = @cluster.hosts[ip]
         is_new               = host.nil?
         host                 = @cluster.hosts[ip] = Host.new(ip) if is_new
+        host.id              = data['host_id']
         host.rack            = data['rack']
         host.datacenter      = data['data_center']
         host.release_version = data['release_version']
