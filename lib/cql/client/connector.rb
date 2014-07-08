@@ -115,12 +115,10 @@ module Cql
           compression = nil
         end
         @logger.debug('Using "%s" compression' % compression) if compression
-        f = pending_connection.execute(
-              Protocol::StartupRequest.new(
-                pending_connection[:cql_version].empty? ? '3.1.0' : pending_connection[:cql_version].first,
-                compression
-              )
-            )
+        supported_cql_versions = pending_connection[:cql_version]
+        cql_version = (supported_cql_versions && !supported_cql_versions.empty?) ? supported_cql_versions.first : '3.1.0'
+
+        f = pending_connection.execute(Protocol::StartupRequest.new(cql_version, compression))
         f.map do |startup_response|
           if startup_response.is_a?(AuthenticationRequired)
             pending_connection.with_authentication_class(startup_response.authentication_class)
