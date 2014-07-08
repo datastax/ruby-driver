@@ -174,20 +174,7 @@ module Cql
             connections.should have(3).items
           end
 
-          it 'connects to all hosts, when given as a comma-sepatated string' do
-            connection_options.delete(:hosts)
-            c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
-            c.connect.value
-            connections.should have(3).items
-          end
-
-          it 'only connects to each host once' do
-            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h2.example.com]))
-            c.connect.value
-            connections.should have(2).items
-          end
-
-          it 'connects to each host the specifie number of times' do
+          it 'connects to each host the specified number of times' do
             c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com], connections_per_node: 3))
             c.connect.value
             connections.should have(6).items
@@ -196,7 +183,7 @@ module Cql
           it 'succeeds even if only one of the connections succeeded' do
             io_reactor.node_down('h1.example.com')
             io_reactor.node_down('h3.example.com')
-            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h2.example.com]))
+            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h3.example.com]))
             c.connect.value
             connections.should have(1).items
           end
