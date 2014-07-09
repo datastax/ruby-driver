@@ -13,8 +13,12 @@ module Cql
         FakeIoReactor.new
       end
 
+      let :hosts do
+        {'127.0.0.1' => Cluster::Host.new('127.0.0.1')}
+      end
+
       let :cluster_state do
-        State.new({'127.0.0.1' => Cluster::Host.new('127.0.0.1')}, ::Set[])
+        State.new(hosts, ::Set[])
       end
 
       let :request_runner do
@@ -256,10 +260,10 @@ module Cql
 
         it 'populates cluster state with other hosts' do
           control_connection.refresh_hosts_async.get
-          cluster_state.hosts.should have(3).items
+          cluster_state.should have(3).hosts
 
-          cluster_state.hosts.each do |(ip, host)|
-            host.ip.should == ip
+          cluster_state.hosts.each do |host|
+            ip = host.ip
             host.rack.should == racks[ip]
             host.datacenter.should == data_centers[ip]
             host.release_version.should == release_versions[ip]
@@ -273,10 +277,10 @@ module Cql
 
           it 'falls back on using the peer column' do
             control_connection.refresh_hosts_async.get
-            cluster_state.hosts.should have(3).items
+            cluster_state.should have(3).hosts
 
-            cluster_state.hosts.each do |(ip, host)|
-              host.ip.should == ip
+            cluster_state.hosts.each do |host|
+              ip = host.ip
               host.rack.should == racks[ip]
               host.datacenter.should == data_centers[ip]
               host.release_version.should == release_versions[ip]
@@ -295,7 +299,7 @@ module Cql
         before do
           control_connection.refresh_hosts_async.get
           control_connection.register_async.get
-          cluster_state.clients << client
+          cluster_state.add_client(client)
         end
 
         context 'when a status change event is received' do
@@ -314,7 +318,7 @@ module Cql
               end
 
               let :host do
-                cluster_state.hosts[address.to_s]
+                hosts[address.to_s]
               end
 
               context 'and is up' do
@@ -367,7 +371,7 @@ module Cql
               end
 
               let :host do
-                cluster_state.hosts[address.to_s]
+                hosts[address.to_s]
               end
 
               context 'and is up' do
@@ -433,7 +437,7 @@ module Cql
                 connections.first.trigger_event(event)
 
                 host.should_not be_nil
-                cluster_state.hosts.keys.should include(address.to_s)
+                cluster_state.ips.should include(address.to_s)
               end
             end
 
@@ -461,7 +465,7 @@ module Cql
               end
 
               let :host do
-                cluster_state.hosts[address.to_s]
+                hosts[address.to_s]
               end
 
               context 'and is up' do
@@ -474,7 +478,7 @@ module Cql
                   client.should_receive(:host_lost).once.with(host)
                   connections.first.trigger_event(event)
 
-                  cluster_state.hosts.keys.should_not include(address.to_s)
+                  cluster_state.ips.should_not include(address.to_s)
                 end
               end
 
@@ -487,7 +491,7 @@ module Cql
                   client.should_receive(:host_lost).once.with(host)
                   connections.first.trigger_event(event)
 
-                  cluster_state.hosts.keys.should_not include(address.to_s)
+                  cluster_state.ips.should_not include(address.to_s)
                 end
               end
             end
