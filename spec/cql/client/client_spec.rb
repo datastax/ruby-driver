@@ -1122,13 +1122,6 @@ module Cql
           expect { client.execute('SELECT * FROM something').value }.to raise_error(NotConnectedError)
         end
 
-        it 'reconnects when it receives a status change UP event' do
-          connections.first.close
-          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
-          connections.select(&:has_event_listener?).first.trigger_event(event)
-          connections.select(&:connected?).should have(3).items
-        end
-
         it 'reconnects when it receives a topology change NEW_NODE event' do
           connections.first.close
           event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
