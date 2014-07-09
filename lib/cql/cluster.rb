@@ -3,7 +3,37 @@
 module Cql
   class Cluster
     State = Struct.new(:hosts, :clients)
-    Host  = Struct.new(:ip, :id, :rack, :datacenter, :release_version)
+    class Host
+      attr_reader   :ip
+      attr_accessor :id, :rack, :datacenter, :release_version
+
+      def initialize(ip, data = {})
+        @ip              = ip
+        @id              = data['host_id']
+        @release_version = data['release_version']
+        @rack            = data['rack']
+        @datacenter      = data['data_center']
+        @status          = :unknown
+      end
+
+      def up?
+        @status == :up
+      end
+
+      def up!
+        @status = :up
+        self
+      end
+
+      def down?
+        @status == :down
+      end
+
+      def down!
+        @status = :down
+        self
+      end
+    end
 
     def initialize(control_connection, cluster_state, client_options)
       @control_connection = control_connection
