@@ -14,8 +14,6 @@ module Cql
 
       def each_client(&block)
         @clients.each(&block)
-
-        self
       end
 
       def remove_client(client)
@@ -82,6 +80,8 @@ module Cql
             client.host_up(host)
           end
         end
+
+        self
       end
 
       def host_down(ip)
