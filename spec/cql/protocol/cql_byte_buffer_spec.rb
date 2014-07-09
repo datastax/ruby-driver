@@ -81,6 +81,11 @@ module Cql
           buffer.read_decimal.should == BigDecimal.new('-0.0012095473475870063')
         end
 
+        it 'decodes a small negative decimal' do
+          buffer = described_class.new("\x00\x00\x00\x12\x91z\xE1\xAF\x06c\x5A")
+          buffer.read_decimal.should == BigDecimal.new('-0.031108612692221094')
+        end
+
         it 'consumes the bytes' do
           buffer << 'HELLO'
           buffer.read_decimal(buffer.length - 5)
@@ -815,6 +820,16 @@ module Cql
           buffer.should eql_bytes("\x00")
         end
 
+        it 'encodes with zero padding when number is positive and sign bit is on' do
+          buffer.append_varint(128)
+          buffer.should eql_bytes("\x00\x80")
+        end
+
+        it 'encodes without zero padding when number is negative and sign bit is on' do
+          buffer.append_varint(-128)
+          buffer.should eql_bytes("\x80")
+        end
+
         it 'encodes a variable length integer' do
           buffer.append_varint(1231312312331283012830129382342342412123)
           buffer.should eql_bytes("\x03\x9EV \x15\f\x03\x9DK\x18\xCDI\\$?\a[")
@@ -823,6 +838,11 @@ module Cql
         it 'encodes a negative variable length integer' do
           buffer.append_varint(-234234234234)
           buffer.should eql_bytes("\xC9v\x8D:\x86")
+        end
+
+        it 'encodes a small negative variable length integer' do
+          buffer.append_varint(-39911)
+          buffer.should eql_bytes("\xFFd\x19")
         end
 
         it 'encodes a negative variable length integer' do
@@ -861,6 +881,11 @@ module Cql
         it 'encodes a BigDecimal ending with 00.0' do
           buffer.append_decimal(BigDecimal.new('12000.0'))
           buffer.should eql_bytes("\x00\x00\x00\x01\x01\xD4\xC0")
+        end
+
+        it 'encodes a BigDecimal with zero padding when sign bit is on' do
+          buffer.append_decimal(BigDecimal.new('25.0'))
+          buffer.should eql_bytes("\x00\x00\x00\x01\x00\xFA")
         end
 
         it 'appends to the buffer' do
