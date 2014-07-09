@@ -14,7 +14,7 @@ module Cql
       end
 
       let :cluster_state do
-        State.new({'127.0.0.1' => Cluster::Host.new('127.0.0.1')})
+        State.new({'127.0.0.1' => Cluster::Host.new('127.0.0.1')}, ::Set[])
       end
 
       let :request_runner do
@@ -152,7 +152,7 @@ module Cql
         end
       end
 
-      describe "#refresh_hosts_async" do
+      shared_context 'cluster metadata setup' do
         let :local_info do
           {
             'data_center' => 'dc1',
@@ -249,6 +249,10 @@ module Cql
 
           control_connection.connect_async.get
         end
+      end
+
+      describe "#refresh_hosts_async" do
+        include_context 'cluster metadata setup'
 
         it 'populates cluster state with other hosts' do
           control_connection.refresh_hosts_async.get
@@ -276,6 +280,228 @@ module Cql
               host.rack.should == racks[ip]
               host.datacenter.should == data_centers[ip]
               host.release_version.should == release_versions[ip]
+            end
+          end
+        end
+      end
+
+      describe "#register_async" do
+        include_context 'cluster metadata setup'
+
+        let :client do
+          double("client stub")
+        end
+
+        before do
+          control_connection.refresh_hosts_async.get
+          control_connection.register_async.get
+          cluster_state.clients << client
+        end
+
+        context 'when a status change event is received' do
+          let :event do
+            Protocol::StatusChangeEventResponse.new(change, address, 9999)
+          end
+
+          context 'with UP' do
+            let :change do
+              'UP'
+            end
+
+            context 'and host is known' do
+              let :address do
+                additional_nodes[0]
+              end
+
+              let :host do
+                cluster_state.hosts[address.to_s]
+              end
+
+              context 'and is up' do
+                before do
+                  host.up!
+                end
+
+                it 'does nothing' do
+                  client.should_not_receive(:host_up)
+
+                  connections.first.trigger_event(event)
+                end
+              end
+
+              context 'and is down' do
+                before do
+                  host.down!
+                end
+
+                it 'notifies all clients that a host is up' do
+                  client.should_receive(:host_up).once.with(host)
+                  connections.first.trigger_event(event)
+
+                  host.should be_up
+                end
+              end
+            end
+
+            context 'and host is unknown' do
+              let :address do
+                additional_nodes[3]
+              end
+
+              it 'does nothing' do
+                client.should_not_receive(:host_up)
+
+                connections.first.trigger_event(event)
+              end
+            end
+          end
+
+          context 'with DOWN' do
+            let :change do
+              'DOWN'
+            end
+
+            context 'and host is known' do
+              let :address do
+                additional_nodes[0]
+              end
+
+              let :host do
+                cluster_state.hosts[address.to_s]
+              end
+
+              context 'and is up' do
+                before do
+                  host.up!
+                end
+
+                it 'notifies all clients that a host is down' do
+                  client.should_receive(:host_down).once.with(host)
+                  connections.first.trigger_event(event)
+
+                  host.should be_down
+                end
+              end
+
+              context 'and is down' do
+                before do
+                  host.down!
+                end
+
+                it 'does nothing' do
+                  client.should_not_receive(:host_down)
+
+                  connections.first.trigger_event(event)
+                end
+              end
+            end
+
+            context 'and host is unknown' do
+              let :address do
+                additional_nodes[3]
+              end
+
+              it 'does nothing' do
+                client.should_not_receive(:host_down)
+
+                connections.first.trigger_event(event)
+              end
+            end
+          end
+        end
+
+        context 'when a topology change event is received' do
+          let :event do
+            Protocol::TopologyChangeEventResponse.new(change, address, 9999)
+          end
+
+          context 'with NEW_NODE' do
+            let :change do
+              'NEW_NODE'
+            end
+
+            context 'and host is unknown' do
+              let :address do
+                additional_nodes[3]
+              end
+
+              it 'notifies all clients that a host is found and up' do
+                host = nil
+
+                client.should_receive(:host_found).once { |h| host = h }
+                client.should_receive(:host_up).once { |h| h.should == host }
+                connections.first.trigger_event(event)
+
+                host.should_not be_nil
+                cluster_state.hosts.keys.should include(address.to_s)
+              end
+            end
+
+            context 'and host is known' do
+              let :address do
+                additional_nodes[0]
+              end
+
+              it 'does nothing' do
+                client.should_not_receive(:host_found)
+
+                connections.first.trigger_event(event)
+              end
+            end
+          end
+
+          context 'with REMOVED_NODE' do
+            let :change do
+              'REMOVED_NODE'
+            end
+
+            context 'and host is known' do
+              let :address do
+                additional_nodes[0]
+              end
+
+              let :host do
+                cluster_state.hosts[address.to_s]
+              end
+
+              context 'and is up' do
+                before do
+                  host.up!
+                end
+
+                it 'notifies all clients that a host is down and lost' do
+                  client.should_receive(:host_down).once.with(host)
+                  client.should_receive(:host_lost).once.with(host)
+                  connections.first.trigger_event(event)
+
+                  cluster_state.hosts.keys.should_not include(address.to_s)
+                end
+              end
+
+              context 'and is down' do
+                before do
+                  host.down!
+                end
+
+                it 'notifies all clients that a host is lost' do
+                  client.should_receive(:host_lost).once.with(host)
+                  connections.first.trigger_event(event)
+
+                  cluster_state.hosts.keys.should_not include(address.to_s)
+                end
+              end
+            end
+
+            context 'and host is unknown' do
+              let :address do
+                additional_nodes[3]
+              end
+
+              it 'does nothing' do
+                client.should_not_receive(:host_lost)
+
+                connections.first.trigger_event(event)
+              end
             end
           end
         end
