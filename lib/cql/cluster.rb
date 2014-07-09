@@ -4,7 +4,7 @@ module Cql
   class Cluster
     State = Struct.new(:hosts, :clients)
     class Host
-      attr_reader   :ip
+      attr_reader   :ip, :status
       attr_accessor :id, :rack, :datacenter, :release_version
 
       def initialize(ip, data = {})
@@ -42,7 +42,7 @@ module Cql
     end
 
     def hosts
-      @state.hosts.map {|_, h| Cql::Host.new(h.ip, h.id, h.rack, h.datacenter, h.release_version)}
+      @state.hosts.map {|_, h| Cql::Host.new(h.ip, h.id, h.rack, h.datacenter, h.release_version, h.status)}
     end
 
     def connect_async(keyspace = nil)
