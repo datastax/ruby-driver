@@ -86,33 +86,31 @@ module Cql
 
       def execute(options=nil)
         options = @execute_options_decoder.decode_options(@options, options)
-        connection = nil
-        attempts = 0
-        begin
-          connection = @connection_manager.random_connection
-          request = Protocol::BatchRequest.new(BATCH_TYPES[@type], options[:consistency], options[:trace])
-          @parts.each do |cql_or_statement, *bound_args|
-            if cql_or_statement.is_a?(String)
-              type_hints = nil
-              if bound_args.last.is_a?(Hash) && bound_args.last.include?(:type_hints)
-                bound_args = bound_args.dup
-                type_hints = bound_args.pop[:type_hints]
-              end
-              request.add_query(cql_or_statement, bound_args, type_hints)
-            else
-              cql_or_statement.add_to_batch(request, connection, bound_args)
-            end
-          end
-        rescue NotPreparedError
-          attempts += 1
-          if attempts < 3
-            retry
+        connection = @connection_manager.random_connection
+        request = Protocol::BatchRequest.new(BATCH_TYPES[@type], options[:consistency], options[:trace])
+        unprepared_statements = nil
+        @parts.each do |part, *bound_args|
+          if part.is_a?(String) || part.prepared?(connection)
+            add_part(connection, request, part, bound_args)
           else
-            raise
+            unprepared_statements ||= []
+            unprepared_statements << [part, bound_args]
           end
         end
         @parts = []
-        @request_runner.execute(connection, request, options[:timeout])
+        if unprepared_statements.nil?
+          @request_runner.execute(connection, request, options[:timeout])
+        else
+          fs = unprepared_statements.map do |statement, _|
+            statement.prepare(connection)
+          end
+          Future.all(*fs).flat_map do
+            unprepared_statements.each do |statement, bound_args|
+              add_part(connection, request, statement, bound_args)
+            end
+            @request_runner.execute(connection, request, options[:timeout])
+          end
+        end
       end
 
       private
@@ -122,6 +120,19 @@ module Cql
         :unlogged => Protocol::BatchRequest::UNLOGGED_TYPE,
         :counter => Protocol::BatchRequest::COUNTER_TYPE,
       }.freeze
+
+      def add_part(connection, request, part, bound_args)
+        if part.is_a?(String)
+          type_hints = nil
+          if bound_args.last.is_a?(Hash) && bound_args.last.include?(:type_hints)
+            bound_args = bound_args.dup
+            type_hints = bound_args.pop[:type_hints]
+          end
+          request.add_query(part, bound_args, type_hints)
+        else
+          part.add_to_batch(request, connection, bound_args)
+        end
+      end
     end
 
     # @private
