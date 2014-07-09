@@ -4,7 +4,7 @@ module Cql
   class Builder
     def initialize(services = {})
       @services = services
-      @settings = Settings.new(Set.new, 9042, 2, 10, :one, Client::NullLogger.new, nil, nil, nil)
+      @settings = Settings.new(Set.new, 9042, 2, 10, :one, Client::NullLogger.new, nil, nil, nil, 5)
     end
 
     def add_contact_point(host)
@@ -66,12 +66,7 @@ module Cql
     def self.create_cluster(io_reactor, control_connection, cluster)
       f = io_reactor.start
       f = f.flat_map { control_connection.connect_async }
-      f.flat_map do
-        Future.all(
-          control_connection.register_async,
-          control_connection.refresh_hosts_async
-        ).map(cluster)
-      end
+      f.map(cluster)
     end
   end
 end
