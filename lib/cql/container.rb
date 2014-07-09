@@ -10,7 +10,7 @@ module Cql
     let(:request_runner)   { Client::RequestRunner.new }
     let(:keyspace_changer) { Client::KeyspaceChanger.new(request_runner) }
     let(:io_reactor)       { Io::IoReactor.new }
-    let(:cluster_state)    { Cluster::State.new(hosts, ThreadSafe.new(::Set.new)) }
+    let(:cluster_state)    { Cluster::State.new(ThreadSafe.new(hosts), ThreadSafe.new(::Set.new)) }
 
     let(:control_connection) { Cluster::ControlConnection.new(io_reactor, request_runner, cluster_state, @settings) }
 
@@ -43,8 +43,7 @@ module Cql
     def hosts
       hosts = {}
       @settings.addresses.each {|ip| hosts[ip.to_s] = Cluster::Host.new(ip.to_s)}
-
-      ThreadSafe.new(hosts)
+      hosts
     end
   end
 end

@@ -2,39 +2,6 @@
 
 module Cql
   class Cluster
-    State = Struct.new(:hosts, :clients)
-    class Host
-      attr_reader   :ip, :status
-      attr_accessor :id, :rack, :datacenter, :release_version
-
-      def initialize(ip, data = {})
-        @ip              = ip
-        @id              = data['host_id']
-        @release_version = data['release_version']
-        @rack            = data['rack']
-        @datacenter      = data['data_center']
-        @status          = :unknown
-      end
-
-      def up?
-        @status == :up
-      end
-
-      def up!
-        @status = :up
-        self
-      end
-
-      def down?
-        @status == :down
-      end
-
-      def down!
-        @status = :down
-        self
-      end
-    end
-
     def initialize(control_connection, cluster_state, client_options)
       @control_connection = control_connection
       @state              = cluster_state
@@ -42,7 +9,7 @@ module Cql
     end
 
     def hosts
-      @state.hosts.map {|_, h| Cql::Host.new(h.ip, h.id, h.rack, h.datacenter, h.release_version, h.status)}
+      @state.hosts
     end
 
     def connect_async(keyspace = nil)
@@ -52,9 +19,9 @@ module Cql
       })
 
       client  = Client::AsynchronousClient.new(options)
-      session = Session.new(@state.clients, client)
+      session = Session.new(@state, client)
 
-      client.connect.map { @state.clients << client; session }
+      client.connect.map { @state.add_client(client); session }
     end
 
     def connect(keyspace = nil)
@@ -62,12 +29,12 @@ module Cql
     end
 
     def close_async
-      if @state.clients.empty?
+      if @state.has_clients?
         f = @control_connection.close_async
       else
-        futures = @state.clients.map do |client|
+        futures = @state.each_client.map do |client|
                     f = client.close
-                    f.on_complete { @state.clients.delete(client) }
+                    f.on_complete { @state.remove_client(client) }
                     f.map(self)
                   end
 
@@ -85,3 +52,5 @@ module Cql
 end
 
 require 'cql/cluster/control_connection'
+require 'cql/cluster/host'
+require 'cql/cluster/state'
