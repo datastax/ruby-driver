@@ -2,8 +2,8 @@
 
 module Cql
   class Session
-    def initialize(clients, client)
-      @clients = clients
+    def initialize(cluster_state, client)
+      @cluster = cluster_state
       @client  = client
     end
 
@@ -49,7 +49,7 @@ module Cql
 
     def close_async
       f = @client.close
-      f.on_complete { @clients.delete(@client) }
+      f.on_complete { @cluster.remove_client(@client) }
       f.map(self)
     end
 
