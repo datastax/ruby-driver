@@ -14,7 +14,7 @@ module Cql
 
     def connect_async(keyspace = nil)
       options = @options.merge({
-        :hosts                => @state.hosts.values.map {|host| host.ip},
+        :hosts                => @state.ips,
         :keyspace             => keyspace,
       })
 
