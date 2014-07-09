@@ -398,34 +398,6 @@ module Cql
         Future.all(*futures)
       end
 
-      def register_event_listener(connection)
-        register_request = Protocol::RegisterRequest.new(Protocol::TopologyChangeEventResponse::TYPE, Protocol::StatusChangeEventResponse::TYPE)
-        f = execute_request(register_request, nil, connection)
-        f.on_value do
-          connection.on_closed do
-            if connected?
-              begin
-                register_event_listener(@connection_manager.random_connection)
-              rescue NotConnectedError
-                # we had started closing down after the connection check
-              end
-            end
-          end
-          connection.on_event do |event|
-            if event.change == 'UP' || event.change == 'NEW_NODE'
-              @logger.debug('Received %s event' % event.change)
-              unless @looking_for_nodes
-                @looking_for_nodes = true
-                handle_topology_change.on_complete do |f|
-                  @looking_for_nodes = false
-                end
-              end
-            end
-          end
-        end
-        f
-      end
-
       def handle_topology_change(remaning_attempts=MAX_RECONNECTION_ATTEMPTS)
         with_failure_handler do
           seed_connections = @connection_manager.snapshot
