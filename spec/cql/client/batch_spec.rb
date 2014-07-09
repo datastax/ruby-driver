@@ -108,19 +108,36 @@ module Cql
           encoded_frame.to_s.should include(Protocol::QueryRequest.encode_values(Protocol::CqlByteBuffer.new, [3], [:int]))
         end
 
-        it 'prepares the statement on the selected connection when NotPreparedError is raised' do
-          connection = double(:connection)
-          connection.stub(:send_request).and_return(Cql::Future.resolved(Protocol::VoidResultResponse.new(nil)))
-          connection_manager.stub(:random_connection).and_return(connection)
-          prepared_statement.stub(:prepared?).with(connection).and_return(false)
-          prepared_statement.stub(:add_to_batch)
-          prepared_statement.stub(:prepare) do |c|
-            c.should equal(connection), 'expected #prepare to be called with the connection returned by the connection manager'
-            prepared_statement.stub(:prepared?).with(connection).and_return(true)
-            Future.resolved(prepared_statement)
+        context 'when the statement has not been prepared on the selected connection' do
+          let :connection do
+            double(:connection)
           end
-          batch.add(prepared_statement, 3, 'foo')
-          batch.execute.value.should be_a(VoidResult)
+
+          before do
+            connection.stub(:send_request).and_return(Cql::Future.resolved(Protocol::VoidResultResponse.new(nil)))
+            connection_manager.stub(:random_connection).and_return(connection)
+            prepared_statement.stub(:prepared?).with(connection).and_return(false)
+            prepared_statement.stub(:add_to_batch)
+            prepared_statement.stub(:prepare) do |c|
+              c.should equal(connection), 'expected #prepare to be called with the connection returned by the connection manager'
+              prepared_statement.stub(:prepared?).with(connection).and_return(true)
+              Future.resolved(prepared_statement)
+            end
+          end
+
+          it 'prepares the statement before sending the request' do
+            batch.add(prepared_statement, 3, 'foo')
+            batch.execute.value.should be_a(VoidResult)
+          end
+
+          it 'supports synchronous prepared statements' do
+            synchronous_prepared_statement = double(:synchronous_prepared_statement)
+            synchronous_prepared_statement.stub(:async).and_return(prepared_statement)
+            synchronous_prepared_statement.stub(:prepared?) { |c| prepared_statement.prepared?(c) }
+            synchronous_prepared_statement.stub(:add_to_batch) { |*args| prepared_statement.add_to_batch(*args) }
+            batch.add(synchronous_prepared_statement, 3, 'foo')
+            batch.execute.value.should be_a(VoidResult)
+          end
         end
 
         it 'returns a future that resolves to the response' do

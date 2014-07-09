@@ -269,6 +269,11 @@ module Cql
       end
 
       # @private
+      def prepared?(connection)
+        @async_statement.prepared?(connection)
+      end
+
+      # @private
       def add_to_batch(batch, connection, bound_arguments)
         @async_statement.add_to_batch(batch, connection, bound_arguments)
       end

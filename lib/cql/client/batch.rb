@@ -102,7 +102,11 @@ module Cql
           @request_runner.execute(connection, request, options[:timeout])
         else
           fs = unprepared_statements.map do |statement, _|
-            statement.prepare(connection)
+            if statement.respond_to?(:async)
+              statement.async.prepare(connection)
+            else
+              statement.prepare(connection)
+            end
           end
           Future.all(*fs).flat_map do
             unprepared_statements.each do |statement, bound_args|
