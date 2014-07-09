@@ -1,6 +1,24 @@
 # encoding: utf-8
 
 class FakeIoReactor
+  class Timer
+    def initialize(promise, timeout)
+      @promise = promise
+      @timeout = timeout
+    end
+
+    def advance(time)
+      @timeout -= time
+      @promise.fulfill(object_id) if @timeout <= 0
+
+      self
+    end
+
+    def expired?
+      @timeout <= 0
+    end
+  end
+
   attr_reader :connections, :last_used_connection
 
   def initialize
@@ -12,6 +30,7 @@ class FakeIoReactor
     @started_promise = Cql::Promise.new
     @before_startup_handler = nil
     @down_nodes = []
+    @timers = []
   end
 
   def node_down(hostname)
@@ -67,6 +86,19 @@ class FakeIoReactor
 
   def running?
     @running
+  end
+
+  def schedule_timer(seconds)
+    promise = Cql::Promise.new
+    @timers << Timer.new(promise, seconds)
+    promise.future
+  end
+
+  def advance_time(seconds)
+    @timers.dup.each {|timer| timer.advance(seconds)}
+    @timers.reject! {|timer| timer.expired?}
+
+    self
   end
 end
 

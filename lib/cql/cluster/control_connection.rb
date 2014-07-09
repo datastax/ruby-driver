@@ -22,13 +22,44 @@ module Cql
       def connect_async
         plan = @cluster.ips.to_enum
         f = connect_to_first_available(plan)
-        f.on_value {|connection| @connection = connection}
+        f.on_value do |connection|
+          @connection = connection
+
+          @connection.on_closed do
+            @settings.logger.debug('Connection closed')
+            reconnect
+          end
+        end
+        f = f.flat_map { register_async }
+        f = f.flat_map { refresh_hosts_async }
         f
       end
 
-      def register_async
-        raise NOT_CONNECTED if @connection.nil?
+      def close_async
+        @connection.close
+      end
 
+      def inspect
+        "#<#{self.class.name}:0x#{self.object_id.to_s(16)}>"
+      end
+
+      private
+
+      def reconnect
+        timeout = @settings.reconnect_interval
+
+        @settings.logger.debug('Reconnecting in %d seconds' % timeout)
+
+        f = @io_reactor.schedule_timer(timeout)
+        f = f.flat_map { connect_async }
+        f.fallback do |e|
+          @settings.logger.error('Reconnection failed: %s: %s' % [e.class.name, e.message])
+
+          reconnect
+        end
+      end
+
+      def register_async
         @request_runner.execute(@connection, REGISTER).map do
           @connection.on_event do |event|
             @settings.logger.debug('Received %s %s event' % [event.type, event.change])
@@ -40,11 +71,9 @@ module Cql
                 address = event.address
                 ip      = address.to_s
 
-                if @cluster.host_known?(ip)
-                  refresh_host_async(address).map do
-                    @cluster.host_up(ip)
-                  end.get
-                end
+                refresh_host_async(address).map do
+                  @cluster.host_up(ip)
+                end if @cluster.host_known?(ip)
               when 'DOWN'
                 address = event.address
 
@@ -52,7 +81,7 @@ module Cql
               when 'NEW_NODE'
                 address = event.address
 
-                refresh_host_async(address).get unless @cluster.host_known?(address.to_s)
+                refresh_host_async(address) unless @cluster.host_known?(address.to_s)
               when 'REMOVED_NODE'
                 address = event.address
 
@@ -66,8 +95,6 @@ module Cql
       end
 
       def refresh_hosts_async
-        raise NOT_CONNECTED if @connection.nil?
-
         local_ip = @connection.host
         ips      = ::Set[local_ip]
 
@@ -97,8 +124,6 @@ module Cql
       end
 
       def refresh_host_async(address)
-        raise NOT_CONNECTED if @connection.nil?
-
         ip = address.to_s
 
         if ip == @connection.host
@@ -127,16 +152,6 @@ module Cql
           self
         end
       end
-
-      def close_async
-        @connection.close
-      end
-
-      def inspect
-        "#<#{self.class.name}:0x#{self.object_id.to_s(16)}>"
-      end
-
-      private
 
       def connect_to_first_available(plan, errors = {})
         h = plan.next
