@@ -35,7 +35,7 @@ module Cql
       #
       # Execute the batch and return the result.
       #
-      # @param options [Hash] an options hash or a symbol (as a shortcut for
+      # @param [Hash] options an options hash or a symbol (as a shortcut for
       #   specifying the consistency), see {Cql::Client::Client#execute} for
       #   full details about how this value is interpreted.
       # @raise [Cql::QueryError] raised when there is an error on the server side
