@@ -30,7 +30,7 @@ module Cql
       end
 
       let :builder_settings do
-        Builder::Settings.new(Set.new, 9042, 7, 10, :one, logger, nil, nil, nil, 5)
+        Builder::Settings.new(logger: logger, protocol_version: 7)
       end
 
       def connections
