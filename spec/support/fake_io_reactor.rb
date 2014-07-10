@@ -135,6 +135,7 @@ class FakeConnection
   def close(cause=nil)
     @closed = true
     @closed_listeners.each { |listener| listener.call(cause) }
+    Cql::Future.resolved
   end
 
   def handle_request(&handler)
