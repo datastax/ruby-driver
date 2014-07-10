@@ -13,7 +13,7 @@ module Cql
         @protocol_version    = options.fetch(:protocol_version, 2)
         @connection_timeout  = options.fetch(:connection_timeout, 10)
         @default_consistency = options.fetch(:default_consistency, :one)
-        @logger              = options.fetch(:logger, Client::NullLogger.new)
+        @logger              = options.fetch(:logger) { Client::NullLogger.new }
         @compressor          = options.fetch(:compressor, nil)
         @credentials         = options.fetch(:credentials, nil)
         @auth_provider       = options.fetch(:auth_provider, nil)
