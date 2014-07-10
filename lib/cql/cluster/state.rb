@@ -54,19 +54,6 @@ module Cql
               @clients.each do |client|
                 client.host_lost(host)
               end
-
-              host.rack       = rack
-              host.datacenter = datacenter
-
-              @clients.each do |client|
-                client.host_found(host)
-              end
-
-              host.up!
-
-              @clients.each do |client|
-                client.host_up(host)
-              end
             else
               host.down!
 
@@ -74,16 +61,16 @@ module Cql
                 client.host_down(host)
                 client.host_lost(host)
               end
+            end
 
-              host.rack       = rack
-              host.datacenter = datacenter
+            host.rack       = rack
+            host.datacenter = datacenter
 
-              host.up!
+            host.up!
 
-              @clients.each do |client|
-                client.host_found(host)
-                client.host_up(host)
-              end
+            @clients.each do |client|
+              client.host_found(host)
+              client.host_up(host)
             end
           end
         else
