@@ -331,10 +331,7 @@ module Cql
 
         connect_to_host(ip).map(self)
       end
-
-      def host_down(host)
-        host_lost(host)
-      end
+      alias :host_up :host_found
 
       def host_lost(host)
         ip = host.ip
@@ -345,6 +342,7 @@ module Cql
 
         Future.all(*futures).map(self)
       end
+      alias :host_down :host_lost
 
       private
 
