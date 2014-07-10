@@ -430,33 +430,6 @@ module Cql
         Future.all(*futures)
       end
 
-      def handle_topology_change(remaning_attempts=MAX_RECONNECTION_ATTEMPTS)
-        with_failure_handler do
-          seed_connections = @connection_manager.snapshot
-          f = connect_to_all_peers(seed_connections, keyspace)
-          f.flat_map do |all_connections|
-            new_connections = all_connections - seed_connections
-            if new_connections.size > 0
-              f = use_keyspace(new_connections, keyspace)
-              f.on_value do
-                @connection_manager.add_connections(new_connections)
-              end
-              f
-            elsif remaning_attempts > 0
-              timeout = 2**(MAX_RECONNECTION_ATTEMPTS - remaning_attempts)
-              @logger.debug('Scheduling new peer discovery in %ds' % timeout)
-              f = @io_reactor.schedule_timer(timeout)
-              f.flat_map do
-                handle_topology_change(remaning_attempts - 1)
-              end
-            else
-              @logger.warn('Giving up looking for additional nodes')
-              Future.resolved
-            end
-          end
-        end
-      end
-
       def execute_request(request, timeout=nil, connection=nil)
         f = @request_runner.execute(connection || @connection_manager.random_connection, request, timeout)
         f.map do |result|
