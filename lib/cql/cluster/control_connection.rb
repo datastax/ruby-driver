@@ -53,7 +53,7 @@ module Cql
         f = @io_reactor.schedule_timer(timeout)
         f = f.flat_map { connect_async }
         f.fallback do |e|
-          @settings.logger.error('Reconnection failed: %s: %s' % [e.class.name, e.message])
+          @settings.logger.error('Connection failed: %s: %s' % [e.class.name, e.message])
 
           reconnect
         end
@@ -95,14 +95,12 @@ module Cql
       end
 
       def refresh_hosts_async
-        local_ip = @connection.host
-        ips      = ::Set[local_ip]
-
         local = @request_runner.execute(@connection, SELECT_LOCAL)
         peers = @request_runner.execute(@connection, SELECT_PEERS)
 
         Future.all(local, peers).map do |(local, peers)|
-          ips = ::Set.new
+          local_ip = @connection.host
+          ips      = ::Set.new
 
           unless local.empty?
             ips << local_ip
@@ -180,6 +178,8 @@ module Cql
             @settings.protocol_version -= 1
             connect_to_host(h)
           else
+            @settings.logger.error('Connection failed: %s: %s' % [e.class.name, e.message])
+
             raise error
           end
         end
