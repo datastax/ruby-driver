@@ -53,13 +53,13 @@ module Cql
 
     describe "#build" do
       it 'connects to cluster localhost by default' do
-        builder.build
-        connections.map(&:host).should == %w[127.0.0.1]
+        io_reactor.should_receive(:connect).once.with('127.0.0.1', 9042, 10).and_call_original
+        builder.build rescue nil
       end
 
       it 'connects to localhost when an empty list of hosts is given' do
-        builder.with_contact_points([]).build
-        connections.map(&:host).should == %w[127.0.0.1]
+        io_reactor.should_receive(:connect).once.with('127.0.0.1', 9042, 10).and_call_original
+        builder.with_contact_points([]).build rescue nil
       end
     end
   end
