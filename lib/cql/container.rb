@@ -8,7 +8,6 @@ module Cql
     end
 
     let(:request_runner)   { Client::RequestRunner.new }
-    let(:keyspace_changer) { Client::KeyspaceChanger.new(request_runner) }
     let(:io_reactor)       { Io::IoReactor.new }
     let(:cluster_state)    { Cluster::State.new(ThreadSafe.new(hosts), ThreadSafe.new(::Set.new)) }
 
@@ -19,7 +18,6 @@ module Cql
     let(:client_options) { {
                              :io_reactor           => io_reactor,
                              :request_runner       => request_runner,
-                             :keyspace_changer     => keyspace_changer,
                              :compressor           => @settings.compressor,
                              :logger               => @settings.logger,
                              :protocol_version     => @settings.protocol_version,
