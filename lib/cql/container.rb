@@ -28,7 +28,8 @@ module Cql
                              :port                 => @settings.port,
                              :connection_timeout   => @settings.connection_timeout,
                              :credentials          => @settings.credentials,
-                             :auth_provider        => @settings.auth_provider
+                             :auth_provider        => @settings.auth_provider,
+                             :reconnect_interval   => @settings.reconnect_interval
                            } }
 
     public :cluster, :control_connection, :io_reactor
