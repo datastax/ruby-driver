@@ -26,6 +26,17 @@ module Cql
         NullLogger.new
       end
 
+      let :data_centers do
+        Hash.new('dc1')
+      end
+
+      let :local_metadata do
+        [
+          ['system', 'local', 'data_center', :text],
+          ['system', 'local', 'host_id', :uuid],
+        ]
+      end
+
       def connections
         io_reactor.connections
       end
@@ -47,95 +58,33 @@ module Cql
       end
 
       before do
+        uuid_generator = TimeUuid::Generator.new
         io_reactor.on_connection do |connection|
+          connection[:spec_host_id] = uuid_generator.next
+          connection[:spec_data_center] = data_centers[connection.host]
           connection.handle_request do |request, timeout|
-            response = nil
             if @request_handler
               response = @request_handler.call(request, connection, proc { connection.default_request_handler(request) }, timeout)
             end
-            unless response
-              response = connection.default_request_handler(request)
-            end
-            response
-          end
-        end
-      end
 
-      shared_context 'peer discovery setup' do
-        let :local_info do
-          {
-            'data_center' => 'dc1',
-            'host_id' => nil,
-          }
-        end
-
-        let :local_metadata do
-          [
-            ['system', 'local', 'data_center', :text],
-            ['system', 'local', 'host_id', :uuid],
-          ]
-        end
-
-        let :peer_metadata do
-          [
-            ['system', 'peers', 'peer', :inet],
-            ['system', 'peers', 'data_center', :varchar],
-            ['system', 'peers', 'host_id', :uuid],
-            ['system', 'peers', 'rpc_address', :inet],
-          ]
-        end
-
-        let :data_centers do
-          Hash.new('dc1')
-        end
-
-        let :additional_nodes do
-          Array.new(5) { IPAddr.new("127.0.#{rand(255)}.#{rand(255)}") }
-        end
-
-        let :bind_all_rpc_addresses do
-          false
-        end
-
-        let :min_peers do
-          [2]
-        end
-
-        before do
-          uuid_generator = TimeUuid::Generator.new
-          additional_rpc_addresses = additional_nodes.dup
-          io_reactor.on_connection do |connection|
-            connection[:spec_host_id] = uuid_generator.next
-            connection[:spec_data_center] = data_centers[connection.host]
-            connection.handle_request do |request|
-              case request
-              when Protocol::StartupRequest
-                Protocol::ReadyResponse.new
-              when Protocol::QueryRequest
-                case request.cql
-                when /USE\s+"?(\S+)"?/
-                  Cql::Protocol::SetKeyspaceResultResponse.new($1, nil)
-                when /FROM system\.local/
-                  row = {'host_id' => connection[:spec_host_id], 'data_center' => connection[:spec_data_center]}
-                  Protocol::RowsResultResponse.new([row], local_metadata, nil, nil)
-                when /FROM system\.peers/
-                  other_host_ids = connections.reject { |c| c[:spec_host_id] == connection[:spec_host_id] }.map { |c| c[:spec_host_id] }
-                  until other_host_ids.size >= min_peers[0]
-                    other_host_ids << uuid_generator.next
-                  end
-                  rows = other_host_ids.map do |host_id|
-                    ip = additional_rpc_addresses.shift
-                    {
-                      'peer' => ip,
-                      'host_id' => host_id,
-                      'data_center' => data_centers[ip],
-                      'rpc_address' => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip
-                    }
-                  end
-                  Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
-                end
+            response ||= case request
+            when Protocol::StartupRequest, Protocol::RegisterRequest
+              Protocol::ReadyResponse.new
+            when Protocol::QueryRequest
+              response = case request.cql
+              when /USE\s+"?(\S+)"?/
+                Cql::Protocol::SetKeyspaceResultResponse.new($1, nil)
+              when /FROM system\.local/
+                row = {'host_id' => connection[:spec_host_id], 'data_center' => connection[:spec_data_center]}
+                Protocol::RowsResultResponse.new([row], local_metadata, nil, nil)
               end
+            when Protocol::OptionsRequest
+              Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
             end
+
+            response ||= connection.default_request_handler(request)
+
+            response
           end
         end
       end
@@ -1102,8 +1051,6 @@ module Cql
       end
 
       describe '#host_found' do
-        include_context 'peer discovery setup'
-
         let :connection_options do
           default_connection_options.merge(hosts: %w[host1 host2 host3], keyspace: 'foo')
         end
@@ -1120,8 +1067,11 @@ module Cql
 
         it 'makes sure the new connections use the same keyspace as the existing' do
           client.host_found(Cluster::Host.new('1.1.1.1'))
-          use_keyspace_request = connections.last.requests.find { |r| r.is_a?(Protocol::QueryRequest) && r.cql.include?('USE') }
-          use_keyspace_request.cql.should == 'USE foo'
+          connections.select(&:connected?).should have(4).items
+
+          last_request = last_connection.requests.last
+          last_request.should be_a(Protocol::QueryRequest)
+          last_request.cql.should == 'USE foo'
         end
 
         context 'host not responding' do
@@ -1185,7 +1135,7 @@ module Cql
             host = Cluster::Host.new('1.1.1.1')
 
             io_reactor.node_down('1.1.1.1')
-            additional_nodes.each { |host| io_reactor.node_down(host.to_s) }
+            connection_options[:hosts].each { |addr| io_reactor.node_down(addr) }
 
             client.host_found(host)
 
@@ -1216,8 +1166,6 @@ module Cql
       end
 
       context 'with logging' do
-        include_context 'peer discovery setup'
-
         it 'logs when connecting to a node' do
           logger.stub(:debug)
           client.connect.value
