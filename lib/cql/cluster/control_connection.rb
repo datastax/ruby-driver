@@ -2,6 +2,7 @@
 
 module Cql
   NOT_CONNECTED = NotConnectedError.new("not connected")
+  NO_HOSTS      = NoHostsAvailable.new
   SELECT_LOCAL  = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, release_version FROM system.local', nil, nil, :one)
   SELECT_PEERS  = Protocol::QueryRequest.new('SELECT peer, rack, data_center, host_id, rpc_address, release_version FROM system.peers', nil, nil, :one)
   REGISTER      = Protocol::RegisterRequest.new(
@@ -20,12 +21,16 @@ module Cql
       end
 
       def connect_async
-        plan = @cluster.ips.to_enum
-        f = connect_to_first_available(plan)
+        ips = @cluster.ips
+
+        return Future.failed(NO_HOSTS) if ips.empty?
+
+        f = connect_to_first_available(ips.to_enum)
         f.on_value do |connection|
           @connection = connection
 
           @connection.on_closed do
+            @connection = nil
             @settings.logger.debug('Connection closed')
             reconnect
           end
@@ -36,7 +41,15 @@ module Cql
       end
 
       def close_async
-        @connection.close
+        return Future.resolved if @closed
+
+        @closed = true
+
+        if @connection
+          @connection.close
+        else
+          Future.resolved
+        end
       end
 
       def inspect
@@ -46,6 +59,8 @@ module Cql
       private
 
       def reconnect
+        return if @closed
+
         connect_async.fallback do |e|
           @settings.logger.error('Connection failed: %s: %s' % [e.class.name, e.message])
 
@@ -101,6 +116,8 @@ module Cql
 
         Future.all(local, peers).map do |(local, peers)|
           @settings.logger.debug('%d additional nodes found' % peers.size)
+
+          raise NO_HOSTS if local.empty? && peers.empty?
 
           local_ip = @connection.host
           ips      = ::Set.new

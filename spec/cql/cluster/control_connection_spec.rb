@@ -53,127 +53,112 @@ module Cql
         @request_handler = handler
       end
 
+      let :local_info do
+        {
+          'data_center' => 'dc1',
+          'host_id' => nil,
+        }
+      end
+
+      let :local_metadata do
+        [
+          ['system', 'local', 'data_center', :text],
+          ['system', 'local', 'host_id', :uuid],
+        ]
+      end
+
+      let :peer_metadata do
+        [
+          ['system', 'peers', 'peer', :inet],
+          ['system', 'peers', 'data_center', :varchar],
+          ['system', 'peers', 'host_id', :uuid],
+          ['system', 'peers', 'rpc_address', :inet],
+        ]
+      end
+
+      let :data_centers do
+        Hash.new('dc1')
+      end
+
+      let :racks do
+        Hash.new('rack1')
+      end
+
+      let :release_versions do
+        Hash.new('2.0.7-SNAPSHOT')
+      end
+
+      let :additional_nodes do
+        Array.new(5) { IPAddr.new("127.0.#{rand(255)}.#{rand(255)}") }
+      end
+
+      let :bind_all_rpc_addresses do
+        false
+      end
+
+      let :min_peers do
+        [2]
+      end
+
       before do
+        uuid_generator = TimeUuid::Generator.new
+        additional_rpc_addresses = additional_nodes.dup
         io_reactor.on_connection do |connection|
+          connection[:spec_rack]            = racks[connection.host]
+          connection[:spec_data_center]     = data_centers[connection.host]
+          connection[:spec_host_id]         = uuid_generator.next
+          connection[:spec_release_version] = release_versions[connection.host]
+
           connection.handle_request do |request, timeout|
-            response = nil
             if @request_handler
               response = @request_handler.call(request, connection, proc { connection.default_request_handler(request) }, timeout)
             end
-            unless response
-              response = connection.default_request_handler(request)
+
+            response ||= case request
+            when Protocol::StartupRequest, Protocol::RegisterRequest
+              Protocol::ReadyResponse.new
+            when Protocol::QueryRequest
+              response = case request.cql
+              when /USE\s+"?(\S+)"?/
+                Cql::Protocol::SetKeyspaceResultResponse.new($1, nil)
+              when /FROM system\.local/
+                row = {
+                  'rack'            => connection[:spec_rack],
+                  'data_center'     => connection[:spec_data_center],
+                  'host_id'         => connection[:spec_host_id],
+                  'release_version' => connection[:spec_release_version]
+                }
+                Protocol::RowsResultResponse.new([row], local_metadata, nil, nil)
+              when /FROM system\.peers/
+                other_host_ids = connections.reject { |c| c[:spec_host_id] == connection[:spec_host_id] }.map { |c| c[:spec_host_id] }
+                until other_host_ids.size >= min_peers[0]
+                  other_host_ids << uuid_generator.next
+                end
+                rows = other_host_ids.map do |host_id|
+                  ip = additional_rpc_addresses.shift
+                  {
+                    'peer'            => ip,
+                    'rack'            => racks[ip],
+                    'data_center'     => data_centers[ip],
+                    'host_id'         => host_id,
+                    'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
+                    'release_version' => release_versions[ip]
+                  }
+                end
+                Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
+              end
+            when Protocol::OptionsRequest
+              Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
             end
+
+            response ||= connection.default_request_handler(request)
+
             response
           end
         end
       end
 
       describe "#connect_async" do
-        let :local_info do
-          {
-            'data_center' => 'dc1',
-            'host_id' => nil,
-          }
-        end
-
-        let :local_metadata do
-          [
-            ['system', 'local', 'data_center', :text],
-            ['system', 'local', 'host_id', :uuid],
-          ]
-        end
-
-        let :peer_metadata do
-          [
-            ['system', 'peers', 'peer', :inet],
-            ['system', 'peers', 'data_center', :varchar],
-            ['system', 'peers', 'host_id', :uuid],
-            ['system', 'peers', 'rpc_address', :inet],
-          ]
-        end
-
-        let :data_centers do
-          Hash.new('dc1')
-        end
-
-        let :racks do
-          Hash.new('rack1')
-        end
-
-        let :release_versions do
-          Hash.new('2.0.7-SNAPSHOT')
-        end
-
-        let :additional_nodes do
-          Array.new(5) { IPAddr.new("127.0.#{rand(255)}.#{rand(255)}") }
-        end
-
-        let :bind_all_rpc_addresses do
-          false
-        end
-
-        let :min_peers do
-          [2]
-        end
-
-        before do
-          uuid_generator = TimeUuid::Generator.new
-          additional_rpc_addresses = additional_nodes.dup
-          io_reactor.on_connection do |connection|
-            connection[:spec_rack]            = racks[connection.host]
-            connection[:spec_data_center]     = data_centers[connection.host]
-            connection[:spec_host_id]         = uuid_generator.next
-            connection[:spec_release_version] = release_versions[connection.host]
-
-            connection.handle_request do |request, timeout|
-              if @request_handler
-                response = @request_handler.call(request, connection, proc { connection.default_request_handler(request) }, timeout)
-              end
-
-              response ||= case request
-              when Protocol::StartupRequest, Protocol::RegisterRequest
-                Protocol::ReadyResponse.new
-              when Protocol::QueryRequest
-                response = case request.cql
-                when /USE\s+"?(\S+)"?/
-                  Cql::Protocol::SetKeyspaceResultResponse.new($1, nil)
-                when /FROM system\.local/
-                  row = {
-                    'rack'            => connection[:spec_rack],
-                    'data_center'     => connection[:spec_data_center],
-                    'host_id'         => connection[:spec_host_id],
-                    'release_version' => connection[:spec_release_version]
-                  }
-                  Protocol::RowsResultResponse.new([row], local_metadata, nil, nil)
-                when /FROM system\.peers/
-                  other_host_ids = connections.reject { |c| c[:spec_host_id] == connection[:spec_host_id] }.map { |c| c[:spec_host_id] }
-                  until other_host_ids.size >= min_peers[0]
-                    other_host_ids << uuid_generator.next
-                  end
-                  rows = other_host_ids.map do |host_id|
-                    ip = additional_rpc_addresses.shift
-                    {
-                      'peer'            => ip,
-                      'rack'            => racks[ip],
-                      'data_center'     => data_centers[ip],
-                      'host_id'         => host_id,
-                      'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
-                      'release_version' => release_versions[ip]
-                    }
-                  end
-                  Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
-                end
-              when Protocol::OptionsRequest
-                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
-              end
-
-              response ||= connection.default_request_handler(request)
-
-              response
-            end
-          end
-        end
-
         it 'tries decreasing protocol versions until one succeeds' do
           counter = 0
           handle_request do |request|
@@ -183,8 +168,6 @@ module Cql
             elsif counter == 3
               counter += 1
               Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
-            else
-              Protocol::RowsResultResponse.new([], [], nil, nil)
             end
           end
 
@@ -202,8 +185,6 @@ module Cql
             elsif counter == 3
               counter += 1
               Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
-            else
-              Protocol::RowsResultResponse.new([], [], nil, nil)
             end
           end
 
@@ -265,6 +246,18 @@ module Cql
             host.rack.should == racks[ip]
             host.datacenter.should == data_centers[ip]
             host.release_version.should == release_versions[ip]
+          end
+        end
+
+        context 'with empty cluster state' do
+          before do
+            handle_request do |request, connection, default_response, timeout|
+              default_response.call
+            end
+          end
+
+          it 'fails' do
+            expect { control_connection.connect_async.get }.to raise_error(NoHostsAvailable)
           end
         end
 
@@ -597,6 +590,55 @@ module Cql
                 end
               end
             end
+          end
+        end
+      end
+
+      describe "#close_async" do
+        context 'when connected' do
+          before do
+            control_connection.connect_async.get
+          end
+
+          it 'closes connection' do
+            future = double('close future')
+
+            last_connection.should_receive(:close).once.and_return(future)
+            control_connection.close_async.should == future
+          end
+        end
+
+        context 'not connected' do
+          it 'returns a fulfilled future' do
+            future = control_connection.close_async
+            future.should be_resolved
+            future.get.should be_nil
+          end
+        end
+
+        context 'when reconnecting' do
+          before do
+            control_connection.connect_async.get
+
+            cluster_state.ips.each do |ip|
+              io_reactor.node_down(ip)
+            end
+
+            last_connection.close
+          end
+
+          it 'stops reconnecting' do
+            connections.select(&:connected?).should be_empty
+            control_connection.close_async
+
+            cluster_state.ips.each do |ip|
+              io_reactor.node_up(ip)
+            end
+
+            io_reactor.advance_time(builder_settings.reconnect_interval)
+            io_reactor.advance_time(builder_settings.reconnect_interval)
+
+            connections.select(&:connected?).should be_empty
           end
         end
       end
