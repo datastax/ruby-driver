@@ -6,7 +6,7 @@ require 'spec_helper'
 describe 'A CQL client' do
   let :connection_options do
     {
-      :host => ENV['CASSANDRA_HOST'],
+      :hosts => [ENV['CASSANDRA_HOST']],
       :credentials => {:username => 'cassandra', :password => 'cassandra'},
     }
   end
@@ -453,7 +453,7 @@ describe 'A CQL client' do
     end
 
     it 'fails gracefully when connecting to something that does not run C*' do
-      expect { Cql::Client.connect(host: 'google.com') }.to raise_error(Cql::Io::ConnectionTimeoutError)
+      expect { Cql::Client.connect(hosts: ['google.com']) }.to raise_error(Cql::Io::ConnectionTimeoutError)
     end
   end
 end
