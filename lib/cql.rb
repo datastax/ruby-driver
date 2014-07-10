@@ -17,7 +17,11 @@ module Cql
   # @private
   Future = Ione::Future
 
-  Future.__send__(:alias_method, :get, :value)
+  class Future
+    def get
+      value
+    end
+  end
 
   # @private
   Io = Ione::Io
