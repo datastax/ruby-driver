@@ -1161,6 +1161,35 @@ module Cql
 
             connections.select(&:connected?).should have(3).items
           end
+
+          it 'does not start a new reconnection loop when one is already in progress' do
+            host = Cluster::Host.new('1.1.1.1')
+
+            io_reactor.node_down('1.1.1.1')
+            io_reactor.should_receive(:schedule_timer).once.and_call_original
+
+            client.host_found(host)
+            client.host_found(host)
+            client.host_found(host)
+            client.host_found(host)
+
+            io_reactor.should_receive(:schedule_timer).once.and_call_original
+            io_reactor.advance_time(reconnect_interval)
+          end
+
+          it 'logs reconnection attempts' do
+            logger.stub(:debug)
+            logger.stub(:warn)
+            host = Cluster::Host.new('1.1.1.1')
+
+            io_reactor.node_down('1.1.1.1')
+            additional_nodes.each { |host| io_reactor.node_down(host.to_s) }
+
+            client.host_found(host)
+
+            logger.should have_received(:warn).with(/Failed connecting to node/).at_least(1).times
+            logger.should have_received(:debug).with(/Reconnecting in \d+ seconds/)
+          end
         end
       end
 
@@ -1181,38 +1210,6 @@ module Cql
         it 'raises NotConnectedError when all nodes are down' do
           connections.each(&:close)
           expect { client.execute('SELECT * FROM something').value }.to raise_error(NotConnectedError)
-        end
-
-        it 'does not start a new reconnection loop when one is already in progress' do
-          timer_promises = Array.new(5) { Promise.new }
-          io_reactor.stub(:schedule_timer).and_return(*timer_promises.map(&:future))
-          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
-          connections.first.close
-          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
-          connections.select(&:has_event_listener?).first.trigger_event(event)
-          timer_promises.first.fulfill
-          connections.select(&:has_event_listener?).first.trigger_event(event)
-          timer_promises.drop(1).each(&:fulfill)
-          io_reactor.should have_received(:schedule_timer).exactly(5).times
-          connections.select(&:has_event_listener?).first.trigger_event(event)
-          io_reactor.should have_received(:schedule_timer).exactly(10).times
-        end
-
-        it 'allows a new reconnection loop to start even if the previous failed' do
-          io_reactor.stub(:schedule_timer).and_raise('BORK!')
-          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
-          connections.first.close
-          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
-          connections.select(&:has_event_listener?).first.trigger_event(event)
-          io_reactor.stub(:schedule_timer).and_return(Future.resolved)
-          connections.select(&:has_event_listener?).first.trigger_event(event)
-          io_reactor.should have_received(:schedule_timer).exactly(6).times
-        end
-
-        it 'registers a new event listener when the current event listening connection closes' do
-          connections.select(&:has_event_listener?).should have(1).item
-          connections.select(&:has_event_listener?).first.close
-          connections.select(&:connected?).select(&:has_event_listener?).should have(1).item
         end
       end
 
@@ -1263,50 +1260,6 @@ module Cql
           client.connect.value
           connections.sample.close
           logger.should have_received(:info).with(/Connection to node .{36} at .+:\d+ in data center .+ closed/)
-        end
-
-        it 'logs when it does a peer discovery' do
-          logger.stub(:debug)
-          client.connect.value
-          logger.should have_received(:debug).with(/Looking for additional nodes/)
-          logger.should have_received(:debug).with(/\d+ additional nodes found/)
-        end
-
-        it 'logs when it receives an UP event' do
-          logger.stub(:debug)
-          client.connect.value
-          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
-          connections.select(&:has_event_listener?).first.trigger_event(event)
-          logger.should have_received(:debug).with(/Received UP event/)
-        end
-
-        it 'logs when it receives a NEW_NODE event' do
-          logger.stub(:debug)
-          client.connect.value
-          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
-          connections.select(&:has_event_listener?).first.trigger_event(event)
-          logger.should have_received(:debug).with(/Received NEW_NODE event/)
-        end
-
-        it 'logs when it fails with a connect after an UP event' do
-          logger.stub(:debug)
-          logger.stub(:warn)
-          additional_nodes.each { |host| io_reactor.node_down(host.to_s) }
-          client.connect.value
-          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
-          connections.select(&:has_event_listener?).first.trigger_event(event)
-          logger.should have_received(:warn).with(/Failed connecting to node/).at_least(1).times
-          logger.should have_received(:debug).with(/Scheduling new peer discovery in \d+s/)
-        end
-
-        it 'logs when it gives up attempting to reconnect' do
-          logger.stub(:warn)
-          client.connect.value
-          io_reactor.stub(:schedule_timer).and_return(Future.resolved)
-          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
-          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
-          connections.select(&:has_event_listener?).first.trigger_event(event)
-          logger.should have_received(:warn).with(/Giving up looking for additional nodes/).at_least(1).times
         end
 
         it 'logs when it disconnects' do

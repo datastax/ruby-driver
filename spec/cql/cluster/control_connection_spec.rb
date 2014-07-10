@@ -251,7 +251,12 @@ module Cql
           end
         end
 
-        it 'populates cluster state with other hosts' do
+        it 'registers an event listener' do
+          control_connection.connect_async.get
+          last_connection.should have_event_listener
+        end
+
+        it 'populates cluster state' do
           control_connection.connect_async.get
           cluster_state.should have(3).hosts
 
@@ -260,6 +265,15 @@ module Cql
             host.rack.should == racks[ip]
             host.datacenter.should == data_centers[ip]
             host.release_version.should == release_versions[ip]
+          end
+        end
+
+        context 'with logging' do
+          it 'logs when fetching cluster state' do
+            logger.stub(:debug)
+            control_connection.connect_async.get
+            logger.should have_received(:debug).with(/Looking for additional nodes/)
+            logger.should have_received(:debug).with(/\d+ additional nodes found/)
           end
         end
 
@@ -281,30 +295,31 @@ module Cql
           end
         end
 
-        context 'connection closed' do
+        context 'when connection closed' do
           before do
             control_connection.connect_async.get
-            connections.first.close
+            last_connection.close
           end
 
-          context 'and reconnect interval has passed' do
-            before do
-              io_reactor.advance_time(builder_settings.reconnect_interval)
-            end
+          it 'reconnects' do
+            last_connection.should be_connected
+          end
 
-            it 'reconnects' do
-              last_connection.should be_connected
+          context 'and reconnected' do
+            it 'has an event listener' do
+              control_connection.connect_async.get
+              last_connection.should have_event_listener
             end
           end
 
           context 'and all hosts are down' do
             before do
-              connections.each do |connection|
-                connection.close
-              end
-
               cluster_state.ips.each do |ip|
                 io_reactor.node_down(ip)
+              end
+
+              connections.each do |connection|
+                connection.close
               end
             end
 
@@ -338,6 +353,17 @@ module Cql
             context 'with UP' do
               let :change do
                 'UP'
+              end
+
+              let :address do
+                '127.0.0.1'
+              end
+
+              it 'logs when it receives an UP event' do
+                logger.stub(:debug)
+                client.stub(:host_up)
+                connections.first.trigger_event(event)
+                logger.should have_received(:debug).with(/Received STATUS_CHANGE UP event/)
               end
 
               context 'and host is known' do
@@ -391,6 +417,17 @@ module Cql
             context 'with DOWN' do
               let :change do
                 'DOWN'
+              end
+
+              let :address do
+                '127.0.0.1'
+              end
+
+              it 'logs when it receives an DOWN event' do
+                logger.stub(:debug)
+                client.stub(:host_down)
+                connections.first.trigger_event(event)
+                logger.should have_received(:debug).with(/Received STATUS_CHANGE DOWN event/)
               end
 
               context 'and host is known' do
@@ -452,6 +489,18 @@ module Cql
                 'NEW_NODE'
               end
 
+              let :address do
+                '127.0.0.1'
+              end
+
+              it 'logs when it receives an NEW_NODE event' do
+                logger.stub(:debug)
+                client.stub(:host_found)
+                client.stub(:host_up)
+                connections.first.trigger_event(event)
+                logger.should have_received(:debug).with(/Received TOPOLOGY_CHANGE NEW_NODE event/)
+              end
+
               context 'and host is unknown' do
                 let :address do
                   additional_nodes[3]
@@ -485,6 +534,18 @@ module Cql
             context 'with REMOVED_NODE' do
               let :change do
                 'REMOVED_NODE'
+              end
+
+              let :address do
+                '127.0.0.1'
+              end
+
+              it 'logs when it receives an REMOVED_NODE event' do
+                logger.stub(:debug)
+                client.stub(:host_down)
+                client.stub(:host_lost)
+                connections.first.trigger_event(event)
+                logger.should have_received(:debug).with(/Received TOPOLOGY_CHANGE REMOVED_NODE event/)
               end
 
               context 'and host is known' do

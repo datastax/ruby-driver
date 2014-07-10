@@ -46,16 +46,15 @@ module Cql
       private
 
       def reconnect
-        timeout = @settings.reconnect_interval
-
-        @settings.logger.debug('Reconnecting in %d seconds' % timeout)
-
-        f = @io_reactor.schedule_timer(timeout)
-        f = f.flat_map { connect_async }
-        f.fallback do |e|
+        connect_async.fallback do |e|
           @settings.logger.error('Connection failed: %s: %s' % [e.class.name, e.message])
 
-          reconnect
+          timeout = @settings.reconnect_interval
+
+          @settings.logger.debug('Reconnecting in %d seconds' % timeout)
+
+          f = @io_reactor.schedule_timer(timeout)
+          f.flat_map { reconnect }
         end
       end
 
@@ -95,10 +94,14 @@ module Cql
       end
 
       def refresh_hosts_async
+        @settings.logger.debug('Looking for additional nodes')
+
         local = @request_runner.execute(@connection, SELECT_LOCAL)
         peers = @request_runner.execute(@connection, SELECT_PEERS)
 
         Future.all(local, peers).map do |(local, peers)|
+          @settings.logger.debug('%d additional nodes found' % peers.size)
+
           local_ip = @connection.host
           ips      = ::Set.new
 
@@ -123,6 +126,8 @@ module Cql
 
       def refresh_host_async(address)
         ip = address.to_s
+
+        @settings.logger.debug('Fetching node information for %s' % ip)
 
         if ip == @connection.host
           request = @request_runner.execute(
@@ -178,7 +183,7 @@ module Cql
             @settings.protocol_version -= 1
             connect_to_host(h)
           else
-            @settings.logger.error('Connection failed: %s: %s' % [e.class.name, e.message])
+            @settings.logger.error('Connection failed: %s: %s' % [error.class.name, error.message])
 
             raise error
           end

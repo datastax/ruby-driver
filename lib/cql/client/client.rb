@@ -326,21 +326,11 @@ module Cql
       end
 
       def host_found(host)
+        return if @connecting_hosts.include?(host)
+
         @connecting_hosts << host
 
-        f = create_cluster_connector.connect_all([host.ip], @connections_per_node)
-        f = f.flat_map do |connections|
-          f = use_keyspace(connections, keyspace)
-          f.on_value do
-            @connecting_hosts.delete(host)
-            @connection_manager.add_connections(connections)
-          end
-          f
-        end
-        f.fallback do
-          f = @io_reactor.schedule_timer(@reconnect_interval)
-          f.flat_map { host_found(host) if @connecting_hosts.include?(host) }
-        end
+        connect_to_host(host)
       end
 
       def host_down(host)
@@ -370,6 +360,24 @@ module Cql
           ]),
           @logger
         )
+      end
+
+      def connect_to_host(host)
+        f = create_cluster_connector.connect_all([host.ip], @connections_per_node)
+        f = f.flat_map do |connections|
+          f = use_keyspace(connections, keyspace)
+          f.on_value do
+            @connecting_hosts.delete(host)
+            @connection_manager.add_connections(connections)
+          end
+          f
+        end
+        f.fallback do
+          @logger.debug('Reconnecting in %d seconds' % @reconnect_interval)
+
+          f = @io_reactor.schedule_timer(@reconnect_interval)
+          f.flat_map { connect_to_host(host) if @connecting_hosts.include?(host) }
+        end
       end
 
       def connected(f)
