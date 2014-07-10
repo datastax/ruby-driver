@@ -215,11 +215,10 @@ module Cql
         @protocol_version = options[:protocol_version] || 2
         @io_reactor = options[:io_reactor] || Io::IoReactor.new
         @hosts = options[:hosts]
-        @initial_keyspace = options[:keyspace]
+        @keyspace = options[:keyspace]
         @connections_per_node = options[:connections_per_node] || 1
         @lock = Mutex.new
         @request_runner = options[:request_runner] || RequestRunner.new
-        @keyspace_changer = options[:keyspace_changer] || KeyspaceChanger.new
         @connection_manager = ConnectionManager.new
         @execute_options_decoder = ExecuteOptionsDecoder.new(options[:default_consistency] || DEFAULT_CONSISTENCY)
         @port = options[:port] || DEFAULT_PORT
@@ -243,7 +242,7 @@ module Cql
             f = f.flat_map { create_cluster_connector.connect_all(@hosts, @connections_per_node) }
             f = f.flat_map do |connections|
               @connection_manager.add_connections(connections)
-              use_keyspace(@connection_manager.snapshot, @initial_keyspace)
+              use_keyspace(@connection_manager.snapshot, @keyspace)
             end
             f.map(self)
           end
@@ -278,7 +277,7 @@ module Cql
       end
 
       def keyspace
-        @connection_manager.random_connection.keyspace
+        @keyspace
       end
 
       def use(keyspace)
@@ -326,15 +325,25 @@ module Cql
       end
 
       def host_found(host)
-        return if @connecting_hosts.include?(host)
+        ip = host.ip
 
-        @connecting_hosts << host
+        return Future.resolved if @connecting_hosts.include?(ip)
 
-        connect_to_host(host)
+        connect_to_host(ip).map(self)
       end
 
       def host_down(host)
-        return if @connecting_hosts.delete?(host)
+        host_lost(host)
+      end
+
+      def host_lost(host)
+        ip = host.ip
+
+        return Future.resolved if @connecting_hosts.delete?(ip)
+
+        futures = @connection_manager.select { |c| c.host == ip }.map {|c| c.close}
+
+        Future.all(*futures).map(self)
       end
 
       private
@@ -346,6 +355,7 @@ module Cql
       DEFAULT_PORT = 9042
       DEFAULT_CONNECTION_TIMEOUT = 10
       MAX_RECONNECTION_ATTEMPTS = 5
+      KEYSPACE_NAME_PATTERN = /^\w[\w\d_]*$|^"\w[\w\d_]*"$/
 
       def create_cluster_connector
         authentication_step = @protocol_version == 1 ? CredentialsAuthenticationStep.new(@credentials) : SaslAuthenticationStep.new(@auth_provider)
@@ -363,7 +373,9 @@ module Cql
       end
 
       def connect_to_host(host)
-        f = create_cluster_connector.connect_all([host.ip], @connections_per_node)
+        @connecting_hosts << host
+
+        f = create_cluster_connector.connect_all([host], @connections_per_node)
         f = f.flat_map do |connections|
           f = use_keyspace(connections, keyspace)
           f.on_value do
@@ -372,7 +384,7 @@ module Cql
           end
           f
         end
-        f.fallback do
+        f.fallback do |e|
           @logger.debug('Reconnecting in %d seconds' % @reconnect_interval)
 
           f = @io_reactor.schedule_timer(@reconnect_interval)
@@ -426,7 +438,10 @@ module Cql
       end
 
       def use_keyspace(connections, keyspace)
-        futures = connections.map { |connection| @keyspace_changer.use_keyspace(connection, keyspace) }
+        return Future.resolved unless keyspace
+        return Future.failed(InvalidKeyspaceNameError.new(%("#{keyspace}" is not a valid keyspace name))) unless valid_keyspace_name?(keyspace)
+        request = Protocol::QueryRequest.new("USE #{keyspace}", nil, nil, :one)
+        futures = connections.map { |connection| execute_request(request, nil, connection) }
         Future.all(*futures)
       end
 
@@ -434,12 +449,17 @@ module Cql
         f = @request_runner.execute(connection || @connection_manager.random_connection, request, timeout)
         f.map do |result|
           if result.is_a?(KeyspaceChanged)
-            use(result.keyspace)
+            @keyspace = result.keyspace
+            use(@keyspace)
             nil
           else
             result
           end
         end
+      end
+
+      def valid_keyspace_name?(keyspace)
+        keyspace =~ KEYSPACE_NAME_PATTERN
       end
     end
 

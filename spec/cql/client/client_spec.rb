@@ -564,6 +564,22 @@ module Cql
           end
         end
 
+        context 'with multiple connections' do
+          let :connection_options do
+            default_connection_options.merge(connections_per_node: 2)
+          end
+
+          it 'clears out old connections and don\'t reuse them for future requests' do
+            connections.first.close
+            expect { 10.times { client.execute('SELECT * FROM something').value } }.to_not raise_error
+          end
+
+          it 'raises NotConnectedError when all nodes are down' do
+            connections.each(&:close)
+            expect { client.execute('SELECT * FROM something').value }.to raise_error(NotConnectedError)
+          end
+        end
+
         context 'with a void CQL query' do
           it 'returns a VoidResult' do
             handle_request do |request|
@@ -1099,6 +1115,8 @@ module Cql
           it 'stops trying when host is considered down' do
             host = Cluster::Host.new('1.1.1.1')
 
+            connections.select(&:connected?).should have(3).items
+
             io_reactor.node_down('1.1.1.1')
             client.host_found(host)
 
@@ -1143,25 +1161,65 @@ module Cql
             logger.should have_received(:debug).with(/Reconnecting in \d+ seconds/)
           end
         end
+
+        context 'when all nodes go down' do
+          it 'restores last used keyspace' do
+            client.connect.get
+            client.use('asd')
+            connections.each {|c| c.close}
+
+            host = Cluster::Host.new('127.0.0.1')
+            connections.select(&:connected?).should be_empty
+            client.host_found(host)
+            connections.select(&:connected?).should have(1).connections
+            last_connection.keyspace.should == 'asd'
+          end
+        end
       end
 
-      context 'when nodes go down' do
+      describe '#host_lost' do
         let :connection_options do
-          default_connection_options.merge(hosts: %w[host1 host2 host3], keyspace: 'foo')
+          default_connection_options.merge(connections_per_node: 2, hosts: %w[127.0.0.1])
         end
 
-        before do
-          client.connect.value
+        context 'when connected to it' do
+          before do
+            client.connect.value
+          end
+
+          it 'closes connections to that host' do
+            connections.select(&:connected?).should have(2).items
+            client.host_lost(Cluster::Host.new('127.0.0.1'))
+            connections.select(&:connected?).should be_empty
+          end
         end
 
-        it 'clears out old connections and don\'t reuse them for future requests' do
-          connections.first.close
-          expect { 10.times { client.execute('SELECT * FROM something').value } }.to_not raise_error
-        end
+        context 'when reconnecting to it' do
+          let :reconnect_interval do
+            5
+          end
 
-        it 'raises NotConnectedError when all nodes are down' do
-          connections.each(&:close)
-          expect { client.execute('SELECT * FROM something').value }.to raise_error(NotConnectedError)
+          let :connection_options do
+            default_connection_options.merge(connections_per_node: 2, hosts: %w[127.0.0.1], reconnect_interval: reconnect_interval)
+          end
+
+          it 'stops reconnecting' do
+            host = Cluster::Host.new('127.0.0.1')
+
+            io_reactor.node_down('127.0.0.1')
+            connections.each {|c| c.close}
+
+            client.host_found(host)
+            client.host_lost(host)
+
+            io_reactor.node_up('127.0.0.1')
+
+            io_reactor.advance_time(reconnect_interval)
+            io_reactor.advance_time(reconnect_interval)
+            io_reactor.advance_time(reconnect_interval)
+
+            connections.select(&:connected?).should have(0).items
+          end
         end
       end
 
