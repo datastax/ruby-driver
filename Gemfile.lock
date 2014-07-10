@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cql-rb (2.0.2)
+    cql-rb (2.0.3)
       ione (~> 1)
 
 GEM
