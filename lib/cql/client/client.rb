@@ -226,9 +226,11 @@ module Cql
         @connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
         @credentials = options[:credentials]
         @auth_provider = options[:auth_provider] || @credentials && Auth::PlainTextAuthProvider.new(*@credentials.values_at(:username, :password))
+        @reconnect_interval = options[:reconnect_interval] || 5
         @connected = false
         @connecting = false
         @closing = false
+        @connecting_hosts = ::Set.new
       end
 
       def connect
@@ -321,6 +323,28 @@ module Cql
         else
           b
         end
+      end
+
+      def host_found(host)
+        @connecting_hosts << host
+
+        f = create_cluster_connector.connect_all([host.ip], @connections_per_node)
+        f = f.flat_map do |connections|
+          f = use_keyspace(connections, keyspace)
+          f.on_value do
+            @connecting_hosts.delete(host)
+            @connection_manager.add_connections(connections)
+          end
+          f
+        end
+        f.fallback do
+          f = @io_reactor.schedule_timer(@reconnect_interval)
+          f.flat_map { host_found(host) if @connecting_hosts.include?(host) }
+        end
+      end
+
+      def host_down(host)
+        return if @connecting_hosts.delete?(host)
       end
 
       private

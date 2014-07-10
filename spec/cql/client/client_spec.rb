@@ -1101,9 +1101,70 @@ module Cql
         end
       end
 
-      context 'when nodes go down' do
+      describe '#host_found' do
         include_context 'peer discovery setup'
 
+        let :connection_options do
+          default_connection_options.merge(hosts: %w[host1 host2 host3], keyspace: 'foo')
+        end
+
+        before do
+          client.connect.value
+        end
+
+        it 'connects to it' do
+          client.host_found(Cluster::Host.new('1.1.1.1'))
+          connections.select(&:connected?).should have(4).items
+          last_connection.host.should == '1.1.1.1'
+        end
+
+        it 'makes sure the new connections use the same keyspace as the existing' do
+          client.host_found(Cluster::Host.new('1.1.1.1'))
+          use_keyspace_request = connections.last.requests.find { |r| r.is_a?(Protocol::QueryRequest) && r.cql.include?('USE') }
+          use_keyspace_request.cql.should == 'USE foo'
+        end
+
+        context 'host not responding' do
+          let :reconnect_interval do
+            5
+          end
+
+          let :connection_options do
+            default_connection_options.merge(hosts: %w[host1 host2 host3], keyspace: 'foo', reconnect_interval: reconnect_interval)
+          end
+
+          it 'keeps trying until host responds' do
+            io_reactor.node_down('1.1.1.1')
+            client.host_found(Cluster::Host.new('1.1.1.1'))
+
+            rand(10).times { io_reactor.advance_time(reconnect_interval) }
+            connections.select(&:connected?).should have(3).items
+
+            io_reactor.node_up('1.1.1.1')
+            io_reactor.advance_time(reconnect_interval)
+
+            connections.select(&:connected?).should have(4).items
+          end
+
+          it 'stops trying when host is considered down' do
+            host = Cluster::Host.new('1.1.1.1')
+
+            io_reactor.node_down('1.1.1.1')
+            client.host_found(host)
+
+            rand(10).times { io_reactor.advance_time(reconnect_interval) }
+
+            client.host_down(host)
+            io_reactor.node_up('1.1.1.1')
+
+            io_reactor.advance_time(reconnect_interval)
+
+            connections.select(&:connected?).should have(3).items
+          end
+        end
+      end
+
+      context 'when nodes go down' do
         let :connection_options do
           default_connection_options.merge(hosts: %w[host1 host2 host3], keyspace: 'foo')
         end
@@ -1120,43 +1181,6 @@ module Cql
         it 'raises NotConnectedError when all nodes are down' do
           connections.each(&:close)
           expect { client.execute('SELECT * FROM something').value }.to raise_error(NotConnectedError)
-        end
-
-        it 'reconnects when it receives a topology change NEW_NODE event' do
-          connections.first.close
-          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
-          connections.select(&:has_event_listener?).first.trigger_event(event)
-          connections.select(&:connected?).should have(3).items
-        end
-
-        it 'makes sure the new connections use the same keyspace as the existing' do
-          connections.first.close
-          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
-          connections.select(&:has_event_listener?).first.trigger_event(event)
-          use_keyspace_request = connections.last.requests.find { |r| r.is_a?(Protocol::QueryRequest) && r.cql.include?('USE') }
-          use_keyspace_request.cql.should == 'USE foo'
-        end
-
-        it 'eventually reconnects even when the node doesn\'t respond at first' do
-          timer_promise = Promise.new
-          io_reactor.stub(:schedule_timer).and_return(timer_promise.future)
-          additional_nodes.each { |host| io_reactor.node_down(host.to_s) }
-          connections.first.close
-          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
-          connections.select(&:has_event_listener?).first.trigger_event(event)
-          connections.select(&:connected?).should have(2).items
-          additional_nodes.each { |host| io_reactor.node_up(host.to_s) }
-          timer_promise.fulfill
-          connections.select(&:connected?).should have(3).items
-        end
-
-        it 'eventually stops attempting to reconnect if no new nodes are found' do
-          io_reactor.stub(:schedule_timer).and_return(Future.resolved)
-          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
-          connections.first.close
-          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
-          connections.select(&:has_event_listener?).first.trigger_event(event)
-          io_reactor.should have_received(:schedule_timer).exactly(5).times
         end
 
         it 'does not start a new reconnection loop when one is already in progress' do
