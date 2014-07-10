@@ -32,7 +32,7 @@ module Cql
         @hosts.has_key?(ip)
       end
 
-      def set_host(ip, data)
+      def host_found(ip, data)
         if @hosts.has_key?(ip)
           host                 = @hosts[ip]
           host.id              = data['host_id']
@@ -41,35 +41,49 @@ module Cql
           rack       = data['rack']
           datacenter = data['data_center']
 
-          return host if rack == host.rack && datacenter == host.datacenter
+          if rack == host.rack && datacenter == host.datacenter
+            if host.down?
+              host.up!
 
-          if host.down?
-            @clients.each do |client|
-              client.host_lost(host)
-            end
-
-            host.rack       = rack
-            host.datacenter = datacenter
-
-            @clients.each do |client|
-              client.host_found(host)
+              @clients.each do |client|
+                client.host_up(host)
+              end
             end
           else
-            host.down!
+            if host.down?
+              @clients.each do |client|
+                client.host_lost(host)
+              end
 
-            @clients.each do |client|
-              client.host_down(host)
-              client.host_lost(host)
-            end
+              host.rack       = rack
+              host.datacenter = datacenter
 
-            host.rack       = rack
-            host.datacenter = datacenter
+              @clients.each do |client|
+                client.host_found(host)
+              end
 
-            host.up!
+              host.up!
 
-            @clients.each do |client|
-              client.host_found(host)
-              client.host_up(host)
+              @clients.each do |client|
+                client.host_up(host)
+              end
+            else
+              host.down!
+
+              @clients.each do |client|
+                client.host_down(host)
+                client.host_lost(host)
+              end
+
+              host.rack       = rack
+              host.datacenter = datacenter
+
+              host.up!
+
+              @clients.each do |client|
+                client.host_found(host)
+                client.host_up(host)
+              end
             end
           end
         else

@@ -85,9 +85,7 @@ module Cql
                 address = event.address
                 ip      = address.to_s
 
-                refresh_host_async(address).map do
-                  @cluster.host_up(ip)
-                end if @cluster.host_known?(ip)
+                refresh_host_async(address) if @cluster.host_known?(ip)
               when 'DOWN'
                 address = event.address
 
@@ -124,13 +122,13 @@ module Cql
 
           unless local.empty?
             ips << local_ip
-            @cluster.set_host(local_ip, local.first)
+            @cluster.host_found(local_ip, local.first)
           end
 
           peers.each do |data|
             ip = peer_ip(data)
             ips << ip
-            @cluster.set_host(ip, data)
+            @cluster.host_found(ip, data)
           end
 
           @cluster.ips.each do |ip|
@@ -167,7 +165,7 @@ module Cql
         end
 
         request.map do |result|
-          @cluster.set_host(ip, result.first) unless result.empty?
+          @cluster.host_found(ip, result.first) unless result.empty?
 
           self
         end
@@ -178,6 +176,7 @@ module Cql
         f = connect_to_host(h)
         f.fallback do |error|
           errors[h] = error
+          @cluster.host_down(h)
           connect_to_first_available(plan, errors)
         end
       rescue ::StopIteration
