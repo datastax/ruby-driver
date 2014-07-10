@@ -1,16 +1,6 @@
 # encoding: utf-8
 
 module Cql
-  NOT_CONNECTED = NotConnectedError.new("not connected")
-  NO_HOSTS      = NoHostsAvailable.new
-  SELECT_LOCAL  = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, release_version FROM system.local', nil, nil, :one)
-  SELECT_PEERS  = Protocol::QueryRequest.new('SELECT peer, rack, data_center, host_id, rpc_address, release_version FROM system.peers', nil, nil, :one)
-  REGISTER      = Protocol::RegisterRequest.new(
-                    Protocol::TopologyChangeEventResponse::TYPE,
-                    Protocol::StatusChangeEventResponse::TYPE,
-                    Protocol::SchemaChangeEventResponse::TYPE
-                  )
-
   class Cluster
     class ControlConnection
       def initialize(io_reactor, request_runner, cluster_state, builder_settings)
@@ -57,6 +47,16 @@ module Cql
       end
 
       private
+
+      NOT_CONNECTED = NotConnectedError.new("not connected")
+      NO_HOSTS      = NoHostsAvailable.new
+      SELECT_LOCAL  = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, release_version FROM system.local', nil, nil, :one)
+      SELECT_PEERS  = Protocol::QueryRequest.new('SELECT peer, rack, data_center, host_id, rpc_address, release_version FROM system.peers', nil, nil, :one)
+      REGISTER      = Protocol::RegisterRequest.new(
+                        Protocol::TopologyChangeEventResponse::TYPE,
+                        Protocol::StatusChangeEventResponse::TYPE,
+                        Protocol::SchemaChangeEventResponse::TYPE
+                      )
 
       def reconnect
         return if @closed
