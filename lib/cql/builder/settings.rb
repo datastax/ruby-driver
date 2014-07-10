@@ -8,19 +8,17 @@ module Cql
                     :default_consistency, :logger, :compressor, :credentials,
                     :auth_provider, :reconnect_interval
 
-      def initialize(addresses, port, protocol_version, connection_timeout,
-                     default_consistency, logger, compressor, credentials,
-                     auth_provider, reconnect_interval)
-        @addresses           = addresses
-        @port                = port
-        @protocol_version    = protocol_version
-        @connection_timeout  = connection_timeout
-        @default_consistency = default_consistency
-        @logger              = logger
-        @compressor          = compressor
-        @credentials         = credentials
-        @auth_provider       = auth_provider
-        @reconnect_interval  = reconnect_interval
+      def initialize(options = {})
+        @port                = options.fetch(:port, 9042)
+        @protocol_version    = options.fetch(:protocol_version, 2)
+        @connection_timeout  = options.fetch(:connection_timeout, 10)
+        @default_consistency = options.fetch(:default_consistency, :one)
+        @logger              = options.fetch(:logger, Client::NullLogger.new)
+        @compressor          = options.fetch(:compressor, nil)
+        @credentials         = options.fetch(:credentials, nil)
+        @auth_provider       = options.fetch(:auth_provider, nil)
+        @reconnect_interval  = options.fetch(:reconnect_interval, 5)
+        @addresses           = ::Set.new
       end
     end
   end

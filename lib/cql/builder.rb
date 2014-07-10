@@ -4,7 +4,7 @@ module Cql
   class Builder
     def initialize(services = {})
       @services = services
-      @settings = Settings.new(Set.new, 9042, 2, 10, :one, Client::NullLogger.new, nil, nil, nil, 5)
+      @settings = Settings.new
     end
 
     def add_contact_point(host)
