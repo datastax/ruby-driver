@@ -1158,6 +1158,8 @@ module Cql
             io_reactor.node_up('1.1.1.1')
 
             io_reactor.advance_time(reconnect_interval)
+            io_reactor.advance_time(reconnect_interval)
+            io_reactor.advance_time(reconnect_interval)
 
             connections.select(&:connected?).should have(3).items
           end
