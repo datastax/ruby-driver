@@ -2,6 +2,7 @@ source 'https://rubygems.org/'
 
 gemspec
 
+gem 'aruba'
 gem 'rake'
 gem 'snappy'
 gem 'lz4-ruby'
