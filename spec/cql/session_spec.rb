@@ -54,10 +54,10 @@ module Cql
     end
 
     describe('#close_async') do
-      it 'uses Client#close' do
+      it 'uses Client#shutdown' do
         promise = double('promise')
 
-        expect(client).to receive(:close).and_return(promise)
+        expect(client).to receive(:shutdown).and_return(promise)
         expect(session.close_async).to eq(promise)
       end
     end

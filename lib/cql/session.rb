@@ -47,7 +47,7 @@ module Cql
     end
 
     def close_async
-      @client.close
+      @client.shutdown
     end
 
     def close
