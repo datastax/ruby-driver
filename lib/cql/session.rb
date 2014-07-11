@@ -2,14 +2,13 @@
 
 module Cql
   class Session
-    def initialize(cluster_state, client)
-      @cluster = cluster_state
-      @client  = client
+    def initialize(client)
+      @client = client
     end
 
     def execute_async(cql, *args)
       case cql
-      when Client::AsynchronousBatch, Client::AsynchronousPreparedStatement
+      when Client::Batch, Client::PreparedStatement
         cql.execute(*args)
       else
         @client.execute(cql, *args)
@@ -48,9 +47,7 @@ module Cql
     end
 
     def close_async
-      f = @client.close
-      f.on_complete { @cluster.remove_client(@client) }
-      f.map(self)
+      @client.close
     end
 
     def close
