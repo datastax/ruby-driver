@@ -33,11 +33,7 @@ module Cql
       if @state.has_clients?
         f = @control_connection.close_async
       else
-        futures = @state.each_client.map do |client|
-                    f = client.close
-                    f.on_complete { @state.remove_client(client) }
-                    f.map(self)
-                  end
+        futures = @state.each_client.map { client.close }
 
         f = Future.all(*futures)
         f = f.flat_map { @control_connection.close_async }
