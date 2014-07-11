@@ -19,8 +19,9 @@ module Cql
       })
 
       client  = Client::AsynchronousClient.new(options)
-      session = Session.new(@state, client)
+      session = Session.new(client)
 
+      client.on_close { @state.remove_client(@client) }
       client.connect.map { @state.add_client(client); session }
     end
 
