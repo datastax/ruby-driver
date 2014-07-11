@@ -26,7 +26,7 @@ module Cql
   # @private
   Io = Ione::Io
 
-  def self.cluster(default = {})
+  def self.cluster(defaults = {})
     Builder.new(Builder::Settings.new(defaults))
   end
 end
