@@ -42,20 +42,8 @@ When(/^it is executed$/) do
   step 'I run `ruby -I. -rbundler/setup example.rb`'
 end
 
-Then(/^it should succeed$/) do
-  step 'the exit status should be 0'
-end
-
-Then(/^its output should match:$/) do |output|
-  step 'the output should match:', output
-end
-
 Then(/^its output should contain:$/) do |output|
   step 'the output should contain:', output
-end
-
-Then(/^its output should contain <total> lines that match:$/) do |output|
-  pending # express the regexp above with the code you wish you had
 end
 
 When(/^node (\d+) starts$/) do |i|
@@ -80,7 +68,6 @@ When(/^node (\d+) leaves$/) do |i|
   step "node #{i} stops"
   @cluster.remove_node(i)
 end
-
 
 When(/^node (\d+) restarts$/) do |i|
   step "node #{i} stops"
