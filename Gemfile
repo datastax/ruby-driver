@@ -22,4 +22,5 @@ group :test do
   gem 'simplecov'
   gem 'coveralls'
   gem 'cucumber'
+  gem 'aruba'
 end
