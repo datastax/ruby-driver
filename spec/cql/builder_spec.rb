@@ -5,7 +5,7 @@ require 'spec_helper'
 module Cql
   describe(Builder) do
     let :builder do
-      described_class.new(services)
+      described_class.new(settings, services)
     end
 
     let :io_reactor do
@@ -14,6 +14,10 @@ module Cql
 
     let :services do
       {:io_reactor => io_reactor}
+    end
+
+    let :settings do
+      Builder::Settings.new
     end
 
     def connections

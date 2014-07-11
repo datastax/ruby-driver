@@ -2,9 +2,9 @@
 
 module Cql
   class Builder
-    def initialize(services = {})
+    def initialize(settings, services = {})
+      @settings = settings
       @services = services
-      @settings = Settings.new
     end
 
     def add_contact_point(host)
