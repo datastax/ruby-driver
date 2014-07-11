@@ -273,6 +273,27 @@ module Cql
         @closed_future
       end
 
+      def shutdown
+        @lock.synchronize do
+          return @closed_future if @closing
+          @closing = true
+          @closed_future = begin
+            if @connecting
+              f = @connected_future.recover
+              f = f.flat_map { close_connections }
+              f = f.map(self)
+              f
+            else
+              f = close_connections
+              f = f.map(self)
+              f
+            end
+          end
+        end
+        @closed_future.on_complete(&method(:closed))
+        @closed_future
+      end
+
       def on_close(&block)
         @close_listeners << block
         self
@@ -360,6 +381,10 @@ module Cql
       DEFAULT_CONNECTION_TIMEOUT = 10
       MAX_RECONNECTION_ATTEMPTS = 5
       KEYSPACE_NAME_PATTERN = /^\w[\w\d_]*$|^"\w[\w\d_]*"$/
+
+      def close_connections
+        Future.all(*@connection_manager.map {|c| c.close}).map(self)
+      end
 
       def create_cluster_connector
         authentication_step = @protocol_version == 1 ? CredentialsAuthenticationStep.new(@credentials) : SaslAuthenticationStep.new(@auth_provider)
