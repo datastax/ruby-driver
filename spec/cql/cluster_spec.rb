@@ -37,7 +37,7 @@ module Cql
     let(:cluster_state)      { FakeClusterState.new(['1.1.1.1', '2.2.2.2']) }
     let(:client_options)     { {:io_reactor => io_reactor} }
 
-    let(:cluster) { Cluster.new(control_connection, cluster_state, client_options) }
+    let(:cluster) { Cluster.new(io_reactor, control_connection, cluster_state, client_options) }
 
     describe('#hosts') do
       it 'uses State#hosts' do
@@ -74,6 +74,8 @@ module Cql
       context('without clients') do
         it 'closes control connection' do
           expect(control_connection).to receive(:close_async).once.and_return(promise)
+          expect(io_reactor).to receive(:stop).and_call_original
+          expect(promise).to receive(:flat_map).and_yield
           expect(cluster.close_async).to eq(promise)
         end
       end
@@ -92,7 +94,7 @@ module Cql
         before do
           clients.each_with_index do |client, i|
             cluster_state.add_client(client)
-            client.stub(:close) { client_futures[i] }
+            client.stub(:shutdown) { client_futures[i] }
           end
 
           control_connection.stub(:close_async) { control_connection_future }
@@ -100,6 +102,7 @@ module Cql
 
         it 'closes all clients and control connection' do
           expect(Cql::Future).to receive(:all).once.with(*client_futures, control_connection_future).and_return(promise)
+          expect(promise).to receive(:flat_map).and_return(promise)
           expect(cluster.close_async).to eq(promise)
         end
       end

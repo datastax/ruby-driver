@@ -13,7 +13,7 @@ module Cql
 
     let(:control_connection) { Cluster::ControlConnection.new(io_reactor, request_runner, cluster_state, @settings) }
 
-    let(:cluster) { Cluster.new(control_connection, cluster_state, client_options) }
+    let(:cluster) { Cluster.new(io_reactor, control_connection, cluster_state, client_options) }
 
     let(:client_options) { {
                              :io_reactor           => io_reactor,

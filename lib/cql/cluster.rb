@@ -2,7 +2,8 @@
 
 module Cql
   class Cluster
-    def initialize(control_connection, cluster_state, client_options)
+    def initialize(io_reactor, control_connection, cluster_state, client_options)
+      @io_reactor         = io_reactor
       @control_connection = control_connection
       @state              = cluster_state
       @options            = client_options
@@ -31,13 +32,15 @@ module Cql
 
     def close_async
       if @state.has_clients?
-        futures = @state.each_client.map { |c| c.close }
+        futures = @state.each_client.map { |c| c.shutdown }
         futures << @control_connection.close_async
 
         f = Future.all(*futures)
       else
         f = @control_connection.close_async
       end
+
+      f.flat_map { @io_reactor.stop }
 
       f.map(self)
     end
