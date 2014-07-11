@@ -71,14 +71,14 @@ module Cql
         expect(promise).to receive(:map).once.with(cluster).and_return(promise)
       end
 
-      context('when state has no clients') do
+      context('without clients') do
         it 'closes control connection' do
           expect(control_connection).to receive(:close_async).once.and_return(promise)
           expect(cluster.close_async).to eq(promise)
         end
       end
 
-      context('when state has clients') do
+      context('with clients') do
         let(:clients) do
           Array.new(5) { |i| double("client #{i + 1}") }
         end
