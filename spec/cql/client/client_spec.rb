@@ -407,6 +407,17 @@ module Cql
           io_reactor.should_not be_running
         end
 
+        it 'executes all close callbacks' do
+          closed = 0
+          client.on_close { closed += 1 }
+          client.on_close { closed += 1 }
+          client.on_close { closed += 1 }
+          client.on_close { closed += 1 }
+          client.connect.value
+          client.close
+          closed.should == 4
+        end
+
         it 'does nothing when called before #connect' do
           client.close.value
         end

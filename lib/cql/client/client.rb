@@ -230,6 +230,7 @@ module Cql
         @connecting = false
         @closing = false
         @connecting_hosts = ::Set.new
+        @close_listeners = []
       end
 
       def connect
@@ -270,6 +271,11 @@ module Cql
         end
         @closed_future.on_complete(&method(:closed))
         @closed_future
+      end
+
+      def on_close(&block)
+        @close_listeners << block
+        self
       end
 
       def connected?
@@ -421,6 +427,7 @@ module Cql
               @logger.error('Cluster disconnect failed: %s' % e.message)
             end
           end
+          @close_listeners.each(&:call).clear
         end
       end
 
