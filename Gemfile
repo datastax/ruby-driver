@@ -2,7 +2,6 @@ source 'https://rubygems.org/'
 
 gemspec
 
-gem 'aruba'
 gem 'rake'
 gem 'snappy'
 gem 'lz4-ruby'
@@ -23,4 +22,5 @@ group :test do
   gem 'simplecov'
   gem 'coveralls'
   gem 'cucumber'
+  gem 'aruba'
 end
