@@ -21,7 +21,7 @@ module Cql
       client  = Client::AsynchronousClient.new(options)
       session = Session.new(client)
 
-      client.on_close { @state.remove_client(@client) }
+      client.on_close { @state.remove_client(client) }
       client.connect.map { @state.add_client(client); session }
     end
 
@@ -31,12 +31,12 @@ module Cql
 
     def close_async
       if @state.has_clients?
-        f = @control_connection.close_async
-      else
-        futures = @state.each_client.map { client.close }
+        futures = @state.each_client.map { |c| c.close }
+        futures << @control_connection.close_async
 
         f = Future.all(*futures)
-        f = f.flat_map { @control_connection.close_async }
+      else
+        f = @control_connection.close_async
       end
 
       f.map(self)
