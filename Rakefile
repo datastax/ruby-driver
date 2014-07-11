@@ -1,12 +1,19 @@
 # encoding: utf-8
 
+require 'bundler/setup'
+
 require 'rspec/core/rake_task'
+require 'cucumber/rake/task'
 
-
-RSpec::Core::RakeTask.new(:spec)
+RSpec::Core::RakeTask.new(:spec) do |t|
+   t.rspec_opts = "--fail-fast"
+end
+Cucumber::Rake::Task.new(:features) do |t|
+  t.cucumber_opts = '--tags ~@todo'
+end
 
 desc 'Tag & release the gem'
-task :release => :spec do
+task :release => :test do
   $: << 'lib'
   require 'cql/version'
 
@@ -19,3 +26,6 @@ task :release => :spec do
 
   system %(git push && git push --tags; gem build #{project_name}.gemspec && gem push #{project_name}-*.gem && mv #{project_name}-*.gem pkg)
 end
+
+desc 'Run all tests'
+task :test => [:spec, :features]
