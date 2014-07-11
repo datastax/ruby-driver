@@ -21,6 +21,7 @@ unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
     add_group 'Source', 'lib'
     add_group 'Unit tests', 'spec/cql'
     add_group 'Integration tests', 'spec/integration'
+    add_group 'Features', 'features'
   end
 end
 

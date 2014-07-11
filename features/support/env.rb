@@ -276,3 +276,20 @@ After do |s|
   # Tell Cucumber to quit after this scenario is done - if it failed.
   Cucumber.wants_to_quit = true if s.failed?
 end
+
+unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
+  require 'coveralls'
+  require 'simplecov'
+
+  if ENV.include?('TRAVIS')
+    Coveralls.wear!
+    SimpleCov.formatter = Coveralls::SimpleCov::Formatter
+  end
+
+  SimpleCov.start do
+    add_group 'Source', 'lib'
+    add_group 'Unit tests', 'spec/cql'
+    add_group 'Integration tests', 'spec/integration'
+    add_group 'Features', 'features'
+  end
+end
