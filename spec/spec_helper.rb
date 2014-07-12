@@ -7,6 +7,7 @@ require 'bundler/setup'
 require 'support/bytes_helper'
 require 'support/await_helper'
 require 'support/fake_io_reactor'
+require 'support/fake_cluster_registry'
 
 unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
   require 'coveralls'

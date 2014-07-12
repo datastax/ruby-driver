@@ -56,6 +56,8 @@ module Cql
     def create_cluster
       container = Container.new(@settings, @services)
 
+      @settings.addresses.each {|address| container.add_address(address)}
+
       control_connection = container.control_connection
       io_reactor         = container.io_reactor
       cluster            = container.cluster

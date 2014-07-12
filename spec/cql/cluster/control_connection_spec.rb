@@ -6,19 +6,15 @@ module Cql
   class Cluster
     describe(ControlConnection) do
       let :control_connection do
-        described_class.new(io_reactor, request_runner, cluster_state, builder_settings)
+        described_class.new(io_reactor, request_runner, cluster_registry, builder_settings)
       end
 
       let :io_reactor do
         FakeIoReactor.new
       end
 
-      let :hosts do
-        {'127.0.0.1' => Cluster::Host.new('127.0.0.1')}
-      end
-
-      let :cluster_state do
-        State.new(hosts, ::Set[])
+      let :cluster_registry do
+        Registry.new
       end
 
       let :request_runner do
@@ -101,6 +97,8 @@ module Cql
       end
 
       before do
+        cluster_registry.host_found('127.0.0.1')
+
         uuid_generator = TimeUuid::Generator.new
         additional_rpc_addresses = additional_nodes.dup
         io_reactor.on_connection do |connection|
@@ -239,9 +237,9 @@ module Cql
 
         it 'populates cluster state' do
           control_connection.connect_async.get
-          cluster_state.should have(3).hosts
+          cluster_registry.should have(3).hosts
 
-          cluster_state.hosts.each do |host|
+          cluster_registry.hosts.each do |host|
             ip = host.ip
             host.rack.should == racks[ip]
             host.datacenter.should == data_centers[ip]
@@ -277,9 +275,9 @@ module Cql
 
           it 'falls back on using the peer column' do
             control_connection.connect_async.get
-            cluster_state.should have(3).hosts
+            cluster_registry.should have(3).hosts
 
-            cluster_state.hosts.each do |host|
+            cluster_registry.hosts.each do |host|
               ip = host.ip
               host.rack.should == racks[ip]
               host.datacenter.should == data_centers[ip]
@@ -307,7 +305,7 @@ module Cql
 
           context 'and all hosts are down' do
             before do
-              cluster_state.ips.each do |ip|
+              cluster_registry.ips.each do |ip|
                 io_reactor.node_down(ip)
               end
 
@@ -334,8 +332,9 @@ module Cql
           end
 
           before do
+            client.stub(:respond_to?) { true }
             control_connection.connect_async.get
-            cluster_state.add_client(client)
+            cluster_registry.add_listener(client)
           end
 
           context 'when a status change event is received' do
@@ -364,17 +363,20 @@ module Cql
                   additional_nodes[0]
                 end
 
-                let :host do
-                  hosts[address.to_s]
-                end
-
                 context 'and is up' do
                   before do
-                    host.up!
+                    client.stub(:host_found)
+                    client.stub(:host_up)
+                    cluster_registry.host_found(address.to_s, {
+                      'data_center' => data_centers[address.to_s],
+                      'rack'        => racks[address.to_s]
+                    })
+                    cluster_registry.host_up(address)
                   end
 
                   it 'does nothing' do
                     client.should_not_receive(:host_up)
+                    cluster_registry.host_up(address)
 
                     connections.first.trigger_event(event)
                   end
@@ -382,14 +384,19 @@ module Cql
 
                 context 'and is down' do
                   before do
-                    host.down!
+                    client.stub(:host_found)
+                    client.stub(:host_up)
+                    client.stub(:host_down)
+                    cluster_registry.host_found(address.to_s, {
+                      'data_center' => data_centers[address.to_s],
+                      'rack'        => racks[address.to_s]
+                    })
+                    cluster_registry.host_down(address.to_s)
                   end
 
                   it 'notifies all clients that a host is up' do
-                    client.should_receive(:host_up).once.with(host)
+                    client.should_receive(:host_up).once
                     connections.first.trigger_event(event)
-
-                    host.should be_up
                   end
                 end
               end
@@ -428,26 +435,33 @@ module Cql
                   additional_nodes[0]
                 end
 
-                let :host do
-                  hosts[address.to_s]
-                end
-
                 context 'and is up' do
                   before do
-                    host.up!
+                    client.stub(:host_found)
+                    client.stub(:host_up)
+                    cluster_registry.host_found(address.to_s, {
+                      'data_center' => data_centers[address.to_s],
+                      'rack'        => racks[address.to_s]
+                    })
+                    cluster_registry.host_up(address)
                   end
 
                   it 'notifies all clients that a host is down' do
-                    client.should_receive(:host_down).once.with(host)
+                    client.should_receive(:host_down).once
                     connections.first.trigger_event(event)
-
-                    host.should be_down
                   end
                 end
 
                 context 'and is down' do
                   before do
-                    host.down!
+                    client.stub(:host_found)
+                    client.stub(:host_up)
+                    client.stub(:host_down)
+                    cluster_registry.host_found(address.to_s, {
+                      'data_center' => data_centers[address.to_s],
+                      'rack'        => racks[address.to_s]
+                    })
+                    cluster_registry.host_down(address.to_s)
                   end
 
                   it 'does nothing' do
@@ -507,7 +521,7 @@ module Cql
                   connections.first.trigger_event(event)
 
                   host.should_not be_nil
-                  cluster_state.ips.should include(address.to_s)
+                  cluster_registry.ips.should include(address.to_s)
                 end
               end
 
@@ -546,34 +560,43 @@ module Cql
                   additional_nodes[0]
                 end
 
-                let :host do
-                  hosts[address.to_s]
-                end
-
                 context 'and is up' do
                   before do
-                    host.up!
+                    client.stub(:host_found)
+                    client.stub(:host_up)
+                    cluster_registry.host_found(address.to_s, {
+                      'data_center' => data_centers[address.to_s],
+                      'rack'        => racks[address.to_s]
+                    })
+                    cluster_registry.host_up(address)
                   end
 
                   it 'notifies all clients that a host is down and lost' do
-                    client.should_receive(:host_down).once.with(host)
-                    client.should_receive(:host_lost).once.with(host)
+                    client.should_receive(:host_down).once
+                    client.should_receive(:host_lost).once
                     connections.first.trigger_event(event)
 
-                    cluster_state.ips.should_not include(address.to_s)
+                    cluster_registry.ips.should_not include(address.to_s)
                   end
                 end
 
                 context 'and is down' do
                   before do
-                    host.down!
-                  end
+                    client.stub(:host_found)
+                    client.stub(:host_up)
+                    client.stub(:host_down)
+                    cluster_registry.host_found(address.to_s, {
+                      'data_center' => data_centers[address.to_s],
+                      'rack'        => racks[address.to_s]
+                    })
+                    cluster_registry.host_down(address.to_s)
+                   end
 
                   it 'notifies all clients that a host is lost' do
-                    client.should_receive(:host_lost).once.with(host)
+                    client.should_receive(:host_lost).once
                     connections.first.trigger_event(event)
 
-                    cluster_state.ips.should_not include(address.to_s)
+                    cluster_registry.ips.should_not include(address.to_s)
                   end
                 end
               end
@@ -620,7 +643,7 @@ module Cql
           before do
             control_connection.connect_async.get
 
-            cluster_state.ips.each do |ip|
+            cluster_registry.ips.each do |ip|
               io_reactor.node_down(ip)
             end
 
@@ -631,7 +654,7 @@ module Cql
             connections.select(&:connected?).should be_empty
             control_connection.close_async
 
-            cluster_state.ips.each do |ip|
+            cluster_registry.ips.each do |ip|
               io_reactor.node_up(ip)
             end
 

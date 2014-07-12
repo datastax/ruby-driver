@@ -147,6 +147,7 @@ end
 require 'cql/client/connection_manager'
 require 'cql/client/connector'
 require 'cql/client/null_logger'
+require 'cql/client/null_registry'
 require 'cql/client/column_metadata'
 require 'cql/client/result_metadata'
 require 'cql/client/execute_options_decoder'

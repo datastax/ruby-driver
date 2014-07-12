@@ -3,10 +3,10 @@
 module Cql
   class Cluster
     class ControlConnection
-      def initialize(io_reactor, request_runner, cluster_state, builder_settings)
+      def initialize(io_reactor, request_runner, cluster_registry, builder_settings)
         @io_reactor     = io_reactor
         @request_runner = request_runner
-        @cluster        = cluster_state
+        @cluster        = cluster_registry
         @settings       = builder_settings
       end
 
@@ -83,9 +83,8 @@ module Cql
               case event.change
               when 'UP'
                 address = event.address
-                ip      = address.to_s
 
-                refresh_host_async(address) if @cluster.host_known?(ip)
+                refresh_host_async(address) if @cluster.host_known?(address.to_s)
               when 'DOWN'
                 address = event.address
 
@@ -183,7 +182,7 @@ module Cql
         raise NoHostsAvailable.new(errors)
       end
 
-      def connect_to_host(h)
+      def connect_to_host(host)
         connector = Client::Connector.new([
           Client::ConnectStep.new(@io_reactor, protocol_handler_factory, @settings.port, @settings.connection_timeout, @settings.logger),
           Client::CacheOptionsStep.new,
@@ -192,12 +191,12 @@ module Cql
           Client::CachePropertiesStep.new,
         ])
 
-        f = connector.connect(h)
+        f = connector.connect(host)
         f.fallback do |error|
           if error.is_a?(QueryError) && error.code == 0x0a && @settings.protocol_version > 1
             @settings.logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@settings.protocol_version, @settings.protocol_version - 1, error.message])
             @settings.protocol_version -= 1
-            connect_to_host(h)
+            connect_to_host(host)
           else
             @settings.logger.error('Connection failed: %s: %s' % [error.class.name, error.message])
 

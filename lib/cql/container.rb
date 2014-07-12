@@ -9,15 +9,16 @@ module Cql
 
     let(:request_runner)   { Client::RequestRunner.new }
     let(:io_reactor)       { Io::IoReactor.new }
-    let(:cluster_state)    { Cluster::State.new(ThreadSafe.new(hosts), ThreadSafe.new(::Set.new)) }
+    let(:cluster_registry) { Cluster::Registry.new }
 
-    let(:control_connection) { Cluster::ControlConnection.new(io_reactor, request_runner, cluster_state, @settings) }
+    let(:control_connection) { Cluster::ControlConnection.new(io_reactor, request_runner, cluster_registry, @settings) }
 
-    let(:cluster) { Cluster.new(io_reactor, control_connection, cluster_state, client_options) }
+    let(:cluster) { Cluster.new(io_reactor, control_connection, cluster_registry, client_options) }
 
     let(:client_options) { {
                              :io_reactor           => io_reactor,
                              :request_runner       => request_runner,
+                             :registry             => cluster_registry,
                              :compressor           => @settings.compressor,
                              :logger               => @settings.logger,
                              :protocol_version     => @settings.protocol_version,
@@ -37,12 +38,9 @@ module Cql
       @services = services
     end
 
-    private
-
-    def hosts
-      hosts = {}
-      @settings.addresses.each {|ip| hosts[ip.to_s] = Cluster::Host.new(ip.to_s)}
-      hosts
+    def add_address(address)
+      cluster_registry.host_found(address.to_s)
+      self
     end
   end
 end

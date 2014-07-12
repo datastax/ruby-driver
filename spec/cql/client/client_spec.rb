@@ -2,7 +2,6 @@
 
 require 'spec_helper'
 
-
 module Cql
   module Client
     describe AsynchronousClient do
@@ -400,22 +399,37 @@ module Cql
         end
       end
 
+      context 'with registry' do
+        let :registry do
+          FakeClusterRegistry.new
+        end
+
+        let :connection_options do
+          default_connection_options.merge(registry: registry)
+        end
+
+        describe '#connect' do
+          it 'adds itself to registry listeners' do
+            client.connect.get
+            registry.should have(1).listeners
+            registry.listeners.should include(client)
+          end
+        end
+
+        describe '#close' do
+          it 'stops listening to registry changes' do
+            client.connect.get
+            client.close.get
+            registry.should have(0).listeners
+          end
+        end
+      end
+
       describe '#close' do
         it 'closes the connection' do
           client.connect.value
           client.close.value
           io_reactor.should_not be_running
-        end
-
-        it 'executes all close callbacks' do
-          closed = 0
-          client.on_close { closed += 1 }
-          client.on_close { closed += 1 }
-          client.on_close { closed += 1 }
-          client.on_close { closed += 1 }
-          client.connect.value
-          client.close
-          closed.should == 4
         end
 
         it 'does nothing when called before #connect' do

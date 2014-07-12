@@ -2,28 +2,25 @@
 
 module Cql
   class Cluster
-    def initialize(io_reactor, control_connection, cluster_state, client_options)
+    def initialize(io_reactor, control_connection, cluster_registry, client_options)
       @io_reactor         = io_reactor
       @control_connection = control_connection
-      @state              = cluster_state
+      @registry           = cluster_registry
       @options            = client_options
+      @clients            = ThreadSafe.new(::Set.new)
     end
 
     def hosts
-      @state.hosts
+      @registry.hosts
     end
 
     def connect_async(keyspace = nil)
-      options = @options.merge({
-        :hosts                => @state.ips,
-        :keyspace             => keyspace,
-      })
+      options = @options.merge({:keyspace => keyspace})
 
       client  = Client::AsynchronousClient.new(options)
       session = Session.new(client)
 
-      client.on_close { @state.remove_client(client) }
-      client.connect.map { @state.add_client(client); session }
+      client.connect.map { @clients << client; session }
     end
 
     def connect(keyspace = nil)
@@ -31,13 +28,12 @@ module Cql
     end
 
     def close_async
-      if @state.has_clients?
-        futures = @state.each_client.map { |c| c.shutdown }
-        futures << @control_connection.close_async
-
-        f = Future.all(*futures)
-      else
+      if @clients.empty?
         f = @control_connection.close_async
+      else
+        f = Future.all(*(@clients.map { |c| c.shutdown }), @control_connection.close_async)
+
+        @clients.clear
       end
 
       f.flat_map { @io_reactor.stop }
@@ -53,4 +49,4 @@ end
 
 require 'cql/cluster/control_connection'
 require 'cql/cluster/host'
-require 'cql/cluster/state'
+require 'cql/cluster/registry'
