@@ -14,6 +14,11 @@ module Cql
       @registry.hosts
     end
 
+    def register(listener)
+      @registry.add_listener(listener)
+      self
+    end
+
     def connect_async(keyspace = nil)
       options = @options.merge({:keyspace => keyspace})
 

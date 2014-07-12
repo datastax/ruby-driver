@@ -1,6 +1,5 @@
 # encoding: utf-8
 
-@todo
 Feature: membership change detection
 
   Cluster object allows registering state listeners. It then gurantees that
@@ -16,19 +15,19 @@ Feature: membership change detection
         end
 
         def host_found(host)
-          @out.puts("Host #{host.address.inspect} has been found")
+          @out.puts("Host #{host.ip} is found")
         end
 
         def host_lost(host)
-          @out.puts("Host #{host.address.inspect} has been lost")
+          @out.puts("Host #{host.ip} is lost")
         end
 
         def host_up(host)
-          @out.puts("Host #{host.address.inspect} is up")
+          @out.puts("Host #{host.ip} is up")
         end
 
         def host_down(host)
-          @out.puts("Host #{host.address.inspect} is down")
+          @out.puts("Host #{host.ip} is down")
         end
       end
       """
@@ -54,8 +53,8 @@ Feature: membership change detection
     And node 2 stops
     Then background output should contain:
       """
-      Host 127.0.0.3:9042 is down
-      Host 127.0.0.2:9042 is down
+      Host 127.0.0.3 is down
+      Host 127.0.0.2 is down
       """
 
   Scenario: a new host joins and then leaves the cluster
@@ -63,6 +62,8 @@ Feature: membership change detection
     And node 4 leaves
     Then background output should contain:
       """
-      Host 127.0.0.4:9042 has been found
-      Host 127.0.0.4:9042 has been lost
+      Host 127.0.0.4 is found
+      Host 127.0.0.4 is up
+      Host 127.0.0.4 is down
+      Host 127.0.0.4 is lost
       """
