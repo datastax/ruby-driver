@@ -45,6 +45,12 @@ module Cql
       self
     end
 
+    def with_load_balancing_policy(policy)
+      @settings.load_balancing_policy = policy
+
+      self
+    end
+
     def build
       @settings.addresses << '127.0.0.1' if @settings.addresses.empty?
 
@@ -56,6 +62,7 @@ module Cql
     def create_cluster
       container = Container.new(@settings, @services)
 
+      container.add_registry_listener(@settings.load_balancing_policy)
       @settings.addresses.each {|address| container.add_address(address)}
 
       control_connection = container.control_connection

@@ -26,6 +26,8 @@ module Cql
   # @private
   Io = Ione::Io
 
+  VOID_STATEMENT = nil
+
   def self.cluster(defaults = {})
     Builder.new(Builder::Settings.new(defaults))
   end
@@ -44,3 +46,5 @@ require 'cql/cluster'
 require 'cql/host'
 require 'cql/session'
 require 'cql/thread_safe'
+
+require 'cql/load_balancing'

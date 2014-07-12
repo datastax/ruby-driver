@@ -97,6 +97,7 @@ module Cql
       end
 
       before do
+        cluster_registry.add_listener(builder_settings.load_balancing_policy)
         cluster_registry.host_found('127.0.0.1')
 
         uuid_generator = TimeUuid::Generator.new

@@ -11,11 +11,8 @@ module Cql
       end
 
       def connect_async
-        ips = @cluster.ips
-
-        return Future.failed(NO_HOSTS) if ips.empty?
-
-        f = connect_to_first_available(ips.to_enum)
+        plan = @settings.load_balancing_policy.plan(nil, VOID_STATEMENT)
+        f = connect_to_first_available(plan)
         f.on_value do |connection|
           @connection = connection
 
@@ -171,15 +168,14 @@ module Cql
       end
 
       def connect_to_first_available(plan, errors = {})
-        h = plan.next
+        h = plan.next.ip
         f = connect_to_host(h)
         f.fallback do |error|
           errors[h] = error
-          @cluster.host_down(h)
           connect_to_first_available(plan, errors)
         end
       rescue ::StopIteration
-        raise NoHostsAvailable.new(errors)
+        Future.failed(NoHostsAvailable.new(errors))
       end
 
       def connect_to_host(host)

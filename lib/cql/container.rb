@@ -42,5 +42,11 @@ module Cql
       cluster_registry.host_found(address.to_s)
       self
     end
+
+    def add_registry_listener(listener)
+      cluster_registry.add_listener(listener)
+
+      self
+    end
   end
 end
