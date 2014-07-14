@@ -54,7 +54,7 @@ module Cassandra
           case type.first
           when :list, :set
             unless value.nil? || value.is_a?(Enumerable)
-              raise InvalidValueError, 'Value for collection must be enumerable'
+              raise InvalidValueError, 'Value for %s must be enumerable' % type
             end
             _, sub_type = type
             if value
@@ -74,7 +74,7 @@ module Cassandra
             end
           when :map
             unless value.nil? || value.is_a?(Enumerable)
-              raise InvalidValueError, 'Value for collection must be enumerable'
+              raise InvalidValueError, 'Value for %s must be enumerable' % type
             end
             _, key_type, value_type = type
             if value
