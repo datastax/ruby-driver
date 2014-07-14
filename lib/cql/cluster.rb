@@ -53,5 +53,4 @@ module Cql
 end
 
 require 'cql/cluster/control_connection'
-require 'cql/cluster/host'
 require 'cql/cluster/registry'

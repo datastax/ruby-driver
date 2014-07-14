@@ -1101,13 +1101,13 @@ module Cql
         end
 
         it 'connects to it' do
-          client.host_found(Cluster::Host.new('1.1.1.1'))
+          client.host_found(Host.new('1.1.1.1'))
           connections.select(&:connected?).should have(4).items
           last_connection.host.should == '1.1.1.1'
         end
 
         it 'makes sure the new connections use the same keyspace as the existing' do
-          client.host_found(Cluster::Host.new('1.1.1.1'))
+          client.host_found(Host.new('1.1.1.1'))
           connections.select(&:connected?).should have(4).items
 
           last_request = last_connection.requests.last
@@ -1126,7 +1126,7 @@ module Cql
 
           it 'keeps trying until host responds' do
             io_reactor.node_down('1.1.1.1')
-            client.host_found(Cluster::Host.new('1.1.1.1'))
+            client.host_found(Host.new('1.1.1.1'))
 
             rand(10).times { io_reactor.advance_time(reconnect_interval) }
             connections.select(&:connected?).should have(3).items
@@ -1138,7 +1138,7 @@ module Cql
           end
 
           it 'stops trying when host is considered down' do
-            host = Cluster::Host.new('1.1.1.1')
+            host = Host.new('1.1.1.1')
 
             connections.select(&:connected?).should have(3).items
 
@@ -1158,7 +1158,7 @@ module Cql
           end
 
           it 'does not start a new reconnection loop when one is already in progress' do
-            host = Cluster::Host.new('1.1.1.1')
+            host = Host.new('1.1.1.1')
 
             io_reactor.node_down('1.1.1.1')
             io_reactor.should_receive(:schedule_timer).once.and_call_original
@@ -1175,7 +1175,7 @@ module Cql
           it 'logs reconnection attempts' do
             logger.stub(:debug)
             logger.stub(:warn)
-            host = Cluster::Host.new('1.1.1.1')
+            host = Host.new('1.1.1.1')
 
             io_reactor.node_down('1.1.1.1')
             connection_options[:hosts].each { |addr| io_reactor.node_down(addr) }
@@ -1193,7 +1193,7 @@ module Cql
             client.use('asd')
             connections.each {|c| c.close}
 
-            host = Cluster::Host.new('127.0.0.1')
+            host = Host.new('127.0.0.1')
             connections.select(&:connected?).should be_empty
             client.host_found(host)
             connections.select(&:connected?).should have(1).connections
@@ -1214,7 +1214,7 @@ module Cql
 
           it 'closes connections to that host' do
             connections.select(&:connected?).should have(2).items
-            client.host_lost(Cluster::Host.new('127.0.0.1'))
+            client.host_lost(Host.new('127.0.0.1'))
             connections.select(&:connected?).should be_empty
           end
         end
@@ -1229,7 +1229,7 @@ module Cql
           end
 
           it 'stops reconnecting' do
-            host = Cluster::Host.new('127.0.0.1')
+            host = Host.new('127.0.0.1')
 
             io_reactor.node_down('127.0.0.1')
             connections.each {|c| c.close}

@@ -3,136 +3,167 @@
 module Cql
   class Cluster
     class Registry
+      include MonitorMixin
+
       LISTENER_METHODS = [:host_found, :host_lost, :host_up, :host_down].freeze
 
       def initialize
-        @hosts     = ThreadSafe.new(::Hash.new)
-        @listeners = ThreadSafe.new(::Set.new)
+        @hosts     = ::Hash.new
+        @listeners = ::Set.new
+
+        mon_initialize
       end
 
       def add_listener(listener)
         raise ::ArgumentError, "registry listener must respond to #{LISTENER_METHODS.inspect}" unless LISTENER_METHODS.all? {|m| listener.respond_to?(m)}
 
-        @listeners << listener
+        synchronize { @listeners << listener }
 
         self
       end
 
       def remove_listener(listener)
-        raise ::ArgumentError, "unknown listener #{listener.inspect}" unless @listeners.delete?(listener)
+        success = synchronize { @listeners.delete?(listener) }
+
+        raise ::ArgumentError, "unknown listener #{listener.inspect}" unless success
 
         self
       end
 
       def hosts
-        @hosts.map {|_, h| Cql::Host.new(h.ip, h.id, h.rack, h.datacenter, h.release_version, h.status)}
+        synchronize { @hosts.values }
       end
 
       def host_known?(ip)
-        @hosts.has_key?(ip)
+        synchronize { @hosts.has_key?(ip) }
       end
 
       def ips
-        @hosts.keys
+        synchronize { @hosts.keys }
       end
 
       def host_found(ip, data = {})
-        if @hosts.has_key?(ip)
-          host                 = @hosts[ip]
-          host.id              = data['host_id']
-          host.release_version = data['release_version']
+        host      = nil
+        listeners = nil
 
-          rack       = data['rack']
-          datacenter = data['data_center']
+        synchronize do
+          host      = @hosts[ip]
+          listeners = @listeners.dup
+        end
 
-          if rack == host.rack && datacenter == host.datacenter
-            if host.down?
-              host.up!
+        if host
+          if host.id              == data['host_id']         &&
+             host.release_version == data['release_version'] &&
+             host.rack            == data['rack']            &&
+             host.datacenter      == data['data_center']
 
-              @listeners.each do |listener|
-                listener.host_up(host)
-              end
-            end
+            return self if host.up?
+
+            host = toggle_up(host, listeners)
           else
-            if host.down?
-              @listeners.each do |listener|
-                listener.host_lost(host)
-              end
-            else
-              host.down!
+            host = toggle_down(host, listeners) if host.up?
 
-              @listeners.each do |listener|
-                listener.host_down(host)
-                listener.host_lost(host)
-              end
+            listeners.each do |listener|
+              listener.host_lost(host)
             end
 
-            host.rack       = rack
-            host.datacenter = datacenter
+            host = create_host(ip, data)
 
-            host.up!
-
-            @listeners.each do |listener|
+            listeners.each do |listener|
               listener.host_found(host)
               listener.host_up(host)
             end
           end
         else
-          host = @hosts[ip] = Host.new(ip, data)
+          host = create_host(ip, data)
 
-          @listeners.each do |listener|
+          listeners.each do |listener|
             listener.host_found(host)
             listener.host_up(host)
           end
         end
 
+        synchronize { @hosts[ip] = host }
+
         self
       end
 
       def host_down(ip)
-        host = @hosts[ip]
+        host      = nil
+        listeners = nil
 
-        return unless host && !host.down?
+        synchronize do
+          host = @hosts[ip]
 
-        host.down!
+          return self unless host && !host.down?
 
-        @listeners.each do |listener|
-          listener.host_down(host)
+          listeners = @listeners.dup
         end
+
+        host = toggle_down(host, listeners)
+
+        synchronize { @hosts[ip] = host }
 
         self
       end
 
       def host_up(ip)
-        host = @hosts[ip]
+        host      = nil
+        listeners = nil
 
-        return unless host && !host.up?
+        synchronize do
+          host = @hosts[ip]
 
-        host.up!
+          return self unless host && !host.up?
 
-        @listeners.each do |listener|
-          listener.host_up(host)
+          listeners = @listeners.dup
         end
+
+        host = toggle_up(host, listeners)
+
+        synchronize { @hosts[ip] = host }
 
         self
       end
 
       def host_lost(ip)
-        host = @hosts.delete(ip) { return self }
+        host      = nil
+        listeners = nil
 
-        unless host.down?
-          host.down!
-
-          @listeners.each do |listener|
-            listener.host_down(host)
-          end
+        synchronize do
+          host = @hosts.delete(ip) { return self }
+          listeners = @listeners.dup
         end
 
-        @listeners.each do |listener|
+        host = toggle_down(host, listeners) if host.up?
+
+        listeners.each do |listener|
           listener.host_lost(host)
         end
 
         self
+      end
+
+      private
+
+      def create_host(ip, data)
+        Host.new(ip, data['host_id'], data['rack'], data['data_center'], data['release_version'], :up)
+      end
+
+      def toggle_up(host, listeners)
+        host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, :up)
+        listeners.each do |listener|
+          listener.host_up(host)
+        end
+        host
+      end
+
+      def toggle_down(host, listeners)
+        host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, :down)
+        listeners.each do |listener|
+          listener.host_down(host)
+        end
+        host
       end
     end
   end

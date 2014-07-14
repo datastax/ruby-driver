@@ -6,7 +6,7 @@ class FakeClusterRegistry
   def initialize(ips = [])
     @listeners = Set.new
     @ips       = ips
-    @hosts     = Set[ips.map {|ip| Cql::Cluster::Host.new(ip)}]
+    @hosts     = Set[ips.map {|ip| Cql::Host.new(ip)}]
   end
 
   def add_listener(listener)
