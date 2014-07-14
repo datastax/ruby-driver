@@ -12,9 +12,9 @@ Feature: basic authentication
       require 'cql'
       
       begin
-        cluster = Cql.cluster                                           \
-                    .with_contact_points(["127.0.0.1"])                 \
-                    .with_credentials(ENV['USERNAME'], ENV['PASSWORD']) \
+        cluster = Cql.cluster
+                    .with_contact_points("127.0.0.1")
+                    .with_credentials(ENV['USERNAME'], ENV['PASSWORD'])
                     .build
         puts "authentication successful"
       rescue => e

@@ -6,7 +6,7 @@ module Cql
   class Cluster
     describe(ControlConnection) do
       let :control_connection do
-        described_class.new(io_reactor, request_runner, cluster_registry, builder_settings)
+        described_class.new(io_reactor, request_runner, cluster_registry, driver_settings)
       end
 
       let :io_reactor do
@@ -25,8 +25,8 @@ module Cql
         Client::NullLogger.new
       end
 
-      let :builder_settings do
-        Builder::Settings.new(logger: logger, protocol_version: 7)
+      let :driver_settings do
+        Driver.new(logger: logger, protocol_version: 7)
       end
 
       def connections
@@ -105,7 +105,7 @@ module Cql
       end
 
       before do
-        cluster_registry.add_listener(builder_settings.load_balancing_policy)
+        cluster_registry.add_listener(driver_settings.load_balancing_policy)
         cluster_registry.host_found('127.0.0.1')
 
         io_reactor.on_connection do |connection|
@@ -186,7 +186,7 @@ module Cql
 
           control_connection.connect_async.get
 
-          builder_settings.protocol_version.should == 4
+          driver_settings.protocol_version.should == 4
         end
 
         it 'logs when it tries the next protocol version' do
@@ -228,8 +228,8 @@ module Cql
         end
 
         it 'fails authenticating when an auth provider has been specified but the protocol is negotiated to v1' do
-          builder_settings.protocol_version = 1
-          builder_settings.auth_provider    = double(:auth_provider)
+          driver_settings.protocol_version = 1
+          driver_settings.auth_provider    = double(:auth_provider)
 
           counter = 0
           handle_request do |request|
@@ -331,12 +331,12 @@ module Cql
             end
 
             it 'keeps trying until some host comes up' do
-              rand(10).times { io_reactor.advance_time(builder_settings.reconnect_interval) }
+              rand(10).times { io_reactor.advance_time(driver_settings.reconnect_interval) }
 
               last_connection.should_not be_connected
 
               io_reactor.node_up('127.0.0.1')
-              io_reactor.advance_time(builder_settings.reconnect_interval)
+              io_reactor.advance_time(driver_settings.reconnect_interval)
               last_connection.should be_connected
             end
           end
@@ -557,8 +557,8 @@ module Cql
               io_reactor.node_up(ip)
             end
 
-            io_reactor.advance_time(builder_settings.reconnect_interval)
-            io_reactor.advance_time(builder_settings.reconnect_interval)
+            io_reactor.advance_time(driver_settings.reconnect_interval)
+            io_reactor.advance_time(driver_settings.reconnect_interval)
 
             connections.select(&:connected?).should be_empty
           end

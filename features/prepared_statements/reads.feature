@@ -14,8 +14,8 @@ Feature: prepared statements for reads
       """ruby
       require 'cql'
 
-      cluster = Cql.cluster \
-                  .with_contact_points(["127.0.0.1"]) \
+      cluster = Cql.cluster
+                  .with_contact_points("127.0.0.1")
                   .build
 
       at_exit { cluster.close }

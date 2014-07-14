@@ -29,7 +29,7 @@ module Cql
   VOID_STATEMENT = nil
 
   def self.cluster(defaults = {})
-    Builder.new(Builder::Settings.new(defaults))
+    Builder.new(defaults)
   end
 end
 
@@ -41,8 +41,8 @@ require 'cql/auth'
 require 'cql/client'
 
 require 'cql/builder'
-require 'cql/container'
 require 'cql/cluster'
+require 'cql/driver'
 require 'cql/host'
 require 'cql/session'
 require 'cql/thread_safe'

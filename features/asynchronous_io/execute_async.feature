@@ -13,8 +13,8 @@ Feature: asynchronous query execution
       """ruby
       require 'cql'
 
-      cluster = Cql.cluster \
-                  .with_contact_points(["127.0.0.1", "127.0.0.2"]) \
+      cluster = Cql.cluster
+                  .with_contact_points("127.0.0.1", "127.0.0.2")
                   .build
 
       at_exit { cluster.close }

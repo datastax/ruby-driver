@@ -5,65 +5,85 @@ require 'spec_helper'
 module Cql
   describe(Builder) do
     let :builder do
-      described_class.new(settings, services)
+      Builder.new
     end
 
-    let :io_reactor do
-      FakeIoReactor.new
-    end
+    describe '#build' do
+      it 'creates a new Driver and connects it to 127.0.0.1' do
+        driver = double('driver')
+        expect(Driver).to receive(:new).once.with({}).and_return(driver)
+        expect(driver).to receive(:connect).once.with(::Set[IPAddr.new('127.0.0.1')]).and_return(driver)
+        expect(driver).to receive(:get).once.and_return(driver)
 
-    let :services do
-      {:io_reactor => io_reactor}
-    end
+        expect(builder.build).to eq(driver)
+      end
 
-    let :settings do
-      Builder::Settings.new
-    end
+      context 'with_contact_points("127.0.0.1", "127.0.0.2", "127.0.0.3")' do
+        it 'creates a new Driver and connects it to [127.0.0.1, 127.0.0.2, 127.0.0.3]' do
+          driver = double('driver').as_null_object
+          Driver.stub(:new) { driver }
+          expect(driver).to receive(:connect).once.with(::Set[
+                              IPAddr.new('127.0.0.1'),
+                              IPAddr.new('127.0.0.2'),
+                              IPAddr.new('127.0.0.3')
+                            ]).and_return(driver)
 
-    def connections
-      io_reactor.connections
-    end
-
-    def last_connection
-      connections.last
-    end
-
-    def requests
-      last_connection.requests
-    end
-
-    def last_request
-      requests.last
-    end
-
-    def handle_request(&handler)
-      @request_handler = handler
-    end
-
-    before do
-      io_reactor.on_connection do |connection|
-        connection.handle_request do |request, timeout|
-          response = nil
-          if @request_handler
-            response = @request_handler.call(request, connection, proc { connection.default_request_handler(request) }, timeout)
-          end
-          unless response
-            response = connection.default_request_handler(request)
-          end
-          response
+          builder
+            .with_contact_points('127.0.0.1', '127.0.0.2', '127.0.0.3')
+            .build
         end
       end
-    end
 
-    describe "#build" do
-      it 'connects to cluster localhost by default' do
-        io_reactor.should_receive(:connect).once.with('127.0.0.1', 9042, 10).and_call_original
-        builder.build rescue nil
+      context 'with_logger' do
+        let(:logger) { double('logger') }
+        let(:driver) { double('driver').as_null_object }
+
+        it 'passes a default logger to the driver' do
+          expect(Driver).to receive(:new).once.with(:logger => logger).and_return(driver)
+
+          builder
+            .with_logger(logger)
+            .build
+        end
       end
 
-      it 'connects to localhost when an empty list of hosts is given' do
-        io_reactor.should_receive(:connect).once.with('127.0.0.1', 9042, 10).and_call_original
-        builder.with_contact_points([]).build rescue nil
+      context 'with_credentials' do
+        let(:username) { 'username' }
+        let(:password) { 'password' }
+        let(:auth_provider) { double('auth provider') }
+        let(:driver) { double('driver').as_null_object }
+
+        it 'passes credentials and auth_provider to the driver' do
+          expect(Auth::PlainTextAuthProvider).to receive(:new).with(username, password).and_return(auth_provider)
+          expect(Driver).to receive(:new).once.with({
+                              :credentials => {
+                                :username => username,
+                                :password => password
+                              },
+                              :auth_provider => auth_provider
+                            }).and_return(driver)
+
+          builder.with_credentials(username, password).build
+        end
+      end
+
+      context 'with_compressor' do
+        let(:compressor) { double('compressor') }
+        let(:driver)     { double('driver').as_null_object }
+
+        it 'passes compressor to the driver' do
+          expect(Driver).to receive(:new).once.with(:compressor => compressor).and_return(driver)
+          builder.with_compressor(compressor).build
+        end
+      end
+
+      context 'with_port' do
+        let(:driver) { double('driver').as_null_object }
+
+        it 'passes port to the driver' do
+          expect(Driver).to receive(:new).once.with(:port => 123).and_return(driver)
+          builder.with_port(123).build
+        end
       end
     end
   end
