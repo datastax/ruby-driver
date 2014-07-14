@@ -348,16 +348,19 @@ module Cql
         end
       end
 
-      def host_found(host)
+      def host_up(host)
         ip = host.ip
 
         return Future.resolved if @connecting_hosts.include?(ip)
 
         connect_to_host(ip).map(self)
       end
-      alias :host_up :host_found
 
-      def host_lost(host)
+      def host_found(host)
+        self
+      end
+
+      def host_down(host)
         ip = host.ip
 
         return Future.resolved if @connecting_hosts.delete?(ip)
@@ -366,7 +369,10 @@ module Cql
 
         Future.all(*futures).map(self)
       end
-      alias :host_down :host_lost
+
+      def host_lost(host)
+        self
+      end
 
       private
 

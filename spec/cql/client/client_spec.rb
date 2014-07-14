@@ -1091,7 +1091,7 @@ module Cql
         end
       end
 
-      describe '#host_found' do
+      describe '#host_up' do
         let :connection_options do
           default_connection_options.merge(hosts: %w[host1 host2 host3], keyspace: 'foo')
         end
@@ -1101,13 +1101,13 @@ module Cql
         end
 
         it 'connects to it' do
-          client.host_found(Host.new('1.1.1.1'))
+          client.host_up(Host.new('1.1.1.1'))
           connections.select(&:connected?).should have(4).items
           last_connection.host.should == '1.1.1.1'
         end
 
         it 'makes sure the new connections use the same keyspace as the existing' do
-          client.host_found(Host.new('1.1.1.1'))
+          client.host_up(Host.new('1.1.1.1'))
           connections.select(&:connected?).should have(4).items
 
           last_request = last_connection.requests.last
@@ -1126,7 +1126,7 @@ module Cql
 
           it 'keeps trying until host responds' do
             io_reactor.node_down('1.1.1.1')
-            client.host_found(Host.new('1.1.1.1'))
+            client.host_up(Host.new('1.1.1.1'))
 
             rand(10).times { io_reactor.advance_time(reconnect_interval) }
             connections.select(&:connected?).should have(3).items
@@ -1143,7 +1143,7 @@ module Cql
             connections.select(&:connected?).should have(3).items
 
             io_reactor.node_down('1.1.1.1')
-            client.host_found(host)
+            client.host_up(host)
 
             rand(10).times { io_reactor.advance_time(reconnect_interval) }
 
@@ -1163,10 +1163,10 @@ module Cql
             io_reactor.node_down('1.1.1.1')
             io_reactor.should_receive(:schedule_timer).once.and_call_original
 
-            client.host_found(host)
-            client.host_found(host)
-            client.host_found(host)
-            client.host_found(host)
+            client.host_up(host)
+            client.host_up(host)
+            client.host_up(host)
+            client.host_up(host)
 
             io_reactor.should_receive(:schedule_timer).once.and_call_original
             io_reactor.advance_time(reconnect_interval)
@@ -1180,7 +1180,7 @@ module Cql
             io_reactor.node_down('1.1.1.1')
             connection_options[:hosts].each { |addr| io_reactor.node_down(addr) }
 
-            client.host_found(host)
+            client.host_up(host)
 
             logger.should have_received(:warn).with(/Failed connecting to node/).at_least(1).times
             logger.should have_received(:debug).with(/Reconnecting in \d+ seconds/)
@@ -1195,14 +1195,14 @@ module Cql
 
             host = Host.new('127.0.0.1')
             connections.select(&:connected?).should be_empty
-            client.host_found(host)
+            client.host_up(host)
             connections.select(&:connected?).should have(1).connections
             last_connection.keyspace.should == 'asd'
           end
         end
       end
 
-      describe '#host_lost' do
+      describe '#host_down' do
         let :connection_options do
           default_connection_options.merge(connections_per_node: 2, hosts: %w[127.0.0.1])
         end
@@ -1214,7 +1214,7 @@ module Cql
 
           it 'closes connections to that host' do
             connections.select(&:connected?).should have(2).items
-            client.host_lost(Host.new('127.0.0.1'))
+            client.host_down(Host.new('127.0.0.1'))
             connections.select(&:connected?).should be_empty
           end
         end
@@ -1234,8 +1234,8 @@ module Cql
             io_reactor.node_down('127.0.0.1')
             connections.each {|c| c.close}
 
-            client.host_found(host)
-            client.host_lost(host)
+            client.host_up(host)
+            client.host_down(host)
 
             io_reactor.node_up('127.0.0.1')
 
