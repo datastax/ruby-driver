@@ -81,6 +81,12 @@ module Cassandra
           end
         end
 
+        context 'when encoding user defined type values' do
+          it 'encodes a null value' do
+            converter.to_bytes(buffer, [:udt, {'name' => :string, 'shoe_size' => :int}], nil, 4).should eql_bytes("\xff\xff\xff\xff")
+          end
+        end
+
         context 'when encoding custom values' do
           it 'encodes a null value' do
             converter.to_bytes(buffer, [:custom, 'com.example.CustomType'], nil, 4).should eql_bytes("\xff\xff\xff\xff")

@@ -416,14 +416,17 @@ module Cassandra
       end
 
       def udt_to_bytes(buffer, type, value, size_bytes)
-        offset = buffer.length
-        size_to_bytes(buffer, 0, size_bytes)
-        type.each do |field_name, field_type|
-          field_value = value[field_name]
-          to_bytes(buffer, field_type, field_value, 4, true)
+        if value
+          offset = buffer.length
+          size_to_bytes(buffer, 0, size_bytes)
+          type.each do |field_name, field_type|
+            field_value = value[field_name]
+            to_bytes(buffer, field_type, field_value, 4, true)
+          end
+          buffer.update(offset, size_to_bytes(CqlByteBuffer.new, buffer.length - offset - size_bytes, size_bytes))
+        else
+          nil_to_bytes(buffer, size_bytes)
         end
-        buffer.update(offset, size_to_bytes(CqlByteBuffer.new, buffer.length - offset - size_bytes, size_bytes))
-        buffer
       end
 
       def custom_to_bytes(buffer, type, value, size_bytes)
