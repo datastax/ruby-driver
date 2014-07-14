@@ -39,34 +39,15 @@ module Cql
     describe('#close_async') do
       let(:promise) { double('promise') }
 
-      context('without clients') do
-        before do
-          expect(promise).to receive(:map).once.with(cluster).and_return(promise)
-        end
-
-        it 'closes control connection' do
-          expect(control_connection).to receive(:close_async).once.and_return(promise)
-          expect(io_reactor).to receive(:stop).and_call_original
-          expect(promise).to receive(:flat_map).and_yield
-          expect(cluster.close_async).to eq(promise)
-        end
+      before do
+        expect(promise).to receive(:map).once.with(cluster).and_return(promise)
       end
 
-      context('with clients') do
-        before do
-          control_connection.stub(:close_async) { Future.resolved }
-        end
-
-        it 'closes all clients and control connection' do
-          expect(Client::AsynchronousClient).to receive(:new).exactly(5).times.and_call_original
-          5.times { cluster.connect_async.get }
-
-          # # expect(Future).to receive(:all).once.and_return(promise)
-          # 5.times do
-          #   expect_any_instance_of(Client::AsynchronousClient).to receive(:shutdown)
-          # end
-          cluster.close_async
-        end
+      it 'closes control connection' do
+        expect(control_connection).to receive(:close_async).once.and_return(promise)
+        expect(io_reactor).to receive(:stop).and_call_original
+        expect(promise).to receive(:flat_map).and_yield
+        expect(cluster.close_async).to eq(promise)
       end
     end
 
