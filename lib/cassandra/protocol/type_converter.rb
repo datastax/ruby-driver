@@ -28,7 +28,8 @@ module Cassandra
         return nil if buffer.empty?
         case type
         when Array
-          return nil unless read_size(buffer, size_bytes)
+          size = read_size(buffer, size_bytes)
+          return nil unless size
           size_bytes = override_size ? size_bytes : 2
           case type.first
           when :list
@@ -40,7 +41,7 @@ module Cassandra
           when :udt
             bytes_to_udt_value(buffer, type)
           when :custom
-            bytes_to_custom(buffer, type)
+            bytes_to_custom(buffer, size)
           end
         else
           @from_bytes_converters[type].call(buffer, size_bytes)
@@ -50,11 +51,11 @@ module Cassandra
       def to_bytes(buffer, type, value, size_bytes=4, override_size=false)
         case type
         when Array
-          unless value.nil? || value.is_a?(Enumerable)
-            raise InvalidValueError, 'Value for collection must be enumerable'
-          end
           case type.first
           when :list, :set
+            unless value.nil? || value.is_a?(Enumerable)
+              raise InvalidValueError, 'Value for collection must be enumerable'
+            end
             size_bytes = override_size ? size_bytes : 2
             _, sub_type = type
             if value
@@ -72,6 +73,9 @@ module Cassandra
               nil_to_bytes(buffer, size_bytes)
             end
           when :map
+            unless value.nil? || value.is_a?(Enumerable)
+              raise InvalidValueError, 'Value for collection must be enumerable'
+            end
             size_bytes = override_size ? size_bytes : 2
             _, key_type, value_type = type
             if value
@@ -91,6 +95,8 @@ module Cassandra
             end
           when :udt
             udt_to_bytes(buffer, type[1], value, size_bytes)
+          when :custom
+            custom_to_bytes(buffer, type[1], value, size_bytes)
           else
             raise UnsupportedColumnTypeError, %(Unsupported column collection type: #{type.first})
           end
@@ -271,8 +277,8 @@ module Cassandra
         value
       end
 
-      def bytes_to_custom(buffer, type)
-        nil
+      def bytes_to_custom(buffer, size)
+        buffer.read(size)
       end
 
       def ascii_to_bytes(buffer, value, size_bytes)
@@ -418,6 +424,15 @@ module Cassandra
         end
         buffer.update(offset, size_to_bytes(CqlByteBuffer.new, buffer.length - offset - size_bytes, size_bytes))
         buffer
+      end
+
+      def custom_to_bytes(buffer, type, value, size_bytes)
+        if value
+          size_to_bytes(buffer, value.size, size_bytes)
+          buffer.append(value)
+        else
+          nil_to_bytes(buffer, size_bytes)
+        end
       end
     end
   end

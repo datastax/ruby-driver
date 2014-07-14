@@ -82,7 +82,9 @@ module Cassandra
         end
 
         context 'when encoding custom values' do
-          it 'encodes a null custom value'
+          it 'encodes a null value' do
+            converter.to_bytes(buffer, [:custom, 'com.example.CustomType'], nil, 4).should eql_bytes("\xff\xff\xff\xff")
+          end
         end
 
         context 'when encoding and decoding negative numbers' do

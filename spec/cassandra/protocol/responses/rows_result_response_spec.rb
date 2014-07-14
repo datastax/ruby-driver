@@ -307,6 +307,44 @@ module Cassandra
           end
         end
 
+        context 'with custom types' do
+          let :buffer do
+            b = CqlByteBuffer.new
+            b << "\x00\x00\x00\x01"
+            b << "\x00\x00\x00\x02"
+            b << "\x00\x12cql_rb_client_spec"
+            b << "\x00\x05users"
+            b << "\x00\x02id"
+            b << "\x00\r"
+            b << "\x00\x0Fprimary_address"
+            b << "\x00\x00\x00\x16com.example.CustomType"
+            b << "\x00\x00\x00\x01"
+            b << "\x00\x00\x00\x03sue"
+            b << "\x00\x00\x00\x05"
+            b << "\x01\x02\x03\x04\x05"
+            b
+          end
+
+          let :response do
+            described_class.decode(2, buffer, buffer.length)
+          end
+
+          it 'decodes the type metadata' do
+            type_description = response.metadata[1]
+            type_description.should == [
+              'cql_rb_client_spec',
+              'users',
+              'primary_address',
+              [:custom, 'com.example.CustomType']
+            ]
+          end
+
+          it 'decodes the column value to a byte string' do
+            custom_value = response.rows[0]['primary_address']
+            custom_value.should == "\x01\x02\x03\x04\x05"
+          end
+        end
+
         context 'with user defined types' do
           let :buffer do
             b = CqlByteBuffer.new
