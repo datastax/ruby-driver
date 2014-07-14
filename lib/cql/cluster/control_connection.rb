@@ -81,19 +81,19 @@ module Cql
               when 'UP'
                 address = event.address
 
-                refresh_host_async(address) if @cluster.host_known?(address.to_s)
+                refresh_host_async(address) if @cluster.host_known?(address)
               when 'DOWN'
                 address = event.address
 
-                @cluster.host_down(address.to_s)
+                @cluster.host_down(address)
               when 'NEW_NODE'
                 address = event.address
 
-                refresh_host_async(address) unless @cluster.host_known?(address.to_s)
+                refresh_host_async(address) unless @cluster.host_known?(address)
               when 'REMOVED_NODE'
                 address = event.address
 
-                @cluster.host_lost(address.to_s)
+                @cluster.host_lost(address)
               end
             end
           end
@@ -123,7 +123,7 @@ module Cql
 
           peers.each do |data|
             ip = peer_ip(data)
-            ips << ip
+            ips << ip.to_s
             @cluster.host_found(ip, data)
           end
 
@@ -202,8 +202,8 @@ module Cql
       end
 
       def peer_ip(data)
-        ip = data['rpc_address'].to_s
-        ip = data['peer'].to_s if ip == '0.0.0.0'
+        ip = data['rpc_address']
+        ip = data['peer'] if ip == '0.0.0.0'
         ip
       end
 

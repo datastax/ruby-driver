@@ -34,7 +34,8 @@ module Cql
         synchronize { @hosts.values }
       end
 
-      def host_known?(ip)
+      def host_known?(address)
+        ip = address.to_s
         synchronize { @hosts.has_key?(ip) }
       end
 
@@ -42,7 +43,8 @@ module Cql
         synchronize { @hosts.keys }
       end
 
-      def host_found(ip, data = {})
+      def host_found(address, data = {})
+        ip        = address.to_s
         host      = nil
         listeners = nil
 
@@ -67,7 +69,7 @@ module Cql
               listener.host_lost(host)
             end
 
-            host = create_host(ip, data)
+            host = create_host(address, data)
 
             listeners.each do |listener|
               listener.host_found(host)
@@ -75,7 +77,7 @@ module Cql
             end
           end
         else
-          host = create_host(ip, data)
+          host = create_host(address, data)
 
           listeners.each do |listener|
             listener.host_found(host)
@@ -88,7 +90,8 @@ module Cql
         self
       end
 
-      def host_down(ip)
+      def host_down(address)
+        ip        = address.to_s
         host      = nil
         listeners = nil
 
@@ -107,7 +110,8 @@ module Cql
         self
       end
 
-      def host_up(ip)
+      def host_up(address)
+        ip        = address.to_s
         host      = nil
         listeners = nil
 
@@ -126,7 +130,8 @@ module Cql
         self
       end
 
-      def host_lost(ip)
+      def host_lost(address)
+        ip        = address.to_s
         host      = nil
         listeners = nil
 
