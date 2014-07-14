@@ -84,6 +84,10 @@ module Cql
         Hash.new('2.0.7-SNAPSHOT')
       end
 
+      let :host_ids do
+        Hash.new {|hash, ip| hash[ip] = uuid_generator.next}
+      end
+
       let :additional_nodes do
         Array.new(5) { IPAddr.new("127.0.#{rand(255)}.#{rand(255)}") }
       end
@@ -96,19 +100,22 @@ module Cql
         [2]
       end
 
+      let :uuid_generator do
+        TimeUuid::Generator.new
+      end
+
       before do
         cluster_registry.add_listener(builder_settings.load_balancing_policy)
         cluster_registry.host_found('127.0.0.1')
 
-        uuid_generator = TimeUuid::Generator.new
-        additional_rpc_addresses = additional_nodes.dup
         io_reactor.on_connection do |connection|
           connection[:spec_rack]            = racks[connection.host]
           connection[:spec_data_center]     = data_centers[connection.host]
-          connection[:spec_host_id]         = uuid_generator.next
+          connection[:spec_host_id]         = host_ids[connection.host]
           connection[:spec_release_version] = release_versions[connection.host]
 
           connection.handle_request do |request, timeout|
+            additional_rpc_addresses = additional_nodes.dup
             if @request_handler
               response = @request_handler.call(request, connection, proc { connection.default_request_handler(request) }, timeout)
             end
@@ -128,18 +135,25 @@ module Cql
                   'release_version' => connection[:spec_release_version]
                 }
                 Protocol::RowsResultResponse.new([row], local_metadata, nil, nil)
+              when /FROM system\.peers WHERE peer = \?/
+                ip   = request.values.first.to_s
+                rows = [
+                  {
+                    'rack'            => racks[ip],
+                    'data_center'     => data_centers[ip],
+                    'host_id'         => host_ids[ip],
+                    'release_version' => release_versions[ip]
+                  }
+                ]
+                Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
               when /FROM system\.peers/
-                other_host_ids = connections.reject { |c| c[:spec_host_id] == connection[:spec_host_id] }.map { |c| c[:spec_host_id] }
-                until other_host_ids.size >= min_peers[0]
-                  other_host_ids << uuid_generator.next
-                end
-                rows = other_host_ids.map do |host_id|
+                rows = min_peers[0].times.map do |host_id|
                   ip = additional_rpc_addresses.shift
                   {
                     'peer'            => ip,
                     'rack'            => racks[ip],
                     'data_center'     => data_centers[ip],
-                    'host_id'         => host_id,
+                    'host_id'         => host_ids[ip],
                     'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
                     'release_version' => release_versions[ip]
                   }
@@ -171,6 +185,7 @@ module Cql
           end
 
           control_connection.connect_async.get
+
           builder_settings.protocol_version.should == 4
         end
 
@@ -328,14 +343,12 @@ module Cql
         end
 
         context 'registered for events' do
-          let :client do
-            double("client stub")
+          let :registry do
+            double("registry stub")
           end
 
           before do
-            client.stub(:respond_to?) { true }
             control_connection.connect_async.get
-            cluster_registry.add_listener(client)
           end
 
           context 'when a status change event is received' do
@@ -349,66 +362,48 @@ module Cql
               end
 
               let :address do
-                '127.0.0.1'
+                IPAddr.new('127.0.0.1')
               end
 
               it 'logs when it receives an UP event' do
                 logger.stub(:debug)
-                client.stub(:host_up)
+                cluster_registry.stub(:host_up)
                 connections.first.trigger_event(event)
                 logger.should have_received(:debug).with(/Received STATUS_CHANGE UP event/)
               end
 
               context 'and host is known' do
+                before do
+                  cluster_registry.stub(:host_known?) { true }
+                end
+
                 let :address do
                   additional_nodes[0]
                 end
 
-                context 'and is up' do
-                  before do
-                    client.stub(:host_found)
-                    client.stub(:host_up)
-                    cluster_registry.host_found(address.to_s, {
-                      'data_center' => data_centers[address.to_s],
-                      'rack'        => racks[address.to_s]
-                    })
-                    cluster_registry.host_up(address)
-                  end
-
-                  it 'does nothing' do
-                    client.should_not_receive(:host_up)
-                    cluster_registry.host_up(address)
-
-                    connections.first.trigger_event(event)
-                  end
-                end
-
-                context 'and is down' do
-                  before do
-                    client.stub(:host_found)
-                    client.stub(:host_up)
-                    client.stub(:host_down)
-                    cluster_registry.host_found(address.to_s, {
-                      'data_center' => data_centers[address.to_s],
-                      'rack'        => racks[address.to_s]
-                    })
-                    cluster_registry.host_down(address.to_s)
-                  end
-
-                  it 'notifies all clients that a host is up' do
-                    client.should_receive(:host_up).once
-                    connections.first.trigger_event(event)
-                  end
+                it 'notifies registry' do
+                  ip = address.to_s
+                  expect(cluster_registry).to receive(:host_found).once.with(ip, {
+                    'rack'            => racks[ip],
+                    'data_center'     => data_centers[ip],
+                    'host_id'         => host_ids[ip],
+                    'release_version' => release_versions[ip]
+                  })
+                  connections.first.trigger_event(event)
                 end
               end
 
               context 'and host is unknown' do
+                before do
+                  cluster_registry.stub(:host_known?) { false }
+                end
+
                 let :address do
                   additional_nodes[3]
                 end
 
                 it 'does nothing' do
-                  client.should_not_receive(:host_up)
+                  expect(cluster_registry).to_not receive(:host_found)
 
                   connections.first.trigger_event(event)
                 end
@@ -426,63 +421,14 @@ module Cql
 
               it 'logs when it receives an DOWN event' do
                 logger.stub(:debug)
-                client.stub(:host_down)
                 connections.first.trigger_event(event)
                 logger.should have_received(:debug).with(/Received STATUS_CHANGE DOWN event/)
               end
 
-              context 'and host is known' do
-                let :address do
-                  additional_nodes[0]
-                end
-
-                context 'and is up' do
-                  before do
-                    client.stub(:host_found)
-                    client.stub(:host_up)
-                    cluster_registry.host_found(address.to_s, {
-                      'data_center' => data_centers[address.to_s],
-                      'rack'        => racks[address.to_s]
-                    })
-                    cluster_registry.host_up(address)
-                  end
-
-                  it 'notifies all clients that a host is down' do
-                    client.should_receive(:host_down).once
-                    connections.first.trigger_event(event)
-                  end
-                end
-
-                context 'and is down' do
-                  before do
-                    client.stub(:host_found)
-                    client.stub(:host_up)
-                    client.stub(:host_down)
-                    cluster_registry.host_found(address.to_s, {
-                      'data_center' => data_centers[address.to_s],
-                      'rack'        => racks[address.to_s]
-                    })
-                    cluster_registry.host_down(address.to_s)
-                  end
-
-                  it 'does nothing' do
-                    client.should_not_receive(:host_down)
-
-                    connections.first.trigger_event(event)
-                  end
-                end
-              end
-
-              context 'and host is unknown' do
-                let :address do
-                  additional_nodes[3]
-                end
-
-                it 'does nothing' do
-                  client.should_not_receive(:host_down)
-
-                  connections.first.trigger_event(event)
-                end
+              it 'notifies registry' do
+                ip = address.to_s
+                expect(cluster_registry).to receive(:host_down).once.with(ip)
+                connections.first.trigger_event(event)
               end
             end
           end
@@ -503,8 +449,6 @@ module Cql
 
               it 'logs when it receives an NEW_NODE event' do
                 logger.stub(:debug)
-                client.stub(:host_found)
-                client.stub(:host_up)
                 connections.first.trigger_event(event)
                 logger.should have_received(:debug).with(/Received TOPOLOGY_CHANGE NEW_NODE event/)
               end
@@ -514,15 +458,19 @@ module Cql
                   additional_nodes[3]
                 end
 
-                it 'notifies all clients that a host is found and up' do
-                  host = nil
+                before do
+                  cluster_registry.stub(:host_known?) { false }
+                end
 
-                  client.should_receive(:host_found).once { |h| host = h }
-                  client.should_receive(:host_up).once { |h| h.should == host }
+                it 'notifies registry' do
+                  ip = address.to_s
+                  expect(cluster_registry).to receive(:host_found).once.with(ip, {
+                    'rack'            => racks[ip],
+                    'data_center'     => data_centers[ip],
+                    'host_id'         => host_ids[ip],
+                    'release_version' => release_versions[ip]
+                  })
                   connections.first.trigger_event(event)
-
-                  host.should_not be_nil
-                  cluster_registry.ips.should include(address.to_s)
                 end
               end
 
@@ -531,8 +479,12 @@ module Cql
                   additional_nodes[0]
                 end
 
+                before do
+                  cluster_registry.stub(:host_known?) { true }
+                end
+
                 it 'does nothing' do
-                  client.should_not_receive(:host_found)
+                  expect(cluster_registry).to_not receive(:host_found)
 
                   connections.first.trigger_event(event)
                 end
@@ -550,68 +502,14 @@ module Cql
 
               it 'logs when it receives an REMOVED_NODE event' do
                 logger.stub(:debug)
-                client.stub(:host_down)
-                client.stub(:host_lost)
                 connections.first.trigger_event(event)
                 logger.should have_received(:debug).with(/Received TOPOLOGY_CHANGE REMOVED_NODE event/)
               end
 
-              context 'and host is known' do
-                let :address do
-                  additional_nodes[0]
-                end
-
-                context 'and is up' do
-                  before do
-                    client.stub(:host_found)
-                    client.stub(:host_up)
-                    cluster_registry.host_found(address.to_s, {
-                      'data_center' => data_centers[address.to_s],
-                      'rack'        => racks[address.to_s]
-                    })
-                    cluster_registry.host_up(address)
-                  end
-
-                  it 'notifies all clients that a host is down and lost' do
-                    client.should_receive(:host_down).once
-                    client.should_receive(:host_lost).once
-                    connections.first.trigger_event(event)
-
-                    cluster_registry.ips.should_not include(address.to_s)
-                  end
-                end
-
-                context 'and is down' do
-                  before do
-                    client.stub(:host_found)
-                    client.stub(:host_up)
-                    client.stub(:host_down)
-                    cluster_registry.host_found(address.to_s, {
-                      'data_center' => data_centers[address.to_s],
-                      'rack'        => racks[address.to_s]
-                    })
-                    cluster_registry.host_down(address.to_s)
-                   end
-
-                  it 'notifies all clients that a host is lost' do
-                    client.should_receive(:host_lost).once
-                    connections.first.trigger_event(event)
-
-                    cluster_registry.ips.should_not include(address.to_s)
-                  end
-                end
-              end
-
-              context 'and host is unknown' do
-                let :address do
-                  additional_nodes[3]
-                end
-
-                it 'does nothing' do
-                  client.should_not_receive(:host_lost)
-
-                  connections.first.trigger_event(event)
-                end
+              it 'notifies registry' do
+                ip = address.to_s
+                expect(cluster_registry).to receive(:host_lost).once.with(ip)
+                connections.first.trigger_event(event)
               end
             end
           end
