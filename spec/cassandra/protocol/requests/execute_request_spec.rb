@@ -79,6 +79,13 @@ module Cassandra
       end
 
       describe '#write' do
+        def encode_value(type, value)
+          request = described_class.new(id, [['ks', 'tbl', 'col', type]], [value], true, :one, nil, nil, nil, false)
+          buffer = request.write(1, CqlByteBuffer.new)
+          buffer.discard(2 + 16 + 2)
+          buffer.read(buffer.read_int)
+        end
+
         context 'when the protocol version is 1' do
           let :frame_bytes do
             ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :each_quorum, nil, nil, nil, false).write(1, CqlByteBuffer.new)
@@ -187,24 +194,13 @@ module Cassandra
           ]
           specs.each do |type, value, expected_bytes|
             it "encodes #{type} values" do
-              metadata = [['ks', 'tbl', 'id_column', type]]
-              buffer = ExecuteRequest.new(id, metadata, [value], true, :one, nil, nil, nil, false).write(1, CqlByteBuffer.new)
-              buffer.discard(2 + 16 + 2)
-              length = buffer.read_int
-              result_bytes = buffer.read(length)
-              result_bytes.should eql_bytes(expected_bytes)
+              bytes = encode_value(type, value)
+              bytes.should eql_bytes(expected_bytes)
             end
           end
         end
 
         context 'with user defined types' do
-          let :buffer do
-            request = described_class.new(id, [['ks', 'tbl', 'col', type]], [value], true, :one, nil, nil, nil, false)
-            buffer = request.write(1, CqlByteBuffer.new)
-            buffer.discard(2 + 16 + 2)
-            buffer
-          end
-
           context 'with a flat UDT' do
             let :type do
               [:udt, {'street' => :text, 'city' => :text, 'zip' => :int}]
@@ -215,7 +211,8 @@ module Cassandra
             end
 
             it 'encodes a hash into bytes' do
-              buffer.read(buffer.read_int).should eql_bytes(
+              bytes = encode_value(type, value)
+              bytes.should eql_bytes(
                 "\x00\x00\x00\f123 Some St." +
                 "\x00\x00\x00\rFrans Sanisco" +
                 "\x00\x00\x00\x04\x00\x01*\xFF"
@@ -233,7 +230,8 @@ module Cassandra
             end
 
             it 'encodes a hash into bytes' do
-              buffer.read(buffer.read_int).should eql_bytes(
+              bytes = encode_value(type, value)
+              bytes.should eql_bytes(
                 "\x00\x01" +
                 "\x00\vsecret_lair" +
                 "\x00)" +
@@ -268,7 +266,8 @@ module Cassandra
             end
 
             it 'encodes a hash into bytes' do
-              buffer.read(buffer.read_int).should eql_bytes(
+              bytes = encode_value(type, value)
+              bytes.should eql_bytes(
                 "\x00\x02" +
                 "\x00S" +
                 "\x00\x00\x00\tAcme Corp" +
@@ -304,15 +303,9 @@ module Cassandra
             "\x01\x02\x03\x04\x05"
           end
 
-          let :buffer do
-            request = described_class.new(id, [['ks', 'tbl', 'col', type]], [value], true, :one, nil, nil, nil, false)
-            buffer = request.write(1, CqlByteBuffer.new)
-            buffer.discard(2 + 16 + 2)
-            buffer
-          end
-
           it 'encodes a byte string into bytes' do
-            buffer.read(buffer.read_int).should eql_bytes("\x01\x02\x03\x04\x05")
+            bytes = encode_value(type, value)
+            bytes.should eql_bytes("\x01\x02\x03\x04\x05")
           end
         end
       end
