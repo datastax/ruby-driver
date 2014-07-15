@@ -26,7 +26,7 @@ module Cql
       def read_decimal(len=bytesize)
         size = read_signed_int
         number_string = read_varint(len - 4).to_s
-        if number_string.length < size
+        if number_string.length <= size
           if number_string.start_with?(MINUS)
             number_string = number_string[1, number_string.length - 1]
             fraction_string = MINUS + ZERO << DECIMAL_POINT
@@ -248,22 +248,20 @@ module Cql
       def append_varint(n)
         num = n
         bytes = []
-        if num == 0
-          bytes << 0
-        else
-          until num == 0
-            bytes << (num & 0xff)
-            num = num >> 8
-            break if num == -1
-          end
-        end
+        begin
+          bytes << (num & 0xff)
+          num >>= 8
+        end until (num == 0 || num == -1) && (bytes.last[7] == num[7])
         append(bytes.reverse.pack(Formats::BYTES_FORMAT))
       end
 
       def append_decimal(n)
-        sign, number_string, _, size = n.split
+        str = n.to_s(FLOAT_STRING_FORMAT)
+        size = str.index(DECIMAL_POINT)
+        number_string = str.gsub(DECIMAL_POINT, NO_CHAR)
+
         num = number_string.to_i
-        raw = self.class.new.append_varint(sign * num)
+        raw = self.class.new.append_varint(num)
         append_int(number_string.length - size)
         append(raw)
       end
@@ -281,6 +279,8 @@ module Cql
       MINUS = '-'.freeze
       ZERO = '0'.freeze
       DECIMAL_POINT = '.'.freeze
+      FLOAT_STRING_FORMAT = 'F'.freeze
+      NO_CHAR = ''.freeze
     end
   end
 end

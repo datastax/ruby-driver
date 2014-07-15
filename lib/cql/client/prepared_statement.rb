@@ -197,6 +197,11 @@ module Cql
       end
 
       # @private
+      def prepared?(connection)
+        !!connection[self]
+      end
+
+      # @private
       def add_to_batch(batch, connection, bound_args)
         statement_id = connection[self]
         unless statement_id
@@ -261,6 +266,11 @@ module Cql
 
       def async
         @async_statement
+      end
+
+      # @private
+      def prepared?(connection)
+        @async_statement.prepared?(connection)
       end
 
       # @private
