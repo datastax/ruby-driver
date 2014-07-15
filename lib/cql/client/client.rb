@@ -349,11 +349,11 @@ module Cql
       end
 
       def host_up(host)
-        ip = host.ip
+        return Future.resolved if @connecting_hosts.include?(host)
 
-        return Future.resolved if @connecting_hosts.include?(ip)
+        @connecting_hosts << host
 
-        connect_to_host(ip).map(self)
+        connect_to_host(host).map(nil)
       end
 
       def host_found(host)
@@ -361,13 +361,13 @@ module Cql
       end
 
       def host_down(host)
-        ip = host.ip
+        return Future.resolved if @connecting_hosts.delete?(host)
 
-        return Future.resolved if @connecting_hosts.delete?(ip)
+        ip = host.ip.to_s
 
         futures = @connection_manager.select { |c| c.host == ip }.map {|c| c.close}
 
-        Future.all(*futures).map(self)
+        Future.all(*futures).map(nil)
       end
 
       def host_lost(host)
@@ -405,9 +405,7 @@ module Cql
       end
 
       def connect_to_host(host)
-        @connecting_hosts << host
-
-        f = create_cluster_connector.connect_all([host], @connections_per_node)
+        f = create_cluster_connector.connect_all([host.ip.to_s], @connections_per_node)
         f = f.flat_map do |connections|
           f = use_keyspace(connections, keyspace)
           f.on_value do
@@ -420,7 +418,13 @@ module Cql
           @logger.debug('Reconnecting in %d seconds' % @reconnect_interval)
 
           f = @io_reactor.schedule_timer(@reconnect_interval)
-          f.flat_map { connect_to_host(host) if @connecting_hosts.include?(host) }
+          f.flat_map do
+            if @connecting_hosts.include?(host)
+              connect_to_host(host)
+            else
+              Future.resolved
+            end
+          end
         end
       end
 
