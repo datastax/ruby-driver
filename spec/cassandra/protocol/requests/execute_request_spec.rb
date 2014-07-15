@@ -184,10 +184,6 @@ module Cassandra
             [[:set, :varchar], Set.new(['foo', 'bar', 'baz']), "\x00\x03" + "\x00\x03foo" + "\x00\x03bar" + "\x00\x03baz"],
             [[:set, :int], [13, 3453, 456456, 123, 768678], "\x00\x05" + "\x00\x04\x00\x00\x00\x0d" + "\x00\x04\x00\x00\x0d\x7d" + "\x00\x04\x00\x06\xf7\x08" + "\x00\x04\x00\x00\x00\x7b" + "\x00\x04\x00\x0b\xba\xa6"],
             [[:set, :varchar], ['foo', 'bar', 'baz'], "\x00\x03" + "\x00\x03foo" + "\x00\x03bar" + "\x00\x03baz"],
-            [[:udt, {'street' => :text, 'city' => :text, 'zip' => :int}], {'street' => '123 Some St.', 'city' => 'Frans Sanisco', 'zip' => 76543}, "\x00\x00\x00\f123 Some St." + "\x00\x00\x00\rFrans Sanisco" + "\x00\x00\x00\x04\x00\x01*\xFF"],
-            [[:map, :varchar, [:udt, {'street' => :text, 'city' => :text, 'zip' => :int}]], {'secret_lair' => {'street' => '4 Some Other St.', 'city' => 'Gos Latos', 'zip' => 87654}}, "\x00\x01" + "\x00\vsecret_lair" + "\x00)" "\x00\x00\x00\x104 Some Other St." + "\x00\x00\x00\tGos Latos" + "\x00\x00\x00\x04\x00\x01Vf"],
-            [[:set, [:udt, {'name' => :text, 'addresses' => [:list, [:udt, {'street' => :text, 'city' => :text, 'zip' => :int}]]}]], Set.new([{'name' => 'Acme Corp', 'addresses' => [{'street' => '1 St.', 'city' => '1 City', 'zip' => 11111}, {'street' => '2 St.', 'city' => '2 City', 'zip' => 22222}]}, {'name' => 'Foo Inc.', 'addresses' => [{'street' => '3 St.', 'city' => '3 City', 'zip' => 33333}]}]), "\x00\x02" + "\x00S" + "\x00\x00\x00\tAcme Corp" + "\x00\x00\x00B" + "\x00\x00\x00\x02" + "\x00\x00\x00\e" + "\x00\x00\x00\x051 St." + "\x00\x00\x00\x061 City" + "\x00\x00\x00\x04\x00\x00+g" + "\x00\x00\x00\e" + "\x00\x00\x00\x052 St." + "\x00\x00\x00\x062 City" + "\x00\x00\x00\x04\x00\x00V\xCE" + "\x003" + "\x00\x00\x00\bFoo Inc." + "\x00\x00\x00#" + "\x00\x00\x00\x01" + "\x00\x00\x00\e" + "\x00\x00\x00\x053 St." + "\x00\x00\x00\x063 City" + "\x00\x00\x00\x04\x00\x00\x825"],
-            [[:custom, 'com.example.CustomType'], "\x01\x02\x03\x04\x05", "\x01\x02\x03\x04\x05"],
           ]
           specs.each do |type, value, expected_bytes|
             it "encodes #{type} values" do
@@ -198,6 +194,125 @@ module Cassandra
               result_bytes = buffer.read(length)
               result_bytes.should eql_bytes(expected_bytes)
             end
+          end
+        end
+
+        context 'with user defined types' do
+          let :buffer do
+            request = described_class.new(id, [['ks', 'tbl', 'col', type]], [value], true, :one, nil, nil, nil, false)
+            buffer = request.write(1, CqlByteBuffer.new)
+            buffer.discard(2 + 16 + 2)
+            buffer
+          end
+
+          context 'with a flat UDT' do
+            let :type do
+              [:udt, {'street' => :text, 'city' => :text, 'zip' => :int}]
+            end
+
+            let :value do
+              {'street' => '123 Some St.', 'city' => 'Frans Sanisco', 'zip' => 76543}
+            end
+
+            it 'encodes a hash into bytes' do
+              buffer.read(buffer.read_int).should eql_bytes(
+                "\x00\x00\x00\f123 Some St." +
+                "\x00\x00\x00\rFrans Sanisco" +
+                "\x00\x00\x00\x04\x00\x01*\xFF"
+              )
+            end
+          end
+
+          context 'with a UDT as a MAP value' do
+            let :type do
+              [:map, :varchar, [:udt, {'street' => :text, 'city' => :text, 'zip' => :int}]]
+            end
+
+            let :value do
+              {'secret_lair' => {'street' => '4 Some Other St.', 'city' => 'Gos Latos', 'zip' => 87654}}
+            end
+
+            it 'encodes a hash into bytes' do
+              buffer.read(buffer.read_int).should eql_bytes(
+                "\x00\x01" +
+                "\x00\vsecret_lair" +
+                "\x00)" +
+                "\x00\x00\x00\x104 Some Other St." +
+                "\x00\x00\x00\tGos Latos" +
+                "\x00\x00\x00\x04\x00\x01Vf"
+              )
+            end
+          end
+
+          context 'with nested UDTs' do
+            let :type do
+              [:set, [:udt, {'name' => :text, 'addresses' => [:list, [:udt, {'street' => :text, 'city' => :text, 'zip' => :int}]]}]]
+            end
+
+            let :value do
+              Set.new([
+                {
+                  'name' => 'Acme Corp',
+                  'addresses' => [
+                    {'street' => '1 St.', 'city' => '1 City', 'zip' => 11111},
+                    {'street' => '2 St.', 'city' => '2 City', 'zip' => 22222}
+                  ]
+                },
+                {
+                  'name' => 'Foo Inc.',
+                  'addresses' => [
+                    {'street' => '3 St.', 'city' => '3 City', 'zip' => 33333}
+                  ]
+                }
+              ])
+            end
+
+            it 'encodes a hash into bytes' do
+              buffer.read(buffer.read_int).should eql_bytes(
+                "\x00\x02" +
+                "\x00S" +
+                "\x00\x00\x00\tAcme Corp" +
+                "\x00\x00\x00B" +
+                "\x00\x00\x00\x02" +
+                "\x00\x00\x00\e" +
+                "\x00\x00\x00\x051 St." +
+                "\x00\x00\x00\x061 City" +
+                "\x00\x00\x00\x04\x00\x00+g" +
+                "\x00\x00\x00\e" +
+                "\x00\x00\x00\x052 St." +
+                "\x00\x00\x00\x062 City" +
+                "\x00\x00\x00\x04\x00\x00V\xCE" +
+                "\x003" +
+                "\x00\x00\x00\bFoo Inc." +
+                "\x00\x00\x00#" +
+                "\x00\x00\x00\x01" +
+                "\x00\x00\x00\e" +
+                "\x00\x00\x00\x053 St." +
+                "\x00\x00\x00\x063 City" +
+                "\x00\x00\x00\x04\x00\x00\x825"
+              )
+            end
+          end
+        end
+
+        context 'with custom types' do
+          let :type do
+            [:custom, 'com.example.CustomType']
+          end
+
+          let :value do
+            "\x01\x02\x03\x04\x05"
+          end
+
+          let :buffer do
+            request = described_class.new(id, [['ks', 'tbl', 'col', type]], [value], true, :one, nil, nil, nil, false)
+            buffer = request.write(1, CqlByteBuffer.new)
+            buffer.discard(2 + 16 + 2)
+            buffer
+          end
+
+          it 'encodes a byte string into bytes' do
+            buffer.read(buffer.read_int).should eql_bytes("\x01\x02\x03\x04\x05")
           end
         end
       end
