@@ -4,8 +4,21 @@ module Cql
   module Client
     # @private
     class NullRegistry
-      def add_listener(client); self; end
-      def remove_listener(client); self; end
+      attr_reader :ips, :listeners, :hosts
+
+      def initialize(ips = [])
+        @listeners = Set.new
+        @ips       = ips
+        @hosts     = Set.new(ips.map {|ip| Cql::Host.new(ip)})
+      end
+
+      def add_listener(listener)
+        self
+      end
+
+      def remove_listener(listener)
+        self
+      end
     end
   end
 end
