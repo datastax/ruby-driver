@@ -20,5 +20,17 @@ module Cql
     def down?
       @status == :down
     end
+
+    def hash
+      @ip.hash
+    end
+
+    def ==(other)
+      other == @ip
+    end
+
+    def eql?(other)
+      other.eql?(@ip)
+    end
   end
 end
