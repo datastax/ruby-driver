@@ -45,8 +45,6 @@ module Cql
 
       it 'closes control connection' do
         expect(control_connection).to receive(:close_async).once.and_return(promise)
-        expect(io_reactor).to receive(:stop).and_call_original
-        expect(promise).to receive(:flat_map).and_yield
         expect(cluster.close_async).to eq(promise)
       end
     end

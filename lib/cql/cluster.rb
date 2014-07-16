@@ -32,10 +32,7 @@ module Cql
     end
 
     def close_async
-      f = @control_connection.close_async
-      f.flat_map { @io_reactor.stop }
-
-      f.map(self)
+      @control_connection.close_async.map(self)
     end
 
     def close
