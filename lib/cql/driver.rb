@@ -8,7 +8,7 @@ module Cql
     end
 
     let(:request_runner)   { Client::RequestRunner.new }
-    let(:io_reactor)       { Io::IoReactor.new }
+    let(:io_reactor)       { Reactor.new(Io::IoReactor.new) }
     let(:cluster_registry) { Cluster::Registry.new }
 
     let(:control_connection) { Cluster::ControlConnection.new(io_reactor, request_runner, cluster_registry, self) }
@@ -22,13 +22,15 @@ module Cql
                              :compressor           => compressor,
                              :logger               => logger,
                              :protocol_version     => protocol_version,
-                             :connections_per_node => 1,
                              :default_consistency  => default_consistency,
                              :port                 => port,
                              :connection_timeout   => connection_timeout,
                              :credentials          => credentials,
                              :auth_provider        => auth_provider,
-                             :reconnect_interval   => reconnect_interval
+                             :reconnect_interval   => reconnect_interval,
+                             :load_balancing_policy => load_balancing_policy,
+                             :connections_per_local_node  => 2,
+                             :connections_per_remote_node => 1
                            } }
 
     let(:port)                  { 9042 }

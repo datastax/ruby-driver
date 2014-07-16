@@ -26,6 +26,14 @@ module Cql
   # @private
   Io = Ione::Io
 
+  class Io::IoReactor
+    def schedule_timer(timeout)
+      f = @io_loop.schedule_timer(timeout)
+      @unblocker.unblock!
+      f
+    end
+  end
+
   VOID_STATEMENT = nil
 
   def self.cluster(defaults = {})
@@ -44,6 +52,7 @@ require 'cql/builder'
 require 'cql/cluster'
 require 'cql/driver'
 require 'cql/host'
+require 'cql/reactor'
 require 'cql/session'
 require 'cql/thread_safe'
 

@@ -100,6 +100,12 @@ class FakeIoReactor
 
     self
   end
+
+  def execute
+    Cql::Future.resolved(yield)
+  rescue => e
+    Cql::Future.failed(e)
+  end
 end
 
 class FakeConnection
