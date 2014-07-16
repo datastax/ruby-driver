@@ -34,7 +34,7 @@ module Cql
           @hosts.has_key?(host) ? local : ignore
         end
 
-        def plan(keyspace, statement)
+        def plan(keyspace, request)
           return NO_HOSTS if @hosts.empty?
           plan = @hosts.keys
           plan.rotate!(@position)
