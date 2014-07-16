@@ -8,12 +8,12 @@ module Cql
         include Policy
 
         def initialize
-          @hosts    = ::Array.new
+          @hosts    = ::Hash.new
           @position = 0
         end
 
         def host_up(host)
-          @hosts << host
+          @hosts[host] = true
           self
         end
 
@@ -31,12 +31,13 @@ module Cql
         end
 
         def distance(host)
-          local
+          @hosts.has_key?(host) ? local : ignore
         end
 
         def plan(keyspace, statement)
           return NO_HOSTS if @hosts.empty?
-          plan = @hosts.rotate(@position)
+          plan = @hosts.keys
+          plan.rotate!(@position)
           @position = (@position + 1) % @hosts.size
           plan.to_enum
         end
