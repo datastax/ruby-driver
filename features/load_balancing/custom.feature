@@ -11,9 +11,9 @@ Feature: custom load balancing policies
 
   Scenario: a policy that ignores a certain keyspace
     Given a running cassandra cluster
-    And a file named "policy.rb" with:
+    And a file named "ignoring_keyspace_policy.rb" with:
       """ruby
-      class Policy < Cql::LoadBalancing::Policies::RoundRobin
+      class IgnoringKeyspacePolicy < Cql::LoadBalancing::Policies::RoundRobin
         def initialize(keyspace_to_ignore)
           @keyspace = keyspace_to_ignore
           super()
@@ -28,9 +28,11 @@ Feature: custom load balancing policies
     And the following example:
       """ruby
       require 'cql'
-      require 'policy'
+      require 'ignoring_keyspace_policy'
       
-      cluster = Cql.cluster(load_balancing_policy: Policy.new('simplex')).build
+      cluster = Cql.cluster
+                  .with_load_balancing_policy(IgnoringKeyspacePolicy.new('simplex'))
+                  .build
       session = cluster.connect('simplex')
       
       begin
