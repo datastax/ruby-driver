@@ -10,7 +10,12 @@ module Cql
       end
 
       let :default_connection_options do
-        {:hosts => %w[example.com], :port => 12321, :io_reactor => io_reactor, :logger => logger}
+        {
+          :hosts => %w[example.com],
+          :port => 12321,
+          :io_reactor => io_reactor,
+          :logger => logger
+        }
       end
 
       let :connection_options do
@@ -123,7 +128,7 @@ module Cql
           end
 
           it 'connects to each host the specified number of times' do
-            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com], connections_per_node: 3))
+            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com], connections_per_local_node: 3))
             c.connect.value
             connections.should have(6).items
           end
@@ -401,7 +406,7 @@ module Cql
 
       context 'with registry' do
         let :registry do
-          FakeClusterRegistry.new
+          FakeClusterRegistry.new(%w[example.com])
         end
 
         let :connection_options do
@@ -591,11 +596,12 @@ module Cql
 
         context 'with multiple connections' do
           let :connection_options do
-            default_connection_options.merge(connections_per_node: 2)
+            default_connection_options.merge(connections_per_local_node: 2)
           end
 
           it 'clears out old connections and don\'t reuse them for future requests' do
             connections.first.close
+            connections.select(&:connected?).should_not be_empty
             expect { 10.times { client.execute('SELECT * FROM something').value } }.to_not raise_error
           end
 
@@ -1093,15 +1099,39 @@ module Cql
 
       describe '#host_up' do
         let :connection_options do
-          default_connection_options.merge(hosts: %w[host1 host2 host3], keyspace: 'foo')
+          default_connection_options.merge(
+            hosts: hosts,
+            keyspace: 'foo',
+            load_balancing_policy: load_balancing_policy,
+            registry: cluster_registry
+          )
+        end
+
+        let :hosts do
+          %w[host1 host2 host3]
+        end
+
+        let :cluster_registry do
+          FakeClusterRegistry.new(hosts)
+        end
+
+        let :load_balancing_policy do
+          LoadBalancing::Policies::RoundRobin.new
+        end
+
+        let :distance do
+          double('load balancing distance', :local? => true, :remote? => false, :ignore? => false)
         end
 
         before do
+          load_balancing_policy.stub(:distance) { distance }
           client.connect.value
         end
 
         it 'connects to it' do
-          client.host_up(Host.new('1.1.1.1'))
+          host = Host.new('1.1.1.1')
+          connections.select(&:connected?).should have(3).items
+          client.host_up(host)
           connections.select(&:connected?).should have(4).items
           last_connection.host.should == '1.1.1.1'
         end
@@ -1121,7 +1151,12 @@ module Cql
           end
 
           let :connection_options do
-            default_connection_options.merge(hosts: %w[host1 host2 host3], keyspace: 'foo', reconnect_interval: reconnect_interval)
+            default_connection_options.merge(
+              hosts: %w[host1 host2 host3],
+              keyspace: 'foo',
+              reconnect_interval: reconnect_interval,
+              load_balancing_policy: load_balancing_policy
+            )
           end
 
           it 'keeps trying until host responds' do
@@ -1204,7 +1239,7 @@ module Cql
 
       describe '#host_down' do
         let :connection_options do
-          default_connection_options.merge(connections_per_node: 2, hosts: %w[127.0.0.1])
+          default_connection_options.merge(connections_per_local_node: 2, hosts: %w[127.0.0.1])
         end
 
         context 'when connected to it' do

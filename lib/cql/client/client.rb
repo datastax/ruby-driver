@@ -213,10 +213,10 @@ module Cql
         @compressor = options[:compressor]
         @logger = options[:logger] || NullLogger.new
         @protocol_version = options[:protocol_version] || 2
-        @io_reactor = options[:io_reactor] || Io::IoReactor.new
-        @hosts = options[:hosts]
+        @io_reactor = options[:io_reactor] || Reactor.new(Io::IoReactor.new)
         @keyspace = options[:keyspace]
-        @connections_per_node = options[:connections_per_node] || 1
+        @connections_per_local_node = options[:connections_per_local_node] || 1
+        @connections_per_remote_node = options[:connections_per_remote_node] || 2
         @lock = Mutex.new
         @request_runner = options[:request_runner] || RequestRunner.new
         @connection_manager = ConnectionManager.new
@@ -226,13 +226,21 @@ module Cql
         @credentials = options[:credentials]
         @auth_provider = options[:auth_provider] || @credentials && Auth::PlainTextAuthProvider.new(*@credentials.values_at(:username, :password))
         @reconnect_interval = options[:reconnect_interval] || 5
-        @registry = options[:registry] || NullRegistry.new
-        @hosts ||= @registry.ips
+        @registry = options[:registry] || NullRegistry.new(options[:hosts])
         @connected = false
         @connecting = false
         @closing = false
         @connecting_hosts = ::Set.new
         @close_listeners = []
+        @load_balancing_policy = options[:load_balancing_policy] || begin
+          policy = LoadBalancing::Policies::RoundRobin.new
+          @registry.hosts.each do |host|
+            policy.host_found(host)
+            policy.host_up(host)
+          end
+          policy
+        end
+        @connections = Hash.new {|hash, host| hash[host] = ConnectionManager.new}
       end
 
       def connect
@@ -242,10 +250,24 @@ module Cql
           @connecting = true
           @connected_future = begin
             f = @io_reactor.start
-            f = f.flat_map { create_cluster_connector.connect_all(@hosts, @connections_per_node) }
-            f = f.flat_map do |connections|
-              @connection_manager.add_connections(connections)
-              use_keyspace(@connection_manager.snapshot, @keyspace)
+            f = f.flat_map do
+              futures = @registry.hosts.map do |host|
+                @connecting_hosts << host
+                connect_to_host(host).recover do |error|
+                  @connecting_hosts.delete(host)
+                  FailedConnection.new(error, host)
+                end
+              end
+              Future.all(*futures).map do |connections|
+                connected_connections = connections.flatten
+                connected_connections.select!(&:connected?)
+
+                if connected_connections.empty?
+                  raise connections.first.error
+                else
+                  connected_connections
+                end
+              end
             end
             f.map(self)
           end
@@ -306,7 +328,10 @@ module Cql
 
       def use(keyspace)
         with_failure_handler do
-          connections = @connection_manager.reject { |c| c.keyspace == keyspace }
+          connections = @connections.values.flat_map do |manager|
+            manager.reject { |c| c.keyspace == keyspace }
+          end
+
           return Future.resolved if connections.empty?
           use_keyspace(connections, keyspace).map(nil)
         end
@@ -320,7 +345,12 @@ module Cql
           end
           options = @execute_options_decoder.decode_options(options_or_consistency)
           request = Protocol::QueryRequest.new(cql, args, options[:type_hints], options[:consistency], options[:serial_consistency], options[:page_size], options[:paging_state], options[:trace])
-          f = execute_request(request, options[:timeout])
+
+          f = @io_reactor.execute { @load_balancing_policy.plan(@keyspace, request) }
+          f = f.flat_map do |plan|
+            execute_request_according_to_plan(request, plan, options[:timeout])
+          end
+
           if options.include?(:page_size)
             f = f.map { |result| AsynchronousQueryPagedQueryResult.new(self, request, result, options) }
           end
@@ -353,7 +383,8 @@ module Cql
 
         @connecting_hosts << host
 
-        connect_to_host(host).map(nil)
+        f = connect_to_host_with_retry(host)
+        f.map(nil)
       end
 
       def host_found(host)
@@ -361,11 +392,9 @@ module Cql
       end
 
       def host_down(host)
-        return Future.resolved if @connecting_hosts.delete?(host)
+        return Future.resolved if @connecting_hosts.delete?(host) || !@connections.has_key?(host)
 
-        ip = host.ip.to_s
-
-        futures = @connection_manager.select { |c| c.host == ip }.map {|c| c.close}
+        futures = @connections.delete(host).snapshot.map {|c| c.close}
 
         Future.all(*futures).map(nil)
       end
@@ -386,7 +415,7 @@ module Cql
       KEYSPACE_NAME_PATTERN = /^\w[\w\d_]*$|^"\w[\w\d_]*"$/
 
       def close_connections
-        Future.all(*@connection_manager.snapshot.map {|c| c.close}).map(self)
+        Future.all(*@connections.values.flat_map {|m| m.map {|c| c.close}}).map(self)
       end
 
       def create_cluster_connector
@@ -405,27 +434,45 @@ module Cql
       end
 
       def connect_to_host(host)
-        f = create_cluster_connector.connect_all([host.ip.to_s], @connections_per_node)
+        distance = @load_balancing_policy.distance(host)
+        return Future.failed("host #{host} is ignored") if distance.ignore?
+
+        if distance.local?
+          pool_size = @connections_per_local_node
+        else
+          pool_size = @connections_per_remote_node
+        end
+
+        f = create_cluster_connector.connect_all([host.ip.to_s], pool_size)
         f = f.flat_map do |connections|
-          f = use_keyspace(connections, keyspace)
+          f = use_keyspace(connections, @keyspace)
           f.on_value do
             @connecting_hosts.delete(host)
             @connection_manager.add_connections(connections)
+            @connections[host].add_connections(connections)
           end
-          f
+          f.map(connections)
         end
-        f.fallback do |e|
+        f
+      end
+
+      def connect_to_host_with_retry(host)
+        f = connect_to_host(host)
+        f = f.fallback do |e|
+          raise e unless e.is_a?(Io::ConnectionError)
+
           @logger.debug('Reconnecting in %d seconds' % @reconnect_interval)
 
           f = @io_reactor.schedule_timer(@reconnect_interval)
           f.flat_map do
             if @connecting_hosts.include?(host)
-              connect_to_host(host)
+              connect_to_host_with_retry(host)
             else
               Future.resolved
             end
           end
         end
+        f
       end
 
       def connected(f)
@@ -466,7 +513,7 @@ module Cql
       end
 
       def can_execute?
-        !@closing && (@connecting || (@connected && @connection_manager.connected?))
+        !@closing && (@connecting || (@connected && @connections.values.any? {|m| m.connected?}))
       end
 
       def with_failure_handler
@@ -482,6 +529,22 @@ module Cql
         request = Protocol::QueryRequest.new("USE #{keyspace}", nil, nil, :one)
         futures = connections.map { |connection| execute_request(request, nil, connection) }
         Future.all(*futures)
+      end
+
+      def execute_request_according_to_plan(request, plan, timeout, errors = {})
+        host = plan.next
+        @logger.debug("executing #{request} on #{host}")
+        f = execute_request(request, timeout, @connections.fetch(host).random_connection)
+        f.fallback do |e|
+          raise e if e.is_a?(QueryError)
+
+          errors[host] = e
+          execute_request_according_to_plan(request, plan, timeout, errors)
+        end
+      rescue ::KeyError
+        retry
+      rescue ::StopIteration
+        raise NoHostsAvailable.new(errors)
       end
 
       def execute_request(request, timeout=nil, connection=nil)
