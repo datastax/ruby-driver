@@ -533,7 +533,6 @@ module Cql
 
       def execute_request_according_to_plan(request, plan, timeout, errors = {})
         host = plan.next
-        @logger.debug("executing #{request} on #{host}")
         f = execute_request(request, timeout, @connections.fetch(host).random_connection)
         f.fallback do |e|
           raise e if e.is_a?(QueryError)
