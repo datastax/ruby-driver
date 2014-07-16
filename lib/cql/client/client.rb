@@ -517,7 +517,7 @@ module Cql
       end
 
       def with_failure_handler
-        return Future.failed(NotConnectedError.new) unless can_execute?
+        return Future.failed(NotConnectedError.new) unless @lock.synchronize { can_execute? }
         yield
       rescue => e
         Future.failed(e)
