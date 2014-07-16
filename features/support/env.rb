@@ -274,7 +274,7 @@ end
 
 After do |s| 
   # Tell Cucumber to quit after this scenario is done - if it failed.
-  Cucumber.wants_to_quit = true if s.failed?
+  Cucumber.wants_to_quit = true if s.failed? and ENV["FAIL_FAST"] == 'Y'
 end
 
 unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
