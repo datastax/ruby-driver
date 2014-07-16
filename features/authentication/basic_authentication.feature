@@ -17,10 +17,10 @@ Feature: basic authentication
                     .with_credentials(ENV['USERNAME'], ENV['PASSWORD'])
                     .build
         puts "authentication successful"
-      rescue => e
+      rescue Cql::AuthenticationError => e
         puts "#{e.class.name}: #{e.message}"
         puts "authentication failed"
-      ensure
+      else
         cluster.close
       end
       """
