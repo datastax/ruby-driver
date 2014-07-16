@@ -3,23 +3,30 @@
 module Cql
   class Cluster
     class ControlConnection
+      include MonitorMixin
+
       def initialize(io_reactor, request_runner, cluster_registry, driver_settings)
         @io_reactor     = io_reactor
         @request_runner = request_runner
         @cluster        = cluster_registry
         @driver         = driver_settings
+
+        mon_initialize
       end
 
       def connect_async
         plan = @driver.load_balancing_policy.plan(nil, VOID_STATEMENT)
-        f = connect_to_first_available(plan)
+        f = @io_reactor.start
+        f = f.flat_map { connect_to_first_available(plan) }
         f.on_value do |connection|
-          @connection = connection
+          synchronize { @connection = connection }
 
-          @connection.on_closed do
-            @connection = nil
+          connection.on_closed do
             @driver.logger.debug('Connection closed')
-            reconnect
+            synchronize do
+              @connection = nil
+              reconnect unless @closed
+            end
           end
         end
         f = f.flat_map { register_async }
@@ -28,15 +35,11 @@ module Cql
       end
 
       def close_async
-        return Future.resolved if @closed
-
-        @closed = true
-
-        if @connection
-          @connection.close
-        else
-          Future.resolved
+        synchronize do
+          return Future.resolved if @closed
+          @closed = true
         end
+        @io_reactor.stop
       end
 
       def inspect
@@ -56,7 +59,9 @@ module Cql
                       )
 
       def reconnect
-        return if @closed
+        synchronize do
+          return Future.failed("closed") if @closed
+        end
 
         connect_async.fallback do |e|
           @driver.logger.error('Connection failed: %s: %s' % [e.class.name, e.message])
@@ -71,8 +76,13 @@ module Cql
       end
 
       def register_async
-        @request_runner.execute(@connection, REGISTER).map do
-          @connection.on_event do |event|
+        connection = synchronize do
+          return Future.failed("not connected") if @connection.nil?
+          @connection
+        end
+
+        @request_runner.execute(connection, REGISTER).map do
+          connection.on_event do |event|
             @driver.logger.debug('Received %s %s event' % [event.type, event.change])
 
             if event.type == 'SCHEMA_CHANGE'
@@ -103,17 +113,23 @@ module Cql
       end
 
       def refresh_hosts_async
+        connection = synchronize do
+          return Future.failed("not connected") if @connection.nil?
+
+          @connection
+        end
+
         @driver.logger.debug('Looking for additional nodes')
 
-        local = @request_runner.execute(@connection, SELECT_LOCAL)
-        peers = @request_runner.execute(@connection, SELECT_PEERS)
+        local = @request_runner.execute(connection, SELECT_LOCAL)
+        peers = @request_runner.execute(connection, SELECT_PEERS)
 
         Future.all(local, peers).map do |(local, peers)|
           @driver.logger.debug('%d additional nodes found' % peers.size)
 
           raise NO_HOSTS if local.empty? && peers.empty?
 
-          local_ip = @connection.host
+          local_ip = connection.host
           ips      = ::Set.new
 
           unless local.empty?
@@ -136,13 +152,19 @@ module Cql
       end
 
       def refresh_host_async(address)
+        connection = synchronize do
+          return Future.failed("not connected") if @connection.nil?
+
+          @connection
+        end
+
         ip = address.to_s
 
         @driver.logger.debug('Fetching node information for %s' % ip)
 
-        if ip == @connection.host
+        if ip == connection.host
           request = @request_runner.execute(
-                      @connection,
+                      connection,
                       Protocol::QueryRequest.new(
                         'SELECT rack, data_center, host_id, release_version' \
                         'FROM system.local',
@@ -151,7 +173,7 @@ module Cql
                     )
         else
           request = @request_runner.execute(
-                      @connection,
+                      connection,
                       Protocol::QueryRequest.new(
                         'SELECT rack, data_center, host_id, rpc_address,' \
                         'release_version FROM system.peers WHERE peer = ?',
