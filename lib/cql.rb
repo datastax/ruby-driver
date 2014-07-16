@@ -34,8 +34,6 @@ module Cql
     end
   end
 
-  VOID_STATEMENT = nil
-
   def self.cluster(defaults = {})
     Builder.new(defaults)
   end
@@ -57,3 +55,7 @@ require 'cql/session'
 require 'cql/thread_safe'
 
 require 'cql/load_balancing'
+
+module Cql
+  VOID_STATEMENT = Protocol::VoidQueryRequest.new
+end
