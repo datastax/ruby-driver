@@ -4,21 +4,24 @@ module Cql
   module LoadBalancing
     module Distances
       class Local
-        def pool_size
-          2
-        end
+        def local?; true; end
+        def remote?; false; end
+        def ignore?; false; end
+        def inspect; "#<#{self.class.name}>"; end
       end
 
       class Remote
-        def pool_size
-          1
-        end
+        def local?; false; end
+        def remote?; true; end
+        def ignore?; false; end
+        def inspect; "#<#{self.class.name}>"; end
       end
 
       class Ignore
-        def pool_size
-          0
-        end
+        def local?; false; end
+        def remote?; false; end
+        def ignore?; true; end
+        def inspect; "#<#{self.class.name}>"; end
       end
     end
   end
