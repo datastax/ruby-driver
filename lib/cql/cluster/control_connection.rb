@@ -15,9 +15,12 @@ module Cql
       end
 
       def connect_async
-        plan = @driver.load_balancing_policy.plan(nil, VOID_STATEMENT)
         f = @io_reactor.start
-        f = f.flat_map { connect_to_first_available(plan) }
+        f = f.flat_map do
+          plan = @driver.load_balancing_policy.plan(nil, VOID_STATEMENT)
+
+          connect_to_first_available(plan)
+        end
         f.on_value do |connection|
           synchronize { @connection = connection }
 
