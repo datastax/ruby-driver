@@ -113,9 +113,10 @@ describe 'A CQL client' do
   context 'with multiple connections' do
     let :multi_client do
       opts = connection_options.dup
-      opts[:host] = ([opts[:host]] * 10).join(',')
-      opts[:connections_per_node] = 3
-      Cql::Client.connect(opts)
+      opts[:hosts] = ([opts[:hosts]] * 10).flatten
+      opts[:connections_per_local_node] = 3
+      c = Cql::Client.connect(opts)
+      c
     end
 
     before do
