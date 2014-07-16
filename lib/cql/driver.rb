@@ -51,9 +51,7 @@ module Cql
       cluster_registry.add_listener(load_balancing_policy)
       addresses.each {|address| cluster_registry.host_found(address)}
 
-      f = io_reactor.start
-      f = f.flat_map { control_connection.connect_async }
-      f.map(cluster)
+      control_connection.connect_async.map(cluster)
     end
   end
 end
