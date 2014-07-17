@@ -196,13 +196,19 @@ module CCM
     end
   end
 
+  # check if we already defined test-cluster with a different config (number of nodes, number of datacenters)
+  def cluster_exists_with_different_config?(cluster, no_dc, no_nodes_per_dc)
+    cluster_exists?(cluster) and @current_no_dc != no_dc and @current_no_nodes_per_dc != no_nodes_per_dc
+  end
+
   # create new ccm cluster from a given cassandra tag
-  def create_cluster(cluster, version)
-    return if cluster_exists?(cassandra_cluster)
-
+  def create_cluster(cluster, version, no_dc, no_nodes_per_dc)
     version = "git:#{version}"
+    nodes = Array.new(no_dc, no_nodes_per_dc).join(":")
 
-    ccm.exec('create', '-n', 3, '-v', version, '-b', cluster)
+    ccm.exec('create', '-n', nodes, '-v', version, '-b', cluster)
+    @current_no_dc=no_dc
+    @current_no_nodes_per_dc=no_nodes_per_dc
     nil
   end
 
@@ -233,6 +239,11 @@ module CCM
     nil
   end
 
+  def remove_cluster(cluster)
+    ccm.exec('remove', cluster)
+    nil
+  end
+
   def cluster_nodes
     ccm.exec('status').split("\n").map do |line|
       node, _ = line.split(": ")
@@ -240,22 +251,25 @@ module CCM
     end
   end
 
-  def setup_cluster
-    create_cluster(cassandra_cluster, cassandra_version)
+  def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
+    cluster = cassandra_cluster
+
+    remove_cluster(cluster) if cluster_exists_with_different_config?(cluster, no_dc, no_nodes_per_dc)
+    create_cluster(cluster, cassandra_version, no_dc, no_nodes_per_dc) unless cluster_exists?(cluster)
 
     @prev_cluster = current_cluster
 
-    if @prev_cluster == cassandra_cluster
+    if @prev_cluster == cluster
       @prev_cluster = nil
     else
       stop_cluster if @prev_cluster
-      switch_cluster(cassandra_cluster)
+      switch_cluster(cluster)
     end
 
     stop_cluster
     start_cluster
 
-    Cluster.new(cassandra_cluster, ccm, cluster_nodes)
+    Cluster.new(cluster, ccm, cluster_nodes)
   end
 
   def teardown_cluster

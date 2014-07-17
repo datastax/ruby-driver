@@ -81,3 +81,74 @@ Feature: Round Robin Policy
       127.0.0.2
       127.0.0.3
       """
+
+  Scenario: The Round Robin policy is unaware of multi-datacenter clusters
+    Given a 2x2-nodes running cassandra cluster with schema "simplex" with table "songs"
+    And the following example:
+    """ruby
+      require 'cql'
+
+      cluster = Cql.cluster()
+        .with_load_balancing_policy(Cql::LoadBalancing::Policies::RoundRobin.new)
+        .build
+      session = cluster.connect('simplex')
+
+      trace_ids = []
+      4.times do
+        trace_ids.push session.execute("SELECT * FROM songs", :trace => true).trace_id.to_s
+      end
+
+      coordinators = session.execute(
+        "SELECT coordinator
+         FROM system_traces.sessions
+         WHERE session_id IN (#{trace_ids.join(",")})"
+      )
+      ips = coordinators.map do |row|
+        row["coordinator"].to_s
+      end
+
+      puts ips.sort
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      127.0.0.1
+      127.0.0.2
+      127.0.0.3
+      127.0.0.4
+      """
+
+  @todo
+  Scenario: The Datacenter-aware Round Robin policy is aware of multi-datacenter clusters
+    Given a 2x2-nodes running cassandra cluster with schema "simplex" with table "songs"
+    And the following example:
+    """ruby
+      require 'cql'
+
+      cluster = Cql.cluster()
+        .with_load_balancing_policy(Cql::LoadBalancing::Policies::DCAwareRoundRobin.new("dc2"))
+        .build
+      session = cluster.connect('simplex')
+
+      trace_ids = []
+      4.times do
+        trace_ids.push session.execute("SELECT * FROM songs", :trace => true).trace_id.to_s
+      end
+
+      coordinators = session.execute(
+        "SELECT coordinator
+         FROM system_traces.sessions
+         WHERE session_id IN (#{trace_ids.join(",")})"
+      )
+      ips = coordinators.map do |row|
+        row["coordinator"].to_s
+      end
+
+      puts ips.sort
+      """
+    When it is executed
+    Then its output should contain:
+    """
+      127.0.1.3
+      127.0.1.4
+      """

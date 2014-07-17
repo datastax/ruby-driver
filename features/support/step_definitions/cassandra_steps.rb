@@ -20,6 +20,21 @@ Given(/^a running cassandra cluster with authentication enabled$/) do
   @username, @password = @cluster.setup_authentication
 end
 
+Given(/^a (\d+)x(\d+)-nodes running cassandra cluster$/) do |no_dc, no_nodes_per_dc|
+  @cluster = setup_cluster(no_dc.to_i, no_nodes_per_dc.to_i)
+end
+
+Given(/^a (\d+)x(\d+)-nodes running cassandra cluster with schema "(.*?)" with (an empty )?table "(.*?)"$/) do |no_dc, no_nodes_per_dc, schema, empty, table|
+  step "a #{no_dc}x#{no_nodes_per_dc}-nodes running cassandra cluster"
+  step "schema \"#{schema}\""
+
+  if empty.nil?
+    step "table \"#{table}\" with data"
+  else
+    step "table \"#{table}\""
+  end
+end
+
 Given(/^schema "(.*?)"$/) do |schema|
   @cluster.create_schema(schema)
   @cluster.use_schema(schema)
