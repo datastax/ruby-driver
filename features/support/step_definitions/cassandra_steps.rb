@@ -61,6 +61,10 @@ Then(/^its output should contain:$/) do |output|
   step 'the output should contain:', output
 end
 
+Then(/^its output should match:$/) do |output|
+  step 'the output should match:', output
+end
+
 When(/^node (\d+) starts$/) do |i|
   @cluster.start_node(i)
 end

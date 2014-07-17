@@ -119,7 +119,7 @@ Feature: Round Robin Policy
       """
 
   @todo
-  Scenario: The Datacenter-aware Round Robin policy is aware of multi-datacenter clusters
+  Scenario: The Datacenter-aware Round Robin policy allows for limiting queries to a "local" datacenter
     Given a 2x2-nodes running cassandra cluster with schema "simplex" with table "songs"
     And the following example:
     """ruby
@@ -151,4 +151,40 @@ Feature: Round Robin Policy
     """
       127.0.1.3
       127.0.1.4
+      """
+
+  @todo
+  Scenario: The Datacenter-aware Round Robin policy allows for querying "remove" datacenter when all local nodes fail
+    Given a 2x2-nodes running cassandra cluster with schema "simplex" with table "songs"
+    And node 1 stops
+    And node 2 stops
+    And the following example:
+    """ruby
+      require 'cql'
+
+      cluster = Cql.cluster()
+        .with_load_balancing_policy(Cql::LoadBalancing::Policies::DCAwareRoundRobin.new("dc1", 1))
+        .build
+      session = cluster.connect('simplex')
+
+      trace_ids = []
+      4.times do
+        trace_ids.push session.execute("SELECT * FROM songs", :trace => true).trace_id.to_s
+      end
+
+      coordinators = session.execute(
+        "SELECT coordinator
+         FROM system_traces.sessions
+         WHERE session_id IN (#{trace_ids.join(",")})"
+      )
+      ips = coordinators.map do |row|
+        row["coordinator"].to_s
+      end
+
+      puts ips.sort
+      """
+    When it is executed
+    Then its output should match:
+      """
+      127.0.1.(3|4)
       """
