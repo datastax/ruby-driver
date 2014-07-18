@@ -54,7 +54,6 @@ require 'cql/reactor'
 require 'cql/session'
 require 'cql/statement'
 require 'cql/statements'
-require 'cql/thread_safe'
 
 require 'cql/load_balancing'
 require 'cql/reconnection'
