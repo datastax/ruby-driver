@@ -18,11 +18,11 @@ module Cql
       end
 
       let :request_runner do
-        Client::RequestRunner.new
+        Cql::Client::RequestRunner.new
       end
 
       let :logger do
-        Client::NullLogger.new
+        Cql::Client::NullLogger.new
       end
 
       let :driver_settings do
