@@ -66,22 +66,22 @@ module Cql
             host = toggle_down(host, listeners) if host.up?
 
             listeners.each do |listener|
-              listener.host_lost(host)
+              listener.host_lost(host) rescue nil
             end
 
             host = create_host(address, data)
 
             listeners.each do |listener|
-              listener.host_found(host)
-              listener.host_up(host)
+              listener.host_found(host) rescue nil
+              listener.host_up(host) rescue nil
             end
           end
         else
           host = create_host(address, data)
 
           listeners.each do |listener|
-            listener.host_found(host)
-            listener.host_up(host)
+            listener.host_found(host) rescue nil
+            listener.host_up(host) rescue nil
           end
         end
 
@@ -143,7 +143,7 @@ module Cql
         host = toggle_down(host, listeners) if host.up?
 
         listeners.each do |listener|
-          listener.host_lost(host)
+          listener.host_lost(host) rescue nil
         end
 
         self
@@ -158,7 +158,7 @@ module Cql
       def toggle_up(host, listeners)
         host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, :up)
         listeners.each do |listener|
-          listener.host_up(host)
+          listener.host_up(host) rescue nil
         end
         host
       end
@@ -166,7 +166,7 @@ module Cql
       def toggle_down(host, listeners)
         host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, :down)
         listeners.each do |listener|
-          listener.host_down(host)
+          listener.host_down(host) rescue nil
         end
         host
       end
