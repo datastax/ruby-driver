@@ -20,3 +20,16 @@ class FakeClusterRegistry
   end
 end
 
+class FakeLoadBalancingPolicy
+  def initialize(fake_cluster_registry)
+    @registry = fake_cluster_registry
+  end
+
+  def distance(host)
+    @registry.hosts.include?(host) ? Cql::LoadBalancing::DISTANCE_LOCAL : Cql::LoadBalancing::DISTANCE_IGNORE
+  end
+
+  def plan(keyspace, statement)
+    @registry.hosts.to_enum
+  end
+end
