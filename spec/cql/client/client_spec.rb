@@ -2,6 +2,7 @@
 
 require 'spec_helper'
 
+
 module Cql
   module Client
     describe AsynchronousClient do
@@ -10,12 +11,7 @@ module Cql
       end
 
       let :default_connection_options do
-        {
-          :hosts => %w[example.com],
-          :port => 12321,
-          :io_reactor => io_reactor,
-          :logger => logger
-        }
+        {:hosts => %w[example.com], :port => 12321, :io_reactor => io_reactor, :logger => logger}
       end
 
       let :connection_options do
@@ -28,17 +24,6 @@ module Cql
 
       let :logger do
         NullLogger.new
-      end
-
-      let :data_centers do
-        Hash.new('dc1')
-      end
-
-      let :local_metadata do
-        [
-          ['system', 'local', 'data_center', :text],
-          ['system', 'local', 'host_id', :uuid],
-        ]
       end
 
       def connections
@@ -62,33 +47,95 @@ module Cql
       end
 
       before do
-        uuid_generator = TimeUuid::Generator.new
         io_reactor.on_connection do |connection|
-          connection[:spec_host_id] = uuid_generator.next
-          connection[:spec_data_center] = data_centers[connection.host]
           connection.handle_request do |request, timeout|
+            response = nil
             if @request_handler
               response = @request_handler.call(request, connection, proc { connection.default_request_handler(request) }, timeout)
             end
-
-            response ||= case request
-            when Protocol::StartupRequest, Protocol::RegisterRequest
-              Protocol::ReadyResponse.new
-            when Protocol::QueryRequest
-              response = case request.cql
-              when /USE\s+"?(\S+)"?/
-                Cql::Protocol::SetKeyspaceResultResponse.new($1, nil)
-              when /FROM system\.local/
-                row = {'host_id' => connection[:spec_host_id], 'data_center' => connection[:spec_data_center]}
-                Protocol::RowsResultResponse.new([row], local_metadata, nil, nil)
-              end
-            when Protocol::OptionsRequest
-              Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
+            unless response
+              response = connection.default_request_handler(request)
             end
-
-            response ||= connection.default_request_handler(request)
-
             response
+          end
+        end
+      end
+
+      shared_context 'peer discovery setup' do
+        let :local_info do
+          {
+            'data_center' => 'dc1',
+            'host_id' => nil,
+          }
+        end
+
+        let :local_metadata do
+          [
+            ['system', 'local', 'data_center', :text],
+            ['system', 'local', 'host_id', :uuid],
+          ]
+        end
+
+        let :peer_metadata do
+          [
+            ['system', 'peers', 'peer', :inet],
+            ['system', 'peers', 'data_center', :varchar],
+            ['system', 'peers', 'host_id', :uuid],
+            ['system', 'peers', 'rpc_address', :inet],
+          ]
+        end
+
+        let :data_centers do
+          Hash.new('dc1')
+        end
+
+        let :additional_nodes do
+          Array.new(5) { IPAddr.new("127.0.#{rand(255)}.#{rand(255)}") }
+        end
+
+        let :bind_all_rpc_addresses do
+          false
+        end
+
+        let :min_peers do
+          [2]
+        end
+
+        before do
+          uuid_generator = TimeUuid::Generator.new
+          additional_rpc_addresses = additional_nodes.dup
+          io_reactor.on_connection do |connection|
+            connection[:spec_host_id] = uuid_generator.next
+            connection[:spec_data_center] = data_centers[connection.host]
+            connection.handle_request do |request|
+              case request
+              when Protocol::StartupRequest
+                Protocol::ReadyResponse.new
+              when Protocol::QueryRequest
+                case request.cql
+                when /USE\s+"?(\S+)"?/
+                  Cql::Protocol::SetKeyspaceResultResponse.new($1, nil)
+                when /FROM system\.local/
+                  row = {'host_id' => connection[:spec_host_id], 'data_center' => connection[:spec_data_center]}
+                  Protocol::RowsResultResponse.new([row], local_metadata, nil, nil)
+                when /FROM system\.peers/
+                  other_host_ids = connections.reject { |c| c[:spec_host_id] == connection[:spec_host_id] }.map { |c| c[:spec_host_id] }
+                  until other_host_ids.size >= min_peers[0]
+                    other_host_ids << uuid_generator.next
+                  end
+                  rows = other_host_ids.map do |host_id|
+                    ip = additional_rpc_addresses.shift
+                    {
+                      'peer' => ip,
+                      'host_id' => host_id,
+                      'data_center' => data_centers[ip],
+                      'rpc_address' => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip
+                    }
+                  end
+                  Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
+                end
+              end
+            end
           end
         end
       end
@@ -115,6 +162,19 @@ module Cql
           expect { client.connect.value }.to raise_error('bork')
         end
 
+        it 'connects to localhost by default' do
+          connection_options.delete(:hosts)
+          c = described_class.new(connection_options)
+          c.connect.value
+          connections.map(&:host).should == %w[localhost]
+        end
+
+        it 'connects to localhost when an empty list of hosts is given' do
+          c = described_class.new(connection_options.merge(hosts: []))
+          c.connect.value
+          connections.map(&:host).should == %w[localhost]
+        end
+
         context 'when connecting to multiple hosts' do
           before do
             client.close.value
@@ -127,8 +187,21 @@ module Cql
             connections.should have(3).items
           end
 
-          it 'connects to each host the specified number of times' do
-            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com], connections_per_local_node: 3))
+          it 'connects to all hosts, when given as a comma-sepatated string' do
+            connection_options.delete(:hosts)
+            c = described_class.new(connection_options.merge(host: 'h1.example.com,h2.example.com,h3.example.com'))
+            c.connect.value
+            connections.should have(3).items
+          end
+
+          it 'only connects to each host once' do
+            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h2.example.com]))
+            c.connect.value
+            connections.should have(2).items
+          end
+
+          it 'connects to each host the specifie number of times' do
+            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com], connections_per_node: 3))
             c.connect.value
             connections.should have(6).items
           end
@@ -136,7 +209,7 @@ module Cql
           it 'succeeds even if only one of the connections succeeded' do
             io_reactor.node_down('h1.example.com')
             io_reactor.node_down('h3.example.com')
-            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h3.example.com]))
+            c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h2.example.com]))
             c.connect.value
             connections.should have(1).items
           end
@@ -155,28 +228,106 @@ module Cql
             described_class.new(connection_options.merge(protocol_version: 7))
           end
 
-          [
-            [3, Protocol::AuthResponseRequest],
-            [2, Protocol::AuthResponseRequest],
-            [1, Protocol::CredentialsRequest],
-          ].each do |(protocol_version, request_kind)|
-            it "uses #{request_kind.inspect} for protocol version #{protocol_version}" do
-              client = described_class.new(connection_options.merge(protocol_version: protocol_version, credentials: {username: 'foo', password: 'bar'}))
-              auth_request = nil
-              handle_request do |request|
+          it 'tries decreasing protocol versions until one succeeds' do
+            counter = 0
+            handle_request do |request|
+              if counter < 3
+                counter += 1
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              elsif counter == 3
+                counter += 1
+                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
+              else
+                Protocol::RowsResultResponse.new([], [], nil, nil)
+              end
+            end
+            client.connect.value
+            client.should be_connected
+          end
+
+          it 'logs when it tries the next protocol version' do
+            logger.stub(:warn)
+            counter = 0
+            handle_request do |request|
+              if counter < 3
+                counter += 1
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              elsif counter == 3
+                counter += 1
+                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
+              else
+                Protocol::RowsResultResponse.new([], [], nil, nil)
+              end
+            end
+            client.connect.value
+            logger.should have_received(:warn).with(/could not connect using protocol version 7 \(will try again with 6\): bork version, dummy!/i)
+          end
+
+          it 'gives up when the protocol version is zero' do
+            handle_request do |request|
+              Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+            end
+            expect { client.connect.value }.to raise_error(QueryError)
+            client.should_not be_connected
+          end
+
+          it 'gives up when a non-protocol version related error is raised' do
+            counter = 0
+            handle_request do |request|
+              if counter == 4
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              else
+                counter += 1
+                Protocol::ErrorResponse.new(0x1001, 'Get off my lawn!')
+              end
+            end
+            expect { client.connect.value }.to raise_error(/Get off my lawn/)
+            client.should_not be_connected
+          end
+
+          it 'uses different authentication mechanisms for different protocol versions' do
+            client = described_class.new(connection_options.merge(protocol_version: 3, credentials: {username: 'foo', password: 'bar'}))
+            auth_requests = []
+            handle_request do |request|
+              case request
+              when Protocol::OptionsRequest
+                Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
+              when Protocol::StartupRequest
+                Protocol::AuthenticateResponse.new('org.apache.cassandra.auth.PasswordAuthenticator')
+              when Protocol::AuthResponseRequest
+                auth_requests << request
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              when Protocol::CredentialsRequest
+                auth_requests << request
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              else
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              end
+            end
+            client.connect.value rescue nil
+            auth_requests[0].should be_a(Protocol::AuthResponseRequest)
+            auth_requests[1].should be_a(Protocol::AuthResponseRequest)
+            auth_requests[2].should be_a(Protocol::CredentialsRequest)
+          end
+
+          it 'fails authenticating when an auth provider has been specified but the protocol is negotiated to v1' do
+            client = described_class.new(connection_options.merge(protocol_version: 2, auth_provider: double(:auth_provider)))
+            counter = 0
+            handle_request do |request|
+              if counter == 0
+                counter += 1
+                Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              else
                 case request
                 when Protocol::OptionsRequest
                   Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
                 when Protocol::StartupRequest
                   Protocol::AuthenticateResponse.new('org.apache.cassandra.auth.PasswordAuthenticator')
-                when Protocol::AuthResponseRequest, Protocol::CredentialsRequest
-                  auth_request = request
-                  Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
                 end
               end
-              client.connect.value rescue nil
-              auth_request.should be_a(request_kind)
             end
+            expect { client.connect.value }.to raise_error(AuthenticationError)
+            counter.should == 1
           end
         end
 
@@ -198,6 +349,34 @@ module Cql
         it 'is not in a keyspace' do
           client.connect.value
           client.keyspace.should be_nil
+        end
+
+        it 'sends a supported CQL version in the startup message' do
+          handle_request do |request|
+            case request
+            when Protocol::OptionsRequest
+              Protocol::SupportedResponse.new('CQL_VERSION' => %w[5.0.1], 'COMPRESSION' => %w[lz4 snappy])
+            when Protocol::StartupRequest
+              Protocol::ReadyResponse.new
+            end
+          end
+          client.connect.value
+          request = requests.find { |rq| rq.is_a?(Protocol::StartupRequest) }
+          request.options.should include('CQL_VERSION' => '5.0.1')
+        end
+
+        it 'sends a default CQL version if none found' do
+          handle_request do |request|
+            case request
+            when Protocol::OptionsRequest
+              Protocol::SupportedResponse.new('CQL_VERSION' => [], 'COMPRESSION' => %w[lz4 snappy])
+            when Protocol::StartupRequest
+              Protocol::ReadyResponse.new
+            end
+          end
+          client.connect.value
+          request = requests.find { |rq| rq.is_a?(Protocol::StartupRequest) }
+          request.options.should include('CQL_VERSION' => '3.1.0')
         end
 
         it 'enables compression when a compressor is specified' do
@@ -255,13 +434,53 @@ module Cql
           requests.should_not include(Protocol::QueryRequest.new('USE system; DROP KEYSPACE system', nil, nil, :one))
         end
 
-        context 'with peers discovered' do
-          let :additional_nodes do
-            Array.new(5) { IPAddr.new("127.0.#{rand(255)}.#{rand(255)}") }
-          end
+        context 'with automatic peer discovery' do
+          include_context 'peer discovery setup'
 
           let :connection_options do
-            default_connection_options.merge(keyspace: 'foo', hosts: additional_nodes.slice(0, 3).map(&:to_s))
+            default_connection_options.merge(keyspace: 'foo')
+          end
+
+          it 'connects to the other nodes in the cluster' do
+            client.connect.value
+            connections.should have(3).items
+          end
+
+          context 'when the nodes have 0.0.0.0 as rpc_address' do
+            let :bind_all_rpc_addresses do
+              true
+            end
+
+            it 'falls back on using the peer column' do
+              client.connect.value
+              connections.should have(3).items
+            end
+          end
+
+          it 'connects to the other nodes in the same data center' do
+            data_centers[additional_nodes[1]] = 'dc2'
+            client.connect.value
+            connections.should have(2).items
+          end
+
+          it 'connects to the other nodes in same data centers as the seed nodes' do
+            data_centers['host2'] = 'dc2'
+            data_centers[additional_nodes[1]] = 'dc2'
+            c = described_class.new(connection_options.merge(hosts: %w[host1 host2]))
+            c.connect.value
+            connections.should have(3).items
+          end
+
+          it 'only connects to the other nodes in the cluster it is not already connected do' do
+            c = described_class.new(connection_options.merge(hosts: %w[host1 host2]))
+            c.connect.value
+            connections.should have(3).items
+          end
+
+          it 'handles the case when it is already connected to all nodes' do
+            c = described_class.new(connection_options.merge(hosts: %w[host1 host2 host3 host4]))
+            c.connect.value
+            connections.should have(4).items
           end
 
           it 'accepts that some nodes are down' do
@@ -400,32 +619,6 @@ module Cql
             client.connect.value rescue nil
             client.should_not be_connected
             io_reactor.should_not be_running
-          end
-        end
-      end
-
-      context 'with registry' do
-        let :registry do
-          FakeClusterRegistry.new(%w[example.com])
-        end
-
-        let :connection_options do
-          default_connection_options.merge(registry: registry)
-        end
-
-        describe '#connect' do
-          it 'adds itself to registry listeners' do
-            client.connect.get
-            registry.should have(1).listeners
-            registry.listeners.should include(client)
-          end
-        end
-
-        describe '#close' do
-          it 'stops listening to registry changes' do
-            client.connect.get
-            client.close.get
-            registry.should have(0).listeners
           end
         end
       end
@@ -591,23 +784,6 @@ module Cql
           it 'detects when the last arguments is an options hash' do
             client.execute('UPDATE stuff SET thing = ? WHERE id = ?', 'foo', 'bar', consistency: :all, tracing: true).value
             last_request.should == Protocol::QueryRequest.new('UPDATE stuff SET thing = ? WHERE id = ?', ['foo', 'bar'], nil, :all, nil, nil, nil, true)
-          end
-        end
-
-        context 'with multiple connections' do
-          let :connection_options do
-            default_connection_options.merge(connections_per_local_node: 2)
-          end
-
-          it 'clears out old connections and don\'t reuse them for future requests' do
-            connections.first.close
-            connections.select(&:connected?).should_not be_empty
-            expect { 10.times { client.execute('SELECT * FROM something').value } }.to_not raise_error
-          end
-
-          it 'raises NotConnectedError when all nodes are down' do
-            connections.each(&:close)
-            expect { client.execute('SELECT * FROM something').value }.to raise_error(NotConnectedError)
           end
         end
 
@@ -1097,193 +1273,107 @@ module Cql
         end
       end
 
-      describe '#host_up' do
+      context 'when nodes go down' do
+        include_context 'peer discovery setup'
+
         let :connection_options do
-          default_connection_options.merge(
-            hosts: hosts,
-            keyspace: 'foo',
-            load_balancing_policy: load_balancing_policy,
-            registry: cluster_registry
-          )
-        end
-
-        let :hosts do
-          %w[host1 host2 host3]
-        end
-
-        let :cluster_registry do
-          FakeClusterRegistry.new(hosts)
-        end
-
-        let :load_balancing_policy do
-          LoadBalancing::Policies::RoundRobin.new
-        end
-
-        let :distance do
-          double('load balancing distance', :local? => true, :remote? => false, :ignore? => false)
+          default_connection_options.merge(hosts: %w[host1 host2 host3], keyspace: 'foo')
         end
 
         before do
-          load_balancing_policy.stub(:distance) { distance }
           client.connect.value
         end
 
-        it 'connects to it' do
-          host = Host.new('1.1.1.1')
+        it 'clears out old connections and don\'t reuse them for future requests' do
+          connections.first.close
+          expect { 10.times { client.execute('SELECT * FROM something').value } }.to_not raise_error
+        end
+
+        it 'raises NotConnectedError when all nodes are down' do
+          connections.each(&:close)
+          expect { client.execute('SELECT * FROM something').value }.to raise_error(NotConnectedError)
+        end
+
+        it 'reconnects when it receives a status change UP event' do
+          connections.first.close
+          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
           connections.select(&:connected?).should have(3).items
-          client.host_up(host)
-          connections.select(&:connected?).should have(4).items
-          last_connection.host.should == '1.1.1.1'
+        end
+
+        it 'reconnects when it receives a topology change NEW_NODE event' do
+          connections.first.close
+          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          connections.select(&:connected?).should have(3).items
         end
 
         it 'makes sure the new connections use the same keyspace as the existing' do
-          client.host_up(Host.new('1.1.1.1'))
-          connections.select(&:connected?).should have(4).items
-
-          last_request = last_connection.requests.last
-          last_request.should be_a(Protocol::QueryRequest)
-          last_request.cql.should == 'USE foo'
+          connections.first.close
+          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          use_keyspace_request = connections.last.requests.find { |r| r.is_a?(Protocol::QueryRequest) && r.cql.include?('USE') }
+          use_keyspace_request.cql.should == 'USE foo'
         end
 
-        context 'host not responding' do
-          let :reconnect_interval do
-            5
-          end
-
-          let :connection_options do
-            default_connection_options.merge(
-              hosts: %w[host1 host2 host3],
-              keyspace: 'foo',
-              reconnect_interval: reconnect_interval,
-              load_balancing_policy: load_balancing_policy
-            )
-          end
-
-          it 'keeps trying until host responds' do
-            io_reactor.node_down('1.1.1.1')
-            client.host_up(Host.new('1.1.1.1'))
-
-            rand(10).times { io_reactor.advance_time(reconnect_interval) }
-            connections.select(&:connected?).should have(3).items
-
-            io_reactor.node_up('1.1.1.1')
-            io_reactor.advance_time(reconnect_interval)
-
-            connections.select(&:connected?).should have(4).items
-          end
-
-          it 'stops trying when host is considered down' do
-            host = Host.new('1.1.1.1')
-
-            connections.select(&:connected?).should have(3).items
-
-            io_reactor.node_down('1.1.1.1')
-            client.host_up(host)
-
-            rand(10).times { io_reactor.advance_time(reconnect_interval) }
-
-            client.host_down(host)
-            io_reactor.node_up('1.1.1.1')
-
-            io_reactor.advance_time(reconnect_interval)
-            io_reactor.advance_time(reconnect_interval)
-            io_reactor.advance_time(reconnect_interval)
-
-            connections.select(&:connected?).should have(3).items
-          end
-
-          it 'does not start a new reconnection loop when one is already in progress' do
-            host = Host.new('1.1.1.1')
-
-            io_reactor.node_down('1.1.1.1')
-            io_reactor.should_receive(:schedule_timer).once.and_call_original
-
-            client.host_up(host)
-            client.host_up(host)
-            client.host_up(host)
-            client.host_up(host)
-
-            io_reactor.should_receive(:schedule_timer).once.and_call_original
-            io_reactor.advance_time(reconnect_interval)
-          end
-
-          it 'logs reconnection attempts' do
-            logger.stub(:debug)
-            logger.stub(:warn)
-            host = Host.new('1.1.1.1')
-
-            io_reactor.node_down('1.1.1.1')
-            connection_options[:hosts].each { |addr| io_reactor.node_down(addr) }
-
-            client.host_up(host)
-
-            logger.should have_received(:warn).with(/Failed connecting to node/).at_least(1).times
-            logger.should have_received(:debug).with(/Reconnecting in \d+ seconds/)
-          end
+        it 'eventually reconnects even when the node doesn\'t respond at first' do
+          timer_promise = Promise.new
+          io_reactor.stub(:schedule_timer).and_return(timer_promise.future)
+          additional_nodes.each { |host| io_reactor.node_down(host.to_s) }
+          connections.first.close
+          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          connections.select(&:connected?).should have(2).items
+          additional_nodes.each { |host| io_reactor.node_up(host.to_s) }
+          timer_promise.fulfill
+          connections.select(&:connected?).should have(3).items
         end
 
-        context 'when all nodes go down' do
-          it 'restores last used keyspace' do
-            client.connect.get
-            client.use('asd')
-            connections.each {|c| c.close}
-
-            host = Host.new('127.0.0.1')
-            connections.select(&:connected?).should be_empty
-            client.host_up(host)
-            connections.select(&:connected?).should have(1).connections
-            last_connection.keyspace.should == 'asd'
-          end
-        end
-      end
-
-      describe '#host_down' do
-        let :connection_options do
-          default_connection_options.merge(connections_per_local_node: 2, hosts: %w[127.0.0.1])
+        it 'eventually stops attempting to reconnect if no new nodes are found' do
+          io_reactor.stub(:schedule_timer).and_return(Future.resolved)
+          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
+          connections.first.close
+          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          io_reactor.should have_received(:schedule_timer).exactly(5).times
         end
 
-        context 'when connected to it' do
-          before do
-            client.connect.value
-          end
-
-          it 'closes connections to that host' do
-            connections.select(&:connected?).should have(2).items
-            client.host_down(Host.new('127.0.0.1'))
-            connections.select(&:connected?).should be_empty
-          end
+        it 'does not start a new reconnection loop when one is already in progress' do
+          timer_promises = Array.new(5) { Promise.new }
+          io_reactor.stub(:schedule_timer).and_return(*timer_promises.map(&:future))
+          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
+          connections.first.close
+          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          timer_promises.first.fulfill
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          timer_promises.drop(1).each(&:fulfill)
+          io_reactor.should have_received(:schedule_timer).exactly(5).times
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          io_reactor.should have_received(:schedule_timer).exactly(10).times
         end
 
-        context 'when reconnecting to it' do
-          let :reconnect_interval do
-            5
-          end
+        it 'allows a new reconnection loop to start even if the previous failed' do
+          io_reactor.stub(:schedule_timer).and_raise('BORK!')
+          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
+          connections.first.close
+          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          io_reactor.stub(:schedule_timer).and_return(Future.resolved)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          io_reactor.should have_received(:schedule_timer).exactly(6).times
+        end
 
-          let :connection_options do
-            default_connection_options.merge(connections_per_node: 2, hosts: %w[127.0.0.1], reconnect_interval: reconnect_interval)
-          end
-
-          it 'stops reconnecting' do
-            host = Host.new('127.0.0.1')
-
-            io_reactor.node_down('127.0.0.1')
-            connections.each {|c| c.close}
-
-            client.host_up(host)
-            client.host_down(host)
-
-            io_reactor.node_up('127.0.0.1')
-
-            io_reactor.advance_time(reconnect_interval)
-            io_reactor.advance_time(reconnect_interval)
-            io_reactor.advance_time(reconnect_interval)
-
-            connections.select(&:connected?).should have(0).items
-          end
+        it 'registers a new event listener when the current event listening connection closes' do
+          connections.select(&:has_event_listener?).should have(1).item
+          connections.select(&:has_event_listener?).first.close
+          connections.select(&:connected?).select(&:has_event_listener?).should have(1).item
         end
       end
 
       context 'with logging' do
+        include_context 'peer discovery setup'
+
         it 'logs when connecting to a node' do
           logger.stub(:debug)
           client.connect.value
@@ -1328,6 +1418,50 @@ module Cql
           client.connect.value
           connections.sample.close
           logger.should have_received(:info).with(/Connection to node .{36} at .+:\d+ in data center .+ closed/)
+        end
+
+        it 'logs when it does a peer discovery' do
+          logger.stub(:debug)
+          client.connect.value
+          logger.should have_received(:debug).with(/Looking for additional nodes/)
+          logger.should have_received(:debug).with(/\d+ additional nodes found/)
+        end
+
+        it 'logs when it receives an UP event' do
+          logger.stub(:debug)
+          client.connect.value
+          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          logger.should have_received(:debug).with(/Received UP event/)
+        end
+
+        it 'logs when it receives a NEW_NODE event' do
+          logger.stub(:debug)
+          client.connect.value
+          event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          logger.should have_received(:debug).with(/Received NEW_NODE event/)
+        end
+
+        it 'logs when it fails with a connect after an UP event' do
+          logger.stub(:debug)
+          logger.stub(:warn)
+          additional_nodes.each { |host| io_reactor.node_down(host.to_s) }
+          client.connect.value
+          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          logger.should have_received(:warn).with(/Failed connecting to node/).at_least(1).times
+          logger.should have_received(:debug).with(/Scheduling new peer discovery in \d+s/)
+        end
+
+        it 'logs when it gives up attempting to reconnect' do
+          logger.stub(:warn)
+          client.connect.value
+          io_reactor.stub(:schedule_timer).and_return(Future.resolved)
+          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
+          event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
+          connections.select(&:has_event_listener?).first.trigger_event(event)
+          logger.should have_received(:warn).with(/Giving up looking for additional nodes/).at_least(1).times
         end
 
         it 'logs when it disconnects' do

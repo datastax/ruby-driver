@@ -6,7 +6,7 @@ require 'spec_helper'
 describe 'A CQL client' do
   let :connection_options do
     {
-      :hosts => [ENV['CASSANDRA_HOST']],
+      :host => ENV['CASSANDRA_HOST'],
       :credentials => {:username => 'cassandra', :password => 'cassandra'},
     }
   end
@@ -113,10 +113,9 @@ describe 'A CQL client' do
   context 'with multiple connections' do
     let :multi_client do
       opts = connection_options.dup
-      opts[:hosts] = ([opts[:hosts]] * 10).flatten
-      opts[:connections_per_local_node] = 3
-      c = Cql::Client.connect(opts)
-      c
+      opts[:host] = ([opts[:host]] * 10).join(',')
+      opts[:connections_per_node] = 3
+      Cql::Client.connect(opts)
     end
 
     before do
@@ -454,7 +453,7 @@ describe 'A CQL client' do
     end
 
     it 'fails gracefully when connecting to something that does not run C*' do
-      expect { Cql::Client.connect(hosts: ['google.com']) }.to raise_error(Cql::Io::ConnectionTimeoutError)
+      expect { Cql::Client.connect(host: 'google.com') }.to raise_error(Cql::Io::ConnectionTimeoutError)
     end
   end
 end
