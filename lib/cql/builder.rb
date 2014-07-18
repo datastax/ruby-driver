@@ -51,6 +51,18 @@ module Cql
       self
     end
 
+    def with_reconnection_policy(policy)
+      @settings[:reconnection_policy] = policy
+
+      self
+    end
+
+    def with_retry_policy(policy)
+      @settings[:retry_policy] = policy
+
+      self
+    end
+
     def build
       @addresses << IPAddr.new('127.0.0.1') if @addresses.empty?
 
