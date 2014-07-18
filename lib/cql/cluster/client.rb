@@ -426,13 +426,16 @@ module Cql
             raise e
           end
 
-          if decision.reraise?
-            raise e
-          elsif decision.ignore?
-            Future.resolved(Cql::Client::VoidResult::INSTANCE)
-          else
+          case decision
+          when Retry::Decisions::Retry
             request.consistency = decision.consistency
             do_send_request(host, connection, statement, request, timeout, response_metadata, attempt + 1)
+          when Retry::Decisions::Ignore
+            Future.resolved(Cql::Client::VoidResult::INSTANCE)
+          when Retry::Decisions::Reraise
+            raise e
+          else
+            raise e
           end
         end
       end
