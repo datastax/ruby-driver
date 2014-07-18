@@ -2,52 +2,73 @@
 
 module Cql
   class Session
-    def initialize(client)
-      @client = client
+    def initialize(client, default_options)
+      @client  = client
+      @options = default_options
     end
 
-    def execute_async(cql, *args)
-      case cql
-      when Client::Batch, Client::PreparedStatement
-        cql.execute(*args)
+    def execute_async(statement, *args)
+      options = @options
+      options = @options.merge(args.pop) if args.last.is_a?(::Hash)
+
+      case statement
+      when ::String
+        @client.query(Statements::Simple.new(statement, args), options)
+      when Statements::Simple
+        @client.query(statement, options)
+      when Statements::Prepared
+        @client.execute(statement.bind(*args), options)
+      when Statements::Bound
+        @client.execute(statement, options)
+      when Statements::Batch
+        @client.batch(statement, options)
       else
-        @client.execute(cql, *args)
+        Future.failed(::ArgumentError.new("unsupported statement #{statement.inspect}"))
       end
     end
 
-    def execute(cql, *args)
-      execute_async(cql, *args).get
+    def execute(*args)
+      execute_async(*args).get
     end
 
-    def prepare_async(cql)
-      @client.prepare(cql)
+    def prepare_async(statement, options = {})
+      options = @options.merge(options)
+
+      case statement
+      when ::String
+        @client.prepare(statement, options)
+      when Statements::Simple
+        @client.prepare(statement.cql, options)
+      else
+        Future.failed(::ArgumentError.new("unsupported statement #{statement.inspect}"))
+      end
     end
 
-    def prepare(cql)
-      prepare_async(cql).get
+    def prepare(*args)
+      prepare_async(*args).get
     end
 
-    def batch
-      batch = @client.batch(:logged)
-      yield(batch) if block_given?
-      batch
+    def batch(&block)
+      statement = Statements::Batch::Logged.new
+      yield(statement) if block_given?
+      statement
     end
     alias :logged_batch :batch
 
     def unlogged_batch
-      batch = @client.batch(:unlogged)
-      yield(batch) if block_given?
-      batch
+      statement = Statements::Batch::Unlogged.new
+      yield(statement) if block_given?
+      statement
     end
 
     def counter_batch
-      batch = @client.batch(:counter)
-      yield(batch) if block_given?
-      batch
+      statement = Statements::Batch::Counter.new
+      yield(statement) if block_given?
+      statement
     end
 
     def close_async
-      @client.shutdown
+      @client.close
     end
 
     def close
