@@ -6,7 +6,7 @@ Feature: logged batch
   execute it.
 
   Background:
-    Given a cassandra cluster with schema "simplex" with an empty table "songs"
+    Given a running cassandra cluster with a schema "simplex" and an empty table "songs"
 
   Scenario: a batch of simple statements is executed
     Given the following example:

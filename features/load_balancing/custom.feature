@@ -10,7 +10,7 @@ Feature: custom load balancing policies
   of node membership and availability changes.
 
   Scenario: a policy that ignores a certain keyspace
-    Given a running cassandra cluster
+    Given a running cassandra cluster with a schema "simplex" and a table "songs"
     And a file named "ignoring_keyspace_policy.rb" with:
       """ruby
       class IgnoringKeyspacePolicy < Cql::LoadBalancing::Policies::RoundRobin
