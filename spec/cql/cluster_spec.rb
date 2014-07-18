@@ -7,9 +7,16 @@ module Cql
     let(:io_reactor)         { FakeIoReactor.new }
     let(:control_connection) { double('control connection') }
     let(:cluster_registry)   { FakeClusterRegistry.new(['1.1.1.1', '2.2.2.2']) }
-    let(:client_options)     { {:io_reactor => io_reactor, :registry => cluster_registry} }
+    let(:load_balancing_policy) { FakeLoadBalancingPolicy.new(cluster_registry) }
+    let(:driver)             { Driver.new({
+                                 :io_reactor => io_reactor,
+                                 :cluster_registry => cluster_registry,
+                                 :control_connection => control_connection,
+                                 :load_balancing_policy => load_balancing_policy
+                               })
+                             }
 
-    let(:cluster) { Cluster.new(io_reactor, control_connection, cluster_registry, client_options) }
+    let(:cluster) { Cluster.new(io_reactor, control_connection, cluster_registry, driver) }
 
     describe('#hosts') do
       it 'uses State#hosts' do
@@ -18,10 +25,12 @@ module Cql
     end
 
     describe('#connect_async') do
+      let(:client) { double('cluster client') }
+      let(:session) { double('session') }
+
       it 'creates a new session' do
-        session = cluster.connect_async.get
+        cluster.connect_async.get
         expect(cluster_registry).to have(1).listeners
-        expect(session).to be_a(Session)
       end
 
       it 'removes client on close' do
@@ -31,8 +40,10 @@ module Cql
       end
 
       it 'uses given keyspace' do
-        cluster.connect_async('foo')
-        expect(cluster_registry.listeners.first.keyspace).to eq('foo')
+        future = Future.resolved
+        Session.stub(:new) { session }
+        expect(session).to receive(:execute_async).once.with('USE foo').and_return(future)
+        cluster.connect_async('foo').get
       end
     end
 

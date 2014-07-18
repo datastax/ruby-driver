@@ -2,11 +2,11 @@
 
 module Cql
   class Cluster
-    def initialize(io_reactor, control_connection, cluster_registry, client_options)
+    def initialize(io_reactor, control_connection, cluster_registry, driver)
       @io_reactor         = io_reactor
       @control_connection = control_connection
       @registry           = cluster_registry
-      @options            = client_options
+      @driver             = driver
     end
 
     def hosts
@@ -19,12 +19,12 @@ module Cql
     end
 
     def connect_async(keyspace = nil)
-      options = @options.merge({:keyspace => keyspace})
+      client  = Client.new(@driver)
+      session = Session.new(client, @driver.session_options)
 
-      client  = Client::AsynchronousClient.new(options)
-      session = Session.new(client)
-
-      client.connect.map(session)
+      f = client.connect
+      f = f.flat_map { session.execute_async("USE #{keyspace}") } if keyspace
+      f.map(session)
     end
 
     def connect(keyspace = nil)
@@ -41,5 +41,6 @@ module Cql
   end
 end
 
+require 'cql/cluster/client'
 require 'cql/cluster/control_connection'
 require 'cql/cluster/registry'
