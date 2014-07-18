@@ -43,6 +43,7 @@ module Cql
     let(:auth_provider)         { nil }
     let(:reconnect_interval)    { 5 }
     let(:load_balancing_policy) { LoadBalancing::Policies::RoundRobin.new  }
+    let(:reconnection_policy)   { Reconnection::Policies::Exponential.new(0.5, 30, 2) }
 
     def initialize(defaults = {})
       @defaults  = defaults

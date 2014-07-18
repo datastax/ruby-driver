@@ -57,6 +57,7 @@ require 'cql/statements'
 require 'cql/thread_safe'
 
 require 'cql/load_balancing'
+require 'cql/reconnection'
 
 module Cql
   VOID_STATEMENT = Statements::Void.new
