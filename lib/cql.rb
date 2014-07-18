@@ -58,7 +58,9 @@ require 'cql/thread_safe'
 
 require 'cql/load_balancing'
 require 'cql/reconnection'
+require 'cql/retry'
 
 module Cql
   VOID_STATEMENT = Statements::Void.new
+  NO_HOSTS       = NoHostsAvailable.new
 end
