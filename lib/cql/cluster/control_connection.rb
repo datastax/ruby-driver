@@ -52,7 +52,6 @@ module Cql
       private
 
       NOT_CONNECTED = NotConnectedError.new("not connected")
-      NO_HOSTS      = NoHostsAvailable.new
       SELECT_LOCAL  = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, release_version FROM system.local', nil, nil, :one)
       SELECT_PEERS  = Protocol::QueryRequest.new('SELECT peer, rack, data_center, host_id, rpc_address, release_version FROM system.peers', nil, nil, :one)
       REGISTER      = Protocol::RegisterRequest.new(
@@ -212,12 +211,12 @@ module Cql
       end
 
       def connect_to_host(host)
-        connector = Client::Connector.new([
-          Client::ConnectStep.new(@io_reactor, protocol_handler_factory, @driver.port, @driver.connection_timeout, @driver.logger),
-          Client::CacheOptionsStep.new,
-          Client::InitializeStep.new(@driver.compressor, @driver.logger),
+        connector = Cql::Client::Connector.new([
+          Cql::Client::ConnectStep.new(@io_reactor, protocol_handler_factory, @driver.port, @driver.connection_timeout, @driver.logger),
+          Cql::Client::CacheOptionsStep.new,
+          Cql::Client::InitializeStep.new(@driver.compressor, @driver.logger),
           authentication_step,
-          Client::CachePropertiesStep.new,
+          Cql::Client::CachePropertiesStep.new,
         ])
 
         f = connector.connect(host)
@@ -246,9 +245,9 @@ module Cql
 
       def authentication_step
         if @driver.protocol_version == 1
-          Client::CredentialsAuthenticationStep.new(@driver.credentials)
+          Cql::Client::CredentialsAuthenticationStep.new(@driver.credentials)
         else
-          Client::SaslAuthenticationStep.new(@driver.auth_provider)
+          Cql::Client::SaslAuthenticationStep.new(@driver.auth_provider)
         end
       end
 
