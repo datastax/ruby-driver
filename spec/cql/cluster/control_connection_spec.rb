@@ -237,10 +237,7 @@ module Cql
               Protocol::AuthenticateResponse.new('org.apache.cassandra.auth.PasswordAuthenticator')
             end
           end
-          expect { control_connection.connect_async.get }.to raise_error(NoHostsAvailable) do |e|
-            e.errors.should have(1).error
-            e.errors.values.first.should be_a(AuthenticationError)
-          end
+          expect { control_connection.connect_async.get }.to raise_error(AuthenticationError)
         end
 
         it 'registers an event listener' do
