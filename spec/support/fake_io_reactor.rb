@@ -175,12 +175,16 @@ class FakeConnection
       when Cql::Protocol::RegisterRequest
         @registered_event_types.concat(request.events)
       end
-      response = @request_handler.call(request, timeout)
-      if response.is_a?(Cql::Protocol::SetKeyspaceResultResponse)
-        @keyspace = response.keyspace
+      catch(:halt) do
+        response = @request_handler.call(request, timeout)
+        if response.is_a?(Cql::Protocol::SetKeyspaceResultResponse)
+          @keyspace = response.keyspace
+        end
+        Cql::Future.resolved(response)
       end
-      Cql::Future.resolved(response)
     end
+  rescue => e
+    Cql::Future.failed(e)
   end
 
   def default_request_handler(request, timeout=nil)
