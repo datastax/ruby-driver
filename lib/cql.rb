@@ -52,10 +52,12 @@ require 'cql/driver'
 require 'cql/host'
 require 'cql/reactor'
 require 'cql/session'
+require 'cql/statement'
+require 'cql/statements'
 require 'cql/thread_safe'
 
 require 'cql/load_balancing'
 
 module Cql
-  VOID_STATEMENT = Protocol::VoidQueryRequest.new
+  VOID_STATEMENT = Statements::Void.new
 end
