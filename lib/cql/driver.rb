@@ -13,25 +13,13 @@ module Cql
 
     let(:control_connection) { Cluster::ControlConnection.new(io_reactor, request_runner, cluster_registry, self) }
 
-    let(:cluster) { Cluster.new(io_reactor, control_connection, cluster_registry, client_options) }
+    let(:cluster) { Cluster.new(io_reactor, control_connection, cluster_registry, self) }
 
-    let(:client_options) { {
-                             :io_reactor           => io_reactor,
-                             :request_runner       => request_runner,
-                             :registry             => cluster_registry,
-                             :compressor           => compressor,
-                             :logger               => logger,
-                             :protocol_version     => protocol_version,
-                             :default_consistency  => default_consistency,
-                             :port                 => port,
-                             :connection_timeout   => connection_timeout,
-                             :credentials          => credentials,
-                             :auth_provider        => auth_provider,
-                             :reconnect_interval   => reconnect_interval,
-                             :load_balancing_policy => load_balancing_policy,
-                             :connections_per_local_node  => 2,
-                             :connections_per_remote_node => 1
-                           } }
+    let(:session_options) { {
+                              :consistency => :one,
+                              :timeout     => 5,
+                              :trace       => false
+                            } }
 
     let(:port)                  { 9042 }
     let(:protocol_version)      { 2 }
@@ -44,6 +32,10 @@ module Cql
     let(:reconnect_interval)    { 5 }
     let(:load_balancing_policy) { LoadBalancing::Policies::RoundRobin.new  }
     let(:reconnection_policy)   { Reconnection::Policies::Exponential.new(0.5, 30, 2) }
+    let(:retry_policy)          { Retry::Policies::Default.new }
+
+    let(:connections_per_local_node)  { 2 }
+    let(:connections_per_remote_node) { 1 }
 
     def initialize(defaults = {})
       @defaults  = defaults
