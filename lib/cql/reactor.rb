@@ -6,10 +6,6 @@ module Cql
       @io_reactor = io_reactor
     end
 
-    def execute(&block)
-      @io_reactor.schedule_timer(0).map(&block)
-    end
-
     def start
       @io_reactor.start
     end

@@ -34,11 +34,10 @@ module Cql
 
           @connected_future = begin
             futures = @registry.hosts.map do |host|
-              f = @reactor.execute do
-                @connecting_hosts << host
-                @load_balancing_policy.distance(host)
-              end
-              f = f.flat_map {|distance| connect_to_host(host, distance)}
+              @connecting_hosts << host
+              distance = @load_balancing_policy.distance(host)
+
+              f = connect_to_host(host, distance)
               f.recover do |error|
                 @connecting_hosts.delete(host)
                 Cql::Client::FailedConnection.new(error, host)
@@ -115,8 +114,10 @@ module Cql
         request = Protocol::QueryRequest.new(statement.cql, statement.params, options[:type_hints], options[:consistency], options[:serial_consistency], options[:page_size], options[:paging_state], options[:trace])
         timeout = options[:timeout]
 
-        f = @reactor.execute { @load_balancing_policy.plan(@keyspace, statement) }
-        f.flat_map {|plan| send_request_by_plan(statement, request, plan, timeout)}
+        keyspace = @keyspace
+        plan     = @load_balancing_policy.plan(keyspace, statement)
+
+        send_request_by_plan(keyspace, statement, request, plan, timeout)
       end
 
       def prepare(cql, options)
@@ -124,21 +125,26 @@ module Cql
         timeout   = options[:timeout]
         statement = VOID_STATEMENT
 
-        f = @reactor.execute { @load_balancing_policy.plan(@keyspace, statement) }
-        f = f.flat_map {|plan| send_request_by_plan(statement, request, plan, timeout)}
-        f.map do |r|
+        keyspace = @keyspace
+        plan     = @load_balancing_policy.plan(keyspace, statement)
+
+        send_request_by_plan(keyspace, statement, request, plan, timeout).map do |r|
           Statements::Prepared.new(cql, r.metadata, r.result_metadata)
         end
       end
 
       def execute(statement, options)
-        f = @reactor.execute { @load_balancing_policy.plan(@keyspace, statement) }
-        f.flat_map {|plan| execute_by_plan(statement, plan, options)}
+        keyspace = @keyspace
+        plan     = @load_balancing_policy.plan(keyspace, statement)
+
+        execute_by_plan(keyspace, statement, plan, options)
       end
 
       def batch(statement, options)
-        f = @reactor.execute { @load_balancing_policy.plan(@keyspace, statement) }
-        f.flat_map {|plan| batch_by_plan(statement, plan, options)}
+        keyspace = @keyspace
+        plan     = @load_balancing_policy.plan(keyspace, statement)
+
+        batch_by_plan(keyspace, statement, plan, options)
       end
 
       private
@@ -193,7 +199,7 @@ module Cql
         Future.all(*@connections.values.flat_map {|m| m.snapshot.map {|c| c.close}}).map(self)
       end
 
-      def execute_by_plan(statement, plan, options, errors = {})
+      def execute_by_plan(keyspace, statement, plan, options, errors = {})
         host            = plan.next
         timeout         = options[:timeout]
         id              = @prepared_statements[host][statement.cql]
@@ -201,12 +207,12 @@ module Cql
 
         if id
           request = Protocol::ExecuteRequest.new(id, statement.params_metadata, statement.params, result_metadata.nil?, options[:consistency], options[:serial_consistency], options[:page_size], options[:paging_state], options[:trace])
-          f = send_request(statement, request, timeout, host, result_metadata)
+          f = send_request(keyspace, statement, request, timeout, host, result_metadata)
         else
-          f = send_request(VOID_STATEMENT, Protocol::PrepareRequest.new(statement.cql, false), timeout, host)
+          f = send_request(keyspace, VOID_STATEMENT, Protocol::PrepareRequest.new(statement.cql, false), timeout, host)
           f = f.flat_map do |result|
             request = Protocol::ExecuteRequest.new(result.id, statement.params_metadata, statement.params, result_metadata.nil?, options[:consistency], options[:serial_consistency], options[:page_size], options[:paging_state], options[:trace])
-            send_request(statement, request, timeout, host, result_metadata)
+            send_request(keyspace, statement, request, timeout, host, result_metadata)
           end
         end
 
@@ -214,7 +220,7 @@ module Cql
           raise e if e.is_a?(QueryError)
 
           errors[host] = e
-          execute_by_plan(statement, plan, options, errors)
+          execute_by_plan(keyspace, statement, plan, options, errors)
         end
       rescue ::KeyError
         retry
@@ -222,7 +228,7 @@ module Cql
         raise NoHostsAvailable.new(errors)
       end
 
-      def batch_by_plan(batch, plan, options, errors = {})
+      def batch_by_plan(keyspace, batch, plan, options, errors = {})
         host    = plan.next
         request = Protocol::BatchRequest.new(BATCH_TYPES[batch.type], options[:consistency], options[:trace])
         timeout = options[:timeout]
@@ -246,11 +252,11 @@ module Cql
         end
 
         if unprepared.empty?
-          f = send_request(batch, request, timeout, host)
+          f = send_request(keyspace, batch, request, timeout, host)
         else
           to_prepare = unprepared.to_a
           futures    = to_prepare.map do |cql, _|
-            send_request(VOID_STATEMENT, Protocol::PrepareRequest.new(cql, false), timeout, host)
+            send_request(keyspace, VOID_STATEMENT, Protocol::PrepareRequest.new(cql, false), timeout, host)
           end
 
           f = Future.all(*futures).flat_map do |responses|
@@ -261,7 +267,7 @@ module Cql
               end
             end
 
-            send_request(batch, request, timeout, host)
+            send_request(keyspace, batch, request, timeout, host)
           end
         end
 
@@ -269,7 +275,7 @@ module Cql
           raise e if e.is_a?(QueryError)
 
           errors[host] = e
-          batch_by_plan(batch, plan, options, errors)
+          batch_by_plan(keyspace, batch, plan, options, errors)
         end
       rescue ::KeyError
         retry
@@ -341,14 +347,14 @@ module Cql
         end
       end
 
-      def send_request_by_plan(statement, request, plan, timeout, errors = {})
+      def send_request_by_plan(keyspace, statement, request, plan, timeout, errors = {})
         host = plan.next
-        f = send_request(statement, request, timeout, host)
+        f = send_request(keyspace, statement, request, timeout, host)
         f.fallback do |e|
           raise e if e.is_a?(QueryError)
 
           errors[host] = e
-          send_request_by_plan(statement, request, plan, timeout, errors)
+          send_request_by_plan(keyspace, statement, request, plan, timeout, errors)
         end
       rescue ::KeyError
         retry
@@ -356,16 +362,16 @@ module Cql
         raise NoHostsAvailable.new(errors)
       end
 
-      def send_request(statement, request, timeout, host, response_metadata = nil)
+      def send_request(keyspace, statement, request, timeout, host, response_metadata = nil)
         connection = @connections.fetch(host).random_connection
 
-        if @keyspace && connection.keyspace != @keyspace
-          if connection[:pending_keyspace] == @keyspace
+        if keyspace && connection.keyspace != keyspace
+          if connection[:pending_keyspace] == keyspace
             connection[:pending_switch].flat_map do
               do_send_request(host, connection, statement, request, timeout, response_metadata)
             end
           else
-            f = switch_keyspace(host, connection, timeout)
+            f = switch_keyspace(host, connection, keyspace, timeout)
 
             connection[:pending_switch] = f
 
@@ -378,9 +384,9 @@ module Cql
         end
       end
 
-      def switch_keyspace(host, connection, timeout)
-        connection[:pending_keyspace] = @keyspace
-        request = Protocol::QueryRequest.new("USE #{@keyspace}", nil, nil, :one)
+      def switch_keyspace(host, connection, keyspace, timeout)
+        connection[:pending_keyspace] = keyspace
+        request = Protocol::QueryRequest.new("USE #{keyspace}", nil, nil, :one)
         do_send_request(host, connection, VOID_STATEMENT, request, timeout, nil)
       end
 
