@@ -4,6 +4,24 @@ module Cql
   module LoadBalancing
     module Policies
       class RoundRobin
+        class Plan
+          def initialize(hosts)
+            @hosts  = hosts
+            @index  = 0
+            @max    = hosts.size
+          end
+
+          def next
+            if @index == @max
+              raise ::StopIteration
+            else
+              index, @index = @index, @index + 1
+
+              @hosts[index]
+            end
+          end
+        end
+
         NO_HOSTS = [].to_enum.freeze
         include Policy
 
@@ -39,7 +57,7 @@ module Cql
           plan = @hosts.keys
           plan.rotate!(@position)
           @position = (@position + 1) % @hosts.size
-          plan.to_enum
+          Plan.new(plan)
         end
       end
     end
