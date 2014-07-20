@@ -17,7 +17,6 @@ module Cql
 
     let(:session_options) { {
                               :consistency => :one,
-                              :timeout     => 5,
                               :trace       => false
                             } }
 
