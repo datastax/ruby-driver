@@ -195,7 +195,15 @@ module Cql
         h = plan.next
         f = connect_to_host(h.ip.to_s)
         f.fallback do |error|
-          raise error if error.is_a?(AuthenticationError) || error.is_a?(Cql::QueryError)
+          raise error if error.is_a?(AuthenticationError)
+
+          if error.is_a?(Cql::QueryError)
+            if error.code == 0x100
+              raise AuthenticationError.new(error.message)
+            else
+              raise error
+            end
+          end
 
           errors[h] = error
           connect_to_first_available(plan, errors)
