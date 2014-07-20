@@ -22,16 +22,22 @@ module Cql
           end
         end
 
-        NO_HOSTS = [].to_enum.freeze
+        class EmptyPlan
+          def next
+            raise ::StopIteration
+          end
+        end
+
+        NO_HOSTS = EmptyPlan.new
         include Policy
 
         def initialize
-          @hosts    = ::Hash.new
+          @hosts    = ::Set.new
           @position = 0
         end
 
         def host_up(host)
-          @hosts[host] = true
+          @hosts.add(host)
           self
         end
 
@@ -49,15 +55,13 @@ module Cql
         end
 
         def distance(host)
-          @hosts.has_key?(host) ? local : ignore
+          @hosts.include?(host) ? local : ignore
         end
 
         def plan(keyspace, request)
           return NO_HOSTS if @hosts.empty?
-          plan = @hosts.keys
-          plan.rotate!(@position)
-          @position = (@position + 1) % @hosts.size
-          Plan.new(plan)
+          position, @position = @position, (@position + 1) % @hosts.size
+          Plan.new(@hosts.to_a.rotate!(position))
         end
       end
     end
