@@ -3,6 +3,7 @@
 module Cql
   module Statements
     class Void
+      include Statement
     end
   end
 end
