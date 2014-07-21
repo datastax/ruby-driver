@@ -134,7 +134,7 @@ module Cql
 
           raise NO_HOSTS if local.empty? && peers.empty?
 
-          local_ip = connection.host
+          local_ip = IPAddr.new(connection.host)
           ips      = ::Set.new
 
           unless local.empty?
@@ -188,7 +188,7 @@ module Cql
         end
 
         request.map do |result|
-          @cluster.host_found(ip, result.first) unless result.empty?
+          @cluster.host_found(address, result.first) unless result.empty?
 
           self
         end
