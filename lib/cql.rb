@@ -56,4 +56,5 @@ module Cql
   VOID_STATEMENT = Statements::Void.new
   # @private
   NO_HOSTS       = NoHostsAvailable.new
+  CONSISTENCIES  = [:any, :one, :two, :three, :quorum, :all, :local_quorum, :each_quorum, :serial, :local_serial, :local_one].freeze
 end
