@@ -7,7 +7,7 @@ module Cql
 
       attr_reader :cql, :params
 
-      def initialize(cql, params = [])
+      def initialize(cql, *params)
         @cql    = cql
         @params = params
       end
