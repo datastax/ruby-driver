@@ -26,14 +26,6 @@ module Cql
   # @private
   Io = Ione::Io
 
-  class Io::IoReactor
-    def schedule_timer(timeout)
-      f = @io_loop.schedule_timer(timeout)
-      @unblocker.unblock!
-      f
-    end
-  end
-
   def self.cluster(defaults = {})
     Builder.new(defaults)
   end
@@ -60,6 +52,8 @@ require 'cql/reconnection'
 require 'cql/retry'
 
 module Cql
+  # @private
   VOID_STATEMENT = Statements::Void.new
+  # @private
   NO_HOSTS       = NoHostsAvailable.new
 end
