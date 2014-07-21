@@ -129,7 +129,7 @@ module Cql
         plan     = @load_balancing_policy.plan(keyspace, statement)
 
         send_request_by_plan(keyspace, statement, request, plan, timeout).map do |r|
-          Statements::Prepared.new(cql, r.metadata, r.result_metadata)
+          Statements::Prepared.new(cql, r.metadata, r.result_metadata, r.trace_id)
         end
       end
 
