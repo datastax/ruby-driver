@@ -7,7 +7,7 @@ module Cql
 
       attr_reader :cql, :params_metadata, :result_metadata, :trace_id
 
-      def initialize(cql, params_metadata, result_metadata, trace_id)
+      def initialize(cql, params_metadata, result_metadata, trace_id = nil)
         @cql             = cql
         @params_metadata = params_metadata
         @result_metadata = result_metadata
