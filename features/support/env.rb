@@ -206,20 +206,29 @@ module CCM
     version = "git:#{version}"
     nodes = Array.new(no_dc, no_nodes_per_dc).join(":")
 
-    ccm.exec('create', '-n', nodes, '-v', version, '-b', cluster)
+    ccm.exec('create', '-n', nodes, '-v', version, '-b', '-i 127.0.0.', cluster)
     @current_no_dc=no_dc
     @current_no_nodes_per_dc=no_nodes_per_dc
     nil
   end
 
   def start_cluster
-    ccm.exec('updateconf')
     ccm.exec('start')
     nil
   end
 
   def stop_cluster
     ccm.exec('stop')
+    nil
+  end
+
+  def clear_cluster
+    ccm.exec('clear')
+    nil
+  end
+
+  def update_conf
+    ccm.exec('updateconf')
     nil
   end
 
@@ -266,7 +275,9 @@ module CCM
       switch_cluster(cluster)
     end
 
-    stop_cluster
+    clear_cluster
+    start_cluster
+    update_conf
     start_cluster
 
     Cluster.new(cluster, ccm, cluster_nodes)
