@@ -47,6 +47,10 @@ module Cql
 
         self
       end
+
+      def type
+        raise ::NotImplemented, "must be implemented by a child"
+      end
     end
   end
 end
