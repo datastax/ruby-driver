@@ -6,7 +6,7 @@ Feature: asynchronous query execution
   This method returns a `Future` object that can be resolved to get actual value.
 
   Background:
-    Given a cassandra cluster with schema "simplex" with table "songs"
+    Given a running cassandra cluster with a schema "simplex" and a table "songs"
 
   Scenario: an asynchronous query returns a promise that is fulfilled later
     Given the following example:

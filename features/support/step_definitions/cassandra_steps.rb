@@ -1,18 +1,13 @@
 # encoding: utf-8
 
-Given(/^a cassandra cluster with schema "(.*?)" with (an empty )?table "(.*?)"$/) do |schema, empty, table|
+Given(/^a running cassandra cluster with a schema "(.*?)" and (a|an empty) table "(.*?)"$/) do |schema, a, table|
   step "a running cassandra cluster"
-  step "schema \"#{schema}\""
-
-  if empty.nil?
-    step "table \"#{table}\" with data"
-  else
-    step "table \"#{table}\""
-  end
+  step "a schema \"#{schema}\""
+  step "#{a} table \"#{table}\""
 end
 
 Given(/^a running cassandra cluster$/) do
-  @cluster = setup_cluster
+  step "a running cassandra cluster in 1 datacenter with 3 nodes in each"
 end
 
 Given(/^a running cassandra cluster with authentication enabled$/) do
@@ -20,18 +15,20 @@ Given(/^a running cassandra cluster with authentication enabled$/) do
   @username, @password = @cluster.setup_authentication
 end
 
-Given(/^schema "(.*?)"$/) do |schema|
+Given(/^a running cassandra cluster in (\d+) datacenter(?:s)? with (\d+) nodes in each$/) do |no_dc, no_nodes_per_dc|
+  @cluster = setup_cluster(no_dc.to_i, no_nodes_per_dc.to_i)
+end
+
+Given(/^a schema "(.*?)"$/) do |schema|
   @cluster.create_schema(schema)
   @cluster.use_schema(schema)
 end
 
-Given(/^table "(.*?)"$/) do |table|
+Given(/^a(?:n)? (empty )?table "(.*?)"$/) do |empty, table|
   @cluster.create_table(table)
-end
-
-Given(/^table "(.*?)" with data$/) do |table|
-  step "table \"#{table}\""
-  @cluster.populate_table(table)
+  if empty.nil?
+    @cluster.populate_table(table)
+  end
 end
 
 Given(/^the following example:$/) do |code|
@@ -44,6 +41,10 @@ end
 
 Then(/^its output should contain:$/) do |output|
   step 'the output should contain:', output
+end
+
+Then(/^its output should match:$/) do |output|
+  step 'the output should match:', output
 end
 
 When(/^node (\d+) starts$/) do |i|

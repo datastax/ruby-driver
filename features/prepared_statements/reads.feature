@@ -7,7 +7,7 @@ Feature: prepared statements for reads
   represent a dynamic value in a statement.
 
   Background:
-    Given a cassandra cluster with schema "simplex" with table "playlists"
+    Given a running cassandra cluster with a schema "simplex" and a table "playlists"
 
   Scenario: a SELECT statement with parameterized LIMIT is prepared
     Given the following example:
