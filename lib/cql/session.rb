@@ -9,7 +9,7 @@ module Cql
 
     def execute_async(statement, *args)
       if args.last.is_a?(::Hash)
-        options = args.pop.merge!(@options) {|_, v, _| v}
+        options = @options.override(args.pop)
       else
         options = @options
       end
@@ -34,8 +34,12 @@ module Cql
       execute_async(*args).get
     end
 
-    def prepare_async(statement, options = {})
-      options.merge!(@options) {|_, v, _| v}
+    def prepare_async(statement, options = nil)
+      if options.is_a?(::Hash)
+        options = @options.override(options)
+      else
+        options = @options
+      end
 
       case statement
       when ::String

@@ -15,10 +15,12 @@ module Cql
 
     let(:cluster) { Cluster.new(io_reactor, control_connection, cluster_registry, self) }
 
-    let(:session_options) { {
+    let(:session_options) { Options.new({
                               :consistency => :one,
-                              :trace       => false
-                            } }
+                              :trace       => false,
+                              :page_size   => 50_000
+                            })
+                          }
 
     let(:port)                  { 9042 }
     let(:protocol_version)      { 2 }

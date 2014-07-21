@@ -116,22 +116,22 @@ module Cql
       end
 
       def query(statement, options)
-        request = Protocol::QueryRequest.new(statement.cql, statement.params, options[:type_hints], options[:consistency], options[:serial_consistency], options[:page_size], options[:paging_state], options[:trace])
-        timeout = options[:timeout]
+        request = Protocol::QueryRequest.new(statement.cql, statement.params, nil, options.consistency, options.serial_consistency, options.page_size, nil, options.trace?)
+        timeout = options.timeout
 
         keyspace = @keyspace
-        plan     = @load_balancing_policy.plan(keyspace, statement)
+        plan     = @load_balancing_policy.plan(keyspace, statement, options)
 
         send_request_by_plan(keyspace, statement, request, plan, timeout)
       end
 
       def prepare(cql, options)
-        request   = Protocol::PrepareRequest.new(cql, options[:trace])
-        timeout   = options[:timeout]
+        request   = Protocol::PrepareRequest.new(cql, options.trace?)
+        timeout   = options.timeout
         statement = VOID_STATEMENT
 
         keyspace = @keyspace
-        plan     = @load_balancing_policy.plan(keyspace, statement)
+        plan     = @load_balancing_policy.plan(keyspace, statement, options)
 
         send_request_by_plan(keyspace, statement, request, plan, timeout).map do |r|
           Statements::Prepared.new(cql, r.metadata, r.result_metadata, r.trace_id)
@@ -140,14 +140,14 @@ module Cql
 
       def execute(statement, options)
         keyspace = @keyspace
-        plan     = @load_balancing_policy.plan(keyspace, statement)
+        plan     = @load_balancing_policy.plan(keyspace, statement, options)
 
         execute_by_plan(keyspace, statement, plan, options)
       end
 
       def batch(statement, options)
         keyspace = @keyspace
-        plan     = @load_balancing_policy.plan(keyspace, statement)
+        plan     = @load_balancing_policy.plan(keyspace, statement, options)
 
         batch_by_plan(keyspace, statement, plan, options)
       end
@@ -207,17 +207,17 @@ module Cql
 
       def execute_by_plan(keyspace, statement, plan, options, errors = {})
         host            = plan.next
-        timeout         = options[:timeout]
+        timeout         = options.timeout
         id              = @prepared_statements[host][statement.cql]
         result_metadata = statement.result_metadata
 
         if id
-          request = Protocol::ExecuteRequest.new(id, statement.params_metadata, statement.params, result_metadata.nil?, options[:consistency], options[:serial_consistency], options[:page_size], options[:paging_state], options[:trace])
+          request = Protocol::ExecuteRequest.new(id, statement.params_metadata, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, nil, options.trace?)
           f = send_request(keyspace, statement, request, timeout, host, result_metadata)
         else
           f = send_request(keyspace, VOID_STATEMENT, Protocol::PrepareRequest.new(statement.cql, false), timeout, host)
           f = f.flat_map do |result|
-            request = Protocol::ExecuteRequest.new(result.id, statement.params_metadata, statement.params, result_metadata.nil?, options[:consistency], options[:serial_consistency], options[:page_size], options[:paging_state], options[:trace])
+            request = Protocol::ExecuteRequest.new(result.id, statement.params_metadata, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, nil, options.trace?)
             send_request(keyspace, statement, request, timeout, host, result_metadata)
           end
         end
@@ -236,8 +236,8 @@ module Cql
 
       def batch_by_plan(keyspace, batch, plan, options, errors = {})
         host    = plan.next
-        request = Protocol::BatchRequest.new(BATCH_TYPES[batch.type], options[:consistency], options[:trace])
-        timeout = options[:timeout]
+        request = Protocol::BatchRequest.new(BATCH_TYPES[batch.type], options.consistency, options.trace?)
+        timeout = options.timeout
 
         unprepared = Hash.new {|hash, cql| hash[cql] = []}
 

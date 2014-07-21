@@ -5,8 +5,9 @@ require 'spec_helper'
 module Cql
   describe(Session) do
     let(:default_options) { {:consistency => :one, :timeout => 5, :trace => false} }
+    let(:session_options) { Options.new(default_options) }
     let(:client)          { double('cql-rb client') }
-    let(:session)         { Session.new(client, default_options) }
+    let(:session)         { Session.new(client, session_options) }
 
     describe('#execute_async') do
       context 'cql string' do
@@ -18,7 +19,7 @@ module Cql
             statement = double('simple statement')
 
             expect(Statements::Simple).to receive(:new).once.with(cql, []).and_return(statement)
-            expect(client).to receive(:query).once.with(statement, default_options).and_return(promise)
+            expect(client).to receive(:query).once.with(statement, session_options).and_return(promise)
             expect(session.execute_async(cql)).to eq(promise)
           end
         end
@@ -31,7 +32,7 @@ module Cql
             statement = double('simple statement')
 
             expect(Statements::Simple).to receive(:new).once.with(cql, [1]).and_return(statement)
-            expect(client).to receive(:query).once.with(statement, default_options).and_return(promise)
+            expect(client).to receive(:query).once.with(statement, session_options).and_return(promise)
             expect(session.execute_async(cql, 1)).to eq(promise)
           end
         end
@@ -43,9 +44,11 @@ module Cql
           it 'merges default options with options supplied' do
             promise   = double('promise')
             statement = double('simple statement')
+            opts      = double('options')
 
+            expect(session_options).to receive(:override).once.with(options).and_return(opts)
             expect(Statements::Simple).to receive(:new).once.with(cql, []).and_return(statement)
-            expect(client).to receive(:query).once.with(statement, default_options.merge(options)).and_return(promise)
+            expect(client).to receive(:query).once.with(statement, opts).and_return(promise)
             expect(session.execute_async(cql, options)).to eq(promise)
           end
         end
@@ -60,9 +63,11 @@ module Cql
         it 'binds and executes result' do
           promise         = double('promise')
           bound_statement = double('bound statement')
+          options         = double('options')
 
+          expect(Options).to receive(:new).once.with(default_options).and_return(options)
           expect(statement).to receive(:bind).with(1, 2, 3, 4, 5).and_return(bound_statement)
-          expect(client).to receive(:execute).once.with(bound_statement, default_options).and_return(promise)
+          expect(client).to receive(:execute).once.with(bound_statement, options).and_return(promise)
           expect(session.execute_async(statement, 1, 2, 3, 4, 5)).to eq(promise)
         end
       end
@@ -77,8 +82,10 @@ module Cql
         it 'executes statement' do
           promise         = double('promise')
           bound_statement = double('bound statement')
+          options         = double('options')
 
-          expect(client).to receive(:execute).once.with(statement, default_options).and_return(promise)
+          expect(Options).to receive(:new).once.with(default_options).and_return(options)
+          expect(client).to receive(:execute).once.with(statement, options).and_return(promise)
           expect(session.execute_async(statement)).to eq(promise)
         end
       end
@@ -88,8 +95,10 @@ module Cql
 
         it 'sends batch to the client' do
           promise = double('promise')
+          options = double('options')
 
-          expect(client).to receive(:batch).once.with(statement, default_options).and_return(promise)
+          expect(Options).to receive(:new).once.with(default_options).and_return(options)
+          expect(client).to receive(:batch).once.with(statement, options).and_return(promise)
           expect(session.execute_async(statement)).to eq(promise)
         end
       end
@@ -102,7 +111,7 @@ module Cql
         it 'prepares cql with the client' do
           promise = double('promise')
 
-          expect(client).to receive(:prepare).once.with(cql, default_options).and_return(promise)
+          expect(client).to receive(:prepare).once.with(cql, session_options).and_return(promise)
           expect(session.prepare_async(cql)).to eq(promise)
         end
       end
@@ -112,8 +121,10 @@ module Cql
 
         it 'sends options to the client when preparing' do
           promise = double('promise')
+          opts    = double('options')
 
-          expect(client).to receive(:prepare).once.with(cql, default_options.merge(options)).and_return(promise)
+          expect(session_options).to receive(:override).once.with(options).and_return(opts)
+          expect(client).to receive(:prepare).once.with(cql, opts).and_return(promise)
           expect(session.prepare_async(cql, options)).to eq(promise)
         end
       end
@@ -124,7 +135,7 @@ module Cql
         it 'prepares using cql' do
           promise = double('promise')
 
-          expect(client).to receive(:prepare).once.with(cql, default_options).and_return(promise)
+          expect(client).to receive(:prepare).once.with(cql, session_options).and_return(promise)
           expect(session.prepare_async(statement)).to eq(promise)
         end
       end

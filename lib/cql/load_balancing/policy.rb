@@ -23,7 +23,7 @@ module Cql
         raise ::NotImplementedError, "must be implemented by a child"
       end
 
-      def plan(keyspace, request)
+      def plan(keyspace, statement, options)
         raise ::NotImplementedError, "must be implemented by a child"
       end
 

@@ -18,7 +18,7 @@ Feature: custom load balancing policies
           super()
         end
 
-        def plan(keyspace, statement)
+        def plan(keyspace, statement, options)
           return [].to_enum if keyspace == @keyspace
           super
         end

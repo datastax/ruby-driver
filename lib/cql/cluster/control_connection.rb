@@ -18,7 +18,7 @@ module Cql
       end
 
       def connect_async
-        plan = @load_balancing_policy.plan(nil, VOID_STATEMENT)
+        plan = @load_balancing_policy.plan(nil, VOID_STATEMENT, VOID_OPTIONS)
 
         f = @io_reactor.start
         f = f.flat_map do

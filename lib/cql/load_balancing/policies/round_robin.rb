@@ -58,7 +58,7 @@ module Cql
           @hosts.include?(host) ? local : ignore
         end
 
-        def plan(keyspace, request)
+        def plan(keyspace, statement, options)
           return NO_HOSTS if @hosts.empty?
           position, @position = @position, (@position + 1) % @hosts.size
           Plan.new(@hosts.to_a.rotate!(position))

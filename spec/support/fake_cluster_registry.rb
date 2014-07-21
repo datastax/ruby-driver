@@ -29,7 +29,7 @@ class FakeLoadBalancingPolicy
     @registry.hosts.include?(host) ? Cql::LoadBalancing::DISTANCE_LOCAL : Cql::LoadBalancing::DISTANCE_IGNORE
   end
 
-  def plan(keyspace, statement)
+  def plan(keyspace, statement, options)
     @registry.hosts.to_enum
   end
 end
