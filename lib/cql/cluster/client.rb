@@ -202,7 +202,7 @@ module Cql
 
       def close_connections
         futures = @connections.values.flat_map {|m| m.snapshot.map {|c| c.close}}
-        Future.all(*).map(self)
+        Future.all(*futures).map(self)
       end
 
       def execute_by_plan(keyspace, statement, plan, options, errors = {})
