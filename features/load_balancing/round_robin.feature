@@ -1,6 +1,5 @@
 # encoding: utf-8
 
-@wip
 Feature: Round Robin Policy
 
   The Round Robin load balancing policy dispatches requests evenly on cluster
