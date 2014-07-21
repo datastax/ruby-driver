@@ -5,17 +5,20 @@ module Cql
     class ControlConnection
       include MonitorMixin
 
-      def initialize(io_reactor, request_runner, cluster_registry, driver_settings)
-        @io_reactor     = io_reactor
-        @request_runner = request_runner
-        @cluster        = cluster_registry
-        @driver         = driver_settings
+      def initialize(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, driver)
+        @logger                = logger
+        @io_reactor            = io_reactor
+        @request_runner        = request_runner
+        @cluster               = cluster_registry
+        @load_balancing_policy = load_balancing_policy
+        @reconnection_policy   = reconnection_policy
+        @driver                = driver
 
         mon_initialize
       end
 
       def connect_async
-        plan = @driver.load_balancing_policy.plan(nil, VOID_STATEMENT)
+        plan = @load_balancing_policy.plan(nil, VOID_STATEMENT)
 
         f = @io_reactor.start
         f = f.flat_map do
@@ -25,10 +28,10 @@ module Cql
           synchronize { @connection = connection }
 
           connection.on_closed do
-            @driver.logger.debug('Connection closed')
+            @logger.debug('Connection closed')
             synchronize do
               @connection = nil
-              reconnect unless @closed
+              reconnect(@reconnection_policy.schedule) unless @closed
             end
           end
         end
@@ -60,20 +63,20 @@ module Cql
                         Protocol::SchemaChangeEventResponse::TYPE
                       )
 
-      def reconnect
+      def reconnect(schedule)
         synchronize do
           return Future.failed("closed") if @closed
         end
 
         connect_async.fallback do |e|
-          @driver.logger.error('Connection failed: %s: %s' % [e.class.name, e.message])
+          @logger.error('Connection failed: %s: %s' % [e.class.name, e.message])
 
-          timeout = @driver.reconnect_interval
+          timeout = schedule.next
 
-          @driver.logger.debug('Reconnecting in %d seconds' % timeout)
+          @logger.debug('Reconnecting in %d seconds' % timeout)
 
           f = @io_reactor.schedule_timer(timeout)
-          f.flat_map { reconnect }
+          f.flat_map { reconnect(schedule) }
         end
       end
 
@@ -85,7 +88,7 @@ module Cql
 
         @request_runner.execute(connection, REGISTER).map do
           connection.on_event do |event|
-            @driver.logger.debug('Received %s %s event' % [event.type, event.change])
+            @logger.debug('Received %s %s event' % [event.type, event.change])
 
             if event.type == 'SCHEMA_CHANGE'
             else
@@ -121,13 +124,13 @@ module Cql
           @connection
         end
 
-        @driver.logger.debug('Looking for additional nodes')
+        @logger.debug('Looking for additional nodes')
 
         local = @request_runner.execute(connection, SELECT_LOCAL)
         peers = @request_runner.execute(connection, SELECT_PEERS)
 
         Future.all(local, peers).map do |(local, peers)|
-          @driver.logger.debug('%d additional nodes found' % peers.size)
+          @logger.debug('%d additional nodes found' % peers.size)
 
           raise NO_HOSTS if local.empty? && peers.empty?
 
@@ -162,7 +165,7 @@ module Cql
 
         ip = address.to_s
 
-        @driver.logger.debug('Fetching node information for %s' % ip)
+        @logger.debug('Fetching node information for %s' % ip)
 
         if ip == connection.host
           request = @request_runner.execute(
@@ -214,9 +217,9 @@ module Cql
 
       def connect_to_host(host)
         connector = Cql::Client::Connector.new([
-          Cql::Client::ConnectStep.new(@io_reactor, protocol_handler_factory, @driver.port, @driver.connection_timeout, @driver.logger),
+          Cql::Client::ConnectStep.new(@io_reactor, protocol_handler_factory, @driver.port, @driver.connection_timeout, @logger),
           Cql::Client::CacheOptionsStep.new,
-          Cql::Client::InitializeStep.new(@driver.compressor, @driver.logger),
+          Cql::Client::InitializeStep.new(@driver.compressor, @logger),
           authentication_step,
           Cql::Client::CachePropertiesStep.new,
         ])
@@ -224,11 +227,11 @@ module Cql
         f = connector.connect(host)
         f.fallback do |error|
           if error.is_a?(QueryError) && error.code == 0x0a && @driver.protocol_version > 1
-            @driver.logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@driver.protocol_version, @driver.protocol_version - 1, error.message])
+            @logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@driver.protocol_version, @driver.protocol_version - 1, error.message])
             @driver.protocol_version -= 1
             connect_to_host(host)
           else
-            @driver.logger.error('Connection failed: %s: %s' % [error.class.name, error.message])
+            @logger.error('Connection failed: %s: %s' % [error.class.name, error.message])
 
             raise error
           end

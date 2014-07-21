@@ -6,7 +6,7 @@ module Cql
   class Cluster
     describe(ControlConnection) do
       let :control_connection do
-        described_class.new(io_reactor, request_runner, cluster_registry, driver_settings)
+        described_class.new(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, driver_settings)
       end
 
       let :io_reactor do
@@ -27,6 +27,14 @@ module Cql
 
       let :driver_settings do
         Driver.new(logger: logger, protocol_version: 7)
+      end
+
+      let :load_balancing_policy do
+        driver_settings.load_balancing_policy
+      end
+
+      let :reconnection_policy do
+        double('reconnection policy')
       end
 
       def connections
@@ -297,7 +305,11 @@ module Cql
         end
 
         context 'when connection closed' do
+          let(:reconnect_interval)    { 5 }
+          let(:reconnection_schedule) { double('reconnection schedule', :next => reconnect_interval) }
+
           before do
+            reconnection_policy.stub(:schedule) { reconnection_schedule }
             control_connection.connect_async.get
             last_connection.close
           end
@@ -325,12 +337,12 @@ module Cql
             end
 
             it 'keeps trying until some host comes up' do
-              rand(10).times { io_reactor.advance_time(driver_settings.reconnect_interval) }
+              rand(10).times { io_reactor.advance_time(reconnect_interval) }
 
               last_connection.should_not be_connected
 
               io_reactor.node_up('127.0.0.1')
-              io_reactor.advance_time(driver_settings.reconnect_interval)
+              io_reactor.advance_time(reconnect_interval)
               last_connection.should be_connected
             end
           end
@@ -513,15 +525,13 @@ module Cql
       describe "#close_async" do
         context 'when connected' do
           before do
-            puts "connecting"
             control_connection.connect_async.get
-            puts "connected"
           end
 
           it 'closes reactor' do
-            # future = double('close future')
+            future = double('close future')
 
-            # io_reactor.should_receive(:close).once.and_return(future)
+            io_reactor.should_receive(:stop).once.and_return(future)
             control_connection.close_async
           end
         end
@@ -535,7 +545,11 @@ module Cql
         end
 
         context 'when reconnecting' do
+          let(:reconnect_interval)    { 5 }
+          let(:reconnection_schedule) { double('reconnection schedule', :next => reconnect_interval) }
+
           before do
+            reconnection_policy.stub(:schedule) { reconnection_schedule }
             control_connection.connect_async.get
 
             cluster_registry.ips.each do |ip|
@@ -553,8 +567,8 @@ module Cql
               io_reactor.node_up(ip)
             end
 
-            io_reactor.advance_time(driver_settings.reconnect_interval)
-            io_reactor.advance_time(driver_settings.reconnect_interval)
+            io_reactor.advance_time(reconnect_interval)
+            io_reactor.advance_time(reconnect_interval)
 
             connections.select(&:connected?).should be_empty
           end

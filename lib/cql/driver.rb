@@ -11,7 +11,7 @@ module Cql
     let(:io_reactor)       { Reactor.new(Io::IoReactor.new) }
     let(:cluster_registry) { Cluster::Registry.new }
 
-    let(:control_connection) { Cluster::ControlConnection.new(io_reactor, request_runner, cluster_registry, self) }
+    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, self) }
 
     let(:cluster) { Cluster.new(io_reactor, control_connection, cluster_registry, self) }
 
@@ -28,7 +28,6 @@ module Cql
     let(:compressor)            { nil }
     let(:credentials)           { nil }
     let(:auth_provider)         { nil }
-    let(:reconnect_interval)    { 5 }
     let(:load_balancing_policy) { LoadBalancing::Policies::RoundRobin.new  }
     let(:reconnection_policy)   { Reconnection::Policies::Exponential.new(0.5, 30, 2) }
     let(:retry_policy)          { Retry::Policies::Default.new }
