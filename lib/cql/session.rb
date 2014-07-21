@@ -8,8 +8,11 @@ module Cql
     end
 
     def execute_async(statement, *args)
-      options = @options
-      options = @options.merge(args.pop) if args.last.is_a?(::Hash)
+      if args.last.is_a?(::Hash)
+        options = args.pop.merge!(@options) {|_, v, _| v}
+      else
+        options = @options
+      end
 
       case statement
       when ::String
@@ -32,7 +35,7 @@ module Cql
     end
 
     def prepare_async(statement, options = {})
-      options = @options.merge(options)
+      options.merge!(@options) {|_, v, _| v}
 
       case statement
       when ::String
