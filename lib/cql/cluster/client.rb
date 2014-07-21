@@ -17,7 +17,7 @@ module Cql
         @connections_per_local_node  = driver.connections_per_local_node
         @connections_per_remote_node = driver.connections_per_remote_node
         @connecting_hosts            = ::Set.new
-        @connections                 = ::Hash.new {|hash, host| hash[host] = Cql::Client::ConnectionManager.new}
+        @connections                 = ::Hash.new
         @prepared_statements         = ::Hash.new
         @keyspace                    = nil
         @state                       = :idle
@@ -104,8 +104,13 @@ module Cql
       def host_down(host)
         return Future.resolved if @connecting_hosts.delete?(host) || !@connections.has_key?(host)
 
-        @prepared_statements.delete(host)
-        futures = @connections.delete(host).snapshot.map {|c| c.close}
+        prepared_statements = @prepared_statements.dup
+        prepared_statements.delete(host)
+        @prepared_statements = prepared_statements
+
+        connections  = @connections.dup
+        futures      = connections.delete(host).snapshot.map {|c| c.close}
+        @connections = connections
 
         Future.all(*futures).map(nil)
       end
@@ -196,7 +201,8 @@ module Cql
       end
 
       def close_connections
-        Future.all(*@connections.values.flat_map {|m| m.snapshot.map {|c| c.close}}).map(self)
+        futures = @connections.values.flat_map {|m| m.snapshot.map {|c| c.close}}
+        Future.all(*).map(self)
       end
 
       def execute_by_plan(keyspace, statement, plan, options, errors = {})
@@ -341,8 +347,11 @@ module Cql
         f = create_cluster_connector.connect_all([host.ip.to_s], pool_size)
         f.map do |connections|
           @connecting_hosts.delete(host)
+          unless @connections.has_key?(host)
+            @connections = @connections.merge(host => Cql::Client::ConnectionManager.new)
+          end
           @connections[host].add_connections(connections)
-          @prepared_statements[host] = {}
+          @prepared_statements = @prepared_statements.merge(host => {})
           connections
         end
       end
@@ -408,9 +417,13 @@ module Cql
             connection[:pending_switch]   = nil
             connection[:pending_keyspace] = nil
             @keyspace = r.keyspace
-            Cql::Client::VoidResult::INSTANCE
+            r.trace_id ? Cql::Client::VoidResult.new(r.trace_id) : Cql::Client::VoidResult::INSTANCE
           when Protocol::PreparedResultResponse
-            @prepared_statements[host][request.cql] = r.id
+            prepared_statements = @prepared_statements.dup
+            prepared_statements[host][request.cql] = r.id
+
+            @prepared_statements = prepared_statements
+
             r
           else
             Cql::Client::VoidResult::INSTANCE
