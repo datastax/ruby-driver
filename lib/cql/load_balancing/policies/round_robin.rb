@@ -5,30 +5,24 @@ module Cql
     module Policies
       class RoundRobin
         class Plan
-          def initialize(hosts)
-            @hosts  = hosts
-            @index  = 0
-            @max    = hosts.size
+          def initialize(hosts, index)
+            @hosts = hosts
+            @index = index
+
+            @remaining = hosts.size
+            @total     = hosts.size
           end
 
           def next
-            if @index == @max
-              raise ::StopIteration
-            else
-              index, @index = @index, @index + 1
+            raise ::StopIteration if @remaining == 0
 
-              @hosts[index]
-            end
+            @remaining -= 1
+            index, @index = @index, (@index + 1) % @mod
+
+            @hosts[index]
           end
         end
 
-        class EmptyPlan
-          def next
-            raise ::StopIteration
-          end
-        end
-
-        NO_HOSTS = EmptyPlan.new
         include Policy
 
         def initialize
@@ -37,12 +31,12 @@ module Cql
         end
 
         def host_up(host)
-          @hosts.add(host)
+          @hosts = @hosts.dup.add(host)
           self
         end
 
         def host_down(host)
-          @hosts.delete(host)
+          @hosts = @hosts.dup.delete(host)
           self
         end
 
@@ -59,9 +53,14 @@ module Cql
         end
 
         def plan(keyspace, statement, options)
-          return NO_HOSTS if @hosts.empty?
-          position, @position = @position, (@position + 1) % @hosts.size
-          Plan.new(@hosts.to_a.rotate!(position))
+          hosts    = @hosts
+          position = @position
+          total    = hosts.size
+          return EMPTY_PLAN if total == 0
+
+          @position = (position + 1) % total
+
+          Plan.new(hosts.to_a, position)
         end
       end
     end
