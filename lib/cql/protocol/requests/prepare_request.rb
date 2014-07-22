@@ -4,11 +4,13 @@ module Cql
   module Protocol
     class PrepareRequest < Request
       attr_reader :cql
+      attr_accessor :consistency, :attempts
 
       def initialize(cql, trace=false)
         raise ArgumentError, 'No CQL given!' unless cql
         super(9, trace)
         @cql = cql
+        @consistency = :one
       end
 
       def write(protocol_version, buffer)

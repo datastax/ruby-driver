@@ -7,8 +7,8 @@ module Cql
       UNLOGGED_TYPE = 1
       COUNTER_TYPE = 2
 
-      attr_reader :type, :consistency, :part_count
-      attr_writer :consistency
+      attr_reader :type, :part_count
+      attr_accessor :consistency, :attempts
 
       def initialize(type, consistency, trace=false)
         super(0x0D, trace)
