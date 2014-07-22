@@ -1,6 +1,5 @@
 # encoding: utf-8
 
-@wip
 Feature: Fallthrough Retry Policy
 
   The Fallthrough retry policy prevents the driver from retrying queries when they failed.
