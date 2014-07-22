@@ -51,6 +51,7 @@ require 'cql/reactor'
 require 'cql/session'
 require 'cql/statement'
 require 'cql/statements'
+require 'cql/results'
 
 require 'cql/execution/info'
 require 'cql/execution/options'
