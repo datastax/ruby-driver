@@ -9,15 +9,14 @@ module Cql
             @hosts = hosts
             @index = index
 
-            @remaining = hosts.size
-            @total     = hosts.size
+            @total = @remaining = hosts.size
           end
 
           def next
             raise ::StopIteration if @remaining == 0
 
             @remaining -= 1
-            index, @index = @index, (@index + 1) % @mod
+            index, @index = @index, (@index + 1) % @total
 
             @hosts[index]
           end

@@ -10,10 +10,8 @@ module Cql
             @remote = remote
             @index  = index
 
-            @local_total      = local.size
-            @local_remaining  = local.size
-            @remote_total     = remote.size
-            @remote_remaining = remote.size
+            @local_remaining  = @local_total  = local.size
+            @remote_remaining = @remote_total = remote.size
           end
 
           def next
