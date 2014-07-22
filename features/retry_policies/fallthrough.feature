@@ -13,14 +13,14 @@ Feature: Fallthrough Retry Policy
       """ruby
       require 'cql'
 
-      client = Cql::Client.connect(
-        default_consistency: :all,
-        keyspace: "simplex",
-        retry_policy: Cql::Retry::Policies::Fallthrough.new
-      )
+      cluster = Cql.cluster
+                   .with_retry_policy(Cql::Retry::Policies::Fallthrough.new)
+                   .build
+
+      session = cluster.connect('simplex')
 
       begin
-        client.execute('SELECT * FROM songs', consistency: :all)
+        session.execute('SELECT * FROM songs', consistency: :all)
         puts "failed"
       rescue Cql::QueryError => e
         puts "success"
