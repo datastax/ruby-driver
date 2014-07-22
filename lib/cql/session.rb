@@ -83,3 +83,5 @@ module Cql
     end
   end
 end
+
+require 'cql/session/options'

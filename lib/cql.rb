@@ -47,7 +47,6 @@ require 'cql/cluster'
 require 'cql/driver'
 require 'cql/host'
 require 'cql/reactor'
-require 'cql/options'
 require 'cql/session'
 require 'cql/statement'
 require 'cql/statements'
@@ -60,7 +59,7 @@ module Cql
   # @private
   VOID_STATEMENT = Statements::Void.new
   # @private
-  VOID_OPTIONS   = Options.new({:consistency => :one})
+  VOID_OPTIONS   = Session::Options.new({:consistency => :one})
   # @private
   NO_HOSTS       = NoHostsAvailable.new
 end

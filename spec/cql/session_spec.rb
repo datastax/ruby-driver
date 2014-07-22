@@ -5,7 +5,7 @@ require 'spec_helper'
 module Cql
   describe(Session) do
     let(:default_options) { {:consistency => :one, :timeout => 5, :trace => false} }
-    let(:session_options) { Options.new(default_options) }
+    let(:session_options) { Session::Options.new(default_options) }
     let(:client)          { double('cql-rb client') }
     let(:session)         { Session.new(client, session_options) }
 
@@ -65,7 +65,7 @@ module Cql
           bound_statement = double('bound statement')
           options         = double('options')
 
-          expect(Options).to receive(:new).once.with(default_options).and_return(options)
+          expect(Session::Options).to receive(:new).once.with(default_options).and_return(options)
           expect(statement).to receive(:bind).with(1, 2, 3, 4, 5).and_return(bound_statement)
           expect(client).to receive(:execute).once.with(bound_statement, options).and_return(promise)
           expect(session.execute_async(statement, 1, 2, 3, 4, 5)).to eq(promise)
@@ -84,7 +84,7 @@ module Cql
           bound_statement = double('bound statement')
           options         = double('options')
 
-          expect(Options).to receive(:new).once.with(default_options).and_return(options)
+          expect(Session::Options).to receive(:new).once.with(default_options).and_return(options)
           expect(client).to receive(:execute).once.with(statement, options).and_return(promise)
           expect(session.execute_async(statement)).to eq(promise)
         end
@@ -97,7 +97,7 @@ module Cql
           promise = double('promise')
           options = double('options')
 
-          expect(Options).to receive(:new).once.with(default_options).and_return(options)
+          expect(Session::Options).to receive(:new).once.with(default_options).and_return(options)
           expect(client).to receive(:batch).once.with(statement, options).and_return(promise)
           expect(session.execute_async(statement)).to eq(promise)
         end
