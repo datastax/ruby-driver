@@ -3,8 +3,8 @@
 module Cql
   module Protocol
     class ExecuteRequest < Request
-      attr_reader :id, :metadata, :values, :request_metadata, :serial_consistency, :page_size, :paging_state
-      attr_accessor :consistency, :attempts
+      attr_reader :metadata, :values, :request_metadata, :serial_consistency, :page_size, :paging_state
+      attr_accessor :consistency, :retries, :id
 
       def initialize(id, metadata, values, request_metadata, consistency, serial_consistency=nil, page_size=nil, paging_state=nil, trace=false)
         raise ArgumentError, "Metadata for #{metadata.size} columns, but #{values.size} values given" if metadata.size != values.size

@@ -4,7 +4,7 @@ module Cql
   module Protocol
     class QueryRequest < Request
       attr_reader :cql, :values, :type_hints, :serial_consistency, :page_size, :paging_state
-      attr_accessor :consistency, :attempts
+      attr_accessor :consistency, :retries
 
       def initialize(cql, values, type_hints, consistency, serial_consistency=nil, page_size=nil, paging_state=nil, trace=false)
         raise ArgumentError, %(No CQL given!) unless cql

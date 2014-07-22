@@ -4,7 +4,7 @@ module Cql
   module Protocol
     class PrepareRequest < Request
       attr_reader :cql
-      attr_accessor :consistency, :attempts
+      attr_accessor :consistency, :retries
 
       def initialize(cql, trace=false)
         raise ArgumentError, 'No CQL given!' unless cql

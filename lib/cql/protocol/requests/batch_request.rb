@@ -8,7 +8,7 @@ module Cql
       COUNTER_TYPE = 2
 
       attr_reader :type, :part_count
-      attr_accessor :consistency, :attempts
+      attr_accessor :consistency, :retries
 
       def initialize(type, consistency, trace=false)
         super(0x0D, trace)
