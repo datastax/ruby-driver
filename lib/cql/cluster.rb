@@ -20,7 +20,7 @@ module Cql
 
     def connect_async(keyspace = nil)
       client  = Client.new(@driver)
-      session = Session.new(client, @driver.session_options)
+      session = Session.new(client, @driver.execution_options)
 
       f = client.connect
       f = f.flat_map { session.execute_async("USE #{keyspace}") } if keyspace
