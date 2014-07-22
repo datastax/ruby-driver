@@ -36,7 +36,7 @@ module Cql
       def add(statement, *args)
         case statement
         when String
-          @statements << Simple.new(statement, args)
+          @statements << Simple.new(statement, *args)
         when Prepared
           @statements << statement.bind(*args)
         when Bound, Simple

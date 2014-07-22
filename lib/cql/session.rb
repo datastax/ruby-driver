@@ -16,7 +16,7 @@ module Cql
 
       case statement
       when ::String
-        @client.query(Statements::Simple.new(statement, args), options)
+        @client.query(Statements::Simple.new(statement, *args), options)
       when Statements::Simple
         @client.query(statement, options)
       when Statements::Prepared
