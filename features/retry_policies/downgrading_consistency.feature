@@ -23,7 +23,7 @@ Feature: Downgrading Consistency Retry Policy
                    .build
 
       session = cluster.connect('simplex')
-      result  = client.execute('SELECT * FROM songs', consistency: :all)
+      result  = session.execute('SELECT * FROM songs', consistency: :all)
 
       if result.info.consistency == :quorum
         puts "success"
