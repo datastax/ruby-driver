@@ -48,7 +48,7 @@ Then(/^its output should match:$/) do |output|
 end
 
 When(/^node (\d+) starts$/) do |i|
-  @cluster.start_node(i)
+  @cluster.start_nth_node(i)
 end
 
 When(/^node (\d+) stops$/) do |i|
@@ -85,6 +85,7 @@ end
 
 After('@auth') do
   @cluster.disable_authentication
+  @cluster.restart
 end
 
 def prepend_encoding(code)
