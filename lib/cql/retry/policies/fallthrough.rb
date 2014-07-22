@@ -3,7 +3,7 @@
 module Cql
   module Retry
     module Policies
-      class Default
+      class Fallthrough
         include Policy
 
         def read_timeout(statement, consistency_level, required_responses,
