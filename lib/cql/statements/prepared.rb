@@ -5,13 +5,13 @@ module Cql
     class Prepared
       include Statement
 
-      attr_reader :cql, :params_metadata, :result_metadata, :trace_id
+      attr_reader :cql, :params_metadata, :result_metadata, :execution_info
 
-      def initialize(cql, params_metadata, result_metadata, trace_id = nil)
+      def initialize(cql, params_metadata, result_metadata, execution_info)
         @cql             = cql
         @params_metadata = params_metadata
         @result_metadata = result_metadata
-        @trace_id        = trace_id
+        @execution_info  = execution_info
       end
 
       def bind(*args)
