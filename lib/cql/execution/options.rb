@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 module Cql
-  class Session
+  module Execution
     class Options
       attr_reader :consistency, :serial_consistency, :page_size, :timeout
 

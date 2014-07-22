@@ -51,6 +51,10 @@ require 'cql/session'
 require 'cql/statement'
 require 'cql/statements'
 
+require 'cql/execution/info'
+require 'cql/execution/options'
+require 'cql/execution/trace'
+
 require 'cql/load_balancing'
 require 'cql/reconnection'
 require 'cql/retry'
@@ -59,7 +63,7 @@ module Cql
   # @private
   VOID_STATEMENT = Statements::Void.new
   # @private
-  VOID_OPTIONS   = Session::Options.new({:consistency => :one})
+  VOID_OPTIONS   = Execution::Options.new({:consistency => :one})
   # @private
   NO_HOSTS       = NoHostsAvailable.new
 end
