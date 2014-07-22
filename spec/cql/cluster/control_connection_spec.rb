@@ -389,7 +389,7 @@ module Cql
 
                 it 'notifies registry' do
                   ip = address.to_s
-                  expect(cluster_registry).to receive(:host_found).once.with(ip, {
+                  expect(cluster_registry).to receive(:host_found).once.with(address, {
                     'rack'            => racks[ip],
                     'data_center'     => data_centers[ip],
                     'host_id'         => host_ids[ip],
@@ -470,7 +470,7 @@ module Cql
 
                 it 'notifies registry' do
                   ip = address.to_s
-                  expect(cluster_registry).to receive(:host_found).once.with(ip, {
+                  expect(cluster_registry).to receive(:host_found).once.with(address, {
                     'rack'            => racks[ip],
                     'data_center'     => data_centers[ip],
                     'host_id'         => host_ids[ip],
