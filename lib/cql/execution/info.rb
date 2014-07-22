@@ -3,12 +3,15 @@
 module Cql
   module Execution
     class Info
-      attr_reader :hosts, :consistency, :attempts, :trace
+      attr_reader :keyspace, :statement, :options, :hosts, :consistency, :retries, :trace
 
-      def initialize(hosts, consistency, attempts, trace)
+      def initialize(keyspace, statement, options, hosts, consistency, retries, trace)
+        @keyspace    = keyspace
+        @statement   = statement
+        @options     = options
         @hosts       = hosts
         @consistency = consistency
-        @attempts    = attempts
+        @retries     = retries
         @trace       = trace
       end
     end
