@@ -7,16 +7,16 @@ module Cql
         include Policy
 
         def read_timeout(statement, consistency_level, required_responses,
-                         received_responses, data_retrieved, attempts)
-          return reraise if attempts > 0 || SERIAL_CONSISTENCIES.include?(consistency_level)
+                         received_responses, data_retrieved, retries)
+          return reraise if retries > 0 || SERIAL_CONSISTENCIES.include?(consistency_level)
           return max_likely_to_work(consistency_level, required_responses, received_responses) if received_responses < required_responses
 
           data_retrieved ? reraise : try_again(consistency_level)
         end
 
         def write_timeout(statement, consistency_level, write_type,
-                          acks_required, acks_received, attempts)
-          return reraise if attempts > 0
+                          acks_required, acks_received, retries)
+          return reraise if retries > 0
 
           case write_type
           when 'SIMPLE', 'BATCH'
@@ -31,8 +31,8 @@ module Cql
         end
 
         def unavailable(statement, consistency_level, replicas_required,
-                        replicas_alive, attempts)
-          return reraise if attempts > 0
+                        replicas_alive, retries)
+          return reraise if retries > 0
 
           max_likely_to_work(consistency_level, replicas_required, replicas_alive)
         end

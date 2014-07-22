@@ -7,17 +7,17 @@ module Cql
         include Policy
 
         def read_timeout(statement, consistency_level, required_responses,
-                         received_responses, data_retrieved, attempts)
+                         received_responses, data_retrieved, retries)
           reraise
         end
 
         def write_timeout(statement, consistency_level, write_type,
-                          acks_required, acks_received, attempts)
+                          acks_required, acks_received, retries)
           reraise
         end
 
         def unavailable(statement, consistency_level, replicas_required,
-                        replicas_alive, attempts)
+                        replicas_alive, retries)
           reraise
         end
       end
