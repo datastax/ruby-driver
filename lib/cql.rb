@@ -6,6 +6,7 @@ require 'monitor'
 require 'ipaddr'
 require 'set'
 require 'bigdecimal'
+require 'forwardable'
 
 module Cql
   CqlError = Class.new(StandardError)
