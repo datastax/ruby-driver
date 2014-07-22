@@ -205,6 +205,73 @@ module Cql
         Future.all(*futures).map(self)
       end
 
+      def create_cluster_connector
+        authentication_step = @driver.protocol_version == 1 ? Cql::Client::CredentialsAuthenticationStep.new(@driver.credentials) : Cql::Client::SaslAuthenticationStep.new(@driver.auth_provider)
+        protocol_handler_factory = lambda { |connection| Protocol::CqlProtocolHandler.new(connection, @reactor, @driver.protocol_version, @driver.compressor) }
+        Cql::Client::ClusterConnector.new(
+          Cql::Client::Connector.new([
+            Cql::Client::ConnectStep.new(@reactor, protocol_handler_factory, @driver.port, @driver.connection_timeout, @logger),
+            Cql::Client::CacheOptionsStep.new,
+            Cql::Client::InitializeStep.new(@driver.compressor, @logger),
+            authentication_step,
+            Cql::Client::CachePropertiesStep.new,
+          ]),
+          @logger
+        )
+      end
+
+      def connect_to_host_maybe_retry(host, distance)
+        f = connect_to_host(host, distance)
+        f.fallback do |e|
+          raise e unless e.is_a?(Io::ConnectionError)
+
+          connect_to_host_with_retry(host, distance, @reconnection_policy.schedule)
+        end
+      end
+
+      def connect_to_host_with_retry(host, distance, schedule)
+        interval = schedule.next
+
+        @logger.debug('Reconnecting in %d seconds' % interval)
+
+        f = @reactor.schedule_timer(interval)
+        f.flat_map do
+          if @connecting_hosts.include?(host)
+            connect_to_host(host, distance).fallback do |e|
+              raise e unless e.is_a?(Io::ConnectionError)
+
+              connect_to_host_with_retry(host, distance, schedule)
+            end
+          else
+            NO_CONNECTIONS
+          end
+        end
+      rescue ::StopIteration
+        @connecting_hosts.delete(host)
+        NO_CONNECTIONS
+      end
+
+      def connect_to_host(host, distance)
+        return NO_CONNECTIONS if distance.ignore?
+
+        if distance.local?
+          pool_size = @connections_per_local_node
+        else
+          pool_size = @connections_per_remote_node
+        end
+
+        f = create_cluster_connector.connect_all([host.ip.to_s], pool_size)
+        f.map do |connections|
+          @connecting_hosts.delete(host)
+          unless @connections.has_key?(host)
+            @connections = @connections.merge(host => Cql::Client::ConnectionManager.new)
+          end
+          @connections[host].add_connections(connections)
+          @prepared_statements = @prepared_statements.merge(host => {})
+          connections
+        end
+      end
+
       def execute_by_plan(keyspace, statement, plan, options, errors = {})
         host            = plan.next
         timeout         = options.timeout
@@ -287,73 +354,6 @@ module Cql
         retry
       rescue ::StopIteration
         raise NoHostsAvailable.new(errors)
-      end
-
-      def create_cluster_connector
-        authentication_step = @driver.protocol_version == 1 ? Cql::Client::CredentialsAuthenticationStep.new(@driver.credentials) : Cql::Client::SaslAuthenticationStep.new(@driver.auth_provider)
-        protocol_handler_factory = lambda { |connection| Protocol::CqlProtocolHandler.new(connection, @reactor, @driver.protocol_version, @driver.compressor) }
-        Cql::Client::ClusterConnector.new(
-          Cql::Client::Connector.new([
-            Cql::Client::ConnectStep.new(@reactor, protocol_handler_factory, @driver.port, @driver.connection_timeout, @logger),
-            Cql::Client::CacheOptionsStep.new,
-            Cql::Client::InitializeStep.new(@driver.compressor, @logger),
-            authentication_step,
-            Cql::Client::CachePropertiesStep.new,
-          ]),
-          @logger
-        )
-      end
-
-      def connect_to_host_maybe_retry(host, distance)
-        f = connect_to_host(host, distance)
-        f.fallback do |e|
-          raise e unless e.is_a?(Io::ConnectionError)
-
-          connect_to_host_with_retry(host, distance, @reconnection_policy.schedule)
-        end
-      end
-
-      def connect_to_host_with_retry(host, distance, schedule)
-        interval = schedule.next
-
-        @logger.debug('Reconnecting in %d seconds' % interval)
-
-        f = @reactor.schedule_timer(interval)
-        f.flat_map do
-          if @connecting_hosts.include?(host)
-            connect_to_host(host, distance).fallback do |e|
-              raise e unless e.is_a?(Io::ConnectionError)
-
-              connect_to_host_with_retry(host, distance, schedule)
-            end
-          else
-            NO_CONNECTIONS
-          end
-        end
-      rescue ::StopIteration
-        @connecting_hosts.delete(host)
-        NO_CONNECTIONS
-      end
-
-      def connect_to_host(host, distance)
-        return NO_CONNECTIONS if distance.ignore?
-
-        if distance.local?
-          pool_size = @connections_per_local_node
-        else
-          pool_size = @connections_per_remote_node
-        end
-
-        f = create_cluster_connector.connect_all([host.ip.to_s], pool_size)
-        f.map do |connections|
-          @connecting_hosts.delete(host)
-          unless @connections.has_key?(host)
-            @connections = @connections.merge(host => Cql::Client::ConnectionManager.new)
-          end
-          @connections[host].add_connections(connections)
-          @prepared_statements = @prepared_statements.merge(host => {})
-          connections
-        end
       end
 
       def send_request_by_plan(keyspace, statement, request, plan, timeout, errors = {})
