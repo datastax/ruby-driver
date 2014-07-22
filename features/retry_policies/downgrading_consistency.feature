@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-@wip
+@todo
 Feature: Downgrading Consistency Retry Policy
 
   The Downgrading Consistency retry policy retries failed queries with a lower
@@ -18,14 +18,18 @@ Feature: Downgrading Consistency Retry Policy
       """ruby
       require 'cql'
 
-      client = Cql::Client.connect(
-        default_consistency: :all,
-        keyspace: "simplex",
-        retry_policy: Cql::Retry::Policies::DowngradingConsistency.new
-      )
+      cluster = Cql.cluster
+                   .with_retry_policy(Cql::Retry::Policies::DowngradingConsistency.new)
+                   .build
 
-      client.execute('SELECT * FROM songs', consistency: :all)
-      puts "success"
+      session = cluster.connect('simplex')
+      result  = client.execute('SELECT * FROM songs', consistency: :all)
+
+      if result.info.consistency == :quorum
+        puts "success"
+      else
+        puts "failure"
+      end
 
       """
     When it is executed
