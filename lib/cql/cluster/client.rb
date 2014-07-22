@@ -399,7 +399,7 @@ module Cql
         do_send_request(host, connection, VOID_STATEMENT, request, timeout, nil)
       end
 
-      def do_send_request(host, connection, statement, request, timeout, response_metadata, attempt = 1)
+      def do_send_request(host, connection, statement, request, timeout, response_metadata, attempts = 0)
         f = connection.send_request(request, timeout)
         f = f.map do |r|
           case r

@@ -7,8 +7,8 @@ module Cql
         include Policy
 
         def read_timeout(statement, consistency_level, required_responses,
-                         received_responses, data_retrieved, attempt)
-          return reraise if attempt > 1
+                         received_responses, data_retrieved, attempts)
+          return reraise if attempts > 0
 
           if received_responses >= required_responses && !data_retrieved
             try_again(consistency_level)
@@ -18,14 +18,14 @@ module Cql
         end
 
         def write_timeout(statement, consistency_level, write_type,
-                          acks_required, acks_received, attempt)
-          return reraise if attempt > 1
+                          acks_required, acks_received, attempts)
+          return reraise if attempts > 0
 
           write_type == 'BATCH_LOG' ? try_again(consistency_level) : reraise
         end
 
         def unavailable(statement, consistency_level, replicas_required,
-                        replicas_alive, attempt)
+                        replicas_alive, attempts)
           reraise
         end
       end

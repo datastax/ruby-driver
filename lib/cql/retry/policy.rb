@@ -16,11 +16,11 @@ module Cql
       #                      query timed out
       # data_received      - whether actual data (as opposed to data checksum)
       #                      was present in the received responses.
-      # attempt            - the number of retries already performed
+      # attempts           - the number of retries already performed
       # 
       # Returns a Cql::Policies::Retry::Decision
       def read_timeout(statement, consistency_level, responses_required,      \
-                       responses_received, data_retrieved, attempt)
+                       responses_received, data_retrieved, attempts)
         raise NotImplemented, "must be implemented by a policy"
       end
 
@@ -34,11 +34,11 @@ module Cql
       #                      consistency level
       # acks_received      - the number of acks received by the time the query
       #                      timed out
-      # attempt            - the number of retries already performed
+      # attempts           - the number of retries already performed
       # 
       # Returns a Cql::Policies::Retry::Decision
       def write_timeout(statement, consistency_level, write_type,             \
-                               acks_required, acks_received, attempt)
+                               acks_required, acks_received, attempts)
         raise NotImplemented, "must be implemented by a policy"
       end
 
@@ -51,11 +51,11 @@ module Cql
       #                      requested consistency level
       # replicas_alive     - the number of replicas received by the time the
       #                      query timed out
-      # attempt            - the number of retries already performed
+      # attempts           - the number of retries already performed
       # 
       # Returns a Cql::Policies::Retry::Decision
       def unavailable(statement, consistency_level, replicas_required,        \
-                      replicas_alive, attempt)
+                      replicas_alive, attempts)
         raise NotImplemented, "must be implemented by a policy"
       end
 
