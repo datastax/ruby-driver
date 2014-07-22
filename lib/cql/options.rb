@@ -41,9 +41,5 @@ module Cql
         :serial_consistency => @serial_consistency
       }
     end
-
-    private
-
-    SERIAL_CONSISTENCIES = [:serial, :local_serial].freeze
   end
 end

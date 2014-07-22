@@ -27,6 +27,8 @@ module Cql
   Io = Ione::Io
 
   CONSISTENCIES  = [:any, :one, :two, :three, :quorum, :all, :local_quorum, :each_quorum, :serial, :local_serial, :local_one].freeze
+  # @private
+  SERIAL_CONSISTENCIES = [:serial, :local_serial].freeze
 
   def self.cluster(defaults = {})
     Builder.new(defaults)
