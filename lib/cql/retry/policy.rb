@@ -61,7 +61,7 @@ module Cql
 
       private
 
-      def retry(consistency_level)
+      def try_again(consistency_level)
         Decisions::Retry.new(consistency_level)
       end
 
