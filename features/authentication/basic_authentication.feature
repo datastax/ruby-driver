@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+@auth
 Feature: basic authentication
 
   Cluster object can be configured to use a given username/password for

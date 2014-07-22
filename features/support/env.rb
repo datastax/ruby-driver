@@ -100,7 +100,7 @@ module CCM
       @ccm.exec("node#{i}", 'remove')
     end
 
-    def setup_authentication
+    def enable_authentication
       @username = 'cassandra'
       @password = 'cassandra'
       @ccm.exec('updateconf', "'authenticator: PasswordAuthenticator'")
@@ -109,6 +109,17 @@ module CCM
       sleep(4)
 
       [@username, @password]
+    end
+
+    def disable_authentication
+      @ccm.exec('updateconf', "'authenticator: AllowAllAuthenticator'")
+    end
+
+    def is_running?
+      @ccm.exec('status').
+        split("\n").
+        find_all { |line| line.end_with? "UP" }.
+        any?
     end
 
     private
