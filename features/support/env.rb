@@ -72,7 +72,7 @@ module CCM
     def create_table(table)
       raise "no schema selected" if @schema.nil?
 
-      execute_query("USE #{@schema}; DROP TABLE #{table}; " +
+      execute_query("USE #{@schema}; DROP TABLE IF EXISTS #{table}; " +
                     schema_for(table).chomp(";\n"))
     end
 
@@ -101,46 +101,17 @@ module CCM
     end
 
     def setup_authentication
-      @ccm.exec('stop')
-      set_authenticator_to('PasswordAuthenticator')
-      @authentication = true
       @username = 'cassandra'
       @password = 'cassandra'
+      @ccm.exec('updateconf', "'authenticator: PasswordAuthenticator'")
+      @ccm.exec('stop')
       @ccm.exec('start')
+      sleep(4)
 
       [@username, @password]
     end
 
     private
-
-    def set_authenticator_to(authenticator)
-      @nodes.each do |node|
-        config = load_config(node)
-        next if config['authenticator'] == authenticator
-        config.merge!({'authenticator'  => authenticator})
-        save_config(node, config)
-      end
-    end
-
-    def ccm_dir
-      @ccm_dir ||= Pathname('~/.ccm')
-    end
-
-    def cassandra_config_path(node)
-      (ccm_dir + @name + node + 'conf/cassandra.yaml').expand_path
-    end
-
-    def load_config(node)
-      YAML.load(File.read(cassandra_config_path(node)))
-    end
-
-    def save_config(node, config)
-      Tempfile.open('cassanrda.yaml') do |f|
-        f.write(YAML.dump(config))
-        f.flush
-        FileUtils.mv(f.path, cassandra_config_path(node))
-      end
-    end
 
     # path to cql fixture files
     def fixture_path
@@ -276,8 +247,6 @@ module CCM
     end
 
     clear_cluster
-    start_cluster
-    update_conf
     start_cluster
 
     Cluster.new(cluster, ccm, cluster_nodes)
