@@ -19,9 +19,11 @@ module Cql
 
       attr_reader :id
 
-      def initialize(id, session)
-        @id      = id
-        @session = session
+      def initialize(id, client)
+        @id     = id
+        @client = client
+
+        mon_initialize
       end
 
       def coordinator
@@ -60,6 +62,10 @@ module Cql
         @events
       end
 
+      def inspect
+        "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @id=#{@id.inspect}>"
+      end
+
       private
 
       SELECT_SESSION = "SELECT * FROM system_traces.sessions WHERE session_id = ?"
@@ -69,7 +75,7 @@ module Cql
         synchronize do
           return if @loaded
 
-          data = @session.execute(SELECT_SESSION, @id).first
+          data = @client.query(Statements::Simple.new(SELECT_SESSION, @id), VOID_OPTIONS).get.first
           raise ::RuntimeError, "unable to load trace #{@id}" if data.nil?
 
           @coordinator = data['coordinator']
@@ -89,7 +95,7 @@ module Cql
 
           @events = []
 
-          @session.execute(SELECT_EVENTS, @id).each do |row|
+          @client.query(Statements::Simple.new(SELECT_EVENTS, @id), VOID_OPTIONS).get.each do |row|
             @events << Event.new(row['event_id'], row['activity'], row['source'], row['source_elapsed'], row['thread'])
           end
 
