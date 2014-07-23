@@ -48,10 +48,43 @@ module CCM
   end
 
   class Cluster
-    def initialize(name, ccm, nodes)
+    def self.exists?(cluster, ccm)
+      ccm.exec('list').split("\n").map(&:strip).one? do |name|
+        name == cluster || name == "*#{cluster}"
+      end
+    end
+
+    def self.list_nodes(ccm)
+      ccm.exec('status').split("\n").map do |line|
+        node, _ = line.split(": ")
+        node
+      end
+    end
+
+    def self.count_datacenters(node, ccm)
+      ccm.
+          exec("#{node} nodetool status").
+          split("\n").
+          find_all { |line| line.start_with? "Datacenter:" }.
+          count
+    end
+
+    # initialize could just take name, cmm and find out the nodes by itself
+
+    def initialize(name, ccm)
       @name  = name
       @ccm   = ccm
-      @nodes = nodes
+      @nodes = Cluster.list_nodes(ccm)
+      @no_dc = Cluster.count_datacenters(@nodes.first, ccm)
+    end
+
+    def has_n_datacenters?(n)
+      n == @no_dc
+    end
+
+    def has_n_nodes_per_dc?(n)
+      # Could be improved : assume that the nodes are evenly distributed amongst datacenters
+      n == (@nodes.count / @no_dc)
     end
 
     def create_schema(schema)
@@ -80,8 +113,12 @@ module CCM
       execute_query("USE #{@schema}; " + data_for(table).chomp(";\n"))
     end
 
-    def start_node(i)
-      @ccm.exec("node#{i}", 'start')
+    def start_nth_node(i)
+      start_node("node#{i}")
+    end
+
+    def start_node(node)
+      @ccm.exec(node, 'start')
     end
 
     def stop_node(i)
@@ -100,15 +137,53 @@ module CCM
       @ccm.exec("node#{i}", 'remove')
     end
 
-    def setup_authentication
+    def enable_authentication
       @username = 'cassandra'
       @password = 'cassandra'
       @ccm.exec('updateconf', "'authenticator: PasswordAuthenticator'")
-      @ccm.exec('stop')
-      @ccm.exec('start')
+      restart
       sleep(4)
 
       [@username, @password]
+    end
+
+    def disable_authentication
+      @ccm.exec('updateconf', "'authenticator: AllowAllAuthenticator'")
+    end
+
+    def restart
+      stop
+      start
+    end
+
+    def clear
+      @ccm.exec('clear')
+      self
+    end
+
+    def start
+      @ccm.exec('start')
+      self
+    end
+
+    def stop
+      @ccm.exec('stop')
+      self
+    end
+
+    def start_down_nodes
+      @ccm.exec('status').
+          split("\n").
+          find_all { |line| line.end_with? "DOWN" }.
+          each { |node| start_node(node) }
+      self
+    end
+
+    def is_running?
+      @ccm.exec('status').
+        split("\n").
+        find_all { |line| line.end_with? "DOWN" }.
+        none?
     end
 
     private
@@ -160,17 +235,6 @@ module CCM
     @ccm ||= Runner.new('ccm', PrintingNotifier.new($stderr))
   end
 
-  # check if ccm tool already has a test-cluster
-  def cluster_exists?(cluster)
-    ccm.exec('list').split("\n").map(&:strip).one? do |name|
-      name == cluster || name == "*#{cluster}"
-    end
-  end
-
-  # check if we already defined test-cluster with a different config (number of nodes, number of datacenters)
-  def cluster_exists_with_different_config?(cluster, no_dc, no_nodes_per_dc)
-    cluster_exists?(cluster) and @current_no_dc != no_dc and @current_no_nodes_per_dc != no_nodes_per_dc
-  end
 
   # create new ccm cluster from a given cassandra tag
   def create_cluster(cluster, version, no_dc, no_nodes_per_dc)
@@ -180,21 +244,6 @@ module CCM
     ccm.exec('create', '-n', nodes, '-v', version, '-b', '-i 127.0.0.', cluster)
     @current_no_dc=no_dc
     @current_no_nodes_per_dc=no_nodes_per_dc
-    nil
-  end
-
-  def start_cluster
-    ccm.exec('start')
-    nil
-  end
-
-  def stop_cluster
-    ccm.exec('stop')
-    nil
-  end
-
-  def clear_cluster
-    ccm.exec('clear')
     nil
   end
 
@@ -224,39 +273,36 @@ module CCM
     nil
   end
 
-  def cluster_nodes
-    ccm.exec('status').split("\n").map do |line|
-      node, _ = line.split(": ")
-      node
-    end
-  end
-
   def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
-    cluster = cassandra_cluster
+    name = cassandra_cluster
 
-    remove_cluster(cluster) if cluster_exists_with_different_config?(cluster, no_dc, no_nodes_per_dc)
-    create_cluster(cluster, cassandra_version, no_dc, no_nodes_per_dc) unless cluster_exists?(cluster)
+    cluster = create_if_necessary(name, no_dc, no_nodes_per_dc)
 
-    @prev_cluster = current_cluster
+    # @prev_cluster = current_cluster
+    # if @prev_cluster == name
+    #   @prev_cluster = nil
+    # else
+    #   stop_cluster if @prev_cluster
+    #   switch_cluster(name)
+    # end
 
-    if @prev_cluster == cluster
-      @prev_cluster = nil
-    else
-      stop_cluster if @prev_cluster
-      switch_cluster(cluster)
-    end
-
-    clear_cluster
-    start_cluster
-
-    Cluster.new(cluster, ccm, cluster_nodes)
+    cluster
   end
 
-  def teardown_cluster
-    return unless @prev_cluster
-    stop_cluster
-    switch_cluster(@prev_cluster)
-    @prev_cluster = nil
+  def create_if_necessary(name, no_dc, no_nodes_per_dc)
+    if Cluster.exists?(name, ccm)
+      cluster = Cluster.new(name, ccm)
+      if cluster.is_running? and cluster.has_n_datacenters?(no_dc) and cluster.has_n_nodes_per_dc?(no_nodes_per_dc)
+        cluster.start_down_nodes
+      else
+        remove_cluster(name)
+        create_cluster(name, cassandra_version, no_dc, no_nodes_per_dc)
+        Cluster.new(name, ccm).start
+      end
+    else
+      create_cluster(name, cassandra_version, no_dc, no_nodes_per_dc)
+      Cluster.new(name, ccm).start
+    end
   end
 end
 
