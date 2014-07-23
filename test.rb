@@ -1,9 +1,8 @@
 # encoding: utf-8
 
 require 'cql'
-require 'logger'
 
-client = Cql::Client::AsynchronousClient.new(hosts: ['127.0.0.1'], logger: Logger.new($stderr))
+client = Cql::Client::AsynchronousClient.new(hosts: ['127.0.0.1'])
 
 client.connect.value
 
