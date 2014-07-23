@@ -12,7 +12,6 @@ Feature: Downgrading Consistency Retry Policy
 
   Scenario: Downgrading Consistency policy is used explicitly
     Given a running cassandra cluster with a schema "simplex" and a table "songs"
-    And node 3 stops
     And the following example:
       """ruby
       require 'cql'
@@ -31,7 +30,8 @@ Feature: Downgrading Consistency Retry Policy
       end
 
       """
-    When it is executed
+    When node 3 stops
+    And it is executed
     Then its output should contain:
       """
       success
