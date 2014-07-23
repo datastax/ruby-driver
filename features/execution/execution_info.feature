@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 Feature: Execution information
 
   Every result contains useful execution information.

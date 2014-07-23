@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 Feature: prepared statements for writes
 
   Prepared statements are used to prepare a write query only once and execute

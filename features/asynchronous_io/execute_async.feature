@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 Feature: asynchronous query execution
 
   Session objects support non-blocking statement execution using `Session#execute_async` method.

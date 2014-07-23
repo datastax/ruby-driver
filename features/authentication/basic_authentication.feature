@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 @auth
 Feature: basic authentication
 

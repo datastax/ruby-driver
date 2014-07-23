@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 Feature: custom load balancing policies
 
   Upon creation of a cluster object, a custom load balancing policy can be

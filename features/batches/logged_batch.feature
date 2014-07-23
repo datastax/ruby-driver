@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 Feature: logged batch
 
   Session objects can be used to construct a logged batch statement and later

@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 Feature: White List Policy
 
   The White List load balancing policy wraps a subpolicy and ensure that only

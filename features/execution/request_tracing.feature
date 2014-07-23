@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 Feature: Request tracing
 
   Execution information can be used to access request trace if tracing was enabled.

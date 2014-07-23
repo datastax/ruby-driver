@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 Feature: Datacenter-aware Round Robin Policy
 
   A specialized Round Robin load balancing policy allows for querying remotedatacenters when all local nodes are down.

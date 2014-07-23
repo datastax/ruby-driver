@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 Feature: membership change detection
 
   Cluster object allows registering state listeners. It then gurantees that

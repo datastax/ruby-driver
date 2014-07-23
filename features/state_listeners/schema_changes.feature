@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 @todo
 Feature: schema change detection
 
