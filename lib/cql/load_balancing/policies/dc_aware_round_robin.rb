@@ -37,10 +37,10 @@ module Cql
 
         def initialize(datacenter, max_remote_hosts_to_use = nil, use_remote_hosts_for_local_consistency = false)
           datacenter              = String(datacenter)
-          max_remote_hosts_to_use = Integer(max_remote_hosts_to_use)
+          max_remote_hosts_to_use = max_remote_hosts_to_use && Integer(max_remote_hosts_to_use)
 
           raise ::ArgumentError, "datacenter cannot be nil" if datacenter.nil?
-          raise ::ArgumentError, "max_remote_hosts_to_use must be nil or >= 0" if !max_remote_hosts_to_use.nil? && max_remote_hosts_to_use < 0
+          raise ::ArgumentError, "max_remote_hosts_to_use must be nil or >= 0" if max_remote_hosts_to_use && max_remote_hosts_to_use < 0
 
           @datacenter = datacenter
           @max_remote = max_remote_hosts_to_use
