@@ -15,6 +15,13 @@ module Cql
       def inspect
         "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @cql=#{@cql.inspect} @params=#{@params.inspect}>"
       end
+
+      def eql?(other)
+        return false unless other.is_a?(Simple)
+        @cql == other.cql && @params == other.params
+      end
+
+      alias :== :eql?
     end
   end
 end

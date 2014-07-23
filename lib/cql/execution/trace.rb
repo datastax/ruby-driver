@@ -13,6 +13,12 @@ module Cql
           @source_elapsed = source_elapsed
           @thread         = thread
         end
+
+        def ==(other)
+          other == @id
+        end
+
+        alias :eql? :==
       end
 
       include MonitorMixin
