@@ -55,14 +55,14 @@ module Cql
           if host.datacenter.nil? || host.datacenter == @datacenter
             @local  = @local.dup.add(host)
           else
-            @remote = @remote.dup.add(host) if @max_remote && @remote.size < @max_remote
+            @remote = @remote.dup.add(host) if @max_remote.nil? || @remote.size < @max_remote
           end
 
           self
         end
 
         def host_down(host)
-          if host.datacenter == @datacenter
+          if host.datacenter.nil? || host.datacenter == @datacenter
             @local  = @local.dup.delete(host)
           else
             @remote = @remote.dup.delete(host)
@@ -80,7 +80,7 @@ module Cql
         end
 
         def distance(host)
-          if host.datacenter == @datacenter
+          if host.datacenter.nil? || host.datacenter == @datacenter
             @local.include?(host) ? local : ignore
           else
             @remote.include?(host) ? remote : ignore
@@ -95,10 +95,10 @@ module Cql
 
           return EMPTY_PLAN if total == 0
 
-          if LOCAL_CONSISTENCIES.include?(options.consistency) && @use_remote
-            remote = remote.to_a
-          else
+          if LOCAL_CONSISTENCIES.include?(options.consistency) && !@use_remote
             remote = EMPTY_ARRAY
+          else
+            remote = remote.to_a
           end
 
           @position = (@position + 1) % total
