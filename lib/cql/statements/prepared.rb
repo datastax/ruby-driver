@@ -3,9 +3,9 @@
 module Cql
   module Statements
     class Prepared
-      include Statement
+      include Result, Statement
 
-      attr_reader :cql, :params_metadata, :result_metadata, :execution_info
+      attr_reader :cql, :params_metadata, :result_metadata
 
       def initialize(cql, params_metadata, result_metadata, execution_info)
         @cql             = cql

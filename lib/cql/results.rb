@@ -2,6 +2,10 @@
 
 module Cql
   module Result
+    # The ID of the query trace associated with the query, if any.
+    #
+    # @return [Cql::Execution::Info]
+    attr_reader :execution_info
   end
 
   module Results
@@ -10,11 +14,6 @@ module Cql
 
       # @return [ResultMetadata]
       attr_reader :metadata
-
-      # The ID of the query trace associated with the query, if any.
-      #
-      # @return [Cql::Execution::Info]
-      attr_reader :execution_info
 
       # @private
       def initialize(metadata, rows, paging_state, execution_info)
