@@ -278,7 +278,7 @@ module Cql
             end
           end
           client.connect.get
-          client.query(Statements::Simple.new('SELECT * FROM songs'), Session::Options.new(:consistency => :one)).get
+          client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
 
           expect(handled).to be_true
         end
@@ -304,10 +304,10 @@ module Cql
             end
           end
           client.connect.get
-          client.query(Statements::Simple.new('USE foo'), Session::Options.new(:consistency => :one)).get
+          client.query(Statements::Simple.new('USE foo'), Execution::Options.new(:consistency => :one)).get
           # make sure we get a different host in the load balancing plan
           cluster_registry.hosts.delete(cluster_registry.hosts.first)
-          client.query(Statements::Simple.new('SELECT * FROM songs'), Session::Options.new(:consistency => :one)).get
+          client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
 
           expect(count).to eq(2)
         end
@@ -337,7 +337,7 @@ module Cql
             end
           end
           client.connect.get
-          client.query(Statements::Simple.new('SELECT * FROM songs'), Session::Options.new(:consistency => :one)).get
+          client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
           expect(attempts).to have(2).items
           expect(attempts).to eq(hosts)
         end
@@ -360,7 +360,7 @@ module Cql
           end
           client.connect.get
           expect do
-            client.query(Statements::Simple.new('SELECT * FROM songs'), Session::Options.new(:consistency => :one)).get
+            client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
           end.to raise_error(NoHostsAvailable)
         end
 
@@ -383,7 +383,7 @@ module Cql
 
           client.connect.get
           expect do
-            client.query(Statements::Simple.new('SELECT * FROM songs'), Session::Options.new(:consistency => :one)).get
+            client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
           end.to raise_error(Cql::QueryError, 'blargh')
         end
 
@@ -414,14 +414,14 @@ module Cql
             end
           end
           client.connect.get
-          client.query(Statements::Simple.new('USE foo'), Session::Options.new(:consistency => :one)).get
+          client.query(Statements::Simple.new('USE foo'), Execution::Options.new(:consistency => :one)).get
 
           # make sure we get a different host in the load balancing plan
           cluster_registry.hosts.delete(cluster_registry.hosts.first)
 
           completed = 0
           5.times do
-            f = client.query(Statements::Simple.new('SELECT * FROM songs'), Session::Options.new(:consistency => :one))
+            f = client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one))
             f.map do |r|
               completed += 1
               r
@@ -447,7 +447,7 @@ module Cql
             end
           end
           client.connect.get
-          statement = client.prepare('SELECT * FROM songs', Session::Options.new(:consistency => :one)).get
+          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
           expect(statement.cql).to eq('SELECT * FROM songs')
         end
       end
@@ -469,8 +469,8 @@ module Cql
             end
           end
           client.connect.get
-          statement = client.prepare('SELECT * FROM songs', Session::Options.new(:consistency => :one)).get
-          client.execute(statement.bind, Session::Options.new(:consistency => :one)).get
+          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
+          client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
           expect(sent).to be_true
         end
 
@@ -491,12 +491,12 @@ module Cql
             end
           end
           client.connect.get
-          statement = client.prepare('SELECT * FROM songs', Session::Options.new(:consistency => :one)).get
+          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
 
           # make sure we get a different host in the load balancing plan
           cluster_registry.hosts.delete(cluster_registry.hosts.first)
 
-          client.execute(statement.bind, Session::Options.new(:consistency => :one)).get
+          client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
           expect(count).to eq(2)
         end
 
@@ -521,9 +521,9 @@ module Cql
             end
           end
           client.connect.get
-          statement = client.prepare('SELECT * FROM songs', Session::Options.new(:consistency => :one)).get
+          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
 
-          client.execute(statement.bind, Session::Options.new(:consistency => :one)).get
+          client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
 
           expect(attempts).to have(2).items
           expect(attempts).to eq(hosts)
@@ -545,10 +545,10 @@ module Cql
 
           client.connect.get
 
-          statement = client.prepare('SELECT * FROM songs', Session::Options.new(:consistency => :one)).get
+          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
 
           expect do
-            client.execute(statement.bind, Session::Options.new(:consistency => :one)).get
+            client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
           end.to raise_error(Cql::QueryError, 'blargh')
         end
 
@@ -568,10 +568,10 @@ module Cql
 
           client.connect.get
 
-          statement = client.prepare('SELECT * FROM songs', Session::Options.new(:consistency => :one)).get
+          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
 
           expect do
-            client.execute(statement.bind, Session::Options.new(:consistency => :one)).get
+            client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
           end.to raise_error(NoHostsAvailable)
         end
       end
@@ -599,7 +599,8 @@ module Cql
 
           expect(Cql::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false).and_return(batch_request)
           expect(batch_request).to receive(:add_query).once.with('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', [1, 2, 3, 4, 5])
-          client.batch(batch, Session::Options.new(:consistency => :one, :trace => false)).get
+          expect(batch_request).to receive(:retries=).once.with(0)
+          client.batch(batch, Execution::Options.new(:consistency => :one, :trace => false)).get
           expect(sent).to be_true
         end
 
@@ -624,13 +625,14 @@ module Cql
 
           client.connect.get
 
-          statement = client.prepare('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', Session::Options.new(:consistency => :one, :trace => false)).get
+          statement = client.prepare('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', Execution::Options.new(:consistency => :one, :trace => false)).get
 
           batch.add(statement, 1, 2, 3, 4, 5)
 
           expect(Cql::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false).and_return(batch_request)
           expect(batch_request).to receive(:add_prepared).once.with(123, params_metadata, [1,2,3,4,5])
-          client.batch(batch, Session::Options.new(:consistency => :one, :trace => false)).get
+          expect(batch_request).to receive(:retries=).once.with(0)
+          client.batch(batch, Execution::Options.new(:consistency => :one, :trace => false)).get
           expect(sent).to be_true
         end
 
@@ -657,17 +659,18 @@ module Cql
 
           client.connect.get
 
-          statement = client.prepare('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', Session::Options.new(:consistency => :one, :trace => false)).get
+          statement = client.prepare('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', Execution::Options.new(:consistency => :one, :trace => false)).get
 
           batch.add(statement, 1, 2, 3, 4, 5)
 
           expect(Cql::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false).and_return(batch_request)
           expect(batch_request).to receive(:add_prepared).once.with(123, params_metadata, [1,2,3,4,5])
+          expect(batch_request).to receive(:retries=).once.with(0)
 
           # make sure we get a different host in the load balancing plan
           cluster_registry.hosts.delete(cluster_registry.hosts.first)
 
-          client.batch(batch, Session::Options.new(:consistency => :one, :trace => false)).get
+          client.batch(batch, Execution::Options.new(:consistency => :one, :trace => false)).get
           expect(sent).to be_true
           expect(count).to eq(2)
         end
@@ -694,7 +697,7 @@ module Cql
           client.connect.get
           batch = Statements::Batch::Logged.new
 
-          client.batch(batch, Session::Options.new(:consistency => :one)).get
+          client.batch(batch, Execution::Options.new(:consistency => :one)).get
 
           expect(attempts).to have(2).items
           expect(attempts).to eq(hosts)
@@ -717,7 +720,7 @@ module Cql
           batch = Statements::Batch::Logged.new
 
           expect do
-            client.batch(batch, Session::Options.new(:consistency => :one)).get
+            client.batch(batch, Execution::Options.new(:consistency => :one)).get
           end.to raise_error(NoHostsAvailable)
         end
       end
