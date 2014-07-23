@@ -21,16 +21,11 @@ Feature: Downgrading Consistency Retry Policy
       session = cluster.connect('simplex')
       result  = session.execute('SELECT * FROM songs', consistency: :all)
 
-      if result.execution_info.consistency == :quorum
-        puts "success"
-      else
-        puts "failure"
-      end
-
+      puts "actual consistency: #{result.execution_info.consistency}"
       """
     When node 3 stops
     And it is executed
     Then its output should contain:
       """
-      success
+      actual consistency: quorum
       """
