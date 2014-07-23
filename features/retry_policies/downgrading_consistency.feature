@@ -1,6 +1,5 @@
 # encoding: utf-8
 
-@wip
 Feature: Downgrading Consistency Retry Policy
 
   The Downgrading Consistency retry policy retries failed queries with a lower
