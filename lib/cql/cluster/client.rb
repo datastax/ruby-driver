@@ -122,7 +122,16 @@ module Cql
         keyspace = @keyspace
         plan     = @load_balancing_policy.plan(keyspace, statement, options)
 
-        send_request_by_plan(keyspace, statement, request, plan, timeout)
+        send_request_by_plan(keyspace, statement, request, plan, timeout) do |keyspace, statement, request, response, hosts|
+          execution_info = create_execution_info(keyspace, statement, options, request, response, hosts)
+
+          case response
+          when Protocol::RowsResultResponse
+            Results::Paged.new(response.metadata, response.rows, response.paging_state, execution_info)
+          else
+            Results::Void.new(execution_info)
+          end
+        end
       end
 
       def prepare(cql, options)
@@ -133,23 +142,45 @@ module Cql
         keyspace = @keyspace
         plan     = @load_balancing_policy.plan(keyspace, statement, options)
 
-        send_request_by_plan(keyspace, statement, request, plan, timeout).map do |r|
-          Statements::Prepared.new(cql, r.metadata, r.result_metadata, r.trace_id)
+        send_request_by_plan(keyspace, statement, request, plan, timeout) do |keyspace, statement, request, response, hosts|
+          execution_info = create_execution_info(keyspace, statement, options, request, response, hosts)
+
+          Statements::Prepared.new(cql, response.metadata, response.result_metadata, execution_info)
         end
       end
 
-      def execute(statement, options)
+      def execute(statement, options, paging_state = nil)
+        timeout         = options.timeout
+        result_metadata = statement.result_metadata
+        request         = Protocol::ExecuteRequest.new(nil, statement.params_metadata, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
+
         keyspace = @keyspace
         plan     = @load_balancing_policy.plan(keyspace, statement, options)
 
-        execute_by_plan(keyspace, statement, plan, options)
+        execute_by_plan(keyspace, statement, result_metadata, request, plan, timeout) do |keyspace, statement, request, response, hosts|
+          execution_info = create_execution_info(keyspace, statement, options, request, response, hosts)
+
+          case response
+          when Protocol::RawRowsResultResponse
+            response.materialize(result_metadata)
+            Results::Paged.new(result_metadata, response.rows, response.paging_state, execution_info)
+          when Protocol::RowsResultResponse
+            Results::Paged.new(response.metadata, response.rows, response.paging_state, execution_info)
+          else
+            Results::Void.new(execution_info)
+          end
+        end
       end
 
       def batch(statement, options)
         keyspace = @keyspace
         plan     = @load_balancing_policy.plan(keyspace, statement, options)
 
-        batch_by_plan(keyspace, statement, plan, options)
+        batch_by_plan(keyspace, statement, plan, options) do |keyspace, statement, request, response, hosts|
+          execution_info = create_execution_info(keyspace, statement, options, request, response, hosts)
+
+          Results::Void.new(execution_info)
+        end
       end
 
       private
@@ -272,20 +303,29 @@ module Cql
         end
       end
 
-      def execute_by_plan(keyspace, statement, plan, options, errors = {})
-        host            = plan.next
-        timeout         = options.timeout
-        id              = @prepared_statements[host][statement.cql]
-        result_metadata = statement.result_metadata
+      def execute_by_plan(keyspace, statement, result_metadata, request, plan, timeout, errors = {}, hosts = [], &block)
+        hosts << host = plan.next
+        id = @prepared_statements[host][statement.cql]
 
         if id
-          request = Protocol::ExecuteRequest.new(id, statement.params_metadata, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, nil, options.trace?)
+          request.id = id
           f = send_request(keyspace, statement, request, timeout, host, result_metadata)
+          if block_given?
+            f = f.map do |r|
+              yield(keyspace, statement, request, r, hosts)
+            end
+          end
         else
           f = send_request(keyspace, VOID_STATEMENT, Protocol::PrepareRequest.new(statement.cql, false), timeout, host)
           f = f.flat_map do |result|
-            request = Protocol::ExecuteRequest.new(result.id, statement.params_metadata, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, nil, options.trace?)
-            send_request(keyspace, statement, request, timeout, host, result_metadata)
+            request.id = result.id
+            f = send_request(keyspace, statement, request, timeout, host, result_metadata)
+            if block_given?
+              f = f.map do |r|
+                yield(keyspace, statement, request, r, hosts)
+              end
+            end
+            f
           end
         end
 
@@ -293,7 +333,7 @@ module Cql
           raise e if e.is_a?(QueryError)
 
           errors[host] = e
-          execute_by_plan(keyspace, statement, plan, options, errors)
+          execute_by_plan(keyspace, statement, result_metadata, request, plan, timeout, errors, hosts, &block)
         end
       rescue ::KeyError
         retry
@@ -356,14 +396,19 @@ module Cql
         raise NoHostsAvailable.new(errors)
       end
 
-      def send_request_by_plan(keyspace, statement, request, plan, timeout, errors = {})
-        host = plan.next
+      def send_request_by_plan(keyspace, statement, request, plan, timeout, errors = {}, hosts = [], &block)
+        hosts << host = plan.next
         f = send_request(keyspace, statement, request, timeout, host)
+        if block_given?
+          f = f.map do |r|
+            yield(keyspace, statement, request, r, hosts)
+          end
+        end
         f.fallback do |e|
           raise e if e.is_a?(QueryError)
 
           errors[host] = e
-          send_request_by_plan(keyspace, statement, request, plan, timeout, errors)
+          send_request_by_plan(keyspace, statement, request, plan, timeout, errors, hosts, &block)
         end
       rescue ::KeyError
         retry
@@ -399,16 +444,12 @@ module Cql
         do_send_request(host, connection, VOID_STATEMENT, request, timeout, nil)
       end
 
-      def do_send_request(host, connection, statement, request, timeout, response_metadata, attempts = 0)
+      def do_send_request(host, connection, statement, request, timeout, response_metadata, retries = 0)
+        request.retries = retries
+
         f = connection.send_request(request, timeout)
         f = f.map do |r|
           case r
-          when Protocol::RawRowsResultResponse
-            Cql::Client::LazyQueryResult.new(response_metadata, r, r.trace_id, r.paging_state)
-          when Protocol::RowsResultResponse
-            Cql::Client::QueryResult.new(r.metadata, r.rows, r.trace_id, r.paging_state)
-          when Protocol::VoidResultResponse
-            r.trace_id ? Cql::Client::VoidResult.new(r.trace_id) : Cql::Client::VoidResult::INSTANCE
           when Protocol::DetailedErrorResponse
             raise QueryError.new(r.code, r.message, statement.cql, r.details)
           when Protocol::ErrorResponse
@@ -417,17 +458,13 @@ module Cql
             connection[:pending_switch]   = nil
             connection[:pending_keyspace] = nil
             @keyspace = r.keyspace
-            r.trace_id ? Cql::Client::VoidResult.new(r.trace_id) : Cql::Client::VoidResult::INSTANCE
           when Protocol::PreparedResultResponse
             prepared_statements = @prepared_statements.dup
             prepared_statements[host][request.cql] = r.id
-
             @prepared_statements = prepared_statements
-
-            r
-          else
-            Cql::Client::VoidResult::INSTANCE
           end
+
+          r
         end
 
         f.fallback do |e|
@@ -436,11 +473,11 @@ module Cql
           details  = e.details
           decision = case e.code
           when 0x1000 # unavailable
-            @retry_policy.unavailable(statement, details[:cl], details[:required], details[:alive], attempt)
+            @retry_policy.unavailable(statement, details[:cl], details[:required], details[:alive], retries)
           when 0x1100 # write_timeout
-            @retry_policy.write_timeout(statement, details[:cl], details[:write_type], details[:blockfor], details[:received], attempt)
+            @retry_policy.write_timeout(statement, details[:cl], details[:write_type], details[:blockfor], details[:received], retries)
           when 0x1200 # read_timeout
-            @retry_policy.read_timeout(statement, details[:cl], details[:blockfor], details[:received], details[:data_present], attempt)
+            @retry_policy.read_timeout(statement, details[:cl], details[:blockfor], details[:received], details[:data_present], retries)
           else
             raise e
           end
@@ -448,7 +485,7 @@ module Cql
           case decision
           when Retry::Decisions::Retry
             request.consistency = decision.consistency
-            do_send_request(host, connection, statement, request, timeout, response_metadata, attempt + 1)
+            do_send_request(host, connection, statement, request, timeout, response_metadata, retries + 1)
           when Retry::Decisions::Ignore
             Future.resolved(Cql::Client::VoidResult::INSTANCE)
           when Retry::Decisions::Reraise
@@ -457,6 +494,12 @@ module Cql
             raise e
           end
         end
+      end
+
+      def create_execution_info(keyspace, statement, options, request, response, hosts)
+        trace_id = response.trace_id
+        trace    = trace_id ? Execution::Trace.new(trace_id, self) : nil
+        info     = Execution::Info.new(keyspace, statement, options, hosts, request.consistency, request.retries, trace)
       end
     end
   end
