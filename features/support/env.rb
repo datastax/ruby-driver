@@ -63,7 +63,7 @@ module CCM
 
     def self.count_datacenters(node, ccm)
       ccm.
-          exec("#{node} nodetool status").
+          exec("#{node} status").
           split("\n").
           find_all { |line| line.start_with? "Datacenter:" }.
           count
@@ -74,6 +74,9 @@ module CCM
     def initialize(name, ccm)
       @name  = name
       @ccm   = ccm
+
+      start unless running?
+
       @nodes = Cluster.list_nodes(ccm)
       @no_dc = Cluster.count_datacenters(@nodes.first, ccm)
     end
@@ -175,11 +178,12 @@ module CCM
       @ccm.exec('status').
           split("\n").
           find_all { |line| line.end_with? "DOWN" }.
+          map { |line| line.sub(': DOWN', '') }.
           each { |node| start_node(node) }
       self
     end
 
-    def is_running?
+    def running?
       @ccm.exec('status').
         split("\n").
         find_all { |line| line.end_with? "DOWN" }.
@@ -291,8 +295,9 @@ module CCM
 
   def create_if_necessary(name, no_dc, no_nodes_per_dc)
     if Cluster.exists?(name, ccm)
+      switch_cluster(name) unless name == current_cluster
       cluster = Cluster.new(name, ccm)
-      if cluster.is_running? and cluster.has_n_datacenters?(no_dc) and cluster.has_n_nodes_per_dc?(no_nodes_per_dc)
+      if cluster.running? and cluster.has_n_datacenters?(no_dc) and cluster.has_n_nodes_per_dc?(no_nodes_per_dc)
         cluster.start_down_nodes
       else
         remove_cluster(name)
