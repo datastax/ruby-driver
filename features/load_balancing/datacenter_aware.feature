@@ -2,11 +2,11 @@
 
 Feature: Datacenter-aware Round Robin Policy
 
-  A specialized Round Robin load balancing policy allows for querying remote datacenters when all local nodes are down.
+  A specialized Round Robin load balancing policy allows for querying remotedatacenters when all local nodes are down.
 
   The effects of the policy can be seen by enabling requests tracing. The
-  coordinator node that served every traced request can be retrieved from the
-  system_traces.session table.
+  coordinator node that served every request can be retrieved from the
+  execution info of the result.
 
   Scenario: Datacenter-aware Round Robin policy prefers hosts from a local datacenter
     Given a running cassandra cluster in 2 datacenters with 2 nodes in each
@@ -21,21 +21,12 @@ Feature: Datacenter-aware Round Robin Policy
       .build
     session = cluster.connect('simplex')
 
-    trace_ids = []
-    4.times do
-      trace_ids.push session.execute("SELECT * FROM songs", :trace => true).trace_id.to_s
+    coordinator_ips = 4.times.map do
+      info = session.execute("SELECT * FROM songs").execution_info
+      info.hosts.last.ip
     end
 
-    coordinators = session.execute(
-      "SELECT coordinator
-       FROM system_traces.sessions
-       WHERE session_id IN (#{trace_ids.join(",")})"
-    )
-    ips = coordinators.map do |row|
-      row["coordinator"].to_s
-    end
-
-    puts ips.sort
+    puts coordinator_ips.sort.uniq
     """
     When it is executed
     Then its output should contain:

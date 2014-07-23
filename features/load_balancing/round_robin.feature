@@ -6,8 +6,8 @@ Feature: Round Robin Policy
   nodes.
 
   The effects of the policy can be seen by enabling requests tracing. The
-  coordinator node that served every traced request can be retrieved from the
-  system_traces.session table.
+  coordinator node that served every request is the last host in
+  execution info.
 
   Scenario: Round Robin policy is used by default
     Given a running cassandra cluster with a schema "simplex" and a table "songs"
@@ -18,23 +18,12 @@ Feature: Round Robin Policy
       cluster = Cql.cluster.build
       session = cluster.connect('simplex')
 
-      results_1 = session.execute("SELECT * FROM songs", :trace => true)
-      results_2 = session.execute("SELECT * FROM songs", :trace => true)
-      results_3 = session.execute("SELECT * FROM songs", :trace => true)
-
-      coordinators = session.execute(
-        "SELECT coordinator
-         FROM system_traces.sessions
-         WHERE session_id IN (?, ?, ?)",
-         results_1.trace_id,
-         results_2.trace_id,
-         results_3.trace_id
-      )
-      ips = coordinators.map do |row|
-        row["coordinator"].to_s
+      coordinator_ips = 3.times.map do
+        info = session.execute("SELECT * FROM songs").execution_info
+        info.hosts.last.ip
       end
 
-      puts ips.sort
+      puts coordinator_ips.sort
       """
     When it is executed
     Then its output should contain:
@@ -55,21 +44,12 @@ Feature: Round Robin Policy
         .build
       session = cluster.connect('simplex')
 
-      results_1 = session.execute("SELECT * FROM songs", :trace => true)
-      results_2 = session.execute("SELECT * FROM songs", :trace => true)
-      results_3 = session.execute("SELECT * FROM songs", :trace => true)
-
-      coordinators = session.execute(
-        "SELECT coordinator
-         FROM system_traces.sessions
-         WHERE session_id IN (?, ?, ?)",
-         results_1.trace_id,
-         results_2.trace_id,
-         results_3.trace_id
-      )
-      ips = coordinators.map do |row|
-        row["coordinator"].to_s
+      coordinator_ips = 3.times.map do
+        info = session.execute("SELECT * FROM songs").execution_info
+        info.hosts.last.ip
       end
+
+      puts coordinator_ips.sort
 
       puts ips.sort
       """
@@ -94,21 +74,12 @@ Feature: Round Robin Policy
         .build
       session = cluster.connect('simplex')
 
-      trace_ids = []
-      4.times do
-        trace_ids.push session.execute("SELECT * FROM songs", :trace => true).trace_id.to_s
+      coordinator_ips = 4.times.map do
+        info = session.execute("SELECT * FROM songs").execution_info
+        info.hosts.last.ip
       end
 
-      coordinators = session.execute(
-        "SELECT coordinator
-         FROM system_traces.sessions
-         WHERE session_id IN (#{trace_ids.join(",")})"
-      )
-      ips = coordinators.map do |row|
-        row["coordinator"].to_s
-      end
-
-      puts ips.sort
+      puts coordinator_ips.sort
       """
     When it is executed
     Then its output should contain:

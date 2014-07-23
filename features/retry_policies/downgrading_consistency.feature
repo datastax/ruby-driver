@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-@todo
+@wip
 Feature: Downgrading Consistency Retry Policy
 
   The Downgrading Consistency retry policy retries failed queries with a lower
@@ -25,7 +25,7 @@ Feature: Downgrading Consistency Retry Policy
       session = cluster.connect('simplex')
       result  = session.execute('SELECT * FROM songs', consistency: :all)
 
-      if result.info.consistency == :quorum
+      if result.execution_info.consistency == :quorum
         puts "success"
       else
         puts "failure"
