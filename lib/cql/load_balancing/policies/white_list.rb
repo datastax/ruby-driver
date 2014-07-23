@@ -37,7 +37,7 @@ module Cql
             when ::IPAddr
               @ips << ip
             when ::String
-              @ips << IPAddr.new(ip)
+              @ips << ::IPAddr.new(ip)
             else
               raise ::ArgumentError, "ips must contain only instance of String or IPAddr, #{ip.inspect} given"
             end
