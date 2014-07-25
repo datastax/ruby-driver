@@ -336,7 +336,7 @@ module Cql
         raise NoHostsAvailable.new(errors)
       end
 
-      def batch_by_plan(keyspace, batch, plan, options, errors = {}, hosts = [])
+      def batch_by_plan(keyspace, batch, plan, options, errors = {}, hosts = [], &block)
         hosts << host = plan.next
         request = Protocol::BatchRequest.new(BATCH_TYPES[batch.type], options.consistency, options.trace?)
         timeout = options.timeout
@@ -389,7 +389,7 @@ module Cql
           raise e if e.is_a?(QueryError)
 
           errors[host] = e
-          batch_by_plan(keyspace, batch, plan, options, errors, hosts)
+          batch_by_plan(keyspace, batch, plan, options, errors, hosts, &block)
         end
       rescue ::KeyError
         retry
