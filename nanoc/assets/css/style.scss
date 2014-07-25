@@ -1,0 +1,44 @@
+@import "bootstrap/bootstrap";
+
+body {
+  padding-top: 60px;
+  position: relative;
+}
+
+.steps {
+  dt {
+    float: left;
+    clear: left;
+    padding-right: 6px;
+    width: 70px;
+    text-align: right;
+  }
+
+  dd {
+    display: block;
+  }
+}
+
+.side-nav .nav {
+  display: none;
+  padding-bottom: 10px;
+}
+
+.side-nav>.active>ul {
+  display: block;
+}
+
+.side-nav .nav>li>a {
+//  padding-top: 1px;
+//  padding-bottom: 1px;
+  padding-left: 30px;
+//  font-size: 12px;
+//  font-weight: 400;
+}
+
+.side-nav.affix-bottom,
+.side-nav.affix {
+  @media (min-width: 1200px) {
+    width: 263px;
+  }
+}
