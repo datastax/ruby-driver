@@ -20,12 +20,17 @@ module Docs
     private
 
     def add_items_to(items, extension)
-      attrs = {:extension => extension}
+      attrs = {:extension => extension, :section => '/' + features_dir_name}
       glob  = ['**', '*.' + extension].join('/')
       glob  = [features_dir_name, glob].join('/') unless features_dir_name.empty?
 
       Dir[glob].each do |path|
-        items << Nanoc::Item.new(File.read(path), attrs, path.split('.').first)
+        *base, filename = path.split('/')
+        *filename, _ = filename.split('.')
+        filename = filename.join('.')
+        title    = filename.split('_').map(&:capitalize).join(' ')
+
+        items << Nanoc::Item.new(File.read(path), attrs.merge(:title => title), (base << filename).join('/'))
       end
     end
   end

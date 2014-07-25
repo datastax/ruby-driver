@@ -134,7 +134,7 @@ DEPENDENCIES
   cql-rb!
   cucumber
   gherkin
-  guard (= 2.6.1)
+  guard
   guard-nanoc
   lz4-ruby
   nanoc
