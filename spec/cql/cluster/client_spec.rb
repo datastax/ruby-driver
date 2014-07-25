@@ -580,7 +580,7 @@ module Cql
         it 'sends a BatchRequest' do
           sent = false
           batch = Statements::Batch::Logged.new
-          batch_request = double('batch request')
+          batch_request = double('batch request', :consistency => :one, :retries => 0)
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
@@ -607,7 +607,7 @@ module Cql
         it 'can include prepared statements' do
           sent = false
           batch = Statements::Batch::Logged.new
-          batch_request = double('batch request')
+          batch_request = double('batch request', :consistency => :one, :retries => 0)
           params_metadata = double('params metadata', :size => 5)
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
@@ -640,7 +640,7 @@ module Cql
           sent = false
           count = 0
           batch = Statements::Batch::Logged.new
-          batch_request = double('batch request')
+          batch_request = double('batch request', :consistency => :one, :retries => 0)
           params_metadata = double('params metadata', :size => 5)
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
