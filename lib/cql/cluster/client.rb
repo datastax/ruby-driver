@@ -310,22 +310,17 @@ module Cql
         if id
           request.id = id
           f = send_request(keyspace, statement, request, timeout, host, result_metadata)
-          if block_given?
-            f = f.map do |r|
-              yield(keyspace, statement, request, r, hosts)
-            end
-          end
         else
           f = send_request(keyspace, VOID_STATEMENT, Protocol::PrepareRequest.new(statement.cql, false), timeout, host)
           f = f.flat_map do |result|
             request.id = result.id
-            f = send_request(keyspace, statement, request, timeout, host, result_metadata)
-            if block_given?
-              f = f.map do |r|
-                yield(keyspace, statement, request, r, hosts)
-              end
-            end
-            f
+            send_request(keyspace, statement, request, timeout, host, result_metadata)
+          end
+        end
+
+        if block_given?
+          f = f.map do |r|
+            yield(keyspace, statement, request, r, hosts)
           end
         end
 
@@ -341,8 +336,8 @@ module Cql
         raise NoHostsAvailable.new(errors)
       end
 
-      def batch_by_plan(keyspace, batch, plan, options, errors = {})
-        host    = plan.next
+      def batch_by_plan(keyspace, batch, plan, options, errors = {}, hosts = [])
+        hosts << host = plan.next
         request = Protocol::BatchRequest.new(BATCH_TYPES[batch.type], options.consistency, options.trace?)
         timeout = options.timeout
 
@@ -384,11 +379,17 @@ module Cql
           end
         end
 
+        if block_given?
+          f = f.map do |r|
+            yield(keyspace, batch, request, r, hosts)
+          end
+        end
+
         f.fallback do |e|
           raise e if e.is_a?(QueryError)
 
           errors[host] = e
-          batch_by_plan(keyspace, batch, plan, options, errors)
+          batch_by_plan(keyspace, batch, plan, options, errors, hosts)
         end
       rescue ::KeyError
         retry
@@ -417,7 +418,7 @@ module Cql
       end
 
       def send_request(keyspace, statement, request, timeout, host, response_metadata = nil)
-        connection = @connections.fetch(host).random_connection
+        connection = @connections[host].random_connection
 
         if keyspace && connection.keyspace != keyspace
           if connection[:pending_keyspace] == keyspace

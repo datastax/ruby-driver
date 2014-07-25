@@ -58,3 +58,14 @@ end
 
 desc 'Run all tests'
 task :test => [:rspec, :cucumber]
+
+desc 'Generate documentation'
+task :docs do
+  require 'nanoc'
+  require 'redcarpet'
+  require 'gherkin'
+  require 'pygments'
+  require 'nokogiri'
+
+  Nanoc::Site.new('.').compile
+end

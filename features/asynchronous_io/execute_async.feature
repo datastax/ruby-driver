@@ -1,4 +1,4 @@
-Feature: asynchronous query execution
+Feature: Asynchronous query execution
 
   Session objects support non-blocking statement execution using `Session#execute_async` method.
   This method returns a `Future` object that can be resolved to get actual value.
@@ -6,7 +6,7 @@ Feature: asynchronous query execution
   Background:
     Given a running cassandra cluster with a schema "simplex" and a table "songs"
 
-  Scenario: an asynchronous query returns a promise that is fulfilled later
+  Scenario: An asynchronous query returns a promise that is fulfilled later
     Given the following example:
       """ruby
       require 'cql'

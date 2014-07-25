@@ -8,3 +8,5 @@
 /.ruby-version
 /.ruby-gemset
 /.rvmrc
+/docs
+/.sass-cache
