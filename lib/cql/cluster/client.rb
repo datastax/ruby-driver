@@ -388,8 +388,8 @@ module Cql
         raise NoHostsAvailable.new(errors)
       end
 
-      def send_request_by_plan(future, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = nil)
-        host = plan.next
+      def send_request_by_plan(future, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
+        hosts << host = plan.next
         connection = @connections[host].random_connection
 
         if keyspace && connection.keyspace != keyspace
@@ -407,7 +407,7 @@ module Cql
           do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
         end
       rescue ::StopIteration
-        future.fail(NoHostsAvailable.new(errors))
+        future.fail(NoHostsAvailable.new(errors || {}))
       end
 
       def do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts, retries = 0)
@@ -467,7 +467,9 @@ module Cql
 
               future.resolve(Results::Paged.new(r.metadata, r.rows, r.paging_state, info))
             else
-              future.resolve(r)
+              execution_info = create_execution_info(keyspace, statement, options, request, r, hosts)
+
+              future.resolve(Results::Void.new(execution_info))
             end
           else
             errors ||= {}
