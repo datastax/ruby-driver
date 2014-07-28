@@ -1,12 +1,18 @@
 # encoding: utf-8
 
 class Benchmark
-    def run(n = 10000)
+    def initialize
+        @success, @errors = 0, 0
+        @watcher_should_continue = true
+        @iterations = 10000 
+    end
+
+    def run(n)
         @start = Time.now
-        @iterations = n
+        @iterations = n.to_i unless n.nil?
         connect_to_cluster
         start_watcher_thread
-        target(@iterations)
+        target
         stop_watcher_thread
         puts "#{Time.now - @start} Done."
     end
@@ -16,8 +22,6 @@ class Benchmark
     end
 
     def start_watcher_thread
-        @watcher_should_continue = true
-        @success, @errors = 0, 0
         @watcher = Thread.new do
             puts "# Started watcher"
             old_ack = 0
@@ -31,8 +35,8 @@ class Benchmark
         end
     end
 
-    def target(iterations)
-        puts "Should do something #{iterations} times"
+    def target
+        puts "Should do something #{@iterations} times"
     end
 
     def stop_watcher_thread
@@ -51,7 +55,7 @@ class Benchmark
         @success += 1
     end
 
-    def increment errors
+    def increment_errors
         @errors += 1
     end
 end

@@ -10,11 +10,11 @@ class UnpreparedSelectRubyDriver < Benchmark
         @session = @cluster.connect("simplex")
     end
 
-    def target(iterations)
+    def target
         # Create select requests
-        puts "#{Time.now - start} Starting producing #{iterations} selects..."
+        puts "#{Time.now - start} Starting producing #{@iterations} selects..."
         statement = Cql::Statements::Simple.new("SELECT COUNT(*) FROM songs")
-        futures = iterations.times.map do
+        futures = @iterations.times.map do
             @session.execute_async(statement)
         end
 
@@ -32,4 +32,4 @@ class UnpreparedSelectRubyDriver < Benchmark
     end
 end
 
-UnpreparedSelectRubyDriver.new.run
+UnpreparedSelectRubyDriver.new.run ARGV[0]

@@ -12,10 +12,10 @@ class UnpreparedSelectCqlRb < Benchmark
         at_exit { @client.close.value }
     end
 
-    def target(iterations)
+    def target
         # Create select requests
-        puts "#{Time.now - start} Starting producing #{iterations} selects..."
-        futures = iterations.times.map do
+        puts "#{Time.now - start} Starting producing #{@iterations} selects..."
+        futures = @iterations.times.map do
             @client.execute("SELECT COUNT(*) FROM songs")
         end
 
@@ -33,4 +33,4 @@ class UnpreparedSelectCqlRb < Benchmark
     end
 end
 
-UnpreparedSelectCqlRb.new.run
+UnpreparedSelectCqlRb.new.run ARGV[0]
