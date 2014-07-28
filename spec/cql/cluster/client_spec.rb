@@ -22,7 +22,7 @@ module Cql
                                } }
 
       let(:driver) { Driver.new(driver_settings) }
-      let(:client) { Client.new(driver) }
+      let(:client) { Client.new(driver.logger, driver.cluster_registry, driver.io_reactor, driver.load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.connection_options) }
 
       describe('#connect') do
         context 'when all hosts are ignored' do
@@ -317,6 +317,7 @@ module Cql
           attempts = []
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
+              request
               case request
               when Cql::Protocol::StartupRequest
                 Cql::Protocol::ReadyResponse.new
@@ -483,7 +484,7 @@ module Cql
                 Cql::Protocol::ReadyResponse.new
               when Cql::Protocol::PrepareRequest
                 count += 1
-                Protocol::PreparedResultResponse.new(123, [], [], nil)
+                Protocol::PreparedResultResponse.new('123', [], [], nil)
               when Cql::Protocol::ExecuteRequest
                 sent = true
                 Cql::Protocol::RowsResultResponse.new([], [], nil, nil)

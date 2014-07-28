@@ -126,52 +126,42 @@ module Cql
       end
 
       def prepare(cql, options)
-        request   = Protocol::PrepareRequest.new(cql, options.trace?)
-        timeout   = options.timeout
+        request = Protocol::PrepareRequest.new(cql, options.trace?)
+        timeout = options.timeout
+        future  = Ione::CompletableFuture.new
+
+        keyspace  = @keyspace
         statement = VOID_STATEMENT
+        plan      = @load_balancing_policy.plan(keyspace, statement, options)
 
-        keyspace = @keyspace
-        plan     = @load_balancing_policy.plan(keyspace, statement, options)
+        send_request_by_plan(future, keyspace, statement, options, request, plan, timeout)
 
-        send_request_by_plan(keyspace, statement, request, plan, timeout) do |keyspace, statement, request, response, hosts|
-          execution_info = create_execution_info(keyspace, statement, options, request, response, hosts)
-
-          Statements::Prepared.new(cql, response.metadata, response.result_metadata, execution_info)
-        end
+        future
       end
 
       def execute(statement, options, paging_state = nil)
         timeout         = options.timeout
         result_metadata = statement.result_metadata
         request         = Protocol::ExecuteRequest.new(nil, statement.params_metadata, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
+        future          = Ione::CompletableFuture.new
 
         keyspace = @keyspace
         plan     = @load_balancing_policy.plan(keyspace, statement, options)
 
-        execute_by_plan(keyspace, statement, result_metadata, request, plan, timeout) do |keyspace, statement, request, response, hosts|
-          execution_info = create_execution_info(keyspace, statement, options, request, response, hosts)
+        execute_by_plan(future, keyspace, statement, options, request, plan, timeout)
 
-          case response
-          when Protocol::RawRowsResultResponse
-            response.materialize(result_metadata)
-            Results::Paged.new(result_metadata, response.rows, response.paging_state, execution_info)
-          when Protocol::RowsResultResponse
-            Results::Paged.new(response.metadata, response.rows, response.paging_state, execution_info)
-          else
-            Results::Void.new(execution_info)
-          end
-        end
+        future
       end
 
       def batch(statement, options)
+        timeout  = options.timeout
         keyspace = @keyspace
         plan     = @load_balancing_policy.plan(keyspace, statement, options)
+        future   = Ione::CompletableFuture.new
 
-        batch_by_plan(keyspace, statement, plan, options) do |keyspace, statement, request, response, hosts|
-          execution_info = create_execution_info(keyspace, statement, options, request, response, hosts)
+        batch_by_plan(future, keyspace, statement, options, plan, timeout)
 
-          Results::Void.new(execution_info)
-        end
+        future
       end
 
       private
@@ -294,47 +284,77 @@ module Cql
         end
       end
 
-      def execute_by_plan(keyspace, statement, result_metadata, request, plan, timeout, errors = {}, hosts = [], &block)
+      def execute_by_plan(future, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
         hosts << host = plan.next
-        id = @prepared_statements[host][statement.cql]
+        connection = @connections[host].random_connection
+
+        if keyspace && connection.keyspace != keyspace
+          switch = switch_keyspace(connection, keyspace, timeout)
+          switch.on_complete do |s|
+            if s.resolved?
+              prepare_and_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+            else
+              s.on_failure do |e|
+                future.fail(e)
+              end
+            end
+          end
+        else
+          prepare_and_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+        end
+      rescue ::StopIteration
+        future.fail(NoHostsAvailable.new(errors || {}))
+      end
+
+      def prepare_and_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+        cql = statement.cql
+        id  = @prepared_statements[host][cql]
 
         if id
           request.id = id
-          f = send_request(keyspace, statement, request, timeout, host, result_metadata)
+          do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
         else
-          f = send_request(keyspace, VOID_STATEMENT, Protocol::PrepareRequest.new(statement.cql, false), timeout, host)
-          f = f.flat_map do |result|
-            request.id = result.id
-            send_request(keyspace, statement, request, timeout, host, result_metadata)
+          prepare = prepare_statement(host, connection, cql, timeout)
+          prepare.on_complete do |_|
+            if prepare.resolved?
+              request.id = prepare.value
+              do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+            else
+              prepare.on_failure do |e|
+                future.fail(e)
+              end
+            end
           end
         end
-
-        if block_given?
-          f = f.map do |r|
-            yield(keyspace, statement, request, r, hosts)
-          end
-        end
-
-        f.fallback do |e|
-          raise e if e.is_a?(QueryError)
-
-          errors[host] = e
-          execute_by_plan(keyspace, statement, result_metadata, request, plan, timeout, errors, hosts, &block)
-        end
-      rescue ::KeyError
-        retry
-      rescue ::StopIteration
-        raise NoHostsAvailable.new(errors)
       end
 
-      def batch_by_plan(keyspace, batch, plan, options, errors = {}, hosts = [], &block)
+      def batch_by_plan(future, keyspace, statement, options, plan, timeout, errors = nil, hosts = [])
         hosts << host = plan.next
-        request = Protocol::BatchRequest.new(BATCH_TYPES[batch.type], options.consistency, options.trace?)
-        timeout = options.timeout
+        connection = @connections[host].random_connection
 
+        if keyspace && connection.keyspace != keyspace
+          switch = switch_keyspace(connection, keyspace, timeout)
+          switch.on_complete do |s|
+            if s.resolved?
+              batch_and_send_request_by_plan(host, connection, future, keyspace, statement, options, plan, timeout, errors, hosts)
+            else
+              s.on_failure do |e|
+                future.fail(e)
+              end
+            end
+          end
+        else
+          batch_and_send_request_by_plan(host, connection, future, keyspace, statement, options, plan, timeout, errors, hosts)
+        end
+      rescue ::StopIteration
+        future.fail(NoHostsAvailable.new(errors || {}))
+      end
+
+      def batch_and_send_request_by_plan(host, connection, future, keyspace, statement, options, plan, timeout, errors, hosts)
+        request    = Protocol::BatchRequest.new(BATCH_TYPES[statement.type], options.consistency, options.trace?)
         unprepared = Hash.new {|hash, cql| hash[cql] = []}
 
-        batch.statements.each do |statement|
+        statement.statements.each do |statement|
           cql = statement.cql
 
           if statement.is_a?(Statements::Bound)
@@ -351,41 +371,30 @@ module Cql
         end
 
         if unprepared.empty?
-          f = send_request(keyspace, batch, request, timeout, host)
+          do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
         else
           to_prepare = unprepared.to_a
           futures    = to_prepare.map do |cql, _|
-            send_request(keyspace, VOID_STATEMENT, Protocol::PrepareRequest.new(cql, false), timeout, host)
+            prepare_statement(host, connection, cql, timeout)
           end
 
-          f = Future.all(*futures).flat_map do |responses|
-            to_prepare.each_with_index do |(_, statements), i|
-              id = responses[i].id
-              statements.each do |statement|
-                request.add_prepared(id, statement.params_metadata, statement.params)
+          Future.all(*futures).on_complete do |f|
+            if f.resolved?
+              prepared_ids = f.value
+              to_prepare.each_with_index do |(_, statements), i|
+                statements.each do |statement|
+                  request.add_prepared(prepared_ids[i], statement.params_metadata, statement.params)
+                end
+              end
+
+              do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+            else
+              f.on_failure do |e|
+                future.fail(e)
               end
             end
-
-            send_request(keyspace, batch, request, timeout, host)
           end
         end
-
-        if block_given?
-          f = f.map do |r|
-            yield(keyspace, batch, request, r, hosts)
-          end
-        end
-
-        f.fallback do |e|
-          raise e if e.is_a?(QueryError)
-
-          errors[host] = e
-          batch_by_plan(keyspace, batch, plan, options, errors, hosts, &block)
-        end
-      rescue ::KeyError
-        retry
-      rescue ::StopIteration
-        raise NoHostsAvailable.new(errors)
       end
 
       def send_request_by_plan(future, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
@@ -398,7 +407,7 @@ module Cql
             if s.resolved?
               do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
-              switch.on_failure do |e|
+              s.on_failure do |e|
                 future.fail(e)
               end
             end
@@ -461,68 +470,55 @@ module Cql
 
               future.resolve(Statements::Prepared.new(cql, r.metadata, r.result_metadata, execution_info))
             when Protocol::RowsResultResponse
-              trace_id = r.trace_id
-              trace    = trace_id ? Execution::Trace.new(trace_id, self) : nil
-              info     = Execution::Info.new(keyspace, statement, options, hosts, request.consistency, retries, trace)
+              execution_info = create_execution_info(keyspace, statement, options, request, r, hosts)
 
-              future.resolve(Results::Paged.new(r.metadata, r.rows, r.paging_state, info))
+              future.resolve(Results::Paged.new(r.metadata, r.rows, r.paging_state, execution_info))
+            when Protocol::RawRowsResultResponse
+              execution_info  = create_execution_info(keyspace, statement, options, request, r, hosts)
+              result_metadata = statement.result_metadata
+
+              response.materialize(result_metadata)
+              future.resolve(Results::Paged.new(result_metadata, r.rows, r.paging_state, execution_info))
             else
               execution_info = create_execution_info(keyspace, statement, options, request, r, hosts)
 
               future.resolve(Results::Void.new(execution_info))
             end
           else
-            errors ||= {}
-            errors[host] = e
-            send_request_by_plan(future, keyspace, statement, options, request, plan, timeout, errors, hosts)
-          end
-        end
-      end
-
-      def send_request(keyspace, statement, request, timeout, host, response_metadata = nil)
-        connection = @connections[host].random_connection
-        future     = Ione::CompletableFuture.new
-
-        if keyspace && connection.keyspace != keyspace
-          if connection[:pending_keyspace] == keyspace
-            switch = connection[:pending_switch]
-          else
-            connection[:pending_switch] = switch = switch_keyspace(host, connection, keyspace, timeout)
-          end
-
-          switch.on_value do |_|
-            f = do_send_request(host, connection, statement, request, timeout, response_metadata)
-            f.on_value do |r|
-              future.resolve(r)
-            end
-
             f.on_failure do |e|
-              future.fail(e)
+              errors ||= {}
+              errors[host] = e
+              case request
+              when Protocol::QueryRequest, Protocol::PrepareRequest
+                send_request_by_plan(future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+              when Protocol::ExecuteRequest
+                execute_by_plan(future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+              when Protocol::BatchRequest
+                batch_by_plan(future, keyspace, statement, options, plan, timeout, errors, hosts)
+              else
+                future.fail(e)
+              end
             end
           end
-
-          switch.on_failure do |e|
-            future.fail(e)
-          end
-        else
-          f = do_send_request(host, connection, statement, request, timeout, response_metadata)
-
-          f.on_value do |r|
-            future.resolve(r)
-          end
-
-          f.on_failure do |e|
-            future.fail(e)
-          end
         end
-
-        future
       end
 
       def switch_keyspace(connection, keyspace, timeout)
         return connection[:pending_switch] if connection[:pending_keyspace] == keyspace
 
-        f = connection.send_request(Protocol::QueryRequest.new("USE #{keyspace}", nil, nil, :one), timeout)
+        f = connection.send_request(Protocol::QueryRequest.new("USE #{keyspace}", nil, nil, :one), timeout).map do |r|
+          case r
+          when Protocol::SetKeyspaceResultResponse
+            @keyspace = r.keyspace
+            nil
+          when Protocol::DetailedErrorResponse
+            raise QueryError.new(r.code, r.message, cql, r.details)
+          when Protocol::ErrorResponse
+            raise QueryError.new(r.code, r.message, cql, nil)
+          else
+            raise "unexpected response #{r.inspect}"
+          end
+        end
 
         connection[:pending_keyspace] = keyspace
         connection[:pending_switch]   = f
@@ -530,70 +526,24 @@ module Cql
         f.on_complete do |f|
           connection[:pending_switch]   = nil
           connection[:pending_keyspace] = nil
-          @keyspace = f.value.keyspace if f.resolved?
         end
 
         f
       end
 
-      def do_send_request(future, hosts, host, connection, statement, request, timeout, retries = 0, &block)
-        request.retries = retries
-
-        f = connection.send_request(request, timeout)
-        f.on_complete do |f|
-          if f.resolved?
-            r = f.value
-            r = case r
-            when Protocol::DetailedErrorResponse
-              details  = r.details
-              decision = case r.code
-              when 0x1000 # unavailable
-                @retry_policy.unavailable(statement, details[:cl], details[:required], details[:alive], retries)
-              when 0x1100 # write_timeout
-                @retry_policy.write_timeout(statement, details[:cl], details[:write_type], details[:blockfor], details[:received], retries)
-              when 0x1200 # read_timeout
-                @retry_policy.read_timeout(statement, details[:cl], details[:blockfor], details[:received], details[:data_present], retries)
-              else
-                future.fail(QueryError.new(r.code, r.message, statement.cql, r.details))
-                break
-              end
-
-              case decision
-              when Retry::Decisions::Retry
-                request.consistency = decision.consistency
-                do_send_request(future, hosts, host, connection, statement, request, timeout, retries + 1, &block)
-                break
-              when Retry::Decisions::Ignore
-                r
-              when Retry::Decisions::Reraise
-                future.fail(QueryError.new(r.code, r.message, statement.cql, r.details))
-                break
-              else
-                future.fail(QueryError.new(r.code, r.message, statement.cql, r.details))
-                break
-              end
-            when Protocol::ErrorResponse
-              future.fail(QueryError.new(r.code, r.message, statement.cql, nil))
-              break
-            when Protocol::SetKeyspaceResultResponse
-              @keyspace = r.keyspace
-              r
-            when Protocol::PreparedResultResponse
-              prepared_statements = @prepared_statements.dup
-              prepared_statements[host][request.cql] = r.id
-              @prepared_statements = prepared_statements
-              r
-            else
-              r
-            end
-
-            yield(nil, r)
+      def prepare_statement(host, connection, cql, timeout)
+        connection.send_request(Protocol::PrepareRequest.new(cql, false), timeout).map do |r|
+          case r
+          when Protocol::PreparedResultResponse
+            @prepared_statements[host][cql] = r.id
+          when Protocol::DetailedErrorResponse
+            raise QueryError.new(r.code, r.message, cql, r.details)
+          when Protocol::ErrorResponse
+            raise QueryError.new(r.code, r.message, cql, nil)
           else
-            yield(e, nil)
+            raise "unexpected response #{r.inspect}"
           end
         end
-
-        f
       end
 
       def create_execution_info(keyspace, statement, options, request, response, hosts)
