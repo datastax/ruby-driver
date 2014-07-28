@@ -34,7 +34,7 @@ watcher = Thread.new {
 puts "#{Time.now - start} Starting producing selects..."
 client.use('simplex').value
 futures = total.times.map {
-    client.execute("SELECT COUNT(*) FROM songs")
+    client.execute("SELECT * FROM songs")
 }
 
 # Requests consumer
