@@ -5,14 +5,14 @@ module Cql
     class ControlConnection
       include MonitorMixin
 
-      def initialize(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, driver)
+      def initialize(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, connection_options)
         @logger                = logger
         @io_reactor            = io_reactor
         @request_runner        = request_runner
         @cluster               = cluster_registry
         @load_balancing_policy = load_balancing_policy
         @reconnection_policy   = reconnection_policy
-        @driver                = driver
+        @connection_options    = connection_options
 
         mon_initialize
       end
@@ -217,18 +217,18 @@ module Cql
 
       def connect_to_host(host)
         connector = Cql::Client::Connector.new([
-          Cql::Client::ConnectStep.new(@io_reactor, protocol_handler_factory, @driver.port, @driver.connection_timeout, @logger),
+          Cql::Client::ConnectStep.new(@io_reactor, protocol_handler_factory, @connection_options.port, @connection_options.connection_timeout, @logger),
           Cql::Client::CacheOptionsStep.new,
-          Cql::Client::InitializeStep.new(@driver.compressor, @logger),
+          Cql::Client::InitializeStep.new(@connection_options.compressor, @logger),
           authentication_step,
           Cql::Client::CachePropertiesStep.new,
         ])
 
         f = connector.connect(host)
         f.fallback do |error|
-          if error.is_a?(QueryError) && error.code == 0x0a && @driver.protocol_version > 1
-            @logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@driver.protocol_version, @driver.protocol_version - 1, error.message])
-            @driver.protocol_version -= 1
+          if error.is_a?(QueryError) && error.code == 0x0a && @connection_options.protocol_version > 1
+            @logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@connection_options.protocol_version, @connection_options.protocol_version - 1, error.message])
+            @connection_options.protocol_version -= 1
             connect_to_host(host)
           else
             @logger.error('Connection failed: %s: %s' % [error.class.name, error.message])
@@ -245,14 +245,14 @@ module Cql
       end
 
       def protocol_handler_factory
-        self.class.protocol_handler_factory(@io_reactor, @driver.protocol_version, @driver.compressor)
+        self.class.protocol_handler_factory(@io_reactor, @connection_options.protocol_version, @connection_options.compressor)
       end
 
       def authentication_step
-        if @driver.protocol_version == 1
-          Cql::Client::CredentialsAuthenticationStep.new(@driver.credentials)
+        if @connection_options.protocol_version == 1
+          Cql::Client::CredentialsAuthenticationStep.new(@connection_options.credentials)
         else
-          Cql::Client::SaslAuthenticationStep.new(@driver.auth_provider)
+          Cql::Client::SaslAuthenticationStep.new(@connection_options.auth_provider)
         end
       end
 
