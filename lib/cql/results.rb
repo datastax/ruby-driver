@@ -12,15 +12,17 @@ module Cql
     class Paged
       include Result, Enumerable
 
-      # @return [ResultMetadata]
-      attr_reader :metadata
-
       # @private
       def initialize(metadata, rows, paging_state, execution_info)
-        @metadata       = Client::ResultMetadata.new(metadata)
+        @raw_metadata   = metadata
         @rows           = rows
         @paging_state   = paging_state
         @execution_info = execution_info
+      end
+
+      # @return [ResultMetadata]
+      def metadata
+        @metadata ||= Client::ResultMetadata.new(@raw_metadata)
       end
 
       # Returns whether or not there are any rows in this result set
@@ -69,7 +71,7 @@ module Cql
     end
 
     class Void
-      include Result
+      include Result, Enumerable
 
       def initialize(execution_info)
         @execution_info = execution_info
