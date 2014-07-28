@@ -286,7 +286,7 @@ module Cql
 
       def execute_by_plan(future, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
         hosts << host = plan.next
-        connection = @connections[host].random_connection
+        connection = @connections.fetch(host).random_connection
 
         if keyspace && connection.keyspace != keyspace
           switch = switch_keyspace(connection, keyspace, timeout)
@@ -302,6 +302,8 @@ module Cql
         else
           prepare_and_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
         end
+      rescue ::KeyError
+        retry
       rescue ::StopIteration
         future.fail(NoHostsAvailable.new(errors || {}))
       end
@@ -330,7 +332,7 @@ module Cql
 
       def batch_by_plan(future, keyspace, statement, options, plan, timeout, errors = nil, hosts = [])
         hosts << host = plan.next
-        connection = @connections[host].random_connection
+        connection = @connections.fetch(host).random_connection
 
         if keyspace && connection.keyspace != keyspace
           switch = switch_keyspace(connection, keyspace, timeout)
@@ -346,6 +348,8 @@ module Cql
         else
           batch_and_send_request_by_plan(host, connection, future, keyspace, statement, options, plan, timeout, errors, hosts)
         end
+      rescue ::KeyError
+        retry
       rescue ::StopIteration
         future.fail(NoHostsAvailable.new(errors || {}))
       end
@@ -399,7 +403,7 @@ module Cql
 
       def send_request_by_plan(future, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
         hosts << host = plan.next
-        connection = @connections[host].random_connection
+        connection = @connections.fetch(host).random_connection
 
         if keyspace && connection.keyspace != keyspace
           switch = switch_keyspace(connection, keyspace, timeout)
@@ -415,6 +419,8 @@ module Cql
         else
           do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
         end
+      rescue ::KeyError
+        retry
       rescue ::StopIteration
         future.fail(NoHostsAvailable.new(errors || {}))
       end
@@ -426,7 +432,7 @@ module Cql
         f.on_complete do |f|
           if f.resolved?
             r = f.value
-            result = case r
+            case r
             when Protocol::DetailedErrorResponse
               details  = r.details
               decision = case r.code
@@ -469,16 +475,16 @@ module Cql
               execution_info = create_execution_info(keyspace, statement, options, request, r, hosts)
 
               future.resolve(Statements::Prepared.new(cql, r.metadata, r.result_metadata, execution_info))
-            when Protocol::RowsResultResponse
-              execution_info = create_execution_info(keyspace, statement, options, request, r, hosts)
-
-              future.resolve(Results::Paged.new(r.metadata, r.rows, r.paging_state, execution_info))
             when Protocol::RawRowsResultResponse
               execution_info  = create_execution_info(keyspace, statement, options, request, r, hosts)
               result_metadata = statement.result_metadata
 
-              response.materialize(result_metadata)
+              r.materialize(result_metadata)
               future.resolve(Results::Paged.new(result_metadata, r.rows, r.paging_state, execution_info))
+            when Protocol::RowsResultResponse
+              execution_info = create_execution_info(keyspace, statement, options, request, r, hosts)
+
+              future.resolve(Results::Paged.new(r.metadata, r.rows, r.paging_state, execution_info))
             else
               execution_info = create_execution_info(keyspace, statement, options, request, r, hosts)
 
