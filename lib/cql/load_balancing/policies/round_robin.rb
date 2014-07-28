@@ -25,17 +25,21 @@ module Cql
         include Policy
 
         def initialize
-          @hosts    = ::Set.new
+          @hosts    = ::Array.new
           @position = 0
         end
 
         def host_up(host)
-          @hosts = @hosts.dup.add(host)
+          hosts = @hosts.dup
+          hosts.push(host)
+          @hosts = hosts
           self
         end
 
         def host_down(host)
-          @hosts = @hosts.dup.delete(host)
+          hosts = @hosts.dup
+          hosts.delete(host)
+          @hosts = hosts
           self
         end
 
@@ -59,7 +63,7 @@ module Cql
 
           @position = (position + 1) % total
 
-          Plan.new(hosts.to_a, position)
+          Plan.new(hosts, position)
         end
       end
     end

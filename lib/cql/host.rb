@@ -22,7 +22,7 @@ module Cql
     end
 
     def hash
-      @ip.hash
+      @hash ||= @ip.hash
     end
 
     def ==(other)
