@@ -3,10 +3,9 @@
 require_relative 'benchmark'
 require 'cql'
 
-start = Time.now
-
 class UnpreparedSelectCqlRb < Benchmark
     def connect_to_cluster
+        puts "#{Time.now - start} Connecting to cluster..."
         @client = Cql::Client::AsynchronousClient.new(hosts: ['127.0.0.1'])
         @client.connect.value
         @client.use('simplex').value
