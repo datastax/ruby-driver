@@ -22,6 +22,8 @@ compile '/css/*/' do
   when 'scss'
     filter :sass, Compass.sass_engine_options
   end
+
+  filter :relativize_paths, :type => :css
 end
 
 compile '/features/*/' do
@@ -44,6 +46,7 @@ compile '/features/*/' do
   filter :add_ids_to_headers
   layout 'default'
   filter :add_toc
+  filter :relativize_paths, :type => :html
 end
 
 route '/css/*/' do
