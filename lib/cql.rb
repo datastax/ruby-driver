@@ -53,6 +53,8 @@ require 'cql/results'
 require 'cql/statement'
 require 'cql/statements'
 
+require 'cql/connection_options'
+
 require 'cql/execution/info'
 require 'cql/execution/options'
 require 'cql/execution/trace'
