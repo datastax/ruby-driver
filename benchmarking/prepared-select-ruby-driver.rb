@@ -12,13 +12,11 @@ class PreparedSelectRubyDriver < Benchmark
     end
 
     def target
-        # Create and consume select requests
         puts "#{Time.now - start} Executing #{@iterations} selects..."
         futures = @iterations.times.map do
             @session.execute_async(@statement)
         end
 
-        # Requests consumer
         puts "#{Time.now - start} Starting consuming selects..."
         futures.each do |future|
             begin

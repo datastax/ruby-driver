@@ -13,13 +13,11 @@ class UnpreparedSelectCqlRb < Benchmark
     end
 
     def target
-        # Create select requests
         puts "#{Time.now - start} Starting producing #{@iterations} selects..."
         futures = @iterations.times.map do
             @client.execute("SELECT COUNT(*) FROM songs")
         end
 
-        # Requests consumer
         puts "#{Time.now - start} Starting consuming selects..."
         futures.each do |future|
             begin

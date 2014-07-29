@@ -3,7 +3,7 @@
 require_relative 'benchmark'
 require 'cql'
 
-class UnpreparedSelectCqlRb < Benchmark
+class PreparedSelectCqlRb < Benchmark
 
     def connect_to_cluster
         puts "#{Time.now - start} Connecting to cluster..."
@@ -15,13 +15,11 @@ class UnpreparedSelectCqlRb < Benchmark
     end
 
     def target
-        # Create select requests
         puts "#{Time.now - start} Starting producing #{@iterations} selects..."
         futures = @iterations.times.map do
             @statement.execute
         end
 
-        # Requests consumer
         puts "#{Time.now - start} Starting consuming selects..."
         futures.each do |future|
             begin
@@ -35,4 +33,4 @@ class UnpreparedSelectCqlRb < Benchmark
     end
 end
 
-UnpreparedSelectCqlRb.new.run ARGV[0]
+PreparedSelectCqlRb.new.run ARGV[0]
