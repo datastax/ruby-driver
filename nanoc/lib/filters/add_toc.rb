@@ -8,7 +8,7 @@ module Docs
       content.gsub('{{TOC}}') do
         # Find all top-level sections
         doc = Nokogiri::HTML(content)
-        headers = doc.css('h1', 'h2', 'h3').map do |header|
+        headers = doc.css('h2', 'h3').map do |header|
           { :title => header.inner_html, :id => header['id'] }
         end
 

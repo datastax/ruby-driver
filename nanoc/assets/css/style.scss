@@ -30,7 +30,7 @@ body {
 .side-nav .nav>li>a {
 //    color: #999;
     padding: 4px 20px;
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 400;
 }
 
@@ -39,7 +39,15 @@ body {
     padding-top: 1px;
     padding-bottom: 1px;
     padding-left: 30px;
-    font-size: 12px;
+    font-size: 16px;
+}
+
+/* nested links */
+.side-nav .nav .nav .nav>li>a {
+    padding-top: 1px;
+    padding-bottom: 1px;
+    padding-left: 35px;
+    font-size: 13px;
 }
 
 .side-nav .nav>li>a {
