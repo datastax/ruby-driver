@@ -16,6 +16,7 @@ module Cql
         @connecting_hosts            = ::Set.new
         @connections                 = ::Hash.new
         @prepared_statements         = ::Hash.new
+        @preparing_statements        = ::Hash.new
         @keyspace                    = nil
         @state                       = :idle
 
@@ -104,6 +105,7 @@ module Cql
           return Future.resolved if @connecting_hosts.delete?(host) || !@connections.has_key?(host)
 
           @prepared_statements.delete(host)
+          @preparing_statements.delete(host)
 
           @connections.delete(host).snapshot.map {|c| c.close}
         end
@@ -280,6 +282,7 @@ module Cql
             conns = @connections[host] ||= Cql::Client::ConnectionManager.new
 
             @prepared_statements[host] = {}
+            @preparing_statements[host] = {}
           end
 
           conns.add_connections(connections)
@@ -473,9 +476,11 @@ module Cql
               future.resolve(Results::Void.new(execution_info))
             when Protocol::PreparedResultResponse
               cql = request.cql
-              prepared_statements = @prepared_statements.dup
-              prepared_statements[host][cql] = r.id
-              @prepared_statements = prepared_statements
+              synchronize do
+                @prepared_statements[host][cql] = r.id
+                @preparing_statements[host].delete(cql)
+              end
+
               execution_info = create_execution_info(keyspace, statement, options, request, r, hosts)
 
               future.resolve(Statements::Prepared.new(cql, r.metadata, r.result_metadata, execution_info))
@@ -542,6 +547,14 @@ module Cql
       end
 
       def prepare_statement(host, connection, cql, timeout)
+        synchronize do
+          pending = @preparing_statements[host]
+
+          if pending.has_key?(cql)
+            return pending[cql]
+          end
+        end
+
         request = Protocol::PrepareRequest.new(cql, false)
 
         f = connection.send_request(request, timeout).map do |r|
@@ -550,6 +563,7 @@ module Cql
             id = r.id
             synchronize do
               @prepared_statements[host][cql] = id
+              @preparing_statements[host].delete(cql)
             end
             id
           when Protocol::DetailedErrorResponse
@@ -559,6 +573,10 @@ module Cql
           else
             raise "unexpected response #{r.inspect}"
           end
+        end
+
+        synchronize do
+          @preparing_statements[host][cql] = f
         end
 
         f
