@@ -1,0 +1,13 @@
+Processes: 160 total, 3 running, 4 stuck, 153 sleeping, 1115 threads 
+2014/07/29 11:52:38
+Load Avg: 2.57, 3.44, 3.10 
+CPU usage: 12.50% user, 12.50% sys, 75.0% idle 
+SharedLibs: 17M resident, 14M data, 0B linkedit.
+MemRegions: 25730 total, 3161M resident, 114M private, 872M shared.
+PhysMem: 6422M used (1418M wired), 9953M unused.
+VM: 368G vsize, 1069M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 0/0B in, 0/0B out.
+Disks: 0/0B read, 0/0B written.
+
+COMMAND PID   %CPU #TH CSW
+ruby    2228  0.0  2/1 10 

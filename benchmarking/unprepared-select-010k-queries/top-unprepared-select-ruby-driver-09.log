@@ -1,0 +1,52 @@
+Processes: 163 total, 3 running, 1 stuck, 159 sleeping, 1070 threads 
+2014/07/29 11:31:45
+Load Avg: 4.20, 2.22, 1.17 
+CPU usage: 12.90% user, 9.67% sys, 77.41% idle 
+SharedLibs: 16M resident, 11M data, 0B linkedit.
+MemRegions: 23579 total, 2625M resident, 112M private, 657M shared.
+PhysMem: 5431M used (1405M wired), 11G unused.
+VM: 368G vsize, 1066M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 0/0B in, 0/0B out.
+Disks: 0/0B read, 0/0B written.
+
+COMMAND PID   %CPU #TH CSW
+ruby    1884  0.0  2/1 9  
+Processes: 163 total, 3 running, 1 stuck, 159 sleeping, 1072 threads 
+2014/07/29 11:31:46
+Load Avg: 4.20, 2.22, 1.17 
+CPU usage: 16.99% user, 1.83% sys, 81.17% idle 
+SharedLibs: 16M resident, 11M data, 0B linkedit.
+MemRegions: 23579 total, 2625M resident, 112M private, 657M shared.
+PhysMem: 5519M used (1406M wired), 11G unused.
+VM: 368G vsize, 1066M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 889/90K in, 889/90K out.
+Disks: 0/0B read, 0/0B written.
+
+COMMAND PID   %CPU #TH CSW
+ruby    1884  95.9 2   629
+Processes: 163 total, 4 running, 1 stuck, 158 sleeping, 1072 threads 
+2014/07/29 11:31:47
+Load Avg: 3.95, 2.20, 1.17 
+CPU usage: 59.9% user, 4.54% sys, 36.36% idle 
+SharedLibs: 16M resident, 11M data, 0B linkedit.
+MemRegions: 23579 total, 2625M resident, 112M private, 657M shared.
+PhysMem: 5533M used (1403M wired), 11G unused.
+VM: 368G vsize, 1066M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7961/844K in, 7973/850K out.
+Disks: 1/4096B read, 0/0B written.
+
+COMMAND PID   %CPU #TH CSW 
+ruby    1884  63.8 0/1 2313
+Processes: 163 total, 3 running, 1 stuck, 159 sleeping, 1072 threads 
+2014/07/29 11:31:48
+Load Avg: 3.95, 2.20, 1.17 
+CPU usage: 69.9% user, 5.80% sys, 25.9% idle 
+SharedLibs: 16M resident, 11M data, 0B linkedit.
+MemRegions: 23579 total, 2625M resident, 112M private, 657M shared.
+PhysMem: 5535M used (1403M wired), 11G unused.
+VM: 368G vsize, 1066M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 10942/1151K in, 10942/1151K out.
+Disks: 0/0B read, 0/0B written.
+
+COMMAND PID   %CPU #TH  CSW 
+ruby    1884  47.8 0/-1 1814
