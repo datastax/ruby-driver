@@ -236,9 +236,11 @@ module Cql
       def connect_to_host_maybe_retry(host, distance)
         f = connect_to_host(host, distance)
         f.fallback do |e|
-          raise e unless e.is_a?(Io::ConnectionError)
-
-          connect_to_host_with_retry(host, distance, @reconnection_policy.schedule)
+          if e.is_a?(Io::ConnectionError)
+            connect_to_host_with_retry(host, distance, @reconnection_policy.schedule)
+          else
+            Future.failed(e)
+          end
         end
       end
 
@@ -251,9 +253,11 @@ module Cql
         f.flat_map do
           if synchronize { @connecting_hosts.include?(host) }
             connect_to_host(host, distance).fallback do |e|
-              raise e unless e.is_a?(Io::ConnectionError)
-
-              connect_to_host_with_retry(host, distance, schedule)
+              if e.is_a?(Io::ConnectionError)
+                connect_to_host_with_retry(host, distance, schedule)
+              else
+                Future.failed(e)
+              end
             end
           else
             NO_CONNECTIONS
