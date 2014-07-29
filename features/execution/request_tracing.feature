@@ -53,7 +53,7 @@ Feature: Request tracing
       """
     And its output should match:
       """
-      started at: \d{4}\-\d{2}\-\d{2} \d{2}:\d{2}:\d{2} -\d{4}
+      started at: \d{4}\-\d{2}\-\d{2} \d{2}:\d{2}:\d{2} (-|\+)\d{4}
       """
     And its output should match:
       """
