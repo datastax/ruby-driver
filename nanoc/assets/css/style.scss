@@ -1,0 +1,78 @@
+@import "bootstrap/bootstrap";
+
+body {
+  padding-top: 60px;
+  position: relative;
+}
+
+.steps {
+  dt {
+    float: left;
+    clear: left;
+    padding-right: 6px;
+    width: 70px;
+    text-align: right;
+  }
+
+  dd {
+    display: block;
+  }
+}
+
+/* sidebar */
+.side-nav {
+    padding-left: 20px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+/* all links */
+.side-nav .nav>li>a {
+//    color: #999;
+    padding: 4px 20px;
+    font-size: 13px;
+    font-weight: 400;
+}
+
+/* nested links */
+.side-nav .nav .nav>li>a {
+    padding-top: 1px;
+    padding-bottom: 1px;
+    padding-left: 30px;
+    font-size: 12px;
+}
+
+.side-nav .nav>li>a {
+    border-radius: 0;
+    /*add trasnparent border */
+    border-left: 2px solid transparent;
+}
+/* active & hover links */
+.side-nav .nav>.active>a, 
+.side-nav .nav>li>a:hover, 
+.side-nav .nav>li>a:focus {
+    color: #428bca;                 
+    text-decoration: none;          
+    background-color: transparent;  
+    border-left: 2px solid #428bca; 
+}
+
+/* all active links */
+.side-nav .nav>.active>a, 
+.side-nav .nav>.active:hover>a,
+.side-nav .nav>.active:focus>a {
+    font-weight: 700;
+}
+/* nested active links */
+.side-nav .nav .nav>.active>a, 
+.side-nav .nav .nav>.active:hover>a,
+.side-nav .nav .nav>.active:focus>a {
+    font-weight: 500;
+}
+
+.side-nav .affix-bottom,
+.side-nav .affix {
+  @media (min-width: 1200px) {
+    width: 258px;
+  }
+}

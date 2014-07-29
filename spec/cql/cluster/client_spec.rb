@@ -22,7 +22,7 @@ module Cql
                                } }
 
       let(:driver) { Driver.new(driver_settings) }
-      let(:client) { Client.new(driver) }
+      let(:client) { Client.new(driver.logger, driver.cluster_registry, driver.io_reactor, driver.load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.connection_options) }
 
       describe('#connect') do
         context 'when all hosts are ignored' do
@@ -317,6 +317,7 @@ module Cql
           attempts = []
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
+              request
               case request
               when Cql::Protocol::StartupRequest
                 Cql::Protocol::ReadyResponse.new
@@ -483,7 +484,7 @@ module Cql
                 Cql::Protocol::ReadyResponse.new
               when Cql::Protocol::PrepareRequest
                 count += 1
-                Protocol::PreparedResultResponse.new(123, [], [], nil)
+                Protocol::PreparedResultResponse.new('123', [], [], nil)
               when Cql::Protocol::ExecuteRequest
                 sent = true
                 Cql::Protocol::RowsResultResponse.new([], [], nil, nil)
@@ -580,7 +581,7 @@ module Cql
         it 'sends a BatchRequest' do
           sent = false
           batch = Statements::Batch::Logged.new
-          batch_request = double('batch request')
+          batch_request = double('batch request', :consistency => :one, :retries => 0)
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
@@ -607,7 +608,7 @@ module Cql
         it 'can include prepared statements' do
           sent = false
           batch = Statements::Batch::Logged.new
-          batch_request = double('batch request')
+          batch_request = double('batch request', :consistency => :one, :retries => 0)
           params_metadata = double('params metadata', :size => 5)
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
@@ -640,7 +641,7 @@ module Cql
           sent = false
           count = 0
           batch = Statements::Batch::Logged.new
-          batch_request = double('batch request')
+          batch_request = double('batch request', :consistency => :one, :retries => 0)
           params_metadata = double('params metadata', :size => 5)
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|

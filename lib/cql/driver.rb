@@ -11,9 +11,9 @@ module Cql
     let(:io_reactor)       { Reactor.new(Io::IoReactor.new) }
     let(:cluster_registry) { Cluster::Registry.new }
 
-    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, self) }
+    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, connection_options) }
 
-    let(:cluster) { Cluster.new(io_reactor, control_connection, cluster_registry, self) }
+    let(:cluster) { Cluster.new(logger, io_reactor, control_connection, cluster_registry, execution_options, load_balancing_policy, reconnection_policy, retry_policy, connection_options) }
 
     let(:execution_options) do
       Execution::Options.new({
@@ -23,10 +23,11 @@ module Cql
       })
     end
 
+    let(:connection_options) { ConnectionOptions.new(protocol_version, credentials, auth_provider, compressor, port, connection_timeout, connections_per_local_node, connections_per_remote_node) }
+
     let(:port)                  { 9042 }
     let(:protocol_version)      { 2 }
     let(:connection_timeout)    { 10 }
-    let(:default_consistency)   { :one }
     let(:logger)                { Client::NullLogger.new  }
     let(:compressor)            { nil }
     let(:credentials)           { nil }

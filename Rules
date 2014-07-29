@@ -1,0 +1,61 @@
+# encoding: utf-8
+
+# A few helpful tips about the Rules file:
+#
+# * The string given to #compile and #route are matching patterns for
+#   identifiers--not for paths. Therefore, you can’t match on extension.
+#
+# * The order of rules is important: for each item, only the first matching
+#   rule is applied.
+#
+# * Item identifiers start and end with a slash (e.g. “/about/” for the file
+#   “content/about.html”). To select all children, grandchildren, … of an
+#   item, use the pattern “/about/*/”; “/about/*” will also select the parent,
+#   because “*” matches zero or more characters.
+
+require 'compass'
+Compass.add_project_configuration 'nanoc/config.rb'
+
+compile '/css/*/' do
+  case item[:extension]
+  when 'css'
+  when 'scss'
+    filter :sass, Compass.sass_engine_options
+  end
+
+  filter :relativize_paths, :type => :css
+end
+
+compile '/features*' do
+  case item[:extension]
+  when 'feature'
+    filter :gherkin
+  when 'md'
+    filter :redcarpet, :renderer => Docs::GherkinFilter::Markdown, :options => {
+      :no_intra_emphasis   => true,
+      :tables              => true,
+      :fenced_code_blocks  => true,
+      :autolink            => true,
+      :space_after_headers => true,
+      :superscript         => true,
+      :underline           => true,
+      :highlight           => true
+    }
+    filter :add_topics
+  end
+
+  filter :add_ids_to_headers
+  layout 'feature'
+  filter :add_toc
+  filter :relativize_paths, :type => :html
+end
+
+route '/css/*/' do
+  item.identifier.chop + '.css'
+end
+
+route '*' do
+  item.identifier + 'index.html'
+end
+
+layout '*', :erb

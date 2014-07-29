@@ -7,7 +7,6 @@ gem 'snappy'
 gem 'lz4-ruby'
 
 group :development do
-  gem 'pry'
   platforms :mri do
     gem 'yard'
     gem 'redcarpet'
@@ -23,4 +22,16 @@ group :test do
   gem 'coveralls'
   gem 'cucumber'
   gem 'aruba'
+end
+
+group :docs do
+  gem 'nanoc'
+  gem 'gherkin'
+  # gem 'redcarpet'
+  gem 'pygments.rb'
+  gem 'compass'
+  gem 'bootstrap-sass'
+  gem 'nokogiri'
+  gem 'guard'
+  gem 'guard-nanoc'
 end

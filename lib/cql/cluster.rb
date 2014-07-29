@@ -2,11 +2,16 @@
 
 module Cql
   class Cluster
-    def initialize(io_reactor, control_connection, cluster_registry, driver)
-      @io_reactor         = io_reactor
-      @control_connection = control_connection
-      @registry           = cluster_registry
-      @driver             = driver
+    def initialize(logger, io_reactor, control_connection, cluster_registry, execution_options, load_balancing_policy, reconnection_policy, retry_policy, connection_options)
+      @logger                = logger
+      @io_reactor            = io_reactor
+      @control_connection    = control_connection
+      @registry              = cluster_registry
+      @execution_options     = execution_options
+      @load_balancing_policy = load_balancing_policy
+      @reconnection_policy   = reconnection_policy
+      @retry_policy          = retry_policy
+      @connection_options    = connection_options
     end
 
     def hosts
@@ -19,8 +24,8 @@ module Cql
     end
 
     def connect_async(keyspace = nil)
-      client  = Client.new(@driver)
-      session = Session.new(client, @driver.execution_options)
+      client  = Client.new(@logger, @registry, @io_reactor, @load_balancing_policy, @reconnection_policy, @retry_policy, @connection_options)
+      session = Session.new(client, @execution_options)
 
       f = client.connect
       f = f.flat_map { session.execute_async("USE #{keyspace}") } if keyspace
