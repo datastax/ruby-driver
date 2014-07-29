@@ -3,27 +3,33 @@
 require_relative 'benchmark'
 require 'cql'
 
-# TODO Seems to be synchronous queries only ?
-
-class UnpreparedSelectRubyDriver < Benchmark
+class PreparedSelectRubyDriver < Benchmark
     def connect_to_cluster
-      puts "#{Time.now - start} Connecting to cluster..."
-      cluster = Cql.cluster.with_contact_points('127.0.0.1').build
-      @session = cluster.connect("simplex")
-      @statement  = @session.prepare('SELECT COUNT(*) FROM songs')
+        puts "#{Time.now - start} Connecting to cluster..."
+        @cluster = Cql.cluster.with_contact_points('127.0.0.1').build
+        @session = @cluster.connect("simplex")
+        @statement  = @session.prepare('SELECT COUNT(*) FROM songs')
     end
 
     def target
         # Create and consume select requests
         puts "#{Time.now - start} Executing #{@iterations} selects..."
-        @iterations.times.map do | result |
-            if @session.execute(@statement).empty?
-              increment_errors
-            else
-              increment_success
+        futures = @iterations.times.map do
+            @session.execute_async(@statement)
+        end
+
+        # Requests consumer
+        puts "#{Time.now - start} Starting consuming selects..."
+        futures.each do |future|
+            begin
+                future.get
+                increment_success
+            rescue => e
+                puts "#{e.class.name}: #{e.message}"
+                increment_errors
             end
         end
     end
 end
 
-UnpreparedSelectRubyDriver.new.run ARGV[0]
+PreparedSelectRubyDriver.new.run ARGV[0]

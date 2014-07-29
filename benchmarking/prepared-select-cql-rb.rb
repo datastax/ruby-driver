@@ -10,8 +10,7 @@ class UnpreparedSelectCqlRb < Benchmark
         client = Cql::Client::AsynchronousClient.new(hosts: ['127.0.0.1'])
         client.connect.value
         client.use('simplex').value
-        @statement = client.prepare('SELECT COUNT(*) FROM songs')
-        @statement = @statement.value
+        @statement = client.prepare('SELECT COUNT(*) FROM songs').value
         at_exit { client.close.value }
     end
 
