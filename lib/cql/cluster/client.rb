@@ -523,7 +523,10 @@ module Cql
       end
 
       def switch_keyspace(connection, keyspace, timeout)
-        return connection[:pending_switch] if connection[:pending_keyspace] == keyspace
+        pending_keyspace = connection[:pending_keyspace]
+        pending_switch   = connection[:pending_switch]
+
+        return pending_switch || Future.resolved if pending_keyspace == keyspace
 
         f = connection.send_request(Protocol::QueryRequest.new("USE #{keyspace}", nil, nil, :one), timeout).map do |r|
           case r
