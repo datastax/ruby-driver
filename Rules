@@ -26,7 +26,7 @@ compile '/css/*/' do
   filter :relativize_paths, :type => :css
 end
 
-compile '/features/*/' do
+compile '/features*' do
   case item[:extension]
   when 'feature'
     filter :gherkin
@@ -41,10 +41,11 @@ compile '/features/*/' do
       :underline           => true,
       :highlight           => true
     }
+    filter :add_topics
   end
 
   filter :add_ids_to_headers
-  layout 'default'
+  layout 'feature'
   filter :add_toc
   filter :relativize_paths, :type => :html
 end
@@ -53,13 +54,8 @@ route '/css/*/' do
   item.identifier.chop + '.css'
 end
 
-route '/features/*/' do
-  case item.identifier
-  when /(.*)\/README\/$/
-    $1 + '/index.html'
-  else
-    item.identifier + 'index.html'
-  end
+route '*' do
+  item.identifier + 'index.html'
 end
 
 layout '*', :erb

@@ -11,27 +11,31 @@ module Docs
     def items
       items = []
 
-      add_items_to(items, 'feature')
-      add_items_to(items, 'md')
-
-      items
-    end
-
-    private
-
-    def add_items_to(items, extension)
-      attrs = {:extension => extension, :section => '/' + features_dir_name}
-      glob  = ['**', '*.' + extension].join('/')
-      glob  = [features_dir_name, glob].join('/') unless features_dir_name.empty?
+      glob  = '**/*.*'
+      dir   = features_dir_name
+      glob  = [dir, glob].join('/') unless dir.empty?
 
       Dir[glob].each do |path|
         *base, filename = path.split('/')
-        *filename, _ = filename.split('.')
+        *filename, ext  = filename.split('.')
         filename = filename.join('.')
-        title    = filename.split('_').map(&:capitalize).join(' ')
 
-        items << Nanoc::Item.new(File.read(path), attrs.merge(:title => title), (base << filename).join('/'))
+        if filename == 'README'
+          title      = base.last.split('_').map(&:capitalize).join(' ')
+          identifier = base.join('/')
+          type       = :section
+        elsif ext == 'feature'
+          title      = filename.split('_').map(&:capitalize).join(' ')
+          identifier = (base << filename).join('/')
+          type       = :feature
+        else
+          next
+        end
+
+        items << Nanoc::Item.new(File.read(path), {:title => title, :extension => ext, :type => type}, identifier)
       end
+
+      items
     end
   end
 end

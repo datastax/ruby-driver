@@ -1,3 +1,10 @@
+text_extensions:
+  - css
+  - html
+  - js
+  - md
+  - scss
+  - feature
 lib_dirs:
   - nanoc/lib
 output_dir: docs

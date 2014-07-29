@@ -47,11 +47,18 @@
     </div>
 
     <div class="container">
+      <!-- <%= [@item.identifier, @item.parent, @item.children, @item.parent && @item.parent.children.map(&:identifier)] %> -->
       <div class="row">
         <div class="col-md-9"><%= yield %></div>
         <nav class="col-md-3 side-nav">
           <ol class="nav nav-pills nav-stacked toc" data-spy="affix" data-offset-top="0" data-offset-bottom="0">
-            <% @items.find_all {|item| item.identifier.start_with?(@item[:section]) }.each do |item| %>
+            <% if @item[:type] == :section %>
+            <% @item.children.each do |item| %>
+            <li><a href="<%= item.identifier %>"><%= item[:title] %></a></li>
+            <% end %>
+            <% end %>
+            <% if @item[:type] == :feature %>
+            <% @item.parent.children.each do |item| %>
             <% if @item == item %>
             <li>
               <a><%= @item[:title] %></a>
@@ -61,6 +68,7 @@
             </li>
             <% else %>
             <li><a href="<%= item.identifier %>"><%= item[:title] %></a></li>
+            <% end %>
             <% end %>
             <% end %>
           </ol>
