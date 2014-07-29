@@ -90,24 +90,23 @@ module Cql
       end
 
       def host_up(host)
-        return Future.resolved if @connecting_hosts.include?(host)
+        synchronize do
+          return Future.resolved if @connecting_hosts.include?(host)
 
-        @connecting_hosts << host
+          @connecting_hosts << host
 
-        f = connect_to_host_maybe_retry(host, @load_balancing_policy.distance(host))
-        f.map(nil)
+          connect_to_host_maybe_retry(host, @load_balancing_policy.distance(host))
+        end.map(nil)
       end
 
       def host_down(host)
-        return Future.resolved if @connecting_hosts.delete?(host) || !@connections.has_key?(host)
+        futures = synchronize do
+          return Future.resolved if @connecting_hosts.delete?(host) || !@connections.has_key?(host)
 
-        prepared_statements = @prepared_statements.dup
-        prepared_statements.delete(host)
-        @prepared_statements = prepared_statements
+          @prepared_statements.delete(host)
 
-        connections  = @connections.dup
-        futures      = connections.delete(host).snapshot.map {|c| c.close}
-        @connections = connections
+          @connections.delete(host).snapshot.map {|c| c.close}
+        end
 
         Future.all(*futures).map(nil)
       end
@@ -213,7 +212,7 @@ module Cql
       end
 
       def close_connections
-        futures = @connections.values.flat_map {|m| m.snapshot.map {|c| c.close}}
+        futures = synchronize { @connections.values }.flat_map {|m| m.snapshot.map {|c| c.close}}
         Future.all(*futures).map(self)
       end
 
@@ -248,7 +247,7 @@ module Cql
 
         f = @reactor.schedule_timer(interval)
         f.flat_map do
-          if @connecting_hosts.include?(host)
+          if synchronize { @connecting_hosts.include?(host) }
             connect_to_host(host, distance).fallback do |e|
               raise e unless e.is_a?(Io::ConnectionError)
 
@@ -259,7 +258,7 @@ module Cql
           end
         end
       rescue ::StopIteration
-        @connecting_hosts.delete(host)
+        synchronize { @connecting_hosts.delete(host) }
         NO_CONNECTIONS
       end
 
@@ -274,19 +273,24 @@ module Cql
 
         f = create_cluster_connector.connect_all([host.ip.to_s], pool_size)
         f.map do |connections|
-          @connecting_hosts.delete(host)
-          unless @connections.has_key?(host)
-            @connections = @connections.merge(host => Cql::Client::ConnectionManager.new)
+          conns = nil
+
+          synchronize do
+            @connecting_hosts.delete(host)
+            conns = @connections[host] ||= Cql::Client::ConnectionManager.new
+
+            @prepared_statements[host] = {}
           end
-          @connections[host].add_connections(connections)
-          @prepared_statements = @prepared_statements.merge(host => {})
+
+          conns.add_connections(connections)
+
           connections
         end
       end
 
       def execute_by_plan(future, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
         hosts << host = plan.next
-        connection = @connections.fetch(host).random_connection
+        connection = synchronize { @connections.fetch(host) }.random_connection
 
         if keyspace && connection.keyspace != keyspace
           switch = switch_keyspace(connection, keyspace, timeout)
@@ -310,7 +314,7 @@ module Cql
 
       def prepare_and_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
         cql = statement.cql
-        id  = @prepared_statements[host][cql]
+        id  = synchronize { @prepared_statements[host][cql] }
 
         if id
           request.id = id
@@ -332,7 +336,7 @@ module Cql
 
       def batch_by_plan(future, keyspace, statement, options, plan, timeout, errors = nil, hosts = [])
         hosts << host = plan.next
-        connection = @connections.fetch(host).random_connection
+        connection = synchronize { @connections.fetch(host) }.random_connection
 
         if keyspace && connection.keyspace != keyspace
           switch = switch_keyspace(connection, keyspace, timeout)
@@ -362,7 +366,7 @@ module Cql
           cql = statement.cql
 
           if statement.is_a?(Statements::Bound)
-            id = @prepared_statements[host][cql]
+            id = synchronize { @prepared_statements[host][cql] }
 
             if id
               request.add_prepared(id, statement.params_metadata, statement.params)
@@ -403,7 +407,7 @@ module Cql
 
       def send_request_by_plan(future, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
         hosts << host = plan.next
-        connection = @connections.fetch(host).random_connection
+        connection = synchronize { @connections.fetch(host) }.random_connection
 
         if keyspace && connection.keyspace != keyspace
           switch = switch_keyspace(connection, keyspace, timeout)
@@ -538,10 +542,16 @@ module Cql
       end
 
       def prepare_statement(host, connection, cql, timeout)
-        connection.send_request(Protocol::PrepareRequest.new(cql, false), timeout).map do |r|
+        request = Protocol::PrepareRequest.new(cql, false)
+
+        f = connection.send_request(request, timeout).map do |r|
           case r
           when Protocol::PreparedResultResponse
-            @prepared_statements[host][cql] = r.id
+            id = r.id
+            synchronize do
+              @prepared_statements[host][cql] = id
+            end
+            id
           when Protocol::DetailedErrorResponse
             raise QueryError.new(r.code, r.message, cql, r.details)
           when Protocol::ErrorResponse
@@ -550,6 +560,8 @@ module Cql
             raise "unexpected response #{r.inspect}"
           end
         end
+
+        f
       end
 
       def create_execution_info(keyspace, statement, options, request, response, hosts)
