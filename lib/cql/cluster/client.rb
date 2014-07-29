@@ -557,9 +557,7 @@ module Cql
         synchronize do
           pending = @preparing_statements[host]
 
-          if pending.has_key?(cql)
-            return pending[cql]
-          end
+          return pending[cql] if pending.has_key?(cql)
         end
 
         request = Protocol::PrepareRequest.new(cql, false)
