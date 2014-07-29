@@ -8,13 +8,17 @@ class Benchmark
     end
 
     def run(n)
-        @start = Time.now
         @iterations = n.to_i unless n.nil?
+        setup
+        @start = Time.now
         connect_to_cluster
         start_watcher_thread
         target
         stop_watcher_thread
         puts "#{Time.now - @start} Done."
+    end
+
+    def setup
     end
 
     def connect_to_cluster
