@@ -1,13 +1,12 @@
 Feature: Executing queries asynchronously
 
   Session objects support asynchronous statement execution using `Cql::Session#execute_async` method.
-  This method returns a `Cql::Future` that can be used to block application thread waiting for result
-  or to register a listener that will be notified whenever the result becomes available.
+  This method returns a `Cql::Future[Cql::Result]`.
 
   Background:
     Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
 
-  Scenario: Resolving a future
+  Scenario: Getting execution result
     Given the following example:
       """ruby
       require 'cql'
