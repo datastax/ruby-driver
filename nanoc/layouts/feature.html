@@ -42,9 +42,22 @@
     </div>
 
     <div class="container">
-      <!-- <%= [@item.identifier, @item.parent, @item.children, @item.parent && @item.parent.children.map(&:identifier), @items.at('/features/')] %> -->
+      <!-- <%= [@item.identifier, @item.parent, @item.children, @item.parent && @item.parent.children.map(&:identifier), @items.at('/features/'), breadcrumbs_trail] %> -->
       <div class="row">
-        <div class="col-md-9"><%= yield %></div>
+        <div class="col-md-9">
+          <ol class="breadcrumb">
+            <% breadcrumbs_trail.each do |item| %>
+            <% if item %>
+            <% if item == @item %>
+            <li class="active"><%= @item[:title] %></li>
+            <% else %>
+            <li><a href="<%= item.identifier %>"><%= item[:title] %></a></li>
+            <% end %>
+            <% end %>
+            <% end %>
+          </ol>
+          <%= yield %>
+        </div>
         <nav class="col-md-3 side-nav">
           <ol class="nav nav-pills nav-stacked toc" data-spy="affix" data-offset-top="0" data-offset-bottom="0">
             <% @items.at('/features/').children.each do |section| %>
