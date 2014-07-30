@@ -1,0 +1,23 @@
+1.0e-06 Connecting to cluster...
+0.017549 Executing 100000 selects...
+# Started watcher
+# 0 new queries answered (0/100000)
+# 0 new queries answered (0/100000)
+# 0 new queries answered (0/100000)
+# 0 new queries answered (0/100000)
+# 0 new queries answered (0/100000)
+# 0 new queries answered (0/100000)
+6.135845 Starting consuming selects...
+# 4,482 new queries answered (4482/100000)
+# 9,312 new queries answered (13794/100000)
+# 4,179 new queries answered (17973/100000)
+# 19,185 new queries answered (37158/100000)
+# 8,490 new queries answered (45648/100000)
+# 11,415 new queries answered (57063/100000)
+# 11,190 new queries answered (68253/100000)
+# 11,571 new queries answered (79824/100000)
+# 11,892 new queries answered (91716/100000)
+16.109492 Cleaning...
+# Success: 100000
+# Errors:  0
+16.474379 Done.
