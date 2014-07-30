@@ -27,6 +27,7 @@ if [ $help = true ] ; then
         >&2
     exit
 fi
+shift $((OPTIND-1))
 
 echo "# Will run $iterations times $queries queries from : $@"
 
