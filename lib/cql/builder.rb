@@ -33,8 +33,17 @@ module Cql
       self
     end
 
-    def with_compressor(compressor)
-      @settings[:compressor] = compressor
+    def with_compresion(compression)
+      case compression
+      when :snappy
+        require 'cql/compression/snappy_compressor'
+        @settings[:compressor] = Compression::SnappyCompressor.new
+      when :lz4
+        require 'cql/compression/lz4_compressor'
+        @settings[:compressor] = Compression::Lz4Compressor.new
+      else
+        raise ::ArgumentError, "only :snappy and :lz4 compressions are supported, #{compression.inspect} given"
+      end
 
       self
     end

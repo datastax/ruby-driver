@@ -67,13 +67,12 @@ module Cql
         end
       end
 
-      context 'with_compressor' do
-        let(:compressor) { double('compressor') }
+      context 'with_compresion' do
         let(:driver)     { double('driver').as_null_object }
 
         it 'passes compressor to the driver' do
-          expect(Driver).to receive(:new).once.with(:compressor => compressor).and_return(driver)
-          builder.with_compressor(compressor).build
+          expect(Driver).to receive(:new).once.with(:compressor => kind_of(Compression::Lz4Compressor)).and_return(driver)
+          builder.with_compresion(:lz4).build
         end
       end
 
