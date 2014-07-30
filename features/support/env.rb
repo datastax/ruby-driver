@@ -198,7 +198,7 @@ module CCM
     end
 
     def keyspace_for(table)
-      File.read(fixture_path + 'keyspace' + "#{table}.cql")
+      File.read(fixture_path + 'schema' + "#{table}.cql")
     end
 
     def data_for(table)
