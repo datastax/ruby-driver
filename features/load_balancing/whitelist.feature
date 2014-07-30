@@ -6,7 +6,7 @@ Feature: White List Policy
   of hosts.
 
   Scenario: Prevent queries from running on non-whitelisted hosts
-    Given a running cassandra cluster with a schema "simplex" and a table "songs"
+    Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
     And the following example:
       """ruby
       require 'cql'

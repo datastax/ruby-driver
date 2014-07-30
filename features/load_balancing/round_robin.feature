@@ -8,7 +8,7 @@ Feature: Round Robin Policy
   execution info.
 
   Scenario: Round Robin policy is used by default
-    Given a running cassandra cluster with a schema "simplex" and a table "songs"
+    Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
     And the following example:
       """ruby
       require 'cql'
@@ -32,7 +32,7 @@ Feature: Round Robin Policy
       """
 
   Scenario: Round Robin policy is used explicitly
-    Given a running cassandra cluster with a schema "simplex" and a table "songs"
+    Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
     And the following example:
       """ruby
       require 'cql'
@@ -61,7 +61,7 @@ Feature: Round Robin Policy
 
   Scenario: Round Robin policy ignores datacenters
     Given a running cassandra cluster in 2 datacenters with 2 nodes in each
-    And a schema "simplex"
+    And a keyspace "simplex"
     And a table "songs"
     And the following example:
     """ruby

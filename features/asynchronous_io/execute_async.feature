@@ -5,9 +5,9 @@ Feature: Executing queries asynchronously
   or to register a listener that will be notified whenever the result becomes available.
 
   Background:
-    Given a running cassandra cluster with a schema "simplex" and a table "songs"
+    Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
 
-  Scenario: A future is fulfilled later
+  Scenario: Resolving a future
     Given the following example:
       """ruby
       require 'cql'

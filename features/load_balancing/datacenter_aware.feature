@@ -8,7 +8,7 @@ Feature: Datacenter-aware Round Robin Policy
 
   Scenario: Datacenter-aware Round Robin policy prefers hosts from a local datacenter
     Given a running cassandra cluster in 2 datacenters with 2 nodes in each
-    And a schema "simplex"
+    And a keyspace "simplex"
     And a table "songs"
     And the following example:
     """ruby

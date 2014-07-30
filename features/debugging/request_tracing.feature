@@ -3,7 +3,7 @@ Feature: Request tracing
   Execution information can be used to access request trace if tracing was enabled.
 
   Background:
-    Given a running cassandra cluster with a schema "simplex" and a table "songs"
+    Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
 
   Scenario: tracing is disabled by default
     Given the following example:

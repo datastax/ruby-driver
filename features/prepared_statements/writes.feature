@@ -5,7 +5,7 @@ Feature: prepared statements for writes
   to represent a dynamic value in a statement.
 
   Background:
-    Given a running cassandra cluster with a schema "simplex" and an empty table "playlists"
+    Given a running cassandra cluster with a keyspace "simplex" and an empty table "playlists"
 
   Scenario: an INSERT statement is prepared
     Given the following example:
