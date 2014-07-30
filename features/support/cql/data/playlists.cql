@@ -22,3 +22,11 @@ VALUES (
    'Performance',
    'Mick Jager'
 );
+INSERT INTO playlists (id, song_id, title, album, artist)
+VALUES (
+   3fd2bedf-a8c8-455a-a462-0cd3a4353c54,
+   756716f7-2e54-4715-9f00-91dcbea6cf50,
+   'La Petite Tonkinoise',
+   'Bye Bye Blackbird',
+   'Joséphine Baker'
+);
