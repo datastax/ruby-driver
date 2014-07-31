@@ -114,10 +114,10 @@ A Cluster instance allows to configure different important aspects of the way co
 require 'cql'
 
 cluster = Cql.cluster
-             .with_contact_points('10.1.1.3', '10.1.1.4', '10.1.1.5')
-             .with_load_balancing_policy(Cql::LoadBalancing::Policies::DCAwareRoundRobin.new("US_EAST"))
-             .with_compresion(:snappy) # or :lz4
-             .build
+            .with_contact_points('10.1.1.3', '10.1.1.4', '10.1.1.5')
+            .with_load_balancing_policy(Cql::LoadBalancing::Policies::DCAwareRoundRobin.new("US_EAST"))
+            .with_compresion(:snappy) # or :lz4
+            .build
 ```
 
 ### Session
