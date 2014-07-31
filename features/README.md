@@ -3,7 +3,7 @@
 Ruby Driver is a ruby client for [Apache Cassandra](http://cassandra.apache.org/), a distributed, fault-tolerant and high-throughput nosql database. It has built-in support for:
 
 * simple queries
-* [prepared](/features/prepared_statements/) and [batch statements](/features/batches/)
+* [prepared](/features/prepared_statements/) and [batch statements](/features/batch_statements/)
 * [asynchronous execution](/features/asynchronous_io/)
 * automatic peer discovery and cluster metadata
 * [diverse load-balancing](/features/load_balancing/), [retry](/features/retry_policies/) and reconnection policies, [with ability to write your own](/features/load_balancing/custom/).
