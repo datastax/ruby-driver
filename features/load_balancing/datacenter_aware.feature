@@ -3,7 +3,8 @@ Feature: Datacenter-aware Round Robin Policy
   A specialized Round Robin load balancing policy allows for querying remote
   datacenters only when all local nodes are down. This policy will round robin
   requests across hosts in the local datacenter, falling back to remote
-  datacenter if necessary.
+  datacenter if necessary. The name of the local datacenter must be supplied by
+  the user.
 
   All known remote hosts will be tried when local nodes are not available.
   However, you can configure the exact number of remote hosts that will be used
@@ -18,7 +19,7 @@ Feature: Datacenter-aware Round Robin Policy
     And a keyspace "simplex"
     And a table "songs"
 
-  Scenario: Routes requests inside a datacenter by default
+  Scenario: Requests are automatically routed to local datacenter
     Given the following example:
       """ruby
       require 'cql'
@@ -44,7 +45,7 @@ Feature: Datacenter-aware Round Robin Policy
       127.0.0.4
       """
 
-  Scenario: Falls back to a remote datacenter
+  Scenario: Requests are routed to remote datacenters if local datacenter is down
     Given the following example:
       """ruby
       require 'cql'
@@ -72,7 +73,7 @@ Feature: Datacenter-aware Round Robin Policy
       127.0.0.2
       """
 
-  Scenario: Allows to limit the number of remote hosts tried
+  Scenario: Requests are routed up to a maximum number of hosts in remote datacenters
     Given the following example:
       """ruby
       require 'cql'
@@ -100,7 +101,7 @@ Feature: Datacenter-aware Round Robin Policy
       Used 1 host, with ip 127\.0\.0\.(1|2)
       """
 
-  Scenario: Ignores remote hosts for local consistencies by default
+  Scenario: Requests with local consistencies are not routed to remote datacenters
     Given the following example:
       """ruby
       require 'cql'
@@ -122,7 +123,7 @@ Feature: Datacenter-aware Round Robin Policy
       no hosts available, check #errors property for details (Cql::NoHostsAvailable)
       """
 
-  Scenario: Allows to use remote hosts for local consistencies
+  Scenario: Routing requests with local consistencies to remote datacenters
     Given the following example:
       """ruby
       require 'cql'
