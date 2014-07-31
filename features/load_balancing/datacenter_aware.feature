@@ -1,34 +1,152 @@
 Feature: Datacenter-aware Round Robin Policy
 
-  A specialized Round Robin load balancing policy allows for querying remotedatacenters when all local nodes are down.
+  A specialized Round Robin load balancing policy allows for querying remote
+  datacenters only when all local nodes are down. This policy will round robin
+  requests across hosts in the local datacenter, falling back to remote
+  datacenter if necessary.
 
-  The effects of the policy can be seen by enabling requests tracing. The
-  coordinator node that served every request can be retrieved from the
-  execution info of the result.
+  All known remote hosts will be tried when local nodes are not available.
+  However, you can configure the exact number of remote hosts that will be used
+  by passing that number when constructing a policy instance.
 
-  Scenario: Datacenter-aware Round Robin policy prefers hosts from a local datacenter
+  By default, this policy will not attempt to use remote hosts for local
+  consistencies (`:local_one` or `:local_quorum`), however, it is possible to
+  change that behavior via constructor.
+
+  Background:
     Given a running cassandra cluster in 2 datacenters with 2 nodes in each
     And a keyspace "simplex"
     And a table "songs"
-    And the following example:
-    """ruby
-    require 'cql'
 
-    cluster = Cql.cluster
-      .with_load_balancing_policy(Cql::LoadBalancing::Policies::DCAwareRoundRobin.new("dc2"))
-      .build
-    session = cluster.connect('simplex')
+  Scenario: Routes requests inside a datacenter by default
+    Given the following example:
+      """ruby
+      require 'cql'
 
-    coordinator_ips = 4.times.map do
-      info = session.execute("SELECT * FROM songs").execution_info
-      info.hosts.last.ip
-    end
+      datacenter = "dc2"
+      policy     = Cql::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
+      cluster    = Cql.cluster
+                    .with_load_balancing_policy(policy)
+                    .build
+      session = cluster.connect('simplex')
 
-    puts coordinator_ips.sort.uniq
-    """
+      hosts_used = 4.times.map do
+        info = session.execute("SELECT * FROM songs").execution_info
+        info.hosts.last.ip
+      end.sort.uniq
+
+      puts hosts_used
+      """
     When it is executed
     Then its output should contain:
-    """
-    127.0.0.3
-    127.0.0.4
-    """
+      """
+      127.0.0.3
+      127.0.0.4
+      """
+
+  Scenario: Falls back to a remote datacenter
+    Given the following example:
+      """ruby
+      require 'cql'
+
+      datacenter = "dc2"
+      policy     = Cql::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
+      cluster    = Cql.cluster
+                    .with_load_balancing_policy(policy)
+                    .build
+      session = cluster.connect('simplex')
+
+      hosts_used = 4.times.map do
+        info = session.execute("SELECT * FROM songs").execution_info
+        info.hosts.last.ip
+      end.sort.uniq
+
+      puts hosts_used
+      """
+    And node 3 is stopped
+    And node 4 is stopped
+    When it is executed
+    Then its output should contain:
+      """
+      127.0.0.1
+      127.0.0.2
+      """
+
+  Scenario: Allows to limit the number of remote hosts tried
+    Given the following example:
+      """ruby
+      require 'cql'
+
+      datacenter     = "dc2"
+      remotes_to_try = 1
+      policy         = Cql::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, remotes_to_try)
+      cluster        = Cql.cluster
+                         .with_load_balancing_policy(policy)
+                         .build
+      session = cluster.connect('simplex')
+
+      hosts_used = 4.times.map do
+        info = session.execute("SELECT * FROM songs").execution_info
+        info.hosts.last.ip
+      end.sort.uniq
+
+      puts "Used #{hosts_used.size} host, with ip #{hosts_used.first}"
+      """
+    And node 3 is stopped
+    And node 4 is stopped
+    When it is executed
+    Then its output should match:
+      """
+      Used 1 host, with ip 127\.0\.0\.(1|2)
+      """
+
+  Scenario: Ignores remote hosts for local consistencies by default
+    Given the following example:
+      """ruby
+      require 'cql'
+
+      datacenter = "dc2"
+      policy     = Cql::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
+      cluster    = Cql.cluster
+                    .with_load_balancing_policy(policy)
+                    .build
+      session = cluster.connect('simplex')
+
+      session.execute("SELECT * FROM songs", :consistency => :local_one)
+      """
+    And node 3 is stopped
+    And node 4 is stopped
+    When it is executed
+    Then its output should contain:
+      """
+      no hosts available, check #errors property for details (Cql::NoHostsAvailable)
+      """
+
+  Scenario: Allows to use remote hosts for local consistencies
+    Given the following example:
+      """ruby
+      require 'cql'
+
+      datacenter = "dc2"
+      use_remote = true
+      policy     = Cql::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, nil, use_remote)
+      cluster    = Cql.cluster
+                    .with_load_balancing_policy(policy)
+                    .build
+      session = cluster.connect('simplex')
+
+      hosts_used = 4.times.map do
+        info = session.execute("SELECT * FROM songs").execution_info
+        info.hosts.last.ip
+      end.sort.uniq
+
+      puts hosts_used
+      """
+    And node 3 is stopped
+    And node 4 is stopped
+    When it is executed
+    Then its output should contain:
+      """
+      127.0.0.1
+      127.0.0.2
+      """

@@ -53,6 +53,10 @@ When(/^node (\d+) stops$/) do |i|
   @cluster.stop_node(i)
 end
 
+Given(/^node (\d+) is stopped$/) do |i|
+  step "node #{i} stops"
+end
+
 When(/^node (\d+) joins$/) do |i|
   @cluster.add_node(i)
   step "node #{i} starts"
