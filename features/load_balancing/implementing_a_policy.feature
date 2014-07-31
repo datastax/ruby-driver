@@ -5,11 +5,11 @@ Feature: Implementing custom load balancing policies
   balancing policies are required to be thread-safe.
 
   The object returned from the `plan` method must implement method `next`
-  that returns a `Cql::Host` instance.
+  that returns a `Cql::Host` instance or raises `StopIteration`.
 
   This method will be called from multiple threads, but never in parallel and
-  it `Plan` doesn't have to be thread-safe. However, because it is called
-  across threads, an `Enumerator` **cannot** be used as a Plan.
+  `Plan` doesn't have to be thread-safe. However, because it is called across
+  threads, an `Enumerator` **cannot** be used as a Plan.
 
   Background:
     Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
