@@ -12,7 +12,7 @@ class UnpreparedSelectRubyDriver < Benchmark
 
     def target
         puts "#{Time.now - start} Starting producing #{@iterations} selects..."
-        statement = Cql::Statements::Simple.new("SELECT COUNT(*) FROM songs")
+        statement = Cql::Statements::Simple.new("SELECT * FROM songs")
         futures = @iterations.times.map do
             @session.execute_async(statement)
         end

@@ -8,7 +8,7 @@ class PreparedSelectRubyDriver < Benchmark
         puts "#{Time.now - start} Connecting to cluster..."
         @cluster = Cql.cluster.with_contact_points('127.0.0.1').build
         @session = @cluster.connect("simplex")
-        @statement  = @session.prepare('SELECT COUNT(*) FROM songs')
+        @statement  = @session.prepare('SELECT * FROM songs')
     end
 
     def target
