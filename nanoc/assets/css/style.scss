@@ -1,9 +1,9 @@
 @import "bootstrap/bootstrap";
 
-body {
-  padding-top: 60px;
-  position: relative;
-}
+//body {
+//  padding-top: 60px;
+//  position: relative;
+//}
 
 .steps {
   font-size: 16px;
@@ -60,10 +60,10 @@ body {
 .side-nav .nav>.active>a, 
 .side-nav .nav>li>a:hover, 
 .side-nav .nav>li>a:focus {
-    color: #428bca;                 
-    text-decoration: none;          
-    background-color: transparent;  
-    border-left: 2px solid #428bca; 
+    color: #428bca;
+    text-decoration: none;
+    background-color: transparent;
+    border-left: 2px solid #428bca;
 }
 
 /* all active links */
@@ -83,5 +83,6 @@ body {
 .side-nav .affix {
   @media (min-width: 1200px) {
     width: 258px;
+    top: 10px;
   }
 }
