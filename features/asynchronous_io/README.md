@@ -2,7 +2,36 @@
 
 [Cassandra's native binary protocol supports request pipelining](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L117). Essentially, this lets a single connection to be used for several simultaneous and independent request/response exchanges. Additionally, Ruby Driver doesn't use any blocking apis internally and runs all requests in the background reactor thread.
 
-To make it easy to distinguish synchronous vs asynchronous methods, all asynchronous methods end with `_async` (e.g. `execute_async`) and return a `Cql::Future` object.
+```ditaa
+/------+                          /------+
+|Client|                          |Server|
++---+--/                          +---+--/
+    :                                 :
+    |-------------------------------->|
+    |        request 1                |
+    |-------------------------------->|
+    |        request 2                |
+    |                                 |
+    |                                 |
+    |<--------------------------------|
+    |                response 2       |
+    |                                 |
+    |                                 |
+    |                                 |
+    |-------------------------------->|
+    |        request 3                |
+    |                                 |
+    |<--------------------------------|
+    |                response 1       |
+    |                                 |
+    |                                 |
+    |<--------------------------------|
+    |                response 3       |
+    |                                 |
+    +                                 +
+```
+
+For consistency of API, all asynchronous methods end with `_async` (e.g. `execute_async`) and return a `Cql::Future` object.
 
 `Cql::Session` methods like `prepare`, `execute` and `close` are thin wrappers around `prepare_async`, `execute_async` and `close_async` accordingly. These wrapper methods simply call their asynchronous counter part and block waiting for resulting future to be resolved.
 
