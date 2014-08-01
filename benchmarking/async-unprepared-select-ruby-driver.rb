@@ -20,7 +20,7 @@ class UnpreparedSelectRubyDriver < Benchmark
         puts "#{Time.now - start} Starting consuming selects..."
         futures.each do |future|
             begin
-                future.get
+                future.get.size
                 increment_success
             rescue => e
                 puts "#{e.class.name}: #{e.message}"

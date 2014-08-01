@@ -23,7 +23,7 @@ class PreparedSelectCqlRb < Benchmark
         puts "#{Time.now - start} Starting consuming selects..."
         futures.each do |future|
             begin
-                future.value
+                future.value.size
                 increment_success
             rescue => e
                 puts "#{e.class.name}: #{e.message}"
