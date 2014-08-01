@@ -1,8 +1,8 @@
 # encoding: utf-8
 
-Given(/^a running cassandra cluster with a schema "(.*?)" and (a|an empty) table "(.*?)"$/) do |schema, a, table|
+Given(/^a running cassandra cluster with a keyspace "(.*?)" and (a|an empty) table "(.*?)"$/) do |keyspace, a, table|
   step "a running cassandra cluster"
-  step "a schema \"#{schema}\""
+  step "a keyspace \"#{keyspace}\""
   step "#{a} table \"#{table}\""
 end
 
@@ -19,16 +19,14 @@ Given(/^a running cassandra cluster in (\d+) datacenter(?:s)? with (\d+) nodes i
   @cluster = setup_cluster(no_dc.to_i, no_nodes_per_dc.to_i)
 end
 
-Given(/^a schema "(.*?)"$/) do |schema|
-  @cluster.create_schema(schema)
-  @cluster.use_schema(schema)
+Given(/^a keyspace "(.*?)"$/) do |keyspace|
+  @cluster.create_keyspace(keyspace)
+  @cluster.use_keyspace(keyspace)
 end
 
 Given(/^a(?:n)? (empty )?table "(.*?)"$/) do |empty, table|
   @cluster.create_table(table)
-  if empty.nil?
-    @cluster.populate_table(table)
-  end
+  @cluster.populate_table(table) unless empty
 end
 
 Given(/^the following example:$/) do |code|
@@ -55,6 +53,10 @@ When(/^node (\d+) stops$/) do |i|
   @cluster.stop_node(i)
 end
 
+Given(/^node (\d+) is stopped$/) do |i|
+  step "node #{i} stops"
+end
+
 When(/^node (\d+) joins$/) do |i|
   @cluster.add_node(i)
   step "node #{i} starts"
@@ -76,11 +78,11 @@ When(/^node (\d+) restarts$/) do |i|
 end
 
 When(/^keyspace "(.*?)" is created$/) do |keyspace|
-  @cluster.create_schema(keyspace)
+  @cluster.create_keyspace(keyspace)
 end
 
 When(/^keyspace "(.*?)" is dropped$/) do |keyspace|
-  @cluster.drop_schema(keyspace)
+  @cluster.drop_keyspace(keyspace)
 end
 
 After('@auth') do

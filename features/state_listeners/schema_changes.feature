@@ -1,8 +1,8 @@
 @todo
-Feature: schema change detection
+Feature: keyspace change detection
 
   Cluster object allows registering state listeners. It then gurantees that
-  they will be notifies on schema changes.
+  they will be notifies on keyspace changes.
 
   Background:
     Given a running cassandra cluster
@@ -13,15 +13,15 @@ Feature: schema change detection
           @out = io
         end
 
-        def schema_created(keyspace, table)
+        def keyspace_created(keyspace, table)
           @out.puts("Schema created keyspace=#{keyspace.inspect} table=#{table.inspect}")
         end
 
-        def schema_updated(keyspace, table)
+        def keyspace_updated(keyspace, table)
           @out.puts("Schema updated keyspace=#{keyspace.inspect} table=#{table.inspect}")
         end
 
-        def schema_dropped(keyspace, table)
+        def keyspace_dropped(keyspace, table)
           @out.puts("Schema dropped keyspace=#{keyspace.inspect} table=#{table.inspect}")
         end
       end

@@ -1,11 +1,12 @@
 @import "bootstrap/bootstrap";
 
-body {
-  padding-top: 60px;
-  position: relative;
-}
+//body {
+//  padding-top: 60px;
+//  position: relative;
+//}
 
 .steps {
+  font-size: 16px;
   dt {
     float: left;
     clear: left;
@@ -21,16 +22,16 @@ body {
 
 /* sidebar */
 .side-nav {
-    padding-left: 20px;
-    margin-top: 20px;
-    margin-bottom: 20px;
+//    padding-left: 20px;
+//    margin-top: 20px;
+//    margin-bottom: 20px;
 }
 
 /* all links */
 .side-nav .nav>li>a {
 //    color: #999;
     padding: 4px 20px;
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 400;
 }
 
@@ -39,7 +40,15 @@ body {
     padding-top: 1px;
     padding-bottom: 1px;
     padding-left: 30px;
-    font-size: 12px;
+    font-size: 16px;
+}
+
+/* nested links */
+.side-nav .nav .nav .nav>li>a {
+    padding-top: 1px;
+    padding-bottom: 1px;
+    padding-left: 35px;
+    font-size: 13px;
 }
 
 .side-nav .nav>li>a {
@@ -51,10 +60,10 @@ body {
 .side-nav .nav>.active>a, 
 .side-nav .nav>li>a:hover, 
 .side-nav .nav>li>a:focus {
-    color: #428bca;                 
-    text-decoration: none;          
-    background-color: transparent;  
-    border-left: 2px solid #428bca; 
+    color: #428bca;
+    text-decoration: none;
+    background-color: transparent;
+    border-left: 2px solid #428bca;
 }
 
 /* all active links */
@@ -74,5 +83,6 @@ body {
 .side-nav .affix {
   @media (min-width: 1200px) {
     width: 258px;
+    top: 10px;
   }
 }

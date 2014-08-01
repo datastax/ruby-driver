@@ -90,30 +90,30 @@ module CCM
       n == (@nodes.count / @no_dc)
     end
 
-    def create_schema(schema)
-      return if schemas.include?(schema)
+    def create_keyspace(keyspace)
+      return if keyspaces.include?(keyspace)
 
-      execute_query("CREATE KEYSPACE #{schema} WITH replication = " \
+      execute_query("CREATE KEYSPACE #{keyspace} WITH replication = " \
                     "{'class': 'SimpleStrategy', 'replication_factor': 3}")
     end
 
-    def use_schema(schema)
-      @schema = schema
+    def use_keyspace(keyspace)
+      @keyspace = keyspace
     end
 
-    def drop_schema(schema)
-      execute_query("DROP KEYSPACE #{schema}")
+    def drop_keyspace(keyspace)
+      execute_query("DROP KEYSPACE #{keyspace}")
     end
 
     def create_table(table)
-      raise "no schema selected" if @schema.nil?
+      raise "no keyspace selected" if @keyspace.nil?
 
-      execute_query("USE #{@schema}; DROP TABLE IF EXISTS #{table}; " +
-                    schema_for(table).chomp(";\n"))
+      execute_query("USE #{@keyspace}; DROP TABLE IF EXISTS #{table}; " +
+                    keyspace_for(table).chomp(";\n"))
     end
 
     def populate_table(table)
-      execute_query("USE #{@schema}; " + data_for(table).chomp(";\n"))
+      execute_query("USE #{@keyspace}; " + data_for(table).chomp(";\n"))
     end
 
     def start_nth_node(i)
@@ -197,7 +197,7 @@ module CCM
       @fixture_path ||= Pathname(File.dirname(__FILE__) + '/cql')
     end
 
-    def schema_for(table)
+    def keyspace_for(table)
       File.read(fixture_path + 'schema' + "#{table}.cql")
     end
 
@@ -205,12 +205,12 @@ module CCM
       File.read(fixture_path + 'data' + "#{table}.cql")
     end
 
-    def schemas
+    def keyspaces
       execute_query("DESCRIBE KEYSPACES").strip.split(/\s+/)
     end
 
     def tables
-      data = execute_query("USE #{@schema}; DESCRIBE TABLES").strip
+      data = execute_query("USE #{@keyspace}; DESCRIBE TABLES").strip
       return [] if data == "<empty>"
       data.split(/\s+/)
     end

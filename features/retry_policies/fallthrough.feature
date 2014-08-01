@@ -5,7 +5,7 @@ Feature: Fallthrough Retry Policy
   This strategy should be used when the retry policy has to be implemented in business code.
 
   Scenario: Fallthrough policy is used explicitly
-    Given a running cassandra cluster with a schema "simplex" and a table "songs"
+    Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
     And the following example:
       """ruby
       require 'cql'

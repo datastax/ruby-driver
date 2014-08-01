@@ -1,7 +1,7 @@
 @auth
-Feature: basic authentication
+Feature: Standard authentication
 
-  Cluster object can be configured to use a given username/password for
+  A Cluster can be configured to use a given username/password for
   authentication to cassandra cluster.
 
   Background:
@@ -24,14 +24,14 @@ Feature: basic authentication
       end
       """
 
-  Scenario: authentication is successful
+  Scenario: Authenticating with correct credentials
     When it is executed with a valid username and password in the environment
     Then its output should contain:
       """
       authentication successful
       """
 
-  Scenario: authentication fails
+  Scenario: Authenticating with incorrect credentials
     When it is executed with an invalid username and password in the environment
     Then its output should contain:
       """

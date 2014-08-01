@@ -3,7 +3,7 @@ Feature: Execution information
   Every result contains useful execution information.
 
   Background:
-    Given a running cassandra cluster with a schema "simplex" and a table "songs"
+    Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
 
   Scenario: execution information is accessible from execution result
     Given the following example:

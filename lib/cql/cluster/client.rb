@@ -176,6 +176,10 @@ module Cql
       CLIENT_CLOSED        = Future.failed(ClientError.new('Cannot connect a closed client'))
       CLIENT_NOT_CONNECTED = Future.failed(ClientError.new('Cannot close a not connected client'))
 
+      UNAVAILABLE_ERROR_CODE   = 0x1000
+      WRITE_TIMEOUT_ERROR_CODE = 0x1100
+      READ_TIMEOUT_ERROR_CODE  = 0x1200
+
       def connected(f)
         if f.resolved?
           synchronize do
@@ -447,11 +451,11 @@ module Cql
             when Protocol::DetailedErrorResponse
               details  = r.details
               decision = case r.code
-              when 0x1000 # unavailable
+              when UNAVAILABLE_ERROR_CODE
                 @retry_policy.unavailable(statement, details[:cl], details[:required], details[:alive], retries)
-              when 0x1100 # write_timeout
+              when WRITE_TIMEOUT_ERROR_CODE
                 @retry_policy.write_timeout(statement, details[:cl], details[:write_type], details[:blockfor], details[:received], retries)
-              when 0x1200 # read_timeout
+              when READ_TIMEOUT_ERROR_CODE
                 @retry_policy.read_timeout(statement, details[:cl], details[:blockfor], details[:received], details[:data_present], retries)
               else
                 future.fail(QueryError.new(r.code, r.message, statement.cql, r.details))

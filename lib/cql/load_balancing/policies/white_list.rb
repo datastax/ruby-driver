@@ -4,26 +4,11 @@ module Cql
   module LoadBalancing
     module Policies
       class WhiteList
-        class Plan
-          def initialize(ips, wrapped_plan)
-            @ips  = ips
-            @plan = wrapped_plan
-          end
-
-          def next
-            begin
-              host = @plan.next
-            end until @ips.include?(host.ip)
-
-            host
-          end
-        end
-
         include Policy
 
         extend Forwardable
 
-        def_delegators :@policy, :host_up, :host_down, :host_found, :host_lost
+        def_delegators :@policy, :plan, :distance
 
         def initialize(ips, wrapped_policy)
           raise ::ArgumentError, "ips must be enumerable" unless ips.respond_to?(:each)
@@ -44,12 +29,20 @@ module Cql
           end
         end
 
-        def distance(host)
-          @ips.include?(host.ip) ? @policy.distance(host) : ignore
+        def host_found(host)
+          @policy.host_found(host) if @ips.include?(host.ip)
         end
 
-        def plan(keyspace, statement, options)
-          Plan.new(@ips, @policy.plan(keyspace, statement, options))
+        def host_lost(host)
+          @policy.host_lost(host) if @ips.include?(host.ip)
+        end
+
+        def host_up(host)
+          @policy.host_up(host) if @ips.include?(host.ip)
+        end
+
+        def host_down(host)
+          @policy.host_down(host) if @ips.include?(host.ip)
         end
       end
     end

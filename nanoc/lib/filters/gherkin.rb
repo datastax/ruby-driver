@@ -1,5 +1,8 @@
 # encoding: utf-8
 
+require 'base64'
+require 'fileutils'
+
 module Docs
   class GherkinFilter < Nanoc::Filter
     identifier :gherkin
@@ -222,14 +225,27 @@ module Docs
         case language
         when nil, ''
           "<pre><code>#{code}</code></pre>"
+        when 'ditaa'
+          id = Digest::MD5.hexdigest(code)
+          txt = Tempfile.new([id, '.txt'])
+          png = Tempfile.new([id, '.png'])
+          txt.write(code)
+          txt.close
+          png.close
+          `ditaa -E #{txt.path} #{png.path}`
+          txt.unlink
+          data = File.read(png.path)
+          png.unlink
+          data = Base64.encode64(data)
+          "<img src=\"data:image/png;base64,#{data}\" alt=\"Text Diagram\" class=\"img-rounded img-thumbnail center-block ditaa\" />"
         else
           markup = ::Pygments.highlight(code, :lexer => language)
           markup = markup.sub(/<div class="highlight"><pre>/,'<pre class="highlight"><code class="' + language + '">')
           markup = markup.sub(/<\/pre><\/div>/,"</code></pre>")
           markup
         end
-      # rescue MentosError => e
-      #   "<pre><code class=\"#{language}\">#{code}</code></pre>"
+      rescue MentosError => e
+        "<pre><code class=\"#{language}\">#{code}</code></pre>"
       end
     end
 
