@@ -207,7 +207,7 @@ module Cql
             client.host_up(host)
 
             logger.should have_received(:warn).with(/Failed connecting to node/).at_least(1).times
-            logger.should have_received(:debug).with(/Reconnecting in \d+ seconds/)
+            logger.should have_received(:debug).with(/Reconnecting in \d+.\d seconds/)
           end
         end
       end

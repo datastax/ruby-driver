@@ -232,7 +232,7 @@ module Cql
       def connect_to_host_with_retry(host, schedule)
         interval = schedule.next
 
-        @logger.debug('Reconnecting in %d seconds' % interval)
+        @logger.debug('Reconnecting in %2.1f seconds' % interval)
 
         f = @reactor.schedule_timer(interval)
         f.flat_map do
