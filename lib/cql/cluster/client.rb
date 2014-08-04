@@ -31,6 +31,8 @@ module Cql
           @state = :connecting
 
           @connected_future = begin
+            @registry.add_listener(self)
+
             futures = @registry.hosts.map do |host|
               @connecting_hosts << host
               f = connect_to_host_maybe_retry(host, @load_balancing_policy.distance(host))
@@ -183,7 +185,6 @@ module Cql
             @state = :connected
           end
 
-          @registry.add_listener(self)
           @logger.info('Cluster connection complete')
         else
           synchronize do
