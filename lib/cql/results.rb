@@ -2,27 +2,59 @@
 
 module Cql
   module Result
+    include Enumerable
+
     # The ID of the query trace associated with the query, if any.
     #
     # @return [Cql::Execution::Info]
-    attr_reader :execution_info
+    def execution_info
+      @info ||= Execution::Info.new(@keyspace, @statement, @options, @hosts, @consistency, @retries, @trace_id ? Execution::Trace.new(@trace_id, @client) : nil)
+    end
+
+    def empty?
+      raise ::NotImplementedError, "must be implemented by a child"
+    end
+
+    def size
+      raise ::NotImplementedError, "must be implemented by a child"
+    end
+    alias :length :size
+
+    def each
+      raise ::NotImplementedError, "must be implemented by a child"
+    end
+    alias :rows :each
+    alias :each_row :each
+
+    def last_page?
+      raise ::NotImplementedError, "must be implemented by a child"
+    end
+
+    def next_page
+      raise ::NotImplementedError, "must be implemented by a child"
+    end
+
+    def next_page_async
+      raise ::NotImplementedError, "must be implemented by a child"
+    end
   end
 
   module Results
     class Paged
-      include Result, Enumerable
+      include Result
 
       # @private
-      def initialize(metadata, rows, paging_state, execution_info)
-        @raw_metadata   = metadata
+      def initialize(rows, paging_state, trace_id, keyspace, statement, options, hosts, consistency, retries, client)
         @rows           = rows
         @paging_state   = paging_state
-        @execution_info = execution_info
-      end
-
-      # @return [ResultMetadata]
-      def metadata
-        @metadata ||= Client::ResultMetadata.new(@raw_metadata)
+        @trace_id       = trace_id
+        @keyspace       = keyspace
+        @statement      = statement
+        @options        = options
+        @hosts          = hosts
+        @consistency    = consistency
+        @retries        = retries
+        @client         = client
       end
 
       # Returns whether or not there are any rows in this result set
@@ -36,49 +68,48 @@ module Cql
       end
       alias :length :size
 
-      # Iterates over each row in the result set.
-      #
-      # @yieldparam [Hash] row each row in the result set as a hash
-      # @return [Cql::Result]
       def each(&block)
         @rows.each(&block)
-        self
       end
-      alias_method :each_row, :each
+      alias :rows :each
+      alias :each_row :each
 
       # Returns true when there are no more pages to load.
-      #
-      # This is only relevant when you have requested paging of the results with
-      # the `:page_size` option to {Cql::Client::Client#execute} or
-      # {Cql::Client::PreparedStatement#execute}.
-      #
-      # @see Cql::Client::Client#execute
       def last_page?
         @paging_state.nil?
       end
 
       # Returns the next page or nil when there is no next page.
       #
-      # This is only relevant when you have requested paging of the results with
-      # the `:page_size` option to {Cql::Client::Client#execute} or
-      # {Cql::Client::PreparedStatement#execute}.
-      #
-      # @see Cql::Client::Client#execute
+      # @return [Cql::Result]
       def next_page
-        return Future.resolved if last_page?
-        @client.execute(@request.cql, *@request.values, @options)
+        next_page_async.get
+      end
+
+      def next_page_async
+        return Future.resolved if @paging_state.nil?
+
+        if @statement.is_a?(Statements::Simple)
+          @client.query(@statement, @options, @paging_state)
+        else
+          @client.execute(@statement, @options, @paging_state)
+        end
       end
     end
 
     class Void
-      include Result, Enumerable
+      include Result
 
-      def initialize(execution_info)
-        @execution_info = execution_info
-      end
-
-      def metadata
-        EMPTY_METADATA
+      # @private
+      def initialize(trace_id, keyspace, statement, options, hosts, consistency, retries, client)
+        @trace_id    = trace_id
+        @keyspace    = keyspace
+        @statement   = statement
+        @options     = options
+        @hosts       = hosts
+        @consistency = consistency
+        @retries     = retries
+        @client      = client
       end
 
       # Returns whether or not there are any rows in this result set
@@ -97,9 +128,10 @@ module Cql
       # @yieldparam [Hash] row each row in the result set as a hash
       # @return [Cql::Result]
       def each(&block)
-        self
+        NO_ROWS.each(&block)
       end
-      alias_method :each_row, :each
+      alias :rows :each
+      alias :each_row :each
 
       # Returns true when there are no more pages to load.
       #
@@ -119,14 +151,17 @@ module Cql
       # {Cql::Client::PreparedStatement#execute}.
       #
       # @see Cql::Client::Client#execute
+      def next_page_async
+        Future.resolved
+      end
+
       def next_page
-        return Future.resolved
+        nil
       end
 
       private
 
-      EMPTY_ROWS     = [].freeze
-      EMPTY_METADATA = Client::ResultMetadata.new(EMPTY_ROWS)
+      NO_ROWS = [].freeze
     end
   end
 end

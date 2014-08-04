@@ -114,8 +114,8 @@ module Cql
         Future.all(*futures).map(nil)
       end
 
-      def query(statement, options)
-        request = Protocol::QueryRequest.new(statement.cql, statement.params, nil, options.consistency, options.serial_consistency, options.page_size, nil, options.trace?)
+      def query(statement, options, paging_state = nil)
+        request = Protocol::QueryRequest.new(statement.cql, statement.params, nil, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
         timeout = options.timeout
         future  = Ione::CompletableFuture.new
 
@@ -442,9 +442,7 @@ module Cql
                 request.consistency = decision.consistency
                 do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts, retries + 1)
               when Retry::Decisions::Ignore
-                execution_info = create_execution_info(keyspace, statement, options, request, r, hosts)
-
-                future.resolve(Results::Void.new(execution_info))
+                future.resolve(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
               when Retry::Decisions::Reraise
                 future.fail(QueryError.new(r.code, r.message, statement.cql, r.details))
               else
@@ -454,9 +452,7 @@ module Cql
               future.fail(QueryError.new(r.code, r.message, statement.cql, nil))
             when Protocol::SetKeyspaceResultResponse
               @keyspace = r.keyspace
-              execution_info = create_execution_info(keyspace, statement, options, request, r, hosts)
-
-              future.resolve(Results::Void.new(execution_info))
+              future.resolve(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
             when Protocol::PreparedResultResponse
               cql = request.cql
               synchronize do
@@ -468,19 +464,12 @@ module Cql
 
               future.resolve(Statements::Prepared.new(cql, r.metadata, r.result_metadata, execution_info))
             when Protocol::RawRowsResultResponse
-              execution_info  = create_execution_info(keyspace, statement, options, request, r, hosts)
-              result_metadata = statement.result_metadata
-
-              r.materialize(result_metadata)
-              future.resolve(Results::Paged.new(result_metadata, r.rows, r.paging_state, execution_info))
+              r.materialize(statement.result_metadata)
+              future.resolve(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
             when Protocol::RowsResultResponse
-              execution_info = create_execution_info(keyspace, statement, options, request, r, hosts)
-
-              future.resolve(Results::Paged.new(r.metadata, r.rows, r.paging_state, execution_info))
+              future.resolve(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
             else
-              execution_info = create_execution_info(keyspace, statement, options, request, r, hosts)
-
-              future.resolve(Results::Void.new(execution_info))
+              future.resolve(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
             end
           else
             f.on_failure do |e|
