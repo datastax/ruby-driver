@@ -53,6 +53,7 @@ require 'cql/results'
 require 'cql/statement'
 require 'cql/statements'
 
+require 'cql/connector'
 require 'cql/connection_options'
 
 require 'cql/execution/info'

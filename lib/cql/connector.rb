@@ -2,51 +2,66 @@
 
 module Cql
   class Connector
-    def initialize(logger, io_reactor, compressor, protocol_version, port, connection_timeout, credentials, auth_provider)
+    def initialize(logger, io_reactor, eviction_policy, connection_options)
       @logger             = logger
-      @io_reactor         = io_reactor
-      @compressor         = compressor
-      @protocol_version   = protocol_version
-      @port               = port
-      @connection_timeout = connection_timeout
-      @credentials        = credentials
-      @auth_provider      = auth_provider
+      @reactor            = io_reactor
+      @eviction_policy    = eviction_policy
+      @connection_options = connection_options
     end
 
-    def connect(address, protocol_version = @protocol_version)
-      connector = Client::Connector.new([
-        Client::ConnectStep.new(@io_reactor, protocol_handler_factory(protocol_version), @port, @connection_timeout, @logger),
-        Client::CacheOptionsStep.new,
-        Client::InitializeStep.new(@compressor, @logger),
-        authentication_step(protocol_version),
-        Client::CachePropertiesStep.new,
-      ])
+    def connect(host, distance)
+      if distance.ignore?
+        return NO_CONNECTIONS
+      elsif distance.local?
+        pool_size = @connection_options.connections_per_local_node
+      else
+        pool_size = @connection_options.connections_per_remote_node
+      end
 
-      f = connector.connect(address.to_s)
-      f.fallback do |error|
-        if error.is_a?(QueryError) && error.code == 0x0a && protocol_version > 1
-          @logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [protocol_version, protocol_version - 1, error.message])
-          connect(address, protocol_version - 1)
+      f = create_cluster_connector.connect_all([host.ip.to_s], pool_size)
+
+      f.on_complete do |f|
+        if f.resolved?
+          f.value.each do |connection|
+            connection.on_closed do |cause|
+              @eviction_policy.disconnected(host, cause)
+            end
+
+            @eviction_policy.connected(host)
+          end
         else
-          @logger.error('Connection failed: %s: %s' % [error.class.name, error.message])
-
-          raise error
+          f.on_failure do |e|
+            @eviction_policy.connection_error(host, e)
+          end
         end
       end
+
+      f
+    end
+
+    def connect_to_host(host)
+      create_connector.connect(host.ip.to_s)
     end
 
     private
 
-    def protocol_handler_factory(protocol_version)
-      lambda { |connection| Protocol::CqlProtocolHandler.new(connection, @io_reactor, protocol_version, @compressor) }
+    NO_CONNECTIONS = Future.resolved([])
+
+    def create_cluster_connector
+      Cql::Client::ClusterConnector.new(create_connector, @logger)
     end
 
-    def authentication_step(protocol_version)
-      if protocol_version == 1
-        Client::CredentialsAuthenticationStep.new(@credentials)
-      else
-        Client::SaslAuthenticationStep.new(@auth_provider)
-      end
+    def create_connector
+      authentication_step = @connection_options.protocol_version == 1 ? Cql::Client::CredentialsAuthenticationStep.new(@connection_options.credentials) : Cql::Client::SaslAuthenticationStep.new(@connection_options.auth_provider)
+      protocol_handler_factory = lambda { |connection| Protocol::CqlProtocolHandler.new(connection, @reactor, @connection_options.protocol_version, @connection_options.compressor) }
+
+      Cql::Client::Connector.new([
+        Cql::Client::ConnectStep.new(@reactor, protocol_handler_factory, @connection_options.port, @connection_options.connection_timeout, @logger),
+        Cql::Client::CacheOptionsStep.new,
+        Cql::Client::InitializeStep.new(@connection_options.compressor, @logger),
+        authentication_step,
+        Cql::Client::CachePropertiesStep.new,
+      ])
     end
   end
 end
