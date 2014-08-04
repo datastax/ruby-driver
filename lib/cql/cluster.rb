@@ -48,4 +48,5 @@ end
 
 require 'cql/cluster/client'
 require 'cql/cluster/control_connection'
+require 'cql/cluster/eviction_policy'
 require 'cql/cluster/registry'
