@@ -95,8 +95,8 @@ module Cql
 
           @connecting_hosts << host
 
-          connect_to_host_maybe_retry(host, @load_balancing_policy.distance(host))
-        end.map(nil)
+          connect_to_host_maybe_retry(host, @load_balancing_policy.distance(host)).map(nil)
+        end
       end
 
       def host_down(host)
