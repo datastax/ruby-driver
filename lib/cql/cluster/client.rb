@@ -67,6 +67,8 @@ module Cql
           state, @state = @state, :closing
 
           @closed_future = begin
+            @registry.remove_listener(self)
+
             if state == :connecting
               f = @connected_future.recover.flat_map { close_connections }
             else
@@ -202,8 +204,6 @@ module Cql
       def closed(f)
         synchronize do
           @state = :closed
-
-          @registry.remove_listener(self)
 
           if f.resolved?
             @logger.info('Cluster disconnect complete')
