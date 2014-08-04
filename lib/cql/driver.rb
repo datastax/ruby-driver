@@ -11,9 +11,13 @@ module Cql
     let(:io_reactor)       { Reactor.new(Io::IoReactor.new) }
     let(:cluster_registry) { Cluster::Registry.new }
 
-    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, connection_options) }
+    let(:eviction_policy) { Cluster::EvictionPolicy.new(cluster_registry) }
 
-    let(:cluster) { Cluster.new(logger, io_reactor, control_connection, cluster_registry, execution_options, load_balancing_policy, reconnection_policy, retry_policy, connection_options) }
+    let(:connector) { Connector.new(logger, io_reactor, eviction_policy, connection_options) }
+
+    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, connector, connection_options) }
+
+    let(:cluster) { Cluster.new(logger, io_reactor, control_connection, cluster_registry, execution_options, load_balancing_policy, reconnection_policy, retry_policy, connector) }
 
     let(:execution_options) do
       Execution::Options.new({

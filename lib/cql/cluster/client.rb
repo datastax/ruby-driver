@@ -5,14 +5,14 @@ module Cql
     class Client
       include MonitorMixin
 
-      def initialize(logger, cluster_registry, io_reactor, load_balancing_policy, reconnection_policy, retry_policy, connection_options)
+      def initialize(logger, cluster_registry, io_reactor, connector, load_balancing_policy, reconnection_policy, retry_policy)
         @logger                      = logger
         @registry                    = cluster_registry
         @reactor                     = io_reactor
+        @connector                   = connector
         @load_balancing_policy       = load_balancing_policy
         @reconnection_policy         = reconnection_policy
         @retry_policy                = retry_policy
-        @connection_options          = connection_options
         @connecting_hosts            = ::Set.new
         @connections                 = ::Hash.new
         @prepared_statements         = ::Hash.new
@@ -33,11 +33,8 @@ module Cql
           @connected_future = begin
             futures = @registry.hosts.map do |host|
               @connecting_hosts << host
-              distance = @load_balancing_policy.distance(host)
-
-              f = connect_to_host(host, distance)
+              f = connect_to_host_maybe_retry(host, @load_balancing_policy.distance(host))
               f.recover do |error|
-                @connecting_hosts.delete(host)
                 Cql::Client::FailedConnection.new(error, host)
               end
             end
@@ -222,33 +219,17 @@ module Cql
         Future.all(*futures).map(self)
       end
 
-      def create_cluster_connector
-        authentication_step = @connection_options.protocol_version == 1 ? Cql::Client::CredentialsAuthenticationStep.new(@connection_options.credentials) : Cql::Client::SaslAuthenticationStep.new(@connection_options.auth_provider)
-        protocol_handler_factory = lambda { |connection| Protocol::CqlProtocolHandler.new(connection, @reactor, @connection_options.protocol_version, @connection_options.compressor) }
-        Cql::Client::ClusterConnector.new(
-          Cql::Client::Connector.new([
-            Cql::Client::ConnectStep.new(@reactor, protocol_handler_factory, @connection_options.port, @connection_options.connection_timeout, @logger),
-            Cql::Client::CacheOptionsStep.new,
-            Cql::Client::InitializeStep.new(@connection_options.compressor, @logger),
-            authentication_step,
-            Cql::Client::CachePropertiesStep.new,
-          ]),
-          @logger
-        )
-      end
-
       def connect_to_host_maybe_retry(host, distance)
         f = connect_to_host(host, distance)
-        f.fallback do |e|
-          if e.is_a?(Io::ConnectionError)
-            connect_to_host_with_retry(host, distance, @reconnection_policy.schedule)
-          else
-            Future.failed(e)
-          end
+
+        f.on_failure do |e|
+          connect_to_host_with_retry(host, @reconnection_policy.schedule) if e.is_a?(Io::ConnectionError)
         end
+
+        f
       end
 
-      def connect_to_host_with_retry(host, distance, schedule)
+      def connect_to_host_with_retry(host, schedule)
         interval = schedule.next
 
         @logger.debug('Reconnecting in %d seconds' % interval)
@@ -256,9 +237,9 @@ module Cql
         f = @reactor.schedule_timer(interval)
         f.flat_map do
           if synchronize { @connecting_hosts.include?(host) }
-            connect_to_host(host, distance).fallback do |e|
+            connect_to_host(host, @load_balancing_policy.distance(host)).fallback do |e|
               if e.is_a?(Io::ConnectionError)
-                connect_to_host_with_retry(host, distance, schedule)
+                connect_to_host_with_retry(host, schedule)
               else
                 Future.failed(e)
               end
@@ -273,27 +254,20 @@ module Cql
       end
 
       def connect_to_host(host, distance)
-        return NO_CONNECTIONS if distance.ignore?
-
-        if distance.local?
-          pool_size = @connection_options.connections_per_local_node
-        else
-          pool_size = @connection_options.connections_per_remote_node
-        end
-
-        f = create_cluster_connector.connect_all([host.ip.to_s], pool_size)
-        f.map do |connections|
-          conns = nil
+        @connector.connect(host, distance).map do |connections|
+          manager = nil
 
           synchronize do
             @connecting_hosts.delete(host)
-            conns = @connections[host] ||= Cql::Client::ConnectionManager.new
 
-            @prepared_statements[host] = {}
-            @preparing_statements[host] = {}
+            unless connections.empty?
+              @prepared_statements[host] = {}
+              @preparing_statements[host] = {}
+              manager = @connections[host] ||= Cql::Client::ConnectionManager.new
+            end
           end
 
-          conns.add_connections(connections)
+          manager && manager.add_connections(connections)
 
           connections
         end

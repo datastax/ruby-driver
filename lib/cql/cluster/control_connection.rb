@@ -5,13 +5,14 @@ module Cql
     class ControlConnection
       include MonitorMixin
 
-      def initialize(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, connection_options)
+      def initialize(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, connector, connection_options)
         @logger                = logger
         @io_reactor            = io_reactor
         @request_runner        = request_runner
         @cluster               = cluster_registry
         @load_balancing_policy = load_balancing_policy
         @reconnection_policy   = reconnection_policy
+        @connector             = connector
         @connection_options    = connection_options
 
         mon_initialize
@@ -194,38 +195,29 @@ module Cql
         end
       end
 
-      def connect_to_first_available(plan, errors = {})
-        h = plan.next
-        f = connect_to_host(h.ip.to_s)
-        f.fallback do |error|
-          raise error if error.is_a?(AuthenticationError)
-
-          if error.is_a?(Cql::QueryError)
+      def connect_to_first_available(plan, errors = nil)
+        host = plan.next
+        connect_to_host(host).fallback do |error|
+          if error.is_a?(AuthenticationError)
+            Future.failed(error)
+          elsif error.is_a?(Cql::QueryError)
             if error.code == 0x100
-              raise AuthenticationError.new(error.message)
+              Future.failed(AuthenticationError.new(error.message))
             else
-              raise error
+              Future.failed(error)
             end
+          else
+            errors  ||= {}
+            errors[h] = error
+            connect_to_first_available(plan, errors)
           end
-
-          errors[h] = error
-          connect_to_first_available(plan, errors)
         end
       rescue ::StopIteration
-        Future.failed(NoHostsAvailable.new(errors))
+        Future.failed(NoHostsAvailable.new(errors || {}))
       end
 
       def connect_to_host(host)
-        connector = Cql::Client::Connector.new([
-          Cql::Client::ConnectStep.new(@io_reactor, protocol_handler_factory, @connection_options.port, @connection_options.connection_timeout, @logger),
-          Cql::Client::CacheOptionsStep.new,
-          Cql::Client::InitializeStep.new(@connection_options.compressor, @logger),
-          authentication_step,
-          Cql::Client::CachePropertiesStep.new,
-        ])
-
-        f = connector.connect(host)
-        f.fallback do |error|
+        @connector.connect_to_host(host).fallback do |error|
           if error.is_a?(QueryError) && error.code == 0x0a && @connection_options.protocol_version > 1
             @logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@connection_options.protocol_version, @connection_options.protocol_version - 1, error.message])
             @connection_options.protocol_version -= 1
@@ -233,7 +225,7 @@ module Cql
           else
             @logger.error('Connection failed: %s: %s' % [error.class.name, error.message])
 
-            raise error
+            Future.failed(error)
           end
         end
       end
@@ -242,22 +234,6 @@ module Cql
         ip = data['rpc_address']
         ip = data['peer'] if ip == '0.0.0.0'
         ip
-      end
-
-      def protocol_handler_factory
-        self.class.protocol_handler_factory(@io_reactor, @connection_options.protocol_version, @connection_options.compressor)
-      end
-
-      def authentication_step
-        if @connection_options.protocol_version == 1
-          Cql::Client::CredentialsAuthenticationStep.new(@connection_options.credentials)
-        else
-          Cql::Client::SaslAuthenticationStep.new(@connection_options.auth_provider)
-        end
-      end
-
-      def self.protocol_handler_factory(io_reactor, protocol_version, compressor)
-        lambda { |connection| Protocol::CqlProtocolHandler.new(connection, io_reactor, protocol_version, compressor) }
       end
     end
   end

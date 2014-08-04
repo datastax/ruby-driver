@@ -2,7 +2,7 @@
 
 module Cql
   class Cluster
-    def initialize(logger, io_reactor, control_connection, cluster_registry, execution_options, load_balancing_policy, reconnection_policy, retry_policy, connection_options)
+    def initialize(logger, io_reactor, control_connection, cluster_registry, execution_options, load_balancing_policy, reconnection_policy, retry_policy, connector)
       @logger                = logger
       @io_reactor            = io_reactor
       @control_connection    = control_connection
@@ -11,7 +11,7 @@ module Cql
       @load_balancing_policy = load_balancing_policy
       @reconnection_policy   = reconnection_policy
       @retry_policy          = retry_policy
-      @connection_options    = connection_options
+      @connector             = connector
     end
 
     def hosts
@@ -24,7 +24,7 @@ module Cql
     end
 
     def connect_async(keyspace = nil)
-      client  = Client.new(@logger, @registry, @io_reactor, @load_balancing_policy, @reconnection_policy, @retry_policy, @connection_options)
+      client  = Client.new(@logger, @registry, @io_reactor, @connector, @load_balancing_policy, @reconnection_policy, @retry_policy)
       session = Session.new(client, @execution_options)
 
       f = client.connect

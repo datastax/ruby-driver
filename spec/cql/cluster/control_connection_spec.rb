@@ -6,7 +6,7 @@ module Cql
   class Cluster
     describe(ControlConnection) do
       let :control_connection do
-        described_class.new(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, driver_settings)
+        ControlConnection.new(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, driver.connector, driver.connection_options)
       end
 
       let :io_reactor do
@@ -14,23 +14,27 @@ module Cql
       end
 
       let :cluster_registry do
-        Registry.new
+        driver.cluster_registry
       end
 
       let :request_runner do
-        Cql::Client::RequestRunner.new
+        driver.request_runner
       end
 
       let :logger do
-        Cql::Client::NullLogger.new
+        driver.logger
       end
 
-      let :driver_settings do
-        Driver.new(logger: logger, protocol_version: 7)
+      let :driver do
+        Driver.new(protocol_version: 7, io_reactor: io_reactor)
       end
 
       let :load_balancing_policy do
-        driver_settings.load_balancing_policy
+        driver.load_balancing_policy
+      end
+
+      let :connection_options do
+        driver.connection_options
       end
 
       let :reconnection_policy do
@@ -113,7 +117,7 @@ module Cql
       end
 
       before do
-        cluster_registry.add_listener(driver_settings.load_balancing_policy)
+        cluster_registry.add_listener(driver.load_balancing_policy)
         cluster_registry.host_found('127.0.0.1')
 
         io_reactor.on_connection do |connection|
@@ -194,7 +198,7 @@ module Cql
 
           control_connection.connect_async.get
 
-          driver_settings.protocol_version.should == 4
+          connection_options.protocol_version.should == 4
         end
 
         it 'logs when it tries the next protocol version' do
@@ -233,8 +237,8 @@ module Cql
         end
 
         it 'fails authenticating when an auth provider has been specified but the protocol is negotiated to v1' do
-          driver_settings.protocol_version = 1
-          driver_settings.auth_provider    = double(:auth_provider)
+          driver.protocol_version = 1
+          driver.auth_provider    = double(:auth_provider)
 
           counter = 0
           handle_request do |request|
