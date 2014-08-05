@@ -225,6 +225,7 @@ module Cql
 
     def initialize
       @signal = Signal.new
+      @future = Futures::Signaled.new(@signal)
     end
 
     def break(error)
@@ -238,7 +239,7 @@ module Cql
     end
 
     def future
-      Futures::Signaled.new(@signal)
+      @future
     end
   end
 end
