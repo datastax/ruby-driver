@@ -13,7 +13,7 @@ module Cql
 
     let(:eviction_policy) { Cluster::EvictionPolicy.new(cluster_registry) }
 
-    let(:connector) { Connector.new(logger, io_reactor, eviction_policy, connection_options) }
+    let(:connector) { Cluster::Connector.new(logger, io_reactor, eviction_policy, connection_options) }
 
     let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, connector, connection_options) }
 
@@ -27,7 +27,7 @@ module Cql
       })
     end
 
-    let(:connection_options) { ConnectionOptions.new(protocol_version, credentials, auth_provider, compressor, port, connection_timeout, connections_per_local_node, connections_per_remote_node) }
+    let(:connection_options) { Cluster::Options.new(protocol_version, credentials, auth_provider, compressor, port, connection_timeout, connections_per_local_node, connections_per_remote_node) }
 
     let(:port)                  { 9042 }
     let(:protocol_version)      { 2 }

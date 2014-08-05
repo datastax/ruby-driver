@@ -47,6 +47,8 @@ module Cql
 end
 
 require 'cql/cluster/client'
+require 'cql/cluster/connector'
 require 'cql/cluster/control_connection'
 require 'cql/cluster/eviction_policy'
+require 'cql/cluster/options'
 require 'cql/cluster/registry'
