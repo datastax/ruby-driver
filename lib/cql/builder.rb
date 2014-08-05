@@ -75,7 +75,7 @@ module Cql
     def build
       @addresses << IPAddr.new('127.0.0.1') if @addresses.empty?
 
-      Driver.new(@settings).connect(@addresses).get
+      Driver.new(@settings).connect(@addresses).value
     end
   end
 end

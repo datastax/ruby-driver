@@ -196,7 +196,7 @@ module Cql
             end
           end
 
-          control_connection.connect_async.get
+          control_connection.connect_async.value
 
           connection_options.protocol_version.should == 4
         end
@@ -215,7 +215,7 @@ module Cql
           end
 
 
-          control_connection.connect_async.get
+          control_connection.connect_async.value
           logger.should have_received(:warn).with(/could not connect using protocol version 7 \(will try again with 6\): bork version, dummy!/i)
         end
 
@@ -225,7 +225,7 @@ module Cql
             counter += 1
             Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
           end
-          expect { control_connection.connect_async.get }.to raise_error(Cql::QueryError, 'Bork version, dummy!')
+          expect { control_connection.connect_async.value }.to raise_error(Cql::QueryError, 'Bork version, dummy!')
           counter.should == 7
         end
 
@@ -233,7 +233,7 @@ module Cql
           handle_request do |request|
             Protocol::ErrorResponse.new(0x1001, 'Get off my lawn!')
           end
-          expect { control_connection.connect_async.get }.to raise_error(Cql::QueryError, 'Get off my lawn!')
+          expect { control_connection.connect_async.value }.to raise_error(Cql::QueryError, 'Get off my lawn!')
         end
 
         it 'fails authenticating when an auth provider has been specified but the protocol is negotiated to v1' do
@@ -249,16 +249,16 @@ module Cql
               Protocol::AuthenticateResponse.new('org.apache.cassandra.auth.PasswordAuthenticator')
             end
           end
-          expect { control_connection.connect_async.get }.to raise_error(AuthenticationError)
+          expect { control_connection.connect_async.value }.to raise_error(AuthenticationError)
         end
 
         it 'registers an event listener' do
-          control_connection.connect_async.get
+          control_connection.connect_async.value
           last_connection.should have_event_listener
         end
 
         it 'populates cluster state' do
-          control_connection.connect_async.get
+          control_connection.connect_async.value
           cluster_registry.should have(3).hosts
 
           cluster_registry.hosts.each do |host|
@@ -277,14 +277,14 @@ module Cql
           end
 
           it 'fails' do
-            expect { control_connection.connect_async.get }.to raise_error(NoHostsAvailable)
+            expect { control_connection.connect_async.value }.to raise_error(NoHostsAvailable)
           end
         end
 
         context 'with logging' do
           it 'logs when fetching cluster state' do
             logger.stub(:debug)
-            control_connection.connect_async.get
+            control_connection.connect_async.value
             logger.should have_received(:debug).with(/Looking for additional nodes/)
             logger.should have_received(:debug).with(/\d+ additional nodes found/)
           end
@@ -296,7 +296,7 @@ module Cql
           end
 
           it 'falls back on using the peer column' do
-            control_connection.connect_async.get
+            control_connection.connect_async.value
             cluster_registry.should have(3).hosts
 
             cluster_registry.hosts.each do |host|
@@ -314,7 +314,7 @@ module Cql
 
           before do
             reconnection_policy.stub(:schedule) { reconnection_schedule }
-            control_connection.connect_async.get
+            control_connection.connect_async.value
             last_connection.close
           end
 
@@ -324,7 +324,7 @@ module Cql
 
           context 'and reconnected' do
             it 'has an event listener' do
-              control_connection.connect_async.get
+              control_connection.connect_async.value
               last_connection.should have_event_listener
             end
           end
@@ -358,7 +358,7 @@ module Cql
           end
 
           before do
-            control_connection.connect_async.get
+            control_connection.connect_async.value
           end
 
           context 'when a status change event is received' do
@@ -529,7 +529,7 @@ module Cql
       describe "#close_async" do
         context 'when connected' do
           before do
-            control_connection.connect_async.get
+            control_connection.connect_async.value
           end
 
           it 'closes reactor' do
@@ -544,7 +544,7 @@ module Cql
           it 'returns a fulfilled future' do
             future = control_connection.close_async
             future.should be_resolved
-            future.get.should be_nil
+            future.value.should be_nil
           end
         end
 
@@ -554,7 +554,7 @@ module Cql
 
           before do
             reconnection_policy.stub(:schedule) { reconnection_schedule }
-            control_connection.connect_async.get
+            control_connection.connect_async.value
 
             cluster_registry.ips.each do |ip|
               io_reactor.node_down(ip)

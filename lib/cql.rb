@@ -12,12 +12,6 @@ module Cql
   CqlError = Class.new(StandardError)
   IoError = Ione::IoError
 
-  class Ione::Future
-    def get
-      value
-    end
-  end
-
   # @private
   Io = Ione::Io
 

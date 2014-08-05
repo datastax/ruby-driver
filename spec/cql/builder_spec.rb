@@ -13,7 +13,7 @@ module Cql
         driver = double('driver')
         expect(Driver).to receive(:new).once.with({}).and_return(driver)
         expect(driver).to receive(:connect).once.with(::Set[IPAddr.new('127.0.0.1')]).and_return(driver)
-        expect(driver).to receive(:get).once.and_return(driver)
+        expect(driver).to receive(:value).once.and_return(driver)
 
         expect(builder.build).to eq(driver)
       end
