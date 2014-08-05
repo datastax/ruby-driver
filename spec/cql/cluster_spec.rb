@@ -40,7 +40,7 @@ module Cql
       end
 
       it 'uses given keyspace' do
-        future = Ione::Future.resolved
+        future = Futures::Fulfilled.new(nil)
         Session.stub(:new) { session }
         expect(session).to receive(:execute_async).once.with('USE foo').and_return(future)
         cluster.connect_async('foo').get
@@ -48,15 +48,16 @@ module Cql
     end
 
     describe('#close_async') do
-      let(:promise) { double('promise') }
+      let(:promise) { double('promise').as_null_object }
 
       before do
-        expect(promise).to receive(:map).once.with(cluster).and_return(promise)
+        expect(Promise).to receive(:new).and_return(promise)
       end
 
       it 'closes control connection' do
-        expect(control_connection).to receive(:close_async).once.and_return(promise)
+        expect(control_connection).to receive(:close_async).once.and_return(Ione::Future.resolved)
         expect(cluster.close_async).to eq(promise)
+        expect(promise).to have_received(:fulfill).once.with(cluster)
       end
     end
 

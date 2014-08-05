@@ -26,10 +26,24 @@ module Cql
     def connect_async(keyspace = nil)
       client  = Client.new(@logger, @registry, @io_reactor, @connector, @load_balancing_policy, @reconnection_policy, @retry_policy)
       session = Session.new(client, @execution_options)
+      promise = Promise.new
 
-      f = client.connect
-      f = f.flat_map { session.execute_async("USE #{keyspace}") } if keyspace
-      f.map(session)
+      client.connect.on_complete do |f|
+        if f.resolved?
+          if keyspace
+            f = session.execute_async("USE #{keyspace}")
+
+            f.on_success {promise.fulfill(session)}
+            f.on_error   {|e| promise.break(e)}
+          else
+            promise.fulfill(session)
+          end
+        else
+          f.on_failure {|e| promise.break(e)}
+        end
+      end
+
+      promise.future
     end
 
     def connect(keyspace = nil)
@@ -37,7 +51,17 @@ module Cql
     end
 
     def close_async
-      @control_connection.close_async.map(self)
+      promise = Promise.new
+
+      @control_connection.close_async.on_complete do |f|
+        if f.resolved?
+          promise.fulfill(self)
+        else
+          f.on_failure {|e| promise.break(e)}
+        end
+      end
+
+      promise.future
     end
 
     def close

@@ -142,11 +142,16 @@ module Cql
     end
 
     describe('#close_async') do
-      it 'uses Client#close' do
-        promise = double('promise')
+      let(:promise) { double('promise').as_null_object }
 
-        expect(client).to receive(:close).and_return(promise)
+      before do
+        expect(Promise).to receive(:new).and_return(promise)
+      end
+
+      it 'uses Client#close' do
+        expect(client).to receive(:close).and_return(Ione::Future.resolved)
         expect(session.close_async).to eq(promise)
+        expect(promise).to have_received(:fulfill).once.with(session)
       end
     end
 

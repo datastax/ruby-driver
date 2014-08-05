@@ -26,7 +26,7 @@ module Cql
       when Statements::Batch
         @client.batch(statement, options)
       else
-        Ione::Future.failed(::ArgumentError.new("unsupported statement #{statement.inspect}"))
+        Futures::Broken.new(::ArgumentError.new("unsupported statement #{statement.inspect}"))
       end
     end
 
@@ -47,7 +47,7 @@ module Cql
       when Statements::Simple
         @client.prepare(statement.cql, options)
       else
-        Ione::Future.failed(::ArgumentError.new("unsupported statement #{statement.inspect}"))
+        Futures::Broken.new(::ArgumentError.new("unsupported statement #{statement.inspect}"))
       end
     end
 
@@ -75,7 +75,17 @@ module Cql
     end
 
     def close_async
-      @client.close
+      promise = Promise.new
+
+      @client.close.on_complete do |f|
+        if f.resolved?
+          promise.fulfill(self)
+        else
+          f.on_failure {|e| promise.break(e)}
+        end
+      end
+
+      promise.future
     end
 
     def close

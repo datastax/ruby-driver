@@ -2,6 +2,8 @@
 
 module Cql
   module Result
+    FULFILLED_FUTURE = Futures::Fulfilled.new(nil)
+
     include Enumerable
 
     # The ID of the query trace associated with the query, if any.
@@ -87,7 +89,7 @@ module Cql
       end
 
       def next_page_async
-        return Ione::Future.resolved if @paging_state.nil?
+        return FULFILLED_FUTURE if @paging_state.nil?
 
         if @statement.is_a?(Statements::Simple)
           @client.query(@statement, @options, @paging_state)
@@ -152,7 +154,7 @@ module Cql
       #
       # @see Cql::Client::Client#execute
       def next_page_async
-        Ione::Future.resolved
+        FULFILLED_FUTURE
       end
 
       def next_page

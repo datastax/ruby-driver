@@ -117,53 +117,53 @@ module Cql
       def query(statement, options, paging_state = nil)
         request = Protocol::QueryRequest.new(statement.cql, statement.params, nil, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
         timeout = options.timeout
-        future  = Ione::CompletableFuture.new
+        promise = Promise.new
 
         keyspace = @keyspace
         plan     = @load_balancing_policy.plan(keyspace, statement, options)
 
-        send_request_by_plan(future, keyspace, statement, options, request, plan, timeout)
+        send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout)
 
-        future
+        promise.future
       end
 
       def prepare(cql, options)
         request = Protocol::PrepareRequest.new(cql, options.trace?)
         timeout = options.timeout
-        future  = Ione::CompletableFuture.new
+        promise = Promise.new
 
         keyspace  = @keyspace
         statement = VOID_STATEMENT
         plan      = @load_balancing_policy.plan(keyspace, statement, options)
 
-        send_request_by_plan(future, keyspace, statement, options, request, plan, timeout)
+        send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout)
 
-        future
+        promise.future
       end
 
       def execute(statement, options, paging_state = nil)
         timeout         = options.timeout
         result_metadata = statement.result_metadata
         request         = Protocol::ExecuteRequest.new(nil, statement.params_metadata, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
-        future          = Ione::CompletableFuture.new
+        promise         = Promise.new
 
         keyspace = @keyspace
         plan     = @load_balancing_policy.plan(keyspace, statement, options)
 
-        execute_by_plan(future, keyspace, statement, options, request, plan, timeout)
+        execute_by_plan(promise, keyspace, statement, options, request, plan, timeout)
 
-        future
+        promise.future
       end
 
       def batch(statement, options)
         timeout  = options.timeout
         keyspace = @keyspace
         plan     = @load_balancing_policy.plan(keyspace, statement, options)
-        future   = Ione::CompletableFuture.new
+        promise  = Promise.new
 
-        batch_by_plan(future, keyspace, statement, options, plan, timeout)
+        batch_by_plan(promise, keyspace, statement, options, plan, timeout)
 
-        future
+        promise.future
       end
 
       private
@@ -274,7 +274,7 @@ module Cql
         end
       end
 
-      def execute_by_plan(future, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
+      def execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
         hosts << host = plan.next
         connection = synchronize { @connections.fetch(host) }.random_connection
 
@@ -282,45 +282,45 @@ module Cql
           switch = switch_keyspace(connection, keyspace, timeout)
           switch.on_complete do |s|
             if s.resolved?
-              prepare_and_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+              prepare_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               s.on_failure do |e|
-                future.fail(e)
+                promise.break(e)
               end
             end
           end
         else
-          prepare_and_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+          prepare_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
         end
       rescue ::KeyError
         retry
       rescue ::StopIteration
-        future.fail(NoHostsAvailable.new(errors || {}))
+        promise.break(NoHostsAvailable.new(errors || {}))
       end
 
-      def prepare_and_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+      def prepare_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
         cql = statement.cql
         id  = synchronize { @prepared_statements[host][cql] }
 
         if id
           request.id = id
-          do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+          do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
         else
           prepare = prepare_statement(host, connection, cql, timeout)
           prepare.on_complete do |_|
             if prepare.resolved?
               request.id = prepare.value
-              do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+              do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               prepare.on_failure do |e|
-                future.fail(e)
+                promise.break(e)
               end
             end
           end
         end
       end
 
-      def batch_by_plan(future, keyspace, statement, options, plan, timeout, errors = nil, hosts = [])
+      def batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors = nil, hosts = [])
         hosts << host = plan.next
         connection = synchronize { @connections.fetch(host) }.random_connection
 
@@ -328,23 +328,23 @@ module Cql
           switch = switch_keyspace(connection, keyspace, timeout)
           switch.on_complete do |s|
             if s.resolved?
-              batch_and_send_request_by_plan(host, connection, future, keyspace, statement, options, plan, timeout, errors, hosts)
+              batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, plan, timeout, errors, hosts)
             else
               s.on_failure do |e|
-                future.fail(e)
+                promise.break(e)
               end
             end
           end
         else
-          batch_and_send_request_by_plan(host, connection, future, keyspace, statement, options, plan, timeout, errors, hosts)
+          batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, plan, timeout, errors, hosts)
         end
       rescue ::KeyError
         retry
       rescue ::StopIteration
-        future.fail(NoHostsAvailable.new(errors || {}))
+        promise.break(NoHostsAvailable.new(errors || {}))
       end
 
-      def batch_and_send_request_by_plan(host, connection, future, keyspace, statement, options, plan, timeout, errors, hosts)
+      def batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, plan, timeout, errors, hosts)
         request    = Protocol::BatchRequest.new(BATCH_TYPES[statement.type], options.consistency, options.trace?)
         unprepared = Hash.new {|hash, cql| hash[cql] = []}
 
@@ -365,7 +365,7 @@ module Cql
         end
 
         if unprepared.empty?
-          do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+          do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
         else
           to_prepare = unprepared.to_a
           futures    = to_prepare.map do |cql, _|
@@ -381,17 +381,17 @@ module Cql
                 end
               end
 
-              do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+              do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               f.on_failure do |e|
-                future.fail(e)
+                promise.break(e)
               end
             end
           end
         end
       end
 
-      def send_request_by_plan(future, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
+      def send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
         hosts << host = plan.next
         connection = synchronize { @connections.fetch(host) }.random_connection
 
@@ -399,23 +399,23 @@ module Cql
           switch = switch_keyspace(connection, keyspace, timeout)
           switch.on_complete do |s|
             if s.resolved?
-              do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+              do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               s.on_failure do |e|
-                future.fail(e)
+                promise.break(e)
               end
             end
           end
         else
-          do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+          do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
         end
       rescue ::KeyError
         retry
       rescue ::StopIteration
-        future.fail(NoHostsAvailable.new(errors || {}))
+        promise.break(NoHostsAvailable.new(errors || {}))
       end
 
-      def do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts, retries = 0)
+      def do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts, retries = 0)
         request.retries = retries
 
         f = connection.send_request(request, timeout)
@@ -433,26 +433,26 @@ module Cql
               when READ_TIMEOUT_ERROR_CODE
                 @retry_policy.read_timeout(statement, details[:cl], details[:blockfor], details[:received], details[:data_present], retries)
               else
-                future.fail(QueryError.new(r.code, r.message, statement.cql, r.details))
+                promise.break(QueryError.new(r.code, r.message, statement.cql, r.details))
                 break
               end
 
               case decision
               when Retry::Decisions::Retry
                 request.consistency = decision.consistency
-                do_send_request_by_plan(host, connection, future, keyspace, statement, options, request, plan, timeout, errors, hosts, retries + 1)
+                do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts, retries + 1)
               when Retry::Decisions::Ignore
-                future.resolve(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
+                promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
               when Retry::Decisions::Reraise
-                future.fail(QueryError.new(r.code, r.message, statement.cql, r.details))
+                promise.break(QueryError.new(r.code, r.message, statement.cql, r.details))
               else
-                future.fail(QueryError.new(r.code, r.message, statement.cql, r.details))
+                promise.break(QueryError.new(r.code, r.message, statement.cql, r.details))
               end
             when Protocol::ErrorResponse
-              future.fail(QueryError.new(r.code, r.message, statement.cql, nil))
+              promise.break(QueryError.new(r.code, r.message, statement.cql, nil))
             when Protocol::SetKeyspaceResultResponse
               @keyspace = r.keyspace
-              future.resolve(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
+              promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
             when Protocol::PreparedResultResponse
               cql = request.cql
               synchronize do
@@ -462,14 +462,14 @@ module Cql
 
               execution_info = create_execution_info(keyspace, statement, options, request, r, hosts)
 
-              future.resolve(Statements::Prepared.new(cql, r.metadata, r.result_metadata, execution_info))
+              promise.fulfill(Statements::Prepared.new(cql, r.metadata, r.result_metadata, execution_info))
             when Protocol::RawRowsResultResponse
               r.materialize(statement.result_metadata)
-              future.resolve(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
+              promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
             when Protocol::RowsResultResponse
-              future.resolve(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
+              promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
             else
-              future.resolve(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
+              promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
             end
           else
             f.on_failure do |e|
@@ -477,13 +477,13 @@ module Cql
               errors[host] = e
               case request
               when Protocol::QueryRequest, Protocol::PrepareRequest
-                send_request_by_plan(future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
               when Protocol::ExecuteRequest
-                execute_by_plan(future, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
               when Protocol::BatchRequest
-                batch_by_plan(future, keyspace, statement, options, plan, timeout, errors, hosts)
+                batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
               else
-                future.fail(e)
+                promise.break(e)
               end
             end
           end

@@ -37,6 +37,7 @@ require 'cql/protocol'
 require 'cql/auth'
 require 'cql/client'
 
+require 'cql/promise'
 require 'cql/builder'
 require 'cql/cluster'
 require 'cql/driver'
