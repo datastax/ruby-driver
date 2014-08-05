@@ -36,7 +36,6 @@ module Cql
 
         if count == 0
           synchronize { @connections.delete(host) }
-          @registry.host_down(host.ip)
         else
           synchronize { @connections[host] = count }
         end
