@@ -372,7 +372,7 @@ module Cql
             prepare_statement(host, connection, cql, timeout)
           end
 
-          Ione::Future.all(*promises).on_complete do |f|
+          Ione::Future.all(*futures).on_complete do |f|
             if f.resolved?
               prepared_ids = f.value
               to_prepare.each_with_index do |(_, statements), i|
