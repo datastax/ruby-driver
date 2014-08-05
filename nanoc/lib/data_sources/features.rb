@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 module Docs
-  class FeaturesDataSrouce < Nanoc::DataSource
+  class FeaturesDataSource < Nanoc::DataSource
     identifier :features
 
     def features_dir_name

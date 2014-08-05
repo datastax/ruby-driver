@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 module Cql
+  # @private
   module Result
     FULFILLED_FUTURE = Futures::Fulfilled.new(nil)
 

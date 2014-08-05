@@ -5,19 +5,12 @@ module Docs
     identifier :add_topics
 
     def run(content, params={})
-      content + topics_for(@item.children)
-    end
+      return content if @item.children.empty?
 
-    private
-
-    def topics_for(items)
-      return '' if items.empty?
-
-      content  = '<h3>Topics</h3>'
+      content  = "#{content}"
+      content << '<h3>Topics</h3>'
       content << '<ul class="sub-topics">'
-      items.each do |item|
-        content << "<li><a href=\"#{item.identifier}\">#{item[:title]}</a></li>"
-      end
+      content << subnav(@item)
       content << '</ul>'
     end
   end
