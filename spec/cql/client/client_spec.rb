@@ -158,7 +158,7 @@ module Cql
         end
 
         it 'fails when the IO reactor fails to start' do
-          io_reactor.stub(:start).and_return(Future.failed(StandardError.new('bork')))
+          io_reactor.stub(:start).and_return(Ione::Future.failed(StandardError.new('bork')))
           expect { client.connect.value }.to raise_error('bork')
         end
 
@@ -645,7 +645,7 @@ module Cql
         end
 
         it 'fails when the IO reactor stop fails' do
-          io_reactor.stub(:stop).and_return(Future.failed(StandardError.new('Bork!')))
+          io_reactor.stub(:stop).and_return(Ione::Future.failed(StandardError.new('Bork!')))
           expect { client.close.value }.to raise_error('Bork!')
         end
 
@@ -657,9 +657,9 @@ module Cql
 
         it 'waits for #connect to complete before attempting to close' do
           order = []
-          reactor_start_promise = Promise.new
+          reactor_start_promise = Ione::Promise.new
           io_reactor.stub(:start).and_return(reactor_start_promise.future)
-          io_reactor.stub(:stop).and_return(Future.resolved)
+          io_reactor.stub(:stop).and_return(Ione::Future.resolved)
           connected = client.connect
           connected.on_value { order << :connected }
           closed = client.close
@@ -673,9 +673,9 @@ module Cql
 
         it 'waits for #connect to complete before attempting to close, when #connect fails' do
           order = []
-          reactor_start_promise = Promise.new
+          reactor_start_promise = Ione::Promise.new
           io_reactor.stub(:start).and_return(reactor_start_promise.future)
-          io_reactor.stub(:stop).and_return(Future.resolved)
+          io_reactor.stub(:stop).and_return(Ione::Future.resolved)
           connected = client.connect
           connected.on_failure { order << :connect_failed }
           closed = client.close
@@ -1317,7 +1317,7 @@ module Cql
         end
 
         it 'eventually reconnects even when the node doesn\'t respond at first' do
-          timer_promise = Promise.new
+          timer_promise = Ione::Promise.new
           io_reactor.stub(:schedule_timer).and_return(timer_promise.future)
           additional_nodes.each { |host| io_reactor.node_down(host.to_s) }
           connections.first.close
@@ -1330,8 +1330,8 @@ module Cql
         end
 
         it 'eventually stops attempting to reconnect if no new nodes are found' do
-          io_reactor.stub(:schedule_timer).and_return(Future.resolved)
-          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
+          io_reactor.stub(:schedule_timer).and_return(Ione::Future.resolved)
+          io_reactor.stub(:connect).and_return(Ione::Future.failed(Io::ConnectionError.new))
           connections.first.close
           event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
@@ -1339,9 +1339,9 @@ module Cql
         end
 
         it 'does not start a new reconnection loop when one is already in progress' do
-          timer_promises = Array.new(5) { Promise.new }
+          timer_promises = Array.new(5) { Ione::Promise.new }
           io_reactor.stub(:schedule_timer).and_return(*timer_promises.map(&:future))
-          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
+          io_reactor.stub(:connect).and_return(Ione::Future.failed(Io::ConnectionError.new))
           connections.first.close
           event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
@@ -1355,11 +1355,11 @@ module Cql
 
         it 'allows a new reconnection loop to start even if the previous failed' do
           io_reactor.stub(:schedule_timer).and_raise('BORK!')
-          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
+          io_reactor.stub(:connect).and_return(Ione::Future.failed(Io::ConnectionError.new))
           connections.first.close
           event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
-          io_reactor.stub(:schedule_timer).and_return(Future.resolved)
+          io_reactor.stub(:schedule_timer).and_return(Ione::Future.resolved)
           connections.select(&:has_event_listener?).first.trigger_event(event)
           io_reactor.should have_received(:schedule_timer).exactly(6).times
         end
@@ -1394,14 +1394,14 @@ module Cql
 
         it 'logs when the connection fails' do
           logger.stub(:error)
-          io_reactor.stub(:connect).and_return(Future.failed(StandardError.new('Hurgh blurgh')))
+          io_reactor.stub(:connect).and_return(Ione::Future.failed(StandardError.new('Hurgh blurgh')))
           client.connect.value rescue nil
           logger.should have_received(:error).with(/Failed connecting to cluster: Hurgh blurgh/)
         end
 
         it 'logs when a single connection fails' do
           logger.stub(:warn)
-          io_reactor.stub(:connect).and_return(Future.failed(StandardError.new('Hurgh blurgh')))
+          io_reactor.stub(:connect).and_return(Ione::Future.failed(StandardError.new('Hurgh blurgh')))
           client.connect.value rescue nil
           logger.should have_received(:warn).with(/Failed connecting to node at example\.com: Hurgh blurgh/)
         end
@@ -1457,8 +1457,8 @@ module Cql
         it 'logs when it gives up attempting to reconnect' do
           logger.stub(:warn)
           client.connect.value
-          io_reactor.stub(:schedule_timer).and_return(Future.resolved)
-          io_reactor.stub(:connect).and_return(Future.failed(Io::ConnectionError.new))
+          io_reactor.stub(:schedule_timer).and_return(Ione::Future.resolved)
+          io_reactor.stub(:connect).and_return(Ione::Future.failed(Io::ConnectionError.new))
           event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
           logger.should have_received(:warn).with(/Giving up looking for additional nodes/).at_least(1).times
@@ -1474,7 +1474,7 @@ module Cql
         it 'logs when it fails to disconnect' do
           logger.stub(:error)
           client.connect.value
-          io_reactor.stub(:stop).and_return(Future.failed(StandardError.new('Hurgh blurgh')))
+          io_reactor.stub(:stop).and_return(Ione::Future.failed(StandardError.new('Hurgh blurgh')))
           client.close.value rescue nil
           logger.should have_received(:error).with(/Cluster disconnect failed: Hurgh blurgh/)
         end
@@ -1557,7 +1557,7 @@ module Cql
           request = double(:request, cql: cql, values: [])
           async_result = double(:result, paging_state: 'somepagingstate')
           options = {:page_size => 10}
-          async_client.stub(:execute).and_return(Future.resolved(AsynchronousQueryPagedQueryResult.new(async_client, request, async_result, options)))
+          async_client.stub(:execute).and_return(Ione::Future.resolved(AsynchronousQueryPagedQueryResult.new(async_client, request, async_result, options)))
           result1 = client.execute(cql, options)
           result2 = result1.next_page
           async_client.should have_received(:execute).with('SELECT * FROM something', page_size: 10, paging_state: 'somepagingstate')
@@ -1566,7 +1566,7 @@ module Cql
       end
 
       describe '#prepare' do
-        it 'calls #prepare on the async client, waits for the result and returns a SynchronousFuture' do
+        it 'calls #prepare on the async client, waits for the result and returns a SynchronousIone::Future' do
           result = double(:result)
           metadata = double(:metadata)
           result_metadata = double(:result_metadata)
@@ -1590,7 +1590,7 @@ module Cql
         context 'when called without a block' do
           it 'delegates to the asynchronous client and wraps the returned object in a synchronous wrapper' do
             async_client.stub(:batch).with(:unlogged, trace: true).and_return(batch)
-            batch.stub(:execute).and_return(Cql::Future.resolved(VoidResult.new))
+            batch.stub(:execute).and_return(Ione::Future.resolved(VoidResult.new))
             b = client.batch(:unlogged, trace: true)
             b.execute.should be_a(VoidResult)
           end
@@ -1598,14 +1598,14 @@ module Cql
 
         context 'when called with a block' do
           it 'delegates to the asynchronous client' do
-            async_client.stub(:batch).with(:counter, trace: true).and_yield(batch).and_return(Cql::Future.resolved(VoidResult.new))
+            async_client.stub(:batch).with(:counter, trace: true).and_yield(batch).and_return(Ione::Future.resolved(VoidResult.new))
             yielded_batch = nil
             client.batch(:counter, trace: true) { |b| yielded_batch = b }
             yielded_batch.should equal(batch)
           end
 
           it 'waits for the operation to complete' do
-            async_client.stub(:batch).with(:counter, {}).and_yield(batch).and_return(Cql::Future.resolved(VoidResult.new))
+            async_client.stub(:batch).with(:counter, {}).and_yield(batch).and_return(Ione::Future.resolved(VoidResult.new))
             result = client.batch(:counter) { |b| }
             result.should be_a(VoidResult)
           end

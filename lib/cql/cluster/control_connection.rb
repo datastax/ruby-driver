@@ -43,7 +43,7 @@ module Cql
 
       def close_async
         synchronize do
-          return Future.resolved if @closed
+          return Ione::Future.resolved if @closed
           @closed = true
         end
         @io_reactor.stop
@@ -66,7 +66,7 @@ module Cql
 
       def reconnect(schedule)
         synchronize do
-          return Future.failed("closed") if @closed
+          return Ione::Future.failed("closed") if @closed
         end
 
         connect_async.fallback do |e|
@@ -83,7 +83,7 @@ module Cql
 
       def register_async
         connection = synchronize do
-          return Future.failed("not connected") if @connection.nil?
+          return Ione::Future.failed("not connected") if @connection.nil?
           @connection
         end
 
@@ -120,7 +120,7 @@ module Cql
 
       def refresh_hosts_async
         connection = synchronize do
-          return Future.failed("not connected") if @connection.nil?
+          return Ione::Future.failed("not connected") if @connection.nil?
 
           @connection
         end
@@ -130,7 +130,7 @@ module Cql
         local = @request_runner.execute(connection, SELECT_LOCAL)
         peers = @request_runner.execute(connection, SELECT_PEERS)
 
-        Future.all(local, peers).map do |(local, peers)|
+        Ione::Future.all(local, peers).map do |(local, peers)|
           @logger.debug('%d additional nodes found' % peers.size)
 
           raise NO_HOSTS if local.empty? && peers.empty?
@@ -159,7 +159,7 @@ module Cql
 
       def refresh_host_async(address)
         connection = synchronize do
-          return Future.failed("not connected") if @connection.nil?
+          return Ione::Future.failed("not connected") if @connection.nil?
 
           @connection
         end
@@ -199,12 +199,12 @@ module Cql
         host = plan.next
         connect_to_host(host).fallback do |error|
           if error.is_a?(AuthenticationError)
-            Future.failed(error)
+            Ione::Future.failed(error)
           elsif error.is_a?(Cql::QueryError)
             if error.code == 0x100
-              Future.failed(AuthenticationError.new(error.message))
+              Ione::Future.failed(AuthenticationError.new(error.message))
             else
-              Future.failed(error)
+              Ione::Future.failed(error)
             end
           else
             errors  ||= {}
@@ -213,7 +213,7 @@ module Cql
           end
         end
       rescue ::StopIteration
-        Future.failed(NoHostsAvailable.new(errors || {}))
+        Ione::Future.failed(NoHostsAvailable.new(errors || {}))
       end
 
       def connect_to_host(host)
@@ -225,7 +225,7 @@ module Cql
           else
             @logger.error('Connection failed: %s: %s' % [error.class.name, error.message])
 
-            Future.failed(error)
+            Ione::Future.failed(error)
           end
         end
       end

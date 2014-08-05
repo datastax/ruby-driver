@@ -108,7 +108,7 @@ module Cql
               statement.prepare(connection)
             end
           end
-          Future.all(*fs).flat_map do
+          Ione::Future.all(*fs).flat_map do
             unprepared_statements.each do |statement, bound_args|
               add_part(connection, request, statement, bound_args)
             end

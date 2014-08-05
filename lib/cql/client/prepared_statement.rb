@@ -142,9 +142,9 @@ module Cql
         futures = connection_manager.map do |connection|
           statement.prepare(connection)
         end
-        Future.all(*futures).map(statement)
+        Ione::Future.all(*futures).map(statement)
       rescue => e
-        Future.failed(e)
+        Ione::Future.failed(e)
       end
 
       def execute(*args)
@@ -157,7 +157,7 @@ module Cql
           end
         end
       rescue => e
-        Future.failed(e)
+        Ione::Future.failed(e)
       end
 
       def batch(type=:logged, options=nil)
@@ -291,7 +291,7 @@ module Cql
       end
 
       def value
-        Future.all(*@futures).value
+        Ione::Future.all(*@futures).value
       end
     end
   end

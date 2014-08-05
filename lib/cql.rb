@@ -12,13 +12,7 @@ module Cql
   CqlError = Class.new(StandardError)
   IoError = Ione::IoError
 
-  # @private
-  Promise = Ione::Promise
-
-  # @private
-  Future = Ione::Future
-
-  class Future
+  class Ione::Future
     def get
       value
     end

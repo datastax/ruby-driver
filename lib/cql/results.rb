@@ -87,7 +87,7 @@ module Cql
       end
 
       def next_page_async
-        return Future.resolved if @paging_state.nil?
+        return Ione::Future.resolved if @paging_state.nil?
 
         if @statement.is_a?(Statements::Simple)
           @client.query(@statement, @options, @paging_state)
@@ -152,7 +152,7 @@ module Cql
       #
       # @see Cql::Client::Client#execute
       def next_page_async
-        Future.resolved
+        Ione::Future.resolved
       end
 
       def next_page

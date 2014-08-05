@@ -26,7 +26,7 @@ module Cql
       when Statements::Batch
         @client.batch(statement, options)
       else
-        Future.failed(::ArgumentError.new("unsupported statement #{statement.inspect}"))
+        Ione::Future.failed(::ArgumentError.new("unsupported statement #{statement.inspect}"))
       end
     end
 
@@ -47,7 +47,7 @@ module Cql
       when Statements::Simple
         @client.prepare(statement.cql, options)
       else
-        Future.failed(::ArgumentError.new("unsupported statement #{statement.inspect}"))
+        Ione::Future.failed(::ArgumentError.new("unsupported statement #{statement.inspect}"))
       end
     end
 

@@ -285,7 +285,7 @@ module Cql
       def use(keyspace)
         with_failure_handler do
           connections = @connection_manager.reject { |c| c.keyspace == keyspace }
-          return Future.resolved if connections.empty?
+          return Ione::Future.resolved if connections.empty?
           use_keyspace(connections, keyspace).map(nil)
         end
       end
@@ -381,7 +381,7 @@ module Cql
         peer_discovery.new_hosts.flat_map do |hosts|
           if hosts.empty?
             @logger.debug('No additional nodes found')
-            Future.resolved(seed_connections)
+            Ione::Future.resolved(seed_connections)
           else
             @logger.debug('%d additional nodes found' % hosts.size)
             f = create_cluster_connector.connect_all(hosts, @connections_per_node)
@@ -432,15 +432,15 @@ module Cql
       end
 
       def with_failure_handler
-        return Future.failed(NotConnectedError.new) unless can_execute?
+        return Ione::Future.failed(NotConnectedError.new) unless can_execute?
         yield
       rescue => e
-        Future.failed(e)
+        Ione::Future.failed(e)
       end
 
       def use_keyspace(connections, keyspace)
         futures = connections.map { |connection| @keyspace_changer.use_keyspace(connection, keyspace) }
-        Future.all(*futures)
+        Ione::Future.all(*futures)
       end
 
       def register_event_listener(connection)
@@ -492,7 +492,7 @@ module Cql
               end
             else
               @logger.warn('Giving up looking for additional nodes')
-              Future.resolved
+              Ione::Future.resolved
             end
           end
         end

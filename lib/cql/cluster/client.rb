@@ -41,7 +41,7 @@ module Cql
               end
             end
 
-            Future.all(*futures).map do |connections|
+            Ione::Future.all(*futures).map do |connections|
               connections.flatten!
               raise NO_HOSTS if connections.empty?
 
@@ -93,7 +93,7 @@ module Cql
 
       def host_up(host)
         synchronize do
-          return Future.resolved if @connecting_hosts.include?(host)
+          return Ione::Future.resolved if @connecting_hosts.include?(host)
 
           @connecting_hosts << host
 
@@ -103,7 +103,7 @@ module Cql
 
       def host_down(host)
         futures = synchronize do
-          return Future.resolved if @connecting_hosts.delete?(host) || !@connections.has_key?(host)
+          return Ione::Future.resolved if @connecting_hosts.delete?(host) || !@connections.has_key?(host)
 
           @prepared_statements.delete(host)
           @preparing_statements.delete(host)
@@ -111,7 +111,7 @@ module Cql
           @connections.delete(host).snapshot.map {|c| c.close}
         end
 
-        Future.all(*futures).map(nil)
+        Ione::Future.all(*futures).map(nil)
       end
 
       def query(statement, options, paging_state = nil)
@@ -168,14 +168,14 @@ module Cql
 
       private
 
-      NO_CONNECTIONS = Future.resolved([])
+      NO_CONNECTIONS = Ione::Future.resolved([])
       BATCH_TYPES    = {
         :logged   => Protocol::BatchRequest::LOGGED_TYPE,
         :unlogged => Protocol::BatchRequest::UNLOGGED_TYPE,
         :counter  => Protocol::BatchRequest::COUNTER_TYPE,
       }.freeze
-      CLIENT_CLOSED        = Future.failed(ClientError.new('Cannot connect a closed client'))
-      CLIENT_NOT_CONNECTED = Future.failed(ClientError.new('Cannot close a not connected client'))
+      CLIENT_CLOSED        = Ione::Future.failed(ClientError.new('Cannot connect a closed client'))
+      CLIENT_NOT_CONNECTED = Ione::Future.failed(ClientError.new('Cannot close a not connected client'))
 
       UNAVAILABLE_ERROR_CODE   = 0x1000
       WRITE_TIMEOUT_ERROR_CODE = 0x1100
@@ -217,7 +217,7 @@ module Cql
 
       def close_connections
         futures = synchronize { @connections.values }.flat_map {|m| m.snapshot.map {|c| c.close}}
-        Future.all(*futures).map(self)
+        Ione::Future.all(*futures).map(self)
       end
 
       def connect_to_host_maybe_retry(host, distance)
@@ -242,7 +242,7 @@ module Cql
               if e.is_a?(Io::ConnectionError)
                 connect_to_host_with_retry(host, schedule)
               else
-                Future.failed(e)
+                Ione::Future.failed(e)
               end
             end
           else
@@ -372,7 +372,7 @@ module Cql
             prepare_statement(host, connection, cql, timeout)
           end
 
-          Future.all(*futures).on_complete do |f|
+          Ione::Future.all(*promises).on_complete do |f|
             if f.resolved?
               prepared_ids = f.value
               to_prepare.each_with_index do |(_, statements), i|
@@ -494,7 +494,7 @@ module Cql
         pending_keyspace = connection[:pending_keyspace]
         pending_switch   = connection[:pending_switch]
 
-        return pending_switch || Future.resolved if pending_keyspace == keyspace
+        return pending_switch || Ione::Future.resolved if pending_keyspace == keyspace
 
         f = connection.send_request(Protocol::QueryRequest.new("USE #{keyspace}", nil, nil, :one), timeout).map do |r|
           case r

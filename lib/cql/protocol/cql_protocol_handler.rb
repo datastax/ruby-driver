@@ -35,7 +35,7 @@ module Cql
         @event_listeners = []
         @data = {}
         @lock = Mutex.new
-        @closed_promise = Promise.new
+        @closed_promise = Ione::Promise.new
         @keyspace = nil
       end
 
@@ -120,10 +120,10 @@ module Cql
       # @param [Cql::Protocol::Request] request
       # @param [Float] timeout an optional number of seconds to wait until
       #   failing the request
-      # @return [Cql::Future<Cql::Protocol::Response>] a future that resolves to
+      # @return [Ione::Future<Cql::Protocol::Response>] a future that resolves to
       #   the response
       def send_request(request, timeout=nil)
-        return Future.failed(NotConnectedError.new) if closed?
+        return Ione::Future.failed(NotConnectedError.new) if closed?
         promise = RequestPromise.new(request, @frame_encoder)
         id = nil
         @lock.lock
@@ -157,7 +157,7 @@ module Cql
 
       # Closes the underlying connection.
       #
-      # @return [Cql::Future] a future that completes when the connection has closed
+      # @return [Ione::Future] a future that completes when the connection has closed
       def close
         @connection.close
         @closed_promise.future
@@ -166,7 +166,7 @@ module Cql
       private
 
       # @private
-      class RequestPromise < Promise
+      class RequestPromise < Ione::Promise
         attr_reader :request, :frame
 
         def initialize(request, frame_encoder)

@@ -36,7 +36,7 @@ module Cql
         connection.stub(:on_connected) do |&h|
           connection.stub(:connected_listener).and_return(h)
         end
-        scheduler.stub(:schedule_timer).and_return(Promise.new.future)
+        scheduler.stub(:schedule_timer).and_return(Ione::Promise.new.future)
         protocol_handler
       end
 
@@ -86,7 +86,7 @@ module Cql
         end
 
         it 'returns a future' do
-          protocol_handler.send_request(request).should be_a(Future)
+          protocol_handler.send_request(request).should be_a(Ione::Future)
         end
 
         it 'succeeds the future when it receives a response frame with the corresponding stream ID' do
@@ -209,7 +209,7 @@ module Cql
 
         context 'when the request times out' do
           let :timer_promise do
-            Promise.new
+            Ione::Promise.new
           end
 
           before do
@@ -239,7 +239,7 @@ module Cql
               end
             end
             128.times do
-              scheduler.stub(:schedule_timer).with(5).and_return(Promise.new.future)
+              scheduler.stub(:schedule_timer).with(5).and_return(Ione::Promise.new.future)
               protocol_handler.send_request(request)
             end
             scheduler.stub(:schedule_timer).with(5).and_return(timer_promise.future)

@@ -40,7 +40,7 @@ module Cql
       end
 
       it 'uses given keyspace' do
-        future = Future.resolved
+        future = Ione::Future.resolved
         Session.stub(:new) { session }
         expect(session).to receive(:execute_async).once.with('USE foo').and_return(future)
         cluster.connect_async('foo').get

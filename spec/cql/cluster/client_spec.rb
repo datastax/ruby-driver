@@ -83,7 +83,7 @@ module Cql
           it 'logs error' do
             logger.stub(:error)
             client.connect.get
-            io_reactor.connections.first.stub(:close).and_return(Future.failed(StandardError.new('Hurgh blurgh')))
+            io_reactor.connections.first.stub(:close).and_return(Ione::Future.failed(StandardError.new('Hurgh blurgh')))
             client.close.get rescue nil
             logger.should have_received(:error).with(/Cluster disconnect failed: Hurgh blurgh/)
           end

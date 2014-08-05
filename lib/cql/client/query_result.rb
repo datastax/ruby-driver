@@ -127,7 +127,7 @@ module Cql
       end
 
       def next_page
-        return Future.resolved(nil) if last_page?
+        return Ione::Future.resolved(nil) if last_page?
         @client.execute(@request.cql, *@request.values, @options)
       end
     end
@@ -140,7 +140,7 @@ module Cql
       end
 
       def next_page
-        return Future.resolved(nil) if last_page?
+        return Ione::Future.resolved(nil) if last_page?
         @prepared_statement.execute(*@request.values, @options)
       end
     end

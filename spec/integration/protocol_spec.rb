@@ -559,7 +559,7 @@ describe 'Protocol parsing and communication' do
 
             futures << connection.send_request(Cql::Protocol::QueryRequest.new(%<INSERT INTO users (user_name, email) VALUES ('sam', 'sam@ham.com')>, nil, nil, :one))
             
-            Cql::Future.all(*futures).value
+            Ione::Future.all(*futures).value
           end
         end
 
@@ -570,7 +570,7 @@ describe 'Protocol parsing and communication' do
                 futures = 200.times.map do
                   connection.send_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :quorum))
                 end
-                Cql::Future.all(*futures).value
+                Ione::Future.all(*futures).value
               end
             end
             threads.each(&:join)

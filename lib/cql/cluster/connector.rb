@@ -46,7 +46,7 @@ module Cql
 
       private
 
-      NO_CONNECTIONS = Future.resolved([])
+      NO_CONNECTIONS = Ione::Future.resolved([])
 
       def create_cluster_connector
         Cql::Client::ClusterConnector.new(create_connector, @logger)
