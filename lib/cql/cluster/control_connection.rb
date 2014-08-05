@@ -208,7 +208,7 @@ module Cql
             end
           else
             errors  ||= {}
-            errors[h] = error
+            errors[host] = error
             connect_to_first_available(plan, errors)
           end
         end
