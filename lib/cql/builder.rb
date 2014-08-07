@@ -2,6 +2,7 @@
 
 module Cql
   class Builder
+    # @private
     def initialize(settings = {})
       @settings  = settings
       @addresses = ::Set.new

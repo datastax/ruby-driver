@@ -2,6 +2,7 @@
 
 module Cql
   module Future
+    # @private
     module Listeners
       class Success
         def initialize(block)
@@ -49,6 +50,7 @@ module Cql
     end
   end
 
+  # @private
   module Futures
     class Signaled
       include Future
@@ -125,10 +127,12 @@ module Cql
 
       def add_listener(listener)
         listener.success(@value)
+        self
       end
     end
   end
 
+  # @private
   class Promise
     class Signal
       include MonitorMixin

@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 module Cql
+  # @private
   class Driver
     def self.let(name, &block)
       define_method(name)        { @instances[name] ||= @defaults.fetch(name) { instance_eval(&block) } }

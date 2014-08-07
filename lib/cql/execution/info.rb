@@ -5,6 +5,7 @@ module Cql
     class Info
       attr_reader :keyspace, :statement, :options, :hosts, :consistency, :retries, :trace
 
+      # @private
       def initialize(keyspace, statement, options, hosts, consistency, retries, trace)
         @keyspace    = keyspace
         @statement   = statement

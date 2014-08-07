@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 module Cql
+  # @private
   class Reactor
     def initialize(io_reactor)
       @io_reactor = io_reactor

@@ -61,6 +61,7 @@ module Cql
   #   statement = client.prepare('INSERT INTO things (id, value) VALUES (?, ?)')
   #   statement.execute(9, 'qux')
   #   statement.execute(8, 'baz')
+  # @private
   module Client
     InvalidKeyspaceNameError = Class.new(ClientError)
 

@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 module Cql
+  # @private
   module Compression
     CompressionError = Class.new(CqlError)
 

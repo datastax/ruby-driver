@@ -42,6 +42,7 @@ module Cql
     end
   end
 
+  # @private
   module Results
     class Paged
       include Result

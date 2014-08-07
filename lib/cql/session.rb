@@ -2,6 +2,7 @@
 
 module Cql
   class Session
+    # @private
     def initialize(client, default_options)
       @client  = client
       @options = default_options
