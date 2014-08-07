@@ -2,6 +2,11 @@
 
 module Cql
   module Statements
+    # Batch statement groups several {Cql::Statement}. There are several types of Batch statements available:
+    # @see Cql::Session#batch
+    # @see Cql::Session#logged_batch
+    # @see Cql::Session#unlogged_batch
+    # @see Cql::Session#counter_batch
     module Batch
       class Logged
         include Batch
@@ -27,6 +32,8 @@ module Cql
         end
       end
 
+      include Statement
+
       attr_reader :statements
 
       # @private
@@ -34,7 +41,12 @@ module Cql
         @statements = []
       end
 
-      # @param statement [String, Cql::Statement]
+      # @overload add(statement)
+      #   @param statement [Cql::Statements::Simple, Cql::Statements::Bound] a statements to add
+      #
+      # @overload add(statement, *args)
+      #   @param statement [String, Cql::Statements::Prepared] a statement to construct with provided arguments
+      #   @param args [*Object] arguments to the statement
       def add(statement, *args)
         case statement
         when String

@@ -42,6 +42,8 @@ module Cql
     # @note Authenticators created by auth providers don't need to be subclasses
     #   of this class, but need to implement the same methods. This class exists
     #   only for documentation purposes.
+    #
+    # @see Cql::Auth::Provider
     class Authenticator
       # @!method initial_response
       #
