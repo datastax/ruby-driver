@@ -29,10 +29,12 @@ module Cql
 
       attr_reader :statements
 
+      # @private
       def initialize
         @statements = []
       end
 
+      # @param statement [String, Cql::Statement]
       def add(statement, *args)
         case statement
         when String
@@ -48,12 +50,14 @@ module Cql
         self
       end
 
+      # A batch statement doesn't really have any cql of its own as it is composed of multiple different statements
+      # @return [nil] nothing
       def cql
         nil
       end
 
+      # @abstract must be implemented by children
       def type
-        raise ::NotImplemented, "must be implemented by a child"
       end
     end
   end

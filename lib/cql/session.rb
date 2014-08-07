@@ -58,12 +58,15 @@ module Cql
       prepare_async(*args).get
     end
 
-    def batch(&block)
+    # Returns a new {Statements::Batch} instance and optionally yields it to a given block
+    # @yieldparam [Statements::Batch] batch a logged batch
+    # @return [Statements::Batch] a logged batch
+    def logged_batch(&block)
       statement = Statements::Batch::Logged.new
       yield(statement) if block_given?
       statement
     end
-    alias :logged_batch :batch
+    alias :batch :logged_batch
 
     def unlogged_batch
       statement = Statements::Batch::Unlogged.new
