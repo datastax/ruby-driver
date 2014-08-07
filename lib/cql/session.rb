@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 module Cql
+  # Sessions are used for query execution. Each session tracks its current keyspace. A session should be reused as much as possible, however it is ok to create several independent session for interacting with different keyspaces in the same application.
   class Session
     # @private
     def initialize(client, default_options)
@@ -8,6 +9,7 @@ module Cql
       @options = default_options
     end
 
+    # @return [Cql::Future<Cql::Result>]
     def execute_async(statement, *args)
       if args.last.is_a?(::Hash)
         options = @options.override(args.pop)

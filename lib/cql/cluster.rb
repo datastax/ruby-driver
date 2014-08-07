@@ -14,6 +14,7 @@ module Cql
       @connector             = connector
     end
 
+    # @return [Enumerable<Cql::Host>]
     def hosts
       @registry.hosts
     end
