@@ -16,5 +16,7 @@
   <% end %>
   <% if object.has_tag?(:since) && object.namespace.tag(:since) != object.tag(:since) %><span class="since">since <%= object.tag(:since).text %></span><% end %>
   </div>
-  <div class="panel-body method-body"><%= yieldall %></div>
+  <div class="panel-body method-body">
+    <%= yieldall %>
+  </div>
 </div>
