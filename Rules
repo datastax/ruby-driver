@@ -13,7 +13,6 @@
 #   item, use the pattern “/about/*/”; “/about/*” will also select the parent,
 #   because “*” matches zero or more characters.
 
-require 'compass'
 Compass.add_project_configuration 'nanoc/config.rb'
 
 preprocess do
@@ -75,16 +74,13 @@ compile '/features*' do
   layout 'feature'
   filter :add_toc
   filter :relativize_paths, :type => :html
+  filter :rubypants
 end
 
 compile 'api*' do
-  filter :yard, :format     => :html,
-                :template   => :docs,
-                :verifier   => YARD::Verifier.new('!object.tag(:private) && (object.namespace.is_a?(CodeObjects::Proxy) || !object.namespace.tag(:private))'),
-                :site_items => @items,
-                :markup     => :markdown
   layout 'apidoc'
   filter :relativize_paths, :type => :html
+  filter :rubypants
 end
 
 route '/css/*/' do

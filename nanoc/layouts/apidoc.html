@@ -42,7 +42,6 @@
     </div>
 
     <div class="container">
-      <!-- <%= [@item.identifier, @item.parent, @item.children, @item.parent && @item.parent.children.map(&:identifier), @items.at('/lib/Cql/')] %> -->
       <div class="row">
         <div class="col-md-9 content">
           <nav class="crumbs">
@@ -62,28 +61,7 @@
         </div>
         <nav class="col-md-3 side-nav">
           <ol class="nav nav-pills nav-stacked toc" data-spy="affix" data-offset-top="60" data-offset-bottom="0">
-            <% @items.at('/api/cql/')[:nav].each do |section| %>
-            <% if @item == section || @item.parent == section %>
-            <li class="active">
-              <a href="<%= section.path %>"><%= section[:title] %></a>
-              <ul class="nav nav-pills nav-stacked">
-                <% section[:nav].each do |child| %>
-                <% if @item == child %>
-                <li class="active">
-                  <a href="<%= child.path %>"><%= child[:title] %></a>
-                </li>
-                <% else %>
-                <li>
-                  <a href="<%= child.path %>"><%= child[:title] %></a>
-                </li>
-                <% end %>
-                <% end %>
-              </ul>
-            </li>
-            <% else %>
-            <li><a href="<%= section.path %>"><%= section[:title] %></a></li>
-            <% end %>
-            <% end %>
+            <%= render 'side-nav', :items => @items.at('/api/cql/')[:nav] %>
           </ol>
         </nav>
       </div>

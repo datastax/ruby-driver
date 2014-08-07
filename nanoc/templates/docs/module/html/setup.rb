@@ -24,3 +24,13 @@ def special_method?(meth)
   return true if meth.constructor?
   false
 end
+
+def mixed_into(object)
+  unless globals.mixed_into
+    globals.mixed_into = {}
+    list = run_verifier Registry.all(:class, :module)
+    list.each {|o| o.mixins.each {|m| (globals.mixed_into[m.path] ||= []) << o unless m.is_a?(::YARD::CodeObjects::Proxy) } }
+  end
+
+  globals.mixed_into[object.path] || []
+end

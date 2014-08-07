@@ -1,11 +1,9 @@
 def init
   tags = Tags::Library.visible_tags - [:abstract, :deprecated, :note, :todo]
   create_tag_methods(tags - [:example, :option, :overload, :see])
+  return unless tags.any? {|t| object.has_tag?(t)}
   sections :index, tags.map {|t| t.to_s.gsub('.', '_').to_sym }
   sections.any(:overload).push(T('docstring'))
-  # [:since, :see, :return].each do |section|
-  #   sections[:index].delete(section)
-  # end
 end
 
 def return

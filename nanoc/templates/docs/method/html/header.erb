@@ -1,9 +1,10 @@
-<div class="method_header">
+<div class="panel panel-default" id="<%= anchor_for(object) %>">
+  <div class="panel-heading method-header">
   <% if options.in_module %>
     <% if object.constructor? %>
       <em>self.</em><span class="path"><strong>new</strong></span><big>(</big><%= format_args(object) %><big>)</big> <%= format_block(object) %>
     <% else %>
-      <em><%= object.scope == :class ? 'self.' : '' %></em><span class="path"><strong><%= object.is_attribute? ? object.name.to_s.sub(/=$/, '') : object.name %></strong></span><% if object.is_attribute? %>
+      <% if object.scope == :class %><em>self.</em><% end %><span class="path"><strong><%= object.is_attribute? ? object.name.to_s.sub(/=$/, '') : object.name %></strong></span><% if object.is_attribute? %>
         <% rw = object.attr_info %>
         <% if rw && rw[:read] && !rw[:write] %><span class="readonly">readonly</span>
         <% elsif rw && !rw[:read] && rw[:write] %><span class="writeonly">writeonly</span>
@@ -14,5 +15,6 @@
     <em>def</em> <span class="path space"><%= options.including_object.relative_path(object.namespace) %><big><%= object.send(:sep) %></big><strong><%= object.name %></strong></span><big>(</big><%= format_args(object) %><big>)</big> <%= format_block(object) %>
   <% end %>
   <% if object.has_tag?(:since) && object.namespace.tag(:since) != object.tag(:since) %><span class="since">since <%= object.tag(:since).text %></span><% end %>
+  </div>
+  <div class="panel-body method-body"><%= yieldall %></div>
 </div>
-<div class="method_body"><%= yieldall %></div>

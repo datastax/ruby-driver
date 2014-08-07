@@ -1,6 +1,6 @@
 <% object.tags(:todo).each do |tag| %>
-  <div class="note todo">
-    <strong>TODO:</strong>
+  <p class="note todo">
+    <span class="label label-default">TODO</span>
     <%= htmlify_line tag.text %>
-  </div>
+  </p>
 <% end %>

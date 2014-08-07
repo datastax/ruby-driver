@@ -1,8 +1,10 @@
 <% if object.has_tag?(:see) %>
-  <p class="tag_title">See Also:</p>
-  <ul class="see">
-    <% for tag in object.tags(:see) %>
-      <li><%= linkify(tag.name, tag.text) %></li>
-    <% end %>
-  </ul>
+  <dt class="tag_title">See Also:</dt>
+  <dd class="tag_content">
+    <ul class="see">
+      <% for tag in object.tags(:see) %>
+        <li><%= linkify(tag.name, tag.text) %></li>
+      <% end %>
+    </ul>
+  </dd>
 <% end %>

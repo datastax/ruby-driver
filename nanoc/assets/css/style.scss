@@ -91,3 +91,10 @@
 .inline p:first-child {
   display: inline;
 }
+
+.tag_content .table {
+  .name,
+  .type {
+    width: 120px;
+  }
+}

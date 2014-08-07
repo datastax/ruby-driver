@@ -2,6 +2,38 @@
   <h1><%= object.title %> <small><% if object.has_tag?(:abstract) %> <span class="label label-default">abstract</span><% end %>
   <% if object.has_tag?(:deprecated) %> <span class="label label-warning">deprecated</span><% end %><%= object.type %></small></h1>
 </div>
-<div class="module_methods">
-  <%= yieldall %>
-</div>
+<%= yieldall %>
+<% if CodeObjects::ClassObject === object && object.superclass %>
+<h2>Inherits</h2>
+<p class="superclass"><%= linkify object.superclass %></p>
+<% end %>
+<% if (mix = run_verifier(object.mixins(:class))).size > 0 %>
+<h2>Extended by</h2>
+<p class="extends">
+  <ul class="list-inline">
+    <% mix.sort_by {|o| o.path }.each do |o| %>
+    <li><%= linkify(o) %></li>
+    <% end %>
+  </ul>
+</p>
+<% end %>
+<% if (mix = run_verifier(object.mixins(:instance))).size > 0 %>
+<h2>Includes</h2>
+<p class="includes">
+  <ul class="list-inline">
+    <% mix.sort_by {|o| o.path }.each do |o| %>
+    <li><%= linkify(o) %></li>
+    <% end %>
+  </ul>
+</p>
+<% end %>
+<% if (mixed_into = mixed_into(object)).size > 0 %>
+<h2>Included in</h2>
+<p class="included">
+  <ul class="list-inline">
+    <% mixed_into.sort_by {|o| o.path }.each do |o| %>
+    <li><%= linkify(o) %></li>
+    <% end %>
+  </ul>
+</p>
+<% end %>
