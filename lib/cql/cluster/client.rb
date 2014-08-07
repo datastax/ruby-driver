@@ -2,6 +2,7 @@
 
 module Cql
   class Cluster
+    # @private
     class Client
       include MonitorMixin
 

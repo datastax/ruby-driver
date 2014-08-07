@@ -4,6 +4,7 @@ module Cql
   module LoadBalancing
     module Policies
       class RoundRobin
+        # @private
         class Plan
           def initialize(hosts, index)
             @hosts = hosts

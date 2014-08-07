@@ -2,6 +2,7 @@
 
 module Cql
   class Cluster
+    # @private
     class Options
       attr_reader :credentials, :auth_provider, :compressor, :port,
                   :connection_timeout, :connections_per_local_node, :connections_per_remote_node

@@ -4,6 +4,7 @@ module Cql
   module LoadBalancing
     module Policies
       class DCAwareRoundRobin
+        # @private
         class Plan
           def initialize(local, remote, index)
             @local  = local

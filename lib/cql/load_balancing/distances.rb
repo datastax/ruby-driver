@@ -2,6 +2,7 @@
 
 module Cql
   module LoadBalancing
+    # @private
     module Distances
       class Local
         def local?; true; end

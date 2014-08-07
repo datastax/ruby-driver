@@ -2,6 +2,7 @@
 
 module Cql
   class Cluster
+    # @private
     def initialize(logger, io_reactor, control_connection, cluster_registry, execution_options, load_balancing_policy, reconnection_policy, retry_policy, connector)
       @logger                = logger
       @io_reactor            = io_reactor

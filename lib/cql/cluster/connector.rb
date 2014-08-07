@@ -2,6 +2,7 @@
 
 module Cql
   class Cluster
+    # @private
     class Connector
       def initialize(logger, io_reactor, eviction_policy, connection_options)
         @logger             = logger
