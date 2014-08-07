@@ -1,53 +1,52 @@
 # encoding: utf-8
 
 module Cql
-  # @private
-  module Result
+  class Result
     FULFILLED_FUTURE = Futures::Fulfilled.new(nil)
 
     include Enumerable
 
-    # The ID of the query trace associated with the query, if any.
-    #
+    # Query execution information, such as number of retries and all tried hosts, etc.
     # @return [Cql::Execution::Info]
     def execution_info
       @info ||= Execution::Info.new(@keyspace, @statement, @options, @hosts, @consistency, @retries, @trace_id ? Execution::Trace.new(@trace_id, @client) : nil)
     end
 
+    # @return [Boolean] whether it has any rows
     def empty?
-      raise ::NotImplementedError, "must be implemented by a child"
     end
 
+    # @return [Integer] rows count
     def size
-      raise ::NotImplementedError, "must be implemented by a child"
     end
     alias :length :size
 
+    # @yieldparam [Hash] row
+    # @return [Enumerator, Cql::Result] enumerator or self
     def each
       raise ::NotImplementedError, "must be implemented by a child"
     end
     alias :rows :each
     alias :each_row :each
 
+    # @return [Boolean] whether no more pages are available
     def last_page?
-      raise ::NotImplementedError, "must be implemented by a child"
     end
 
+    # Loads next page synchronously
+    # @see Cql::Session#execute
     def next_page
-      raise ::NotImplementedError, "must be implemented by a child"
     end
 
+    # Loads next page asynchronously
+    # @see Cql::Session#execute_async
     def next_page_async
-      raise ::NotImplementedError, "must be implemented by a child"
     end
   end
 
   # @private
   module Results
-    class Paged
-      include Result
-
-      # @private
+    class Paged < Result
       def initialize(rows, paging_state, trace_id, keyspace, statement, options, hosts, consistency, retries, client)
         @rows           = rows
         @paging_state   = paging_state
@@ -101,10 +100,7 @@ module Cql
       end
     end
 
-    class Void
-      include Result
-
-      # @private
+    class Void < Result
       def initialize(trace_id, keyspace, statement, options, hosts, consistency, retries, client)
         @trace_id    = trace_id
         @keyspace    = keyspace
