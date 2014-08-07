@@ -41,12 +41,14 @@ module Cql
         DISTANCE_IGNORE
       end
 
+      # @private
       class EmptyPlan
         def next
           raise ::StopIteration
         end
       end
 
+      # @private
       EMPTY_PLAN = EmptyPlan.new
     end
   end
