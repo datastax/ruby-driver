@@ -1,7 +1,7 @@
 include Helpers::ModuleHelper
 
 def init
-  sections :header, [T('docstring')], :method_list, [T('method')]
+  sections :header, [T('docstring')], :constant_list, [T('docstring')], :method_list, [T('method')]
 end
 
 def method_list
@@ -10,7 +10,16 @@ def method_list
   @meths = @meths.reject {|meth| special_method?(meth) }
   @meths = sort_listing(prune_method_listing(@meths, false))
   @meths.unshift(cons) if cons && !cons.has_tag?(:private)
+  return if @meths.empty?
   erb(:method_list)
+end
+
+def constant_list
+  @constants = object.constants(:included => false, :inherited => false)
+  @constants += object.cvars
+  @constants = run_verifier(@constants)
+  return if @constants.empty?
+  erb(:constant_list)
 end
 
 def sort_listing(list)

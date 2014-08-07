@@ -6,8 +6,8 @@
     <% else %>
       <% if object.scope == :class %><em>self.</em><% end %><span class="path"><strong><%= object.is_attribute? ? object.name.to_s.sub(/=$/, '') : object.name %></strong></span><% if object.is_attribute? %>
         <% rw = object.attr_info %>
-        <% if rw && rw[:read] && !rw[:write] %><span class="readonly">readonly</span>
-        <% elsif rw && !rw[:read] && rw[:write] %><span class="writeonly">writeonly</span>
+        <% if rw && rw[:read] && !rw[:write] %><span class="label label-default">readonly</span>
+        <% elsif rw && !rw[:read] && rw[:write] %><span class="label label-default">writeonly</span>
         <% end %>
         <% else %><big>(</big><%= format_args(object) %><big>)</big> <%= format_block(object) %><% end %>
     <% end %>
