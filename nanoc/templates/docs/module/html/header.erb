@@ -1,0 +1,7 @@
+<div class="page-header">
+  <h1><%= object.title %> <small><% if object.has_tag?(:abstract) %> <span class="label label-default">abstract</span><% end %>
+  <% if object.has_tag?(:deprecated) %> <span class="label label-warning">deprecated</span><% end %><%= object.type %></small></h1>
+</div>
+<div class="module_methods">
+  <%= yieldall %>
+</div>

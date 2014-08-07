@@ -62,12 +62,22 @@
         </div>
         <nav class="col-md-3 side-nav">
           <ol class="nav nav-pills nav-stacked toc" data-spy="affix" data-offset-top="60" data-offset-bottom="0">
-            <% @items.at('/lib/Cql/').children.each do |section| %>
+            <% @items.at('/api/cql/')[:nav].each do |section| %>
             <% if @item == section || @item.parent == section %>
             <li class="active">
               <a href="<%= section.path %>"><%= section[:title] %></a>
               <ul class="nav nav-pills nav-stacked">
-                <%= subnav(section) %>
+                <% section[:nav].each do |child| %>
+                <% if @item == child %>
+                <li class="active">
+                  <a href="<%= child.path %>"><%= child[:title] %></a>
+                </li>
+                <% else %>
+                <li>
+                  <a href="<%= child.path %>"><%= child[:title] %></a>
+                </li>
+                <% end %>
+                <% end %>
               </ul>
             </li>
             <% else %>

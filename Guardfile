@@ -8,5 +8,7 @@ require 'nokogiri'
 guard('nanoc') do
   watch('Rules')
   watch(/^nanoc/)
+  watch(/^nanoc\//)
   watch(/^features\//)
+  watch(/^lib\//)
 end

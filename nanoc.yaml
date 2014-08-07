@@ -17,7 +17,7 @@ data_sources:
   -
     type: features
   -
-    type: yard
+    type: api
     template_paths: nanoc/templates
 prune:
   auto_prune: true,

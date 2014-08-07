@@ -86,3 +86,8 @@
     top: 10px;
   }
 }
+
+.inline,
+.inline p:first-child {
+  display: inline;
+}

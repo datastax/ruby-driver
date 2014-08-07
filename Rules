@@ -17,7 +17,7 @@ require 'compass'
 Compass.add_project_configuration 'nanoc/config.rb'
 
 preprocess do
-  def setup_nav(item)
+  @items.each do |item|
     path = item.identifier.sub('/', '') + '.nav'
 
     if File.exists?(path)
@@ -38,11 +38,9 @@ preprocess do
         end
       end
     else
-      item[:nav] = item.children
+      item[:nav] = item.children.sort {|a, b| a[:title] <=> b[:title]}
     end
   end
-
-  @items.each {|item| setup_nav(item)}
 end
 
 compile '/css/*/' do
@@ -79,8 +77,14 @@ compile '/features*' do
   filter :relativize_paths, :type => :html
 end
 
-compile 'lib*' do
+compile 'api*' do
+  filter :yard, :format     => :html,
+                :template   => :docs,
+                :verifier   => YARD::Verifier.new('!object.tag(:private) && (object.namespace.is_a?(CodeObjects::Proxy) || !object.namespace.tag(:private))'),
+                :site_items => @items,
+                :markup     => :markdown
   layout 'apidoc'
+  filter :relativize_paths, :type => :html
 end
 
 route '/css/*/' do
@@ -91,8 +95,8 @@ route '/features*' do
   item.identifier + 'index.html'
 end
 
-route 'lib*' do
-  item.identifier.sub('lib/Cql', 'api') + 'index.html'
+route 'api*' do
+  item.identifier.sub('api/cql', 'api') + 'index.html'
 end
 
 layout '*', :erb
