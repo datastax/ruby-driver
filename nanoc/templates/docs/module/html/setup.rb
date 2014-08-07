@@ -1,7 +1,18 @@
 include Helpers::ModuleHelper
 
 def init
-  sections :header, [T('docstring')], :constant_list, [T('docstring')], :method_list, [T('method')]
+  sections :header, [T('docstring')], :child_list, :constant_list, [T('docstring')], :method_list, [T('method')]
+end
+
+def child_list
+  @inner = [[:modules, []], [:classes, []]]
+  object.children.each do |child|
+    @inner[0][1] << child if child.type == :module
+    @inner[1][1] << child if child.type == :class
+  end
+  @inner.map! {|v| [v[0], run_verifier(v[1].sort_by {|o| o.name.to_s })] }
+  return if (@inner[0][1].size + @inner[1][1].size) == 0
+  erb(:child_list)
 end
 
 def method_list
