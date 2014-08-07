@@ -1,7 +1,7 @@
 Feature: Executing queries asynchronously
 
   Session objects support asynchronous statement execution using `Cql::Session#execute_async` method.
-  This method returns a `Cql::Future[Cql::Result]`.
+  This method returns a `Cql::Future<Cql::Result>`.
 
   Background:
     Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
