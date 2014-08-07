@@ -22,9 +22,8 @@ module Cql
     alias :length :size
 
     # @yieldparam [Hash] row
-    # @return [Enumerator, Cql::Result] enumerator or self
+    # @return [Enumerator, Cql::Result]
     def each
-      raise ::NotImplementedError, "must be implemented by a child"
     end
     alias :rows :each
     alias :each_row :each
@@ -72,7 +71,12 @@ module Cql
       alias :length :size
 
       def each(&block)
-        @rows.each(&block)
+        if block_given?
+          @rows.each(&block)
+          self
+        else
+          @rows.each
+        end
       end
       alias :rows :each
       alias :each_row :each
@@ -128,7 +132,12 @@ module Cql
       # @yieldparam [Hash] row each row in the result set as a hash
       # @return [Cql::Result]
       def each(&block)
-        NO_ROWS.each(&block)
+        if block_given?
+          NO_ROWS.each(&block)
+          self
+        else
+          NO_ROWS.each
+        end
       end
       alias :rows :each
       alias :each_row :each
