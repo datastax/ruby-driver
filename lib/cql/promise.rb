@@ -1,7 +1,10 @@
 # encoding: utf-8
 
 module Cql
-  module Future
+  # A Future represents a result of asynchronous execution. It can be used to
+  # block until a value is available or an error has happened, or register a
+  # listener to be notified whenever the execution is complete.
+  class Future
     # @private
     module Listeners
       class Success
@@ -33,27 +36,38 @@ module Cql
       end
     end
 
+    # Wait for value or error
+    # @note This method blocks until a future is ready
+    # @raise [Exception] error
+    # @return [Object] value
     def get
-      raise ::NotImplementedError, "must be implemented by a child"
     end
 
+    # Run block when promise is fulfilled
+    # @note The block can be called synchronously from current thread if the future has already been resolved, or, asynchronously, from background thread upon resolution.
+    # @yieldparam [Object] value
+    # @return [self]
     def on_success(&block)
-      raise ::NotImplementedError, "must be implemented by a child"
     end
 
+    # Run block when promise is broken
+    # @note The block can be called synchronously from current thread if the future has already been resolved, or, asynchronously, from background thread upon resolution.
+    # @yieldparam [Exception] error
+    # @return [self]
     def on_failure(&block)
-      raise ::NotImplementedError, "must be implemented by a child"
     end
 
+    # Add promise listener
+    # @note The listener can be notified synchronously, from current thread, if the future has already been resolved, or, asynchronously, from background thread upon resolution.
+    # @param listener [#success, #failure] an object that responds to `#success` and `#failure`
+    # @return [self]
     def add_listener(listener)
-      raise ::NotImplementedError, "must be implemented by a child"
     end
   end
 
   # @private
   module Futures
-    class Signaled
-      include Future
+    class Signaled < Future
 
       def initialize(signal)
         @signal = signal
@@ -79,9 +93,7 @@ module Cql
       end
     end
 
-    class Broken
-      include Future
-
+    class Broken < Future
       def initialize(error)
         raise ::ArgumentError, "error must be an exception or a string, #{error.inspect} given" unless error.is_a?(::Exception)
 
@@ -107,7 +119,7 @@ module Cql
       end
     end
 
-    class Fulfilled
+    class Fulfilled < Future
       def initialize(value)
         @value = value
       end
@@ -212,6 +224,8 @@ module Cql
       end
 
       def add_listener(listener)
+        raise ::ArgumentError, "listener must respond to both #success and #failure" unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
+
         synchronize do
           case @state
           when :pending
