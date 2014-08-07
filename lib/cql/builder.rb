@@ -29,7 +29,13 @@ module Cql
 
     def with_credentials(username, password)
       @settings[:credentials] = {:username => username, :password => password}
-      @settings[:auth_provider] = Auth::PlainTextAuthProvider.new(username, password)
+      @settings[:auth_provider] = Auth::Providers::PlainText.new(username, password)
+
+      self
+    end
+
+    def with_auth_provider(auth_provider)
+      @settings[:auth_provider] = auth_provider
 
       self
     end

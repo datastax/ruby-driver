@@ -530,7 +530,7 @@ module Cql
 
         context 'when the server requests authentication' do
           let :auth_provider do
-            Auth::PlainTextAuthProvider.new('foo', 'bar')
+            Auth::Providers::PlainText.new('foo', 'bar')
           end
 
           def accepting_request_handler(request, *)
@@ -588,7 +588,7 @@ module Cql
               request.should_not be_nil, 'expected an auth response request to have been sent'
             end
 
-            it 'creates a PlainTextAuthProvider when the :credentials options is given' do
+            it 'creates a Auth::Providers::PlainText when the :credentials options is given' do
               client = described_class.new(connection_options.merge(credentials: {:username => 'foo', :password => 'bar'}))
               client.connect.value
               request = requests.find { |rq| rq == Protocol::AuthResponseRequest.new("\x00foo\x00bar") }

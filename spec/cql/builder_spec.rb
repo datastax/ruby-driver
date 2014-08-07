@@ -54,7 +54,7 @@ module Cql
         let(:driver) { double('driver').as_null_object }
 
         it 'passes credentials and auth_provider to the driver' do
-          expect(Auth::PlainTextAuthProvider).to receive(:new).with(username, password).and_return(auth_provider)
+          expect(Auth::Providers::PlainText).to receive(:new).with(username, password).and_return(auth_provider)
           expect(Driver).to receive(:new).once.with({
                               :credentials => {
                                 :username => username,
