@@ -19,6 +19,7 @@ module Cql
   # @private
   SERIAL_CONSISTENCIES = [:serial, :local_serial].freeze
 
+  # @return [Cql::Builder]
   def self.cluster(defaults = {})
     Builder.new(defaults)
   end

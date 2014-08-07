@@ -5,6 +5,12 @@ module Docs
         "<div class='inline'>" + htmlify(*args) + "</div>"
       end
 
+      def format_return_types(object)
+        return unless object.has_tag?(:return) && object.tag(:return).types
+        return if object.tag(:return).types.empty?
+        format_types object.tag(:return).types, false
+      end
+
       def link_object(obj, title = nil, anchor = nil, relative = true)
         return title if obj.nil?
         obj = ::YARD::Registry.resolve(object, obj, true, true) if obj.is_a?(String)
