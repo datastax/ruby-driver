@@ -15,6 +15,12 @@
     <em>def</em> <span class="path space"><%= options.including_object.relative_path(object.namespace) %><big><%= object.send(:sep) %></big><strong><%= object.name %></strong></span><big>(</big><%= format_args(object) %><big>)</big> <%= format_block(object) %>
   <% end %>
   <% if object.has_tag?(:since) && object.namespace.tag(:since) != object.tag(:since) %><span class="since">since <%= object.tag(:since).text %></span><% end %>
+  <% if object.aliases.size > 0 %>
+    <span class="aliases">Aliased as:
+    <span class="names"><%= object.aliases.map {|o|
+      "<span id=\"#{anchor_for(o)}\"><strong>" + h(o.name.to_s) + "</strong></span>" }.join(", ") %></span>
+    </span>
+  <% end %>
   </div>
   <div class="panel-body method-body">
     <%= yieldall %>
