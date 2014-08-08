@@ -6,8 +6,8 @@
       <var><%= const.name %></var>
     </div>
     <div class="panel-body constant-body">
+      <%= yieldall(:object => const) %>
       <%= format_constant(const.value) %>
-      <%= yieldall %>
     </div>
   </div>
 <% end %>
