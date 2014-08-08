@@ -12,8 +12,13 @@ module Cql
   # @private
   Io = Ione::Io
 
+  # A list of all supported request consistencies
+  # @see Cql::Session#execute_async
   CONSISTENCIES = [ :any, :one, :two, :three, :quorum, :all, :local_quorum,
                     :each_quorum, :serial, :local_serial, :local_one ].freeze
+
+  # A list of all supported serial consistencies
+  # @see Cql::Session#execute_async
   SERIAL_CONSISTENCIES = [:serial, :local_serial].freeze
 
   # Creates a {Cql::Builder} that can be used to configure a {Cql::Cluster} instance

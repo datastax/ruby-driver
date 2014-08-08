@@ -18,20 +18,18 @@ module Cql
     # @param args [*Object] arguments to paramterized query or prepared
     #   statement
     #
-    # @option options [Symbol] :consistency (`:one`) consistency level for the
-    #   request
-    #   @see {Cql::CONSISTENCIES}
-    # @option options [Integer] :page_size size of results page, you can page
-    #   through results using {Cql::Result#next_page} or
+    # @option options [Symbol] :consistency (:one) consistency level for the
+    #   request, one of {Cql::CONSISTENCIES}
+    # @option options [Integer] :page_size (50000) size of results page, you
+    #   can page through results using {Cql::Result#next_page} or
     #   {Cql::Result#next_page_async}
-    # @option options [Boolean] :trace (`false`) whether to enable request
+    # @option options [Boolean] :trace (false) whether to enable request
     #   tracing
-    # @option options [Numeric] :timeout (`nil`) if specified, it is a number
+    # @option options [Numeric] :timeout (nil) if specified, it is a number
     #   of seconds after which to time out the request if it hasn't completed
-    # @option options [Symbol] :serial_consistency (`nil`) this option is
+    # @option options [Symbol] :serial_consistency (nil) this option is
     #   relevant for conditional updates and specifies a serial consistency to
-    #   be used
-    #   @see {Cql::SERIAL_CONSISTENCIES}
+    #   be used, one of {Cql::SERIAL_CONSISTENCIES}
     #
     # @return [Cql::Future<Cql::Result>]
     def execute_async(statement, *args)
