@@ -109,7 +109,9 @@ module Cql
 
         private
 
+        # @private
         LOCAL_CONSISTENCIES = [:local_quorum, :local_one].freeze
+        # @private
         EMPTY_ARRAY         = [].freeze
       end
     end
