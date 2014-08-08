@@ -72,7 +72,7 @@ module Cql
       # @note This method must absolutely not block.
       #
       # @param token [String] a token sent by the server
-      # @return [nil]
+      # @return [void]
     end
   end
 end

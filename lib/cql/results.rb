@@ -22,7 +22,8 @@ module Cql
     alias :length :size
 
     # @yieldparam [Hash] row
-    # @return [Enumerator, Cql::Result]
+    # @return [Enumerator] if no block given
+    # @return [Cql::Result] if block given
     def each
     end
     alias :rows :each

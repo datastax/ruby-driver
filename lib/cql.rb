@@ -16,7 +16,17 @@ module Cql
   # @private
   SERIAL_CONSISTENCIES = [:serial, :local_serial].freeze
 
-  # @return [Cql::Builder]
+  # Creates a {Cql::Builder} that can be used to configure a {Cql::Cluster} instance
+  # @example Creating a cluster that connects to local Cassandra
+  #   cluster = Cql.cluster.build
+  #
+  # @example Using {Cql::Builder} to configure {Cql::Cluster}
+  #   cluster = Cql.cluster
+  #               .with_credentials('username', 'password')
+  #               .with_contact_points('10.0.1.1', '10.0.1.2', '10.0.1.3')
+  #               .build
+  #
+  # @return [Cql::Builder] a builder for configuring a cluster
   def self.cluster(defaults = {})
     Builder.new(defaults)
   end
