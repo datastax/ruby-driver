@@ -33,4 +33,5 @@ group :docs do
   gem 'rubypants'
   gem 'guard'
   gem 'guard-nanoc'
+  gem 'htmlbeautifier'
 end

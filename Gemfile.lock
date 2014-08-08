@@ -58,6 +58,7 @@ GEM
     guard-nanoc (1.0.2)
       guard (>= 1.8.0)
       nanoc (>= 3.6.3)
+    htmlbeautifier (0.0.9)
     ione (1.0.0)
     jsmin (1.0.1)
     listen (2.7.9)
@@ -142,6 +143,7 @@ DEPENDENCIES
   gherkin
   guard
   guard-nanoc
+  htmlbeautifier
   lz4-ruby
   nanoc
   nanoc-toolbox

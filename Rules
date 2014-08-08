@@ -75,12 +75,14 @@ compile '/features*' do
   filter :add_toc
   filter :relativize_paths, :type => :html
   filter :rubypants
+  filter :beautify
 end
 
 compile 'api*' do
   layout 'apidoc'
   filter :relativize_paths, :type => :html
   filter :rubypants
+  filter :beautify
 end
 
 route '/css/*/' do
