@@ -12,10 +12,17 @@ def format_args(object)
     end
   end
 
-  unless params.empty?
-    args = params.map {|n, v| v ? "<var>#{h n}</var> = #{h v}" : "<var>" + n.to_s + "</var>" }.join(", ")
-    "<big>(</big>#{args}<big>)</big>"
+  if object.is_attribute?
+    rw = object.attr_info
+    if rw && rw[:read] && rw[:write]
+      " <span class=\"label label-default\">read or write</span>"
+    elsif rw && rw[:write] && !rw[:read]
+      " <span class=\"label label-default\">write only</span>"
+    end
   else
-    ""
+    unless params.empty?
+      args = params.map {|n, v| v ? "<var>#{h n}</var> = #{h v}" : "<var>" + n.to_s + "</var>" }.join(", ")
+      "<big>(</big>#{args}<big>)</big>"
+    end
   end
 end
