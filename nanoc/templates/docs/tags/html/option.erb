@@ -2,7 +2,7 @@
   <% object.parameters.each do |param, default| %>
     <% tags = object.tags(:option).select {|x| x.name.to_s == param.to_s } %>
     <% next if tags.empty? %>
-    <dt class="tag-title">Options Hash (<var><%= param %></var>):</dt>
+    <dt class="tag-title">Keys for <var><%= param %></var>:</dt>
     <dd class="tag-content">
       <table class="table table-striped">
         <thead>
