@@ -5,9 +5,26 @@ module Cql
   # block until a value is available or an error has happened, or register a
   # listener to be notified whenever the execution is complete.
   class Future
+    # a Future listener to be passed to {Cql::Future#add_listener}
+    #
+    # @note Listener methods can be called from application if a future has been resolved or failed by the time the listener is registered; or from background thread if it is resolved/failed after the listener has been registered.
+    #
+    # @abstract Actual listeners passed to {Cql::Future#add_listener} don't need to extend this class as long as they implement `#success` and `#failure` methods
+    class Listener
+      # @param value [Object] actual value the future has been resolved with
+      # @return [void]
+      def success(value)
+      end
+
+      # @param error [Exception] an exception used to fail the future
+      # @return [void]
+      def failure(error)
+      end
+    end
+
     # @private
     module Listeners
-      class Success
+      class Success < Listener
         def initialize(block)
           @block = block
         end
@@ -21,7 +38,7 @@ module Cql
         end
       end
 
-      class Failure
+      class Failure < Listener
         def initialize(block)
           @block = block
         end
@@ -59,7 +76,7 @@ module Cql
 
     # Add promise listener
     # @note The listener can be notified synchronously, from current thread, if the future has already been resolved, or, asynchronously, from background thread upon resolution.
-    # @param listener [#success, #failure] an object that responds to `#success` and `#failure`
+    # @param listener [Cql::Future::Listener] an object that responds to `#success` and `#failure`
     # @return [self]
     def add_listener(listener)
     end

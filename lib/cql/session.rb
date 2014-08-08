@@ -9,6 +9,30 @@ module Cql
       @options = default_options
     end
 
+    # Executes a given statement and returns a future result
+    # @!method execute_async(statement, *args, options = {})
+    #
+    # @param statement [String, Cql::Statements::Simple,
+    #   Cql::Statements::Bound, Cql::Statements::Prepared] statement to
+    #   execute
+    # @param args [*Object] arguments to paramterized query or prepared
+    #   statement
+    #
+    # @option options [Symbol] :consistency (`:one`) consistency level for the
+    #   request
+    #   @see {Cql::CONSISTENCIES}
+    # @option options [Integer] :page_size size of results page, you can page
+    #   through results using {Cql::Result#next_page} or
+    #   {Cql::Result#next_page_async}
+    # @option options [Boolean] :trace (`false`) whether to enable request
+    #   tracing
+    # @option options [Numeric] :timeout (`nil`) if specified, it is a number
+    #   of seconds after which to time out the request if it hasn't completed
+    # @option options [Symbol] :serial_consistency (`nil`) this option is
+    #   relevant for conditional updates and specifies a serial consistency to
+    #   be used
+    #   @see {Cql::SERIAL_CONSISTENCIES}
+    #
     # @return [Cql::Future<Cql::Result>]
     def execute_async(statement, *args)
       if args.last.is_a?(::Hash)
@@ -33,6 +57,14 @@ module Cql
       end
     end
 
+    # A blocking wrapper around {Cql::Session#execute_async}
+    # @!method execute(statement, *args, options = {})
+    # @see Cql::Session#execute_async
+    # @see Cql::Future#get
+    #
+    # @return [Cql::Result] query result
+    # @raise [Cql::Errors::NoHostsAvailable] if none of the hosts can be reached
+    # @raise [Cql::Errors::QueryError] if Cassandra returns an error response
     def execute(*args)
       execute_async(*args).get
     end
@@ -58,7 +90,8 @@ module Cql
       prepare_async(*args).get
     end
 
-    # Returns a new {Statements::Batch} instance and optionally yields it to a given block
+    # Returns a new {Statements::Batch} instance and optionally yields it to a
+    # given block
     # @yieldparam [Statements::Batch] batch a logged batch
     # @return [Statements::Batch] a logged batch
     def logged_batch(&block)

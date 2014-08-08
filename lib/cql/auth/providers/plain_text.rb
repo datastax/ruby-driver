@@ -5,9 +5,7 @@ module Cql
     module Providers
       # Auth provider used for Cassandra's built in authentication.
       #
-      # There is no need to create instances of this class to pass as `:auth_provider`
-      # to {Cql::Client.connect}, instead use the `:credentials` option and one
-      # will be created automatically for you.
+      # @note No need to instantiate this class manually, use {Cql::Builder#with_credentials} method and one will be created automatically for you.
       class PlainText
         # Authenticator used for Cassandra's built in authentication,
         # see {Cql::Auth::Providers::PlainText}
@@ -39,7 +37,8 @@ module Cql
 
         # Returns a PlainText Authenticator only if `org.apache.cassandra.auth.PasswordAuthenticator` is given.
         # @param authentication_class [String] must equal to `org.apache.cassandra.auth.PasswordAuthenticator`
-        # @return [Cql::Auth:Authenticator, nil] returns nil if `authentication_class` is not supported
+        # @return [Cql::Auth::Authenticator] when `authentication_class == "org.apache.cassandra.auth.PasswordAuthenticator"`
+        # @return [nil] for all other values of `authentication_class`
         def create_authenticator(authentication_class)
           if authentication_class == PASSWORD_AUTHENTICATOR_FQCN
             Authenticator.new(@username, @password)

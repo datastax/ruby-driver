@@ -9,7 +9,6 @@ module Cql
     # Returns the time component from this UUID as a Time.
     #
     # @return [Time]
-    #
     def to_time
       t = time_bits - GREGORIAN_OFFSET
       seconds = t/10_000_000
@@ -36,6 +35,7 @@ module Cql
 
     private
 
+    # @private
     LOWER_HALF_MASK = 0xffffffff_ffffffff
 
     public
@@ -119,6 +119,7 @@ module Cql
 
     private
 
+    # @private
     GREGORIAN_OFFSET = 122192928000000000
   end
 end

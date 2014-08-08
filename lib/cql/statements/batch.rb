@@ -7,26 +7,23 @@ module Cql
     # @see Cql::Session#logged_batch
     # @see Cql::Session#unlogged_batch
     # @see Cql::Session#counter_batch
-    module Batch
-      class Logged
-        include Batch
-
+    class Batch
+      # @private
+      class Logged < Batch
         def type
           :logged
         end
       end
 
-      class Unlogged
-        include Batch
-
+      # @private
+      class Unlogged < Batch
         def type
           :unlogged
         end
       end
 
-      class Counter
-        include Batch
-
+      # @private
+      class Counter < Batch
         def type
           :counter
         end
@@ -34,6 +31,7 @@ module Cql
 
       include Statement
 
+      # @private
       attr_reader :statements
 
       # @private
@@ -41,12 +39,12 @@ module Cql
         @statements = []
       end
 
-      # @overload add(statement)
-      #   @param statement [Cql::Statements::Simple, Cql::Statements::Bound] a statements to add
-      #
-      # @overload add(statement, *args)
-      #   @param statement [String, Cql::Statements::Prepared] a statement to construct with provided arguments
-      #   @param args [*Object] arguments to the statement
+      # Adds a statement to this batch
+      # @param statement [String, Cql::Statements::Simple,
+      #   Cql::Statements::Prepared, Cql::Statements::Bound] statement to add
+      # @param args [*Object] arguments to paramterized query or prepared
+      #   statement
+      # @return [self]
       def add(statement, *args)
         case statement
         when String
@@ -68,7 +66,7 @@ module Cql
         nil
       end
 
-      # @abstract must be implemented by children
+      # @return [Symbol] one of `:logged`, `:unlogged` or `:counter`
       def type
       end
     end

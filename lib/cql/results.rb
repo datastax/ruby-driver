@@ -2,6 +2,7 @@
 
 module Cql
   class Result
+    # @private
     FULFILLED_FUTURE = Futures::Fulfilled.new(nil)
 
     include Enumerable
@@ -22,8 +23,7 @@ module Cql
     alias :length :size
 
     # @yieldparam [Hash] row
-    # @return [Enumerator] if no block given
-    # @return [Cql::Result] if block given
+    # @return [Enumerator, self] returns Enumerator if no block given
     def each
     end
     alias :rows :each
@@ -39,6 +39,7 @@ module Cql
     end
 
     # Loads next page asynchronously
+    # @return [Cql::Result, nil] returns `nil` if last page
     # @see Cql::Session#execute_async
     def next_page_async
     end

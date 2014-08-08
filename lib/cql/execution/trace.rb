@@ -4,8 +4,17 @@ module Cql
   module Execution
     class Trace
       class Event
-        attr_reader :id, :activity, :source, :source_elapsed, :thread
+        # @return [Cql::Uuid] event uuid
+        attr_reader :id
 
+        # @return [String] description of activity
+        attr_reader :activity
+
+        attr_reader :source
+        attr_reader :source_elapsed
+        attr_reader :thread
+
+        # @private
         def initialize(id, activity, source, source_elapsed, thread)
           @id             = id
           @activity       = activity
@@ -23,8 +32,10 @@ module Cql
 
       include MonitorMixin
 
+      # @return [Cql::Uuid] trace id
       attr_reader :id
 
+      # @private
       def initialize(id, client)
         @id     = id
         @client = client
@@ -32,6 +43,9 @@ module Cql
         mon_initialize
       end
 
+      # Returns the ip of coordinator node. Typically the same as {Cql::Execution::Info#hosts}`.last`
+      #
+      # @return [IPAddr] ip of the coordinator node
       def coordinator
         load unless @coordinator
 
@@ -62,6 +76,9 @@ module Cql
         @started_at
       end
 
+      # Returns all trace events
+      #
+      # @return [Array<Cql::Execution::Trace::Event>] events
       def events
         load_events unless @events
 
@@ -74,9 +91,12 @@ module Cql
 
       private
 
+      # @private
       SELECT_SESSION = "SELECT * FROM system_traces.sessions WHERE session_id = ?"
+      # @private
       SELECT_EVENTS  = "SELECT * FROM system_traces.events WHERE session_id = ?"
 
+      # @private
       def load
         synchronize do
           return if @loaded
@@ -95,6 +115,7 @@ module Cql
         nil
       end
 
+      # @private
       def load_events
         synchronize do
           return if @loaded_events

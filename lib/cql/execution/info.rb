@@ -11,13 +11,13 @@ module Cql
       attr_reader :options
       # @return [Array<Cql::Host>] a list of attempted hosts
       attr_reader :hosts
-      # Actual consistency used, it can differ from consistency in {Cql::Execution::Info#options} if a retry policy modified it. One of `:any, :one, :two, :three, :quorum, :all, :local_quorum, :each_quorum, :serial, :local_serial, :local_one`
-      # @return [Symbol]
+      # Actual consistency used, it can differ from consistency in {Cql::Execution::Info#options} if a retry policy modified it.
+      # @return [Symbol] one of {Cql::CONSISTENCIES}
       attr_reader :consistency
       # @return [Integer] number of retries
       attr_reader :retries
       # Returns {Cql::Execution::Trace} if `trace: true` was passed to {Cql::Session#execute} or {Cql::Session#execute_async}
-      # @return [Cql::Execution::Trace, nil]
+      # @return [Cql::Execution::Trace, nil] a Trace if it has been enabled for request
       attr_reader :trace
 
       # @private

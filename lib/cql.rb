@@ -12,15 +12,15 @@ module Cql
   # @private
   Io = Ione::Io
 
-  CONSISTENCIES  = [:any, :one, :two, :three, :quorum, :all, :local_quorum, :each_quorum, :serial, :local_serial, :local_one].freeze
-  # @private
+  CONSISTENCIES = [ :any, :one, :two, :three, :quorum, :all, :local_quorum,
+                    :each_quorum, :serial, :local_serial, :local_one ].freeze
   SERIAL_CONSISTENCIES = [:serial, :local_serial].freeze
 
   # Creates a {Cql::Builder} that can be used to configure a {Cql::Cluster} instance
-  # @example Creating a cluster that connects to local Cassandra
+  # @example Connecting to localhost
   #   cluster = Cql.cluster.build
   #
-  # @example Using {Cql::Builder} to configure {Cql::Cluster}
+  # @example Configuring {Cql::Cluster}
   #   cluster = Cql.cluster
   #               .with_credentials('username', 'password')
   #               .with_contact_points('10.0.1.1', '10.0.1.2', '10.0.1.3')

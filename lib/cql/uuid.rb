@@ -9,18 +9,18 @@ module Cql
   # If you want to generate UUIDs see {Cql::TimeUuid::Generator}.
   #
   class Uuid
-    # Creates a new UUID either from a string (expected to be on the standard
-    # 8-4-4-4-12 form, or just 32 characters without hyphens), or from a
-    # 128 bit number.
+    # Creates a new UUID either from a string (expected to be on the standard 8-4-4-4-12 form, or just 32 characters without hyphens), or from a 128 bit number.
+    #
+    # @param uuid [String] a 32 char uuid
     #
     # @raise [ArgumentError] if the string does not conform to the expected format
     #
-    def initialize(n)
-      case n
+    def initialize(uuid)
+      case uuid
       when String
-        @n = from_s(n)
+        @n = from_s(uuid)
       else
-        @n = n
+        @n = uuid
       end
     end
 
@@ -58,13 +58,18 @@ module Cql
 
     private
 
+    # @private
     RAW_FORMAT = '%032x'.force_encoding(Encoding::ASCII).freeze
+    # @private
     HYPHEN = '-'.force_encoding(Encoding::ASCII).freeze
+    # @private
     EMPTY_STRING = ''.freeze
 
     if RUBY_ENGINE == 'jruby'
+      # @private
       HEX_RE = /^[A-Fa-f0-9]+$/
       # See https://github.com/jruby/jruby/issues/1608
+      # @private
       def from_s(str)
         str = str.gsub(HYPHEN, EMPTY_STRING)
         raise ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}" unless str.length == 32
@@ -72,6 +77,7 @@ module Cql
         Integer(str, 16)
       end
     else
+      # @private
       def from_s(str)
         str = str.gsub(HYPHEN, EMPTY_STRING)
         raise ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}" unless str.length == 32

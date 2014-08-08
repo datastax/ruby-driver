@@ -79,6 +79,11 @@ module Cql
       self
     end
 
+    # Constructs a {Cql::Cluster} using settings specified.
+    #
+    # @return [Cql::Cluster] a cluster
+    # @raise [Cql::Errors::NoHostsAvailable] when no hosts can be reached
+    # @raise [Cql::Errors::AuthenticationError] when authentication fails
     def build
       @addresses << IPAddr.new('127.0.0.1') if @addresses.empty?
 
