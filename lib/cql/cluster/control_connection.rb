@@ -56,7 +56,6 @@ module Cql
 
       private
 
-      NOT_CONNECTED = NotConnectedError.new("not connected")
       SELECT_LOCAL  = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, release_version FROM system.local', nil, nil, :one)
       SELECT_PEERS  = Protocol::QueryRequest.new('SELECT peer, rack, data_center, host_id, rpc_address, release_version FROM system.peers', nil, nil, :one)
       REGISTER      = Protocol::RegisterRequest.new(
