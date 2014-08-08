@@ -43,8 +43,13 @@ module Cql
           buffer = decompress(buffer, size)
           size = buffer.size
         end
-        extra_length = buffer.length - size 
-        trace_id = tracing == 2 ? buffer.read_uuid : nil
+        if tracing == 2
+          trace_id = buffer.read_uuid
+          size -= 16
+        else
+          trace_id = nil
+        end
+        extra_length = buffer.length - size
         response = Response.decode(opcode, protocol_version, buffer, size, trace_id)
         if buffer.length > extra_length
           buffer.discard(buffer.length - extra_length)
