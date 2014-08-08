@@ -9,9 +9,6 @@ require 'bigdecimal'
 require 'forwardable'
 
 module Cql
-  CqlError = Class.new(StandardError)
-  IoError = Ione::IoError
-
   # @private
   Io = Ione::Io
 
@@ -25,6 +22,7 @@ module Cql
   end
 end
 
+require 'cql/errors'
 require 'cql/uuid'
 require 'cql/time_uuid'
 require 'cql/compression'
@@ -57,5 +55,5 @@ module Cql
   # @private
   VOID_OPTIONS   = Execution::Options.new({:consistency => :one})
   # @private
-  NO_HOSTS       = NoHostsAvailable.new
+  NO_HOSTS       = Errors::NoHostsAvailable.new
 end

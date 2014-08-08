@@ -168,7 +168,7 @@ class FakeConnection
 
   def send_request(request, timeout=nil)
     if @closed
-      Ione::Future.failed(Cql::NotConnectedError.new)
+      Ione::Future.failed(Cql::Errors::NotConnectedError.new)
     else
       @requests << request
       case request

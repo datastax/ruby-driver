@@ -1,38 +1,6 @@
 # encoding: utf-8
 
 module Cql
-  # This error type represents errors sent by the server, the `code` attribute
-  # can be used to find the exact type, and `cql` contains the request's CQL,
-  # if any. `message` contains the human readable error message sent by the
-  # server.
-  class QueryError < CqlError
-    attr_reader :code, :cql, :details
-
-    def initialize(code, message, cql=nil, details=nil)
-      super(message)
-      @code = code
-      @cql = cql
-      @details = details
-    end
-  end
-
-  class NoHostsAvailable < CqlError
-    attr_reader :errors
-
-    def initialize(errors = {})
-      super("no hosts available, check #errors property for details")
-
-      @errors = errors
-    end
-  end
-
-  NotConnectedError = Class.new(CqlError)
-  TimeoutError = Class.new(CqlError)
-  ClientError = Class.new(CqlError)
-  AuthenticationError = Class.new(ClientError)
-  UnsupportedProtocolVersionError = Class.new(ClientError)
-  NotPreparedError = Class.new(ClientError)
-
   # A CQL client manages connections to one or more Cassandra nodes and you use
   # it run queries, insert and update data.
   #
@@ -63,13 +31,13 @@ module Cql
   #   statement.execute(8, 'baz')
   # @private
   module Client
-    InvalidKeyspaceNameError = Class.new(ClientError)
+    InvalidKeyspaceNameError = Class.new(Errors::ClientError)
 
     # @private
     module SynchronousBacktrace
       def synchronous_backtrace
         yield
-      rescue CqlError => e
+      rescue Error => e
         new_backtrace = caller
         if new_backtrace.first.include?(SYNCHRONOUS_BACKTRACE_METHOD_NAME)
           new_backtrace = new_backtrace.drop(1)
@@ -136,7 +104,7 @@ module Cql
     #   this option.
     # @raise Cql::Io::ConnectionError when a connection couldn't be established
     #   to any node
-    # @raise Cql::Client::QueryError when the specified keyspace does not exist
+    # @raise Cql::Errors::QueryError when the specified keyspace does not exist
     #   or when the specifed CQL version is not supported.
     # @return [Cql::Client::Client]
     def self.connect(options={})

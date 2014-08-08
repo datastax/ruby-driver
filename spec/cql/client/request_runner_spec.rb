@@ -113,23 +113,23 @@ module Cql
         end
 
         it 'intercepts an ErrorResponse and fails the result future' do
-          expect { run(error_response) }.to raise_error(QueryError)
+          expect { run(error_response) }.to raise_error(Errors::QueryError)
         end
 
-        it 'sets the #cql field of QueryError when the request is a query request' do
+        it 'sets the #cql field of Errors::QueryError when the request is a query request' do
           begin
             run(error_response, Protocol::QueryRequest.new('SELECT * FROM everything', nil, nil, :all))
-          rescue QueryError => e
+          rescue Errors::QueryError => e
             e.cql.should == 'SELECT * FROM everything'
           else
             fail('No error was raised')
           end
         end
 
-        it 'sets the #details field of QueryError when the response has details' do
+        it 'sets the #details field of Errors::QueryError when the response has details' do
           begin
             run(detailed_error_response)
-          rescue QueryError => e
+          rescue Errors::QueryError => e
             e.details.should == detailed_error_response.details
           else
             fail('No error was raised')

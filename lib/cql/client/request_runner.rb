@@ -16,7 +16,7 @@ module Cql
           when Protocol::ErrorResponse
             cql = request.is_a?(Protocol::QueryRequest) ? request.cql : nil
             details = response.respond_to?(:details) ? response.details : nil
-            raise QueryError.new(response.code, response.message, cql, details)
+            raise Errors::QueryError.new(response.code, response.message, cql, details)
           when Protocol::SetKeyspaceResultResponse
             KeyspaceChanged.new(response.keyspace)
           when Protocol::AuthenticateResponse

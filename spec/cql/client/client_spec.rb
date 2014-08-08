@@ -267,7 +267,7 @@ module Cql
             handle_request do |request|
               Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
             end
-            expect { client.connect.value }.to raise_error(QueryError)
+            expect { client.connect.value }.to raise_error(Errors::QueryError)
             client.should_not be_connected
           end
 
@@ -326,7 +326,7 @@ module Cql
                 end
               end
             end
-            expect { client.connect.value }.to raise_error(AuthenticationError)
+            expect { client.connect.value }.to raise_error(Errors::AuthenticationError)
             counter.should == 1
           end
         end
@@ -576,7 +576,7 @@ module Cql
 
             it 'fails to authenticate when only an auth provider has been specified' do
               client = described_class.new(connection_options.merge(auth_provider: auth_provider, protocol_version: 1))
-              expect { client.connect.value }.to raise_error(AuthenticationError)
+              expect { client.connect.value }.to raise_error(Errors::AuthenticationError)
             end
           end
 
@@ -598,19 +598,19 @@ module Cql
 
           it 'raises an error when no credentials have been given' do
             client = described_class.new(connection_options)
-            expect { client.connect.value }.to raise_error(AuthenticationError)
+            expect { client.connect.value }.to raise_error(Errors::AuthenticationError)
           end
 
           it 'raises an error when the server responds with an error to the credentials request' do
             handle_request(&method(:denying_request_handler))
             client = described_class.new(connection_options.merge(connection_options.merge(auth_provider: auth_provider)))
-            expect { client.connect.value }.to raise_error(AuthenticationError)
+            expect { client.connect.value }.to raise_error(Errors::AuthenticationError)
           end
 
           it 'raises an error when the server requests authentication that the auth provider does not support' do
             handle_request(&method(:custom_request_handler))
             client = described_class.new(connection_options.merge(connection_options.merge(auth_provider: auth_provider)))
-            expect { client.connect.value }.to raise_error(AuthenticationError)
+            expect { client.connect.value }.to raise_error(Errors::AuthenticationError)
           end
 
           it 'shuts down the client when there is an authentication error' do
@@ -652,7 +652,7 @@ module Cql
         it 'cannot be connected again once closed' do
           client.connect.value
           client.close.value
-          expect { client.connect.value }.to raise_error(ClientError)
+          expect { client.connect.value }.to raise_error(Errors::ClientError)
         end
 
         it 'waits for #connect to complete before attempting to close' do
@@ -914,13 +914,13 @@ module Cql
           end
 
           it 'raises an error' do
-            expect { client.execute('SELECT * FROM things').value }.to raise_error(QueryError, 'Blurgh')
+            expect { client.execute('SELECT * FROM things').value }.to raise_error(Errors::QueryError, 'Blurgh')
           end
 
           it 'decorates the error with the CQL that caused it' do
             begin
               client.execute('SELECT * FROM things').value
-            rescue QueryError => e
+            rescue Errors::QueryError => e
               e.cql.should == 'SELECT * FROM things'
             else
               fail('No error was raised')
@@ -1231,33 +1231,33 @@ module Cql
         end
 
         it 'complains when #use is called before #connect' do
-          expect { client.use('system').value }.to raise_error(NotConnectedError)
+          expect { client.use('system').value }.to raise_error(Errors::NotConnectedError)
         end
 
         it 'complains when #use is called after #close' do
           client.connect.value
           client.close.value
-          expect { client.use('system').value }.to raise_error(NotConnectedError)
+          expect { client.use('system').value }.to raise_error(Errors::NotConnectedError)
         end
 
         it 'complains when #execute is called before #connect' do
-          expect { client.execute('DELETE FROM stuff WHERE id = 3').value }.to raise_error(NotConnectedError)
+          expect { client.execute('DELETE FROM stuff WHERE id = 3').value }.to raise_error(Errors::NotConnectedError)
         end
 
         it 'complains when #execute is called after #close' do
           client.connect.value
           client.close.value
-          expect { client.execute('DELETE FROM stuff WHERE id = 3').value }.to raise_error(NotConnectedError)
+          expect { client.execute('DELETE FROM stuff WHERE id = 3').value }.to raise_error(Errors::NotConnectedError)
         end
 
         it 'complains when #prepare is called before #connect' do
-          expect { client.prepare('DELETE FROM stuff WHERE id = 3').value }.to raise_error(NotConnectedError)
+          expect { client.prepare('DELETE FROM stuff WHERE id = 3').value }.to raise_error(Errors::NotConnectedError)
         end
 
         it 'complains when #prepare is called after #close' do
           client.connect.value
           client.close.value
-          expect { client.prepare('DELETE FROM stuff WHERE id = 3').value }.to raise_error(NotConnectedError)
+          expect { client.prepare('DELETE FROM stuff WHERE id = 3').value }.to raise_error(Errors::NotConnectedError)
         end
 
         it 'complains when #execute of a prepared statement is called after #close' do
@@ -1269,7 +1269,7 @@ module Cql
           client.connect.value
           statement = client.prepare('DELETE FROM stuff WHERE id = 3').value
           client.close.value
-          expect { statement.execute.value }.to raise_error(NotConnectedError)
+          expect { statement.execute.value }.to raise_error(Errors::NotConnectedError)
         end
       end
 
@@ -1289,9 +1289,9 @@ module Cql
           expect { 10.times { client.execute('SELECT * FROM something').value } }.to_not raise_error
         end
 
-        it 'raises NotConnectedError when all nodes are down' do
+        it 'raises Errors::NotConnectedError when all nodes are down' do
           connections.each(&:close)
-          expect { client.execute('SELECT * FROM something').value }.to raise_error(NotConnectedError)
+          expect { client.execute('SELECT * FROM something').value }.to raise_error(Errors::NotConnectedError)
         end
 
         it 'reconnects when it receives a status change UP event' do
@@ -1620,18 +1620,18 @@ module Cql
 
       context 'when exceptions are raised' do
         it 'replaces the backtrace of the asynchronous call to make it less confusing' do
-          error = CqlError.new('Bork')
+          error = Error.new('Bork')
           error.set_backtrace(['Hello', 'World'])
           future.stub(:value).and_raise(error)
           async_client.stub(:execute).and_return(future)
           begin
             client.execute('SELECT * FROM something')
-          rescue CqlError => e
+          rescue Error => e
             e.backtrace.first.should match(%r{/client.rb:\d+:in `execute'})
           end
         end
 
-        it 'does not replace the backtrace of non-CqlError errors' do
+        it 'does not replace the backtrace of non-Error errors' do
           future.stub(:value).and_raise('Bork')
           async_client.stub(:execute).and_return(future)
           begin

@@ -74,10 +74,10 @@ module Cql
       #   for details on which options are available.
       # @raise [ArgumentError] raised when number of argument does not match
       #   the number of parameters needed to be bound to the statement.
-      # @raise [Cql::NotConnectedError] raised when the client is not connected
-      # @raise [Cql::Io::IoError] raised when there is an IO error, for example
+      # @raise [Cql::Errors::NotConnectedError] raised when the client is not connected
+      # @raise [Cql::Errors::IoError] raised when there is an IO error, for example
       #   if the server suddenly closes the connection
-      # @raise [Cql::QueryError] raised when there is an error on the server side
+      # @raise [Cql::Errors::QueryError] raised when there is an error on the server side
       # @return [nil, Cql::Client::QueryResult, Cql::Client::VoidResult] Some
       #   queries have no result and return `nil`, but `SELECT` statements
       #   return an `Enumerable` of rows (see {Cql::Client::QueryResult}), and
@@ -205,7 +205,7 @@ module Cql
       def add_to_batch(batch, connection, bound_args)
         statement_id = connection[self]
         unless statement_id
-          raise NotPreparedError
+          raise Errors::NotPreparedError
         end
         unless bound_args.size == @raw_metadata.size
           raise ArgumentError, "Expected #{@raw_metadata.size} arguments, got #{bound_args.size}"

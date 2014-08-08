@@ -200,10 +200,10 @@ module Cql
         end
 
         context 'when the protocol handler has closed' do
-          it 'fails all requests with NotConnectedError' do
+          it 'fails all requests with Errors::NotConnectedError' do
             connection.stub(:closed?).and_return(true)
             f = protocol_handler.send_request(request)
-            expect { f.value }.to raise_error(NotConnectedError)
+            expect { f.value }.to raise_error(Errors::NotConnectedError)
           end
         end
 

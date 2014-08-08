@@ -91,12 +91,12 @@ module Cql
           expect { f.value }.to raise_error
         end
 
-        it 'fails with an AuthenticationError when the connections failed with a QueryError with error code 0x100' do
+        it 'fails with an Errors::AuthenticationError when the connections failed with a Errors::QueryError with error code 0x100' do
           bad_nodes.push('host0')
           bad_nodes.push('host1')
-          failure[0] = QueryError.new(0x100, 'bork')
+          failure[0] = Errors::QueryError.new(0x100, 'bork')
           f = cluster_connector.connect_all(%w[host0 host1], 1)
-          expect { f.value }.to raise_error(AuthenticationError)
+          expect { f.value }.to raise_error(Errors::AuthenticationError)
         end
 
         it 'logs when a connection is complete' do
@@ -455,19 +455,19 @@ module Cql
         it 'returns a failed future when there\'s an authentication class but no auth provider' do
           step = described_class.new(nil)
           result = step.run(pending_connection)
-          expect { result.value }.to raise_error(AuthenticationError)
+          expect { result.value }.to raise_error(Errors::AuthenticationError)
         end
 
         it 'returns a failed future when the auth provider does not support the authentication class' do
           auth_provider.stub(:create_authenticator).and_return(nil)
           result = step.run(pending_connection)
-          expect { result.value }.to raise_error(AuthenticationError)
+          expect { result.value }.to raise_error(Errors::AuthenticationError)
         end
 
         it 'returns a failed future when the auth provider raises an error' do
           auth_provider.stub(:create_authenticator).and_raise(StandardError.new('BORK'))
           result = step.run(pending_connection)
-          expect { result.value }.to raise_error(AuthenticationError)
+          expect { result.value }.to raise_error(Errors::AuthenticationError)
         end
 
         it 'asks the authenticator to formulate its initial response, and sends it in a AuthResponseRequest' do
@@ -520,7 +520,7 @@ module Cql
               if request.token == '1'
                 Ione::Future.resolved(Protocol::AuthChallengeResponse.new('2'))
               else
-                Ione::Future.failed(QueryError.new(0x99, 'BORK'))
+                Ione::Future.failed(Errors::QueryError.new(0x99, 'BORK'))
               end
             end
             f = step.run(pending_connection)
@@ -567,11 +567,11 @@ module Cql
         it 'returns a failed future when there\'s an authentication class but no credentials' do
           step = described_class.new(nil)
           result = step.run(pending_connection)
-          expect { result.value }.to raise_error(AuthenticationError)
+          expect { result.value }.to raise_error(Errors::AuthenticationError)
         end
 
         it 'returns a failed future when the server responds with an error' do
-          pending_connection.stub(:execute).and_return(Ione::Future.failed(QueryError.new(0x99, 'BORK')))
+          pending_connection.stub(:execute).and_return(Ione::Future.failed(Errors::QueryError.new(0x99, 'BORK')))
           result = step.run(pending_connection)
           expect { result.value }.to raise_error('BORK')
         end

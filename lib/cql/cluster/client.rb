@@ -49,7 +49,7 @@ module Cql
               unless connections.any?(&:connected?)
                 errors = {}
                 connections.each {|c| errors[c.host] = c.error}
-                raise NoHostsAvailable.new(errors)
+                raise Errors::NoHostsAvailable.new(errors)
               end
 
               self
@@ -175,8 +175,8 @@ module Cql
         :unlogged => Protocol::BatchRequest::UNLOGGED_TYPE,
         :counter  => Protocol::BatchRequest::COUNTER_TYPE,
       }.freeze
-      CLIENT_CLOSED        = Ione::Future.failed(ClientError.new('Cannot connect a closed client'))
-      CLIENT_NOT_CONNECTED = Ione::Future.failed(ClientError.new('Cannot close a not connected client'))
+      CLIENT_CLOSED        = Ione::Future.failed(Errors::ClientError.new('Cannot connect a closed client'))
+      CLIENT_NOT_CONNECTED = Ione::Future.failed(Errors::ClientError.new('Cannot close a not connected client'))
 
       UNAVAILABLE_ERROR_CODE   = 0x1000
       WRITE_TIMEOUT_ERROR_CODE = 0x1100
@@ -296,7 +296,7 @@ module Cql
       rescue ::KeyError
         retry
       rescue ::StopIteration
-        promise.break(NoHostsAvailable.new(errors || {}))
+        promise.break(Errors::NoHostsAvailable.new(errors || {}))
       end
 
       def prepare_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
@@ -342,7 +342,7 @@ module Cql
       rescue ::KeyError
         retry
       rescue ::StopIteration
-        promise.break(NoHostsAvailable.new(errors || {}))
+        promise.break(Errors::NoHostsAvailable.new(errors || {}))
       end
 
       def batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, plan, timeout, errors, hosts)
@@ -413,7 +413,7 @@ module Cql
       rescue ::KeyError
         retry
       rescue ::StopIteration
-        promise.break(NoHostsAvailable.new(errors || {}))
+        promise.break(Errors::NoHostsAvailable.new(errors || {}))
       end
 
       def do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts, retries = 0)
@@ -434,7 +434,7 @@ module Cql
               when READ_TIMEOUT_ERROR_CODE
                 @retry_policy.read_timeout(statement, details[:cl], details[:blockfor], details[:received], details[:data_present], retries)
               else
-                promise.break(QueryError.new(r.code, r.message, statement.cql, r.details))
+                promise.break(Errors::QueryError.new(r.code, r.message, statement.cql, r.details))
                 break
               end
 
@@ -445,12 +445,12 @@ module Cql
               when Retry::Decisions::Ignore
                 promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
               when Retry::Decisions::Reraise
-                promise.break(QueryError.new(r.code, r.message, statement.cql, r.details))
+                promise.break(Errors::QueryError.new(r.code, r.message, statement.cql, r.details))
               else
-                promise.break(QueryError.new(r.code, r.message, statement.cql, r.details))
+                promise.break(Errors::QueryError.new(r.code, r.message, statement.cql, r.details))
               end
             when Protocol::ErrorResponse
-              promise.break(QueryError.new(r.code, r.message, statement.cql, nil))
+              promise.break(Errors::QueryError.new(r.code, r.message, statement.cql, nil))
             when Protocol::SetKeyspaceResultResponse
               @keyspace = r.keyspace
               promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
@@ -503,9 +503,9 @@ module Cql
             @keyspace = r.keyspace
             nil
           when Protocol::DetailedErrorResponse
-            raise QueryError.new(r.code, r.message, cql, r.details)
+            raise Errors::QueryError.new(r.code, r.message, cql, r.details)
           when Protocol::ErrorResponse
-            raise QueryError.new(r.code, r.message, cql, nil)
+            raise Errors::QueryError.new(r.code, r.message, cql, nil)
           else
             raise "unexpected response #{r.inspect}"
           end
@@ -541,9 +541,9 @@ module Cql
             end
             id
           when Protocol::DetailedErrorResponse
-            raise QueryError.new(r.code, r.message, cql, r.details)
+            raise Errors::QueryError.new(r.code, r.message, cql, r.details)
           when Protocol::ErrorResponse
-            raise QueryError.new(r.code, r.message, cql, nil)
+            raise Errors::QueryError.new(r.code, r.message, cql, nil)
           else
             raise "unexpected response #{r.inspect}"
           end

@@ -24,8 +24,8 @@ module Cql
           connected_connections = connections.select(&:connected?)
           if connected_connections.empty?
             e = connections.first.error
-            if e.is_a?(Cql::QueryError) && e.code == 0x100
-              e = AuthenticationError.new(e.message)
+            if e.is_a?(Cql::Errors::QueryError) && e.code == 0x100
+              e = Errors::AuthenticationError.new(e.message)
             end
             raise e
           end
@@ -143,12 +143,12 @@ module Cql
               token = authenticator.initial_response
               challenge_cycle(pending_connection, authenticator, token)
             elsif @auth_provider
-              Ione::Future.failed(AuthenticationError.new('Auth provider does not support the required authentication class "%s" and/or protocol version %d' % [pending_connection.authentication_class, @protocol_version]))
+              Ione::Future.failed(Errors::AuthenticationError.new('Auth provider does not support the required authentication class "%s" and/or protocol version %d' % [pending_connection.authentication_class, @protocol_version]))
             else
-              Ione::Future.failed(AuthenticationError.new('Server requested authentication, but no auth provider found'))
+              Ione::Future.failed(Errors::AuthenticationError.new('Server requested authentication, but no auth provider found'))
             end
           rescue => e
-            Ione::Future.failed(AuthenticationError.new('Auth provider raised an error: %s' % e.message))
+            Ione::Future.failed(Errors::AuthenticationError.new('Auth provider raised an error: %s' % e.message))
           end
         else
           Ione::Future.resolved(pending_connection)
@@ -185,7 +185,7 @@ module Cql
             request = Protocol::CredentialsRequest.new(@credentials)
             pending_connection.execute(request).map(pending_connection)
           else
-            Ione::Future.failed(AuthenticationError.new('Server requested authentication, but no credentials provided'))
+            Ione::Future.failed(Errors::AuthenticationError.new('Server requested authentication, but no credentials provided'))
           end
         else
           Ione::Future.resolved(pending_connection)

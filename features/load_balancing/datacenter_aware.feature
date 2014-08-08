@@ -120,7 +120,7 @@ Feature: Datacenter-aware Round Robin Policy
     When it is executed
     Then its output should contain:
       """
-      no hosts available, check #errors property for details (Cql::NoHostsAvailable)
+      no hosts available, check #errors property for details (Cql::Errors::NoHostsAvailable)
       """
 
   Scenario: Routing requests with local consistencies to remote datacenters

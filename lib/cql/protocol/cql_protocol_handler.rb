@@ -123,7 +123,7 @@ module Cql
       # @return [Ione::Future<Cql::Protocol::Response>] a future that resolves to
       #   the response
       def send_request(request, timeout=nil)
-        return Ione::Future.failed(NotConnectedError.new) if closed?
+        return Ione::Future.failed(Errors::NotConnectedError.new) if closed?
         promise = RequestPromise.new(request, @frame_encoder)
         id = nil
         @lock.lock

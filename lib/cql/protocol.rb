@@ -2,7 +2,7 @@
 
 module Cql
   # @private
-  ProtocolError = Class.new(CqlError)
+  ProtocolError = Class.new(Error)
 
   # @private
   module Protocol

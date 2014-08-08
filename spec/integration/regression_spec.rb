@@ -211,7 +211,7 @@ describe 'Regressions' do
 
   context 'with prepared statements where the table does not exist' do
     it 'raises an error when a statement is prepared on a table that does not exist' do
-      expect { client.prepare('SELECT * FROM table_that_does_not_exist') }.to raise_error(Cql::QueryError)
+      expect { client.prepare('SELECT * FROM table_that_does_not_exist') }.to raise_error(Cql::Errors::QueryError)
     end
   end
 end

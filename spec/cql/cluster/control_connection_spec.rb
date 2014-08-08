@@ -225,7 +225,7 @@ module Cql
             counter += 1
             Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
           end
-          expect { control_connection.connect_async.value }.to raise_error(Cql::QueryError, 'Bork version, dummy!')
+          expect { control_connection.connect_async.value }.to raise_error(Cql::Errors::QueryError, 'Bork version, dummy!')
           counter.should == 7
         end
 
@@ -233,7 +233,7 @@ module Cql
           handle_request do |request|
             Protocol::ErrorResponse.new(0x1001, 'Get off my lawn!')
           end
-          expect { control_connection.connect_async.value }.to raise_error(Cql::QueryError, 'Get off my lawn!')
+          expect { control_connection.connect_async.value }.to raise_error(Cql::Errors::QueryError, 'Get off my lawn!')
         end
 
         it 'fails authenticating when an auth provider has been specified but the protocol is negotiated to v1' do
@@ -249,7 +249,7 @@ module Cql
               Protocol::AuthenticateResponse.new('org.apache.cassandra.auth.PasswordAuthenticator')
             end
           end
-          expect { control_connection.connect_async.value }.to raise_error(AuthenticationError)
+          expect { control_connection.connect_async.value }.to raise_error(Errors::AuthenticationError)
         end
 
         it 'registers an event listener' do
@@ -277,7 +277,7 @@ module Cql
           end
 
           it 'fails' do
-            expect { control_connection.connect_async.value }.to raise_error(NoHostsAvailable)
+            expect { control_connection.connect_async.value }.to raise_error(Errors::NoHostsAvailable)
           end
         end
 

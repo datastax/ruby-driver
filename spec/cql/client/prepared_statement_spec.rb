@@ -108,7 +108,7 @@ module Cql
         it 'returns a failed future when something goes wrong in the preparation' do
           connections.each(&:close)
           f = described_class.prepare(cql, ExecuteOptionsDecoder.new(:three), connection_manager, logger)
-          expect { f.value }.to raise_error(NotConnectedError)
+          expect { f.value }.to raise_error(Errors::NotConnectedError)
         end
 
         it 'returns a failed future if the preparation results in an error' do
@@ -384,7 +384,7 @@ module Cql
         it 'raises an error when the statement has not been prepared on the specified connection' do
           connection = double(:connection)
           connection.stub(:[]).with(statement).and_return(nil)
-          expect { statement.add_to_batch(batch, connection, [11, 'foo']) }.to raise_error(NotPreparedError)
+          expect { statement.add_to_batch(batch, connection, [11, 'foo']) }.to raise_error(Errors::NotPreparedError)
         end
       end
     end
@@ -513,18 +513,18 @@ module Cql
 
       context 'when exceptions are raised' do
         it 'replaces the backtrace of the asynchronous call to make it less confusing' do
-          error = CqlError.new('Bork')
+          error = Error.new('Bork')
           error.set_backtrace(['Hello', 'World'])
           future.stub(:value).and_raise(error)
           async_statement.stub(:execute).and_return(future)
           begin
             statement.execute('SELECT * FROM something')
-          rescue CqlError => e
+          rescue Error => e
             e.backtrace.first.should match(%r{/prepared_statement.rb:\d+:in `execute'})
           end
         end
 
-        it 'does not replace the backtrace of non-CqlError errors' do
+        it 'does not replace the backtrace of non-Error errors' do
           future.stub(:value).and_raise('Bork')
           async_statement.stub(:execute).and_return(future)
           begin

@@ -199,11 +199,11 @@ module Cql
       def connect_to_first_available(plan, errors = nil)
         host = plan.next
         connect_to_host(host).fallback do |error|
-          if error.is_a?(AuthenticationError)
+          if error.is_a?(Errors::AuthenticationError)
             Ione::Future.failed(error)
-          elsif error.is_a?(Cql::QueryError)
+          elsif error.is_a?(Errors::QueryError)
             if error.code == 0x100
-              Ione::Future.failed(AuthenticationError.new(error.message))
+              Ione::Future.failed(Errors::AuthenticationError.new(error.message))
             else
               Ione::Future.failed(error)
             end
@@ -214,12 +214,12 @@ module Cql
           end
         end
       rescue ::StopIteration
-        Ione::Future.failed(NoHostsAvailable.new(errors || {}))
+        Ione::Future.failed(Errors::NoHostsAvailable.new(errors || {}))
       end
 
       def connect_to_host(host)
         @connector.connect_to_host(host).fallback do |error|
-          if error.is_a?(QueryError) && error.code == 0x0a && @connection_options.protocol_version > 1
+          if error.is_a?(Errors::QueryError) && error.code == 0x0a && @connection_options.protocol_version > 1
             @logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@connection_options.protocol_version, @connection_options.protocol_version - 1, error.message])
             @connection_options.protocol_version -= 1
             connect_to_host(host)

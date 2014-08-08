@@ -31,7 +31,7 @@ module Cql
           end
 
           it 'fails' do
-            expect { client.connect.value }.to raise_error(NoHostsAvailable)
+            expect { client.connect.value }.to raise_error(Errors::NoHostsAvailable)
           end
         end
 
@@ -61,7 +61,7 @@ module Cql
           hosts.each {|host| io_reactor.node_down(host)}
           expect do
             client.connect.value
-          end.to raise_error(Cql::NoHostsAvailable)
+          end.to raise_error(Cql::Errors::NoHostsAvailable)
         end
       end
 
@@ -327,7 +327,7 @@ module Cql
                   attempts << connection.host
                   if count == 0
                     count += 1
-                    raise Cql::NotConnectedError.new
+                    raise Cql::Errors::NotConnectedError.new
                   else
                     Cql::Protocol::RowsResultResponse.new([], [], nil, nil)
                   end
@@ -352,7 +352,7 @@ module Cql
               when Cql::Protocol::QueryRequest
                 case request.cql
                 when 'SELECT * FROM songs'
-                  raise Cql::NotConnectedError.new
+                  raise Cql::Errors::NotConnectedError.new
                 else
                   Cql::Protocol::RowsResultResponse.new([], [], nil, nil)
                 end
@@ -362,10 +362,10 @@ module Cql
           client.connect.value
           expect do
             client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
-          end.to raise_error(NoHostsAvailable)
+          end.to raise_error(Errors::NoHostsAvailable)
         end
 
-        it 'raises immediately on QueryError' do
+        it 'raises immediately on Errors::QueryError' do
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
@@ -385,7 +385,7 @@ module Cql
           client.connect.value
           expect do
             client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
-          end.to raise_error(Cql::QueryError, 'blargh')
+          end.to raise_error(Cql::Errors::QueryError, 'blargh')
         end
 
         it 'waits for keyspace to be switched before running other requests' do
@@ -514,7 +514,7 @@ module Cql
                 attempts << connection.host
                 if count == 0
                   count += 1
-                  raise Cql::NotConnectedError.new
+                  raise Cql::Errors::NotConnectedError.new
                 end
                 Cql::Protocol::RowsResultResponse.new([], [], nil, nil)
               end
@@ -549,7 +549,7 @@ module Cql
 
           expect do
             client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
-          end.to raise_error(Cql::QueryError, 'blargh')
+          end.to raise_error(Cql::Errors::QueryError, 'blargh')
         end
 
         it 'raises if all hosts failed' do
@@ -561,7 +561,7 @@ module Cql
               when Cql::Protocol::PrepareRequest
                 Protocol::PreparedResultResponse.new(123, [], [], nil)
               when Cql::Protocol::ExecuteRequest
-                raise Cql::NotConnectedError.new
+                raise Cql::Errors::NotConnectedError.new
               end
             end
           end
@@ -572,7 +572,7 @@ module Cql
 
           expect do
             client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
-          end.to raise_error(NoHostsAvailable)
+          end.to raise_error(Errors::NoHostsAvailable)
         end
       end
 
@@ -687,7 +687,7 @@ module Cql
                 attempts << connection.host
                 if count == 0
                   count += 1
-                  raise Cql::NotConnectedError.new
+                  raise Cql::Errors::NotConnectedError.new
                 end
                 Cql::Protocol::RowsResultResponse.new([], [], nil, nil)
               end
@@ -710,7 +710,7 @@ module Cql
               when Cql::Protocol::StartupRequest
                 Cql::Protocol::ReadyResponse.new
               when Cql::Protocol::BatchRequest
-                raise Cql::NotConnectedError.new
+                raise Cql::Errors::NotConnectedError.new
               end
             end
           end
@@ -721,7 +721,7 @@ module Cql
 
           expect do
             client.batch(batch, Execution::Options.new(:consistency => :one)).get
-          end.to raise_error(NoHostsAvailable)
+          end.to raise_error(Errors::NoHostsAvailable)
         end
       end
     end
