@@ -21,7 +21,7 @@
         <td class="name"><var><%= h tag.name %></var></td>
         <% end %>
         <% unless @no_types %>
-        <td class="name"><%= format_types(tag.types) %></td>
+        <td class="type"><%= format_types(tag.types) %></td>
         <% end %>
         <td class="details">
           <% if @name == :param && (o=object.parameters.assoc(tag.name.to_s)) && o[1] %>

@@ -1,6 +1,6 @@
 def init
   return if object.docstring.blank? && !object.has_tag?(:api)
-  sections :index, [:text, :private, :deprecated, :abstract, :todo, :note, :returns_void], T('tags')
+  sections :text, :index, [:private, :deprecated, :abstract, :todo, :note, :returns_void], T('tags')
 end
 
 def private

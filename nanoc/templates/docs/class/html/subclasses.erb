@@ -2,7 +2,7 @@
 <div class="subclasses">
   <ul class="list-inline">
     <% @subclasses.each do |name, child| %>
-    <li><code><%= linkify(child, name) %></code></li>
+    <li><%= linkify(child, name) %></li>
     <% end %>
   </ul>
 </div>

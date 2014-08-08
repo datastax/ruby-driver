@@ -4,7 +4,7 @@
 <div class="child-<%= name %>">
   <ul class="list-inline">
     <% list.each do |child| %>
-    <li><code><%= linkify(child, child.name(true)) %></code></li>
+    <li><%= linkify(child, child.name(true)) %></li>
     <% end %>
   </ul>
 </div>

@@ -34,7 +34,7 @@ def constant_list
 end
 
 def sort_listing(list)
-  list.sort_by {|o| [o.scope.to_s, o.name.to_s.downcase] }
+  list.sort_by {|o| o.scope.to_s }
 end
 
 def special_method?(meth)

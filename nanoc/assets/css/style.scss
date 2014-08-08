@@ -92,9 +92,21 @@
   display: inline;
 }
 
-.tag_content .table {
+.tag-content .table {
   .name,
   .type {
     width: 120px;
+  }
+}
+
+dl.notes {
+  margin-bottom: 10px;
+
+  dt {
+    width: 65px;
+  }
+
+  dd {
+    margin-left: 70px;
   }
 }

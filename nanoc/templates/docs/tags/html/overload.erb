@@ -5,14 +5,14 @@
   <dd class="tag-content">
     <% object.tags(:overload).each do |overload| %>
       <% next if overload.docstring.blank? %>
-      <div class="panel panel-info">
+      <div class="panel panel-default">
         <div class="panel-heading overload-header">
-          <% if object.scope == :class %><em>self.</em><% end %><span class="path"><strong><%= object.is_attribute? ? object.name.to_s.sub(/=$/, '') : object.name %></strong></span><% if object.is_attribute? %>
-          <% rw = object.attr_info %>
+          <% if overload.scope == :class %><em>self.</em><% end %><span class="path"><strong><%= overload.is_attribute? ? overload.name.to_s.sub(/=$/, '') : overload.name %></strong></span><% if overload.is_attribute? %>
+          <% rw = overload.attr_info %>
           <% if rw && rw[:read] && !rw[:write] %><span class="label label-default">readonly</span>
           <% elsif rw && !rw[:read] && rw[:write] %><span class="label label-default">writeonly</span>
           <% end %>
-          <% else %><%= format_args(object) %> <%= format_block(object) %><% end %>
+          <% else %><%= format_args(overload) %> <%= format_block(overload) %><% end %>
         </div>
         <div class="panel-body overload-body">
           <%= yieldall :object => overload %>

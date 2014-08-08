@@ -5,14 +5,14 @@
 <%= yieldall %>
 <% if CodeObjects::ClassObject === object && object.superclass %>
 <h2>Inherits</h2>
-<div class="superclass"><code><%= linkify object.superclass %></code></div>
+<div class="superclass"><%= linkify object.superclass %></div>
 <% end %>
 <% if (mix = run_verifier(object.mixins(:class))).size > 0 %>
-<h2>Extended by</h2>
+<h2>Extends</h2>
 <div class="extends">
   <ul class="list-inline">
     <% mix.sort_by {|o| o.path }.each do |o| %>
-    <li><code><%= linkify(o) %></code></li>
+    <li><%= linkify(o) %></li>
     <% end %>
   </ul>
 </div>
@@ -22,17 +22,17 @@
 <div class="includes">
   <ul class="list-inline">
     <% mix.sort_by {|o| o.path }.each do |o| %>
-    <li><code><%= linkify(o) %></code></li>
+    <li><%= linkify(o) %></li>
     <% end %>
   </ul>
 </div>
 <% end %>
 <% if (mixed_into = mixed_into(object)).size > 0 %>
-<h2>Included in</h2>
+<h2>Mixed into</h2>
 <div class="included">
   <ul class="list-inline">
     <% mixed_into.sort_by {|o| o.path }.each do |o| %>
-    <li><code><%= linkify(o) %></code></li>
+    <li><%= linkify(o) %></li>
     <% end %>
   </ul>
 </div>

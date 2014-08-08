@@ -25,6 +25,9 @@ module Docs
 
     def items
       YARD::Registry.clear
+      YARD::Templates::Engine.constants.each do |const|
+        YARD::Templates::Engine.send(:remove_const, const) if const =~ /^Template_/
+      end
       YARD.parse(lib_dir_name + '**/*.rb')
 
       verifier = YARD::Verifier.new('!object.tag(:private) && (object.namespace.is_a?(CodeObjects::Proxy) || !object.namespace.tag(:private))')
@@ -67,10 +70,27 @@ module Docs
       return unless typelist.is_a?(Array)
       list = typelist.map do |type|
         type = type.gsub(/([<>])/) { h($1) }
-        type = type.gsub(/([\w:]+)/) { $1 == "lt" || $1 == "gt" ? $1 : linkify($1, $1) }
-        "<code>" + type + "</code>"
+        type = type.gsub(/([#\w:]+)/) { $1 == "lt" || $1 == "gt" ? $1 : linkify($1, $1) }
+        type
       end
-      list.empty? ? "" : (brackets ? "(#{list.join(", ")})" : list.join(", "))
+      return if list.empty?
+
+      if list.one?
+        list.first
+      else
+        (brackets ? "(#{type_list_join(list)})" : type_list_join(list))
+      end
+    end
+
+    def type_list_join(list)
+      index = 0
+      size  = list.size
+      list.each_with_object('') do |item, out|
+        out << item.to_s
+        out << ", " if index < size - 2
+        out << " or " if index == size - 2
+        index += 1
+      end
     end
 
     def link_object(obj, title = nil, anchor = nil, relative = true)
@@ -92,11 +112,11 @@ module Docs
       else
         title = h(obj.to_s)
       end
-      return title if obj.is_a?(::YARD::CodeObjects::Proxy)
+      return "<code>#{title}</code>" if obj.is_a?(::YARD::CodeObjects::Proxy)
 
       link = url_for(obj, anchor)
       link = link ? link_url(link, title, :title => h("#{obj.title} (#{obj.type})")) : title
-      link
+      "<code>#{link}</code>"
     end
 
     def url_for(obj, anchor = nil, relative = true)

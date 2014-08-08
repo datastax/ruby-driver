@@ -1,6 +1,4 @@
 <% object.tags(:note).each do |tag| %>
-<p class="note notetag">
-  <span class="label label-primary">Note</span>
-  <%= htmlify_line tag.text %>
-</p>
+<dt><span class="label label-primary">Note</span></dt>
+<dd><%= htmlify_line tag.text %></dd>
 <% end %>
