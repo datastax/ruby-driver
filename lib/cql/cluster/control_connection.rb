@@ -4,8 +4,6 @@ module Cql
   class Cluster
     # @private
     class ControlConnection
-      include MonitorMixin
-
       def initialize(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, connector, connection_options)
         @logger                = logger
         @io_reactor            = io_reactor
@@ -15,8 +13,6 @@ module Cql
         @reconnection_policy   = reconnection_policy
         @connector             = connector
         @connection_options    = connection_options
-
-        mon_initialize
       end
 
       def connect_async
@@ -31,14 +27,12 @@ module Cql
           connect_to_first_available(plan)
         end
         f.on_value do |connection|
-          synchronize { @connection = connection }
+          @connection = connection
 
           connection.on_closed do
             @logger.debug('Connection closed')
-            synchronize do
-              @connection = nil
-              reconnect(@reconnection_policy.schedule) unless @closed
-            end
+            @connection = nil
+            reconnect(@reconnection_policy.schedule) unless @closed
           end
         end
         f = f.flat_map { register_async }
@@ -47,10 +41,8 @@ module Cql
       end
 
       def close_async
-        synchronize do
-          return Ione::Future.resolved if @closed
-          @closed = true
-        end
+        return Ione::Future.resolved if @closed
+        @closed = true
         @io_reactor.stop
       end
 
@@ -69,9 +61,7 @@ module Cql
                       )
 
       def reconnect(schedule)
-        synchronize do
-          return Ione::Future.failed("closed") if @closed
-        end
+        return Ione::Future.failed("closed") if @closed
 
         connect_async.fallback do |e|
           @logger.error('Connection failed: %s: %s' % [e.class.name, e.message])
@@ -86,10 +76,9 @@ module Cql
       end
 
       def register_async
-        connection = synchronize do
-          return Ione::Future.failed("not connected") if @connection.nil?
-          @connection
-        end
+        connection = @connection
+
+        return Ione::Future.failed("not connected") if connection.nil?
 
         @request_runner.execute(connection, REGISTER).map do
           connection.on_event do |event|
@@ -119,11 +108,10 @@ module Cql
       end
 
       def refresh_hosts_async
-        connection = synchronize do
-          return Ione::Future.failed("not connected") if @connection.nil?
 
-          @connection
-        end
+        connection = @connection
+
+        return Ione::Future.failed("not connected") if connection.nil?
 
         @logger.debug('Looking for additional nodes')
 
@@ -158,11 +146,8 @@ module Cql
       end
 
       def refresh_host_async(address)
-        connection = synchronize do
-          return Ione::Future.failed("not connected") if @connection.nil?
-
-          @connection
-        end
+        connection = @connection
+        return Ione::Future.failed("not connected") if connection.nil?
 
         ip = address.to_s
 
