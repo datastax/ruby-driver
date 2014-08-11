@@ -52,7 +52,7 @@ require 'cql/driver'
 require 'cql/host'
 require 'cql/reactor'
 require 'cql/session'
-require 'cql/results'
+require 'cql/result'
 require 'cql/statement'
 require 'cql/statements'
 
