@@ -23,24 +23,28 @@ module Cql
           end
         end
 
-        include Policy
+        include Policy, MonitorMixin
 
         def initialize
           @hosts    = ::Array.new
           @position = 0
+
+          mon_initialize
         end
 
         def host_up(host)
-          hosts = @hosts.dup
-          hosts.push(host)
-          @hosts = hosts
+          @hosts = synchronize { @hosts.dup.push(host) }
+
           self
         end
 
         def host_down(host)
-          hosts = @hosts.dup
-          hosts.delete(host)
-          @hosts = hosts
+          @hosts = synchronize do
+            hosts = @hosts.dup
+            hosts.delete(host)
+            hosts
+          end
+
           self
         end
 

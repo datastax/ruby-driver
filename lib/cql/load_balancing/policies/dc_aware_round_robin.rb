@@ -34,7 +34,7 @@ module Cql
           end
         end
 
-        include Policy
+        include Policy, MonitorMixin
 
         def initialize(datacenter, max_remote_hosts_to_use = nil, use_remote_hosts_for_local_consistency = false)
           datacenter              = String(datacenter)
@@ -50,13 +50,17 @@ module Cql
           @position   = 0
 
           @use_remote = !!use_remote_hosts_for_local_consistency
+
+          mon_initialize
         end
 
         def host_up(host)
           if host.datacenter.nil? || host.datacenter == @datacenter
-            @local  = @local.dup.add(host)
+            @local = synchronize { @local.dup.add(host) }
           else
-            @remote = @remote.dup.add(host) if @max_remote.nil? || @remote.size < @max_remote
+            if @max_remote.nil? || @remote.size < @max_remote
+              @remote = synchronize { @remote.dup.add(host) }
+            end
           end
 
           self
@@ -64,9 +68,9 @@ module Cql
 
         def host_down(host)
           if host.datacenter.nil? || host.datacenter == @datacenter
-            @local  = @local.dup.delete(host)
+            @local = synchronize { @local.dup.delete(host) }
           else
-            @remote = @remote.dup.delete(host)
+            @remote = synchronize { @remote.dup.delete(host) }
           end
 
           self
