@@ -20,6 +20,10 @@ module Cql
       end
 
       def connect_async
+        @registry.ips.each do |ip|
+          @registry.host_up(ip)
+        end
+
         plan = @load_balancing_policy.plan(nil, VOID_STATEMENT, VOID_OPTIONS)
 
         f = @io_reactor.start
