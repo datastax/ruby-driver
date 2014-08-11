@@ -10,7 +10,7 @@ module Cql
         @logger                = logger
         @io_reactor            = io_reactor
         @request_runner        = request_runner
-        @cluster               = cluster_registry
+        @registry              = cluster_registry
         @load_balancing_policy = load_balancing_policy
         @reconnection_policy   = reconnection_policy
         @connector             = connector
@@ -101,19 +101,15 @@ module Cql
               when 'UP'
                 address = event.address
 
-                refresh_host_async(address) if @cluster.host_known?(address)
+                refresh_host_async(address) if @registry.host_known?(address)
               when 'DOWN'
-                address = event.address
-
-                @cluster.host_down(address)
+                @registry.host_down(event.address)
               when 'NEW_NODE'
                 address = event.address
 
-                refresh_host_async(address) unless @cluster.host_known?(address)
+                refresh_host_async(address) unless @registry.host_known?(address)
               when 'REMOVED_NODE'
-                address = event.address
-
-                @cluster.host_lost(address)
+                @registry.host_lost(event.address)
               end
             end
           end
@@ -144,17 +140,17 @@ module Cql
 
           unless local.empty?
             ips << local_ip
-            @cluster.host_found(IPAddr.new(local_ip), local.first)
+            @registry.host_found(IPAddr.new(local_ip), local.first)
           end
 
           peers.each do |data|
             ip = peer_ip(data)
             ips << ip.to_s
-            @cluster.host_found(ip, data)
+            @registry.host_found(ip, data)
           end
 
-          @cluster.ips.each do |ip|
-            @cluster.host_lost(ip) unless ips.include?(ip)
+          @registry.ips.each do |ip|
+            @registry.host_lost(ip) unless ips.include?(ip)
           end
 
           self
@@ -193,7 +189,7 @@ module Cql
         end
 
         request.map do |result|
-          @cluster.host_found(address, result.first) unless result.empty?
+          @registry.host_found(address, result.first) unless result.empty?
 
           self
         end
