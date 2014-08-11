@@ -101,6 +101,8 @@ module Cql
       end
 
       def add_listener(listener)
+        raise ::ArgumentError, "listener must respond to both #success and #failure" unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
+
         @signal.add_listener(listener)
         self
       end
@@ -131,6 +133,8 @@ module Cql
       end
 
       def add_listener(listener)
+        raise ::ArgumentError, "listener must respond to both #success and #failure" unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
+
         listener.failure(@error)
         self
       end
@@ -155,6 +159,8 @@ module Cql
       end
 
       def add_listener(listener)
+        raise ::ArgumentError, "listener must respond to both #success and #failure" unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
+
         listener.success(@value)
         self
       end
@@ -179,11 +185,12 @@ module Cql
 
       def failure(error)
         raise ::ArgumentError, "error must be an exception, #{error.inspect} given" unless error.is_a?(::Exception)
+        return unless @state == :pending
 
         listeners = nil
 
         synchronize do
-          raise ::ArgumentError, "promise has already been fulfilled or broken" unless @state == :pending
+          return unless @state == :pending
 
           @error = error
           @state = :broken
@@ -201,10 +208,12 @@ module Cql
       end
 
       def success(value)
+        return unless @state == :pending
+
         listeners = nil
 
         synchronize do
-          raise ::ArgumentError, "promise has already been fulfilled or broken" unless @state == :pending
+          return unless @state == :pending
 
           @value = value
           @state = :fulfilled
@@ -222,41 +231,55 @@ module Cql
       end
 
       def wait
-        synchronize do
-          case @state
-          when :pending
-            @waiting += 1
-            @cond.wait while @state == :pending
-            @waiting -= 1
+        case @state
+        when :pending
+          synchronize do
+            case @state
+            when :pending
+              @waiting += 1
+              @cond.wait while @state == :pending
+              @waiting -= 1
 
-            raise(@error, @error.message, caller.slice(2..-1)) if @state == :broken
+              raise(@error, @error.message, caller.slice(2..-1)) if @state == :broken
 
-            @value
-          when :fulfilled
-            @value
-          when :broken
-            raise(@error, @error.message, caller.slice(2..-1))
+              @value
+            when :fulfilled
+              @value
+            when :broken
+              raise(@error, @error.message, caller.slice(2..-1))
+            end
           end
+        when :fulfilled
+          @value
+        when :broken
+          raise(@error, @error.message, caller.slice(2..-1))
         end
       end
 
       def add_listener(listener)
-        raise ::ArgumentError, "listener must respond to both #success and #failure" unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
-
-        synchronize do
-          case @state
-          when :pending
-            @listeners << listener
-          when :fulfilled
-            listener.success(@value)
-          when :broken
-            listener.failure(@error)
+        case @state
+        when :pending
+          synchronize do
+            case @state
+            when :pending
+              @listeners << listener
+            when :fulfilled
+              listener.success(@value)
+            when :broken
+              listener.failure(@error)
+            end
           end
+        when :fulfilled
+          listener.success(@value)
+        when :broken
+          listener.failure(@error)
         end
 
         self
       end
     end
+
+    attr_reader :future
 
     def initialize
       @signal = Signal.new
@@ -271,10 +294,6 @@ module Cql
     def fulfill(value)
       @signal.success(value)
       self
-    end
-
-    def future
-      @future
     end
   end
 end
