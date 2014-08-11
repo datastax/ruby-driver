@@ -11,6 +11,10 @@ module Cql
 
         let(:policy) { WhiteList.new(ips, wrapped_policy) }
 
+        before do
+          wrapped_policy.stub(:is_a?) {|p| Policy == p}
+        end
+
         [:host_up, :host_down, :host_found, :host_lost].each do |method|
           describe("##{method}") do
             context('host is whitelisted') do
