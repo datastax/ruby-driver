@@ -42,7 +42,23 @@ module Cql
       end
 
       def connect_to_host(host)
-        create_connector.connect(host.ip.to_s)
+        f = create_connector.connect(host.ip.to_s)
+
+        f.on_complete do |f|
+          if f.resolved?
+            f.value.on_closed do |cause|
+              @eviction_policy.disconnected(host, cause)
+            end
+
+            @eviction_policy.connected(host)
+          else
+            f.on_failure do |e|
+              @eviction_policy.connection_error(host, e)
+            end
+          end
+        end
+
+        f
       end
 
       private
