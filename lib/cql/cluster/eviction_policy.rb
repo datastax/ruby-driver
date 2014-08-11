@@ -6,46 +6,80 @@ module Cql
     class EvictionPolicy
       include MonitorMixin
 
+      MAX_RETRIES = 10
+
       def initialize(cluster_registry)
         @registry    = cluster_registry
         @connections = Hash.new
+        @retries     = Hash.new
 
         mon_initialize
       end
 
       def connected(host)
-        count = synchronize { @connections[host] }
+        notify = false
 
-        if count
-          count += 1
-        else
-          count = 1
-          @registry.host_up(host.ip)
+        synchronize do
+          count = @connections[host]
+
+          if count
+            count += 1
+
+            @connections[host] = count
+          else
+            count  = 1
+            notify = true
+
+            @retries.delete(host)
+            @connections[host] = count
+          end
         end
 
-        synchronize { @connections[host] = count }
+        @registry.host_up(host.ip) if notify
 
         self
       end
 
       def disconnected(host, cause)
-        count = synchronize { @connections[host] }
+        synchronize do
+          count = @connections[host]
 
-        return self unless count
+          return self unless count
 
-        count -= 1
+          count -= 1
 
-        if count == 0
-          synchronize { @connections.delete(host) }
-        else
-          synchronize { @connections[host] = count }
+          if count == 0
+            @connections.delete(host)
+          else
+            @connections[host] = count
+          end
         end
 
         self
       end
 
       def connection_error(host, error)
-        @registry.host_down(host.ip) unless synchronize { @connections[host] }
+        notify = false
+
+        synchronize do
+          unless @connections[host]
+            count = @retries[host]
+
+            if count
+              if count >= MAX_RETRIES
+                @retries.delete(host)
+
+                notify = true
+              else
+                @retries[host] = count + 1
+              end
+            else
+              @retries[host] = 1
+            end
+          end
+        end
+
+        @registry.host_down(host.ip) if notify
 
         self
       end
