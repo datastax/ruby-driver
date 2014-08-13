@@ -22,7 +22,7 @@ module Cql
     end
     alias :length :size
 
-    # @yieldparam [Hash] row
+    # @yieldparam row [Hash] current row
     # @return [Enumerator, self] returns Enumerator if no block given
     def each
     end
@@ -131,7 +131,7 @@ module Cql
 
       # Iterates over each row in the result set.
       #
-      # @yieldparam [Hash] row each row in the result set as a hash
+      # @yieldparam row [Hash] each row in the result set as a hash
       # @return [Cql::Result]
       def each(&block)
         if block_given?

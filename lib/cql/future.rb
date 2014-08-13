@@ -62,14 +62,14 @@ module Cql
 
     # Run block when promise is fulfilled
     # @note The block can be called synchronously from current thread if the future has already been resolved, or, asynchronously, from background thread upon resolution.
-    # @yieldparam [Object] value
+    # @yieldparam value [Object] a value
     # @return [self]
     def on_success(&block)
     end
 
     # Run block when promise is broken
     # @note The block can be called synchronously from current thread if the future has already been resolved, or, asynchronously, from background thread upon resolution.
-    # @yieldparam [Exception] error
+    # @yieldparam error [Exception] an error
     # @return [self]
     def on_failure(&block)
     end
