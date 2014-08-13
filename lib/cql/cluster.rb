@@ -2,6 +2,28 @@
 
 module Cql
   class Cluster
+    extend Forwardable
+
+    # @!method each_host
+    #   Yield or enumerate each member of this cluster
+    #   @overload each_host
+    #     @yieldparam host [Cql::Host] current host
+    #     @return [Array<Cql::Host>] a list of hosts
+    #   @overload each_host
+    #     @return [Enumerator<Cql::Host>] an enumerator
+    # @!parse alias :hosts :each_host
+    #
+    # @!method host(address)
+    #   Find a host by its address
+    #   @param address [IPAddr, String] ip address
+    #   @return [Cql::Host, nil] host or nil
+    #
+    # @!method has_host?(address)
+    #   Determine if a host by a given address exists
+    #   @param address [IPAddr, String] ip address
+    #   @return [Boolean] true or false
+    def_delegators :@registry, :hosts, :each_host, :host, :has_host?
+
     # @private
     def initialize(logger, io_reactor, control_connection, cluster_registry, execution_options, load_balancing_policy, reconnection_policy, retry_policy, connector)
       @logger                = logger
@@ -13,11 +35,6 @@ module Cql
       @reconnection_policy   = reconnection_policy
       @retry_policy          = retry_policy
       @connector             = connector
-    end
-
-    # @return [Enumerable<Cql::Host>]
-    def hosts
-      @registry.hosts
     end
 
     def register(listener)

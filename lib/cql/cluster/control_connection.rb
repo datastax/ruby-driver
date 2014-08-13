@@ -16,8 +16,8 @@ module Cql
       end
 
       def connect_async
-        @registry.ips.each do |ip|
-          @registry.host_up(ip)
+        @registry.each_host do |host|
+          @registry.host_up(host.ip)
         end
 
         plan = @load_balancing_policy.plan(nil, VOID_STATEMENT, VOID_OPTIONS)
@@ -90,13 +90,13 @@ module Cql
               when 'UP'
                 address = event.address
 
-                refresh_host_async(address) if @registry.host_known?(address)
+                refresh_host_async(address) if @registry.has_host?(address)
               when 'DOWN'
                 @registry.host_down(event.address)
               when 'NEW_NODE'
                 address = event.address
 
-                refresh_host_async(address) unless @registry.host_known?(address)
+                refresh_host_async(address) unless @registry.has_host?(address)
               when 'REMOVED_NODE'
                 @registry.host_lost(event.address)
               end
@@ -137,8 +137,8 @@ module Cql
             @registry.host_found(ip, data)
           end
 
-          @registry.ips.each do |ip|
-            @registry.host_lost(ip) unless ips.include?(ip)
+          @registry.each_host do |host|
+            @registry.host_lost(host.ip) unless ips.include?(host.ip.to_s)
           end
 
           self

@@ -16,43 +16,33 @@ module Cql
       end
 
       def add_listener(listener)
-        raise ::ArgumentError, "registry listener must respond to #{LISTENER_METHODS.inspect}" unless LISTENER_METHODS.all? {|m| listener.respond_to?(m)}
-
-        synchronize { @listeners << listener }
+        synchronize { @listeners = @listeners.dup.add(listener) }
 
         self
       end
 
       def remove_listener(listener)
-        success = synchronize { @listeners.delete?(listener) }
-
-        raise ::ArgumentError, "unknown listener #{listener.inspect}" unless success
+        synchronize { @listeners = @listeners.dup.delete(listener) }
 
         self
       end
 
-      def hosts
-        synchronize { @hosts.values }
+      def each_host(&block)
+        @hosts.values.each(&block)
+      end
+      alias :hosts :each_host
+
+      def host(address)
+        @hosts[address.to_s]
       end
 
-      def host_known?(address)
-        ip = address.to_s
-        synchronize { @hosts.has_key?(ip) }
-      end
-
-      def ips
-        synchronize { @hosts.keys }
+      def has_host?(address)
+        @hosts.has_key?(address.to_s)
       end
 
       def host_found(address, data = {})
-        ip        = address.to_s
-        host      = nil
-        listeners = nil
-
-        synchronize do
-          host      = @hosts[ip]
-          listeners = @listeners.dup
-        end
+        ip   = address.to_s
+        host = @hosts[ip]
 
         if host
           if host.id              == data['host_id']         &&
@@ -62,17 +52,17 @@ module Cql
 
             return self if host.up?
 
-            host = toggle_up(host, listeners)
+            host = toggle_up(host)
           else
-            host = toggle_down(host, listeners) if host.up?
+            host = toggle_down(host) if host.up?
 
-            listeners.each do |listener|
+            @listeners.each do |listener|
               listener.host_lost(host) rescue nil
             end
 
             host = create_host(address, data)
 
-            listeners.each do |listener|
+            @listeners.each do |listener|
               listener.host_found(host) rescue nil
               listener.host_up(host) rescue nil
             end
@@ -80,70 +70,58 @@ module Cql
         else
           host = create_host(address, data)
 
-          listeners.each do |listener|
+          @listeners.each do |listener|
             listener.host_found(host) rescue nil
             listener.host_up(host) rescue nil
           end
         end
 
-        synchronize { @hosts[ip] = host }
+        synchronize { @hosts = @hosts.merge(ip => host) }
 
         self
       end
 
       def host_down(address)
-        ip        = address.to_s
-        host      = nil
-        listeners = nil
+        ip   = address.to_s
+        host = @hosts[ip]
 
-        synchronize do
-          host = @hosts[ip]
+        return self unless host && !host.down?
 
-          return self unless host && !host.down?
+        host = toggle_down(host)
 
-          listeners = @listeners.dup
-        end
-
-        host = toggle_down(host, listeners)
-
-        synchronize { @hosts[ip] = host }
+        synchronize { @hosts = @hosts.merge(ip => host) }
 
         self
       end
 
       def host_up(address)
-        ip        = address.to_s
-        host      = nil
-        listeners = nil
+        ip   = address.to_s
+        host = @hosts[ip]
 
-        synchronize do
-          host = @hosts[ip]
+        return self unless host && !host.up?
 
-          return self unless host && !host.up?
+        host = toggle_up(host)
 
-          listeners = @listeners.dup
-        end
-
-        host = toggle_up(host, listeners)
-
-        synchronize { @hosts[ip] = host }
+        synchronize { @hosts = @hosts.merge(ip => host) }
 
         self
       end
 
       def host_lost(address)
-        ip        = address.to_s
-        host      = nil
-        listeners = nil
+        ip   = address.to_s
+        host = nil
+
+        return self unless @hosts.has_key?(ip)
 
         synchronize do
-          host = @hosts.delete(ip) { return self }
-          listeners = @listeners.dup
+          hosts  = @hosts.dup
+          host   = hosts.delete(ip)
+          @hosts = hosts
         end
 
-        host = toggle_down(host, listeners) if host.up?
+        host = toggle_down(host) if host.up?
 
-        listeners.each do |listener|
+        @listeners.each do |listener|
           listener.host_lost(host) rescue nil
         end
 
@@ -156,17 +134,17 @@ module Cql
         Host.new(ip, data['host_id'], data['rack'], data['data_center'], data['release_version'], :up)
       end
 
-      def toggle_up(host, listeners)
+      def toggle_up(host)
         host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, :up)
-        listeners.each do |listener|
+        @listeners.each do |listener|
           listener.host_up(host) rescue nil
         end
         host
       end
 
-      def toggle_down(host, listeners)
+      def toggle_down(host)
         host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, :down)
-        listeners.each do |listener|
+        @listeners.each do |listener|
           listener.host_down(host) rescue nil
         end
         host

@@ -331,8 +331,8 @@ module Cql
 
           context 'and all hosts are down' do
             before do
-              cluster_registry.ips.each do |ip|
-                io_reactor.node_down(ip)
+              cluster_registry.each_host.each do |host|
+                io_reactor.node_down(host.ip.to_s)
               end
 
               connections.each do |connection|
@@ -384,7 +384,7 @@ module Cql
 
               context 'and host is known' do
                 before do
-                  cluster_registry.stub(:host_known?) { true }
+                  cluster_registry.stub(:has_host?) { true }
                 end
 
                 let :address do
@@ -405,7 +405,7 @@ module Cql
 
               context 'and host is unknown' do
                 before do
-                  cluster_registry.stub(:host_known?) { false }
+                  cluster_registry.stub(:has_host?) { false }
                 end
 
                 let :address do
@@ -469,7 +469,7 @@ module Cql
                 end
 
                 before do
-                  cluster_registry.stub(:host_known?) { false }
+                  cluster_registry.stub(:has_host?) { false }
                 end
 
                 it 'notifies registry' do
@@ -490,7 +490,7 @@ module Cql
                 end
 
                 before do
-                  cluster_registry.stub(:host_known?) { true }
+                  cluster_registry.stub(:has_host?) { true }
                 end
 
                 it 'does nothing' do
@@ -556,8 +556,8 @@ module Cql
             reconnection_policy.stub(:schedule) { reconnection_schedule }
             control_connection.connect_async.value
 
-            cluster_registry.ips.each do |ip|
-              io_reactor.node_down(ip)
+            cluster_registry.each_host do |host|
+              io_reactor.node_down(host.ip.to_s)
             end
 
             last_connection.close
@@ -567,8 +567,8 @@ module Cql
             connections.select(&:connected?).should be_empty
             control_connection.close_async
 
-            cluster_registry.ips.each do |ip|
-              io_reactor.node_up(ip)
+            cluster_registry.each_host do |host|
+              io_reactor.node_up(host.ip.to_s)
             end
 
             io_reactor.advance_time(reconnect_interval)
