@@ -93,9 +93,11 @@
 }
 
 .tag-content .table {
-  .name,
+  .name {
+    width: 80px;
+  }
   .type {
-    width: 120px;
+    width: 200px;
   }
 }
 
