@@ -1,5 +1,15 @@
 #!/usr/bin/ruby
 
+# This file is NOT a benchmark per-se.  It is a test showing the possible
+# synchronization issues that will happen in jruby but not in ruby (MRI) when a
+# shared variable is not properly guarded by a mutex.
+#
+# When this file is executed with ruby, it terminates after 5~10 seconds.
+#
+# When this file is executed with jruby, it will never terminate because some
+# updates will be lost on "stopped_threads" variable, because of conflicting
+# writes.
+
 require 'thread'
 
 threads = Array.new

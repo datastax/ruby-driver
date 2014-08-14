@@ -17,19 +17,21 @@ done
 # Print help if asked
 if [ $help = true ] ; then
     echo "Usage: $0 [option...] file...
-    Options:
+    Run 10 times one or more benchmark Ruby file(s).
+
+Options:
     -h      Print this help
     -n <n>  Execute <n> queries in each run (default 10.000)
     -l      Equivalent to -n 100000
 
-    Arguments:
+Arguments:
     The list of files (ruby benchmarks) to execute" \
         >&2
     exit
 fi
 shift $((OPTIND-1))
 
-echo "# Will run $iterations times $queries queries from : $@"
+echo "# Will run $iterations times $queries queries from : $@" >&2
 
 output_dir=`dirname $0`/`date '+%Y-%m-%dT%H:%M'`
 mkdir $output_dir
