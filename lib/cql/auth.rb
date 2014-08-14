@@ -2,7 +2,7 @@
 
 module Cql
   module Auth
-    # An auth provider is a factory for {Cql::Client::Authenticator} instances
+    # An auth provider is a factory for {Cql::Auth::Authenticator} instances
     # (or objects matching that interface). Its {#create_authenticator} will be
     # called once for each connection that requires authentication.
     #
@@ -12,11 +12,12 @@ module Cql
     # @note Creating an authenticator must absolutely not block, or the whole
     #   connection process will block.
     #
-    # @note Auth providers given to {Cql::Client.connect} as the `:auth_provider`
-    #   option don't need to be subclasses of this class, but need to
-    #   implement the same methods. This class exists only for documentation
-    #   purposes.
-    class AuthProvider
+    # @abstract Auth providers given to {Cql::Builder#with_auth_provider} don't
+    #   need to be subclasses of this class, but need to implement the same
+    #   methods. This class exists only for documentation purposes.
+    #
+    # @see Cql::Auth::Providers
+    class Provider
       # @!method create_authenticator(authentication_class, protocol_version)
       #
       # Create a new authenticator object. This method will be called once per
@@ -41,6 +42,8 @@ module Cql
     # @note Authenticators created by auth providers don't need to be subclasses
     #   of this class, but need to implement the same methods. This class exists
     #   only for documentation purposes.
+    #
+    # @see Cql::Auth::Provider
     class Authenticator
       # @!method initial_response
       #
@@ -69,9 +72,9 @@ module Cql
       # @note This method must absolutely not block.
       #
       # @param token [String] a token sent by the server
-      # @return [nil]
+      # @return [void]
     end
   end
 end
 
-require 'cql/auth/plain_text_auth'
+require 'cql/auth/providers'

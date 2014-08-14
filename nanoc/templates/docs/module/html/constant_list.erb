@@ -1,0 +1,14 @@
+<h2>Constants</h2>
+<div class="module-constants">
+<% @constants.each do |const| %>
+  <div class="panel panel-default" id="<%= anchor_for(const) %>">
+    <div class="panel-heading constant-header">
+      <var><%= const.name %></var>
+    </div>
+    <div class="panel-body constant-body">
+      <%= yieldall(:object => const) %>
+      <%= format_constant(const.value) %>
+    </div>
+  </div>
+<% end %>
+</div>

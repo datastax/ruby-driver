@@ -229,8 +229,8 @@ module Cql
         end
 
         before do
-          client.stub(:execute).and_return(Future.resolved(next_query_result))
-          client.stub(:execute).with(anything, anything, hash_including(paging_state: 'thenextpagingstate')).and_return(Future.resolved(last_query_result))
+          client.stub(:execute).and_return(Ione::Future.resolved(next_query_result))
+          client.stub(:execute).with(anything, anything, hash_including(paging_state: 'thenextpagingstate')).and_return(Ione::Future.resolved(last_query_result))
         end
 
         it 'calls the client and passes the paging state' do
@@ -310,8 +310,8 @@ module Cql
         end
 
         before do
-          statement.stub(:execute).and_return(Future.resolved(next_query_result))
-          statement.stub(:execute).with(anything, anything, hash_including(paging_state: 'thenextpagingstate')).and_return(Future.resolved(last_query_result))
+          statement.stub(:execute).and_return(Ione::Future.resolved(next_query_result))
+          statement.stub(:execute).with(anything, anything, hash_including(paging_state: 'thenextpagingstate')).and_return(Ione::Future.resolved(last_query_result))
         end
 
         it 'calls the statement and passes the paging state' do
@@ -361,15 +361,15 @@ module Cql
         end
 
         it 'delegates to the wrapped query result and wraps the result in an instance of itself' do
-          next_query_result.stub(:next_page).and_return(Future.resolved(next_query_result))
-          asynchronous_paged_query_result.stub(:next_page).and_return(Future.resolved(next_query_result))
+          next_query_result.stub(:next_page).and_return(Ione::Future.resolved(next_query_result))
+          asynchronous_paged_query_result.stub(:next_page).and_return(Ione::Future.resolved(next_query_result))
           second_page = paged_query_result.next_page
           second_page.next_page
           next_query_result.should have_received(:next_page)
         end
 
         it 'returns nil when it is the last page' do
-          asynchronous_paged_query_result.stub(:next_page).and_return(Future.resolved(nil))
+          asynchronous_paged_query_result.stub(:next_page).and_return(Ione::Future.resolved(nil))
           paged_query_result.next_page.should be_nil
         end
       end

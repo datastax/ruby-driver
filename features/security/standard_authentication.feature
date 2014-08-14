@@ -16,7 +16,7 @@ Feature: Standard authentication
                     .with_credentials(ENV['USERNAME'], ENV['PASSWORD'])
                     .build
         puts "authentication successful"
-      rescue Cql::AuthenticationError => e
+      rescue Cql::Errors::AuthenticationError => e
         puts "#{e.class.name}: #{e.message}"
         puts "authentication failed"
       else

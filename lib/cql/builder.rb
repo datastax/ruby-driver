@@ -2,6 +2,7 @@
 
 module Cql
   class Builder
+    # @private
     def initialize(settings = {})
       @settings  = settings
       @addresses = ::Set.new
@@ -28,7 +29,13 @@ module Cql
 
     def with_credentials(username, password)
       @settings[:credentials] = {:username => username, :password => password}
-      @settings[:auth_provider] = Auth::PlainTextAuthProvider.new(username, password)
+      @settings[:auth_provider] = Auth::Providers::PlainText.new(username, password)
+
+      self
+    end
+
+    def with_auth_provider(auth_provider)
+      @settings[:auth_provider] = auth_provider
 
       self
     end
@@ -72,10 +79,15 @@ module Cql
       self
     end
 
+    # Constructs a {Cql::Cluster} using settings specified.
+    #
+    # @return [Cql::Cluster] a cluster
+    # @raise [Cql::Errors::NoHostsAvailable] when no hosts can be reached
+    # @raise [Cql::Errors::AuthenticationError] when authentication fails
     def build
       @addresses << IPAddr.new('127.0.0.1') if @addresses.empty?
 
-      Driver.new(@settings).connect(@addresses).get
+      Driver.new(@settings).connect(@addresses).value
     end
   end
 end

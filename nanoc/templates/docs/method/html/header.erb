@@ -1,0 +1,24 @@
+<div class="panel panel-default" id="<%= anchor_for(object) %>">
+  <div class="panel-heading method-header">
+  <% if options.in_module %>
+    <% if object.constructor? %>
+      <em>self.</em><span class="path"><strong>new</strong></span><%= format_args(object) %> <%= format_block(object) %>
+    <% else %>
+      <% if object.scope == :class %><em>self.</em><% end %><span class="path"><strong><%= h object.is_attribute? ? object.name.to_s.sub(/=$/, '') : object.name %></strong></span><%= format_args(object) %> <%= format_block(object) %>
+    <% end %>
+  <% else %>
+    <em>def</em> <span class="path space"><%= options.including_object.relative_path(object.namespace) %><big><%= object.send(:sep) %></big><strong><%= h object.name %></strong></span>
+    <%= format_args(object) %> <%= format_block(object) %>
+  <% end %>
+  <% if object.has_tag?(:since) && object.namespace.tag(:since) != object.tag(:since) %><span class="since">since <%= object.tag(:since).text %></span><% end %>
+  <% if object.aliases.size > 0 %>
+    <span class="aliases">Aliased as:
+    <span class="names"><%= object.aliases.map {|o|
+      "<span id=\"#{anchor_for(o)}\"><strong>" + h(o.name.to_s) + "</strong></span>" }.join(", ") %></span>
+    </span>
+  <% end %>
+  </div>
+  <div class="panel-body method-body">
+    <%= yieldall %>
+  </div>
+</div>

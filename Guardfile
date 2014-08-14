@@ -1,12 +1,11 @@
 # encoding: utf-8
 
-require 'redcarpet'
-require 'gherkin'
-require 'pygments'
-require 'nokogiri'
+load 'nanoc/setup.rb'
 
 guard('nanoc') do
   watch('Rules')
   watch(/^nanoc/)
+  watch(/^nanoc\//)
   watch(/^features\//)
+  watch(/^lib\//)
 end

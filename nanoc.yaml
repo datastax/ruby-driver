@@ -16,6 +16,9 @@ data_sources:
     allow_periods_in_identifiers: false
   -
     type: features
+  -
+    type: api
+    template_paths: nanoc/templates
 prune:
   auto_prune: true,
   exclude: [ '.git' ]

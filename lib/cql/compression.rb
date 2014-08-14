@@ -1,8 +1,9 @@
 # encoding: utf-8
 
 module Cql
+  # @private
   module Compression
-    CompressionError = Class.new(CqlError)
+    CompressionError = Class.new(Error)
 
     # @note Compressors given to {Cql::Client.connect} as the `:compressor`
     #   option don't need to be subclasses of this class, but need to

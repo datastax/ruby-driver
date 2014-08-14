@@ -1,7 +1,8 @@
 # encoding: utf-8
 
 module Cql
-  ProtocolError = Class.new(CqlError)
+  # @private
+  ProtocolError = Class.new(Error)
 
   # @private
   module Protocol

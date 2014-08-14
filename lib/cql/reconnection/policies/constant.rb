@@ -4,6 +4,7 @@ module Cql
   module Reconnection
     module Policies
       class Constant
+        # @private
         class Schedule
           def initialize(interval)
             @interval = interval
@@ -16,10 +17,13 @@ module Cql
 
         include Policy
 
-        attr_reader :schedule
-
         def initialize(interval)
           @schedule = Schedule.new(interval)
+        end
+
+        # @return [Cql::Reconnection::Schedule]
+        def schedule
+          @schedule
         end
       end
     end

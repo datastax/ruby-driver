@@ -21,7 +21,7 @@ statement = Cql::Statements::Simple.new("SELECT * FROM songs")
     begin
       future.get
       success += 1
-    rescue Cql::NoHostsAvailable => e
+    rescue Cql::Errors::NoHostsAvailable => e
       raise e.errors.first.last
     rescue => e
       puts "#{e.class.name}: #{e.message}"

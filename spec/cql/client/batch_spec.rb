@@ -60,7 +60,7 @@ module Cql
           connection_manager.stub(:random_connection).and_return(connection)
           connection.stub(:send_request) do |request, timeout|
             requests << [request, timeout]
-            Future.resolved(Protocol::VoidResultResponse.new(nil))
+            Ione::Future.resolved(Protocol::VoidResultResponse.new(nil))
           end
         end
 
@@ -114,14 +114,14 @@ module Cql
           end
 
           before do
-            connection.stub(:send_request).and_return(Cql::Future.resolved(Protocol::VoidResultResponse.new(nil)))
+            connection.stub(:send_request).and_return(Ione::Future.resolved(Protocol::VoidResultResponse.new(nil)))
             connection_manager.stub(:random_connection).and_return(connection)
             prepared_statement.stub(:prepared?).with(connection).and_return(false)
             prepared_statement.stub(:add_to_batch)
             prepared_statement.stub(:prepare) do |c|
               c.should equal(connection), 'expected #prepare to be called with the connection returned by the connection manager'
               prepared_statement.stub(:prepared?).with(connection).and_return(true)
-              Future.resolved(prepared_statement)
+              Ione::Future.resolved(prepared_statement)
             end
           end
 
@@ -208,7 +208,7 @@ module Cql
 
       before do
         asynchronous_batch.stub(:add)
-        asynchronous_batch.stub(:execute).and_return(Cql::Future.resolved(VoidResult::INSTANCE))
+        asynchronous_batch.stub(:execute).and_return(Ione::Future.resolved(VoidResult::INSTANCE))
       end
 
       describe '#async' do
@@ -251,7 +251,7 @@ module Cql
 
       before do
         batch.stub(:add)
-        batch.stub(:execute).and_return(Cql::Future.resolved(VoidResult::INSTANCE))
+        batch.stub(:execute).and_return(Ione::Future.resolved(VoidResult::INSTANCE))
       end
 
       describe '#add' do
@@ -281,7 +281,7 @@ module Cql
 
       before do
         asynchronous_batch.stub(:add)
-        asynchronous_batch.stub(:execute).and_return(Cql::Future.resolved(VoidResult::INSTANCE))
+        asynchronous_batch.stub(:execute).and_return(Ione::Future.resolved(VoidResult::INSTANCE))
       end
 
       describe '#add' do

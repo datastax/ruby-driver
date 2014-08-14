@@ -29,10 +29,12 @@ module Cql
         @trace
       end
 
+      # @private
       def override(options)
         Options.new(to_h.merge!(options))
       end
 
+      # @private
       def to_h
         {
           :consistency        => @consistency,

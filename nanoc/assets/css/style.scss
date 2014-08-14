@@ -86,3 +86,27 @@
     top: 10px;
   }
 }
+
+.inline,
+.inline p:first-child {
+  display: inline;
+}
+
+.tag-content .table {
+  .name,
+  .type {
+    width: 120px;
+  }
+}
+
+dl.notes {
+  margin-bottom: 10px;
+
+  dt {
+    width: 65px;
+  }
+
+  dd {
+    margin-left: 70px;
+  }
+}

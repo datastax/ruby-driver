@@ -38,8 +38,8 @@ module Cql
       # @param [Hash] options an options hash or a symbol (as a shortcut for
       #   specifying the consistency), see {Cql::Client::Client#execute} for
       #   full details about how this value is interpreted.
-      # @raise [Cql::QueryError] raised when there is an error on the server side
-      # @raise [Cql::NotPreparedError] raised in the unlikely event that a
+      # @raise [Cql::Errors::QueryError] raised when there is an error on the server side
+      # @raise [Cql::Errors::NotPreparedError] raised in the unlikely event that a
       #   prepared statement was not prepared on the chosen connection
       # @return [Cql::Client::VoidResult] a batch always returns a void result
     end
@@ -61,8 +61,8 @@ module Cql
       #
       # Execute the batch and return the result.
       #
-      # @raise [Cql::QueryError] raised when there is an error on the server side
-      # @raise [Cql::NotPreparedError] raised in the unlikely event that a
+      # @raise [Cql::Errors::QueryError] raised when there is an error on the server side
+      # @raise [Cql::Errors::NotPreparedError] raised in the unlikely event that a
       #   prepared statement was not prepared on the chosen connection
       # @return [Cql::Client::VoidResult] a batch always returns a void result
     end
@@ -108,7 +108,7 @@ module Cql
               statement.prepare(connection)
             end
           end
-          Future.all(*fs).flat_map do
+          Ione::Future.all(*fs).flat_map do
             unprepared_statements.each do |statement, bound_args|
               add_part(connection, request, statement, bound_args)
             end

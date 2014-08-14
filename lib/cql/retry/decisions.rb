@@ -2,6 +2,7 @@
 
 module Cql
   module Retry
+    # @private
     module Decisions
       class Retry
         attr_reader :consistency

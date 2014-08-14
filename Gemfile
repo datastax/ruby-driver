@@ -7,10 +7,6 @@ gem 'snappy'
 gem 'lz4-ruby'
 
 group :development do
-  platforms :mri do
-    gem 'yard'
-    gem 'redcarpet'
-  end
   platforms :mri_19 do
     gem 'perftools.rb'
   end
@@ -26,12 +22,16 @@ end
 
 group :docs do
   gem 'nanoc'
+  gem 'nanoc-toolbox'
   gem 'gherkin'
-  # gem 'redcarpet'
+  gem 'yard'
+  gem 'redcarpet'
   gem 'pygments.rb'
   gem 'compass'
   gem 'bootstrap-sass'
   gem 'nokogiri'
+  gem 'rubypants'
   gem 'guard'
   gem 'guard-nanoc'
+  gem 'htmlbeautifier'
 end

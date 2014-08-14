@@ -108,12 +108,12 @@ module Cql
         it 'returns a failed future when something goes wrong in the preparation' do
           connections.each(&:close)
           f = described_class.prepare(cql, ExecuteOptionsDecoder.new(:three), connection_manager, logger)
-          expect { f.value }.to raise_error(NotConnectedError)
+          expect { f.value }.to raise_error(Errors::NotConnectedError)
         end
 
         it 'returns a failed future if the preparation results in an error' do
           connections.each do |connection|
-            connection.stub(:send_request).and_return(Future.resolved(Protocol::ErrorResponse.new(99, 'bork')))
+            connection.stub(:send_request).and_return(Ione::Future.resolved(Protocol::ErrorResponse.new(99, 'bork')))
           end
           f = described_class.prepare(cql, :quorum, connection_manager, logger)
           expect { f.value }.to raise_error('bork')
@@ -384,7 +384,7 @@ module Cql
         it 'raises an error when the statement has not been prepared on the specified connection' do
           connection = double(:connection)
           connection.stub(:[]).with(statement).and_return(nil)
-          expect { statement.add_to_batch(batch, connection, [11, 'foo']) }.to raise_error(NotPreparedError)
+          expect { statement.add_to_batch(batch, connection, [11, 'foo']) }.to raise_error(Errors::NotPreparedError)
         end
       end
     end
@@ -407,7 +407,7 @@ module Cql
       end
 
       let :promise do
-        Promise.new
+        Ione::Promise.new
       end
 
       let :future do
@@ -438,7 +438,7 @@ module Cql
           request = double(:request, values: ['one', 'two'])
           async_result = double(:result, paging_state: 'somepagingstate')
           options = {:page_size => 10}
-          async_statement.stub(:execute).and_return(Future.resolved(AsynchronousPreparedPagedQueryResult.new(async_statement, request, async_result, options)))
+          async_statement.stub(:execute).and_return(Ione::Future.resolved(AsynchronousPreparedPagedQueryResult.new(async_statement, request, async_result, options)))
           result1 = statement.execute('one', 'two', options)
           result2 = result1.next_page
           async_statement.should have_received(:execute).with('one', 'two', page_size: 10, paging_state: 'somepagingstate')
@@ -454,7 +454,7 @@ module Cql
         context 'when called without a block' do
           it 'delegates to the asynchronous statement and wraps the returned object in a synchronous wrapper' do
             async_statement.stub(:batch).with(:unlogged, trace: true).and_return(batch)
-            batch.stub(:execute).and_return(Cql::Future.resolved(VoidResult.new))
+            batch.stub(:execute).and_return(Ione::Future.resolved(VoidResult.new))
             b = statement.batch(:unlogged, trace: true)
             b.execute.should be_a(VoidResult)
           end
@@ -462,14 +462,14 @@ module Cql
 
         context 'when called with a block' do
           it 'delegates to the asynchronous statement' do
-            async_statement.stub(:batch).with(:counter, trace: true).and_yield(batch).and_return(Cql::Future.resolved(VoidResult.new))
+            async_statement.stub(:batch).with(:counter, trace: true).and_yield(batch).and_return(Ione::Future.resolved(VoidResult.new))
             yielded_batch = nil
             statement.batch(:counter, trace: true) { |b| yielded_batch = b }
             yielded_batch.should equal(batch)
           end
 
           it 'waits for the operation to complete' do
-            async_statement.stub(:batch).with(:counter, anything).and_yield(batch).and_return(Cql::Future.resolved(VoidResult.new))
+            async_statement.stub(:batch).with(:counter, anything).and_yield(batch).and_return(Ione::Future.resolved(VoidResult.new))
             result = statement.batch(:counter) { |b| }
             result.should be_a(VoidResult)
           end
@@ -491,8 +491,8 @@ module Cql
         it 'executes the statement multiple times and waits for all the results' do
           result1 = double(:result1)
           result2 = double(:result2)
-          async_statement.stub(:execute).with('one', 'two', :three).and_return(Future.resolved(result1))
-          async_statement.stub(:execute).with('four', 'file', :all).and_return(Future.resolved(result2))
+          async_statement.stub(:execute).with('one', 'two', :three).and_return(Ione::Future.resolved(result1))
+          async_statement.stub(:execute).with('four', 'file', :all).and_return(Ione::Future.resolved(result2))
           results = statement.pipeline do |p|
             p.execute('one', 'two', :three)
             p.execute('four', 'file', :all)
@@ -513,18 +513,18 @@ module Cql
 
       context 'when exceptions are raised' do
         it 'replaces the backtrace of the asynchronous call to make it less confusing' do
-          error = CqlError.new('Bork')
+          error = Error.new('Bork')
           error.set_backtrace(['Hello', 'World'])
           future.stub(:value).and_raise(error)
           async_statement.stub(:execute).and_return(future)
           begin
             statement.execute('SELECT * FROM something')
-          rescue CqlError => e
+          rescue Error => e
             e.backtrace.first.should match(%r{/prepared_statement.rb:\d+:in `execute'})
           end
         end
 
-        it 'does not replace the backtrace of non-CqlError errors' do
+        it 'does not replace the backtrace of non-Error errors' do
           future.stub(:value).and_raise('Bork')
           async_statement.stub(:execute).and_return(future)
           begin

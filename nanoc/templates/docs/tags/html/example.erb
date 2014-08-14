@@ -1,0 +1,13 @@
+<% if object.has_tag?(:example) %>
+<dt class="tag-title">Examples:</dt>
+<dd class="tag-content">
+  <dl class="examples">
+  <% object.tags(:example).each do |tag| %>
+    <% unless tag.name.empty? %>
+    <dt class="example-title"><%= htmlify_line(tag.name) %></dt>
+    <% end %>
+    <dd class="example-code"><%= html_syntax_highlight(tag.text) %></dd>
+  <% end %>
+  </dl>
+</dd>
+<% end %>

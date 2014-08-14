@@ -1,7 +1,7 @@
 Feature: Preparing statements asynchronously
 
   Session objects can be used to prepare a statement asynchronously using `Cql::Session#prepare_async` method.
-  This method returns a `Cql::Future[Cql::Statements::Prepared]` instance.
+  This method returns a `Cql::Future<Cql::Statements::Prepared>` instance.
 
   Background:
     Given a running cassandra cluster with a keyspace "simplex" and a table "songs"

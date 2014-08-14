@@ -53,9 +53,9 @@ module Cql
           node_connector.stub(:connect) do |host|
             connections << host
             if bad_nodes.include?(host)
-              Future.failed(failure[0])
+              Ione::Future.failed(failure[0])
             else
-              Future.resolved(make_connection(host))
+              Ione::Future.resolved(make_connection(host))
             end
           end
         end
@@ -91,12 +91,12 @@ module Cql
           expect { f.value }.to raise_error
         end
 
-        it 'fails with an AuthenticationError when the connections failed with a QueryError with error code 0x100' do
+        it 'fails with an Errors::AuthenticationError when the connections failed with a Errors::QueryError with error code 0x100' do
           bad_nodes.push('host0')
           bad_nodes.push('host1')
-          failure[0] = QueryError.new(0x100, 'bork')
+          failure[0] = Errors::QueryError.new(0x100, 'bork')
           f = cluster_connector.connect_all(%w[host0 host1], 1)
-          expect { f.value }.to raise_error(AuthenticationError)
+          expect { f.value }.to raise_error(Errors::AuthenticationError)
         end
 
         it 'logs when a connection is complete' do
@@ -150,7 +150,7 @@ module Cql
         it 'calls the first step with an object that has the connection parameters' do
           steps[0].stub(:run) do |arg|
             steps[0].stub(:arg).and_return(arg)
-            Future.resolved(arg)
+            Ione::Future.resolved(arg)
           end
           connector = described_class.new(steps.take(1))
           result = connector.connect('host0')
@@ -159,7 +159,7 @@ module Cql
 
         it 'expects the last step to return a future that resolves to an object that has a connection' do
           steps[0].stub(:run) do |arg|
-            Future.resolved(double(connection: :fake_connection))
+            Ione::Future.resolved(double(connection: :fake_connection))
           end
           connector = described_class.new(steps.take(1))
           result = connector.connect('host0')
@@ -168,15 +168,15 @@ module Cql
 
         it 'passes the result of a step as argument to the next step' do
           steps[0].stub(:run) do |arg|
-            Future.resolved(:foo)
+            Ione::Future.resolved(:foo)
           end
           steps[1].stub(:run) do |arg|
             steps[1].stub(:arg).and_return(arg)
-            Future.resolved(:bar)
+            Ione::Future.resolved(:bar)
           end
           steps[2].stub(:run) do |arg|
             steps[2].stub(:arg).and_return(arg)
-            Future.resolved(double(connection: :fake_connection))
+            Ione::Future.resolved(double(connection: :fake_connection))
           end
           connector = described_class.new(steps)
           result = connector.connect('host0')
@@ -186,13 +186,13 @@ module Cql
 
         it 'fails if any of the steps fail' do
           steps[0].stub(:run) do |arg|
-            Future.resolved(:foo)
+            Ione::Future.resolved(:foo)
           end
           steps[1].stub(:run) do |arg|
             raise 'bork'
           end
           steps[2].stub(:run) do |arg|
-            Future.resolved(double(connection: :fake_connection))
+            Ione::Future.resolved(double(connection: :fake_connection))
           end
           connector = described_class.new(steps)
           result = connector.connect('host0')
@@ -240,7 +240,7 @@ module Cql
           pending_connection.stub(:host).and_return('example.com')
           pending_connection.stub(:with_connection).with(protocol_handler).and_return(new_pending_connection)
           io_reactor.stub(:connect) do |_, _, _, &block|
-            Future.resolved(block.call(connection))
+            Ione::Future.resolved(block.call(connection))
           end
         end
 
@@ -261,7 +261,7 @@ module Cql
         end
 
         it 'returns a failed future when the connection fails' do
-          io_reactor.stub(:connect).and_return(Future.failed(StandardError.new('bork')))
+          io_reactor.stub(:connect).and_return(Ione::Future.failed(StandardError.new('bork')))
           result = step.run(pending_connection)
           expect { result.value }.to raise_error('bork')
         end
@@ -280,7 +280,7 @@ module Cql
       describe '#run' do
         before do
           response = {'CQL_VERSION' => %w[3.1.2], 'COMPRESSION' => %w[snappy magic]}
-          pending_connection.stub(:execute).with(an_instance_of(Protocol::OptionsRequest)).and_return(Future.resolved(response))
+          pending_connection.stub(:execute).with(an_instance_of(Protocol::OptionsRequest)).and_return(Ione::Future.resolved(response))
           pending_connection.stub(:[]=)
         end
 
@@ -295,7 +295,7 @@ module Cql
         end
 
         it 'returns a failed future when the request fails' do
-          pending_connection.stub(:execute).and_return(Future.failed(StandardError.new('bork')))
+          pending_connection.stub(:execute).and_return(Ione::Future.failed(StandardError.new('bork')))
           result = step.run(pending_connection)
           expect { result.value }.to raise_error('bork')
         end
@@ -325,7 +325,7 @@ module Cql
           pending_connection.stub(:[]).with(:cql_version).and_return(%w[3.3.3])
           pending_connection.stub(:execute) do |request|
             pending_connection.stub(:last_request).and_return(request)
-            Future.resolved
+            Ione::Future.resolved
           end
         end
 
@@ -362,7 +362,7 @@ module Cql
         end
 
         it 'returns a failed future when the request fails' do
-          pending_connection.stub(:execute).and_return(Future.failed(StandardError.new('bork')))
+          pending_connection.stub(:execute).and_return(Ione::Future.failed(StandardError.new('bork')))
           result = step.run(pending_connection)
           expect { result.value }.to raise_error('bork')
         end
@@ -410,7 +410,7 @@ module Cql
           end
 
           before do
-            pending_connection.stub(:execute).and_return(Future.resolved(AuthenticationRequired.new('net.acme.Bogus')))
+            pending_connection.stub(:execute).and_return(Ione::Future.resolved(AuthenticationRequired.new('net.acme.Bogus')))
             pending_connection.stub(:with_authentication_class).and_return(new_pending_connection)
           end
 
@@ -441,7 +441,7 @@ module Cql
       describe '#run' do
         before do
           pending_connection.stub(:authentication_class).and_return('org.acme.Auth')
-          pending_connection.stub(:execute).and_return(Future.resolved)
+          pending_connection.stub(:execute).and_return(Ione::Future.resolved)
           auth_provider.stub(:create_authenticator).and_return(authenticator)
           authenticator.stub(:initial_response).and_return('fooblaha')
         end
@@ -455,25 +455,25 @@ module Cql
         it 'returns a failed future when there\'s an authentication class but no auth provider' do
           step = described_class.new(nil)
           result = step.run(pending_connection)
-          expect { result.value }.to raise_error(AuthenticationError)
+          expect { result.value }.to raise_error(Errors::AuthenticationError)
         end
 
         it 'returns a failed future when the auth provider does not support the authentication class' do
           auth_provider.stub(:create_authenticator).and_return(nil)
           result = step.run(pending_connection)
-          expect { result.value }.to raise_error(AuthenticationError)
+          expect { result.value }.to raise_error(Errors::AuthenticationError)
         end
 
         it 'returns a failed future when the auth provider raises an error' do
           auth_provider.stub(:create_authenticator).and_raise(StandardError.new('BORK'))
           result = step.run(pending_connection)
-          expect { result.value }.to raise_error(AuthenticationError)
+          expect { result.value }.to raise_error(Errors::AuthenticationError)
         end
 
         it 'asks the authenticator to formulate its initial response, and sends it in a AuthResponseRequest' do
           pending_connection.stub(:execute) do |request|
             pending_connection.stub(:last_request).and_return(request)
-            Future.resolved
+            Ione::Future.resolved
           end
           step.run(pending_connection)
           pending_connection.last_request.should == Protocol::AuthResponseRequest.new('fooblaha')
@@ -500,7 +500,7 @@ module Cql
               elsif request.token == '5'
                 response = Protocol::AuthSuccessResponse.new('6')
               end
-              Future.resolved(transform.call(response))
+              Ione::Future.resolved(transform.call(response))
             end
           end
 
@@ -518,9 +518,9 @@ module Cql
           it 'handles server side failures in the middle of a challenge/response cycle' do
             pending_connection.stub(:execute) do |request, &transform|
               if request.token == '1'
-                Future.resolved(Protocol::AuthChallengeResponse.new('2'))
+                Ione::Future.resolved(Protocol::AuthChallengeResponse.new('2'))
               else
-                Future.failed(QueryError.new(0x99, 'BORK'))
+                Ione::Future.failed(Errors::QueryError.new(0x99, 'BORK'))
               end
             end
             f = step.run(pending_connection)
@@ -549,7 +549,7 @@ module Cql
           pending_connection.stub(:authentication_class).and_return('org.acme.Auth')
           pending_connection.stub(:execute) do |request|
             pending_connection.stub(:last_request).and_return(request)
-            Future.resolved
+            Ione::Future.resolved
           end
         end
 
@@ -567,11 +567,11 @@ module Cql
         it 'returns a failed future when there\'s an authentication class but no credentials' do
           step = described_class.new(nil)
           result = step.run(pending_connection)
-          expect { result.value }.to raise_error(AuthenticationError)
+          expect { result.value }.to raise_error(Errors::AuthenticationError)
         end
 
         it 'returns a failed future when the server responds with an error' do
-          pending_connection.stub(:execute).and_return(Future.failed(QueryError.new(0x99, 'BORK')))
+          pending_connection.stub(:execute).and_return(Ione::Future.failed(Errors::QueryError.new(0x99, 'BORK')))
           result = step.run(pending_connection)
           expect { result.value }.to raise_error('BORK')
         end
@@ -597,7 +597,7 @@ module Cql
           node_info = {'data_center' => 'dc', 'host_id' => Uuid.new('11111111-1111-1111-1111-111111111111')}
           pending_connection.stub(:execute) do |request|
             pending_connection.stub(:last_request).and_return(request)
-            Future.resolved(QueryResult.new([], [node_info], nil, nil))
+            Ione::Future.resolved(QueryResult.new([], [node_info], nil, nil))
           end
           pending_connection.stub(:[]=)
         end
@@ -609,7 +609,7 @@ module Cql
         end
 
         it 'handles the case when the query result is empty' do
-          pending_connection.stub(:execute).and_return(Future.resolved(QueryResult.new([], [], nil, nil)))
+          pending_connection.stub(:execute).and_return(Ione::Future.resolved(QueryResult.new([], [], nil, nil)))
           result = step.run(pending_connection)
           result.should be_resolved
           pending_connection.should_not have_received(:[]=)
@@ -620,7 +620,7 @@ module Cql
         end
 
         it 'returns a failed future when the request fails' do
-          pending_connection.stub(:execute).and_return(Future.failed(StandardError.new('bork')))
+          pending_connection.stub(:execute).and_return(Ione::Future.failed(StandardError.new('bork')))
           result = step.run(pending_connection)
           expect { result.value }.to raise_error('bork')
         end

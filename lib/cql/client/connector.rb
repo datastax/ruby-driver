@@ -20,12 +20,12 @@ module Cql
             end
           end
         end
-        Future.all(*connections).map do |connections|
+        Ione::Future.all(*connections).map do |connections|
           connected_connections = connections.select(&:connected?)
           if connected_connections.empty?
             e = connections.first.error
-            if e.is_a?(Cql::QueryError) && e.code == 0x100
-              e = AuthenticationError.new(e.message)
+            if e.is_a?(Cql::Errors::QueryError) && e.code == 0x100
+              e = Errors::AuthenticationError.new(e.message)
             end
             raise e
           end
@@ -58,7 +58,7 @@ module Cql
 
       def connect(host)
         pending_connection = PendingConnection.new(host)
-        seed = Future.resolved(pending_connection)
+        seed = Ione::Future.resolved(pending_connection)
         f = @steps.reduce(seed) do |chain, step|
           chain.flat_map do |pending_connection|
             step.run(pending_connection)
@@ -143,15 +143,15 @@ module Cql
               token = authenticator.initial_response
               challenge_cycle(pending_connection, authenticator, token)
             elsif @auth_provider
-              Future.failed(AuthenticationError.new('Auth provider does not support the required authentication class "%s" and/or protocol version %d' % [pending_connection.authentication_class, @protocol_version]))
+              Ione::Future.failed(Errors::AuthenticationError.new('Auth provider does not support the required authentication class "%s" and/or protocol version %d' % [pending_connection.authentication_class, @protocol_version]))
             else
-              Future.failed(AuthenticationError.new('Server requested authentication, but no auth provider found'))
+              Ione::Future.failed(Errors::AuthenticationError.new('Server requested authentication, but no auth provider found'))
             end
           rescue => e
-            Future.failed(AuthenticationError.new('Auth provider raised an error: %s' % e.message))
+            Ione::Future.failed(Errors::AuthenticationError.new('Auth provider raised an error: %s' % e.message))
           end
         else
-          Future.resolved(pending_connection)
+          Ione::Future.resolved(pending_connection)
         end
       end
 
@@ -165,9 +165,9 @@ module Cql
             challenge_cycle(pending_connection, authenticator, token)
           when Protocol::AuthSuccessResponse
             authenticator.authentication_successful(response.token)
-            Future.resolved(pending_connection)
+            Ione::Future.resolved(pending_connection)
           else
-            Future.resolved(pending_connection)
+            Ione::Future.resolved(pending_connection)
           end
         end
       end
@@ -185,10 +185,10 @@ module Cql
             request = Protocol::CredentialsRequest.new(@credentials)
             pending_connection.execute(request).map(pending_connection)
           else
-            Future.failed(AuthenticationError.new('Server requested authentication, but no credentials provided'))
+            Ione::Future.failed(Errors::AuthenticationError.new('Server requested authentication, but no credentials provided'))
           end
         else
-          Future.resolved(pending_connection)
+          Ione::Future.resolved(pending_connection)
         end
       end
     end

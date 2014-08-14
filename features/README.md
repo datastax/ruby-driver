@@ -77,7 +77,7 @@ gem 'cql-rb'
 The diagram below represents a high level architecture of the driver. Each arrow represents direction of ownership, where owner is pointed to by its children. For example, a single `Cql::Cluster` instance can manage multiple `Cql::Session` instances, etc.
 
 ```ditaa
-                                  /-------+                                      
+                                  /-------+
                                   |Cluster|<----------------------------------+
                                   +-------/                                   |
                                       ^                                       |

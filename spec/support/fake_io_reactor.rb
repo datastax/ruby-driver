@@ -27,7 +27,7 @@ class FakeIoReactor
     @queued_responses = Hash.new { |h, k| h[k] = [] }
     @default_host = nil
     @connection_listeners = []
-    @started_promise = Cql::Promise.new
+    @started_promise = Ione::Promise.new
     @before_startup_handler = nil
     @down_nodes = []
     @timers = []
@@ -47,16 +47,16 @@ class FakeIoReactor
 
   def connect(host, port, timeout)
     if host == '0.0.0.0'
-      Cql::Future.failed(Cql::Io::ConnectionError.new('Can\'t connect to 0.0.0.0'))
+      Ione::Future.failed(Cql::Io::ConnectionError.new('Can\'t connect to 0.0.0.0'))
     elsif @down_nodes.include?(host)
-      Cql::Future.failed(Cql::Io::ConnectionError.new('Node down'))
+      Ione::Future.failed(Cql::Io::ConnectionError.new('Node down'))
     else
       connection = FakeConnection.new(host, port, timeout)
       @connections << connection
       @connection_listeners.each do |listener|
         listener.call(connection)
       end
-      Cql::Future.resolved(connection)
+      Ione::Future.resolved(connection)
     end
   end
 
@@ -81,7 +81,7 @@ class FakeIoReactor
   def stop
     @running = false
     @connections.each(&:close)
-    Cql::Future.resolved
+    Ione::Future.resolved
   end
 
   def running?
@@ -89,7 +89,7 @@ class FakeIoReactor
   end
 
   def schedule_timer(seconds)
-    promise = Cql::Promise.new
+    promise = Ione::Promise.new
     @timers << Timer.new(promise, seconds)
     promise.future
   end
@@ -102,9 +102,9 @@ class FakeIoReactor
   end
 
   def execute
-    Cql::Future.resolved(yield)
+    Ione::Future.resolved(yield)
   rescue => e
-    Cql::Future.failed(e)
+    Ione::Future.failed(e)
   end
 end
 
@@ -141,7 +141,7 @@ class FakeConnection
   def close(cause=nil)
     @closed = true
     @closed_listeners.each { |listener| listener.call(cause) }
-    Cql::Future.resolved
+    Ione::Future.resolved
   end
 
   def handle_request(&handler)
@@ -168,7 +168,7 @@ class FakeConnection
 
   def send_request(request, timeout=nil)
     if @closed
-      Cql::Future.failed(Cql::NotConnectedError.new)
+      Ione::Future.failed(Cql::Errors::NotConnectedError.new)
     else
       @requests << request
       case request
@@ -180,11 +180,11 @@ class FakeConnection
         if response.is_a?(Cql::Protocol::SetKeyspaceResultResponse)
           @keyspace = response.keyspace
         end
-        Cql::Future.resolved(response)
+        Ione::Future.resolved(response)
       end
     end
   rescue => e
-    Cql::Future.failed(e)
+    Ione::Future.failed(e)
   end
 
   def default_request_handler(request, timeout=nil)

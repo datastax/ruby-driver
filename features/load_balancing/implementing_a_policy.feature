@@ -74,7 +74,7 @@ Feature: Implementing custom load balancing policies
       begin
         session.execute("SELECT * FROM songs")
         puts "failure"
-      rescue Cql::NoHostsAvailable
+      rescue Cql::Errors::NoHostsAvailable
         puts "success"
       end
       """

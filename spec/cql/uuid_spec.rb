@@ -37,7 +37,7 @@ module Cql
       end
 
       it 'uses #value to determine equality' do
-        Uuid.new(276263553384940695775376958868900023510).should eql(Future.resolved(276263553384940695775376958868900023510))
+        Uuid.new(276263553384940695775376958868900023510).should eql(Ione::Future.resolved(276263553384940695775376958868900023510))
       end
 
       it 'does not attempt to call #value on object that do not respond to it' do

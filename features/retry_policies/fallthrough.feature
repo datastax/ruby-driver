@@ -19,7 +19,7 @@ Feature: Fallthrough Retry Policy
       begin
         session.execute('SELECT * FROM songs', consistency: :all)
         puts "failed"
-      rescue Cql::QueryError => e
+      rescue Cql::Errors::QueryError => e
         puts "success"
       end
       """

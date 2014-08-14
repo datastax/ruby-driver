@@ -13,8 +13,34 @@
 #   item, use the pattern “/about/*/”; “/about/*” will also select the parent,
 #   because “*” matches zero or more characters.
 
-require 'compass'
 Compass.add_project_configuration 'nanoc/config.rb'
+
+preprocess do
+  @items.each do |item|
+    path = item.identifier.sub('/', '') + '.nav'
+
+    if File.exists?(path)
+      nav = File.read(path).split("\n").map do |line|
+        item.identifier + line.chomp('/') + '/'
+      end
+
+      item[:nav] = item.children.sort do |a, b|
+        a = nav.index(a.identifier)
+        b = nav.index(b.identifier)
+
+        if a.nil? && !b.nil?
+          1
+        elsif b.nil? && !a.nil?
+          -1
+        else
+          a <=> b
+        end
+      end
+    else
+      item[:nav] = item.children.sort {|a, b| a[:title] <=> b[:title]}
+    end
+  end
+end
 
 compile '/css/*/' do
   case item[:extension]
@@ -48,14 +74,27 @@ compile '/features*' do
   layout 'feature'
   filter :add_toc
   filter :relativize_paths, :type => :html
+  filter :rubypants
+  # filter :beautify
+end
+
+compile 'api*' do
+  layout 'apidoc'
+  filter :relativize_paths, :type => :html
+  filter :rubypants
+  # filter :beautify
 end
 
 route '/css/*/' do
   item.identifier.chop + '.css'
 end
 
-route '*' do
+route '/features*' do
   item.identifier + 'index.html'
+end
+
+route 'api*' do
+  item.identifier.sub('api/cql', 'api') + 'index.html'
 end
 
 layout '*', :erb

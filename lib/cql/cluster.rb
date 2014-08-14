@@ -2,7 +2,8 @@
 
 module Cql
   class Cluster
-    def initialize(logger, io_reactor, control_connection, cluster_registry, execution_options, load_balancing_policy, reconnection_policy, retry_policy, connection_options)
+    # @private
+    def initialize(logger, io_reactor, control_connection, cluster_registry, execution_options, load_balancing_policy, reconnection_policy, retry_policy, connector)
       @logger                = logger
       @io_reactor            = io_reactor
       @control_connection    = control_connection
@@ -11,9 +12,10 @@ module Cql
       @load_balancing_policy = load_balancing_policy
       @reconnection_policy   = reconnection_policy
       @retry_policy          = retry_policy
-      @connection_options    = connection_options
+      @connector             = connector
     end
 
+    # @return [Enumerable<Cql::Host>]
     def hosts
       @registry.hosts
     end
@@ -24,12 +26,26 @@ module Cql
     end
 
     def connect_async(keyspace = nil)
-      client  = Client.new(@logger, @registry, @io_reactor, @load_balancing_policy, @reconnection_policy, @retry_policy, @connection_options)
+      client  = Client.new(@logger, @registry, @io_reactor, @connector, @load_balancing_policy, @reconnection_policy, @retry_policy)
       session = Session.new(client, @execution_options)
+      promise = Promise.new
 
-      f = client.connect
-      f = f.flat_map { session.execute_async("USE #{keyspace}") } if keyspace
-      f.map(session)
+      client.connect.on_complete do |f|
+        if f.resolved?
+          if keyspace
+            f = session.execute_async("USE #{keyspace}")
+
+            f.on_success {promise.fulfill(session)}
+            f.on_error   {|e| promise.break(e)}
+          else
+            promise.fulfill(session)
+          end
+        else
+          f.on_failure {|e| promise.break(e)}
+        end
+      end
+
+      promise.future
     end
 
     def connect(keyspace = nil)
@@ -37,7 +53,17 @@ module Cql
     end
 
     def close_async
-      @control_connection.close_async.map(self)
+      promise = Promise.new
+
+      @control_connection.close_async.on_complete do |f|
+        if f.resolved?
+          promise.fulfill(self)
+        else
+          f.on_failure {|e| promise.break(e)}
+        end
+      end
+
+      promise.future
     end
 
     def close
@@ -47,5 +73,8 @@ module Cql
 end
 
 require 'cql/cluster/client'
+require 'cql/cluster/connector'
 require 'cql/cluster/control_connection'
+require 'cql/cluster/eviction_policy'
+require 'cql/cluster/options'
 require 'cql/cluster/registry'

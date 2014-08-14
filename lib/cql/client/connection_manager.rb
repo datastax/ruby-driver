@@ -37,7 +37,7 @@ module Cql
       end
 
       def random_connection
-        raise NotConnectedError unless connected?
+        raise Errors::NotConnectedError unless connected?
         @lock.synchronize do
           @connections.sample
         end
@@ -45,7 +45,7 @@ module Cql
 
       def each_connection(&callback)
         return self unless block_given?
-        raise NotConnectedError unless connected?
+        raise Errors::NotConnectedError unless connected?
         @lock.synchronize do
           @connections.each(&callback)
         end

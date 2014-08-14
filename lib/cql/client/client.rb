@@ -51,7 +51,7 @@ module Cql
       # The the second parameter is meant for internal use only.
       #
       # @param [String] keyspace
-      # @raise [Cql::NotConnectedError] raised when the client is not connected
+      # @raise [Cql::Errors::NotConnectedError] raised when the client is not connected
       # @return [nil]
 
       # @!method execute(cql, *values, options={})
@@ -136,10 +136,10 @@ module Cql
       #   element should be the type of the corresponding value, or nil if you
       #   prefer the encoder to guess. The types should be provided as lower
       #   case symbols, e.g. `:int`, `:time_uuid`, etc.
-      # @raise [Cql::NotConnectedError] raised when the client is not connected
+      # @raise [Cql::Errors::NotConnectedError] raised when the client is not connected
       # @raise [Cql::TimeoutError] raised when a timeout was specified and no
       #   response was received within the timeout.
-      # @raise [Cql::QueryError] raised when the CQL has syntax errors or for
+      # @raise [Cql::Errors::QueryError] raised when the CQL has syntax errors or for
       #   other situations when the server complains.
       # @return [nil, Cql::Client::QueryResult, Cql::Client::VoidResult] Some
       #   queries have no result and return `nil`, but `SELECT` statements
@@ -154,10 +154,10 @@ module Cql
       #
       # @see Cql::Client::PreparedStatement
       # @param [String] cql The CQL to prepare
-      # @raise [Cql::NotConnectedError] raised when the client is not connected
-      # @raise [Cql::Io::IoError] raised when there is an IO error, for example
+      # @raise [Cql::Errors::NotConnectedError] raised when the client is not connected
+      # @raise [Cql::Errors::IoError] raised when there is an IO error, for example
       #   if the server suddenly closes the connection
-      # @raise [Cql::QueryError] raised when there is an error on the server
+      # @raise [Cql::Errors::QueryError] raised when there is an error on the server
       #   side, for example when you specify a malformed CQL query
       # @return [Cql::Client::PreparedStatement] an object encapsulating the
       #   prepared statement
@@ -226,7 +226,7 @@ module Cql
         @port = options[:port] || DEFAULT_PORT
         @connection_timeout = options[:connection_timeout] || DEFAULT_CONNECTION_TIMEOUT
         @credentials = options[:credentials]
-        @auth_provider = options[:auth_provider] || @credentials && Auth::PlainTextAuthProvider.new(*@credentials.values_at(:username, :password))
+        @auth_provider = options[:auth_provider] || @credentials && Auth::Providers::PlainText.new(*@credentials.values_at(:username, :password))
         @connected = false
         @connecting = false
         @closing = false
@@ -234,7 +234,7 @@ module Cql
 
       def connect
         @lock.synchronize do
-          raise ClientError, 'Cannot connect a closed client' if @closing || @closed
+          raise Errors::ClientError, 'Cannot connect a closed client' if @closing || @closed
           return @connected_future if can_execute?
           @connecting = true
           @connected_future = begin
@@ -285,7 +285,7 @@ module Cql
       def use(keyspace)
         with_failure_handler do
           connections = @connection_manager.reject { |c| c.keyspace == keyspace }
-          return Future.resolved if connections.empty?
+          return Ione::Future.resolved if connections.empty?
           use_keyspace(connections, keyspace).map(nil)
         end
       end
@@ -365,7 +365,7 @@ module Cql
       def connect_with_protocol_version_fallback
         f = create_cluster_connector.connect_all(@hosts, @connections_per_node)
         f.fallback do |error|
-          if error.is_a?(QueryError) && error.code == 0x0a && @protocol_version > 1
+          if error.is_a?(Errors::QueryError) && error.code == 0x0a && @protocol_version > 1
             @logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@protocol_version, @protocol_version - 1, error.message])
             @protocol_version -= 1
             connect_with_protocol_version_fallback
@@ -381,7 +381,7 @@ module Cql
         peer_discovery.new_hosts.flat_map do |hosts|
           if hosts.empty?
             @logger.debug('No additional nodes found')
-            Future.resolved(seed_connections)
+            Ione::Future.resolved(seed_connections)
           else
             @logger.debug('%d additional nodes found' % hosts.size)
             f = create_cluster_connector.connect_all(hosts, @connections_per_node)
@@ -432,15 +432,15 @@ module Cql
       end
 
       def with_failure_handler
-        return Future.failed(NotConnectedError.new) unless can_execute?
+        return Ione::Future.failed(Errors::NotConnectedError.new) unless can_execute?
         yield
       rescue => e
-        Future.failed(e)
+        Ione::Future.failed(e)
       end
 
       def use_keyspace(connections, keyspace)
         futures = connections.map { |connection| @keyspace_changer.use_keyspace(connection, keyspace) }
-        Future.all(*futures)
+        Ione::Future.all(*futures)
       end
 
       def register_event_listener(connection)
@@ -451,7 +451,7 @@ module Cql
             if connected?
               begin
                 register_event_listener(@connection_manager.random_connection)
-              rescue NotConnectedError
+              rescue Errors::NotConnectedError
                 # we had started closing down after the connection check
               end
             end
@@ -492,7 +492,7 @@ module Cql
               end
             else
               @logger.warn('Giving up looking for additional nodes')
-              Future.resolved
+              Ione::Future.resolved
             end
           end
         end

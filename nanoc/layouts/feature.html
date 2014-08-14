@@ -42,7 +42,6 @@
     </div>
 
     <div class="container">
-      <!-- <%= [@item.identifier, @item.parent, @item.children, @item.parent && @item.parent.children.map(&:identifier), @items.at('/features/'), breadcrumbs_trail] %> -->
       <div class="row">
         <div class="col-md-9 content">
           <nav class="crumbs">
@@ -52,7 +51,7 @@
               <% if item == @item %>
               <li class="active"><%= @item[:title] %></li>
               <% else %>
-              <li><a href="<%= item.identifier %>"><%= item[:title] %></a></li>
+              <li><a href="<%= item.path %>"><%= item[:title] %></a></li>
               <% end %>
               <% end %>
               <% end %>
@@ -62,27 +61,25 @@
         </div>
         <nav class="col-md-3 side-nav">
           <ol class="nav nav-pills nav-stacked toc" data-spy="affix" data-offset-top="60" data-offset-bottom="0">
-            <% @items.at('/features/').children.each do |section| %>
+            <% @items.at('/features/')[:nav].each do |section| %>
             <% if @item == section || @item.parent == section %>
             <li class="active">
-              <a href="<%= section.identifier %>"><%= section[:title] %></a>
+              <a href="<%= section.path %>"><%= section[:title] %></a>
               <ul class="nav nav-pills nav-stacked">
-                <% section.children.each do |topic| %>
-                <% if topic == @item %>
+                <% section[:nav].each do |child| %>
+                <% if @item == child %>
                 <li class="active">
-                  <a><%= topic[:title] %></a>
-                  <ul class="nav nav-pills nav-stacked">
-                    {{TOC}}
-                  </ul>
+                  <a href="<%= child.path %>"><%= child[:title] %></a>
+                  <ul class="nav nav-pills nav-stacked">{{TOC}}</ul>
                 </li>
                 <% else %>
-                <li><a href="<%= topic.identifier %>"><%= topic[:title] %></a></li>
+                <li><a href="<%= child.path %>"><%= child[:title] %></a></li>
                 <% end %>
                 <% end %>
               </ul>
             </li>
             <% else %>
-            <li><a href="<%= section.identifier %>"><%= section[:title] %></a></li>
+            <li><a href="<%= section.path %>"><%= section[:title] %></a></li>
             <% end %>
             <% end %>
           </ol>

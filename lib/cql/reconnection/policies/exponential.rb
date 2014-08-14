@@ -4,6 +4,7 @@ module Cql
   module Reconnection
     module Policies
       class Exponential
+        # @private
         class Schedule
           def initialize(start, max, exponent)
             @interval = start
