@@ -1,0 +1,28 @@
+3.0e-06 Connecting to cluster...
+0.097279 Starting producing 100000 inserts...
+# Started watcher
+# 0 new queries answered (0/100000)
+# 0 new queries answered (0/100000)
+# 0 new queries answered (0/100000)
+# 0 new queries answered (0/100000)
+# 0 new queries answered (0/100000)
+# 0 new queries answered (0/100000)
+# 0 new queries answered (0/100000)
+# 0 new queries answered (0/100000)
+# 0 new queries answered (0/100000)
+# 0 new queries answered (0/100000)
+10.078515 Starting consuming inserts...
+# 11,785 new queries answered (11785/100000)
+# 9,225 new queries answered (21010/100000)
+# 8,701 new queries answered (29711/100000)
+# 8,541 new queries answered (38252/100000)
+# 8,497 new queries answered (46749/100000)
+# 9,777 new queries answered (56526/100000)
+# 9,066 new queries answered (65592/100000)
+# 10,545 new queries answered (76137/100000)
+# 6,772 new queries answered (82909/100000)
+# 9,276 new queries answered (92185/100000)
+21.754095 Cleaning...
+# Success: 100000
+# Errors:  0
+21.888552 Done.

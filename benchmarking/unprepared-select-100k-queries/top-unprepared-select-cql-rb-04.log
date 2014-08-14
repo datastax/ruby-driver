@@ -1,0 +1,390 @@
+Processes: 152 total, 3 running, 5 stuck, 144 sleeping, 1499 threads 
+2014/07/30 16:47:45
+Load Avg: 5.59, 3.71, 3.06 
+CPU usage: 10.0% user, 20.0% sys, 70.0% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20335 total, 2135M resident, 80M private, 499M shared.
+PhysMem: 5041M used (1148M wired), 11G unused.
+VM: 374G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 0/0B in, 0/0B out.
+Disks: 0/0B read, 0/0B written.
+
+COMMAND PID   %CPU #TH CSW
+ruby    7135  0.0  2/1 10 
+Processes: 152 total, 3 running, 5 stuck, 144 sleeping, 1500 threads 
+2014/07/30 16:47:46
+Load Avg: 5.59, 3.71, 3.06 
+CPU usage: 16.84% user, 8.42% sys, 74.72% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20335 total, 2135M resident, 80M private, 499M shared.
+PhysMem: 5134M used (1148M wired), 11G unused.
+VM: 374G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 14608/1544K in, 37745/49M out.
+Disks: 32/252K read, 673/110M written.
+
+COMMAND PID   %CPU #TH CSW
+ruby    7135  95.9 2   399
+Processes: 152 total, 6 running, 5 stuck, 141 sleeping, 1500 threads 
+2014/07/30 16:47:47
+Load Avg: 5.59, 3.71, 3.06 
+CPU usage: 16.83% user, 4.66% sys, 78.50% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20335 total, 2135M resident, 80M private, 499M shared.
+PhysMem: 5208M used (1149M wired), 11G unused.
+VM: 374G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 9814/1040K in, 25162/31M out.
+Disks: 4/32K read, 44/66M written.
+
+COMMAND PID   %CPU  #TH CSW
+ruby    7135  101.2 0   845
+Processes: 152 total, 4 running, 4 stuck, 144 sleeping, 1500 threads 
+2014/07/30 16:47:48
+Load Avg: 5.59, 3.71, 3.06 
+CPU usage: 17.5% user, 2.34% sys, 80.59% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20335 total, 2135M resident, 80M private, 499M shared.
+PhysMem: 5261M used (1149M wired), 11G unused.
+VM: 374G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 5134/719K in, 12666/14M out.
+Disks: 3/24K read, 0/0B written.
+
+COMMAND PID   %CPU  #TH CSW
+ruby    7135  98.2  0   742
+Processes: 152 total, 3 running, 5 stuck, 144 sleeping, 1500 threads 
+2014/07/30 16:47:49
+Load Avg: 5.46, 3.72, 3.07 
+CPU usage: 18.21% user, 3.59% sys, 78.19% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20335 total, 2135M resident, 80M private, 499M shared.
+PhysMem: 5311M used (1151M wired), 11G unused.
+VM: 375G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 8484/1048K in, 21503/24M out.
+Disks: 1/8192B read, 1/1797K written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  97.6  0   1053
+Processes: 152 total, 3 running, 5 stuck, 144 sleeping, 1500 threads 
+2014/07/30 16:47:50
+Load Avg: 5.46, 3.72, 3.07 
+CPU usage: 16.4% user, 3.82% sys, 80.12% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20335 total, 2135M resident, 80M private, 499M shared.
+PhysMem: 5360M used (1151M wired), 11G unused.
+VM: 375G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7840/814K in, 26344/34M out.
+Disks: 1/8192B read, 0/0B written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  97.7  0   405 
+Processes: 152 total, 3 running, 5 stuck, 144 sleeping, 1485 threads 
+2014/07/30 16:47:51
+Load Avg: 5.46, 3.72, 3.07 
+CPU usage: 12.82% user, 2.58% sys, 84.58% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20335 total, 2135M resident, 80M private, 499M shared.
+PhysMem: 5392M used (1152M wired), 11G unused.
+VM: 375G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 5451/356K in, 22704/32M out.
+Disks: 0/0B read, 0/0B written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  101.0 0   336 
+Processes: 152 total, 3 running, 5 stuck, 144 sleeping, 1485 threads 
+2014/07/30 16:47:52
+Load Avg: 5.46, 3.72, 3.07 
+CPU usage: 15.77% user, 2.23% sys, 81.98% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20335 total, 2135M resident, 80M private, 499M shared.
+PhysMem: 5427M used (1151M wired), 11G unused.
+VM: 375G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 5049/592K in, 15865/20M out.
+Disks: 0/0B read, 0/0B written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  100.0 0   1190
+Processes: 151 total, 5 running, 5 stuck, 141 sleeping, 1460 threads 
+2014/07/30 16:47:53
+Load Avg: 5.46, 3.72, 3.07 
+CPU usage: 15.6% user, 1.23% sys, 83.70% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20258 total, 2133M resident, 80M private, 499M shared.
+PhysMem: 5459M used (1151M wired), 11G unused.
+VM: 372G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 2355/416K in, 2647/811K out.
+Disks: 0/0B read, 2/16K written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  100.1 0   423 
+Processes: 151 total, 3 running, 5 stuck, 143 sleeping, 1457 threads 
+2014/07/30 16:47:54
+Load Avg: 5.34, 3.72, 3.07 
+CPU usage: 24.59% user, 3.70% sys, 71.69% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20258 total, 2133M resident, 80M private, 499M shared.
+PhysMem: 5486M used (1151M wired), 11G unused.
+VM: 372G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 9970/1658K in, 9974/1651K out.
+Disks: 1/8192B read, 2/4608B written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  90.8  0   1056
+Processes: 151 total, 5 running, 6 stuck, 140 sleeping, 1443 threads 
+2014/07/30 16:47:55
+Load Avg: 5.34, 3.72, 3.07 
+CPU usage: 39.70% user, 9.80% sys, 50.49% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20258 total, 2133M resident, 79M private, 499M shared.
+PhysMem: 5493M used (1151M wired), 11G unused.
+VM: 372G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 23890/5378K in, 23695/4117K out.
+Disks: 18/144K read, 445/6555K written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  70.5  0   2466
+Processes: 151 total, 3 running, 5 stuck, 143 sleeping, 1444 threads 
+2014/07/30 16:47:56
+Load Avg: 5.34, 3.72, 3.07 
+CPU usage: 38.1% user, 8.23% sys, 53.75% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20258 total, 2133M resident, 79M private, 499M shared.
+PhysMem: 5498M used (1149M wired), 11G unused.
+VM: 372G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 19157/4042K in, 19050/3477K out.
+Disks: 125/732K read, 139/1495K written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  67.5  0   2725
+Processes: 151 total, 3 running, 5 stuck, 143 sleeping, 1444 threads 
+2014/07/30 16:47:57
+Load Avg: 5.34, 3.72, 3.07 
+CPU usage: 46.34% user, 14.74% sys, 38.90% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20258 total, 2133M resident, 79M private, 499M shared.
+PhysMem: 5511M used (1150M wired), 11G unused.
+VM: 372G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 30402/4715K in, 46886/38M out.
+Disks: 26/172K read, 688/83M written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  57.6  0   2463
+Processes: 151 total, 6 running, 5 stuck, 140 sleeping, 1444 threads 
+2014/07/30 16:47:58
+Load Avg: 5.34, 3.72, 3.07 
+CPU usage: 34.14% user, 10.52% sys, 55.32% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20258 total, 2133M resident, 79M private, 499M shared.
+PhysMem: 5514M used (1150M wired), 11G unused.
+VM: 372G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 25665/3711K in, 45779/44M out.
+Disks: 27/216K read, 110/17M written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  70.8  0   1967
+Processes: 150 total, 3 running, 5 stuck, 142 sleeping, 1443 threads 
+2014/07/30 16:47:59
+Load Avg: 10.20, 4.75, 3.44 
+CPU usage: 40.76% user, 11.2% sys, 48.20% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20201 total, 2132M resident, 79M private, 499M shared.
+PhysMem: 5518M used (1150M wired), 11G unused.
+VM: 370G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 28082/4154K in, 42897/31M out.
+Disks: 31/248K read, 0/0B written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  66.3  0   1695
+Processes: 150 total, 3 running, 5 stuck, 142 sleeping, 1456 threads 
+2014/07/30 16:48:00
+Load Avg: 10.20, 4.75, 3.44 
+CPU usage: 41.99% user, 10.96% sys, 47.4% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20201 total, 2132M resident, 79M private, 499M shared.
+PhysMem: 5527M used (1150M wired), 11G unused.
+VM: 370G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 25344/4860K in, 29650/12M out.
+Disks: 114/912K read, 259/3882K written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  66.0  0   1550
+Processes: 150 total, 3 running, 6 stuck, 141 sleeping, 1457 threads 
+2014/07/30 16:48:01
+Load Avg: 10.20, 4.75, 3.44 
+CPU usage: 41.30% user, 12.70% sys, 45.99% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20201 total, 2132M resident, 79M private, 499M shared.
+PhysMem: 5540M used (1152M wired), 11G unused.
+VM: 370G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 22151/4983K in, 23175/6764K out.
+Disks: 213/1696K read, 202/79M written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  69.7  0   1586
+Processes: 150 total, 3 running, 5 stuck, 142 sleeping, 1456 threads 
+2014/07/30 16:48:02
+Load Avg: 10.20, 4.75, 3.44 
+CPU usage: 38.35% user, 10.27% sys, 51.37% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20201 total, 2132M resident, 79M private, 499M shared.
+PhysMem: 5544M used (1153M wired), 11G unused.
+VM: 370G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 28477/4310K in, 48396/41M out.
+Disks: 0/0B read, 10/8941K written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  67.4  0   1653
+Processes: 150 total, 3 running, 5 stuck, 142 sleeping, 1456 threads 
+2014/07/30 16:48:03
+Load Avg: 10.20, 4.75, 3.44 
+CPU usage: 43.67% user, 13.77% sys, 42.55% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20201 total, 2132M resident, 79M private, 499M shared.
+PhysMem: 5550M used (1153M wired), 11G unused.
+VM: 370G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 35981/4928K in, 62720/56M out.
+Disks: 0/0B read, 0/0B written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  57.3  0   2007
+Processes: 150 total, 3 running, 6 stuck, 141 sleeping, 1456 threads 
+2014/07/30 16:48:04
+Load Avg: 9.54, 4.71, 3.43 
+CPU usage: 43.47% user, 12.6% sys, 44.45% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20201 total, 2132M resident, 79M private, 499M shared.
+PhysMem: 5558M used (1153M wired), 11G unused.
+VM: 370G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 28365/4674K in, 36999/21M out.
+Disks: 1/4096B read, 237/55M written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  61.4  0   1685
+Processes: 150 total, 4 running, 4 stuck, 142 sleeping, 1456 threads 
+2014/07/30 16:48:05
+Load Avg: 9.54, 4.71, 3.43 
+CPU usage: 39.28% user, 12.88% sys, 47.83% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20201 total, 2132M resident, 78M private, 499M shared.
+PhysMem: 5565M used (1153M wired), 11G unused.
+VM: 370G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 30784/4106K in, 61151/60M out.
+Disks: 2/8192B read, 191/52M written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  66.3  0   1498
+Processes: 150 total, 6 running, 5 stuck, 139 sleeping, 1454 threads 
+2014/07/30 16:48:06
+Load Avg: 9.54, 4.71, 3.43 
+CPU usage: 38.78% user, 13.9% sys, 48.12% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20201 total, 2132M resident, 78M private, 499M shared.
+PhysMem: 5571M used (1150M wired), 11G unused.
+VM: 370G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 26124/3701K in, 43592/36M out.
+Disks: 4/16K read, 296/108M written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  63.7  0   1384
+Processes: 150 total, 3 running, 5 stuck, 142 sleeping, 1454 threads 
+2014/07/30 16:48:07
+Load Avg: 9.54, 4.71, 3.43 
+CPU usage: 45.22% user, 12.76% sys, 42.0% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20201 total, 2132M resident, 78M private, 499M shared.
+PhysMem: 5578M used (1150M wired), 11G unused.
+VM: 370G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 33705/4961K in, 51916/39M out.
+Disks: 2/8192B read, 47/34M written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  56.7  0   1874
+Processes: 149 total, 3 running, 5 stuck, 141 sleeping, 1515 threads 
+2014/07/30 16:48:08
+Load Avg: 9.54, 4.71, 3.43 
+CPU usage: 45.55% user, 14.19% sys, 40.24% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20165 total, 2132M resident, 78M private, 499M shared.
+PhysMem: 5583M used (1150M wired), 11G unused.
+VM: 368G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 36074/5120K in, 59804/51M out.
+Disks: 0/0B read, 144/20M written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  57.1  0   2022
+Processes: 149 total, 5 running, 4 stuck, 140 sleeping, 1506 threads 
+2014/07/30 16:48:09
+Load Avg: 11.02, 5.10, 3.58 
+CPU usage: 43.62% user, 13.24% sys, 43.13% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20165 total, 2132M resident, 78M private, 499M shared.
+PhysMem: 5590M used (1150M wired), 11G unused.
+VM: 368G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 31667/4507K in, 55361/50M out.
+Disks: 2/8192B read, 56/51M written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  62.7  0   1960
+Processes: 149 total, 3 running, 5 stuck, 141 sleeping, 1494 threads 
+2014/07/30 16:48:10
+Load Avg: 11.02, 5.10, 3.58 
+CPU usage: 42.83% user, 13.58% sys, 43.58% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20165 total, 2132M resident, 78M private, 499M shared.
+PhysMem: 5598M used (1150M wired), 11G unused.
+VM: 368G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 31086/4439K in, 52705/46M out.
+Disks: 5/20K read, 113/69M written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  65.3  0   1844
+Processes: 149 total, 3 running, 5 stuck, 141 sleeping, 1488 threads 
+2014/07/30 16:48:11
+Load Avg: 11.02, 5.10, 3.58 
+CPU usage: 44.23% user, 12.39% sys, 43.37% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20165 total, 2132M resident, 78M private, 499M shared.
+PhysMem: 5607M used (1151M wired), 11G unused.
+VM: 368G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 35532/5244K in, 56126/46M out.
+Disks: 0/0B read, 76/7812K written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  57.9  0   1697
+Processes: 149 total, 5 running, 5 stuck, 139 sleeping, 1487 threads 
+2014/07/30 16:48:12
+Load Avg: 11.02, 5.10, 3.58 
+CPU usage: 45.42% user, 14.89% sys, 39.68% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20165 total, 2132M resident, 78M private, 499M shared.
+PhysMem: 5612M used (1151M wired), 11G unused.
+VM: 368G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 36919/5100K in, 61242/51M out.
+Disks: 1/4096B read, 29/56M written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  62.5  0   1876
+Processes: 147 total, 6 running, 4 stuck, 137 sleeping, 1489 threads 
+2014/07/30 16:48:13
+Load Avg: 11.02, 5.10, 3.58 
+CPU usage: 45.51% user, 13.40% sys, 41.8% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20032 total, 2128M resident, 78M private, 499M shared.
+PhysMem: 5613M used (1150M wired), 11G unused.
+VM: 363G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 30592/4463K in, 49986/41M out.
+Disks: 5/20K read, 66/67M written.
+
+COMMAND PID   %CPU  #TH CSW 
+ruby    7135  57.8  0   1724
+Processes: 147 total, 2 running, 4 stuck, 141 sleeping, 1489 threads 
+2014/07/30 16:48:14
+Load Avg: 13.34, 5.67, 3.79 
+CPU usage: 27.72% user, 11.50% sys, 60.76% idle 
+SharedLibs: 17M resident, 13M data, 0B linkedit.
+MemRegions: 20032 total, 2128M resident, 78M private, 499M shared.
+PhysMem: 5615M used (1150M wired), 11G unused.
+VM: 363G vsize, 1068M framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 25799/4300K in, 54032/57M out.
+Disks: 257/1028K read, 27/53M written.
+
+COMMAND PID   %CPU  #TH  CSW 
+ruby    7135  47.7  0/-1 1551
