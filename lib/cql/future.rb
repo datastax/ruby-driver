@@ -260,15 +260,15 @@ module Cql
         case @state
         when :pending
           synchronize do
-            case @state
-            when :pending
+            if @state == :pending
               @listeners << listener
-            when :fulfilled
-              listener.success(@value)
-            when :broken
-              listener.failure(@error)
+
+              return self
             end
           end
+
+          listener.success(@value) if @state == :fulfilled
+          listener.failure(@error) if @state == :broken
         when :fulfilled
           listener.success(@value)
         when :broken
