@@ -44,6 +44,8 @@ module Cql
     let(:connections_per_local_node)  { 2 }
     let(:connections_per_remote_node) { 1 }
 
+    let(:initial_state_listeners) { [] }
+
     def initialize(defaults = {})
       @defaults  = defaults
       @instances = {}
@@ -51,6 +53,10 @@ module Cql
 
     def connect(addresses)
       cluster_registry.add_listener(load_balancing_policy)
+      initial_state_listeners.each do |listener|
+        cluster.register(listener)
+      end
+
       addresses.each {|address| cluster_registry.host_found(address)}
 
       control_connection.connect_async.map(cluster)

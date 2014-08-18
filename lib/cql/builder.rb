@@ -6,6 +6,7 @@ module Cql
     def initialize(settings = {})
       @settings  = settings
       @addresses = ::Set.new
+      @listeners = ::Set.new
     end
 
     def add_contact_point(host)
@@ -79,6 +80,20 @@ module Cql
       self
     end
 
+    def add_listener(listener)
+      @listeners << listener
+
+      self
+    end
+
+    def with_listeners(*listeners)
+      listeners.each do |listener|
+        add_listener(listener)
+      end
+
+      self
+    end
+
     # Constructs a {Cql::Cluster} using settings specified.
     #
     # @return [Cql::Cluster] a cluster
@@ -86,6 +101,8 @@ module Cql
     # @raise [Cql::Errors::AuthenticationError] when authentication fails
     def build
       @addresses << IPAddr.new('127.0.0.1') if @addresses.empty?
+
+      @settings.merge!(:initial_state_listeners => @listeners) unless @listeners.empty?
 
       Driver.new(@settings).connect(@addresses).value
     end
