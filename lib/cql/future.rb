@@ -120,7 +120,7 @@ module Cql
       end
 
       def get
-        raise(@error, @error.message, caller.slice(2..-1))
+        raise(@error, @error.message, @error.backtrace)
       end
 
       def on_success
@@ -240,19 +240,19 @@ module Cql
               @cond.wait while @state == :pending
               @waiting -= 1
 
-              raise(@error, @error.message, caller.slice(2..-1)) if @state == :broken
+              raise(@error, @error.message, @error.backtrace) if @state == :broken
 
               @value
             when :fulfilled
               @value
             when :broken
-              raise(@error, @error.message, caller.slice(2..-1))
+              raise(@error, @error.message, @error.backtrace)
             end
           end
         when :fulfilled
           @value
         when :broken
-          raise(@error, @error.message, caller.slice(2..-1))
+          raise(@error, @error.message, @error.backtrace)
         end
       end
 
