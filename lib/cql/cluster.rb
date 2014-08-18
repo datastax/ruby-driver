@@ -53,7 +53,7 @@ module Cql
             f = session.execute_async("USE #{keyspace}")
 
             f.on_success {promise.fulfill(session)}
-            f.on_error   {|e| promise.break(e)}
+            f.on_failure {|e| promise.break(e)}
           else
             promise.fulfill(session)
           end
