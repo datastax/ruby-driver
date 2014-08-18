@@ -22,7 +22,7 @@ module Cql
                                } }
 
       let(:driver) { Driver.new(driver_settings) }
-      let(:client) { Client.new(driver.logger, driver.cluster_registry, driver.io_reactor, driver.connector, driver.load_balancing_policy, driver.reconnection_policy, driver.retry_policy) }
+      let(:client) { Client.new(driver.logger, driver.cluster_registry, driver.io_reactor, driver.connector, driver.load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.connection_options) }
 
       describe('#connect') do
         context 'when all hosts are ignored' do
@@ -85,7 +85,7 @@ module Cql
             client.connect.value
             io_reactor.connections.first.stub(:close).and_return(Ione::Future.failed(StandardError.new('Hurgh blurgh')))
             client.close.value rescue nil
-            logger.should have_received(:error).with(/Cluster disconnect failed: Hurgh blurgh/)
+            logger.should have_received(:error).with(/Session close failed: Hurgh blurgh/)
           end
         end
 
@@ -198,7 +198,7 @@ module Cql
           end
 
           it 'logs reconnection attempts' do
-            logger.stub(:debug)
+            logger.stub(:info)
             logger.stub(:warn)
 
             io_reactor.node_down(address)
@@ -206,8 +206,8 @@ module Cql
 
             client.host_up(host)
 
-            logger.should have_received(:warn).with(/Failed connecting to node/).at_least(1).times
-            logger.should have_received(:debug).with(/Reconnecting in \d+.\d seconds/)
+            logger.should have_received(:warn).with(/Connection failed ip=(.*) error=(.*)/).at_least(1).times
+            logger.should have_received(:info).with(/Session started reconnecting to ip=(.*) delay=(.*)/)
           end
         end
       end

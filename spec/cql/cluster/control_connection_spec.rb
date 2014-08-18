@@ -118,6 +118,7 @@ module Cql
 
       before do
         cluster_registry.add_listener(driver.load_balancing_policy)
+        cluster_registry.add_listener(control_connection)
         cluster_registry.host_found('127.0.0.1')
 
         io_reactor.on_connection do |connection|
@@ -285,8 +286,8 @@ module Cql
           it 'logs when fetching cluster state' do
             logger.stub(:debug)
             control_connection.connect_async.value
-            logger.should have_received(:debug).with(/Looking for additional nodes/)
-            logger.should have_received(:debug).with(/\d+ additional nodes found/)
+            logger.should have_received(:debug).with(/Fetching cluster metadata and peers/)
+            logger.should have_received(:debug).with(/\d+ peers found/)
           end
         end
 
@@ -315,10 +316,11 @@ module Cql
           before do
             reconnection_policy.stub(:schedule) { reconnection_schedule }
             control_connection.connect_async.value
-            last_connection.close
           end
 
           it 'reconnects' do
+            last_connection.close
+            io_reactor.advance_time(reconnect_interval)
             last_connection.should be_connected
           end
 
@@ -379,7 +381,7 @@ module Cql
                 logger.stub(:debug)
                 cluster_registry.stub(:host_up)
                 connections.first.trigger_event(event)
-                logger.should have_received(:debug).with(/Received STATUS_CHANGE UP event/)
+                logger.should have_received(:debug).with(/Event received EVENT STATUS_CHANGE UP/)
               end
 
               context 'and host is known' do
@@ -432,7 +434,7 @@ module Cql
               it 'logs when it receives an DOWN event' do
                 logger.stub(:debug)
                 connections.first.trigger_event(event)
-                logger.should have_received(:debug).with(/Received STATUS_CHANGE DOWN event/)
+                logger.should have_received(:debug).with(/Event received EVENT STATUS_CHANGE DOWN/)
               end
 
               it 'notifies registry' do
@@ -460,7 +462,7 @@ module Cql
               it 'logs when it receives an NEW_NODE event' do
                 logger.stub(:debug)
                 connections.first.trigger_event(event)
-                logger.should have_received(:debug).with(/Received TOPOLOGY_CHANGE NEW_NODE event/)
+                logger.should have_received(:debug).with(/Event received EVENT TOPOLOGY_CHANGE NEW_NODE/)
               end
 
               context 'and host is unknown' do
@@ -513,7 +515,7 @@ module Cql
               it 'logs when it receives an REMOVED_NODE event' do
                 logger.stub(:debug)
                 connections.first.trigger_event(event)
-                logger.should have_received(:debug).with(/Received TOPOLOGY_CHANGE REMOVED_NODE event/)
+                logger.should have_received(:debug).with(/Event received EVENT TOPOLOGY_CHANGE REMOVED_NODE/)
               end
 
               it 'notifies registry' do

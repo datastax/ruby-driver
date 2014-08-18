@@ -6,7 +6,7 @@ module Cql
     class Client
       include MonitorMixin
 
-      def initialize(logger, cluster_registry, io_reactor, connector, load_balancing_policy, reconnection_policy, retry_policy)
+      def initialize(logger, cluster_registry, io_reactor, connector, load_balancing_policy, reconnection_policy, retry_policy, connection_options)
         @logger                      = logger
         @registry                    = cluster_registry
         @reactor                     = io_reactor
@@ -14,6 +14,7 @@ module Cql
         @load_balancing_policy       = load_balancing_policy
         @reconnection_policy         = reconnection_policy
         @retry_policy                = retry_policy
+        @connection_options          = connection_options
         @connecting_hosts            = ::Set.new
         @connections                 = ::Hash.new
         @prepared_statements         = ::Hash.new
@@ -95,24 +96,31 @@ module Cql
       def host_up(host)
         synchronize do
           return Ione::Future.resolved if @connecting_hosts.include?(host)
-
           @connecting_hosts << host
-
-          connect_to_host_maybe_retry(host, @load_balancing_policy.distance(host)).map(nil)
         end
+
+        connect_to_host_maybe_retry(host, @load_balancing_policy.distance(host)).map(nil)
       end
 
       def host_down(host)
-        futures = synchronize do
-          return Ione::Future.resolved if @connecting_hosts.delete?(host) || !@connections.has_key?(host)
+        manager = nil
 
+        synchronize do
+          return Ione::Future.resolved if !@connections.has_key?(host) && !@connecting_hosts.include?(host)
+
+          @logger.info("Session disconnecting from ip=#{host.ip}")
+          @connecting_hosts.delete(host)
           @prepared_statements.delete(host)
           @preparing_statements.delete(host)
 
-          @connections.delete(host).snapshot.map {|c| c.close}
+          manager = @connections.delete(host)
         end
 
-        Ione::Future.all(*futures).map(nil)
+        if manager
+          Ione::Future.all(*manager.snapshot.map! {|c| c.close}).map(nil)
+        else
+          Ione::Future.resolved
+        end
       end
 
       def query(statement, options, paging_state = nil)
@@ -167,6 +175,10 @@ module Cql
         promise.future
       end
 
+      def inspect
+        "#<#{self.class.name}:0x#{self.object_id.to_s(16)}>"
+      end
+
       private
 
       NO_CONNECTIONS = Ione::Future.resolved([])
@@ -188,14 +200,14 @@ module Cql
             @state = :connected
           end
 
-          @logger.info('Cluster connection complete')
+          @logger.info('Session connected')
         else
           synchronize do
             @state = :defunct
           end
 
           f.on_failure do |e|
-            @logger.error('Failed connecting to cluster: %s' % e.message)
+            @logger.error('Session connect failed: %s' % e.message)
           end
 
           close
@@ -207,17 +219,25 @@ module Cql
           @state = :closed
 
           if f.resolved?
-            @logger.info('Cluster disconnect complete')
+            @logger.info('Session closed')
           else
             f.on_failure do |e|
-              @logger.error('Cluster disconnect failed: %s' % e.message)
+              @logger.error('Session close failed: %s' % e.message)
             end
           end
         end
       end
 
       def close_connections
-        futures = synchronize { @connections.values }.flat_map {|m| m.snapshot.map {|c| c.close}}
+        futures = []
+        synchronize do
+          @connections.each do |host, connections|
+            connections.snapshot.each do |c|
+              futures << c.close
+            end
+          end
+        end
+
         Ione::Future.all(*futures).map(self)
       end
 
@@ -225,7 +245,7 @@ module Cql
         f = connect_to_host(host, distance)
 
         f.on_failure do |e|
-          connect_to_host_with_retry(host, @reconnection_policy.schedule) if e.is_a?(Io::ConnectionError)
+          connect_to_host_with_retry(host, @reconnection_policy.schedule) if e.is_a?(Io::ConnectionError) || e.is_a?(::SystemCallError) || e.is_a?(::SocketError)
         end
 
         f
@@ -234,13 +254,13 @@ module Cql
       def connect_to_host_with_retry(host, schedule)
         interval = schedule.next
 
-        @logger.debug('Reconnecting in %2.1f seconds' % interval)
+        @logger.info("Session started reconnecting to ip=#{host.ip} delay=#{interval}")
 
         f = @reactor.schedule_timer(interval)
         f.flat_map do
           if synchronize { @connecting_hosts.include?(host) }
             connect_to_host(host, @load_balancing_policy.distance(host)).fallback do |e|
-              if e.is_a?(Io::ConnectionError)
+              if e.is_a?(Io::ConnectionError) || e.is_a?(::SystemCallError) || e.is_a?(::SocketError)
                 connect_to_host_with_retry(host, schedule)
               else
                 Ione::Future.failed(e)
@@ -251,28 +271,39 @@ module Cql
           end
         end
       rescue ::StopIteration
+        @logger.info("Session stopped reconnecting to ip=#{host.ip}")
         synchronize { @connecting_hosts.delete(host) }
         NO_CONNECTIONS
       end
 
       def connect_to_host(host, distance)
-        @connector.connect(host, distance).map do |connections|
+        if distance.ignore?
+          return NO_CONNECTIONS
+        elsif distance.local?
+          pool_size = @connection_options.connections_per_local_node
+        else
+          pool_size = @connection_options.connections_per_remote_node
+        end
+
+        @logger.info("Session connecting to ip=#{host.ip}")
+
+        f = @connector.connect_many(host, pool_size)
+
+        f.on_value do |connections|
           manager = nil
 
           synchronize do
+            @logger.info("Session connected to ip=#{host.ip}")
             @connecting_hosts.delete(host)
-
-            unless connections.empty?
-              @prepared_statements[host] = {}
-              @preparing_statements[host] = {}
-              manager = @connections[host] ||= Cql::Client::ConnectionManager.new
-            end
+            @prepared_statements[host] = {}
+            @preparing_statements[host] = {}
+            manager = @connections[host] ||= Cql::Client::ConnectionManager.new
           end
 
-          manager && manager.add_connections(connections)
-
-          connections
+          manager.add_connections(connections)
         end
+
+        f
       end
 
       def execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])

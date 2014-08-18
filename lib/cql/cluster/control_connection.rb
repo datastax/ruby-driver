@@ -4,6 +4,8 @@ module Cql
   class Cluster
     # @private
     class ControlConnection
+      include MonitorMixin
+
       def initialize(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, connector, connection_options)
         @logger                = logger
         @io_reactor            = io_reactor
@@ -13,36 +15,58 @@ module Cql
         @reconnection_policy   = reconnection_policy
         @connector             = connector
         @connection_options    = connection_options
+        @refreshing_statuses   = Hash.new(false)
+        @status                = :closed
+
+        mon_initialize
       end
 
       def connect_async
-        @registry.each_host do |host|
-          @registry.host_up(host.ip)
+        synchronize do
+          return Ione::Future.resolved if @status == :connecting || @status == :connected
+          @status = :connecting
         end
 
-        plan = @load_balancing_policy.plan(nil, VOID_STATEMENT, VOID_OPTIONS)
+        @logger.debug('Establishing control connection')
 
-        f = @io_reactor.start
-        f = f.flat_map do
+        @io_reactor.start.flat_map do
+          plan = @load_balancing_policy.plan(nil, VOID_STATEMENT, VOID_OPTIONS)
           connect_to_first_available(plan)
         end
-        f.on_value do |connection|
-          @connection = connection
+      end
 
-          connection.on_closed do
-            @logger.debug('Connection closed')
-            @connection = nil
-            reconnect(@reconnection_policy.schedule) unless @closed
-          end
+      def host_found(host)
+      end
+
+      def host_lost(host)
+      end
+
+      def host_up(host)
+        synchronize do
+          @refreshing_statuses.delete(host)
+
+          return connect_async if !@connection && !(@status == :closed || @status == :closed)
         end
-        f = f.flat_map { register_async }
-        f = f.flat_map { refresh_hosts_async }
-        f
+
+        Ione::Future.resolved
+      end
+
+      def host_down(host)
+        synchronize do
+          return Ione::Future.resolved if (@connection && @connection.connected?) || @refreshing_statuses[host]
+
+          @logger.debug("Starting to continuously refresh status for ip=#{host.ip}")
+          @refreshing_statuses[host] = true
+        end
+
+        refresh_host_status_with_retry(host, @reconnection_policy.schedule)
       end
 
       def close_async
-        return Ione::Future.resolved if @closed
-        @closed = true
+        synchronize do
+          return Ione::Future.resolved if @status == :closing || @status == :closed
+          @status = :closing
+        end
         @io_reactor.stop
       end
 
@@ -60,18 +84,29 @@ module Cql
                         Protocol::SchemaChangeEventResponse::TYPE
                       )
 
-      def reconnect(schedule)
-        return Ione::Future.failed("closed") if @closed
+      def reconnect_async(schedule)
+        timeout = schedule.next
 
-        connect_async.fallback do |e|
-          @logger.error('Connection failed: %s: %s' % [e.class.name, e.message])
+        @logger.debug("Reestablishing control connection in #{timeout} seconds")
 
-          timeout = schedule.next
-
-          @logger.debug('Reconnecting in %d seconds' % timeout)
-
-          f = @io_reactor.schedule_timer(timeout)
-          f.flat_map { reconnect(schedule) }
+        f = @io_reactor.schedule_timer(timeout)
+        f = f.flat_map do
+          if synchronize { @status == :reconnecting }
+            @logger.debug('Reestablishing control connection')
+            plan = @load_balancing_policy.plan(nil, VOID_STATEMENT, VOID_OPTIONS)
+            connect_to_first_available(plan)
+          else
+            @logger.debug('Stopping reconnection')
+            Ione::Future.resolved
+          end
+        end
+        f.fallback do
+          if synchronize { @status == :reconnecting }
+            reconnect_async(schedule)
+          else
+            @logger.debug('Stopping reconnection')
+            return Ione::Future.resolved
+          end
         end
       end
 
@@ -80,9 +115,13 @@ module Cql
 
         return Ione::Future.failed("not connected") if connection.nil?
 
+        @logger.debug('Registering for events')
+
         @request_runner.execute(connection, REGISTER).map do
+          @logger.debug('Registered for events')
+
           connection.on_event do |event|
-            @logger.debug('Received %s %s event' % [event.type, event.change])
+            @logger.debug("Event received #{event}")
 
             if event.type == 'SCHEMA_CHANGE'
             else
@@ -113,13 +152,13 @@ module Cql
 
         return Ione::Future.failed("not connected") if connection.nil?
 
-        @logger.debug('Looking for additional nodes')
+        @logger.debug('Fetching cluster metadata and peers')
 
         local = @request_runner.execute(connection, SELECT_LOCAL)
         peers = @request_runner.execute(connection, SELECT_PEERS)
 
-        Ione::Future.all(local, peers).map do |(local, peers)|
-          @logger.debug('%d additional nodes found' % peers.size)
+        Ione::Future.all(local, peers).flat_map do |(local, peers)|
+          @logger.debug('%d peers found' % peers.size)
 
           raise NO_HOSTS if local.empty? && peers.empty?
 
@@ -137,11 +176,46 @@ module Cql
             @registry.host_found(ip, data)
           end
 
+          futures = []
+
           @registry.each_host do |host|
-            @registry.host_lost(host.ip) unless ips.include?(host.ip.to_s)
+            if ips.include?(host.ip.to_s)
+              futures << refresh_host_status(host) if host.down? && synchronize { !@refreshing_statuses[host] }
+            else
+              @registry.host_lost(host.ip)
+            end
           end
 
-          self
+          if futures.empty?
+            Ione::Future.resolved(self)
+          else
+            Ione::Future.all(*futures)
+          end
+        end
+      end
+
+      def refresh_host_status(host)
+        @logger.info("Refreshing host status ip=#{host.ip}")
+        @connector.connect(host).map do |connection|
+          @connector.close(host, connection)
+          @logger.info("Refreshed host status ip=#{host.ip}")
+        end
+      end
+
+      def refresh_host_status_with_retry(host, schedule)
+        timeout = schedule.next
+
+        @logger.info("Refreshing host status refresh ip=#{host.ip} in #{timeout}")
+
+        f = @io_reactor.schedule_timer(timeout)
+        f.flat_map do
+          if synchronize { @refreshing_statuses[host] }
+            refresh_host_status(host).fallback do |e|
+              refresh_host_status_with_retry(host, schedule)
+            end
+          else
+            Ione::Future.resolved
+          end
         end
       end
 
@@ -182,7 +256,38 @@ module Cql
 
       def connect_to_first_available(plan, errors = nil)
         host = plan.next
-        connect_to_host(host).fallback do |error|
+        @logger.debug("Attempting connection to ip=#{host.ip}")
+        f = connect_to_host(host)
+        f = f.flat_map do |connection|
+          synchronize do
+            @status = :connected
+
+            @logger.debug("Control connection established ip=#{connection.host}")
+            @connection = connection
+
+            connection.on_closed do
+              reconnect = false
+
+              synchronize do
+                if @status == :closing
+                  @status = :closed
+                else
+                  @status = :reconnecting
+                  reconnect = true
+                end
+
+                @logger.debug("Control connection closed ip=#{connection.host}")
+                @connection = nil
+              end
+
+              reconnect_async(@reconnection_policy.schedule) if reconnect
+            end
+          end
+
+          register_async
+        end
+        f = f.flat_map { refresh_hosts_async }
+        f.fallback do |error|
           if error.is_a?(Errors::AuthenticationError)
             Ione::Future.failed(error)
           elsif error.is_a?(Errors::QueryError)
@@ -198,11 +303,12 @@ module Cql
           end
         end
       rescue ::StopIteration
+        @logger.warn("Control connection failed")
         Ione::Future.failed(Errors::NoHostsAvailable.new(errors || {}))
       end
 
       def connect_to_host(host)
-        @connector.connect_to_host(host).fallback do |error|
+        @connector.connect(host).fallback do |error|
           if error.is_a?(Errors::QueryError) && error.code == 0x0a && @connection_options.protocol_version > 1
             @logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@connection_options.protocol_version, @connection_options.protocol_version - 1, error.message])
             @connection_options.protocol_version -= 1

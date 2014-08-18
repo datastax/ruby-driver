@@ -45,6 +45,10 @@ Then(/^its output should match:$/) do |output|
   step 'the output should match:', output
 end
 
+Given(/^I wait for its output to contain "(.*?)"$/) do |output|
+  step "I wait for output to contain \"#{output}\""
+end
+
 When(/^node (\d+) starts$/) do |i|
   @cluster.start_nth_node(i)
 end
@@ -66,6 +70,14 @@ When(/^node (\d+) gets decommissioned$/) do |i|
   @cluster.decommission_node(i)
 end
 
+Given(/^all nodes are down$/) do
+  step 'all nodes go down'
+end
+
+When(/^all nodes go down$/) do
+  @cluster.stop
+end
+
 When(/^node (\d+) leaves$/) do |i|
   step "node #{i} gets decommissioned"
   step "node #{i} stops"
@@ -83,6 +95,10 @@ end
 
 When(/^keyspace "(.*?)" is dropped$/) do |keyspace|
   @cluster.drop_keyspace(keyspace)
+end
+
+When(/^I wait for (\d+) seconds$/) do |interval|
+  sleep(interval.to_i)
 end
 
 After('@auth') do

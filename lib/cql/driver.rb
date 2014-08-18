@@ -12,13 +12,11 @@ module Cql
     let(:io_reactor)       { Reactor.new(Io::IoReactor.new) }
     let(:cluster_registry) { Cluster::Registry.new }
 
-    let(:eviction_policy) { Cluster::EvictionPolicy.new(cluster_registry) }
-
-    let(:connector) { Cluster::Connector.new(logger, io_reactor, eviction_policy, connection_options) }
+    let(:connector) { Cluster::Connector.new(logger, io_reactor, cluster_registry, connection_options) }
 
     let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, connector, connection_options) }
 
-    let(:cluster) { Cluster.new(logger, io_reactor, control_connection, cluster_registry, execution_options, load_balancing_policy, reconnection_policy, retry_policy, connector) }
+    let(:cluster) { Cluster.new(logger, io_reactor, control_connection, cluster_registry, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, connector) }
 
     let(:execution_options) do
       Execution::Options.new({
@@ -53,6 +51,7 @@ module Cql
 
     def connect(addresses)
       cluster_registry.add_listener(load_balancing_policy)
+      cluster_registry.add_listener(control_connection)
       initial_state_listeners.each do |listener|
         cluster.register(listener)
       end

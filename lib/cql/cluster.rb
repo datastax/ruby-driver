@@ -25,12 +25,13 @@ module Cql
     def_delegators :@registry, :hosts, :each_host, :host, :has_host?
 
     # @private
-    def initialize(logger, io_reactor, control_connection, cluster_registry, execution_options, load_balancing_policy, reconnection_policy, retry_policy, connector)
+    def initialize(logger, io_reactor, control_connection, cluster_registry, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, connector)
       @logger                = logger
       @io_reactor            = io_reactor
       @control_connection    = control_connection
       @registry              = cluster_registry
       @execution_options     = execution_options
+      @connection_options    = connection_options
       @load_balancing_policy = load_balancing_policy
       @reconnection_policy   = reconnection_policy
       @retry_policy          = retry_policy
@@ -43,7 +44,7 @@ module Cql
     end
 
     def connect_async(keyspace = nil)
-      client  = Client.new(@logger, @registry, @io_reactor, @connector, @load_balancing_policy, @reconnection_policy, @retry_policy)
+      client  = Client.new(@logger, @registry, @io_reactor, @connector, @load_balancing_policy, @reconnection_policy, @retry_policy, @connection_options)
       session = Session.new(client, @execution_options)
       promise = Promise.new
 
@@ -86,12 +87,15 @@ module Cql
     def close
       close_async.get
     end
+
+    def inspect
+      "#<#{self.class.name}:0x#{self.object_id.to_s(16)}>"
+    end
   end
 end
 
 require 'cql/cluster/client'
 require 'cql/cluster/connector'
 require 'cql/cluster/control_connection'
-require 'cql/cluster/eviction_policy'
 require 'cql/cluster/options'
 require 'cql/cluster/registry'
