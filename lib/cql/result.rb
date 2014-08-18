@@ -106,6 +106,10 @@ module Cql
           @client.execute(@statement, options, @paging_state)
         end
       end
+
+      def inspect
+        "#<Cql::Result:0x#{self.object_id.to_s(16)}>"
+      end
     end
 
     class Void < Result
@@ -170,6 +174,10 @@ module Cql
 
       def next_page(options = nil)
         nil
+      end
+
+      def inspect
+        "#<Cql::Result:0x#{self.object_id.to_s(16)}>"
       end
 
       private

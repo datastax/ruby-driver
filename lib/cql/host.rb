@@ -32,5 +32,9 @@ module Cql
     def eql?(other)
       other.eql?(@ip)
     end
+
+    def inspect
+      "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @ip=#{@ip}>"
+    end
   end
 end
