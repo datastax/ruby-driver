@@ -81,7 +81,6 @@ module Cql
       end
 
       def run(pending_connection)
-        @logger.debug('Connecting to node at %s:%d' % [pending_connection.host, @port])
         @io_reactor.connect(pending_connection.host, @port, @connection_timeout, &@protocol_handler_factory).map do |connection|
           pending_connection.with_connection(connection)
         end

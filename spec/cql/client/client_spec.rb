@@ -1374,12 +1374,6 @@ module Cql
       context 'with logging' do
         include_context 'peer discovery setup'
 
-        it 'logs when connecting to a node' do
-          logger.stub(:debug)
-          client.connect.value
-          logger.should have_received(:debug).with(/Connecting to node at example\.com:12321/)
-        end
-
         it 'logs when a node is connected' do
           logger.stub(:info)
           client.connect.value

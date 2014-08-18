@@ -254,12 +254,6 @@ module Cql
           result.value.should equal(new_pending_connection)
         end
 
-        it 'logs a message when it starts connecting' do
-          logger.stub(:debug)
-          step.run(pending_connection)
-          logger.should have_received(:debug).with(/connecting to node at example\.com:1111/i)
-        end
-
         it 'returns a failed future when the connection fails' do
           io_reactor.stub(:connect).and_return(Ione::Future.failed(StandardError.new('bork')))
           result = step.run(pending_connection)
