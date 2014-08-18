@@ -91,17 +91,19 @@ module Cql
       # Returns the next page or nil when there is no next page.
       #
       # @return [Cql::Result]
-      def next_page
-        next_page_async.get
+      def next_page(options = nil)
+        next_page_async(options).get
       end
 
-      def next_page_async
+      def next_page_async(options = nil)
         return FULFILLED_FUTURE if @paging_state.nil?
 
+        options = options ? @options.override(options) : @options
+
         if @statement.is_a?(Statements::Simple)
-          @client.query(@statement, @options, @paging_state)
+          @client.query(@statement, options, @paging_state)
         else
-          @client.execute(@statement, @options, @paging_state)
+          @client.execute(@statement, options, @paging_state)
         end
       end
     end
@@ -162,11 +164,11 @@ module Cql
       # {Cql::Client::PreparedStatement#execute}.
       #
       # @see Cql::Client::Client#execute
-      def next_page_async
+      def next_page_async(options = nil)
         FULFILLED_FUTURE
       end
 
-      def next_page
+      def next_page(options = nil)
         nil
       end
 
