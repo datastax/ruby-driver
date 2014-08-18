@@ -8,7 +8,8 @@ module Cql
 
       LISTENER_METHODS = [:host_found, :host_lost, :host_up, :host_down].freeze
 
-      def initialize
+      def initialize(logger)
+        @logger    = logger
         @hosts     = ::Hash.new
         @listeners = ::Set.new
 
@@ -52,26 +53,16 @@ module Cql
 
             return self
           else
-            host = toggle_down(host) if host.up?
-
-            @listeners.each do |listener|
-              listener.host_lost(host) rescue nil
-            end
+            notify_lost(host)
 
             host = create_host(address, data)
 
-            @listeners.each do |listener|
-              listener.host_found(host) rescue nil
-              listener.host_up(host) rescue nil
-            end
+            notify_found(host)
           end
         else
           host = create_host(address, data)
 
-          @listeners.each do |listener|
-            listener.host_found(host) rescue nil
-            listener.host_up(host) rescue nil
-          end
+          notify_found(host)
         end
 
         synchronize { @hosts = @hosts.merge(ip => host) }
@@ -117,11 +108,7 @@ module Cql
           @hosts = hosts
         end
 
-        host = toggle_down(host) if host.up?
-
-        @listeners.each do |listener|
-          listener.host_lost(host) rescue nil
-        end
+        notify_lost(host)
 
         self
       end
@@ -134,6 +121,7 @@ module Cql
 
       def toggle_up(host)
         host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, :up)
+        @logger.debug("Host #{host.ip} is up")
         @listeners.each do |listener|
           listener.host_up(host) rescue nil
         end
@@ -142,10 +130,35 @@ module Cql
 
       def toggle_down(host)
         host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, :down)
+        @logger.debug("Host #{host.ip} is down")
         @listeners.each do |listener|
           listener.host_down(host) rescue nil
         end
         host
+      end
+
+      def notify_lost(host)
+        if host.up?
+          @logger.debug("Host #{host.ip} is down and lost")
+          host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, :down)
+          @listeners.each do |listener|
+            listener.host_down(host) rescue nil
+            listener.host_lost(host) rescue nil
+          end
+        else
+          @logger.debug("Host #{host.ip} is lost")
+          @listeners.each do |listener|
+            listener.host_lost(host) rescue nil
+          end
+        end
+      end
+
+      def notify_found(host)
+        @logger.debug("Host #{host.ip} is found and up")
+        @listeners.each do |listener|
+          listener.host_found(host) rescue nil
+          listener.host_up(host) rescue nil
+        end
       end
     end
   end

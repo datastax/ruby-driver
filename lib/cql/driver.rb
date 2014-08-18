@@ -10,7 +10,7 @@ module Cql
 
     let(:request_runner)   { Client::RequestRunner.new }
     let(:io_reactor)       { Reactor.new(Io::IoReactor.new) }
-    let(:cluster_registry) { Cluster::Registry.new }
+    let(:cluster_registry) { Cluster::Registry.new(logger) }
 
     let(:connector) { Cluster::Connector.new(logger, io_reactor, cluster_registry, connection_options) }
 
