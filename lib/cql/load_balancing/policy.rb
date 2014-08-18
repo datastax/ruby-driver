@@ -75,6 +75,10 @@ module Cql
         raise ::NotImplementedError, "must be implemented by a child"
       end
 
+      def inspect
+        "#<#{self.class.name}:0x#{self.object_id.to_s(16)}>"
+      end
+
       private
 
       # Returns a distance to host that is local
