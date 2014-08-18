@@ -50,9 +50,7 @@ module Cql
              host.rack            == data['rack']            &&
              host.datacenter      == data['data_center']
 
-            return self if host.up?
-
-            host = toggle_up(host)
+            return self
           else
             host = toggle_down(host) if host.up?
 
