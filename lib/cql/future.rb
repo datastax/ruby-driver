@@ -135,7 +135,7 @@ module Cql
       def add_listener(listener)
         raise ::ArgumentError, "listener must respond to both #success and #failure" unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
 
-        listener.failure(@error)
+        listener.failure(@error) rescue nil
         self
       end
     end
@@ -161,7 +161,7 @@ module Cql
       def add_listener(listener)
         raise ::ArgumentError, "listener must respond to both #success and #failure" unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
 
-        listener.success(@value)
+        listener.success(@value) rescue nil
         self
       end
     end
@@ -201,7 +201,7 @@ module Cql
         end
 
         listeners.each do |listener|
-          listener.failure(error)
+          listener.failure(error) rescue nil
         end
 
         self
@@ -224,7 +224,7 @@ module Cql
         end
 
         listeners.each do |listener|
-          listener.success(value)
+          listener.success(value) rescue nil
         end
 
         self
@@ -267,12 +267,12 @@ module Cql
             end
           end
 
-          listener.success(@value) if @state == :fulfilled
-          listener.failure(@error) if @state == :broken
+          listener.success(@value) rescue nil if @state == :fulfilled
+          listener.failure(@error) rescue nil if @state == :broken
         when :fulfilled
-          listener.success(@value)
+          listener.success(@value) rescue nil
         when :broken
-          listener.failure(@error)
+          listener.failure(@error) rescue nil
         end
 
         self
