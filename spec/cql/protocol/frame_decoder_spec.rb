@@ -78,9 +78,14 @@ module Cql
 
           it 'extracts a trace ID' do
             buffer = CqlByteBuffer.new
-            buffer << "\x81\x02\x00\x08\x00\x00\x00\x14\a\xE4\xBE\x10?\x03\x11\xE3\x951\xFBr\xEF\xF0_\xBB\x00\x00\x00\x01"
+            buffer << "\x81\x02\x00\x08\x00\x00\x00\x52"
+            buffer << "\a\xE4\xBE\x10?\x03\x11\xE3\x951\xFBr\xEF\xF0_\xBB"
+            buffer << "\x00\x00\x00\x02\x00\x00\x00\x04phil\x00\x00\x00\x0dphil@heck.com\xff\xff\xff\xff\x00\x00\x00\x03sue\x00\x00\x00\x0dsue@inter.net\xff\xff\xff\xff"
+            buffer << "extra"
+            buffer << "bytes"
             frame = decoder.decode_frame(buffer)
             frame.body.trace_id.should == Uuid.new('07e4be10-3f03-11e3-9531-fb72eff05fbb')
+            buffer.to_s.should == 'bytes'
           end
 
           it 'complains when the frame is a request frame' do
