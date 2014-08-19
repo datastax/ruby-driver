@@ -3,72 +3,97 @@
 module Cql
   module Retry
     module Policy
-      # Public: decides wether to retry a read and at what consistency level.
+      # Decides wether to retry a read and at what consistency level.
       # 
-      # Not that this method may be calld even if required_responses >=
-      # received responses if data_present is false.
+      # @note this method may be called even if required_responses >= received
+      #   responses if data_present is false.
       # 
-      # statement          - the original Statement that timed out
-      # consistency_level  - original ConsistencyLevel
-      # responses_required - the number of responses required to achieve
-      #                      requested consistency level
-      # responses_received - the number of responses received by the time the
-      #                      query timed out
-      # data_received      - whether actual data (as opposed to data checksum)
-      #                      was present in the received responses.
-      # retries           - the number of retries already performed
+      # @param statement [Cql::Statement] the original statement that timed out
+      # @param consistency [Symbol] the original consistency level for the
+      #   request, one of {Cql::CONSISTENCIES}
+      # @param required [Integer] the number of responses required to achieve
+      #   requested consistency level
+      # @param received [Integer] the number of responses received by the time
+      #   the query timed out
+      # @param retrieved [Boolean] whether actual data (as opposed to data
+      #   checksum) was present in the received responses.
+      # @param retries [Integer] the number of retries already performed
       # 
-      # Returns a Cql::Policies::Retry::Decision
-      def read_timeout(statement, consistency_level, responses_required,      \
-                       responses_received, data_retrieved, retries)
-        raise NotImplemented, "must be implemented by a policy"
+      # @abstract implementation should be provided by an actual policy
+      # @return [Cql::Policies::Retry::Decision] a retry decision
+      #
+      # @see Cql::Retry::Policy#try_again
+      # @see Cql::Retry::Policy#reraise
+      # @see Cql::Retry::Policy#ignore
+      def read_timeout(statement, consistency, required, received, retrieved, retries)
       end
 
-      # Public: decides wether to retry a write and at what consistency level.
+      # Decides wether to retry a write and at what consistency level.
       # 
-      # statement          - the original Statement that timed out
-      # consistency_level  - original ConsistencyLevel
-      # write_type         - One of :simple, :batch, :unlogged_batch, :counter
-      #                      :batch_log or :cas
-      # acks_required      - the number of acks required to achieve requested
-      #                      consistency level
-      # acks_received      - the number of acks received by the time the query
-      #                      timed out
-      # retries           - the number of retries already performed
+      # @param statement [Cql::Statement] the original statement that timed out
+      # @param consistency [Symbol] the original consistency level for the
+      #   request, one of {Cql::CONSISTENCIES}
+      # @param type [Symbol] One of `:simple`, `:batch`, `:unlogged_batch`,
+      #   `:counter` or `:batch_log`
+      # @param required [Integer] the number of acks required to achieve
+      #   requested consistency level
+      # @param received [Integer] the number of acks received by the time the
+      #   query timed out
+      # @param retries [Integer] the number of retries already performed
       # 
-      # Returns a Cql::Policies::Retry::Decision
-      def write_timeout(statement, consistency_level, write_type,             \
-                               acks_required, acks_received, retries)
-        raise NotImplemented, "must be implemented by a policy"
+      # @abstract implementation should be provided by an actual policy
+      # @return [Cql::Policies::Retry::Decision] a retry decision
+      #
+      # @see Cql::Retry::Policy#try_again
+      # @see Cql::Retry::Policy#reraise
+      # @see Cql::Retry::Policy#ignore
+      def write_timeout(statement, consistency, type, required, received, retries)
       end
 
-      # Public: decides wether to retry and at what consistency level on an
-      #         Unavailable exception.
+      # Decides wether to retry and at what consistency level on an Unavailable
+      # exception.
       # 
-      # statement          - the original Statement that timed out
-      # consistency_level  - original ConsistencyLevel
-      # replicas_required  - the number of replicas required to achieve
-      #                      requested consistency level
-      # replicas_alive     - the number of replicas received by the time the
-      #                      query timed out
-      # retries           - the number of retries already performed
+      # @param statement [Cql::Statement] the original Statement that timed out
+      # @param consistency [Symbol] the original consistency level for the
+      #   request, one of {Cql::CONSISTENCIES}
+      # @param required [Integer] the number of replicas required to achieve
+      #   requested consistency level
+      # @param alive [Integer] the number of replicas received by the time the
+      #   query timed out
+      # @param retries [Integer] the number of retries already performed
       # 
-      # Returns a Cql::Policies::Retry::Decision
-      def unavailable(statement, consistency_level, replicas_required,        \
-                      replicas_alive, retries)
-        raise NotImplemented, "must be implemented by a policy"
+      # @abstract implementation should be provided by an actual policy
+      # @return [Cql::Policies::Retry::Decision] a retry decision
+      #
+      # @see Cql::Retry::Policy#try_again
+      # @see Cql::Retry::Policy#reraise
+      # @see Cql::Retry::Policy#ignore
+      def unavailable(statement, consistency, required, alive, retries)
       end
 
       private
 
-      def try_again(consistency_level)
-        Decisions::Retry.new(consistency_level)
+      # Returns a decision that signals retry at a given consistency
+      #
+      # @param consistency [Symbol] consistency level for the retry, one of
+      #   {Cql::CONSISTENCIES}
+      # @return [Cql::Policies::Retry::Decision] tell driver to retry
+      def try_again(consistency)
+        Decisions::Retry.new(consistency)
       end
 
+      # Returns a decision that signals to driver to reraise original error to
+      # the application
+      #
+      # @return [Cql::Policies::Retry::Decision] tell driver to reraise
       def reraise
         DECISION_RERAISE
       end
 
+      # Returns a decision that signals to driver to ignore the error
+      #
+      # @return [Cql::Policies::Retry::Decision] tell driver to ignore the error
+      #   and return an empty result to the application
       def ignore
         DECISION_IGNORE
       end

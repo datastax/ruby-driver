@@ -6,41 +6,38 @@ module Cql
       class DowngradingConsistency
         include Policy
 
-        def read_timeout(statement, consistency_level, required_responses,
-                         received_responses, data_retrieved, retries)
-          return reraise if retries > 0 || SERIAL_CONSISTENCIES.include?(consistency_level)
-          return max_likely_to_work(consistency_level, required_responses, received_responses) if received_responses < required_responses
+        def read_timeout(statement, consistency, required, received, retrieved, retries)
+          return reraise if retries > 0 || SERIAL_CONSISTENCIES.include?(consistency)
+          return max_likely_to_work(consistency, required, received) if received < required
 
-          data_retrieved ? reraise : try_again(consistency_level)
+          retrieved ? reraise : try_again(consistency)
         end
 
-        def write_timeout(statement, consistency_level, write_type,
-                          acks_required, acks_received, retries)
+        def write_timeout(statement, consistency, type, required, received, retries)
           return reraise if retries > 0
 
-          case write_type
+          case type
           when :simple, :batch
             ignore
           when :unlogged_batch
-            max_likely_to_work(consistency_level, acks_required, acks_received)
+            max_likely_to_work(consistency, required, received)
           when :batch_log
-            try_again(consistency_level)
+            try_again(consistency)
           else
             reraise
           end
         end
 
-        def unavailable(statement, consistency_level, replicas_required,
-                        replicas_alive, retries)
+        def unavailable(statement, consistency, required, alive, retries)
           return reraise if retries > 0
 
-          max_likely_to_work(consistency_level, replicas_required, replicas_alive)
+          max_likely_to_work(consistency, required, alive)
         end
 
         private
 
-        def max_likely_to_work(consistency_level, required, received)
-          if consistency_level == :all && required > 1 && received >= (required.to_f / 2).floor + 1
+        def max_likely_to_work(consistency, required, received)
+          if consistency == :all && required > 1 && received >= (required.to_f / 2).floor + 1
             try_again(:quorum)
           elsif received >= 3
             try_again(:three)

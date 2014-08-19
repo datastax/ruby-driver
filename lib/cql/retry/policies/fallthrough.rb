@@ -6,18 +6,15 @@ module Cql
       class Fallthrough
         include Policy
 
-        def read_timeout(statement, consistency_level, required_responses,
-                         received_responses, data_retrieved, retries)
+        def read_timeout(statement, consistency, required, received, retrieved, retries)
           reraise
         end
 
-        def write_timeout(statement, consistency_level, write_type,
-                          acks_required, acks_received, retries)
+        def write_timeout(statement, consistency, type, required, received, retries)
           reraise
         end
 
-        def unavailable(statement, consistency_level, replicas_required,
-                        replicas_alive, retries)
+        def unavailable(statement, consistency, required, alive, retries)
           reraise
         end
       end
