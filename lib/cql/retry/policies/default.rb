@@ -21,7 +21,7 @@ module Cql
                           acks_required, acks_received, retries)
           return reraise if retries > 0
 
-          write_type == 'BATCH_LOG' ? try_again(consistency_level) : reraise
+          write_type == :batch_log ? try_again(consistency_level) : reraise
         end
 
         def unavailable(statement, consistency_level, replicas_required,

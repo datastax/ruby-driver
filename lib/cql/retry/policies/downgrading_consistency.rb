@@ -19,11 +19,11 @@ module Cql
           return reraise if retries > 0
 
           case write_type
-          when 'SIMPLE', 'BATCH'
+          when :simple, :batch
             ignore
-          when 'UNLOGGED_BATCH'
+          when :unlogged_batch
             max_likely_to_work(consistency_level, acks_required, acks_received)
-          when 'BATCH_LOG'
+          when :batch_log
             try_again(consistency_level)
           else
             reraise

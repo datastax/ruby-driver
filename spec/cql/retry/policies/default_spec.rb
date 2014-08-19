@@ -64,7 +64,7 @@ module Cql
         describe('#write_timeout') do
           let(:statement)     { VOID_STATEMENT }
           let(:consistency)   { :one }
-          let(:write_type)    { 'SIMPLE' }
+          let(:write_type)    { :simple }
           let(:acks_required) { 1 }
           let(:acks_received) { 0 }
           let(:retries)       { 0 }
@@ -82,8 +82,8 @@ module Cql
             end
           end
 
-          context('write_type=BATCH_LOG') do
-            let(:write_type) { 'BATCH_LOG' }
+          context('write_type=:batch_log') do
+            let(:write_type) { :batch_log }
 
             it 'retries with the same consistency' do
               expect(decision).to be_a(Decisions::Retry)
@@ -92,7 +92,7 @@ module Cql
           end
 
           context('other write_types') do
-            let(:write_type) { 'OTHER' }
+            let(:write_type) { :other }
 
             it 'reraises' do
               expect(decision).to be_a(Decisions::Reraise)

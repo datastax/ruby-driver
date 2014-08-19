@@ -461,7 +461,7 @@ module Cql
               when UNAVAILABLE_ERROR_CODE
                 @retry_policy.unavailable(statement, details[:cl], details[:required], details[:alive], retries)
               when WRITE_TIMEOUT_ERROR_CODE
-                @retry_policy.write_timeout(statement, details[:cl], details[:write_type], details[:blockfor], details[:received], retries)
+                @retry_policy.write_timeout(statement, details[:cl], details[:write_type].downcase!.to_sym, details[:blockfor], details[:received], retries)
               when READ_TIMEOUT_ERROR_CODE
                 @retry_policy.read_timeout(statement, details[:cl], details[:blockfor], details[:received], details[:data_present], retries)
               else
