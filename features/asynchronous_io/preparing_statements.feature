@@ -12,7 +12,7 @@ Feature: Preparing statements asynchronously
       """ruby
       require 'cql'
       
-      cluster = Cql.cluster.build
+      cluster = Cql.connect
       session = cluster.connect("simplex")
       
       # prepare 2 statements in parallel

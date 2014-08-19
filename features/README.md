@@ -16,7 +16,7 @@ Full list of features can be found in detailed documentation sections on the rig
 ```ruby
 require 'cql'
 
-cluster = Cql.cluster.build
+cluster = Cql.connect
 
 cluster.hosts.each do |host|
   puts "Host #{host.ip}: id=#{host.id} datacenter=#{host.datacenter} rack=#{host.rack}"
@@ -112,11 +112,11 @@ A Cluster instance allows to configure different important aspects of the way co
 ```ruby
 require 'cql'
 
-cluster = Cql.cluster
-            .with_contact_points('10.1.1.3', '10.1.1.4', '10.1.1.5')
-            .with_load_balancing_policy(Cql::LoadBalancing::Policies::DCAwareRoundRobin.new("US_EAST"))
-            .with_compresion(:snappy) # or :lz4
-            .build
+cluster = Cql.connect(
+            :hosts => ['10.1.1.3', '10.1.1.4', '10.1.1.5'],
+            :load_balancing_policy => Cql::LoadBalancing::Policies::DCAwareRoundRobin.new("US_EAST"),
+            :compresion => :snappy # or :lz4
+          )
 ```
 
 ### Session

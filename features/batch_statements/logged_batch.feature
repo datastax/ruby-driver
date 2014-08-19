@@ -11,9 +11,7 @@ Feature: logged batch
       """ruby
       require 'cql'
 
-      cluster = Cql.cluster
-                  .with_contact_points("127.0.0.1")
-                  .build
+      cluster = Cql.connect
 
       at_exit { cluster.close }
 
@@ -70,9 +68,7 @@ Feature: logged batch
       """ruby
       require 'cql'
 
-      cluster = Cql.cluster
-                  .with_contact_points("127.0.0.1")
-                  .build
+      cluster = Cql.connect
 
       at_exit { cluster.close }
 
@@ -126,9 +122,7 @@ Feature: logged batch
       """ruby
       require 'cql'
 
-      cluster = Cql.cluster
-                  .with_contact_points("127.0.0.1")
-                  .build
+      cluster = Cql.connect
 
       at_exit { cluster.close }
 

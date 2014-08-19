@@ -14,10 +14,7 @@ Feature: Downgrading Consistency Retry Policy
       """ruby
       require 'cql'
 
-      cluster = Cql.cluster
-                   .with_retry_policy(Cql::Retry::Policies::DowngradingConsistency.new)
-                   .build
-
+      cluster = Cql.connect(retry_policy: Cql::Retry::Policies::DowngradingConsistency.new)
       session = cluster.connect('simplex')
       result  = session.execute('SELECT * FROM songs', consistency: :all)
 

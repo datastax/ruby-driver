@@ -1,4 +1,4 @@
-Feature: Automatically reconnect
+Feature: Automatic reconnection
 
   Ruby driver automatically reestablishes failed connections to Cassandra
   cluster. It will use a reconnection policy to determine retry intervals.
@@ -40,10 +40,10 @@ Feature: Automatically reconnect
       
       interval = 2 # reconnect every 2 seconds
       policy   = Cql::Reconnection::Policies::Constant.new(interval)
-      cluster  = Cql.cluster
-                  .add_listener(PrintingListener.new($stdout))
-                  .with_reconnection_policy(policy)
-                  .build
+      cluster  = Cql.connect(
+                   listeners: [PrintingListener.new($stdout)],
+                   reconnection_policy: policy
+                 )
       session = cluster.connect
       
       $stdout.puts("=== START ===")

@@ -10,9 +10,7 @@ Feature: Execution information
       """ruby
       require 'cql'
 
-      cluster = Cql.cluster
-                  .with_contact_points("127.0.0.1")
-                  .build
+      cluster = Cql.connect
 
       at_exit { cluster.close }
 
@@ -71,13 +69,7 @@ Feature: Execution information
       require 'cql'
       require 'retrying_at_a_given_consistency_policy'
 
-      cluster = Cql.cluster
-                  .with_retry_policy(RetryingAtAGivenConsistencyPolicy.new(:one))
-                  .with_contact_points("127.0.0.1")
-                  .build
-
-      at_exit { cluster.close }
-
+      cluster   = Cql.connect(retry_policy: RetryingAtAGivenConsistencyPolicy.new(:one))
       session   = cluster.connect("simplex")
       execution = session.execute("SELECT * FROM songs", :consistency => :all).execution_info
 

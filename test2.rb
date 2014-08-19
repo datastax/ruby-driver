@@ -3,9 +3,7 @@
 require 'cql'
 # require 'allocation_stats'
 
-cluster = Cql.cluster
-            .with_contact_points('127.0.0.1')
-            .build
+cluster = Cql.connect(hosts: ['127.0.0.1'])
 
 # at_exit { cluster.close }
 

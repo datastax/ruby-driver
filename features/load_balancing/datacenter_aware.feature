@@ -26,10 +26,8 @@ Feature: Datacenter-aware Round Robin Policy
 
       datacenter = "dc2"
       policy     = Cql::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
-      cluster    = Cql.cluster
-                    .with_load_balancing_policy(policy)
-                    .build
-      session = cluster.connect('simplex')
+      cluster    = Cql.connect(load_balancing_policy: policy)
+      session    = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
         info = session.execute("SELECT * FROM songs").execution_info
@@ -52,10 +50,8 @@ Feature: Datacenter-aware Round Robin Policy
 
       datacenter = "dc2"
       policy     = Cql::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
-      cluster    = Cql.cluster
-                    .with_load_balancing_policy(policy)
-                    .build
-      session = cluster.connect('simplex')
+      cluster    = Cql.connect(load_balancing_policy: policy)
+      session    = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
         info = session.execute("SELECT * FROM songs").execution_info
@@ -81,10 +77,8 @@ Feature: Datacenter-aware Round Robin Policy
       datacenter     = "dc2"
       remotes_to_try = 1
       policy         = Cql::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, remotes_to_try)
-      cluster        = Cql.cluster
-                         .with_load_balancing_policy(policy)
-                         .build
-      session = cluster.connect('simplex')
+      cluster        = Cql.connect(load_balancing_policy: policy)
+      session        = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
         info = session.execute("SELECT * FROM songs").execution_info
@@ -108,10 +102,8 @@ Feature: Datacenter-aware Round Robin Policy
 
       datacenter = "dc2"
       policy     = Cql::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
-      cluster    = Cql.cluster
-                    .with_load_balancing_policy(policy)
-                    .build
-      session = cluster.connect('simplex')
+      cluster    = Cql.connect(load_balancing_policy: policy)
+      session    = cluster.connect('simplex')
 
       session.execute("SELECT * FROM songs", :consistency => :local_one)
       """
@@ -131,10 +123,8 @@ Feature: Datacenter-aware Round Robin Policy
       datacenter = "dc2"
       use_remote = true
       policy     = Cql::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, nil, use_remote)
-      cluster    = Cql.cluster
-                    .with_load_balancing_policy(policy)
-                    .build
-      session = cluster.connect('simplex')
+      cluster    = Cql.connect(load_balancing_policy: policy)
+      session    = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
         info = session.execute("SELECT * FROM songs").execution_info

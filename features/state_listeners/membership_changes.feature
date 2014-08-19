@@ -35,9 +35,7 @@ Feature: membership change detection
       require 'cql'
 
       listener = PrintingListener.new($stderr)
-      cluster  = Cql.cluster
-                  .with_contact_points("127.0.0.1")
-                  .build
+      cluster  = Cql.connect
 
       at_exit { cluster.close }
 

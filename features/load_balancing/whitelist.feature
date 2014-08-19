@@ -14,7 +14,7 @@ Feature: White List Policy
       allowed_ips = ["127.0.0.1", "127.0.0.3"]
       round_robin = Cql::LoadBalancing::Policies::RoundRobin.new
       whitelist   = Cql::LoadBalancing::Policies::WhiteList.new(allowed_ips, round_robin)
-      cluster     = Cql.cluster.with_load_balancing_policy(whitelist).build
+      cluster     = Cql.connect(load_balancing_policy: whitelist)
       session     = cluster.connect('simplex')
 
       coordinator_ips = 3.times.map do

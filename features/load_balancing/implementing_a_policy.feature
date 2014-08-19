@@ -65,10 +65,8 @@ Feature: Implementing custom load balancing policies
       require 'cql'
       require 'ignoring_keyspace_policy'
       
-      policy  = Cql::LoadBalancing::Policies::RoundRobin.new
-      cluster = Cql.cluster
-                  .with_load_balancing_policy(IgnoringKeyspacePolicy.new('simplex', policy))
-                  .build
+      policy  = IgnoringKeyspacePolicy.new('simplex', Cql::LoadBalancing::Policies::RoundRobin.new)
+      cluster = Cql.connect(load_balancing_policy: policy)
       session = cluster.connect('simplex')
       
       begin
@@ -134,10 +132,8 @@ Feature: Implementing custom load balancing policies
       require 'cql'
       require 'blacklist_policy'
       
-      policy  = Cql::LoadBalancing::Policies::RoundRobin.new
-      cluster = Cql.cluster
-                  .with_load_balancing_policy(BlackListPolicy.new(['127.0.0.2', '127.0.0.3'], policy))
-                  .build
+      policy  = BlackListPolicy.new(['127.0.0.2', '127.0.0.3'], Cql::LoadBalancing::Policies::RoundRobin.new)
+      cluster = Cql.connect(load_balancing_policy: policy)
       session = cluster.connect('simplex')
       
       host_ips = cluster.hosts.map(&:ip).sort

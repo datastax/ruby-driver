@@ -13,7 +13,7 @@ Feature: Round Robin Policy
       """ruby
       require 'cql'
 
-      cluster = Cql.cluster.build
+      cluster = Cql.connect
       session = cluster.connect('simplex')
 
       coordinator_ips = 3.times.map do
@@ -37,9 +37,8 @@ Feature: Round Robin Policy
       """ruby
       require 'cql'
 
-      cluster = Cql.cluster
-        .with_load_balancing_policy(Cql::LoadBalancing::Policies::RoundRobin.new)
-        .build
+      policy  = Cql::LoadBalancing::Policies::RoundRobin.new
+      cluster = Cql.connect(load_balancing_policy: policy)
       session = cluster.connect('simplex')
 
       coordinator_ips = 3.times.map do
@@ -67,9 +66,8 @@ Feature: Round Robin Policy
     """ruby
       require 'cql'
 
-      cluster = Cql.cluster
-        .with_load_balancing_policy(Cql::LoadBalancing::Policies::RoundRobin.new)
-        .build
+      policy  = Cql::LoadBalancing::Policies::RoundRobin.new
+      cluster = Cql.connect(load_balancing_policy: policy)
       session = cluster.connect('simplex')
 
       coordinator_ips = 4.times.map do

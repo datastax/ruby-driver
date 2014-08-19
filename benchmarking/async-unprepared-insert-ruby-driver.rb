@@ -15,7 +15,7 @@ class UnpreparedInsertRubyDriver < Benchmark
 
     def connect_to_cluster
         puts "#{Time.now - start} Connecting to cluster..."
-        @cluster = Cql.cluster.with_contact_points('127.0.0.1').build
+        @cluster = Cql.connect(hosts: ['127.0.0.1'])
         @session = @cluster.connect("simplex")
         @session.execute(Cql::Statements::Simple.new("TRUNCATE songs"))
     end

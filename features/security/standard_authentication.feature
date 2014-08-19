@@ -11,10 +11,10 @@ Feature: Standard authentication
       require 'cql'
       
       begin
-        cluster = Cql.cluster
-                    .with_contact_points("127.0.0.1")
-                    .with_credentials(ENV['USERNAME'], ENV['PASSWORD'])
-                    .build
+        cluster = Cql.connect(credentials: {
+                      :username => ENV['USERNAME'],
+                      :password => ENV['PASSWORD']
+                    })
         puts "authentication successful"
       rescue Cql::Errors::AuthenticationError => e
         puts "#{e.class.name}: #{e.message}"

@@ -11,7 +11,7 @@ Feature: Executing queries asynchronously
       """ruby
       require 'cql'
 
-      cluster = Cql.cluster.build
+      cluster = Cql.connect
       session = cluster.connect("simplex")
       promise = session.execute_async("SELECT * FROM songs")
 
@@ -35,7 +35,7 @@ Feature: Executing queries asynchronously
       """ruby
       require 'cql'
 
-      cluster = Cql.cluster.build
+      cluster = Cql.connect
       session = cluster.connect("simplex")
       count   = 10
 

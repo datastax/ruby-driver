@@ -10,10 +10,7 @@ Feature: Fallthrough Retry Policy
       """ruby
       require 'cql'
 
-      cluster = Cql.cluster
-                   .with_retry_policy(Cql::Retry::Policies::Fallthrough.new)
-                   .build
-
+      cluster = Cql.connect(retry_policy: Cql::Retry::Policies::Fallthrough.new)
       session = cluster.connect('simplex')
 
       begin

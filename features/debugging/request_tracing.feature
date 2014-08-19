@@ -10,7 +10,7 @@ Feature: Request tracing
       """ruby
       require 'cql'
 
-      cluster   = Cql.cluster.build
+      cluster   = Cql.connect
       session   = cluster.connect("simplex")
       execution = session.execute("SELECT * FROM songs").execution_info
 
@@ -33,7 +33,7 @@ Feature: Request tracing
       """ruby
       require 'cql'
 
-      cluster   = Cql.cluster.build
+      cluster   = Cql.connect
       session   = cluster.connect("simplex")
       execution = session.execute("SELECT * FROM songs", :trace => true).execution_info
       trace     = execution.trace
