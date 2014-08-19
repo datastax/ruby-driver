@@ -7,8 +7,8 @@ module Cql
       #   by Cassandra's gossip exchange or when the driver has successfully
       #   established a connection to it.
       #
-      # @param host [Cql::Host] a host instance
       # @abstract implementation should be provided by an actual policy
+      # @param host [Cql::Host] a host instance
       # @return [void]
       def host_up(host)
       end
@@ -17,8 +17,8 @@ module Cql
       #   by Cassandra's gossip exchange or when the driver failed to establish
       #   any connections to it.
       #
-      # @param host [Cql::Host] a host instance
       # @abstract implementation should be provided by an actual policy
+      # @param host [Cql::Host] a host instance
       # @return [void]
       def host_down(host)
       end
@@ -27,8 +27,8 @@ module Cql
       #   whether because it is a completely new node or if its
       #   {Cql::Host#datacenter} or {Cql::Host#rack} have changed.
       #
-      # @param host [Cql::Host] a host instance
       # @abstract implementation should be provided by an actual policy
+      # @param host [Cql::Host] a host instance
       # @return [void]
       def host_found(host)
       end
@@ -37,8 +37,8 @@ module Cql
       #   because it is completely gone or if its {Cql::Host#datacenter} or
       #   {Cql::Host#rack} have changed.
       #
-      # @param host [Cql::Host] a host instance
       # @abstract implementation should be provided by an actual policy
+      # @param host [Cql::Host] a host instance
       # @return [void]
       def host_lost(host)
       end
@@ -46,9 +46,7 @@ module Cql
       # Returns a distance that lets the driver to determine host many
       #   connections (if any) to open to the host
       #
-      # @param host [Cql::Host] a host instance
       # @abstract implementation should be provided by an actual policy
-      # @return [Cql::LoadBalancing::Distance] distance to host
       # @note a distance is constructed using one of
       #   {Cql::LoadBalancing::Policy#local},
       #   {Cql::LoadBalancing::Policy#remote} or
@@ -56,6 +54,8 @@ module Cql
       # @see Cql::LoadBalancing::Policy#local
       # @see Cql::LoadBalancing::Policy#remote
       # @see Cql::LoadBalancing::Policy#ignore
+      # @param host [Cql::Host] a host instance
+      # @return [Cql::LoadBalancing::Distance] distance to host
       def distance(host)
         ignore
       end
@@ -65,12 +65,12 @@ module Cql
       #
       # @note Hosts that should be ignored, must not be included in the Plan
       #
+      # @abstract implementation should be provided by an actual policy
       # @param keyspace [String] current keyspace of the {Cql::Session}
       # @param statement [Cql::Statement] actual statement to be executed
       # @param options [Cql::Execution::Options] execution options to be used
-      # @abstract implementation should be provided by an actual policy
-      # @return [Cql::LoadBalancing::Plan] a load balancing plan
       # @raise [NotImplementedError] override this method to return a plan
+      # @return [Cql::LoadBalancing::Plan] a load balancing plan
       def plan(keyspace, statement, options)
         raise ::NotImplementedError, "must be implemented by a child"
       end
