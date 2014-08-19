@@ -7,9 +7,14 @@ module Cql
   class Future
     # a Future listener to be passed to {Cql::Future#add_listener}
     #
-    # @note Listener methods can be called from application if a future has been resolved or failed by the time the listener is registered; or from background thread if it is resolved/failed after the listener has been registered.
+    # @note Listener methods can be called from application if a future has
+    #   been resolved or failed by the time the listener is registered; or from
+    #   background thread if it is resolved/failed after the listener has been
+    #   registered.
     #
-    # @abstract Actual listeners passed to {Cql::Future#add_listener} don't need to extend this class as long as they implement `#success` and `#failure` methods
+    # @abstract Actual listeners passed to {Cql::Future#add_listener} don't
+    #   need to extend this class as long as they implement `#success` and
+    #   `#failure` methods
     class Listener
       # @param value [Object] actual value the future has been resolved with
       # @return [void]
@@ -63,6 +68,7 @@ module Cql
     # Run block when promise is fulfilled
     # @note The block can be called synchronously from current thread if the future has already been resolved, or, asynchronously, from background thread upon resolution.
     # @yieldparam value [Object] a value
+    # @raise [ArgumentError] if no block given
     # @return [self]
     def on_success(&block)
     end
@@ -70,6 +76,7 @@ module Cql
     # Run block when promise is broken
     # @note The block can be called synchronously from current thread if the future has already been resolved, or, asynchronously, from background thread upon resolution.
     # @yieldparam error [Exception] an error
+    # @raise [ArgumentError] if no block given
     # @return [self]
     def on_failure(&block)
     end
@@ -91,11 +98,15 @@ module Cql
       end
 
       def on_success(&block)
+        raise ::ArgumentError, "no block given" unless block
+
         @signal.add_listener(Listeners::Success.new(block))
         self
       end
 
       def on_failure(&block)
+        raise ::ArgumentError, "no block given" unless block
+
         @signal.add_listener(Listeners::Failure.new(block))
         self
       end
@@ -124,10 +135,12 @@ module Cql
       end
 
       def on_success
+        raise ::ArgumentError, "no block given" unless block_given?
         self
       end
 
       def on_failure
+        raise ::ArgumentError, "no block given" unless block_given?
         yield(@error)
         self
       end
@@ -150,11 +163,13 @@ module Cql
       end
 
       def on_success
+        raise ::ArgumentError, "no block given" unless block_given?
         yield(@value)
         self
       end
 
       def on_error
+        raise ::ArgumentError, "no block given" unless block_given?
         self
       end
 
