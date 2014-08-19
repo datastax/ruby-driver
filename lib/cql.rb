@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 require 'ione'
+require 'json'
 
 require 'monitor'
 require 'ipaddr'
@@ -55,6 +56,10 @@ require 'cql/session'
 require 'cql/result'
 require 'cql/statement'
 require 'cql/statements'
+
+require 'cql/column'
+require 'cql/table'
+require 'cql/keyspace'
 
 require 'cql/execution/info'
 require 'cql/execution/options'

@@ -16,7 +16,7 @@ module Cql
                                })
                              }
 
-    let(:cluster) { Cluster.new(driver.logger, io_reactor, control_connection, cluster_registry, driver.execution_options, driver.connection_options, load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.connector) }
+    let(:cluster) { Cluster.new(driver.logger, io_reactor, control_connection, cluster_registry, driver.cluster_schema, driver.execution_options, driver.connection_options, load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.connector) }
 
     describe('#hosts') do
       it 'uses State#hosts' do

@@ -91,7 +91,7 @@ module CCM
     end
 
     def create_keyspace(keyspace)
-      return if keyspaces.include?(keyspace)
+      drop_keyspace(keyspace) if keyspaces.include?(keyspace)
 
       execute_query("CREATE KEYSPACE #{keyspace} WITH replication = " \
                     "{'class': 'SimpleStrategy', 'replication_factor': 3}")

@@ -24,12 +24,33 @@ module Cql
     #   @return [Boolean] true or false
     def_delegators :@registry, :hosts, :each_host, :host, :has_host?
 
+    # @!method each_keyspace
+    #   Yield or enumerate each keyspace defined in this cluster
+    #   @overload each_keyspace
+    #     @yieldparam keyspace [Cql::Keyspace] current keyspace
+    #     @return [Array<Cql::Keyspace>] a list of keyspaces
+    #   @overload each_keyspace
+    #     @return [Enumerator<Cql::Keyspace>] an enumerator
+    # @!parse alias :keyspaces :each_keyspace
+    #
+    # @!method keyspace(name)
+    #   Find a keyspace by name
+    #   @param name [String] keyspace name
+    #   @return [Cql::Keyspace, nil] keyspace or nil
+    #
+    # @!method has_keyspace?(name)
+    #   Determine if a keyspace by a given name exists
+    #   @param name [String] keyspace name
+    #   @return [Boolean] true or false
+    def_delegators :@schema, :keyspaces, :each_keyspace, :keyspace, :has_keyspace?
+
     # @private
-    def initialize(logger, io_reactor, control_connection, cluster_registry, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, connector)
+    def initialize(logger, io_reactor, control_connection, cluster_registry, cluster_schema, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, connector)
       @logger                = logger
       @io_reactor            = io_reactor
       @control_connection    = control_connection
       @registry              = cluster_registry
+      @schema                = cluster_schema
       @execution_options     = execution_options
       @connection_options    = connection_options
       @load_balancing_policy = load_balancing_policy
@@ -40,6 +61,7 @@ module Cql
 
     def register(listener)
       @registry.add_listener(listener)
+      @schema.add_listener(listener)
       self
     end
 
@@ -99,3 +121,4 @@ require 'cql/cluster/connector'
 require 'cql/cluster/control_connection'
 require 'cql/cluster/options'
 require 'cql/cluster/registry'
+require 'cql/cluster/schema'

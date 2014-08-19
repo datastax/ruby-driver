@@ -1,8 +1,11 @@
-@todo
-Feature: keyspace change detection
+Feature: Schema change detection
 
-  Cluster object allows registering state listeners. It then gurantees that
-  they will be notifies on keyspace changes.
+  A state listener registered with Cluster object will be notified of schema changes.
+
+  There are three types of changes -- `keyspace_created`, `keyspace_changed` and
+  `keyspace_dropped`. All will be communicated to a state listener using its
+  accordingly named methods with a [Keyspace](/api/keyspace) instance as an
+  argument.
 
   Background:
     Given a running cassandra cluster
@@ -13,16 +16,16 @@ Feature: keyspace change detection
           @out = io
         end
 
-        def keyspace_created(keyspace, table)
-          @out.puts("Schema created keyspace=#{keyspace.inspect} table=#{table.inspect}")
+        def keyspace_created(keyspace)
+          @out.puts("Keyspace #{keyspace.name.inspect} created")
         end
 
-        def keyspace_updated(keyspace, table)
-          @out.puts("Schema updated keyspace=#{keyspace.inspect} table=#{table.inspect}")
+        def keyspace_changed(keyspace)
+          @out.puts("Keyspace #{keyspace.name.inspect} changed")
         end
 
-        def keyspace_dropped(keyspace, table)
-          @out.puts("Schema dropped keyspace=#{keyspace.inspect} table=#{table.inspect}")
+        def keyspace_dropped(keyspace)
+          @out.puts("Keyspace #{keyspace.name.inspect} dropped")
         end
       end
       """
@@ -43,11 +46,50 @@ Feature: keyspace change detection
       sleep
       """
 
-  Scenario: a new keyspace is created and then dropped
-    When keyspace "new_keyspace" is created
-    And keyspace "new_keyspace" is dropped
+  Scenario: Listening for keyspace creation
+    Given no keyspace "new_keyspace"
+    And the following example:
+      """ruby
+      require 'cql'
+
+      session = Cql.cluster.build.connect
+
+      session.execute("CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}")
+      """
+    When it is executed
     Then background output should contain:
       """
-      Schema created keyspace="new_keyspace" table=""
-      Schema dropped keyspace="new_keyspace" table=""
+      Keyspace "new_keyspace" created
+      """
+
+  Scenario: Listening for keyspace drop
+    Given a keyspace "new_keyspace"
+    And the following example:
+      """ruby
+      require 'cql'
+
+      session = Cql.cluster.build.connect
+
+      session.execute("DROP KEYSPACE new_keyspace")
+      """
+    When it is executed
+    Then background output should contain:
+      """
+      Keyspace "new_keyspace" dropped
+      """
+
+  Scenario: Listening for keyspace changes
+    Given a keyspace "new_keyspace"
+    And the following example:
+      """ruby
+      require 'cql'
+
+      session = Cql.cluster.build.connect
+
+      session.execute("CREATE TABLE new_keyspace.new_table (id timeuuid PRIMARY KEY)")
+      """
+    When it is executed
+    Then background output should contain:
+      """
+      Keyspace "new_keyspace" changed
       """

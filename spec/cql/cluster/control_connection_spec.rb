@@ -6,7 +6,7 @@ module Cql
   class Cluster
     describe(ControlConnection) do
       let :control_connection do
-        ControlConnection.new(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, driver.connector, driver.connection_options)
+        ControlConnection.new(logger, io_reactor, request_runner, cluster_registry, cluster_schema, load_balancing_policy, reconnection_policy, driver.connector, driver.connection_options)
       end
 
       let :io_reactor do
@@ -15,6 +15,10 @@ module Cql
 
       let :cluster_registry do
         driver.cluster_registry
+      end
+
+      let :cluster_schema do
+        driver.cluster_schema
       end
 
       let :request_runner do

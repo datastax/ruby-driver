@@ -90,10 +90,14 @@ When(/^node (\d+) restarts$/) do |i|
 end
 
 When(/^keyspace "(.*?)" is created$/) do |keyspace|
-  @cluster.create_keyspace(keyspace)
+  step "a keyspace \"#{keyspace}\""
 end
 
 When(/^keyspace "(.*?)" is dropped$/) do |keyspace|
+  step "no keyspace \"#{keyspace}\""
+end
+
+Given(/^no keyspace "(.*?)"$/) do |keyspace|
   @cluster.drop_keyspace(keyspace)
 end
 

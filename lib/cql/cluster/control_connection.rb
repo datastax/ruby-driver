@@ -6,11 +6,12 @@ module Cql
     class ControlConnection
       include MonitorMixin
 
-      def initialize(logger, io_reactor, request_runner, cluster_registry, load_balancing_policy, reconnection_policy, connector, connection_options)
+      def initialize(logger, io_reactor, request_runner, cluster_registry, cluster_schema, load_balancing_policy, reconnection_policy, connector, connection_options)
         @logger                = logger
         @io_reactor            = io_reactor
         @request_runner        = request_runner
         @registry              = cluster_registry
+        @schema                = cluster_schema
         @load_balancing_policy = load_balancing_policy
         @reconnection_policy   = reconnection_policy
         @connector             = connector
@@ -76,13 +77,16 @@ module Cql
 
       private
 
-      SELECT_LOCAL  = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, release_version FROM system.local', nil, nil, :one)
-      SELECT_PEERS  = Protocol::QueryRequest.new('SELECT peer, rack, data_center, host_id, rpc_address, release_version FROM system.peers', nil, nil, :one)
-      REGISTER      = Protocol::RegisterRequest.new(
-                        Protocol::TopologyChangeEventResponse::TYPE,
-                        Protocol::StatusChangeEventResponse::TYPE,
-                        Protocol::SchemaChangeEventResponse::TYPE
-                      )
+      SELECT_LOCAL     = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, release_version FROM system.local', nil, nil, :one)
+      SELECT_PEERS     = Protocol::QueryRequest.new('SELECT peer, rack, data_center, host_id, rpc_address, release_version FROM system.peers', nil, nil, :one)
+      SELECT_KEYSPACES = Protocol::QueryRequest.new('SELECT * FROM system.schema_keyspaces', nil, nil, :one)
+      SELECT_TABLES    = Protocol::QueryRequest.new('SELECT * FROM system.schema_columnfamilies', nil, nil, :one)
+      SELECT_COLUMNS   = Protocol::QueryRequest.new('SELECT * FROM system.schema_columns', nil, nil, :one)
+      REGISTER         = Protocol::RegisterRequest.new(
+                           Protocol::TopologyChangeEventResponse::TYPE,
+                           Protocol::StatusChangeEventResponse::TYPE,
+                           Protocol::SchemaChangeEventResponse::TYPE
+                         )
 
       def reconnect_async(schedule)
         timeout = schedule.next
@@ -124,6 +128,26 @@ module Cql
             @logger.debug("Event received #{event}")
 
             if event.type == 'SCHEMA_CHANGE'
+              case event.change
+              when 'CREATED'
+                if event.table.empty?
+                  refresh_schema_async
+                else
+                  refresh_keyspace_async(event.keyspace)
+                end
+              when 'DROPPED'
+                if event.table.empty?
+                  refresh_schema_async
+                else
+                  refresh_keyspace_async(event.keyspace)
+                end
+              when 'UPDATED'
+                if event.table.empty?
+                  refresh_keyspace_async(event.keyspace)
+                else
+                  refresh_table_async(event.keyspace, event.table)
+                end
+              end
             else
               case event.change
               when 'UP'
@@ -146,8 +170,64 @@ module Cql
         end
       end
 
-      def refresh_hosts_async
+      def refresh_schema_async
+        connection = @connection
 
+        return Ione::Future.failed("not connected") if connection.nil?
+
+        @logger.debug('Fetching schema metadata')
+
+        keyspaces = @request_runner.execute(connection, SELECT_KEYSPACES)
+        tables    = @request_runner.execute(connection, SELECT_TABLES)
+        columns   = @request_runner.execute(connection, SELECT_COLUMNS)
+
+        Ione::Future.all(keyspaces, tables, columns).map do |(keyspaces, tables, columns)|
+          @logger.debug('Fetched schema metadata')
+
+          host = @registry.host(connection.host)
+
+          @schema.update_keyspaces(host, keyspaces, tables, columns)
+        end
+      end
+
+      def refresh_keyspace_async(keyspace)
+        connection = @connection
+
+        return Ione::Future.failed("not connected") if connection.nil?
+
+        @logger.debug("Fetching keyspace #{keyspace.inspect} metadata")
+
+        params   = [keyspace]
+        keyspace = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?", params, nil, :one))
+        tables   = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ?", params, nil, :one))
+        columns  = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = ?", params, nil, :one))
+
+        Ione::Future.all(keyspace, tables, columns).map do |(keyspace, tables, columns)|
+          host = @registry.host(connection.host)
+
+          @schema.update_keyspace(host, keyspace.first, tables, columns)
+        end
+      end
+
+      def refresh_table_async(keyspace, table)
+        connection = @connection
+
+        return Ione::Future.failed("not connected") if connection.nil?
+
+        @logger.debug("Fetching table \"#{keyspace}.#{table}\" metadata")
+
+        params   = [keyspace, table]
+        table    = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ? AND columnfamily_name = ?", params, nil, :one))
+        columns  = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = ? AND columnfamily_name = ?", params, nil, :one))
+
+        Ione::Future.all(table, columns).map do |(table, columns)|
+          host = @registry.host(connection.host)
+
+          @schema.udpate_table(host, keyspace, table, columns)
+        end
+      end
+
+      def refresh_hosts_async
         connection = @connection
 
         return Ione::Future.failed("not connected") if connection.nil?
@@ -287,6 +367,7 @@ module Cql
           register_async
         end
         f = f.flat_map { refresh_hosts_async }
+        f = f.flat_map { refresh_schema_async }
         f.fallback do |error|
           if error.is_a?(Errors::AuthenticationError)
             Ione::Future.failed(error)
@@ -297,7 +378,7 @@ module Cql
               Ione::Future.failed(error)
             end
           else
-            errors  ||= {}
+            errors ||= {}
             errors[host] = error
             connect_to_first_available(plan, errors)
           end
@@ -314,8 +395,6 @@ module Cql
             @connection_options.protocol_version -= 1
             connect_to_host(host)
           else
-            @logger.error('Connection failed: %s: %s' % [error.class.name, error.message])
-
             Ione::Future.failed(error)
           end
         end

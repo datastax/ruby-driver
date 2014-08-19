@@ -1,0 +1,297 @@
+# encoding: utf-8
+
+module Cql
+  class Cluster
+    # @private
+    class Schema
+      include MonitorMixin
+
+      def initialize(schema_type_parser)
+        @type_parser = schema_type_parser
+        @keyspaces   = ::Hash.new
+        @listeners   = ::Set.new
+
+        mon_initialize
+      end
+
+      def add_listener(listener)
+        synchronize do
+          @listeners = @listeners.dup.add(listener)
+        end
+
+        self
+      end
+
+      def update_keyspaces(host, keyspaces, tables, columns)
+        columns = columns.each_with_object(deephash { [] }) do |row, index|
+          index[row['keyspace_name']] << row
+        end
+
+        tables = tables.each_with_object(deephash { [] }) do |row, index|
+          index[row['keyspace_name']] << row
+        end
+
+        current_keyspaces = ::Set.new
+
+        keyspaces.each do |row|
+          current_keyspaces << keyspace = row['keyspace_name']
+
+          update_keyspace(host, row, tables[keyspace], columns[keyspace])
+        end
+
+        @keyspaces.each do |name, keyspace|
+          delete_keyspace(name) unless current_keyspaces.include?(name)
+        end
+
+        self
+      end
+
+      def update_keyspace(host, keyspace, tables, columns)
+        keyspace_name = keyspace['keyspace_name']
+
+        columns = columns.each_with_object(deephash { ::Hash.new }) do |row, index|
+          index[row['columnfamily_name']][row['column_name']] = row
+        end
+
+        tables = tables.each_with_object(Hash.new) do |row, index|
+          name = row['columnfamily_name']
+          index[name] = create_table(row, columns[name], host.release_version)
+        end
+
+        replication = Keyspace::Replication.new(keyspace['strategy_class'], ::JSON.load(keyspace['strategy_options']))
+        keyspace = Keyspace.new(keyspace_name, keyspace['durable_writes'], replication, tables)
+
+        return self if keyspace == @keyspaces[keyspace_name]
+
+        created = !@keyspaces.include?(keyspace_name)
+
+        synchronize do
+          @keyspaces = @keyspaces.merge(keyspace_name => keyspace)
+        end
+
+        if created
+          keyspace_created(keyspace)
+        else
+          keyspace_changed(keyspace)
+        end
+
+        self
+      end
+
+      def delete_keyspace(keyspace_name)
+        keyspace = @keyspaces[keyspace_name]
+
+        return self unless keyspace
+
+        synchronize do
+          keyspaces = @keyspaces.dup
+          keyspaces.delete(keyspace_name)
+          @keyspaces = keyspaces
+        end
+
+        keyspace_dropped(keyspace)
+
+        self
+      end
+
+      def udpate_table(host, keyspace_name, table, columns)
+        keyspace = @keyspaces[keyspace_name]
+
+        return self unless keyspace
+
+        table    = create_table(table, columns, host.release_version)
+        keyspace = keyspace.update_table(table)
+
+        synchronize do
+          @keyspaces = @keyspaces.merge(keyspace_name => keyspace)
+        end
+
+        keyspace_updated(keyspace)
+
+        self
+      end
+
+      def has_keyspace?(name)
+        @keyspaces.include?(name)
+      end
+
+      def keyspace(name)
+        @keyspaces[name]
+      end
+
+      def each_keyspace(&block)
+        @keyspaces.values.each(&block)
+      end
+      alias :keyspaces :each_keyspace
+
+      private
+
+      def create_table(table, columns, version)
+        keyspace        = table['keyspace_name']
+        name            = table['columnfamily_name']
+        key_validator   = @type_parser.parse(table['key_validator'])
+        comparator      = @type_parser.parse(table['comparator'])
+        column_aliases  = ::JSON.load(table['column_aliases'])
+
+        clustering_size = find_clustering_size(comparator, columns.values,
+                                               column_aliases, version)
+
+        is_dense           = clustering_size != comparator.results.size - 1
+        is_compact         = is_dense || !comparator.collections
+        partition_key      = []
+        clustering_columns = []
+        clustering_order   = []
+
+        compaction_strategy = Table::Compaction.new(
+          table['compaction_strategy_class'],
+          ::JSON.load(table['compaction_strategy_options'])
+        )
+        compression_parameters = ::JSON.load(table['compression_parameters'])
+
+        options = Table::Options.new(table, compaction_strategy, compression_parameters, is_compact, version)
+        columns = create_columns(key_validator, table, columns, version, partition_key, clustering_columns, clustering_order)
+
+        Table.new(keyspace, name, partition_key, clustering_columns, columns, options, clustering_order)
+      end
+
+      def find_clustering_size(comparator, columns, aliases, cassandra_version)
+        if cassandra_version.start_with?('1')
+          if comparator.collections
+            size = comparator.results.size
+            (!comparator.collections.empty? || aliases.size == size - 1 && comparator.results.last.first == :text) ? size - 1 : size
+          else
+            (!aliases.empty? || columns.empty?) ? 1 : 0
+          end
+        else
+          max_index = nil
+
+          columns.each do |cl|
+            if cl['type'].upcase == 'CLUSTERING_KEY'
+              index = cl['component_index'] || 0
+
+              if max_index.nil? || index > max_index
+                max_index = index
+              end
+            end
+          end
+
+          return 0 if max_index.nil?
+
+          max_index + 1
+        end
+      end
+
+      def create_columns(key_validator, table, columns, cassandra_version, partition_key, clustering_columns, clustering_order)
+        table_columns      = {}
+        other_columns      = []
+
+        if cassandra_version.start_with?('1')
+          key_aliases = @json.load(table['key_aliases'])
+
+          key_validator.results.each_with_index do |(type, order), i|
+            key_alias = key_aliases.fetch(i) { i.zero? ? "key" : "key#{i + 1}" }
+
+            partition_key[i] = Column.new(key_alias, type, order)
+          end
+
+          if comparator.composite?
+            clustering_size.times do |i|
+              column_alias = column_aliases.fetch(i) { "column#{i + 1}" }
+              type, order  = comparator.results.fetch(i)
+
+              clustering_columns[i] = Column.new(key_alias, type, order)
+              clustering_order[i]   = order
+            end
+          else
+            column_alias = column_aliases.first || "column1"
+            type, order  = comparator.results.first
+
+            clustering_columns[0] = Column.new(key_alias, type, order)
+            clustering_order[0]   = order
+          end
+
+          if is_dense
+            value_alias = table['value_alias'] || 'value'
+            type, order = @type_parser.parse(table['default_validator']).results.first
+            other_columns << Column.new(value_alias, type, order)
+          end
+
+          columns.each do |name, row|
+            other_columns << create_column(row)
+          end
+        else
+          columns.each do |name, row|
+            column = create_column(row)
+            type   = row['type']
+            index  = row['component_index'] || 0
+
+            case type.upcase
+            when 'PARTITION_KEY'
+              partition_key[index] = column
+            when 'CLUSTERING_KEY'
+              clustering_columns[index] = column
+              clustering_order[index]   = column.order
+            else
+              other_columns << column
+            end
+          end
+        end
+
+        partition_key.each do |column|
+          table_columns[column.name] = column
+        end
+
+        clustering_columns.each do |column|
+          table_columns[column.name] = column
+        end
+
+        other_columns.each do |column|
+          table_columns[column.name] = column
+        end
+
+        table_columns
+      end
+
+      def create_column(column)
+        name        = column['column_name']
+        type, order = @type_parser.parse(column['validator']).results.first
+        is_static   = (column['type'] == 'STATIC')
+
+        if column['index_type'].nil?
+          index   = nil
+        elsif column['index_type'].upcase == 'CUSTOM' || !column['index_options']
+          index   = Column::Index.new(column['index_name'])
+        else
+          options = ::JSON.load(column['index_options'])
+          index   = Column::Index.new(column['index_name'], options['class_name'])
+        end
+
+        Column.new(name, type, order, index, is_static)
+      end
+
+      def deephash
+        ::Hash.new {|hash, key| hash[key] = yield}
+      end
+
+      def keyspace_created(keyspace)
+        @listeners.each do |listener|
+          listener.keyspace_created(keyspace) rescue nil
+        end
+      end
+
+      def keyspace_changed(keyspace)
+        @listeners.each do |listener|
+          listener.keyspace_changed(keyspace) rescue nil
+        end
+      end
+
+      def keyspace_dropped(keyspace)
+        @listeners.each do |listener|
+          listener.keyspace_dropped(keyspace) rescue nil
+        end
+      end
+    end
+  end
+end
+
+require 'cql/cluster/schema/type_parser'
