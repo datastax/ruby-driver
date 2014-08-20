@@ -260,7 +260,7 @@ module Cql
 
         it 'populates cluster state' do
           control_connection.connect_async.value
-          cluster_registry.should have(3).hosts
+          expect(cluster_registry).to have(3).hosts
 
           cluster_registry.hosts.each do |host|
             ip = host.ip

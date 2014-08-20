@@ -34,11 +34,10 @@ module Cql
         end
 
         it 'returns when the credentials are equivalent' do
-          pending 'this would be nice, but is hardly necessary' do
-            c1 = CredentialsRequest.new(:username => 'foo', :password => 'bar')
-            c2 = CredentialsRequest.new('username' => 'foo', 'password' => 'bar')
-            c1.should eql(c2)
-          end
+          pending 'this would be nice, but is hardly necessary'
+          c1 = CredentialsRequest.new(:username => 'foo', :password => 'bar')
+          c2 = CredentialsRequest.new('username' => 'foo', 'password' => 'bar')
+          c1.should eql(c2)
         end
 
         it 'returns false when the credentials are different' do
@@ -62,11 +61,10 @@ module Cql
         end
 
         it 'has the same hash code as another object with equivalent credentials' do
-          pending 'this would be nice, but is hardly necessary' do
-            c1 = CredentialsRequest.new(:username => 'foo', :password => 'bar')
-            c2 = CredentialsRequest.new('username' => 'foo', 'password' => 'bar')
-            c1.hash.should == c2.hash
-          end
+          pending 'this would be nice, but is hardly necessary'
+          c1 = CredentialsRequest.new(:username => 'foo', :password => 'bar')
+          c2 = CredentialsRequest.new('username' => 'foo', 'password' => 'bar')
+          c1.hash.should == c2.hash
         end
 
         it 'does not have the same hash code when the credentials are different' do

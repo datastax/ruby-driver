@@ -167,7 +167,7 @@ module Cql
 
         it 'enables tracing' do
           batch.execute(trace: true).value
-          last_request.trace.should be_true
+          last_request.trace.should be_truthy
         end
 
         it 'creates a batch of the right type' do
@@ -192,7 +192,7 @@ module Cql
           b = described_class.new(:unlogged, execute_options_decoder, connection_manager, timeout: 4, trace: true)
           b.execute(trace: false).value
           last_timeout.should == 4
-          last_request.trace.should be_false
+          last_request.trace.should be_falsey
         end
       end
     end

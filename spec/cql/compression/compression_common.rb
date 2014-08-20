@@ -12,16 +12,16 @@ shared_examples 'compressor' do |algorithm, compressed_string|
 
   describe '#compress?' do
     it 'returns true for arguments larger than 64 bytes' do
-      described_class.new.compress?('x' * 65).should be_true
+      described_class.new.compress?('x' * 65).should be_truthy
     end
 
     it 'returns false for arguments smaller than 64 bytes' do
-      described_class.new.compress?('x' * 64).should be_false
+      described_class.new.compress?('x' * 64).should be_falsey
     end
 
     it 'is customizable via a constructor argument' do
-      described_class.new(89).compress?('x' * 90).should be_true
-      described_class.new(89).compress?('x' * 89).should be_false
+      described_class.new(89).compress?('x' * 90).should be_truthy
+      described_class.new(89).compress?('x' * 89).should be_falsey
     end
   end
 

@@ -187,7 +187,6 @@ module Cql
     [
       [:execute, ['statement to execute']],
       [:prepare, ['statement to prepare']],
-      [:close,   []]
     ].each do |method, args|
       describe("##{method}") do
         let(:promise)   { double('promise') }
@@ -199,6 +198,18 @@ module Cql
           expect(promise).to receive(:get).once
           session.__send__(method, *args)
         end
+      end
+    end
+
+    describe('#close') do
+      let(:promise) { double('promise') }
+      before do
+        expect(session).to receive(:close_async).with(no_args).and_return(promise)
+      end
+
+      it 'resolves a promise returned by #close_async' do
+        expect(promise).to receive(:get).once.and_return('success')
+        expect(session.close).to eq('success')
       end
     end
   end

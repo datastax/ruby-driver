@@ -949,7 +949,7 @@ module Cql
               end
             end
             client.execute(cql, trace: true).value
-            tracing.should be_true
+            tracing.should be_truthy
           end
 
           it 'returns the trace ID with the result' do
@@ -1020,7 +1020,7 @@ module Cql
             end
             result = client.execute('SELECT * FROM something WHERE x = ? AND y = ?', 'foo', 'bar', page_size: 100, paging_state: 'foobar', trace: true, timeout: 3, type_hints: [:varchar, nil]).value
             result.next_page.value
-            last_request.trace.should be_true
+            last_request.trace.should be_truthy
             last_request.values.should == ['foo', 'bar']
             last_request.type_hints.should == [:varchar, nil]
             sent_timeout.should == 3
@@ -1196,7 +1196,7 @@ module Cql
             batch = client.batch(trace: true)
             batch.add('UPDATE x SET y = 3 WHERE z = 1')
             batch.execute.value
-            last_request.trace.should be_true
+            last_request.trace.should be_truthy
           end
         end
 
@@ -1214,7 +1214,7 @@ module Cql
               batch.add('UPDATE x SET y = 3 WHERE z = 1')
             end
             f.value
-            last_request.trace.should be_true
+            last_request.trace.should be_truthy
           end
         end
       end
@@ -1517,9 +1517,9 @@ module Cql
       describe '#connected?' do
         it 'delegates to the async client' do
           async_client.stub(:connected?).and_return(true)
-          client.connected?.should be_true
+          client.connected?.should be_truthy
           async_client.stub(:connected?).and_return(false)
-          client.connected?.should be_false
+          client.connected?.should be_falsey
         end
       end
 

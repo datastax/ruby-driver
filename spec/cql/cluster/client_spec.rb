@@ -97,9 +97,9 @@ module Cql
             io_reactor.stub(:connect) { future }
             client.connect
             client.close.on_complete { complete = true }
-            expect(complete).to be_false
+            expect(complete).to be_falsey
             future.resolve(nil)
-            expect(complete).to be_true
+            expect(complete).to be_truthy
           end
         end
       end
@@ -280,7 +280,7 @@ module Cql
           client.connect.value
           client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
 
-          expect(handled).to be_true
+          expect(handled).to be_truthy
         end
 
         it 'switches keyspace of new connections automatically' do
@@ -471,7 +471,7 @@ module Cql
           client.connect.value
           statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
           client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
-          expect(sent).to be_true
+          expect(sent).to be_truthy
         end
 
         it 're-prepares a statement on new connection' do
@@ -601,7 +601,7 @@ module Cql
           expect(batch_request).to receive(:add_query).once.with('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', [1, 2, 3, 4, 5])
           expect(batch_request).to receive(:retries=).once.with(0)
           client.batch(batch, Execution::Options.new(:consistency => :one, :trace => false)).get
-          expect(sent).to be_true
+          expect(sent).to be_truthy
         end
 
         it 'can include prepared statements' do
@@ -633,7 +633,7 @@ module Cql
           expect(batch_request).to receive(:add_prepared).once.with(123, params_metadata, [1,2,3,4,5])
           expect(batch_request).to receive(:retries=).once.with(0)
           client.batch(batch, Execution::Options.new(:consistency => :one, :trace => false)).get
-          expect(sent).to be_true
+          expect(sent).to be_truthy
         end
 
         it 'automatically re-prepares statements' do
@@ -671,7 +671,7 @@ module Cql
           cluster_registry.hosts.delete(cluster_registry.hosts.first)
 
           client.batch(batch, Execution::Options.new(:consistency => :one, :trace => false)).get
-          expect(sent).to be_true
+          expect(sent).to be_truthy
           expect(count).to eq(2)
         end
 

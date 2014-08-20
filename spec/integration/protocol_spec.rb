@@ -138,10 +138,9 @@ describe 'Protocol parsing and communication' do
 
     context 'when authentication is not required' do
       it 'sends STARTUP and receives READY' do
-        pending('authentication required', if: @authentication_enabled) do
-          response = execute_request(Cql::Protocol::StartupRequest.new('3.1.0'), false)
-          response.should be_a(Cql::Protocol::ReadyResponse)
-        end
+        pending('authentication required') if @authentication_enabled
+        response = execute_request(Cql::Protocol::StartupRequest.new('3.1.0'), false)
+        response.should be_a(Cql::Protocol::ReadyResponse)
       end
     end
 
@@ -152,18 +151,16 @@ describe 'Protocol parsing and communication' do
         end
 
         it 'sends STARTUP and receives AUTHENTICATE' do
-          pending('authentication not configured', unless: @authentication_enabled) do
-            response = raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-            response.should be_a(Cql::Protocol::AuthenticateResponse)
-          end
+          pending('authentication not configured') unless @authentication_enabled
+          response = raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
+          response.should be_a(Cql::Protocol::AuthenticateResponse)
         end
 
         it 'ignores the AUTHENTICATE response and receives ERROR' do
-          pending('authentication not configured', unless: @authentication_enabled) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-            response = raw_execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
-            response.code.should == 10
-          end
+          pending('authentication not configured') unless @authentication_enabled
+          raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
+          response = raw_execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
+          response.code.should == 10
         end
 
         it 'sends STARTUP followed by CREDENTIALS and receives READY' do
@@ -173,44 +170,39 @@ describe 'Protocol parsing and communication' do
         end
 
         it 'sends bad username and password in CREDENTIALS and receives ERROR' do
-          pending('authentication not configured', unless: @authentication_enabled) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-            response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar'))
-            response.code.should == 0x100
-          end
+          pending('authentication not configured') unless @authentication_enabled
+          raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
+          response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar'))
+          response.code.should == 0x100
         end
       end
 
       context 'and the protocol version is 2' do
         it 'sends STARTUP and receives AUTHENTICATE' do
-          pending('authentication not configured', unless: @authentication_enabled) do
-            response = raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-            response.should be_a(Cql::Protocol::AuthenticateResponse)
-          end
+          pending('authentication not configured') unless @authentication_enabled
+          response = raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
+          response.should be_a(Cql::Protocol::AuthenticateResponse)
         end
 
         it 'ignores the AUTHENTICATE response and receives ERROR' do
-          pending('authentication not configured', unless: @authentication_enabled) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-            response = raw_execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
-            response.code.should == 10
-          end
+          pending('authentication not configured') unless @authentication_enabled
+          raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
+          response = raw_execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
+          response.code.should == 10
         end
 
         it 'sends STARTUP followed by AUTH_RESPONSE and receives AUTH_SUCCESS' do
-          pending('authentication not configured', unless: @authentication_enabled) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-            response = raw_execute_request(Cql::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra"))
-            response.should be_a(Cql::Protocol::AuthSuccessResponse)
-          end
+          pending('authentication not configured') unless @authentication_enabled
+          raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
+          response = raw_execute_request(Cql::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra"))
+          response.should be_a(Cql::Protocol::AuthSuccessResponse)
         end
 
         it 'sends bad username and password in AUTH_RESPONSE and receives ERROR' do
-          pending('authentication not configured', unless: @authentication_enabled) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-            response = raw_execute_request(Cql::Protocol::AuthResponseRequest.new("\x00cassandra\x00ardnassac"))
-            response.code.should == 0x100
-          end
+          pending('authentication not configured') unless @authentication_enabled
+          raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
+          response = raw_execute_request(Cql::Protocol::AuthResponseRequest.new("\x00cassandra\x00ardnassac"))
+          response.code.should == 0x100
         end
       end
     end

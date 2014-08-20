@@ -177,24 +177,21 @@ describe 'A CQL client' do
       end
 
       it 'raises an error when no credentials have been given' do
-        pending('authentication not configured', unless: authentication_enabled) do
-          expect { Cql::Client.connect(connection_options.merge(credentials: nil, protocol_version: 1)) }.to raise_error(Cql::Errors::AuthenticationError)
-        end
+        pending('authentication not configured') unless authentication_enabled
+        expect { Cql::Client.connect(connection_options.merge(credentials: nil, protocol_version: 1)) }.to raise_error(Cql::Errors::AuthenticationError)
       end
 
       it 'raises an error when the credentials are bad' do
-        pending('authentication not configured', unless: authentication_enabled) do
-          expect {
-            Cql::Client.connect(connection_options.merge(credentials: {:username => 'foo', :password => 'bar'}, protocol_version: 1))
-          }.to raise_error(Cql::Errors::AuthenticationError)
-        end
+        pending('authentication not configured') unless authentication_enabled
+        expect {
+          Cql::Client.connect(connection_options.merge(credentials: {:username => 'foo', :password => 'bar'}, protocol_version: 1))
+        }.to raise_error(Cql::Errors::AuthenticationError)
       end
 
       it 'raises an error when only an auth provider has been given' do
-        pending('authentication not configured', unless: authentication_enabled) do
-          auth_provider = Cql::Auth::Providers::PlainText.new('cassandra', 'cassandra')
-          expect { Cql::Client.connect(connection_options.merge(credentials: nil, auth_provider: auth_provider, protocol_version: 1)) }.to raise_error(Cql::Errors::AuthenticationError)
-        end
+        pending('authentication not configured') unless authentication_enabled
+        auth_provider = Cql::Auth::Providers::PlainText.new('cassandra', 'cassandra')
+        expect { Cql::Client.connect(connection_options.merge(credentials: nil, auth_provider: auth_provider, protocol_version: 1)) }.to raise_error(Cql::Errors::AuthenticationError)
       end
     end
 
@@ -220,18 +217,16 @@ describe 'A CQL client' do
       end
 
       it 'raises an error when no auth provider or credentials have been given' do
-        pending('authentication not configured', unless: authentication_enabled) do
-          expect { Cql::Client.connect(connection_options.merge(auth_provider: nil, credentials: nil)) }.to raise_error(Cql::Errors::AuthenticationError)
-        end
+        pending('authentication not configured') unless authentication_enabled
+        expect { Cql::Client.connect(connection_options.merge(auth_provider: nil, credentials: nil)) }.to raise_error(Cql::Errors::AuthenticationError)
       end
 
       it 'raises an error when the credentials are bad' do
-        pending('authentication not configured', unless: authentication_enabled) do
-          expect {
-            auth_provider = Cql::Auth::Providers::PlainText.new('foo', 'bar')
-            Cql::Client.connect(connection_options.merge(auth_provider: auth_provider, credentials: nil))
-          }.to raise_error(Cql::Errors::AuthenticationError)
-        end
+        pending('authentication not configured') unless authentication_enabled
+        expect {
+          auth_provider = Cql::Auth::Providers::PlainText.new('foo', 'bar')
+          Cql::Client.connect(connection_options.merge(auth_provider: auth_provider, credentials: nil))
+        }.to raise_error(Cql::Errors::AuthenticationError)
       end
     end
   end

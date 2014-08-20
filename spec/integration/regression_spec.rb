@@ -195,7 +195,7 @@ describe 'Regressions' do
       row0['varint_column'].should == -1
       row1['bigint_column'].should == -9223372036854775808
       row1['decimal_column'].should == BigDecimal.new('-0.0012095473475870063')
-      row1['double_column'].should == be_within(1.0e-308).of(-2.2250738585072014e-308)
+      row1['double_column'].should be_within(1.0e-308).of(-2.2250738585072014e-308)
       row1['float_column'].should be_within(1.0e-38).of(-1.175494351e-38)
       row1['int_column'].should == -2147483648
       row1['varint_column'].should == -23454545674351234123365765786894351234567456

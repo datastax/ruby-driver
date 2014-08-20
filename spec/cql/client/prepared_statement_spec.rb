@@ -193,7 +193,7 @@ module Cql
         it 'asks the server not to send metadata' do
           statement.execute(11, 'hello', consistency: :two).value
           request = connections.flat_map(&:requests).find { |r| r.is_a?(Protocol::ExecuteRequest) }
-          request.request_metadata.should be_false
+          request.request_metadata.should be_falsey
         end
 
         it 'passes the metadata to the request runner' do
@@ -293,7 +293,7 @@ module Cql
             end
           end
           statement.execute(11, 'hello', trace: true).value
-          tracing.should be_true
+          tracing.should be_truthy
         end
       end
 
@@ -325,7 +325,7 @@ module Cql
             batch = statement.batch(trace: true)
             batch.add(1, 'foo')
             batch.execute.value
-            requests.first.trace.should be_true
+            requests.first.trace.should be_truthy
           end
         end
 
@@ -344,7 +344,7 @@ module Cql
               batch.add(4, 'baz')
             end
             f.value
-            requests.first.trace.should be_true
+            requests.first.trace.should be_truthy
           end
         end
       end

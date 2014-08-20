@@ -16,9 +16,9 @@ module Cql
         end
 
         before do
-          request.stub(:opcode).and_return(0x77)
-          request.stub(:trace?).and_return(false)
-          request.stub(:write) { |pv, bb| bb }
+          allow(request).to receive(:opcode).and_return(0x77)
+          allow(request).to receive(:trace?).and_return(false)
+          allow(request).to receive(:write) { |pv, bb| bb }
         end
 
         it 'asks the request to write itself to a buffer' do

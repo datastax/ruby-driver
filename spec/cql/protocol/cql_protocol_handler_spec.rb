@@ -288,9 +288,9 @@ module Cql
         describe "##{message}" do
           it 'reflects the underlying protocol handler\'s status' do
             connection.stub(message).and_return(true)
-            protocol_handler.send(message).should be_true
+            protocol_handler.send(message).should be_truthy
             connection.stub(message).and_return(false)
-            protocol_handler.send(message).should be_false
+            protocol_handler.send(message).should be_falsey
           end
         end
       end
@@ -310,7 +310,7 @@ module Cql
           protocol_handler.on_event { |e| raise 'Blurgh' }
           protocol_handler.on_event { |e| called = true }
           connection.data_listener.call("\x81\x00\xFF\f\x00\x00\x00+\x00\rSCHEMA_CHANGE\x00\aDROPPED\x00\x0cthe_keyspace\x00\x09the_table")
-          called.should be_true, 'expected all event listeners to have been called'
+          called.should be_truthy, 'expected all event listeners to have been called'
         end
       end
 
@@ -319,7 +319,7 @@ module Cql
           called = false
           protocol_handler.on_closed { called = true }
           connection.closed_listener.call(StandardError.new('Blurgh'))
-          called.should be_true, 'expected the close listener to have been called'
+          called.should be_truthy, 'expected the close listener to have been called'
         end
 
         it 'passes the error that made the connection close to the listener' do
@@ -334,7 +334,7 @@ module Cql
           protocol_handler.on_closed { |e| raise 'Blurgh' }
           protocol_handler.on_closed { |e| called = true }
           connection.closed_listener.call(StandardError.new('Blurgh'))
-          called.should be_true, 'expected all event listeners to have been called'
+          called.should be_truthy, 'expected all event listeners to have been called'
         end
       end
     end
