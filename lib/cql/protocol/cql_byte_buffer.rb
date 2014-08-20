@@ -274,6 +274,11 @@ module Cql
         append([n].pack(Formats::FLOAT_FORMAT))
       end
 
+      def eql?(other)
+        other.eql?(to_str)
+      end
+      alias_method :==, :eql?
+
       private
 
       MINUS = '-'.freeze
