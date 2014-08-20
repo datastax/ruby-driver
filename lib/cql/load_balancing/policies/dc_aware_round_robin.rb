@@ -18,14 +18,16 @@ module Cql
           def next
             if @local_remaining > 0
               @local_remaining -= 1
-              i, @index = (@index % @local_total), @index + 1
+              i = (@index % @local_total)
+              @index += 1
 
               return @local[i]
             end
 
             if @remote_remaining > 0
               @remote_remaining -= 1
-              i, @index = (@index % @remote_total), @index + 1
+              i = (@index % @remote_total)
+              @index += 1
 
               return @remote[i]
             end
