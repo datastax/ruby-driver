@@ -106,7 +106,7 @@ module Cql
           end
         end
 
-        Ione::CombinedFuture.new(futures).flat_map do |connections|
+        Ione::Future.all(*futures).flat_map do |connections|
           established_connections.select!(&:connected?)
 
           connections.each do |connection|
