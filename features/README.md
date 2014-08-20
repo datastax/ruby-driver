@@ -26,7 +26,8 @@ end
 ### Executing Queries
 
 ```ruby
-session = cluster.connect(keyspace = 'system')
+keyspace = 'system'
+session  = cluster.connect(keyspace)
 
 session.execute('SELECT keyspace_name, columnfamily_name FROM schema_columnfamilies').each do |row|
   puts "The keyspace #{row['keyspace_name']} has a table called #{row['columnfamily_name']}"
