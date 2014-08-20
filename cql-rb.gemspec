@@ -6,13 +6,13 @@ require 'cql/version'
 
 
 Gem::Specification.new do |s|
-  s.name          = 'cql-rb'
+  s.name          = 'cassandra-driver'
   s.version       = Cql::VERSION.dup
-  s.authors       = ['Theo Hultberg']
-  s.email         = ['theo@iconara.net']
-  s.homepage      = 'http://github.com/iconara/cql-rb'
-  s.summary       = %q{Cassandra CQL3 driver}
-  s.description   = %q{A pure Ruby CQL3 driver for Cassandra}
+  s.authors       = ['Theo Hultberg', 'Bulat Shakirzyanov']
+  s.email         = ['theo@iconara.net', 'bulat.shakirzyanov@datastax.com']
+  s.homepage      = 'http://riptano.github.io/ruby-driver/features'
+  s.summary       = %q{Cassandra driver}
+  s.description   = %q{A pure Ruby driver for Cassandra}
   s.license       = 'Apache License 2.0'
 
   s.files         = Dir['lib/**/*.rb', 'bin/*', 'README.md', '.yardopts']

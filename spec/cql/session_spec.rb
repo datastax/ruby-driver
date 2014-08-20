@@ -6,7 +6,7 @@ module Cql
   describe(Session) do
     let(:default_options) { {:consistency => :one, :timeout => 5, :trace => false} }
     let(:session_options) { Execution::Options.new(default_options) }
-    let(:client)          { double('cql-rb client') }
+    let(:client)          { double('cassandra-driver') }
     let(:session)         { Session.new(client, session_options) }
 
     describe('#execute_async') do

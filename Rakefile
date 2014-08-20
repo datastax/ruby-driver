@@ -13,7 +13,7 @@ task :release => :test do
   $: << 'lib'
   require 'cql/version'
 
-  project_name = 'cql-rb'
+  project_name = 'cassandra-driver'
   version_string = "v#{Cql::VERSION}"
   
   unless %x(git tag -l).split("\n").include?(version_string)

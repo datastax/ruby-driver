@@ -64,13 +64,13 @@ futures.each {|future| future.get}
 As a rubygem:
 
 ```console
-gem install cql-rb
+gem install cassandra-driver
 ```
 
 Or add the following to your `Gemfile`:
 
 ```ruby
-gem 'cql-rb'
+gem 'cassandra-driver'
 ```
 
 ## Architecture
