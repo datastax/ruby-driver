@@ -6,20 +6,23 @@ Feature: Executing queries asynchronously
   Background:
     Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
 
-  Scenario: Getting execution result
+  Scenario: Listerning for future
     Given the following example:
       """ruby
       require 'cql'
 
       cluster = Cql.connect
       session = cluster.connect("simplex")
-      promise = session.execute_async("SELECT * FROM songs")
+      future  = session.execute_async("SELECT * FROM songs")
+
+      future.on_success do |rows|
+        rows.each do |row|
+          puts "#{row["artist"]}: #{row["title"]} / #{row["album"]}"
+        end
+      end
 
       puts "driver is fetching rows from cassandra"
-
-      promise.get.each do |row|
-        puts "#{row["artist"]}: #{row["title"]} / #{row["album"]}"
-      end
+      future.get # block until the future has been resolved
       """
     When it is executed
     Then its output should contain:
