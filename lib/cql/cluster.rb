@@ -44,6 +44,8 @@ module Cql
     end
 
     def connect_async(keyspace = nil)
+      raise ::ArgumentError, "keyspace must be a string, #{keyspace.inspect} given" if !keyspace.nil? && !keyspace.is_a?(::String)
+
       client  = Client.new(@logger, @registry, @io_reactor, @connector, @load_balancing_policy, @reconnection_policy, @retry_policy, @connection_options)
       session = Session.new(client, @execution_options)
       promise = Promise.new
