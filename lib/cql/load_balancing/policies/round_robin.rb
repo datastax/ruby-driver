@@ -33,16 +33,16 @@ module Cql
         end
 
         def host_up(host)
-          @hosts = synchronize { @hosts.dup.push(host) }
+          synchronize { @hosts = @hosts.dup.push(host) }
 
           self
         end
 
         def host_down(host)
-          @hosts = synchronize do
+          synchronize do
             hosts = @hosts.dup
             hosts.delete(host)
-            hosts
+            @hosts = hosts
           end
 
           self

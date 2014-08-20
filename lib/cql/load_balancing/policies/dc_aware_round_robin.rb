@@ -56,10 +56,10 @@ module Cql
 
         def host_up(host)
           if host.datacenter.nil? || host.datacenter == @datacenter
-            @local = synchronize { @local.dup.add(host) }
+            synchronize { @local = @local.dup.add(host) }
           else
             if @max_remote.nil? || @remote.size < @max_remote
-              @remote = synchronize { @remote.dup.add(host) }
+              synchronize { @remote = @remote.dup.add(host) }
             end
           end
 
@@ -68,9 +68,9 @@ module Cql
 
         def host_down(host)
           if host.datacenter.nil? || host.datacenter == @datacenter
-            @local = synchronize { @local.dup.delete(host) }
+            synchronize { @local = @local.dup.delete(host) }
           else
-            @remote = synchronize { @remote.dup.delete(host) }
+            synchronize { @remote = @remote.dup.delete(host) }
           end
 
           self
