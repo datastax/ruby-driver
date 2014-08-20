@@ -31,57 +31,59 @@ module Cql
           return @connected_future if @state == :connecting || @state == :connected
 
           @state = :connecting
+        end
 
-          @connected_future = begin
-            @registry.add_listener(self)
+        @connected_future = begin
+          @registry.add_listener(self)
 
-            futures = @registry.hosts.map do |host|
-              @connecting_hosts << host
-              f = connect_to_host_maybe_retry(host, @load_balancing_policy.distance(host))
-              f.recover do |error|
-                Cql::Client::FailedConnection.new(error, host)
-              end
-            end
-
-            Ione::Future.all(*futures).map do |connections|
-              connections.flatten!
-              raise NO_HOSTS if connections.empty?
-
-              unless connections.any?(&:connected?)
-                errors = {}
-                connections.each {|c| errors[c.host] = c.error}
-                raise Errors::NoHostsAvailable.new(errors)
-              end
-
-              self
+          futures = @registry.hosts.map do |host|
+            @connecting_hosts << host
+            f = connect_to_host_maybe_retry(host, @load_balancing_policy.distance(host))
+            f.recover do |error|
+              Cql::Client::FailedConnection.new(error, host)
             end
           end
-          @connected_future.on_complete(&method(:connected))
-          @connected_future
+
+          Ione::Future.all(*futures).map do |connections|
+            connections.flatten!
+            raise NO_HOSTS if connections.empty?
+
+            unless connections.any?(&:connected?)
+              errors = {}
+              connections.each {|c| errors[c.host] = c.error}
+              raise Errors::NoHostsAvailable.new(errors)
+            end
+
+            self
+          end
         end
+        @connected_future.on_complete(&method(:connected))
+        @connected_future
       end
 
       def close
+        state = nil
+
         synchronize do
           return CLIENT_NOT_CONNECTED if @state == :idle
           return @closed_future if @state == :closed || @state == :closing
 
           state, @state = @state, :closing
-
-          @closed_future = begin
-            @registry.remove_listener(self)
-
-            if state == :connecting
-              f = @connected_future.recover.flat_map { close_connections }
-            else
-              f = close_connections
-            end
-
-            f.map(self)
-          end
-          @closed_future.on_complete(&method(:closed))
-          @closed_future
         end
+
+        @closed_future = begin
+          @registry.remove_listener(self)
+
+          if state == :connecting
+            f = @connected_future.recover.flat_map { close_connections }
+          else
+            f = close_connections
+          end
+
+          f.map(self)
+        end
+        @closed_future.on_complete(&method(:closed))
+        @closed_future
       end
 
       # These methods shall be called from inside reactor thread only
