@@ -58,11 +58,18 @@ module Cql
       end
     end
 
-    # Wait for value or error
-    # @note This method blocks until a future is ready
-    # @raise [Exception] error
-    # @return [Object] value
+    # Returns future value or raises future error
+    # @note This method blocks until a future is resolved
+    # @raise [Exception] error used to resolve this future if any
+    # @return [Object] value used to resolve this future if any
     def get
+    end
+
+    # Block until the future has been resolved
+    # @note This method won't raise any errors or return anything but the
+    #   future itself
+    # @return [self]
+    def join
     end
 
     # Run block when promise is fulfilled
@@ -119,7 +126,12 @@ module Cql
       end
 
       def get
-        @signal.wait
+        @signal.get
+      end
+
+      def join
+        @signal.join
+        self
       end
     end
 
@@ -141,7 +153,7 @@ module Cql
 
       def on_failure
         raise ::ArgumentError, "no block given" unless block_given?
-        yield(@error)
+        yield(@error) rescue nil
         self
       end
 
@@ -149,6 +161,10 @@ module Cql
         raise ::ArgumentError, "listener must respond to both #success and #failure" unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
 
         listener.failure(@error) rescue nil
+        self
+      end
+
+      def join
         self
       end
     end
@@ -164,7 +180,7 @@ module Cql
 
       def on_success
         raise ::ArgumentError, "no block given" unless block_given?
-        yield(@value)
+        yield(@value) rescue nil
         self
       end
 
@@ -177,6 +193,10 @@ module Cql
         raise ::ArgumentError, "listener must respond to both #success and #failure" unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
 
         listener.success(@value) rescue nil
+        self
+      end
+
+      def join
         self
       end
     end
@@ -245,30 +265,26 @@ module Cql
         self
       end
 
-      def wait
-        case @state
-        when :pending
-          synchronize do
-            case @state
-            when :pending
-              @waiting += 1
-              @cond.wait while @state == :pending
-              @waiting -= 1
+      def join
+        return unless @state == :pending
 
-              raise(@error, @error.message, @error.backtrace) if @state == :broken
+        synchronize do
+          return unless @state == :pending
 
-              @value
-            when :fulfilled
-              @value
-            when :broken
-              raise(@error, @error.message, @error.backtrace)
-            end
-          end
-        when :fulfilled
-          @value
-        when :broken
-          raise(@error, @error.message, @error.backtrace)
+          @waiting += 1
+          @cond.wait while @state == :pending
+          @waiting -= 1
         end
+
+        nil
+      end
+
+      def get
+        join
+
+        raise(@error, @error.message, @error.backtrace) if @state == :broken
+
+        @value
       end
 
       def add_listener(listener)
