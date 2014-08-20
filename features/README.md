@@ -115,8 +115,7 @@ require 'cql'
 
 cluster = Cql.connect(
             :hosts => ['10.1.1.3', '10.1.1.4', '10.1.1.5'],
-            :load_balancing_policy => Cql::LoadBalancing::Policies::DCAwareRoundRobin.new("US_EAST"),
-            :compresion => :snappy # or :lz4
+            :load_balancing_policy => Cql::LoadBalancing::Policies::DCAwareRoundRobin.new("US_EAST")
           )
 ```
 
