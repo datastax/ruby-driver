@@ -23,6 +23,8 @@ cluster.hosts.each do |host|
 end
 ```
 
+[Read more in the api docs](/api/#connect-class_method)
+
 ### Executing Queries
 
 ```ruby
@@ -33,6 +35,8 @@ session.execute('SELECT keyspace_name, columnfamily_name FROM schema_columnfamil
   puts "The keyspace #{row['keyspace_name']} has a table called #{row['columnfamily_name']}"
 end
 ```
+
+[Read more in the api docs](/api/session/#execute_async-instance_method)
 
 ### Executing Prepared Statements
 
