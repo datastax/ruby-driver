@@ -22,7 +22,7 @@ Feature: Executing queries asynchronously
       end
 
       puts "driver is fetching rows from cassandra"
-      future.get # block until the future has been resolved
+      future.join # block until the future has been resolved
       """
     When it is executed
     Then its output should contain:
