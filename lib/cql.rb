@@ -23,9 +23,6 @@ require 'bigdecimal'
 require 'forwardable'
 
 module Cql
-  # @private
-  Io = Ione::Io
-
   # A list of all supported request consistencies
   # @see Cql::Session#execute_async
   CONSISTENCIES = [ :any, :one, :two, :three, :quorum, :all, :local_quorum,
@@ -223,6 +220,8 @@ require 'cql/reconnection'
 require 'cql/retry'
 
 module Cql
+  # @private
+  Io = Ione::Io
   # @private
   VOID_STATEMENT = Statements::Void.new
   # @private
