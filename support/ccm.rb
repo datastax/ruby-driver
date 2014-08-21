@@ -240,7 +240,7 @@ module CCM
   end
 
   def cassandra_cluster
-    ENV['CASSANDRA_CLUSTER'] || 'test-cluster'
+    'ruby-driver-cassandra-' + cassandra_version + '-test-cluster'
   end
 
   def ccm
