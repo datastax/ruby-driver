@@ -251,7 +251,7 @@ module Cql
             connections.snapshot.each do |c|
               futures << c.close
             end
-          end
+          end.clear
         end
 
         Ione::Future.all(*futures).map(self)
@@ -344,6 +344,10 @@ module Cql
         retry
       rescue ::StopIteration
         promise.break(Errors::NoHostsAvailable.new(errors || {}))
+      rescue => e
+        errors ||= {}
+        errors[host] = e
+        execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
       end
 
       def prepare_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
@@ -390,6 +394,10 @@ module Cql
         retry
       rescue ::StopIteration
         promise.break(Errors::NoHostsAvailable.new(errors || {}))
+      rescue => e
+        errors ||= {}
+        errors[host] = e
+        batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
       end
 
       def batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, plan, timeout, errors, hosts)
@@ -461,6 +469,10 @@ module Cql
         retry
       rescue ::StopIteration
         promise.break(Errors::NoHostsAvailable.new(errors || {}))
+      rescue => e
+        errors ||= {}
+        errors[host] = e
+        send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
       end
 
       def do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts, retries = 0)
@@ -473,15 +485,21 @@ module Cql
             case r
             when Protocol::DetailedErrorResponse
               details  = r.details
-              decision = case r.code
-              when UNAVAILABLE_ERROR_CODE
-                @retry_policy.unavailable(statement, details[:cl], details[:required], details[:alive], retries)
-              when WRITE_TIMEOUT_ERROR_CODE
-                @retry_policy.write_timeout(statement, details[:cl], details[:write_type].downcase!.to_sym, details[:blockfor], details[:received], retries)
-              when READ_TIMEOUT_ERROR_CODE
-                @retry_policy.read_timeout(statement, details[:cl], details[:blockfor], details[:received], details[:data_present], retries)
-              else
-                promise.break(Errors::QueryError.new(r.code, r.message, statement.cql, r.details))
+              decision = begin
+                case r.code
+                when UNAVAILABLE_ERROR_CODE
+                  @retry_policy.unavailable(statement, details[:cl], details[:required], details[:alive], retries)
+                when WRITE_TIMEOUT_ERROR_CODE
+                  details[:write_type] = write_type = details[:write_type].downcase!.to_sym
+                  @retry_policy.write_timeout(statement, details[:cl], write_type, details[:blockfor], details[:received], retries)
+                when READ_TIMEOUT_ERROR_CODE
+                  @retry_policy.read_timeout(statement, details[:cl], details[:blockfor], details[:received], details[:data_present], retries)
+                else
+                  promise.break(Errors::QueryError.new(r.code, r.message, statement.cql, details))
+                  break
+                end
+              rescue => e
+                promise.break(e)
                 break
               end
 
