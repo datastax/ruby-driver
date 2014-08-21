@@ -17,7 +17,7 @@
 require 'spec_helper'
 
 
-describe 'Regressions' do
+describe 'Regressions', :integration do
   let :connection_options do
     {
       :hosts => [ENV['CASSANDRA_HOST']],

@@ -17,7 +17,7 @@
 require 'spec_helper'
 
 
-describe 'Protocol parsing and communication' do
+describe 'Protocol parsing and communication', :integration do
   let :protocol_version do
     2
   end

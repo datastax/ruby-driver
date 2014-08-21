@@ -17,7 +17,7 @@
 require 'spec_helper'
 
 
-describe 'A CQL client' do
+describe 'A CQL client', :integration do
   let :connection_options do
     {
       :host => ENV['CASSANDRA_HOST'],

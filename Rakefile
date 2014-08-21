@@ -22,26 +22,12 @@ task :release => :test do
   system %(git push && git push --tags; gem build #{project_name}.gemspec && gem push #{project_name}-*.gem && mv #{project_name}-*.gem pkg)
 end
 
-
-task :start_rspec_cluster do
-    `ccm create 1-node-cluster --nodes 1 --start --ipprefix 127.0.0. --binary-protocol --cassandra-version 2.0.9`
-end
-
-task :delete_rspec_cluster do
-    `ccm remove 1-node-cluster`
-end
-
-
-RSpec::Core::RakeTask.new(:rspec => :start_rspec_cluster) do |t|
-    t.rspec_opts = "--fail-fast" if ENV["FAIL_FAST"] == 'Y'
-end
-
-Rake::Task[:rspec].enhance do
-  Rake::Task[:delete_rspec_cluster].invoke
+RSpec::Core::RakeTask.new(:rspec) do |t|
+  t.rspec_opts = "--fail-fast" if ENV["FAIL_FAST"] == 'Y'
 end
 
 Cucumber::Rake::Task.new(:cucumber) do |t|
-    t.cucumber_opts = '--tags ~@todo'
+  t.cucumber_opts = '--tags ~@todo'
 end
 
 desc 'Run all tests'

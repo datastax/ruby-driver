@@ -17,7 +17,7 @@
 require 'spec_helper'
 
 
-describe 'Loading and storing UUIDs' do
+describe 'Loading and storing UUIDs', :integration do
   let :connection_options do
     {
       :hosts => [ENV['CASSANDRA_HOST']],
