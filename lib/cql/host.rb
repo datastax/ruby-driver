@@ -18,6 +18,7 @@ module Cql
   class Host
     attr_reader :ip, :id, :rack, :datacenter, :release_version, :status
 
+    # @private
     def initialize(ip, id = nil, rack = nil, datacenter = nil, release_version = nil, status = :up)
       @ip              = ip
       @id              = id
