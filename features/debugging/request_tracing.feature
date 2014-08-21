@@ -8,9 +8,9 @@ Feature: Request tracing
   Scenario: tracing is disabled by default
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster   = Cql.connect
+      cluster   = Cassandra.connect
       session   = cluster.connect("simplex")
       execution = session.execute("SELECT * FROM songs").execution_info
 
@@ -31,9 +31,9 @@ Feature: Request tracing
   Scenario: tracing is enabled explicitly
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster   = Cql.connect
+      cluster   = Cassandra.connect
       session   = cluster.connect("simplex")
       execution = session.execute("SELECT * FROM songs", :trace => true).execution_info
       trace     = execution.trace

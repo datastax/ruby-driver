@@ -10,9 +10,9 @@ Feature: prepared statements for writes
   Scenario: an INSERT statement is prepared
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster = Cql.connect
+      cluster = Cassandra.connect
 
       at_exit { cluster.close }
 
@@ -23,19 +23,19 @@ Feature: prepared statements for writes
                 )
       songs   = [
         {
-          :id     => Cql::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
+          :id     => Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
           :title  => 'La Petite Tonkinoise',
           :album  => 'Bye Bye Blackbird',
           :artist => 'Joséphine Baker'
         },
         {
-          :id     => Cql::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
+          :id     => Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
           :title  => 'Die Mösch',
           :album  => 'In Gold',
           :artist => 'Willi Ostermann'
         },
         {
-          :id     => Cql::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25'),
+          :id     => Cassandra::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25'),
           :title  => 'Memo From Turner',
           :album  => 'Performance',
           :artist => 'Mick Jager'

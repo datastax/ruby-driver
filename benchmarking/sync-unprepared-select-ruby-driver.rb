@@ -15,18 +15,18 @@
 # limitations under the License.
 
 require_relative 'benchmark'
-require 'cql'
+require 'cassandra'
 
 class UnpreparedSelectRubyDriver < Benchmark
     def connect_to_cluster
         puts "#{Time.now - start} Connecting to cluster..."
-        @cluster = Cql.connect(hosts: ['127.0.0.1'])
+        @cluster = Cassandra.connect(hosts: ['127.0.0.1'])
         @session = @cluster.connect("simplex")
     end
 
     def target
         puts "#{Time.now - start} Executing #{@iterations} selects..."
-        statement = Cql::Statements::Simple.new("SELECT COUNT(*) FROM songs")
+        statement = Cassandra::Statements::Simple.new("SELECT COUNT(*) FROM songs")
         @iterations.times.map do
             begin
                 @session.execute(statement)

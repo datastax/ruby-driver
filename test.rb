@@ -1,8 +1,8 @@
 # encoding: utf-8
 
-require 'cql'
+require 'cassandra'
 
-client = Cql::Client::AsynchronousClient.new(hosts: ['127.0.0.1'])
+client = Cassandra::Client::AsynchronousClient.new(hosts: ['127.0.0.1'])
 
 client.connect.value
 

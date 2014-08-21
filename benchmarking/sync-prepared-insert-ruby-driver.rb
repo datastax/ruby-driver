@@ -15,12 +15,12 @@
 # limitations under the License.
 
 require_relative 'benchmark'
-require 'cql'
+require 'cassandra'
 
 class PreparedInsertRubyDriver < Benchmark
     def setup
       # We do not want SecureRandom.uuid to be included in the measurements so let's generate a lot of UUID here
-      # Note : Creating a Cql::Uuid from a string is included in the measured loop as it is not a Ruby API
+      # Note : Creating a Cassandra::Uuid from a string is included in the measured loop as it is not a Ruby API
       @uuids = Array.new
       @iterations.times do
         @uuids.push(SecureRandom.uuid)
@@ -29,9 +29,9 @@ class PreparedInsertRubyDriver < Benchmark
 
     def connect_to_cluster
         puts "#{Time.now - start} Connecting to cluster..."
-        @cluster = Cql.connect(hosts: ['127.0.0.1'])
+        @cluster = Cassandra.connect(hosts: ['127.0.0.1'])
         @session = @cluster.connect("simplex")
-        @session.execute(Cql::Statements::Simple.new("TRUNCATE songs"))
+        @session.execute(Cassandra::Statements::Simple.new("TRUNCATE songs"))
         @statement  = @session.prepare("INSERT INTO songs (id, title, album, artist, tags) VALUES (?, 'Dummy song-id', 'Track 1', 'Unknown Artist', {'soundtrack', '1985'});")
     end
 
@@ -39,7 +39,7 @@ class PreparedInsertRubyDriver < Benchmark
         puts "#{Time.now - start} Executing #{@iterations} inserts..."
         @iterations.times.map do
             begin
-                @session.execute(@statement, Cql::Uuid.new(@uuids.pop))
+                @session.execute(@statement, Cassandra::Uuid.new(@uuids.pop))
                 increment_success
             rescue => e
                 puts "#{e.class.name}: #{e.message}"

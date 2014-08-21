@@ -20,7 +20,7 @@ class FakeClusterRegistry
   def initialize(ips = [])
     @listeners = Set.new
     @ips       = ips
-    @hosts     = Set.new(ips.map {|ip| Cql::Host.new(ip)})
+    @hosts     = Set.new(ips.map {|ip| Cassandra::Host.new(ip)})
   end
 
   def add_listener(listener)
@@ -40,7 +40,7 @@ class FakeLoadBalancingPolicy
   end
 
   def distance(host)
-    @registry.hosts.include?(host) ? Cql::LoadBalancing::DISTANCE_LOCAL : Cql::LoadBalancing::DISTANCE_IGNORE
+    @registry.hosts.include?(host) ? Cassandra::LoadBalancing::DISTANCE_LOCAL : Cassandra::LoadBalancing::DISTANCE_IGNORE
   end
 
   def plan(keyspace, statement, options)

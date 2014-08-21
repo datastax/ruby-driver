@@ -2,11 +2,11 @@
 
 $: << File.expand_path('../lib', __FILE__)
 
-require 'cql/version'
+require 'cassandra/version'
 
 Gem::Specification.new do |s|
   s.name          = 'cassandra-driver'
-  s.version       = Cql::VERSION.dup
+  s.version       = Cassandra::VERSION.dup
   s.authors       = ['Theo Hultberg', 'Bulat Shakirzyanov']
   s.email         = ['theo@iconara.net', 'bulat.shakirzyanov@datastax.com']
   s.homepage      = 'http://riptano.github.io/ruby-driver/features'

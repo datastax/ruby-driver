@@ -12,9 +12,9 @@ Feature: Downgrading Consistency Retry Policy
     Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
     And the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster = Cql.connect(retry_policy: Cql::Retry::Policies::DowngradingConsistency.new)
+      cluster = Cassandra.connect(retry_policy: Cassandra::Retry::Policies::DowngradingConsistency.new)
       session = cluster.connect('simplex')
       result  = session.execute('SELECT * FROM songs', consistency: :all)
 

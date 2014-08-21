@@ -22,11 +22,11 @@ Feature: Datacenter-aware Round Robin Policy
   Scenario: Requests are automatically routed to local datacenter
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
       datacenter = "dc2"
-      policy     = Cql::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
-      cluster    = Cql.connect(load_balancing_policy: policy)
+      policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
+      cluster    = Cassandra.connect(load_balancing_policy: policy)
       session    = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
@@ -46,11 +46,11 @@ Feature: Datacenter-aware Round Robin Policy
   Scenario: Requests are routed to remote datacenters if local datacenter is down
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
       datacenter = "dc2"
-      policy     = Cql::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
-      cluster    = Cql.connect(load_balancing_policy: policy)
+      policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
+      cluster    = Cassandra.connect(load_balancing_policy: policy)
       session    = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
@@ -72,12 +72,12 @@ Feature: Datacenter-aware Round Robin Policy
   Scenario: Requests are routed up to a maximum number of hosts in remote datacenters
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
       datacenter     = "dc2"
       remotes_to_try = 1
-      policy         = Cql::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, remotes_to_try)
-      cluster        = Cql.connect(load_balancing_policy: policy)
+      policy         = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, remotes_to_try)
+      cluster        = Cassandra.connect(load_balancing_policy: policy)
       session        = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
@@ -98,11 +98,11 @@ Feature: Datacenter-aware Round Robin Policy
   Scenario: Requests with local consistencies are not routed to remote datacenters
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
       datacenter = "dc2"
-      policy     = Cql::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
-      cluster    = Cql.connect(load_balancing_policy: policy)
+      policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
+      cluster    = Cassandra.connect(load_balancing_policy: policy)
       session    = cluster.connect('simplex')
 
       session.execute("SELECT * FROM songs", :consistency => :local_one)
@@ -112,18 +112,18 @@ Feature: Datacenter-aware Round Robin Policy
     When it is executed
     Then its output should contain:
       """
-      no hosts available, check #errors property for details (Cql::Errors::NoHostsAvailable)
+      no hosts available, check #errors property for details (Cassandra::Errors::NoHostsAvailable)
       """
 
   Scenario: Routing requests with local consistencies to remote datacenters
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
       datacenter = "dc2"
       use_remote = true
-      policy     = Cql::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, nil, use_remote)
-      cluster    = Cql.connect(load_balancing_policy: policy)
+      policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, nil, use_remote)
+      cluster    = Cassandra.connect(load_balancing_policy: policy)
       session    = cluster.connect('simplex')
 
       hosts_used = 4.times.map do

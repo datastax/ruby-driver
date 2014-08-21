@@ -61,9 +61,9 @@ class FakeIoReactor
 
   def connect(host, port, timeout)
     if host == '0.0.0.0'
-      Ione::Future.failed(Cql::Io::ConnectionError.new('Can\'t connect to 0.0.0.0'))
+      Ione::Future.failed(Cassandra::Io::ConnectionError.new('Can\'t connect to 0.0.0.0'))
     elsif @down_nodes.include?(host)
-      Ione::Future.failed(Cql::Io::ConnectionError.new('Node down'))
+      Ione::Future.failed(Cassandra::Io::ConnectionError.new('Node down'))
     else
       connection = FakeConnection.new(host, port, timeout)
       @connections << connection
@@ -182,16 +182,16 @@ class FakeConnection
 
   def send_request(request, timeout=nil)
     if @closed
-      Ione::Future.failed(Cql::Errors::NotConnectedError.new)
+      Ione::Future.failed(Cassandra::Errors::NotConnectedError.new)
     else
       @requests << request
       case request
-      when Cql::Protocol::RegisterRequest
+      when Cassandra::Protocol::RegisterRequest
         @registered_event_types.concat(request.events)
       end
       catch(:halt) do
         response = @request_handler.call(request, timeout)
-        if response.is_a?(Cql::Protocol::SetKeyspaceResultResponse)
+        if response.is_a?(Cassandra::Protocol::SetKeyspaceResultResponse)
           @keyspace = response.keyspace
         end
         Ione::Future.resolved(response)
@@ -205,10 +205,10 @@ class FakeConnection
     response = @responses.shift
     unless response
       case request
-      when Cql::Protocol::StartupRequest
-        Cql::Protocol::ReadyResponse.new
-      when Cql::Protocol::QueryRequest
-        Cql::Protocol::RowsResultResponse.new([], [], nil, nil)
+      when Cassandra::Protocol::StartupRequest
+        Cassandra::Protocol::ReadyResponse.new
+      when Cassandra::Protocol::QueryRequest
+        Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
       end
     end
   end

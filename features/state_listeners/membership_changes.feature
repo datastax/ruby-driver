@@ -32,10 +32,10 @@ Feature: membership change detection
     And the following example running in the background:
       """ruby
       require 'printing_listener'
-      require 'cql'
+      require 'cassandra'
 
       listener = PrintingListener.new($stderr)
-      cluster  = Cql.connect
+      cluster  = Cassandra.connect
 
       at_exit { cluster.close }
 

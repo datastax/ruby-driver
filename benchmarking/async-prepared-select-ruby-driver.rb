@@ -15,12 +15,12 @@
 # limitations under the License.
 
 require_relative 'benchmark'
-require 'cql'
+require 'cassandra'
 
 class PreparedSelectRubyDriver < Benchmark
     def connect_to_cluster
         puts "#{Time.now - start} Connecting to cluster..."
-        @cluster = Cql.connect(hosts: ['127.0.0.1'])
+        @cluster = Cassandra.connect(hosts: ['127.0.0.1'])
         @session = @cluster.connect("simplex")
         @statement  = @session.prepare('SELECT * FROM songs')
     end

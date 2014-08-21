@@ -14,9 +14,9 @@ Full list of features can be found in detailed documentation sections on the rig
 ### Connecting and Discovering Nodes
 
 ```ruby
-require 'cql'
+require 'cassandra'
 
-cluster = Cql.connect
+cluster = Cassandra.connect
 
 cluster.hosts.each do |host|
   puts "Host #{host.ip}: id=#{host.id} datacenter=#{host.datacenter} rack=#{host.rack}"
@@ -79,7 +79,7 @@ gem 'cassandra-driver'
 
 ## Architecture
 
-The diagram below represents a high level architecture of the driver. Each arrow represents direction of ownership, where owner is pointed to by its children. For example, a single [Cql::Cluster](/api/cluster) instance can manage multiple [Cql::Session](/api/session) instances, etc.
+The diagram below represents a high level architecture of the driver. Each arrow represents direction of ownership, where owner is pointed to by its children. For example, a single [Cassandra::Cluster](/api/cluster) instance can manage multiple [Cassandra::Session](/api/session) instances, etc.
 
 ```ditaa
                                   /-------+
@@ -115,11 +115,11 @@ The diagram below represents a high level architecture of the driver. Each arrow
 A Cluster instance allows to configure different important aspects of the way connections and queries will be handled. At this level you can configure everything from contact points (address of the nodes to be contacted initially before the driver performs node discovery), the request routing policy, retry and reconnection policies, and so forth. Generally such settings are set once at the application level.
 
 ```ruby
-require 'cql'
+require 'cassandra'
 
-cluster = Cql.connect(
+cluster = Cassandra.connect(
             :hosts => ['10.1.1.3', '10.1.1.4', '10.1.1.5'],
-            :load_balancing_policy => Cql::LoadBalancing::Policies::DCAwareRoundRobin.new("US_EAST")
+            :load_balancing_policy => Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new("US_EAST")
           )
 ```
 

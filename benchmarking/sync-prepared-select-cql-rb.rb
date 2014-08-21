@@ -15,13 +15,13 @@
 # limitations under the License.
 
 require_relative 'benchmark'
-require 'cql'
+require 'cassandra'
 
 class PreparedSelectCqlRb < Benchmark
 
     def connect_to_cluster
         puts "#{Time.now - start} Connecting to cluster..."
-        client = Cql::Client::SynchronousClient.new(Cql::Client::AsynchronousClient.new(hosts: ['127.0.0.1']))
+        client = Cassandra::Client::SynchronousClient.new(Cassandra::Client::AsynchronousClient.new(hosts: ['127.0.0.1']))
         client.connect
         client.use('simplex')
         @statement = client.prepare('SELECT COUNT(*) FROM songs')

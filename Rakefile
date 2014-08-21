@@ -10,10 +10,10 @@ ENV["FAIL_FAST"] ||= 'Y'
 desc 'Tag & release the gem'
 task :release => :test do
   $: << 'lib'
-  require 'cql/version'
+  require 'cassandra/version'
 
   project_name = 'cassandra-driver'
-  version_string = "v#{Cql::VERSION}"
+  version_string = "v#{Cassandra::VERSION}"
   
   unless %x(git tag -l).split("\n").include?(version_string)
     system %(git tag -a #{version_string} -m #{version_string})

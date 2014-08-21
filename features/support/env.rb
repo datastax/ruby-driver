@@ -15,9 +15,9 @@ require 'fileutils'
 require 'tempfile'
 require 'yaml'
 
-require 'cql'
-require 'cql/compression/snappy_compressor'
-require 'cql/compression/lz4_compressor'
+require 'cassandra'
+require 'cassandra/compression/snappy_compressor'
+require 'cassandra/compression/lz4_compressor'
 
 World(CCM)
 

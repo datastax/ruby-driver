@@ -94,7 +94,7 @@ route '/features*' do
 end
 
 route 'api*' do
-  item.identifier.sub('api/cql', 'api') + 'index.html'
+  item.identifier.sub('api/cassandra', 'api') + 'index.html'
 end
 
 layout '*', :erb

@@ -19,9 +19,9 @@ if you want to use compression you should also install [snappy](http://rubygems.
 # Quick start
 
 ```ruby
-require 'cql'
+require 'cassandra'
 
-client = Cql::Client.connect(hosts: ['cassandra.example.com'])
+client = Cassandra::Client.connect(hosts: ['cassandra.example.com'])
 client.use('system')
 rows = client.execute('SELECT keyspace_name, columnfamily_name FROM schema_columnfamilies')
 rows.each do |row|
@@ -224,7 +224,7 @@ end
 You can specify the default consistency to use when you create a new `Client`:
 
 ```ruby
-client = Cql::Client.connect(hosts: %w[localhost], default_consistency: :all)
+client = Cassandra::Client.connect(hosts: %w[localhost], default_consistency: :all)
 ```
 
 The `#execute` (of `Client`, `PreparedStatement` and `Batch`) method also supports setting the desired consistency level on a per-request basis:
@@ -271,19 +271,19 @@ The CQL protocol supports frame compression, which can give you a performance bo
 Cassandra currently supports two compression algorithms: Snappy and LZ4. cql-rb supports both, but in order to use them you will have to install the [snappy](http://rubygems.org/gems/snappy) or [lz4-ruby](http://rubygems.org/gems/lz4-ruby) gems separately. Once it's installed you can enable compression like this:
 
 ```ruby
-require 'cql/compression/snappy_compressor'
+require 'cassandra/compression/snappy_compressor'
 
-compressor = Cql::Compression::SnappyCompressor.new
-client = Cql::Client.connect(hosts: %w[localhost], compressor: compressor)
+compressor = Cassandra::Compression::SnappyCompressor.new
+client = Cassandra::Client.connect(hosts: %w[localhost], compressor: compressor)
 ```
 
 or
 
 ```ruby
-require 'cql/compression/lz4_compressor'
+require 'cassandra/compression/lz4_compressor'
 
-compressor = Cql::Compression::Lz4Compressor.new
-client = Cql::Client.connect(hosts: %w[localhost], compressor: compressor)
+compressor = Cassandra::Compression::Lz4Compressor.new
+client = Cassandra::Client.connect(hosts: %w[localhost], compressor: compressor)
 ```
 
 Which one should you choose? On paper the LZ4 algorithm is more efficient and the one Cassandra defaults to for SSTable compression. They both achieve roughly the same compression ratio, but LZ4 does it quicker.
@@ -295,7 +295,7 @@ You can pass a standard Ruby logger to the client to get some more information a
 ```ruby
 require 'logger'
 
-client = Cql::Client.connect(logger: Logger.new($stderr))
+client = Cassandra::Client.connect(logger: Logger.new($stderr))
 ```
 
 Most of the logging will be when the driver connects and discovers new nodes, when connections fail and so on, but also when statements are prepared. The logging is designed to not cause much overhead and only relatively rare events are logged (e.g. normal requests are not logged).

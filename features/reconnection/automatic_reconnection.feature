@@ -35,12 +35,12 @@ Feature: Automatic reconnection
       """
     And the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
       require 'printing_listener'
       
       interval = 2 # reconnect every 2 seconds
-      policy   = Cql::Reconnection::Policies::Constant.new(interval)
-      cluster  = Cql.connect(
+      policy   = Cassandra::Reconnection::Policies::Constant.new(interval)
+      cluster  = Cassandra.connect(
                    listeners: [PrintingListener.new($stdout)],
                    reconnection_policy: policy
                  )
@@ -83,7 +83,7 @@ Feature: Automatic reconnection
     Host 127.0.0.1 is down
     Host 127.0.0.3 is down
     Host 127.0.0.2 is down
-    Query "SELECT * FROM simplex.songs" failed with Cql::Errors::NoHostsAvailable: no hosts available, check #errors property for details
+    Query "SELECT * FROM simplex.songs" failed with Cassandra::Errors::NoHostsAvailable: no hosts available, check #errors property for details
     Host 127.0.0.1 is up
     Query "SELECT * FROM simplex.songs" fulfilled by 127.0.0.1
     === STOP ===

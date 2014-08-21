@@ -9,12 +9,12 @@ Feature: White List Policy
     Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
     And the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
       allowed_ips = ["127.0.0.1", "127.0.0.3"]
-      round_robin = Cql::LoadBalancing::Policies::RoundRobin.new
-      whitelist   = Cql::LoadBalancing::Policies::WhiteList.new(allowed_ips, round_robin)
-      cluster     = Cql.connect(load_balancing_policy: whitelist)
+      round_robin = Cassandra::LoadBalancing::Policies::RoundRobin.new
+      whitelist   = Cassandra::LoadBalancing::Policies::WhiteList.new(allowed_ips, round_robin)
+      cluster     = Cassandra.connect(load_balancing_policy: whitelist)
       session     = cluster.connect('simplex')
 
       coordinator_ips = 3.times.map do

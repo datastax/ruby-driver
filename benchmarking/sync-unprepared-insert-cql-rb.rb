@@ -15,13 +15,13 @@
 # limitations under the License.
 
 require_relative 'benchmark'
-require 'cql'
+require 'cassandra'
 
 
 class UnpreparedInsertCqlRb < Benchmark
     def setup
       # We do not want SecureRandom.uuid to be included in the measurements so let's generate a lot of UUID here
-      # Note : Creating a Cql::Uuid from a string is included in the measured loop as it is not a Ruby API
+      # Note : Creating a Cassandra::Uuid from a string is included in the measured loop as it is not a Ruby API
       @uuids = Array.new
       @iterations.times do
         @uuids.push(SecureRandom.uuid)
@@ -30,7 +30,7 @@ class UnpreparedInsertCqlRb < Benchmark
 
     def connect_to_cluster
         puts "#{Time.now - start} Connecting to cluster..."
-        @client = Cql::Client::SynchronousClient.new(Cql::Client::AsynchronousClient.new(hosts: ['127.0.0.1']))
+        @client = Cassandra::Client::SynchronousClient.new(Cassandra::Client::AsynchronousClient.new(hosts: ['127.0.0.1']))
         @client.connect
         @client.use('simplex')
         @client.execute("TRUNCATE songs")
@@ -41,7 +41,7 @@ class UnpreparedInsertCqlRb < Benchmark
         puts "#{Time.now - start} Executing #{@iterations} inserts..."
         @iterations.times.map do
             begin
-                @client.execute("INSERT INTO songs (id, title, album, artist, tags) VALUES (?, 'Dummy song-id', 'Track 1', 'Unknown Artist', {'soundtrack', '1985'});", Cql::Uuid.new(@uuids.pop))
+                @client.execute("INSERT INTO songs (id, title, album, artist, tags) VALUES (?, 'Dummy song-id', 'Track 1', 'Unknown Artist', {'soundtrack', '1985'});", Cassandra::Uuid.new(@uuids.pop))
                 increment_success
             rescue => e
                 puts "#{e.class.name}: #{e.message}"

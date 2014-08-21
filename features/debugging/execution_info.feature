@@ -8,9 +8,9 @@ Feature: Execution information
   Scenario: execution information is accessible from execution result
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster = Cql.connect
+      cluster = Cassandra.connect
 
       at_exit { cluster.close }
 
@@ -42,7 +42,7 @@ Feature: Execution information
     Given a file named "retrying_at_a_given_consistency_policy.rb" with:
       """ruby
       class RetryingAtAGivenConsistencyPolicy
-        include Cql::Retry::Policy
+        include Cassandra::Retry::Policy
 
         def initialize(consistency_to_use)
           @consistency_to_use = consistency_to_use
@@ -66,10 +66,10 @@ Feature: Execution information
       """
     And the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
       require 'retrying_at_a_given_consistency_policy'
 
-      cluster   = Cql.connect(retry_policy: RetryingAtAGivenConsistencyPolicy.new(:one))
+      cluster   = Cassandra.connect(retry_policy: RetryingAtAGivenConsistencyPolicy.new(:one))
       session   = cluster.connect("simplex")
       execution = session.execute("SELECT * FROM songs", :consistency => :all).execution_info
 

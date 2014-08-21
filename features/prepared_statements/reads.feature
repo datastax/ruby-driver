@@ -10,9 +10,9 @@ Feature: prepared statements for reads
   Scenario: a SELECT statement with parameterized LIMIT is prepared
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster = Cql.connect
+      cluster = Cassandra.connect
 
       at_exit { cluster.close }
 
