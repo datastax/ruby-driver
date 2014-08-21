@@ -10,3 +10,5 @@ def child_of?(item, parent)
     child_of?(item.parent, parent)
   end
 end
+
+LICENSE = File.read(File.dirname(__FILE__) + '/../../LICENSE').strip

@@ -47,5 +47,9 @@ def docstring_text
     text = text.gsub(/\A([a-z])/) {|x| x.upcase }
   end
 
-  text.strip
+  strip_license(text).strip
+end
+
+def strip_license(text)
+  text.sub(LICENSE, '')
 end

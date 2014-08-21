@@ -139,7 +139,7 @@ module Docs
       return object if object.is_a?(String)
 
       identifier = '/' + options.prefix + object.title.gsub(/([a-z])([A-Z])/, '\1_\2').downcase.gsub('::', '/') + '/'
-      identifier.sub('api/cql', 'api')
+      identifier.sub('api/cassandra', 'api')
     end
   end
 end
