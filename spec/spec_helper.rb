@@ -11,6 +11,15 @@ require 'support/await_helper'
 require 'support/fake_io_reactor'
 require 'support/fake_cluster_registry'
 
+unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
+  require 'coveralls'
+  require 'simplecov'
+end
+
+require 'cql'
+require 'cql/compression/snappy_compressor'
+require 'cql/compression/lz4_compressor'
+
 RSpec.configure do |config|
   config.expect_with :rspec do |c|
     c.syntax = [:should, :expect]
@@ -19,24 +28,3 @@ RSpec.configure do |config|
     c.syntax = [:should, :expect]
   end
 end
-
-unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
-  require 'coveralls'
-  require 'simplecov'
-
-  if ENV.include?('TRAVIS')
-    Coveralls.wear!
-    SimpleCov.formatter = Coveralls::SimpleCov::Formatter
-  end
-
-  SimpleCov.command_name 'RSpec'
-  SimpleCov.start do
-    add_group 'Source', 'lib'
-    add_group 'Unit tests', 'spec/cql'
-    add_group 'Integration tests', 'spec/integration'
-    add_group 'Features', 'features'
-  end
-end
-
-require 'cql'
-require 'cql/compression/snappy_compressor'
