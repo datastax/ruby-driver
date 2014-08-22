@@ -101,7 +101,7 @@ describe 'A CQL client', :integration do
       result.should_not be_empty
     end
 
-    it 'executes a batch' do
+    it 'executes a batch', :unless => cassandra_version.start_with?('1.2') do
       statement = client.prepare('UPDATE users SET first = ?, last = ?, age = ? WHERE user_id = ?')
       statement.batch do |batch|
         batch.add('Sam', 'Miller', 23, 'sam')
@@ -111,7 +111,7 @@ describe 'A CQL client', :integration do
       result.first['last'].should == 'Jones'
     end
 
-    it 'executes a counter batch' do
+    it 'executes a counter batch', :unless => cassandra_version.start_with?('1.2') do
       statement = client.prepare('UPDATE counters SET count = count + ? WHERE id = ?')
       batch = statement.batch(:counter, consistency: :quorum)
       batch.add(5, 'foo')
@@ -281,7 +281,7 @@ describe 'A CQL client', :integration do
 
   shared_examples 'no_compressor' do
     it 'compresses requests and decompresses responses' do
-      pending 'No compressor available for the current platform'
+      skip 'No compressor available for the current platform'
     end
   end
 
@@ -294,7 +294,7 @@ describe 'A CQL client', :integration do
     end
   end
 
-  context 'with LZ4 compression' do
+  context 'with LZ4 compression', :unless => cassandra_version.start_with?('1.2') do
     begin
       require 'cassandra/compression/lz4_compressor'
       include_examples 'with_compressor', Cassandra::Compression::Lz4Compressor
@@ -309,17 +309,19 @@ describe 'A CQL client', :integration do
     end
 
     it 'executes a query and sends the values separately' do
+      skip 'cassandra 1.2 doesn\'t support parameterized queries' if cassandra_version.start_with?('1.2')
       result = client.execute(%<INSERT INTO users (user_id, first, last) VALUES (?, ?, ?)>, 'sue', 'Sue', 'Smith')
       result.should be_empty
     end
 
     it 'encodes the values using the provided type hints' do
+      skip 'cassandra 1.2 doesn\'t support parameterized queries' if cassandra_version.start_with?('1.2')
       result = client.execute(%<INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)>, 'sue', 'Sue', 'Smith', 35, type_hints: [nil, nil, nil, :int])
       result.should be_empty
     end
   end
 
-  context 'when batching operations' do
+  context 'when batching operations', :unless => cassandra_version.start_with?('1.2') do
     before do
       create_keyspace_and_table
     end
@@ -395,7 +397,7 @@ describe 'A CQL client', :integration do
     end
   end
 
-  context 'when paging large result sets' do
+  context 'when paging large result sets', :unless => cassandra_version.start_with?('1.2') do
     let :row_count do
       200
     end

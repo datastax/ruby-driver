@@ -19,7 +19,19 @@ require 'spec_helper'
 
 describe 'Protocol parsing and communication', :integration do
   let :protocol_version do
-    2
+    if cassandra_version.start_with?('1.2')
+      1
+    else
+      2
+    end
+  end
+
+  let :cql_version do
+    if cassandra_version.start_with?('1.2')
+      '3.0.5'
+    else
+      '3.1.0'
+    end
   end
 
   let :io_reactor do
@@ -39,6 +51,11 @@ describe 'Protocol parsing and communication', :integration do
   end
 
   before :all do
+    cql_version = if cassandra_version.start_with?('1.2')
+      '3.0.5'
+    else
+      '3.1.0'
+    end
     ir = Cassandra::Io::IoReactor.new
     protocol_handler_factory = lambda { |connection| Cassandra::Protocol::CqlProtocolHandler.new(connection, ir, 2) }
     f = ir.start
@@ -46,7 +63,7 @@ describe 'Protocol parsing and communication', :integration do
       reactor.connect(ENV['CASSANDRA_HOST'], 9042, 5, &protocol_handler_factory)
     end
     f = f.flat_map do |connection|
-      connection.send_request(Cassandra::Protocol::StartupRequest.new('3.1.0'))
+      connection.send_request(Cassandra::Protocol::StartupRequest.new(cql_version))
     end
     f = f.map do |response|
       response.is_a?(Cassandra::Protocol::AuthenticateResponse)
@@ -153,7 +170,7 @@ describe 'Protocol parsing and communication', :integration do
     context 'when authentication is not required' do
       it 'sends STARTUP and receives READY' do
         pending('authentication required') if @authentication_enabled
-        response = execute_request(Cassandra::Protocol::StartupRequest.new('3.1.0'), false)
+        response = execute_request(Cassandra::Protocol::StartupRequest.new(cql_version), false)
         response.should be_a(Cassandra::Protocol::ReadyResponse)
       end
     end
@@ -166,26 +183,26 @@ describe 'Protocol parsing and communication', :integration do
 
         it 'sends STARTUP and receives AUTHENTICATE' do
           pending('authentication not configured') unless @authentication_enabled
-          response = raw_execute_request(Cassandra::Protocol::StartupRequest.new('3.1.0'))
+          response = raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
           response.should be_a(Cassandra::Protocol::AuthenticateResponse)
         end
 
         it 'ignores the AUTHENTICATE response and receives ERROR' do
           pending('authentication not configured') unless @authentication_enabled
-          raw_execute_request(Cassandra::Protocol::StartupRequest.new('3.1.0'))
+          raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
           response = raw_execute_request(Cassandra::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
           response.code.should == 10
         end
 
         it 'sends STARTUP followed by CREDENTIALS and receives READY' do
-          raw_execute_request(Cassandra::Protocol::StartupRequest.new('3.1.0'))
+          raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
           response = raw_execute_request(Cassandra::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra'))
           response.should be_a(Cassandra::Protocol::ReadyResponse)
         end
 
         it 'sends bad username and password in CREDENTIALS and receives ERROR' do
           pending('authentication not configured') unless @authentication_enabled
-          raw_execute_request(Cassandra::Protocol::StartupRequest.new('3.1.0'))
+          raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
           response = raw_execute_request(Cassandra::Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar'))
           response.code.should == 0x100
         end
@@ -194,27 +211,27 @@ describe 'Protocol parsing and communication', :integration do
       context 'and the protocol version is 2' do
         it 'sends STARTUP and receives AUTHENTICATE' do
           pending('authentication not configured') unless @authentication_enabled
-          response = raw_execute_request(Cassandra::Protocol::StartupRequest.new('3.1.0'))
+          response = raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
           response.should be_a(Cassandra::Protocol::AuthenticateResponse)
         end
 
         it 'ignores the AUTHENTICATE response and receives ERROR' do
           pending('authentication not configured') unless @authentication_enabled
-          raw_execute_request(Cassandra::Protocol::StartupRequest.new('3.1.0'))
+          raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
           response = raw_execute_request(Cassandra::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
           response.code.should == 10
         end
 
         it 'sends STARTUP followed by AUTH_RESPONSE and receives AUTH_SUCCESS' do
           pending('authentication not configured') unless @authentication_enabled
-          raw_execute_request(Cassandra::Protocol::StartupRequest.new('3.1.0'))
+          raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
           response = raw_execute_request(Cassandra::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra"))
           response.should be_a(Cassandra::Protocol::AuthSuccessResponse)
         end
 
         it 'sends bad username and password in AUTH_RESPONSE and receives ERROR' do
           pending('authentication not configured') unless @authentication_enabled
-          raw_execute_request(Cassandra::Protocol::StartupRequest.new('3.1.0'))
+          raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
           response = raw_execute_request(Cassandra::Protocol::AuthResponseRequest.new("\x00cassandra\x00ardnassac"))
           response.code.should == 0x100
         end
@@ -224,7 +241,7 @@ describe 'Protocol parsing and communication', :integration do
 
   context 'when set up' do
     before do
-      response = execute_request(Cassandra::Protocol::StartupRequest.new('3.1.0'))
+      response = execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
       response
     end
 
@@ -381,7 +398,7 @@ describe 'Protocol parsing and communication', :integration do
           end
         end
 
-        it 'sends an INSERT command with bound values' do
+        it 'sends an INSERT command with bound values', :unless => cassandra_version.start_with?('1.2') do
           in_keyspace_with_table do
             cql = %<INSERT INTO users (user_name, email) VALUES (?, ?)>
             response = execute_request(Cassandra::Protocol::QueryRequest.new(cql, ['sue', 'sue@inter.net'], nil, :one))
@@ -389,7 +406,7 @@ describe 'Protocol parsing and communication', :integration do
           end
         end
 
-        it 'sends an UPDATE command with bound values' do
+        it 'sends an UPDATE command with bound values', :unless => cassandra_version.start_with?('1.2') do
           in_keyspace_with_table do
             cql = %<UPDATE users SET email = ? WHERE user_name = ?>
             response = execute_request(Cassandra::Protocol::QueryRequest.new(cql, ['sue@inter.net', 'sue'], nil, :one))
@@ -397,7 +414,7 @@ describe 'Protocol parsing and communication', :integration do
           end
         end
 
-        it 'sends a SELECT command with bound values' do
+        it 'sends a SELECT command with bound values', :unless => cassandra_version.start_with?('1.2') do
           in_keyspace_with_table do
             query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
             query(%<INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')>)
@@ -409,7 +426,7 @@ describe 'Protocol parsing and communication', :integration do
           end
         end
 
-        it 'guesses the types of bound values' do
+        it 'guesses the types of bound values', :unless => cassandra_version.start_with?('1.2') do
           in_keyspace do
             query('CREATE TABLE types (a BIGINT PRIMARY KEY, b DOUBLE, c ASCII, d BOOLEAN, e TIMESTAMP, f UUID, g DECIMAL, h BLOB)')
             cql = %<UPDATE types SET b = ?, c = ?, d = ?, e = ?, f = ?, g = ?, h = ? WHERE a = ?>
@@ -419,7 +436,7 @@ describe 'Protocol parsing and communication', :integration do
           end
         end
 
-        it 'uses the provided type hints to encode bound values' do
+        it 'uses the provided type hints to encode bound values', :unless => cassandra_version.start_with?('1.2') do
           in_keyspace do
             query('CREATE TABLE types (a INT PRIMARY KEY, b FLOAT)')
             cql = %<UPDATE types SET b = ? WHERE a = ?>
@@ -430,7 +447,7 @@ describe 'Protocol parsing and communication', :integration do
           end
         end
 
-        it 'sends a SELECT command with a page size and receives a ROWS RESULT with a paging state' do
+        it 'sends a SELECT command with a page size and receives a ROWS RESULT with a paging state', :unless => cassandra_version.start_with?('1.2') do
           in_keyspace_with_table do
             10.times do
               query(%<INSERT INTO users (user_name, email) VALUES ('#{rand(234234).to_s(36)}', 'someone@somewhere.sx')>)
@@ -468,7 +485,7 @@ describe 'Protocol parsing and communication', :integration do
           end
         end
 
-        it 'sends an EXECUTE with a page size and receives a RESULT with a paging state' do
+        it 'sends an EXECUTE with a page size and receives a RESULT with a paging state', :unless => cassandra_version.start_with?('1.2') do
           in_keyspace_with_table do
             10.times do
               query(%<INSERT INTO users (user_name, email) VALUES ('#{rand(234234).to_s(36)}', 'someone@somewhere.sx')>)
@@ -486,7 +503,7 @@ describe 'Protocol parsing and communication', :integration do
         end
       end
 
-      context 'with BATCH requests' do
+      context 'with BATCH requests', :unless => cassandra_version.start_with?('1.2') do
         it 'sends a BATCH request and receives RESULT' do
           in_keyspace_with_table do
             cql1 = %<INSERT INTO users (user_name, email) VALUES (?, ?)>
@@ -546,7 +563,7 @@ describe 'Protocol parsing and communication', :integration do
           io_reactor.start.value
           begin
             connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1, &protocol_handler_factory).value
-            connection.send_request(Cassandra::Protocol::StartupRequest.new('3.1.0', 'snappy')).value
+            connection.send_request(Cassandra::Protocol::StartupRequest.new(cql_version, 'snappy')).value
             connection.send_request(Cassandra::Protocol::PrepareRequest.new('SELECT * FROM system.peers')).value
             compressor.should have_received(:compress).at_least(1).times
             compressor.should have_received(:decompress).at_least(1).times
@@ -596,11 +613,11 @@ describe 'Protocol parsing and communication', :integration do
     end
 
     it 'does nothing the second time #start is called' do
-      protocol_handler_factory = lambda { |connection| Cassandra::Protocol::CqlProtocolHandler.new(connection, io_reactor, 2) }
+      protocol_handler_factory = lambda { |connection| Cassandra::Protocol::CqlProtocolHandler.new(connection, io_reactor, protocol_version) }
       io_reactor = Cassandra::Io::IoReactor.new
       io_reactor.start.value
       connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1, &protocol_handler_factory).value
-      response = connection.send_request(Cassandra::Protocol::StartupRequest.new('3.1.0')).value
+      response = connection.send_request(Cassandra::Protocol::StartupRequest.new(cql_version)).value
       if response.is_a?(Cassandra::Protocol::AuthenticateResponse)
         response = connection.send_request(Cassandra::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra")).value
         response.should be_a(Cassandra::Protocol::AuthSuccessResponse)

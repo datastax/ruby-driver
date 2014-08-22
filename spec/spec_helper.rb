@@ -35,6 +35,7 @@ RSpec.configure do |config|
     c.syntax = [:should, :expect]
   end
 
+  config.extend CCM, :integration
   config.include CCM, :integration
 
   config.before(:context, :integration) do
