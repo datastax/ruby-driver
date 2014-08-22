@@ -331,7 +331,7 @@ module Cassandra
     # @note The block can be called synchronously from current thread if the
     #   future has already been resolved, or, asynchronously, from background
     #   thread upon resolution.
-    # @yieldparam value [Object] a value
+    # @yieldparam error [Exception] an error
     # @yieldreturn [Cassandra::Future, Object] a future or a value to be
     #   wrapped in a future
     # @raise [ArgumentError] if no block given
