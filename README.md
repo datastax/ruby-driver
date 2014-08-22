@@ -27,9 +27,11 @@ future.join
 
 The host you specify is just a seed node, the driver will automatically discover all peers in the cluster.
 
-[`Cql.connect` accepts few options](/api/#connect-class_method)
-[`Session#execute_async` also accepts options](/api/session/#execute_async-instance_method)
-[Usage documentation](/features)
+Read more:
+
+* [`Cql.connect` options](/api/#connect-class_method)
+* [`Session#execute_async` options](/api/session/#execute_async-instance_method)
+* [Usage documentation](/features)
 
 ## Changelog & versioning
 
