@@ -48,14 +48,26 @@ module Cassandra
     end
 
     # Loads next page synchronously
+    #
+    # @param options [Hash] additional options, just like the ones for
+    #   {Cassandra::Session#execute}
+    #
+    # @return [Cassandra::Result, nil] returns `nil` if last page
+    #
     # @see Cassandra::Session#execute
-    def next_page
+    def next_page(options = nil)
     end
 
     # Loads next page asynchronously
-    # @return [Cassandra::Result, nil] returns `nil` if last page
-    # @see Cassandra::Session#execute_async
-    def next_page_async
+    #
+    # @param options [Hash] additional options, just like the ones for
+    #   {Cassandra::Session#execute_async}
+    #
+    # @return [Cassandra::Future<Cassandra::Result, nil>] `nil` if last
+    #   page
+    #
+    # @see Cassandra::Session#execute
+    def next_page_async(options = nil)
     end
   end
 
