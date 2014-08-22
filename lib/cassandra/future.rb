@@ -173,6 +173,40 @@ module Cassandra
       Error.new(error)
     end
 
+    # Returns a future that resolves with values of all futures
+    # @overload all(*futures)
+    #   @param *futures [Cassandra::Future] futures to combine
+    #   @return [Cassandra::Future<Array<Object>>] a combined future
+    # @overload all(futures)
+    #   @param futures [Enumerable<Cassandra::Future>] list of futures to
+    #     combine
+    #   @return [Cassandra::Future<Array<Object>>] a combined future
+    def self.all(*futures)
+      futures   = Array(futures.first) if futures.one?
+      monitor   = Monitor.new
+      promise   = Promise.new
+      remaining = futures.length
+      values    = Array.new(length)
+
+      futures.each_with_index do |future, i|
+        future.on_complete do |e, v|
+          if e
+            promise.break(e)
+          else
+            done = false
+            monitor.synchronize do
+              remaining -= 1
+              done = (remaining == 0)
+              values[i] = v
+            end
+            promise.fulfill(values) if done
+          end
+        end
+      end
+
+      promise.future
+    end
+
     # @private
     def initialize(signal)
       @signal = signal
