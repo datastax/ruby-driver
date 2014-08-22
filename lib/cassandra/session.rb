@@ -65,7 +65,7 @@ module Cassandra
       when Statements::Batch
         @client.batch(statement, options)
       else
-        Futures::Broken.new(::ArgumentError.new("unsupported statement #{statement.inspect}"))
+        Future::Error.new(::ArgumentError.new("unsupported statement #{statement.inspect}"))
       end
     end
 
@@ -94,7 +94,7 @@ module Cassandra
       when Statements::Simple
         @client.prepare(statement.cql, options)
       else
-        Futures::Broken.new(::ArgumentError.new("unsupported statement #{statement.inspect}"))
+        Future::Error.new(::ArgumentError.new("unsupported statement #{statement.inspect}"))
       end
     end
 

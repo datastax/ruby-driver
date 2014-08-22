@@ -36,7 +36,7 @@ module Cassandra
             }
           end
           let(:rows) { [data] }
-          let(:future_rows) { Futures::Fulfilled.new(rows) }
+          let(:future_rows) { Future::Value.new(rows) }
 
           it "loads #{method} from system_traces.sessions" do
             expect(client).to receive(:query).once.with(statement, VOID_OPTIONS).and_return(future_rows)
@@ -65,7 +65,7 @@ module Cassandra
             }
           end
         end
-        let(:future_rows) { Futures::Fulfilled.new(rows) }
+        let(:future_rows) { Future::Value.new(rows) }
 
         it "loads events from system_traces.events" do
           expect(client).to receive(:query).once.with(statement, VOID_OPTIONS).and_return(future_rows)

@@ -54,7 +54,7 @@ module Cassandra
       end
 
       it 'uses given keyspace' do
-        future = Futures::Fulfilled.new(nil)
+        future = Future::Value.new(nil)
         Session.stub(:new) { session }
         expect(session).to receive(:execute_async).once.with('USE foo').and_return(future)
         cluster.connect_async('foo').get

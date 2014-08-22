@@ -245,10 +245,13 @@ module Cassandra
       end
 
       def close_connections
+        # @logger.info('Session closing')
+
         futures = []
         synchronize do
           @connections.each do |host, connections|
             connections.snapshot.each do |c|
+              # @logger.info("Disconnecting ip=#{c.host}")
               futures << c.close
             end
           end.clear

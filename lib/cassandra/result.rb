@@ -17,7 +17,7 @@
 module Cassandra
   class Result
     # @private
-    FULFILLED_FUTURE = Futures::Fulfilled.new(nil)
+    FULFILLED_FUTURE = Future::Value.new(nil)
 
     include Enumerable
 

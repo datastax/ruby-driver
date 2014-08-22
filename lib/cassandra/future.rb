@@ -42,114 +42,7 @@ module Cassandra
     end
 
     # @private
-    module Listeners
-      class Success < Listener
-        def initialize(block)
-          @block = block
-        end
-
-        def success(value)
-          @block.call(value)
-        end
-
-        def failure(error)
-          nil
-        end
-      end
-
-      class Failure < Listener
-        def initialize(block)
-          @block = block
-        end
-
-        def success(value)
-          nil
-        end
-
-        def failure(error)
-          @block.call(error)
-        end
-      end
-    end
-
-    # Returns future value or raises future error
-    # @note This method blocks until a future is resolved
-    # @raise [Exception] error used to resolve this future if any
-    # @return [Object] value used to resolve this future if any
-    def get
-    end
-
-    # Block until the future has been resolved
-    # @note This method won't raise any errors or return anything but the
-    #   future itself
-    # @return [self]
-    def join
-    end
-
-    # Run block when promise is fulfilled
-    # @note The block can be called synchronously from current thread if the future has already been resolved, or, asynchronously, from background thread upon resolution.
-    # @yieldparam value [Object] a value
-    # @raise [ArgumentError] if no block given
-    # @return [self]
-    def on_success(&block)
-    end
-
-    # Run block when promise is broken
-    # @note The block can be called synchronously from current thread if the future has already been resolved, or, asynchronously, from background thread upon resolution.
-    # @yieldparam error [Exception] an error
-    # @raise [ArgumentError] if no block given
-    # @return [self]
-    def on_failure(&block)
-    end
-
-    # Add promise listener
-    # @note The listener can be notified synchronously, from current thread, if the future has already been resolved, or, asynchronously, from background thread upon resolution.
-    # @param listener [Cassandra::Future::Listener] an object that responds to `#success` and `#failure`
-    # @return [self]
-    def add_listener(listener)
-    end
-  end
-
-  # @private
-  module Futures
-    class Signaled < Future
-
-      def initialize(signal)
-        @signal = signal
-      end
-
-      def on_success(&block)
-        raise ::ArgumentError, "no block given" unless block
-
-        @signal.add_listener(Listeners::Success.new(block))
-        self
-      end
-
-      def on_failure(&block)
-        raise ::ArgumentError, "no block given" unless block
-
-        @signal.add_listener(Listeners::Failure.new(block))
-        self
-      end
-
-      def add_listener(listener)
-        raise ::ArgumentError, "listener must respond to both #success and #failure" unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
-
-        @signal.add_listener(listener)
-        self
-      end
-
-      def get
-        @signal.get
-      end
-
-      def join
-        @signal.join
-        self
-      end
-    end
-
-    class Broken < Future
+    class Error < Future
       def initialize(error)
         raise ::ArgumentError, "error must be an exception or a string, #{error.inspect} given" unless error.is_a?(::Exception)
 
@@ -171,8 +64,16 @@ module Cassandra
         self
       end
 
+      def on_complete
+        raise ::ArgumentError, "no block given" unless block_given?
+        yield(@error, nil) rescue nil
+        self
+      end
+
       def add_listener(listener)
-        raise ::ArgumentError, "listener must respond to both #success and #failure" unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
+        unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
+          raise ::ArgumentError, "listener must respond to both #success and #failure"
+        end
 
         listener.failure(@error) rescue nil
         self
@@ -181,9 +82,27 @@ module Cassandra
       def join
         self
       end
+
+      def then
+        raise ::ArgumentError, "no block given" unless block_given?
+        self
+      end
+
+      def fallback
+        raise ::ArgumentError, "no block given" unless block_given?
+
+        begin
+          result = yield(@error)
+          result = Value.new(result) unless result.is_a?(Future)
+          result
+        rescue => e
+          Error.new(e)
+        end
+      end
     end
 
-    class Fulfilled < Future
+    # @private
+    class Value < Future
       def initialize(value)
         @value = value
       end
@@ -198,13 +117,21 @@ module Cassandra
         self
       end
 
-      def on_error
+      def on_failure
         raise ::ArgumentError, "no block given" unless block_given?
         self
       end
 
+      def on_complete
+        raise ::ArgumentError, "no block given" unless block_given?
+        yield(nil, @value) rescue nil
+        self
+      end
+
       def add_listener(listener)
-        raise ::ArgumentError, "listener must respond to both #success and #failure" unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
+        unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
+          raise ::ArgumentError, "listener must respond to both #success and #failure"
+        end
 
         listener.success(@value) rescue nil
         self
@@ -213,12 +140,267 @@ module Cassandra
       def join
         self
       end
+
+      def then
+        raise ::ArgumentError, "no block given" unless block_given?
+
+        begin
+          result = yield(@value)
+          result = Value.new(result) unless result.is_a?(Future)
+          result
+        rescue => e
+          Error.new(e)
+        end
+      end
+
+      def fallback
+        raise ::ArgumentError, "no block given" unless block_given?
+        self
+      end
+    end
+
+    # Returns a future resolved to a given value
+    # @param value [Object] value for the future
+    # @return [Cassandra::Future] a future
+    def self.value(value)
+      Value.new(value)
+    end
+
+    # Returns a future resolved to a given error
+    # @param error [Exception] error for the future
+    # @return [Cassandra::Future] a future
+    def self.error(error)
+      Error.new(error)
+    end
+
+    # @private
+    def initialize(signal)
+      @signal = signal
+    end
+
+    # Returns future value or raises future error
+    # @note This method blocks until a future is resolved
+    # @raise [Exception] error used to resolve this future if any
+    # @return [Object] value used to resolve this future if any
+    def get
+      @signal.get
+    end
+
+    # Block until the future has been resolved
+    # @note This method blocks until a future is resolved
+    # @note This method won't raise any errors or return anything but the
+    #   future itself
+    # @return [self]
+    def join
+      @signal.join
+      self
+    end
+
+    # Run block when future resolves to a value
+    # @note The block can be called synchronously from current thread if the
+    #   future has already been resolved, or, asynchronously, from background
+    #   thread upon resolution.
+    # @yieldparam value [Object] a value
+    # @raise [ArgumentError] if no block given
+    # @return [self]
+    def on_success(&block)
+      raise ::ArgumentError, "no block given" unless block_given?
+      @signal.on_success(&block)
+      self
+    end
+
+    # Run block when future resolves to error
+    # @note The block can be called synchronously from current thread if the
+    #   future has already been resolved, or, asynchronously, from background
+    #   thread upon resolution.
+    # @yieldparam error [Exception] an error
+    # @raise [ArgumentError] if no block given
+    # @return [self]
+    def on_failure(&block)
+      raise ::ArgumentError, "no block given" unless block_given?
+      @signal.on_failure(&block)
+      self
+    end
+
+    # Run block when future resolves. The block will always be called with 2
+    #   arguments - error and value. In case a future resolves to an error, the
+    #   error argument will be non-nil.
+    # @note The block can be called synchronously from current thread if the
+    #   future has already been resolved, or, asynchronously, from background
+    #   thread upon resolution.
+    # @yieldparam error [Exception, nil] an error or nil
+    # @yieldparam value [Object, nil] a value or nil
+    # @raise [ArgumentError] if no block given
+    # @return [self]
+    def on_complete(&block)
+      raise ::ArgumentError, "no block given" unless block_given?
+      @signal.on_complete(&block)
+      self
+    end
+
+    # Add future listener
+    # @note The listener can be notified synchronously, from current thread, if
+    #   the future has already been resolved, or, asynchronously, from
+    #   background thread upon resolution.
+    # @note that provided listener doesn't have to extend
+    #   {Cassandra::Future::Listener}, only conform to the same interface
+    # @param listener [Cassandra::Future::Listener] an object that responds to
+    #   `#success` and `#failure`
+    # @return [self]
+    def add_listener(listener)
+      unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
+        raise ::ArgumentError, "listener must respond to both #success and #failure"
+      end
+
+      @signal.add_listener(listener)
+      self
+    end
+
+    # Returns a new future that will resolve to the result of the block
+    #
+    # @example Block returns a value
+    #   future_users = session.execute_async('SELECT * FROM users WHERE user_name = ?', 'Sam')
+    #   future_user  = future_users.map {|users| users.first}
+    #
+    # @example Block returns a future
+    #   future_statement = session.prepare_async('SELECT * FROM users WHERE user_name = ?')
+    #   future_users     = future_statement.flat_map do |statement|
+    #     session.execute_async(statement, 'Sam')
+    #   end
+    #
+    # @note The block can be called synchronously from current thread if the
+    #   future has already been resolved, or, asynchronously, from background
+    #   thread upon resolution.
+    # @yieldparam value [Object] a value
+    # @raise [ArgumentError] if no block given
+    # @return [Cassandra::Future] a new future
+    def then(&block)
+      raise ::ArgumentError, "no block given" unless block_given?
+      @signal.then(&block)
+    end
+
+    # Returns a new future that will resolve to the result of the future
+    # returned from the block.
+    #
+    # @example Recovering from errors
+    #   future_error = session.execute_async('SELECT * FROM invalid-table')
+    #   future       = future_error.fallback {|error| "Execution failed with #{error.class.name}: #{error.message}"}
+    #
+    # @note The block can be called synchronously from current thread if the
+    #   future has already been resolved, or, asynchronously, from background
+    #   thread upon resolution.
+    # @yieldparam value [Object] a value
+    # @raise [ArgumentError] if no block given
+    # @return [Cassandra::Future] a new future
+    def fallback(&block)
+      raise ::ArgumentError, "no block given" unless block_given?
+      @signal.fallback(&block)
     end
   end
 
   # @private
   class Promise
+    # @private
     class Signal
+      # @private
+      module Listeners
+        class Success < Future::Listener
+          def initialize(&block)
+            @block = block
+          end
+
+          def success(value)
+            @block.call(value)
+          end
+
+          def failure(error)
+            nil
+          end
+        end
+
+        class Failure < Future::Listener
+          def initialize(&block)
+            @block = block
+          end
+
+          def success(value)
+            nil
+          end
+
+          def failure(error)
+            @block.call(error)
+          end
+        end
+
+        class Complete < Future::Listener
+          def initialize(&block)
+            @block = block
+          end
+
+          def success(value)
+            @block.call(nil, value)
+          end
+
+          def failure(error)
+            @block.call(error, nil)
+          end
+        end
+
+        class Then < Future::Listener
+          def initialize(promise, &block)
+            @promise = promise
+            @block   = block
+          end
+
+          def success(value)
+            result = @block.call(value)
+
+            if result.is_a?(Future)
+              @promise.observe(result)
+            else
+              @promise.fulfill(result)
+            end
+          rescue => e
+            @promise.break(e)
+          ensure
+            @promise = @block = nil
+          end
+
+          def failure(error)
+            @promise.break(error)
+          ensure
+            @promise = @block = nil
+          end
+        end
+
+        class Fallback < Future::Listener
+          def initialize(promise, &block)
+            @promise = promise
+            @block   = block
+          end
+
+          def success(value)
+            @promise.fulfill(value)
+          ensure
+            @promise = @block = nil
+          end
+
+          def failure(error)
+            result = @block.call(error)
+
+            if result.is_a?(Future)
+              @promise.observe(result)
+            else
+              @promise.fulfill(result)
+            end
+          rescue => e
+            @promise.break(e)
+          ensure
+            @promise = @block = nil
+          end
+        end
+      end
+
       include MonitorMixin
 
       def initialize
@@ -233,7 +415,10 @@ module Cassandra
       end
 
       def failure(error)
-        raise ::ArgumentError, "error must be an exception, #{error.inspect} given" unless error.is_a?(::Exception)
+        unless error.is_a?(::Exception)
+          raise ::ArgumentError, "error must be an exception, #{error.inspect} given"
+        end
+
         return unless @state == :pending
 
         listeners = nil
@@ -294,7 +479,7 @@ module Cassandra
       end
 
       def get
-        join
+        join if @state == :pending
 
         raise(@error, @error.message, @error.backtrace) if @state == :broken
 
@@ -302,8 +487,7 @@ module Cassandra
       end
 
       def add_listener(listener)
-        case @state
-        when :pending
+        if @state == :pending
           synchronize do
             if @state == :pending
               @listeners << listener
@@ -311,16 +495,103 @@ module Cassandra
               return self
             end
           end
-
-          listener.success(@value) rescue nil if @state == :fulfilled
-          listener.failure(@error) rescue nil if @state == :broken
-        when :fulfilled
-          listener.success(@value) rescue nil
-        when :broken
-          listener.failure(@error) rescue nil
         end
 
+        listener.success(@value) rescue nil if @state == :fulfilled
+        listener.failure(@error) rescue nil if @state == :broken
+
         self
+      end
+
+      def on_success(&block)
+        if @state == :pending
+          synchronize do
+            if @state == :pending
+              @listeners << Listeners::Success.new(&block)
+              return self
+            end
+          end
+        end
+
+        yield(@value) rescue nil if @state == :fulfilled
+
+        self
+      end
+
+      def on_failure(&block)
+        if @state == :pending
+          synchronize do
+            if @state == :pending
+              @listeners << Listeners::Failure.new(&block)
+              return self
+            end
+          end
+        end
+
+        yield(@error) rescue nil if @state == :broken
+
+        self
+      end
+
+      def on_complete(&block)
+        if @state == :pending
+          synchronize do
+            if @state == :pending
+              @listeners << Listeners::Complete.new(&block)
+              return self
+            end
+          end
+        end
+
+        yield(@error, @value) rescue nil
+
+        self
+      end
+
+      def then(&block)
+        if @state == :pending
+          synchronize do
+            if @state == :pending
+              promise  = Promise.new
+              listener = Listeners::Then.new(promise, &block)
+              @listeners << listener
+              return promise.future
+            end
+          end
+        end
+
+        return Future::Error.new(@error) if @state == :broken
+
+        begin
+          result = yield(@value)
+          result = Future::Value.new(result) unless result.is_a?(Future)
+          result
+        rescue => e
+          Future::Error.new(e)
+        end
+      end
+
+      def fallback(&block)
+        if @state == :pending
+          synchronize do
+            if @state == :pending
+              promise  = Promise.new
+              listener = Listeners::Fallback.new(promise, &block)
+              @listeners << listener
+              return promise.future
+            end
+          end
+        end
+
+        return Future::Value.new(@value) if @state == :fulfilled
+
+        begin
+          result = yield(@error)
+          result = Future::Value.new(result) unless result.is_a?(Future)
+          result
+        rescue => e
+          Future::Error.new(e)
+        end
       end
     end
 
@@ -328,7 +599,7 @@ module Cassandra
 
     def initialize
       @signal = Signal.new
-      @future = Futures::Signaled.new(@signal)
+      @future = Future.new(@signal)
     end
 
     def break(error)
@@ -339,6 +610,10 @@ module Cassandra
     def fulfill(value)
       @signal.success(value)
       self
+    end
+
+    def observe(future)
+      future.add_listener(@signal)
     end
   end
 end
