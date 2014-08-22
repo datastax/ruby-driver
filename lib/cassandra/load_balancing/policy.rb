@@ -17,43 +17,23 @@
 module Cassandra
   module LoadBalancing
     module Policy
-      # This method is called whenever a host is considered to be up, whether
-      #   by Cassandra's gossip exchange or when the driver has successfully
-      #   established a connection to it.
-      #
       # @abstract implementation should be provided by an actual policy
-      # @param host [Cassandra::Host] a host instance
-      # @return [void]
+      # @see Cassandra::Listener#host_up
       def host_up(host)
       end
 
-      # This method is called whenever a host is considered to be down, whether
-      #   by Cassandra's gossip exchange or when the driver failed to establish
-      #   any connections to it.
-      #
       # @abstract implementation should be provided by an actual policy
-      # @param host [Cassandra::Host] a host instance
-      # @return [void]
+      # @see Cassandra::Listener#host_down
       def host_down(host)
       end
 
-      # This method is called whenever a host is discovered by the driver,
-      #   whether because it is a completely new node or if its
-      #   {Cassandra::Host#datacenter} or {Cassandra::Host#rack} have changed.
-      #
       # @abstract implementation should be provided by an actual policy
-      # @param host [Cassandra::Host] a host instance
-      # @return [void]
+      # @see Cassandra::Listener#host_found
       def host_found(host)
       end
 
-      # This method is called whenever a host leaves the cluster, whether
-      #   because it is completely gone or if its {Cassandra::Host#datacenter} or
-      #   {Cassandra::Host#rack} have changed.
-      #
       # @abstract implementation should be provided by an actual policy
-      # @param host [Cassandra::Host] a host instance
-      # @return [void]
+      # @see Cassandra::Listener#host_lost
       def host_lost(host)
       end
 

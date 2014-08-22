@@ -68,7 +68,7 @@ module Cassandra
   # @option options [Cassandra::Retry::Policy] :retry_policy
   #   (Retry::Policies::Default) a retry policy
   #
-  # @option options [Array<Cassandra::Cluster::Listener>] :listeners (none)
+  # @option options [Enumerable<Cassandra::Listener>] :listeners (none)
   #   initial listeners. A list of initial cluster state listeners. Note that a
   #   load_balancing policy is automatically registered with the cluster.
   #
