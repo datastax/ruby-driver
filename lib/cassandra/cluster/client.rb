@@ -205,6 +205,7 @@ module Cassandra
       }.freeze
       CLIENT_CLOSED        = Ione::Future.failed(Errors::ClientError.new('Cannot connect a closed client'))
       CLIENT_NOT_CONNECTED = Ione::Future.failed(Errors::ClientError.new('Cannot close a not connected client'))
+      NOT_CONNECTED        = Errors::NotConnectedError.new
 
       UNAVAILABLE_ERROR_CODE   = 0x1000
       WRITE_TIMEOUT_ERROR_CODE = 0x1100
@@ -327,7 +328,16 @@ module Cassandra
 
       def execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
         hosts << host = plan.next
-        connection = synchronize { @connections.fetch(host) }.random_connection
+        manager = nil
+        synchronize { manager = @connections[host] }
+
+        unless manager
+          errors ||= {}
+          errors[host] = NOT_CONNECTED
+          return execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+        end
+
+        connection = manager.random_connection
 
         if keyspace && connection.keyspace != keyspace
           switch = switch_keyspace(connection, keyspace, timeout)
@@ -343,8 +353,6 @@ module Cassandra
         else
           prepare_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
         end
-      rescue ::KeyError
-        retry
       rescue ::StopIteration
         promise.break(Errors::NoHostsAvailable.new(errors || {}))
       rescue => e
@@ -377,7 +385,16 @@ module Cassandra
 
       def batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors = nil, hosts = [])
         hosts << host = plan.next
-        connection = synchronize { @connections.fetch(host) }.random_connection
+        manager = nil
+        synchronize { manager = @connections[host] }
+
+        unless manager
+          errors ||= {}
+          errors[host] = NOT_CONNECTED
+          return batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
+        end
+
+        connection = manager.random_connection
 
         if keyspace && connection.keyspace != keyspace
           switch = switch_keyspace(connection, keyspace, timeout)
@@ -393,8 +410,6 @@ module Cassandra
         else
           batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, plan, timeout, errors, hosts)
         end
-      rescue ::KeyError
-        retry
       rescue ::StopIteration
         promise.break(Errors::NoHostsAvailable.new(errors || {}))
       rescue => e
@@ -452,7 +467,16 @@ module Cassandra
 
       def send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
         hosts << host = plan.next
-        connection = synchronize { @connections.fetch(host) }.random_connection
+        manager = nil
+        synchronize { manager = @connections[host] }
+
+        unless manager
+          errors ||= {}
+          errors[host] = NOT_CONNECTED
+          return send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+        end
+
+        connection = manager.random_connection
 
         if keyspace && connection.keyspace != keyspace
           switch = switch_keyspace(connection, keyspace, timeout)
@@ -468,8 +492,6 @@ module Cassandra
         else
           do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
         end
-      rescue ::KeyError
-        retry
       rescue ::StopIteration
         promise.break(Errors::NoHostsAvailable.new(errors || {}))
       rescue => e
