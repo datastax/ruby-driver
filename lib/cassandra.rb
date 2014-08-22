@@ -68,9 +68,18 @@ module Cassandra
   # @option options [Cassandra::Retry::Policy] :retry_policy
   #   (Retry::Policies::Default) a retry policy
   #
-  # @option options [Array<Cassandra::Cluster::Listener>] :listeners (none) initial
-  #   listeners. A list of initial cluster state listeners. Note that a
+  # @option options [Array<Cassandra::Cluster::Listener>] :listeners (none)
+  #   initial listeners. A list of initial cluster state listeners. Note that a
   #   load_balancing policy is automatically registered with the cluster.
+  #
+  # @option options [Symbol] :consistency (:one) default consistency to use for
+  #   all requests. Must be one of {Cassandra::CONSISTENCIES}
+  #
+  # @option options [Boolean] :trace (false) whether or not to trace all
+  #   requests by default
+  #
+  # @option options [Integer] :page_size (nil) default page size for all select
+  #   queries
   #
   # @example Connecting to localhost
   #   cluster = Cassandra.connect
@@ -88,7 +97,8 @@ module Cassandra
   def self.connect(options = {})
     options.select! do |key, value|
       [ :credentials, :auth_provider, :compression, :hosts, :logger, :port,
-        :load_balancing_policy, :reconnection_policy, :retry_policy, :listeners
+        :load_balancing_policy, :reconnection_policy, :retry_policy, :listeners,
+        :consistency, :trace, :page_size
       ].include?(key)
     end
 
@@ -173,6 +183,26 @@ module Cassandra
 
       unless listeners.respond_to?(:each)
         raise ::ArgumentError, ":listeners must be an Enumerable, #{listeners.inspect} given"
+      end
+    end
+
+    if options.has_key?(:consistency)
+      consistency = options[:consistency]
+
+      unless CONSISTENCIES.include?(consistency)
+        raise ::ArgumentError, ":consistency must be one of #{CONSISTENCIES.inspect}, #{consistency.inspect} given"
+      end
+    end
+
+    if options.has_key?(:trace)
+      options[:trace] = !!options[:trace]
+    end
+
+    if options.has_key?(:page_size)
+      page_size = options[:page_size] = Integer(options[:page_size])
+
+      if page_size <= 0
+        raise ::ArgumentError, ":page_size must be a positive integer, #{page_size.inspect} given"
       end
     end
 

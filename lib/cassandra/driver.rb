@@ -34,9 +34,9 @@ module Cassandra
 
     let(:execution_options) do
       Execution::Options.new({
-        :consistency => :one,
-        :trace       => false,
-        :page_size   => 50_000
+        :consistency => consistency,
+        :trace       => trace,
+        :page_size   => page_size
       })
     end
 
@@ -52,6 +52,9 @@ module Cassandra
     let(:load_balancing_policy) { LoadBalancing::Policies::RoundRobin.new  }
     let(:reconnection_policy)   { Reconnection::Policies::Exponential.new(0.5, 30, 2) }
     let(:retry_policy)          { Retry::Policies::Default.new }
+    let(:consistency)           { :one }
+    let(:trace)                 { false }
+    let(:page_size)             { nil }
 
     let(:connections_per_local_node)  { 2 }
     let(:connections_per_remote_node) { 1 }
