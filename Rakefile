@@ -27,7 +27,18 @@ RSpec::Core::RakeTask.new(:rspec) do |t|
 end
 
 Cucumber::Rake::Task.new(:cucumber) do |t|
-  t.cucumber_opts = '--tags ~@todo'
+  cassandra_version = ENV['CASSANDRA_VERSION'] || '2.0.9'
+  cassandra_version_tags = ''
+
+  if cassandra_version.start_with?('2.0')
+    cassandra_version_tags = ',@cassandra-version-2.0'
+  end
+
+  if cassandra_version.start_with?('1.2')
+    cassandra_version_tags = ',@cassandra-version-1.2'
+  end
+
+  t.cucumber_opts = ('--tags ~@todo --tags ~@cassandra-version-specific' + cassandra_version_tags)
 end
 
 desc 'Run all tests'

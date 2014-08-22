@@ -53,6 +53,7 @@ Feature: membership change detection
       Host 127.0.0.2 is down
       """
 
+  @cassandra-version-specific @cassandra-version-2.0
   Scenario: a new host joins and then leaves the cluster
     When node 4 joins
     And node 4 leaves

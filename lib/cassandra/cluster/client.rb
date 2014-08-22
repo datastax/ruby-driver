@@ -140,7 +140,22 @@ module Cassandra
       end
 
       def query(statement, options, paging_state = nil)
-        request = Protocol::QueryRequest.new(statement.cql, statement.params, nil, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
+        if @connection_options.protocol_version == 1
+          i = -1
+          params = statement.params
+          cql = statement.cql.gsub('?') do
+            case (param = params[i += 1])
+            when String
+              "'#{param}'"
+            else
+              param
+            end
+          end
+
+          request = Protocol::QueryRequest.new(cql, nil, nil, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
+        else
+          request = Protocol::QueryRequest.new(statement.cql, statement.params, nil, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
+        end
         timeout = options.timeout
         promise = Promise.new
 

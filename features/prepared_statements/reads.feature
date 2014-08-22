@@ -1,3 +1,4 @@
+@cassandra-version-specific @cassandra-version-2.0
 Feature: prepared statements for reads
 
   Prepared statements are used to prepare a read query only once and execute it

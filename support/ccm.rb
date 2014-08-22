@@ -153,7 +153,7 @@ module CCM
       @password = 'cassandra'
       @ccm.exec('updateconf', "'authenticator: PasswordAuthenticator'")
       restart
-      sleep(4)
+      sleep(10)
 
       [@username, @password]
     end

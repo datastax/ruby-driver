@@ -1,3 +1,4 @@
+@cassandra-version-specific @cassandra-version-2.0
 Feature: logged batch
 
   Session objects can be used to construct a logged batch statement and later

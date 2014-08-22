@@ -43,7 +43,6 @@ Feature: Request tracing
       puts "coordinator: #{trace.coordinator}"
       puts "started at: #{trace.started_at}"
       puts "total events: #{trace.events.size}"
-      puts "parameters: #{trace.parameters.inspect}"
       puts "request: #{trace.request}"
       """
     When it is executed
@@ -61,6 +60,5 @@ Feature: Request tracing
       """
     And its output should contain:
       """
-      parameters: {"query"=>"SELECT * FROM songs"}
       request: Execute CQL3 query
       """
