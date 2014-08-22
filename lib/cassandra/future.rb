@@ -161,14 +161,14 @@ module Cassandra
 
     # Returns a future resolved to a given value
     # @param value [Object] value for the future
-    # @return [Cassandra::Future] a future
+    # @return [Cassandra::Future<Object>] a future value
     def self.value(value)
       Value.new(value)
     end
 
     # Returns a future resolved to a given error
     # @param error [Exception] error for the future
-    # @return [Cassandra::Future] a future
+    # @return [Cassandra::Future<Exception>] a future error
     def self.error(error)
       Error.new(error)
     end
