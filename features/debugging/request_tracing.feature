@@ -61,6 +61,6 @@ Feature: Request tracing
       """
     And its output should contain:
       """
-      parameters: {"page_size"=>"50000", "query"=>"SELECT * FROM songs"}
+      parameters: {"query"=>"SELECT * FROM songs"}
       request: Execute CQL3 query
       """
