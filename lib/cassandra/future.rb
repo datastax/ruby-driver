@@ -290,22 +290,24 @@ module Cassandra
       self
     end
 
-    # Returns a new future that will resolve to the result of the block
+    # Returns a new future that will resolve to the result of the block.
+    # Besides regular values, block can return other futures, which will be
+    # transparently unwrapped before resolving the future from this method.
     #
     # @example Block returns a value
     #   future_users = session.execute_async('SELECT * FROM users WHERE user_name = ?', 'Sam')
-    #   future_user  = future_users.map {|users| users.first}
+    #   future_user  = future_users.then {|users| users.first}
     #
     # @example Block returns a future
     #   future_statement = session.prepare_async('SELECT * FROM users WHERE user_name = ?')
-    #   future_users     = future_statement.flat_map do |statement|
-    #     session.execute_async(statement, 'Sam')
-    #   end
+    #   future_users     = future_statement.then {|statement| session.execute_async(statement, 'Sam')}
     #
     # @note The block can be called synchronously from current thread if the
     #   future has already been resolved, or, asynchronously, from background
     #   thread upon resolution.
     # @yieldparam value [Object] a value
+    # @yieldreturn [Cassandra::Future, Object] a future or a value to be
+    #   wrapped in a future
     # @raise [ArgumentError] if no block given
     # @return [Cassandra::Future] a new future
     def then(&block)
@@ -313,17 +315,25 @@ module Cassandra
       @signal.then(&block)
     end
 
-    # Returns a new future that will resolve to the result of the future
-    # returned from the block.
+    # Returns a new future that will resolve to the result of the block in case
+    # of an error. Besides regular values, block can return other futures,
+    # which will be transparently unwrapped before resolving the future from
+    # this method.
     #
     # @example Recovering from errors
     #   future_error = session.execute_async('SELECT * FROM invalid-table')
     #   future       = future_error.fallback {|error| "Execution failed with #{error.class.name}: #{error.message}"}
     #
+    # @example Executing something else on error
+    #   future_error = session.execute_async('SELECT * FROM invalid-table')
+    #   future       = future_error.fallback {|e| session..execute_async('SELECT * FROM another-table')}
+    #
     # @note The block can be called synchronously from current thread if the
     #   future has already been resolved, or, asynchronously, from background
     #   thread upon resolution.
     # @yieldparam value [Object] a value
+    # @yieldreturn [Cassandra::Future, Object] a future or a value to be
+    #   wrapped in a future
     # @raise [ArgumentError] if no block given
     # @return [Cassandra::Future] a new future
     def fallback(&block)
