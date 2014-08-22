@@ -35,7 +35,7 @@ Read more:
 
 ## Changelog & versioning
 
-Check out the [releases on GitHub](https://github.com/iconara/cql-rb/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
+Check out the [releases on GitHub](https://github.com/riptano/ruby-driver/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
 
 Private and experimental APIs, defined as whatever is not in the [public API documentation][1], i.e. classes and methods marked as `@private`, will change without warning. If you've been recommended to try an experimental API by the maintainers, please let them know if you depend on that API. Experimental APIs will eventually become public, and knowing how they are used helps in determining their maturity.
 
@@ -44,7 +44,6 @@ Prereleases will be stable, in the sense that they will have finished and proper
 ## Known bugs & limitations
 
 * JRuby 1.6 is not officially supported, although 1.6.8 should work, if you're stuck in JRuby 1.6.8 try and see if it works for you.
-* Windows is not supported (there is experimental support in the [`windows` branch](https://github.com/iconara/cql-rb/tree/windows_support)).
 * Large results are buffered in memory until the whole response has been loaded, the protocol makes it possible to start to deliver rows to the client code as soon as the metadata is loaded, but this is not supported yet.
 
 ## Copyright
