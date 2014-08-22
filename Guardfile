@@ -3,6 +3,7 @@
 load 'nanoc/setup.rb'
 
 guard('nanoc') do
+  watch('README.md')
   watch('Rules')
   watch(/^nanoc/)
   watch(/^nanoc\//)
