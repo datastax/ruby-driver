@@ -44,7 +44,7 @@ module Cassandra
     # @private
     class Error < Future
       def initialize(error)
-        raise ::ArgumentError, "error must be an exception or a string, #{error.inspect} given" unless error.is_a?(::Exception)
+        raise ::ArgumentError, "error must be an exception, #{error.inspect} given" unless error.is_a?(::Exception)
 
         @error = error
       end
