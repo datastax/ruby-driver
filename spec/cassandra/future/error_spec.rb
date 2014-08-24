@@ -6,7 +6,7 @@ module Cassandra
       describe('.new') do
         it 'raises if error is not an Exception' do
           error = double('error')
-          expect { Error.new(error) }.to raise_error(ArgumentError, "error must be an exception or a string, #{error.inspect} given")
+          expect { Error.new(error) }.to raise_error(ArgumentError, "error must be an exception, #{error.inspect} given")
         end
       end
 
