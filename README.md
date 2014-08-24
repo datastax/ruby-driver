@@ -2,6 +2,8 @@
 
 A Ruby client driver for Apache Cassandra. This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. Cassandra versions 1.2 and 2.0 are supported as well as Ruby 1.9.3, 2.0, JRuby 1.7 and Rubinius 2.1.
 
+This driver is based on [the cql-rb gem](http://github.com/iconara/cql-rb) by [Theo Hultberg](http://github.com/iconara).
+
 ## Quick start
 
 ```ruby
