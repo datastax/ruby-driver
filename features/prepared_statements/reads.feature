@@ -1,3 +1,4 @@
+@cassandra-version-specific @cassandra-version-2.0
 Feature: prepared statements for reads
 
   Prepared statements are used to prepare a read query only once and execute it
@@ -10,11 +11,9 @@ Feature: prepared statements for reads
   Scenario: a SELECT statement with parameterized LIMIT is prepared
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster = Cql.cluster
-                  .with_contact_points("127.0.0.1")
-                  .build
+      cluster = Cassandra.connect
 
       at_exit { cluster.close }
 

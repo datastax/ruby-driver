@@ -1,11 +1,11 @@
 Feature: Implementing custom load balancing policies
 
-  To implement a load balancing policy, mix in `Cql::LoadBalancing::Policy`
+  To implement a load balancing policy, mix in `Cassandra::LoadBalancing::Policy`
   module and provide implementations for its required methods. Currently, load
   balancing policies are required to be thread-safe.
 
   The object returned from the `plan` method must implement method `next`
-  that returns a `Cql::Host` instance or raises `StopIteration`.
+  that returns a `Cassandra::Host` instance or raises `StopIteration`.
 
   This method will be called from multiple threads, but never in parallel and
   `Plan` doesn't have to be thread-safe. However, because it is called across
@@ -18,7 +18,7 @@ Feature: Implementing custom load balancing policies
     Given a file named "ignoring_keyspace_policy.rb" with:
       """ruby
       class IgnoringKeyspacePolicy
-        include Cql::LoadBalancing::Policy
+        include Cassandra::LoadBalancing::Policy
 
         class Plan
           def next
@@ -62,19 +62,17 @@ Feature: Implementing custom load balancing policies
       """
     And the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
       require 'ignoring_keyspace_policy'
       
-      policy  = Cql::LoadBalancing::Policies::RoundRobin.new
-      cluster = Cql.cluster
-                  .with_load_balancing_policy(IgnoringKeyspacePolicy.new('simplex', policy))
-                  .build
+      policy  = IgnoringKeyspacePolicy.new('simplex', Cassandra::LoadBalancing::Policies::RoundRobin.new)
+      cluster = Cassandra.connect(load_balancing_policy: policy)
       session = cluster.connect('simplex')
       
       begin
         session.execute("SELECT * FROM songs")
         puts "failure"
-      rescue Cql::Errors::NoHostsAvailable
+      rescue Cassandra::Errors::NoHostsAvailable
         puts "success"
       end
       """
@@ -88,7 +86,7 @@ Feature: Implementing custom load balancing policies
     Given a file named "blacklist_policy.rb" with:
       """ruby
       class BlackListPolicy
-        include Cql::LoadBalancing::Policy
+        include Cassandra::LoadBalancing::Policy
 
         def initialize(ips_to_ignore, original_policy)
           @ips    = ::Set.new
@@ -131,13 +129,11 @@ Feature: Implementing custom load balancing policies
       """
     And the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
       require 'blacklist_policy'
       
-      policy  = Cql::LoadBalancing::Policies::RoundRobin.new
-      cluster = Cql.cluster
-                  .with_load_balancing_policy(BlackListPolicy.new(['127.0.0.2', '127.0.0.3'], policy))
-                  .build
+      policy  = BlackListPolicy.new(['127.0.0.2', '127.0.0.3'], Cassandra::LoadBalancing::Policies::RoundRobin.new)
+      cluster = Cassandra.connect(load_balancing_policy: policy)
       session = cluster.connect('simplex')
       
       host_ips = cluster.hosts.map(&:ip).sort

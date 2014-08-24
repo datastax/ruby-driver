@@ -1,9 +1,23 @@
 # encoding: utf-8
 
+# Copyright 2013-2014 DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'spec_helper'
 
 
-describe 'Regressions' do
+describe 'Regressions', :integration do
   let :connection_options do
     {
       :hosts => [ENV['CASSANDRA_HOST']],
@@ -12,7 +26,7 @@ describe 'Regressions' do
   end
 
   let :client do
-    Cql::Client.connect(connection_options)
+    Cassandra::Client.connect(connection_options)
   end
 
   before do
@@ -195,7 +209,7 @@ describe 'Regressions' do
       row0['varint_column'].should == -1
       row1['bigint_column'].should == -9223372036854775808
       row1['decimal_column'].should == BigDecimal.new('-0.0012095473475870063')
-      row1['double_column'].should == be_within(1.0e-308).of(-2.2250738585072014e-308)
+      row1['double_column'].should be_within(1.0e-308).of(-2.2250738585072014e-308)
       row1['float_column'].should be_within(1.0e-38).of(-1.175494351e-38)
       row1['int_column'].should == -2147483648
       row1['varint_column'].should == -23454545674351234123365765786894351234567456
@@ -211,7 +225,7 @@ describe 'Regressions' do
 
   context 'with prepared statements where the table does not exist' do
     it 'raises an error when a statement is prepared on a table that does not exist' do
-      expect { client.prepare('SELECT * FROM table_that_does_not_exist') }.to raise_error(Cql::Errors::QueryError)
+      expect { client.prepare('SELECT * FROM table_that_does_not_exist') }.to raise_error(Cassandra::Errors::QueryError)
     end
   end
 end

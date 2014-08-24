@@ -40,6 +40,26 @@ A [Future](/api/future/) can be used to:
   * block application thread until execution has completed
   * register a listener to be notified when a result is available.
 
+When describing different asynchronous method results, we will use a `Cassandra::Future<Type>` notation to signal the type of the result of the future. For example, `Cassandra::Future<Cassandra::Result>` is a future that returns an instance of `Cassandra::Result` when calling its `get` method.
+
+### Example: getting a result
+
+```ruby
+future = session.execute_async(statement)
+result = future.get # will block and raise error or return result
+```
+
 Whenever a Future is resolved using its [Future#get](/api/future/#get-instance_method) method, it will block until it has a value. Once a value is available, it will be returned. In case of an error, an exception will be raised.
 
-When describing different asynchronous method results, we will use a `Cql::Future<Type>` notation to signal the type of the result of the future. For example, `Cql::Future<Cql::Result>` is a future that returns an instance of `Cql::Result` when calling its `get` method.
+### Example: registering a listener
+
+```ruby
+future = session.execute_async(statement)
+
+# register success listener
+future.on_success do |rows|
+  rows.each do |row|
+    puts "#{row["artist"]}: #{row["title"]} / #{row["album"]}"
+  end
+end
+```

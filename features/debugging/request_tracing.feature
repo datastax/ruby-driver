@@ -8,9 +8,9 @@ Feature: Request tracing
   Scenario: tracing is disabled by default
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster   = Cql.cluster.build
+      cluster   = Cassandra.connect
       session   = cluster.connect("simplex")
       execution = session.execute("SELECT * FROM songs").execution_info
 
@@ -31,9 +31,9 @@ Feature: Request tracing
   Scenario: tracing is enabled explicitly
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster   = Cql.cluster.build
+      cluster   = Cassandra.connect
       session   = cluster.connect("simplex")
       execution = session.execute("SELECT * FROM songs", :trace => true).execution_info
       trace     = execution.trace
@@ -43,7 +43,6 @@ Feature: Request tracing
       puts "coordinator: #{trace.coordinator}"
       puts "started at: #{trace.started_at}"
       puts "total events: #{trace.events.size}"
-      puts "parameters: #{trace.parameters.inspect}"
       puts "request: #{trace.request}"
       """
     When it is executed
@@ -61,6 +60,5 @@ Feature: Request tracing
       """
     And its output should contain:
       """
-      parameters: {"page_size"=>"50000", "query"=>"SELECT * FROM songs"}
       request: Execute CQL3 query
       """

@@ -1,9 +1,23 @@
 # encoding: utf-8
 
+# Copyright 2013-2014 DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'spec_helper'
 
 
-describe 'A CQL client' do
+describe 'A CQL client', :integration do
   let :connection_options do
     {
       :host => ENV['CASSANDRA_HOST'],
@@ -12,7 +26,7 @@ describe 'A CQL client' do
   end
 
   let :client do
-    Cql::Client.connect(connection_options)
+    Cassandra::Client.connect(connection_options)
   end
 
   after do
@@ -22,7 +36,7 @@ describe 'A CQL client' do
   def create_keyspace_and_table
     begin
       client.execute(%(DROP KEYSPACE cql_rb_client_spec))
-    rescue Cql::Errors::QueryError => e
+    rescue Cassandra::Errors::QueryError => e
       raise e unless e.code == 0x2300
     end
     client.execute(%(CREATE KEYSPACE cql_rb_client_spec WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}))
@@ -49,7 +63,7 @@ describe 'A CQL client' do
     end
 
     it 'can be initialized with a keyspace' do
-      c = Cql::Client.connect(connection_options.merge(:keyspace => 'system'))
+      c = Cassandra::Client.connect(connection_options.merge(:keyspace => 'system'))
       c.connect
       begin
         c.keyspace.should == 'system'
@@ -87,7 +101,7 @@ describe 'A CQL client' do
       result.should_not be_empty
     end
 
-    it 'executes a batch' do
+    it 'executes a batch', :unless => cassandra_version.start_with?('1.2') do
       statement = client.prepare('UPDATE users SET first = ?, last = ?, age = ? WHERE user_id = ?')
       statement.batch do |batch|
         batch.add('Sam', 'Miller', 23, 'sam')
@@ -97,7 +111,7 @@ describe 'A CQL client' do
       result.first['last'].should == 'Jones'
     end
 
-    it 'executes a counter batch' do
+    it 'executes a counter batch', :unless => cassandra_version.start_with?('1.2') do
       statement = client.prepare('UPDATE counters SET count = count + ? WHERE id = ?')
       batch = statement.batch(:counter, consistency: :quorum)
       batch.add(5, 'foo')
@@ -115,7 +129,7 @@ describe 'A CQL client' do
       opts = connection_options.dup
       opts[:host] = ([opts[:host]] * 10).join(',')
       opts[:connections_per_node] = 3
-      Cql::Client.connect(opts)
+      Cassandra::Client.connect(opts)
     end
 
     before do
@@ -160,9 +174,9 @@ describe 'A CQL client' do
     context 'and protocol v1' do
       let :authentication_enabled do
         begin
-          Cql::Client.connect(connection_options.merge(credentials: nil, protocol_version: 1))
+          Cassandra::Client.connect(connection_options.merge(credentials: nil, protocol_version: 1))
           false
-        rescue Cql::Errors::AuthenticationError
+        rescue Cassandra::Errors::AuthenticationError
           true
         end
       end
@@ -172,66 +186,61 @@ describe 'A CQL client' do
       end
 
       it 'authenticates using the credentials given in the :credentials option' do
-        client = Cql::Client.connect(connection_options.merge(credentials: credentials, protocol_version: 1))
+        client = Cassandra::Client.connect(connection_options.merge(credentials: credentials, protocol_version: 1))
         client.execute('SELECT * FROM system.schema_keyspaces')
       end
 
       it 'raises an error when no credentials have been given' do
-        pending('authentication not configured', unless: authentication_enabled) do
-          expect { Cql::Client.connect(connection_options.merge(credentials: nil, protocol_version: 1)) }.to raise_error(Cql::Errors::AuthenticationError)
-        end
+        pending('authentication not configured') unless authentication_enabled
+        expect { Cassandra::Client.connect(connection_options.merge(credentials: nil, protocol_version: 1)) }.to raise_error(Cassandra::Errors::AuthenticationError)
       end
 
       it 'raises an error when the credentials are bad' do
-        pending('authentication not configured', unless: authentication_enabled) do
-          expect {
-            Cql::Client.connect(connection_options.merge(credentials: {:username => 'foo', :password => 'bar'}, protocol_version: 1))
-          }.to raise_error(Cql::Errors::AuthenticationError)
-        end
+        pending('authentication not configured') unless authentication_enabled
+        expect {
+          Cassandra::Client.connect(connection_options.merge(credentials: {:username => 'foo', :password => 'bar'}, protocol_version: 1))
+        }.to raise_error(Cassandra::Errors::AuthenticationError)
       end
 
       it 'raises an error when only an auth provider has been given' do
-        pending('authentication not configured', unless: authentication_enabled) do
-          auth_provider = Cql::Auth::Providers::PlainText.new('cassandra', 'cassandra')
-          expect { Cql::Client.connect(connection_options.merge(credentials: nil, auth_provider: auth_provider, protocol_version: 1)) }.to raise_error(Cql::Errors::AuthenticationError)
-        end
+        pending('authentication not configured') unless authentication_enabled
+        auth_provider = Cassandra::Auth::Providers::PlainText.new('cassandra', 'cassandra')
+        expect { Cassandra::Client.connect(connection_options.merge(credentials: nil, auth_provider: auth_provider, protocol_version: 1)) }.to raise_error(Cassandra::Errors::AuthenticationError)
       end
     end
 
     context 'and protocol v2' do
       let :authentication_enabled do
         begin
-          Cql::Client.connect(connection_options.merge(auth_provider: nil, credentials: nil))
+          Cassandra::Client.connect(connection_options.merge(auth_provider: nil, credentials: nil))
           false
-        rescue Cql::Errors::AuthenticationError
+        rescue Cassandra::Errors::AuthenticationError
           true
         end
       end
 
       it 'uses the auth provider given in the :auth_provider option' do
-        auth_provider = Cql::Auth::Providers::PlainText.new('cassandra', 'cassandra')
-        client = Cql::Client.connect(connection_options.merge(auth_provider: auth_provider, credentials: nil))
+        auth_provider = Cassandra::Auth::Providers::PlainText.new('cassandra', 'cassandra')
+        client = Cassandra::Client.connect(connection_options.merge(auth_provider: auth_provider, credentials: nil))
         client.execute('SELECT * FROM system.schema_keyspaces')
       end
 
       it 'falls back on creating a Providers::PlainText using the credentials given in the :credentials option' do
-        client = Cql::Client.connect(connection_options.merge(auth_provider: nil, credentials: {:username => 'cassandra', :password => 'cassandra'}))
+        client = Cassandra::Client.connect(connection_options.merge(auth_provider: nil, credentials: {:username => 'cassandra', :password => 'cassandra'}))
         client.execute('SELECT * FROM system.schema_keyspaces')
       end
 
       it 'raises an error when no auth provider or credentials have been given' do
-        pending('authentication not configured', unless: authentication_enabled) do
-          expect { Cql::Client.connect(connection_options.merge(auth_provider: nil, credentials: nil)) }.to raise_error(Cql::Errors::AuthenticationError)
-        end
+        pending('authentication not configured') unless authentication_enabled
+        expect { Cassandra::Client.connect(connection_options.merge(auth_provider: nil, credentials: nil)) }.to raise_error(Cassandra::Errors::AuthenticationError)
       end
 
       it 'raises an error when the credentials are bad' do
-        pending('authentication not configured', unless: authentication_enabled) do
-          expect {
-            auth_provider = Cql::Auth::Providers::PlainText.new('foo', 'bar')
-            Cql::Client.connect(connection_options.merge(auth_provider: auth_provider, credentials: nil))
-          }.to raise_error(Cql::Errors::AuthenticationError)
-        end
+        pending('authentication not configured') unless authentication_enabled
+        expect {
+          auth_provider = Cassandra::Auth::Providers::PlainText.new('foo', 'bar')
+          Cassandra::Client.connect(connection_options.merge(auth_provider: auth_provider, credentials: nil))
+        }.to raise_error(Cassandra::Errors::AuthenticationError)
       end
     end
   end
@@ -254,7 +263,7 @@ describe 'A CQL client' do
 
   shared_examples 'with_compressor' do |compressor_impl|
     let :client do
-      Cql::Client.connect(connection_options.merge(compressor: compressor))
+      Cassandra::Client.connect(connection_options.merge(compressor: compressor))
     end
 
     let :compressor do
@@ -272,23 +281,23 @@ describe 'A CQL client' do
 
   shared_examples 'no_compressor' do
     it 'compresses requests and decompresses responses' do
-      pending 'No compressor available for the current platform'
+      skip 'No compressor available for the current platform'
     end
   end
 
   context 'with Snappy compression' do
     begin
-      require 'cql/compression/snappy_compressor'
-      include_examples 'with_compressor', Cql::Compression::SnappyCompressor
+      require 'cassandra/compression/snappy_compressor'
+      include_examples 'with_compressor', Cassandra::Compression::SnappyCompressor
     rescue LoadError
       include_examples 'no_compressor'
     end
   end
 
-  context 'with LZ4 compression' do
+  context 'with LZ4 compression', :unless => cassandra_version.start_with?('1.2') do
     begin
-      require 'cql/compression/lz4_compressor'
-      include_examples 'with_compressor', Cql::Compression::Lz4Compressor
+      require 'cassandra/compression/lz4_compressor'
+      include_examples 'with_compressor', Cassandra::Compression::Lz4Compressor
     rescue LoadError
       include_examples 'no_compressor'
     end
@@ -300,17 +309,19 @@ describe 'A CQL client' do
     end
 
     it 'executes a query and sends the values separately' do
+      skip 'cassandra 1.2 doesn\'t support parameterized queries' if cassandra_version.start_with?('1.2')
       result = client.execute(%<INSERT INTO users (user_id, first, last) VALUES (?, ?, ?)>, 'sue', 'Sue', 'Smith')
       result.should be_empty
     end
 
     it 'encodes the values using the provided type hints' do
+      skip 'cassandra 1.2 doesn\'t support parameterized queries' if cassandra_version.start_with?('1.2')
       result = client.execute(%<INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)>, 'sue', 'Sue', 'Smith', 35, type_hints: [nil, nil, nil, :int])
       result.should be_empty
     end
   end
 
-  context 'when batching operations' do
+  context 'when batching operations', :unless => cassandra_version.start_with?('1.2') do
     before do
       create_keyspace_and_table
     end
@@ -386,7 +397,7 @@ describe 'A CQL client' do
     end
   end
 
-  context 'when paging large result sets' do
+  context 'when paging large result sets', :unless => cassandra_version.start_with?('1.2') do
     let :row_count do
       200
     end
@@ -440,7 +451,7 @@ describe 'A CQL client' do
 
   context 'with error conditions' do
     it 'raises an error for CQL syntax errors' do
-      expect { client.execute('BAD cql') }.to raise_error(Cql::Error)
+      expect { client.execute('BAD cql') }.to raise_error(Cassandra::Error)
     end
 
     it 'raises an error for bad consistency' do
@@ -449,11 +460,11 @@ describe 'A CQL client' do
 
     it 'fails gracefully when connecting to the Thrift port' do
       opts = connection_options.merge(port: 9160)
-      expect { Cql::Client.connect(opts) }.to raise_error(Cql::Errors::IoError)
+      expect { Cassandra::Client.connect(opts) }.to raise_error(Cassandra::Errors::IoError)
     end
 
     it 'fails gracefully when connecting to something that does not run C*' do
-      expect { Cql::Client.connect(host: 'google.com') }.to raise_error(Cql::Io::ConnectionTimeoutError)
+      expect { Cassandra::Client.connect(host: 'google.com') }.to raise_error(Cassandra::Io::ConnectionTimeoutError)
     end
   end
 end

@@ -11,9 +11,9 @@ Feature: Round Robin Policy
     Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
     And the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster = Cql.cluster.build
+      cluster = Cassandra.connect
       session = cluster.connect('simplex')
 
       coordinator_ips = 3.times.map do
@@ -35,11 +35,10 @@ Feature: Round Robin Policy
     Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
     And the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster = Cql.cluster
-        .with_load_balancing_policy(Cql::LoadBalancing::Policies::RoundRobin.new)
-        .build
+      policy  = Cassandra::LoadBalancing::Policies::RoundRobin.new
+      cluster = Cassandra.connect(load_balancing_policy: policy)
       session = cluster.connect('simplex')
 
       coordinator_ips = 3.times.map do
@@ -65,11 +64,10 @@ Feature: Round Robin Policy
     And a table "songs"
     And the following example:
     """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster = Cql.cluster
-        .with_load_balancing_policy(Cql::LoadBalancing::Policies::RoundRobin.new)
-        .build
+      policy  = Cassandra::LoadBalancing::Policies::RoundRobin.new
+      cluster = Cassandra.connect(load_balancing_policy: policy)
       session = cluster.connect('simplex')
 
       coordinator_ips = 4.times.map do

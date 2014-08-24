@@ -32,12 +32,10 @@ Feature: Schema change detection
     And the following example running in the background:
       """ruby
       require 'printing_listener'
-      require 'cql'
+      require 'cassandra'
 
       listener = PrintingListener.new($stderr)
-      cluster  = Cql.cluster
-                  .with_contact_points("127.0.0.1")
-                  .build
+      cluster  = Cassandra.connect
 
       cluster.register(listener)
 
@@ -50,9 +48,9 @@ Feature: Schema change detection
     Given no keyspace "new_keyspace"
     And the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      session = Cql.cluster.build.connect
+      session = Cassandra.connect.connect
 
       session.execute("CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}")
       """
@@ -66,9 +64,9 @@ Feature: Schema change detection
     Given a keyspace "new_keyspace"
     And the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      session = Cql.cluster.build.connect
+      session = Cassandra.connect.connect
 
       session.execute("DROP KEYSPACE new_keyspace")
       """
@@ -82,9 +80,9 @@ Feature: Schema change detection
     Given a keyspace "new_keyspace"
     And the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      session = Cql.cluster.build.connect
+      session = Cassandra.connect.connect
 
       session.execute("CREATE TABLE new_keyspace.new_table (id timeuuid PRIMARY KEY)")
       """

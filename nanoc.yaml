@@ -19,6 +19,8 @@ data_sources:
   -
     type: api
     template_paths: nanoc/templates
+  -
+    type: index_page
 prune:
   auto_prune: true,
   exclude: [ '.git' ]

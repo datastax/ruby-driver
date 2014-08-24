@@ -1,15 +1,41 @@
 # encoding: utf-8
 
+# Copyright 2013-2014 DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'spec_helper'
 
 
-describe 'Protocol parsing and communication' do
+describe 'Protocol parsing and communication', :integration do
   let :protocol_version do
-    2
+    if cassandra_version.start_with?('1.2')
+      1
+    else
+      2
+    end
+  end
+
+  let :cql_version do
+    if cassandra_version.start_with?('1.2')
+      '3.0.5'
+    else
+      '3.1.0'
+    end
   end
 
   let :io_reactor do
-    Cql::Io::IoReactor.new.start.value
+    Cassandra::Io::IoReactor.new.start.value
   end
 
   let :connection do
@@ -17,7 +43,7 @@ describe 'Protocol parsing and communication' do
   end
 
   let :protocol_handler_factory do
-    lambda { |connection| Cql::Protocol::CqlProtocolHandler.new(connection, io_reactor, protocol_version) }
+    lambda { |connection| Cassandra::Protocol::CqlProtocolHandler.new(connection, io_reactor, protocol_version) }
   end
 
   let :keyspace_name do
@@ -25,17 +51,22 @@ describe 'Protocol parsing and communication' do
   end
 
   before :all do
-    ir = Cql::Io::IoReactor.new
-    protocol_handler_factory = lambda { |connection| Cql::Protocol::CqlProtocolHandler.new(connection, ir, 2) }
+    cql_version = if cassandra_version.start_with?('1.2')
+      '3.0.5'
+    else
+      '3.1.0'
+    end
+    ir = Cassandra::Io::IoReactor.new
+    protocol_handler_factory = lambda { |connection| Cassandra::Protocol::CqlProtocolHandler.new(connection, ir, 2) }
     f = ir.start
     f = f.flat_map do |reactor|
       reactor.connect(ENV['CASSANDRA_HOST'], 9042, 5, &protocol_handler_factory)
     end
     f = f.flat_map do |connection|
-      connection.send_request(Cql::Protocol::StartupRequest.new('3.1.0'))
+      connection.send_request(Cassandra::Protocol::StartupRequest.new(cql_version))
     end
     f = f.map do |response|
-      response.is_a?(Cql::Protocol::AuthenticateResponse)
+      response.is_a?(Cassandra::Protocol::AuthenticateResponse)
     end
     f = f.flat_map do |authentication_required|
       ir.stop.map(authentication_required)
@@ -56,22 +87,22 @@ describe 'Protocol parsing and communication' do
 
   def execute_request(request, auto_authenticate=true)
     response = raw_execute_request(request)
-    if response.is_a?(Cql::Protocol::AuthenticateResponse) && auto_authenticate
+    if response.is_a?(Cassandra::Protocol::AuthenticateResponse) && auto_authenticate
       unless response.authentication_class == 'org.apache.cassandra.auth.PasswordAuthenticator'
         raise "Cassandra required an unsupported authenticator: #{response.authentication_class}"
       end
       if protocol_version == 1
-        response = execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra'))
+        response = execute_request(Cassandra::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra'))
       else
-        response = execute_request(Cql::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra"))
+        response = execute_request(Cassandra::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra"))
       end
     end
     response
   end
 
   def query(cql, consistency=:one)
-    response = execute_request(Cql::Protocol::QueryRequest.new(cql, nil, nil, consistency))
-    raise response.to_s if response.is_a?(Cql::Protocol::ErrorResponse)
+    response = execute_request(Cassandra::Protocol::QueryRequest.new(cql, nil, nil, consistency))
+    raise response.to_s if response.is_a?(Cassandra::Protocol::ErrorResponse)
     response
   end
 
@@ -103,7 +134,7 @@ describe 'Protocol parsing and communication' do
     ensure
       begin
         drop_keyspace!
-      rescue Cql::Errors::NotConnectedError, Errno::EPIPE => e
+      rescue Cassandra::Errors::NotConnectedError, Errno::EPIPE => e
         # ignore since we're shutting down, and these errors are likely caused
         # by the code under test, re-raising them would mask the real errors
       end
@@ -126,22 +157,21 @@ describe 'Protocol parsing and communication' do
 
   context 'when setting up' do
     it 'sends OPTIONS and receives SUPPORTED' do
-      response = execute_request(Cql::Protocol::OptionsRequest.new)
+      response = execute_request(Cassandra::Protocol::OptionsRequest.new)
       response.options.should have_key('CQL_VERSION')
     end
 
     it 'sends a bad STARTUP and receives ERROR' do
-      response = execute_request(Cql::Protocol::StartupRequest.new('9.9.9'))
+      response = execute_request(Cassandra::Protocol::StartupRequest.new('9.9.9'))
       response.code.should == 10
       response.message.should include('not supported')
     end
 
     context 'when authentication is not required' do
       it 'sends STARTUP and receives READY' do
-        pending('authentication required', if: @authentication_enabled) do
-          response = execute_request(Cql::Protocol::StartupRequest.new('3.1.0'), false)
-          response.should be_a(Cql::Protocol::ReadyResponse)
-        end
+        pending('authentication required') if @authentication_enabled
+        response = execute_request(Cassandra::Protocol::StartupRequest.new(cql_version), false)
+        response.should be_a(Cassandra::Protocol::ReadyResponse)
       end
     end
 
@@ -152,65 +182,58 @@ describe 'Protocol parsing and communication' do
         end
 
         it 'sends STARTUP and receives AUTHENTICATE' do
-          pending('authentication not configured', unless: @authentication_enabled) do
-            response = raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-            response.should be_a(Cql::Protocol::AuthenticateResponse)
-          end
+          pending('authentication not configured') unless @authentication_enabled
+          response = raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
+          response.should be_a(Cassandra::Protocol::AuthenticateResponse)
         end
 
         it 'ignores the AUTHENTICATE response and receives ERROR' do
-          pending('authentication not configured', unless: @authentication_enabled) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-            response = raw_execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
-            response.code.should == 10
-          end
+          pending('authentication not configured') unless @authentication_enabled
+          raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
+          response = raw_execute_request(Cassandra::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
+          response.code.should == 10
         end
 
         it 'sends STARTUP followed by CREDENTIALS and receives READY' do
-          raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-          response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra'))
-          response.should be_a(Cql::Protocol::ReadyResponse)
+          raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
+          response = raw_execute_request(Cassandra::Protocol::CredentialsRequest.new('username' => 'cassandra', 'password' => 'cassandra'))
+          response.should be_a(Cassandra::Protocol::ReadyResponse)
         end
 
         it 'sends bad username and password in CREDENTIALS and receives ERROR' do
-          pending('authentication not configured', unless: @authentication_enabled) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-            response = raw_execute_request(Cql::Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar'))
-            response.code.should == 0x100
-          end
+          pending('authentication not configured') unless @authentication_enabled
+          raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
+          response = raw_execute_request(Cassandra::Protocol::CredentialsRequest.new('username' => 'foo', 'password' => 'bar'))
+          response.code.should == 0x100
         end
       end
 
       context 'and the protocol version is 2' do
         it 'sends STARTUP and receives AUTHENTICATE' do
-          pending('authentication not configured', unless: @authentication_enabled) do
-            response = raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-            response.should be_a(Cql::Protocol::AuthenticateResponse)
-          end
+          pending('authentication not configured') unless @authentication_enabled
+          response = raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
+          response.should be_a(Cassandra::Protocol::AuthenticateResponse)
         end
 
         it 'ignores the AUTHENTICATE response and receives ERROR' do
-          pending('authentication not configured', unless: @authentication_enabled) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-            response = raw_execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
-            response.code.should == 10
-          end
+          pending('authentication not configured') unless @authentication_enabled
+          raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
+          response = raw_execute_request(Cassandra::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE'))
+          response.code.should == 10
         end
 
         it 'sends STARTUP followed by AUTH_RESPONSE and receives AUTH_SUCCESS' do
-          pending('authentication not configured', unless: @authentication_enabled) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-            response = raw_execute_request(Cql::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra"))
-            response.should be_a(Cql::Protocol::AuthSuccessResponse)
-          end
+          pending('authentication not configured') unless @authentication_enabled
+          raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
+          response = raw_execute_request(Cassandra::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra"))
+          response.should be_a(Cassandra::Protocol::AuthSuccessResponse)
         end
 
         it 'sends bad username and password in AUTH_RESPONSE and receives ERROR' do
-          pending('authentication not configured', unless: @authentication_enabled) do
-            raw_execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
-            response = raw_execute_request(Cql::Protocol::AuthResponseRequest.new("\x00cassandra\x00ardnassac"))
-            response.code.should == 0x100
-          end
+          pending('authentication not configured') unless @authentication_enabled
+          raw_execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
+          response = raw_execute_request(Cassandra::Protocol::AuthResponseRequest.new("\x00cassandra\x00ardnassac"))
+          response.code.should == 0x100
         end
       end
     end
@@ -218,20 +241,20 @@ describe 'Protocol parsing and communication' do
 
   context 'when set up' do
     before do
-      response = execute_request(Cql::Protocol::StartupRequest.new('3.1.0'))
+      response = execute_request(Cassandra::Protocol::StartupRequest.new(cql_version))
       response
     end
 
     context 'with events' do
       it 'sends a REGISTER request and receives READY' do
-        response = execute_request(Cql::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE'))
-        response.should be_a(Cql::Protocol::ReadyResponse)
+        response = execute_request(Cassandra::Protocol::RegisterRequest.new('TOPOLOGY_CHANGE', 'STATUS_CHANGE', 'SCHEMA_CHANGE'))
+        response.should be_a(Cassandra::Protocol::ReadyResponse)
       end
 
       it 'passes events to listeners' do
         semaphore = Queue.new
         event = nil
-        execute_request(Cql::Protocol::RegisterRequest.new('SCHEMA_CHANGE'))
+        execute_request(Cassandra::Protocol::RegisterRequest.new('SCHEMA_CHANGE'))
         connection.on_event do |event_response|
           event = event_response
           semaphore << :ping
@@ -255,8 +278,8 @@ describe 'Protocol parsing and communication' do
         end
 
         it 'sends a bad CQL string and receives ERROR' do
-          response = execute_request(Cql::Protocol::QueryRequest.new('HELLO WORLD', nil, nil, :any))
-          response.should be_a(Cql::Protocol::ErrorResponse)
+          response = execute_request(Cassandra::Protocol::QueryRequest.new('HELLO WORLD', nil, nil, :any))
+          response.should be_a(Cassandra::Protocol::ErrorResponse)
         end
 
         it 'sends a CREATE KEYSPACE command' do
@@ -375,64 +398,64 @@ describe 'Protocol parsing and communication' do
           end
         end
 
-        it 'sends an INSERT command with bound values' do
+        it 'sends an INSERT command with bound values', :unless => cassandra_version.start_with?('1.2') do
           in_keyspace_with_table do
             cql = %<INSERT INTO users (user_name, email) VALUES (?, ?)>
-            response = execute_request(Cql::Protocol::QueryRequest.new(cql, ['sue', 'sue@inter.net'], nil, :one))
+            response = execute_request(Cassandra::Protocol::QueryRequest.new(cql, ['sue', 'sue@inter.net'], nil, :one))
             response.should be_void
           end
         end
 
-        it 'sends an UPDATE command with bound values' do
+        it 'sends an UPDATE command with bound values', :unless => cassandra_version.start_with?('1.2') do
           in_keyspace_with_table do
             cql = %<UPDATE users SET email = ? WHERE user_name = ?>
-            response = execute_request(Cql::Protocol::QueryRequest.new(cql, ['sue@inter.net', 'sue'], nil, :one))
+            response = execute_request(Cassandra::Protocol::QueryRequest.new(cql, ['sue@inter.net', 'sue'], nil, :one))
             response.should be_void
           end
         end
 
-        it 'sends a SELECT command with bound values' do
+        it 'sends a SELECT command with bound values', :unless => cassandra_version.start_with?('1.2') do
           in_keyspace_with_table do
             query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
             query(%<INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')>)
             cql = %<SELECT * FROM users WHERE user_name = ?>
-            response = execute_request(Cql::Protocol::QueryRequest.new(cql, ['sue'], nil, :one))
+            response = execute_request(Cassandra::Protocol::QueryRequest.new(cql, ['sue'], nil, :one))
             response.rows.should == [
               {'user_name' => 'sue',  'email' => 'sue@inter.net', 'password' => nil}
             ]
           end
         end
 
-        it 'guesses the types of bound values' do
+        it 'guesses the types of bound values', :unless => cassandra_version.start_with?('1.2') do
           in_keyspace do
             query('CREATE TABLE types (a BIGINT PRIMARY KEY, b DOUBLE, c ASCII, d BOOLEAN, e TIMESTAMP, f UUID, g DECIMAL, h BLOB)')
             cql = %<UPDATE types SET b = ?, c = ?, d = ?, e = ?, f = ?, g = ?, h = ? WHERE a = ?>
-            values = [123.456, 'foo', true, Time.now, Cql::TimeUuid::Generator.new.next, BigDecimal.new('0.01'), 'hello', 3]
-            response = execute_request(Cql::Protocol::QueryRequest.new(cql, values, nil, :one))
+            values = [123.456, 'foo', true, Time.now, Cassandra::TimeUuid::Generator.new.next, BigDecimal.new('0.01'), 'hello', 3]
+            response = execute_request(Cassandra::Protocol::QueryRequest.new(cql, values, nil, :one))
             response.should be_void
           end
         end
 
-        it 'uses the provided type hints to encode bound values' do
+        it 'uses the provided type hints to encode bound values', :unless => cassandra_version.start_with?('1.2') do
           in_keyspace do
             query('CREATE TABLE types (a INT PRIMARY KEY, b FLOAT)')
             cql = %<UPDATE types SET b = ? WHERE a = ?>
             values = [123.456, 3]
             hints = [:float, :int]
-            response = execute_request(Cql::Protocol::QueryRequest.new(cql, values, hints, :one))
+            response = execute_request(Cassandra::Protocol::QueryRequest.new(cql, values, hints, :one))
             response.should be_void
           end
         end
 
-        it 'sends a SELECT command with a page size and receives a ROWS RESULT with a paging state' do
+        it 'sends a SELECT command with a page size and receives a ROWS RESULT with a paging state', :unless => cassandra_version.start_with?('1.2') do
           in_keyspace_with_table do
             10.times do
               query(%<INSERT INTO users (user_name, email) VALUES ('#{rand(234234).to_s(36)}', 'someone@somewhere.sx')>)
             end
-            response = execute_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :one, nil, 6))
+            response = execute_request(Cassandra::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :one, nil, 6))
             response.paging_state.should_not be_nil
             response.rows.size.should == 6
-            response = execute_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :one, nil, 6, response.paging_state))
+            response = execute_request(Cassandra::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :one, nil, 6, response.paging_state))
             response.paging_state.should be_nil
             response.rows.size.should == 4
           end
@@ -442,7 +465,7 @@ describe 'Protocol parsing and communication' do
       context 'with PREPARE requests' do
         it 'sends a PREPARE request and receives RESULT' do
           in_keyspace_with_table do
-            response = execute_request(Cql::Protocol::PrepareRequest.new('SELECT * FROM users WHERE user_name = ?'))
+            response = execute_request(Cassandra::Protocol::PrepareRequest.new('SELECT * FROM users WHERE user_name = ?'))
             response.id.should_not be_nil
             response.metadata.should_not be_nil
           end
@@ -452,43 +475,43 @@ describe 'Protocol parsing and communication' do
           in_keyspace do
             create_table_cql = %<CREATE TABLE stuff (id1 UUID, id2 VARINT, id3 TIMESTAMP, value1 DOUBLE, value2 TIMEUUID, value3 BLOB, PRIMARY KEY (id1, id2, id3))>
             insert_cql = %<INSERT INTO stuff (id1, id2, id3, value1, value2, value3) VALUES (?, ?, ?, ?, ?, ?)>
-            create_response = execute_request(Cql::Protocol::QueryRequest.new(create_table_cql, nil, nil, :one))
-            create_response.should_not be_a(Cql::Protocol::ErrorResponse)
-            prepare_response = execute_request(Cql::Protocol::PrepareRequest.new(insert_cql))
-            prepare_response.should_not be_a(Cql::Protocol::ErrorResponse)
-            values = [Cql::Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'), -12312312312, Time.now, 345345.234234, Cql::Uuid.new('a4a70900-24e1-11df-8924-001ff3591711'), "\xab\xcd\xef".force_encoding(::Encoding::BINARY)]
-            execute_response = execute_request(Cql::Protocol::ExecuteRequest.new(prepare_response.id, prepare_response.metadata, values, nil, :one, nil, nil, nil, true))
-            execute_response.should_not be_a(Cql::Protocol::ErrorResponse)
+            create_response = execute_request(Cassandra::Protocol::QueryRequest.new(create_table_cql, nil, nil, :one))
+            create_response.should_not be_a(Cassandra::Protocol::ErrorResponse)
+            prepare_response = execute_request(Cassandra::Protocol::PrepareRequest.new(insert_cql))
+            prepare_response.should_not be_a(Cassandra::Protocol::ErrorResponse)
+            values = [Cassandra::Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'), -12312312312, Time.now, 345345.234234, Cassandra::Uuid.new('a4a70900-24e1-11df-8924-001ff3591711'), "\xab\xcd\xef".force_encoding(::Encoding::BINARY)]
+            execute_response = execute_request(Cassandra::Protocol::ExecuteRequest.new(prepare_response.id, prepare_response.metadata, values, nil, :one, nil, nil, nil, true))
+            execute_response.should_not be_a(Cassandra::Protocol::ErrorResponse)
           end
         end
 
-        it 'sends an EXECUTE with a page size and receives a RESULT with a paging state' do
+        it 'sends an EXECUTE with a page size and receives a RESULT with a paging state', :unless => cassandra_version.start_with?('1.2') do
           in_keyspace_with_table do
             10.times do
               query(%<INSERT INTO users (user_name, email) VALUES ('#{rand(234234).to_s(36)}', 'someone@somewhere.sx')>)
             end
-            response = execute_request(Cql::Protocol::PrepareRequest.new('SELECT * FROM users'))
+            response = execute_request(Cassandra::Protocol::PrepareRequest.new('SELECT * FROM users'))
             statement_id = response.id
             metadata = response.metadata
-            response = execute_request(Cql::Protocol::ExecuteRequest.new(statement_id, metadata, [], true, :one, nil, 6, nil))
+            response = execute_request(Cassandra::Protocol::ExecuteRequest.new(statement_id, metadata, [], true, :one, nil, 6, nil))
             response.paging_state.should_not be_nil
             response.rows.size.should == 6
-            response = execute_request(Cql::Protocol::ExecuteRequest.new(statement_id, metadata, [], true, :one, nil, 6, response.paging_state))
+            response = execute_request(Cassandra::Protocol::ExecuteRequest.new(statement_id, metadata, [], true, :one, nil, 6, response.paging_state))
             response.paging_state.should be_nil
             response.rows.size.should == 4
           end
         end
       end
 
-      context 'with BATCH requests' do
+      context 'with BATCH requests', :unless => cassandra_version.start_with?('1.2') do
         it 'sends a BATCH request and receives RESULT' do
           in_keyspace_with_table do
             cql1 = %<INSERT INTO users (user_name, email) VALUES (?, ?)>
             cql2 = %<UPDATE users SET email = ? WHERE user_name = 'sue'>
             cql3 = %<INSERT INTO users (user_name, email) VALUES ('tim', 'tim@pim.com')>
-            prepared_response1 = execute_request(Cql::Protocol::PrepareRequest.new(cql1))
-            prepared_response2 = execute_request(Cql::Protocol::PrepareRequest.new(cql3))
-            request = Cql::Protocol::BatchRequest.new(0, :quorum)
+            prepared_response1 = execute_request(Cassandra::Protocol::PrepareRequest.new(cql1))
+            prepared_response2 = execute_request(Cassandra::Protocol::PrepareRequest.new(cql3))
+            request = Cassandra::Protocol::BatchRequest.new(0, :quorum)
             request.add_query(cql1, ['sue', 'sue@inter.net'])
             request.add_query(cql2, ['eve'])
             request.add_query(cql3)
@@ -503,22 +526,22 @@ describe 'Protocol parsing and communication' do
       context 'with tracing' do
         it 'sends a QUERY request with the tracing flag and receives a RESULT with a trace ID' do
           in_keyspace_with_table do
-            response = execute_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :quorum, nil, nil, nil, true))
+            response = execute_request(Cassandra::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :quorum, nil, nil, nil, true))
             response.trace_id.should_not be_nil
           end
         end
 
         it 'sends an PREPARE request with the tracing flag and receives a RESULT with a trace ID' do
           in_keyspace_with_table do
-            response = execute_request(Cql::Protocol::PrepareRequest.new('SELECT * FROM users', true))
+            response = execute_request(Cassandra::Protocol::PrepareRequest.new('SELECT * FROM users', true))
             response.trace_id.should_not be_nil
           end
         end
 
         it 'sends an EXECUTE request with the tracing flag and receives a RESULT with a trace ID' do
           in_keyspace_with_table do
-            prepare_response = execute_request(Cql::Protocol::PrepareRequest.new('SELECT * FROM users'))
-            execute_response = execute_request(Cql::Protocol::ExecuteRequest.new(prepare_response.id, prepare_response.metadata, [], true, :one, nil, nil, nil, true))
+            prepare_response = execute_request(Cassandra::Protocol::PrepareRequest.new('SELECT * FROM users'))
+            execute_response = execute_request(Cassandra::Protocol::ExecuteRequest.new(prepare_response.id, prepare_response.metadata, [], true, :one, nil, nil, nil, true))
             execute_response.trace_id.should_not be_nil
           end
         end
@@ -526,22 +549,22 @@ describe 'Protocol parsing and communication' do
 
       context 'with compression' do
         let :compressor do
-          Cql::Compression::SnappyCompressor.new(0)
+          Cassandra::Compression::SnappyCompressor.new(0)
         end
 
         let :protocol_handler_factory do
-          lambda { |connection| Cql::Protocol::CqlProtocolHandler.new(connection, io_reactor, protocol_version, compressor) }
+          lambda { |connection| Cassandra::Protocol::CqlProtocolHandler.new(connection, io_reactor, protocol_version, compressor) }
         end
 
         it 'sends a compressed request and receives a compressed response' do
           compressor.stub(:compress).and_call_original
           compressor.stub(:decompress).and_call_original
-          io_reactor = Cql::Io::IoReactor.new
+          io_reactor = Cassandra::Io::IoReactor.new
           io_reactor.start.value
           begin
             connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1, &protocol_handler_factory).value
-            connection.send_request(Cql::Protocol::StartupRequest.new('3.1.0', 'snappy')).value
-            connection.send_request(Cql::Protocol::PrepareRequest.new('SELECT * FROM system.peers')).value
+            connection.send_request(Cassandra::Protocol::StartupRequest.new(cql_version, 'snappy')).value
+            connection.send_request(Cassandra::Protocol::PrepareRequest.new('SELECT * FROM system.peers')).value
             compressor.should have_received(:compress).at_least(1).times
             compressor.should have_received(:decompress).at_least(1).times
           ensure
@@ -554,10 +577,10 @@ describe 'Protocol parsing and communication' do
         it 'handles multiple concurrent requests' do
           in_keyspace_with_table do
             futures = 10.times.map do
-              connection.send_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :quorum))
+              connection.send_request(Cassandra::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :quorum))
             end
 
-            futures << connection.send_request(Cql::Protocol::QueryRequest.new(%<INSERT INTO users (user_name, email) VALUES ('sam', 'sam@ham.com')>, nil, nil, :one))
+            futures << connection.send_request(Cassandra::Protocol::QueryRequest.new(%<INSERT INTO users (user_name, email) VALUES ('sam', 'sam@ham.com')>, nil, nil, :one))
             
             Ione::Future.all(*futures).value
           end
@@ -568,7 +591,7 @@ describe 'Protocol parsing and communication' do
             threads = Array.new(10) do
               Thread.new do
                 futures = 200.times.map do
-                  connection.send_request(Cql::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :quorum))
+                  connection.send_request(Cassandra::Protocol::QueryRequest.new('SELECT * FROM users', nil, nil, :quorum))
                 end
                 Ione::Future.all(*futures).value
               end
@@ -582,26 +605,26 @@ describe 'Protocol parsing and communication' do
 
   context 'in special circumstances' do
     it 'raises an exception when it cannot connect to Cassandra' do
-      io_reactor = Cql::Io::IoReactor.new
+      io_reactor = Cassandra::Io::IoReactor.new
       io_reactor.start.value
-      expect { io_reactor.connect('example.com', 9042, 0.1, &protocol_handler_factory).value }.to raise_error(Cql::Io::ConnectionError)
-      expect { io_reactor.connect('blackhole', 9042, 0.1, &protocol_handler_factory).value }.to raise_error(Cql::Io::ConnectionError)
+      expect { io_reactor.connect('example.com', 9042, 0.1, &protocol_handler_factory).value }.to raise_error(Cassandra::Io::ConnectionError)
+      expect { io_reactor.connect('blackhole', 9042, 0.1, &protocol_handler_factory).value }.to raise_error(Cassandra::Io::ConnectionError)
       io_reactor.stop.value
     end
 
     it 'does nothing the second time #start is called' do
-      protocol_handler_factory = lambda { |connection| Cql::Protocol::CqlProtocolHandler.new(connection, io_reactor, 2) }
-      io_reactor = Cql::Io::IoReactor.new
+      protocol_handler_factory = lambda { |connection| Cassandra::Protocol::CqlProtocolHandler.new(connection, io_reactor, protocol_version) }
+      io_reactor = Cassandra::Io::IoReactor.new
       io_reactor.start.value
       connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1, &protocol_handler_factory).value
-      response = connection.send_request(Cql::Protocol::StartupRequest.new('3.1.0')).value
-      if response.is_a?(Cql::Protocol::AuthenticateResponse)
-        response = connection.send_request(Cql::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra")).value
-        response.should be_a(Cql::Protocol::AuthSuccessResponse)
+      response = connection.send_request(Cassandra::Protocol::StartupRequest.new(cql_version)).value
+      if response.is_a?(Cassandra::Protocol::AuthenticateResponse)
+        response = connection.send_request(Cassandra::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra")).value
+        response.should be_a(Cassandra::Protocol::AuthSuccessResponse)
       end
       io_reactor.start.value
-      response = connection.send_request(Cql::Protocol::QueryRequest.new('USE system', nil, nil, :any)).value
-      response.should_not be_a(Cql::Protocol::ErrorResponse)
+      response = connection.send_request(Cassandra::Protocol::QueryRequest.new('USE system', nil, nil, :any)).value
+      response.should_not be_a(Cassandra::Protocol::ErrorResponse)
     end
   end
 end

@@ -8,15 +8,15 @@ Feature: Standard authentication
     Given a running cassandra cluster with authentication enabled
     And the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
       
       begin
-        cluster = Cql.cluster
-                    .with_contact_points("127.0.0.1")
-                    .with_credentials(ENV['USERNAME'], ENV['PASSWORD'])
-                    .build
+        cluster = Cassandra.connect(credentials: {
+                      :username => ENV['USERNAME'],
+                      :password => ENV['PASSWORD']
+                    })
         puts "authentication successful"
-      rescue Cql::Errors::AuthenticationError => e
+      rescue Cassandra::Errors::AuthenticationError => e
         puts "#{e.class.name}: #{e.message}"
         puts "authentication failed"
       else

@@ -32,12 +32,10 @@ Feature: membership change detection
     And the following example running in the background:
       """ruby
       require 'printing_listener'
-      require 'cql'
+      require 'cassandra'
 
       listener = PrintingListener.new($stderr)
-      cluster  = Cql.cluster
-                  .with_contact_points("127.0.0.1")
-                  .build
+      cluster  = Cassandra.connect
 
       at_exit { cluster.close }
 
@@ -55,6 +53,7 @@ Feature: membership change detection
       Host 127.0.0.2 is down
       """
 
+  @cassandra-version-specific @cassandra-version-2.0
   Scenario: a new host joins and then leaves the cluster
     When node 4 joins
     And node 4 leaves

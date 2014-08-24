@@ -1,12 +1,26 @@
 # encoding: utf-8
 
+# Copyright 2013-2014 DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require_relative 'benchmark'
-require 'cql'
+require 'cassandra'
 
 class PreparedInsertRubyDriver < Benchmark
     def setup
       # We do not want SecureRandom.uuid to be included in the measurements so let's generate a lot of UUID here
-      # Note : Creating a Cql::Uuid from a string is included in the measured loop as it is not a Ruby API
+      # Note : Creating a Cassandra::Uuid from a string is included in the measured loop as it is not a Ruby API
       @uuids = Array.new
       @iterations.times do
         @uuids.push(SecureRandom.uuid)
@@ -15,16 +29,16 @@ class PreparedInsertRubyDriver < Benchmark
 
     def connect_to_cluster
         puts "#{Time.now - start} Connecting to cluster..."
-        @cluster = Cql.cluster.with_contact_points('127.0.0.1').build
+        @cluster = Cassandra.connect(hosts: ['127.0.0.1'])
         @session = @cluster.connect("simplex")
-        @session.execute(Cql::Statements::Simple.new("TRUNCATE songs"))
+        @session.execute(Cassandra::Statements::Simple.new("TRUNCATE songs"))
         @statement  = @session.prepare("INSERT INTO songs (id, title, album, artist, tags) VALUES (?, 'Dummy song-id', 'Track 1', 'Unknown Artist', {'soundtrack', '1985'});")
     end
 
     def target
         puts "#{Time.now - start} Starting producing #{@iterations} inserts..."
         futures = @iterations.times.map do
-            @session.execute_async(@statement, Cql::Uuid.new(@uuids.pop))
+            @session.execute_async(@statement, Cassandra::Uuid.new(@uuids.pop))
         end
 
         puts "#{Time.now - start} Starting consuming inserts..."

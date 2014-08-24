@@ -85,6 +85,24 @@ compile 'api*' do
   # filter :beautify
 end
 
+compile '/' do
+  filter :redcarpet, :renderer => Docs::GherkinFilter::Markdown, :options => {
+    :no_intra_emphasis   => true,
+    :tables              => true,
+    :fenced_code_blocks  => true,
+    :autolink            => true,
+    :space_after_headers => true,
+    :superscript         => true,
+    :underline           => true,
+    :highlight           => true
+  }
+  filter :add_ids_to_headers
+  layout 'introduction'
+  filter :add_toc
+  filter :relativize_paths, :type => :html
+  filter :rubypants
+end
+
 route '/css/*/' do
   item.identifier.chop + '.css'
 end
@@ -94,7 +112,11 @@ route '/features*' do
 end
 
 route 'api*' do
-  item.identifier.sub('api/cql', 'api') + 'index.html'
+  item.identifier.sub('api/cassandra', 'api') + 'index.html'
+end
+
+route '/' do
+  '/index.html'
 end
 
 layout '*', :erb

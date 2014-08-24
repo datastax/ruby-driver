@@ -24,7 +24,7 @@ $: << File.expand_path('../../lib', __FILE__)
 
 require 'bundler/setup'
 require 'logger'
-require 'cql'
+require 'cassandra'
 
 
 class ClusterController
@@ -93,7 +93,7 @@ log_node_states(cluster_controller, logger)
 
 logger.info(%(Cluster started, #{cluster_controller.status.size} nodes))
 
-client = Cql::Client.connect(logger: logger, hosts: %w[127.0.0.1 127.0.0.3])
+client = Cassandra::Client.connect(logger: logger, hosts: %w[127.0.0.1 127.0.0.3])
 
 logger.info('Connected to cluster')
 
@@ -102,7 +102,7 @@ client.execute(%<CREATE KEYSPACE IF NOT EXISTS cql_rb_chaos_spec WITH REPLICATIO
 
 begin
   client.execute(%<USE cql_rb_chaos_spec>)
-rescue Cql::QueryError
+rescue Cassandra::QueryError
   retry
 end
 
@@ -158,16 +158,16 @@ begin
     id = people.sample.split(' ').last.downcase
     begin
       select_person_statement.execute(id)
-    rescue Cql::QueryError => e
+    rescue Cassandra::QueryError => e
       logger.warn("Execute failed with #{e.class.name} ##{e.code.to_s(16)}: #{e.message}")
       server_errors += 1
-    rescue Cql::Io::ConnectionError => e
+    rescue Cassandra::Io::ConnectionError => e
       logger.warn("Execute failed with #{e.class.name}: #{e.message}")
       connection_failures += 1
     end
     counter += 1
   end
-rescue Cql::NotConnectedError => e
+rescue Cassandra::NotConnectedError => e
   logger.error("Caught not connected error, exiting: #{e.message}")
   log_node_states(cluster_controller, logger)
 rescue Interrupt

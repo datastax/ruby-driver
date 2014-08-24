@@ -1,25 +1,28 @@
 Feature: Executing queries asynchronously
 
-  Session objects support asynchronous statement execution using `Cql::Session#execute_async` method.
-  This method returns a `Cql::Future<Cql::Result>`.
+  Session objects support asynchronous statement execution using `Cassandra::Session#execute_async` method.
+  This method returns a `Cassandra::Future<Cassandra::Result>`.
 
   Background:
     Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
 
-  Scenario: Getting execution result
+  Scenario: Listerning for future
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster = Cql.cluster.build
+      cluster = Cassandra.connect
       session = cluster.connect("simplex")
-      promise = session.execute_async("SELECT * FROM songs")
+      future  = session.execute_async("SELECT * FROM songs")
+
+      future.on_success do |rows|
+        rows.each do |row|
+          puts "#{row["artist"]}: #{row["title"]} / #{row["album"]}"
+        end
+      end
 
       puts "driver is fetching rows from cassandra"
-
-      promise.get.each do |row|
-        puts "#{row["artist"]}: #{row["title"]} / #{row["album"]}"
-      end
+      future.join # block until the future has been resolved
       """
     When it is executed
     Then its output should contain:
@@ -33,9 +36,9 @@ Feature: Executing queries asynchronously
   Scenario: Running queries in parallel
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster = Cql.cluster.build
+      cluster = Cassandra.connect
       session = cluster.connect("simplex")
       count   = 10
 

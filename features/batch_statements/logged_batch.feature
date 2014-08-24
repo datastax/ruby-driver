@@ -1,3 +1,4 @@
+@cassandra-version-specific @cassandra-version-2.0
 Feature: logged batch
 
   Session objects can be used to construct a logged batch statement and later
@@ -9,11 +10,9 @@ Feature: logged batch
   Scenario: a batch of simple statements is executed
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster = Cql.cluster
-                  .with_contact_points("127.0.0.1")
-                  .build
+      cluster = Cassandra.connect
 
       at_exit { cluster.close }
 
@@ -68,11 +67,9 @@ Feature: logged batch
   Scenario: a batch of simple statements with parameters is executed
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster = Cql.cluster
-                  .with_contact_points("127.0.0.1")
-                  .build
+      cluster = Cassandra.connect
 
       at_exit { cluster.close }
 
@@ -84,21 +81,21 @@ Feature: logged batch
 
       batch   = session.batch do |b|
                   b.add("INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)",
-                        Cql::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
+                        Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
                         'La Petite Tonkinoise',
                         'Bye Bye Blackbird',
                         'Joséphine Baker',
                         Set['jazz', '2013']
                   )
                   b.add("INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)",
-                        Cql::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
+                        Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
                         'Die Mösch',
                         'In Gold',
                         'Willi Ostermann',
                         Set['kölsch', '1996', 'birds']
                   )
                   b.add("INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)",
-                        Cql::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25'),
+                        Cassandra::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25'),
                         'Memo From Turner',
                         'Performance',
                         'Mick Jager',
@@ -124,11 +121,9 @@ Feature: logged batch
   Scenario: a prepared statement is executed in a batch
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
 
-      cluster = Cql.cluster
-                  .with_contact_points("127.0.0.1")
-                  .build
+      cluster = Cassandra.connect
 
       at_exit { cluster.close }
 
@@ -141,21 +136,21 @@ Feature: logged batch
       insert  = session.prepare("INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)")
       batch   = session.batch do |b|
                   b.add(insert,
-                        Cql::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
+                        Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
                         'La Petite Tonkinoise',
                         'Bye Bye Blackbird',
                         'Joséphine Baker',
                         Set['jazz', '2013']
                   )
                   b.add(insert,
-                        Cql::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
+                        Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
                         'Die Mösch',
                         'In Gold',
                         'Willi Ostermann',
                         Set['kölsch', '1996', 'birds']
                   )
                   b.add(insert,
-                        Cql::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25'),
+                        Cassandra::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25'),
                         'Memo From Turner',
                         'Performance',
                         'Mick Jager',

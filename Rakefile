@@ -7,14 +7,13 @@ require 'cucumber/rake/task'
 
 ENV["FAIL_FAST"] ||= 'Y'
 
-
 desc 'Tag & release the gem'
 task :release => :test do
   $: << 'lib'
-  require 'cql/version'
+  require 'cassandra/version'
 
-  project_name = 'cql-rb'
-  version_string = "v#{Cql::VERSION}"
+  project_name = 'cassandra-driver'
+  version_string = "v#{Cassandra::VERSION}"
   
   unless %x(git tag -l).split("\n").include?(version_string)
     system %(git tag -a #{version_string} -m #{version_string})
@@ -23,38 +22,24 @@ task :release => :test do
   system %(git push && git push --tags; gem build #{project_name}.gemspec && gem push #{project_name}-*.gem && mv #{project_name}-*.gem pkg)
 end
 
-
-desc 'Create and start a 1-node Cassandra cluster for RSpec tests'
-task :start_rspec_cluster do
-    `ccm create 1-node-cluster --nodes 1 --start --ipprefix 127.0.0. --binary-protocol --cassandra-version 2.0.9`
+RSpec::Core::RakeTask.new(:rspec) do |t|
+  t.rspec_opts = "--fail-fast" if ENV["FAIL_FAST"] == 'Y'
 end
 
+Cucumber::Rake::Task.new(:cucumber) do |t|
+  cassandra_version = ENV['CASSANDRA_VERSION'] || '2.0.9'
+  cassandra_version_tags = ''
 
-desc 'Delete the 1-node Cassandra cluster created for RSpec tests'
-task :delete_rspec_cluster do
-    `ccm remove 1-node-cluster`
+  if cassandra_version.start_with?('2.0')
+    cassandra_version_tags = ',@cassandra-version-2.0'
+  end
+
+  if cassandra_version.start_with?('1.2')
+    cassandra_version_tags = ',@cassandra-version-1.2'
+  end
+
+  t.cucumber_opts = ('--tags ~@todo --tags ~@cassandra-version-specific' + cassandra_version_tags)
 end
-
-
-desc 'Run all RSpec tests, failing fast'
-task :rspec do
-    Rake::Task["start_rspec_cluster"].execute
-    RSpec::Core::RakeTask.new(:rspec_tests) do |t|
-        t.rspec_opts = "--fail-fast" if ENV["FAIL_FAST"] == 'Y'
-    end
-    Rake::Task["rspec_tests"].execute
-    Rake::Task["delete_rspec_cluster"].execute
-end
-
-
-desc 'Execute all Cucumber tests that are not annotated with @todo'
-task :cucumber do
-    Cucumber::Rake::Task.new(:cucumber_tests) do |t|
-        t.cucumber_opts = '--tags ~@todo'
-    end
-    Rake::Task["cucumber_tests"].execute
-end
-
 
 desc 'Run all tests'
 task :test => [:rspec, :cucumber]

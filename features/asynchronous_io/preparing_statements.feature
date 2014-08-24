@@ -1,7 +1,7 @@
 Feature: Preparing statements asynchronously
 
-  Session objects can be used to prepare a statement asynchronously using `Cql::Session#prepare_async` method.
-  This method returns a `Cql::Future<Cql::Statements::Prepared>` instance.
+  Session objects can be used to prepare a statement asynchronously using `Cassandra::Session#prepare_async` method.
+  This method returns a `Cassandra::Future<Cassandra::Statements::Prepared>` instance.
 
   Background:
     Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
@@ -10,9 +10,9 @@ Feature: Preparing statements asynchronously
   Scenario: Preparing statements in parallel
     Given the following example:
       """ruby
-      require 'cql'
+      require 'cassandra'
       
-      cluster = Cql.cluster.build
+      cluster = Cassandra.connect
       session = cluster.connect("simplex")
       
       # prepare 2 statements in parallel
@@ -24,12 +24,12 @@ Feature: Preparing statements asynchronously
       select_playlist = select_playlist_future.get
       
       # execute prepared statements
-      song_id  = Cql::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50')
+      song_id  = Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50')
       song     = session.execute(select_song, song_id).first
 
       puts "#{song["artist"]}: #{song["title"]} / #{song["album"]} has id #{song_id}"
 
-      playlist_id = Cql::Uuid.new('2cc9ccb7-6221-4ccb-8387-f22b6a1b354d')
+      playlist_id = Cassandra::Uuid.new('2cc9ccb7-6221-4ccb-8387-f22b6a1b354d')
       playlist    = session.execute(select_playlist, playlist_id)
       
       puts "Playlist #{playlist_id} has #{playlist.size} songs"

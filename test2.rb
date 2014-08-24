@@ -1,16 +1,14 @@
 # encoding: utf-8
 
-require 'cql'
+require 'cassandra'
 # require 'allocation_stats'
 
-cluster = Cql.cluster
-            .with_contact_points('127.0.0.1')
-            .build
+cluster = Cassandra.connect(hosts: ['127.0.0.1'])
 
 # at_exit { cluster.close }
 
 session   = cluster.connect("simplex")
-statement = Cql::Statements::Simple.new("SELECT * FROM songs")
+statement = Cassandra::Statements::Simple.new("SELECT * FROM songs")
 
 # stats = AllocationStats.trace.trace do
   futures = 10000.times.map { session.execute_async(statement) }
@@ -21,7 +19,7 @@ statement = Cql::Statements::Simple.new("SELECT * FROM songs")
     begin
       future.get
       success += 1
-    rescue Cql::Errors::NoHostsAvailable => e
+    rescue Cassandra::Errors::NoHostsAvailable => e
       raise e.errors.first.last
     rescue => e
       puts "#{e.class.name}: #{e.message}"
