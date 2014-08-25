@@ -61,8 +61,8 @@ module Cassandra
 
           @datacenter = datacenter
           @max_remote = max_remote_hosts_to_use
-          @local      = ::Set.new
-          @remote     = ::Set.new
+          @local      = ::Array.new
+          @remote     = ::Array.new
           @position   = 0
 
           @use_remote = !!use_remote_hosts_for_local_consistency
@@ -72,10 +72,10 @@ module Cassandra
 
         def host_up(host)
           if host.datacenter.nil? || host.datacenter == @datacenter
-            synchronize { @local = @local.dup.add(host) }
+            synchronize { @local = @local.dup.push(host) }
           else
             if @max_remote.nil? || @remote.size < @max_remote
-              synchronize { @remote = @remote.dup.add(host) }
+              synchronize { @remote = @remote.dup.push(host) }
             end
           end
 
@@ -84,9 +84,15 @@ module Cassandra
 
         def host_down(host)
           if host.datacenter.nil? || host.datacenter == @datacenter
-            synchronize { @local = @local.dup.delete(host) }
+            synchronize do
+              @local = @local.dup
+              @local.delete(host)
+            end
           else
-            synchronize { @remote = @remote.dup.delete(host) }
+            synchronize do
+              @remote = @remote.dup
+              @remote.delete(host)
+            end
           end
 
           self
@@ -109,22 +115,22 @@ module Cassandra
         end
 
         def plan(keyspace, statement, options)
-          local    = @local
-          remote   = @remote
+          local = @local
+
+          if LOCAL_CONSISTENCIES.include?(options.consistency) && !@use_remote
+            remote = EMPTY_ARRAY
+          else
+            remote   = @remote
+          end
+
           position = @position
           total    = local.size + remote.size
 
           return EMPTY_PLAN if total == 0
 
-          if LOCAL_CONSISTENCIES.include?(options.consistency) && !@use_remote
-            remote = EMPTY_ARRAY
-          else
-            remote = remote.to_a
-          end
-
           @position = (@position + 1) % total
 
-          Plan.new(local.to_a, remote, position)
+          Plan.new(local, remote, position)
         end
 
         private
