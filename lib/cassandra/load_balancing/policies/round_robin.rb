@@ -54,9 +54,8 @@ module Cassandra
 
         def host_down(host)
           synchronize do
-            hosts = @hosts.dup
-            hosts.delete(host)
-            @hosts = hosts
+            @hosts = @hosts.dup
+            @hosts.delete(host)
           end
 
           self
