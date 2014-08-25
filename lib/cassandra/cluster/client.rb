@@ -312,12 +312,15 @@ module Cassandra
       end
 
       def connect_to_host(host, distance)
-        if distance.ignore?
+        case distance
+        when :ignore
           return NO_CONNECTIONS
-        elsif distance.local?
+        when :local
           pool_size = @connection_options.connections_per_local_node
-        else
+        when :remote
           pool_size = @connection_options.connections_per_remote_node
+        else
+          raise ::ArgumentError, "distance must be one of :ignore, :local or :remote, #{distance.inspect} given"
         end
 
         @logger.info("Session connecting to ip=#{host.ip}")
@@ -342,6 +345,11 @@ module Cassandra
       end
 
       def execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
+        unless plan.has_next?
+          promise.break(Errors::NoHostsAvailable.new(errors || {}))
+          return
+        end
+
         hosts << host = plan.next
         manager = nil
         synchronize { manager = @connections[host] }
@@ -368,8 +376,6 @@ module Cassandra
         else
           prepare_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
         end
-      rescue ::StopIteration
-        promise.break(Errors::NoHostsAvailable.new(errors || {}))
       rescue => e
         errors ||= {}
         errors[host] = e
@@ -399,6 +405,11 @@ module Cassandra
       end
 
       def batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors = nil, hosts = [])
+        unless plan.has_next?
+          promise.break(Errors::NoHostsAvailable.new(errors || {}))
+          return
+        end
+
         hosts << host = plan.next
         manager = nil
         synchronize { manager = @connections[host] }
@@ -425,8 +436,6 @@ module Cassandra
         else
           batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, plan, timeout, errors, hosts)
         end
-      rescue ::StopIteration
-        promise.break(Errors::NoHostsAvailable.new(errors || {}))
       rescue => e
         errors ||= {}
         errors[host] = e
@@ -481,6 +490,11 @@ module Cassandra
       end
 
       def send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
+        unless plan.has_next?
+          promise.break(Errors::NoHostsAvailable.new(errors || {}))
+          return
+        end
+
         hosts << host = plan.next
         manager = nil
         synchronize { manager = @connections[host] }
@@ -507,8 +521,6 @@ module Cassandra
         else
           do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
         end
-      rescue ::StopIteration
-        promise.break(Errors::NoHostsAvailable.new(errors || {}))
       rescue => e
         errors ||= {}
         errors[host] = e

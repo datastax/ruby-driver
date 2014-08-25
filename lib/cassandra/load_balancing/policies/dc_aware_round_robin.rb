@@ -17,7 +17,7 @@
 module Cassandra
   module LoadBalancing
     module Policies
-      class DCAwareRoundRobin
+      class DCAwareRoundRobin < Policy
         # @private
         class Plan
           def initialize(local, remote, index)
@@ -27,6 +27,10 @@ module Cassandra
 
             @local_remaining  = @local_total  = local.size
             @remote_remaining = @remote_total = remote.size
+          end
+
+          def has_next?
+            @local_remaining > 0 || @remote_remaining > 0
           end
 
           def next
@@ -45,12 +49,10 @@ module Cassandra
 
               return @remote[i]
             end
-
-            raise ::StopIteration
           end
         end
 
-        include Policy, MonitorMixin
+        include MonitorMixin
 
         def initialize(datacenter, max_remote_hosts_to_use = nil, use_remote_hosts_for_local_consistency = false)
           datacenter              = String(datacenter)
@@ -108,9 +110,9 @@ module Cassandra
 
         def distance(host)
           if host.datacenter.nil? || host.datacenter == @datacenter
-            @local.include?(host) ? local : ignore
+            @local.include?(host) ? :local : :ignore
           else
-            @remote.include?(host) ? remote : ignore
+            @remote.include?(host) ? :remote : :ignore
           end
         end
 

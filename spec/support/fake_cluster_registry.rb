@@ -35,15 +35,29 @@ class FakeClusterRegistry
 end
 
 class FakeLoadBalancingPolicy
+  class Plan
+    def initialize(hosts)
+      @hosts = hosts
+    end
+
+    def has_next?
+      !@hosts.empty?
+    end
+
+    def next
+      @hosts.shift
+    end
+  end
+
   def initialize(fake_cluster_registry)
     @registry = fake_cluster_registry
   end
 
   def distance(host)
-    @registry.hosts.include?(host) ? Cassandra::LoadBalancing::DISTANCE_LOCAL : Cassandra::LoadBalancing::DISTANCE_IGNORE
+    @registry.hosts.include?(host) ? :local : :ignore
   end
 
   def plan(keyspace, statement, options)
-    @registry.hosts.to_enum
+    Plan.new(@registry.hosts.to_a)
   end
 end

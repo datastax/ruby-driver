@@ -17,9 +17,7 @@
 module Cassandra
   module LoadBalancing
     module Policies
-      class WhiteList
-        include Policy
-
+      class WhiteList < Policy
         extend Forwardable
 
         # @!method plan(keyspace, statement, options)
@@ -36,7 +34,11 @@ module Cassandra
         # @raise [ArgumentError] if arguments are of unexpected types
         def initialize(ips, wrapped_policy)
           raise ::ArgumentError, "ips must be enumerable" unless ips.respond_to?(:each)
-          raise ::ArgumentError, "supplied policy must be a Cassandra::LoadBalancing::Policy, #{wrapped_policy.inspect} given" unless wrapped_policy.is_a?(Policy)
+          methods = [:host_up, :host_down, :host_found, :host_lost, :distance, :plan]
+
+          unless methods.all? {|method| wrapped_policy.respond_to?(method)}
+            raise ::ArgumentError, "supplied policy must be a Cassandra::LoadBalancing::Policy, #{wrapped_policy.inspect} given"
+          end
 
           @ips    = ::Set.new
           @policy = wrapped_policy

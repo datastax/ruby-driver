@@ -17,7 +17,7 @@
 module Cassandra
   module LoadBalancing
     module Policies
-      class RoundRobin
+      class RoundRobin < Policy
         # @private
         class Plan
           def initialize(hosts, index)
@@ -27,8 +27,12 @@ module Cassandra
             @total = @remaining = hosts.size
           end
 
+          def has_next?
+            @remaining > 0
+          end
+
           def next
-            raise ::StopIteration if @remaining == 0
+            return if @remaining == 0
 
             @remaining -= 1
             index, @index = @index, (@index + 1) % @total
@@ -37,7 +41,7 @@ module Cassandra
           end
         end
 
-        include Policy, MonitorMixin
+        include MonitorMixin
 
         def initialize
           @hosts    = ::Array.new
@@ -70,7 +74,7 @@ module Cassandra
         end
 
         def distance(host)
-          @hosts.include?(host) ? local : ignore
+          @hosts.include?(host) ? :local : :ignore
         end
 
         def plan(keyspace, statement, options)

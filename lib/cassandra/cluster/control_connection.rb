@@ -269,6 +269,11 @@ module Cassandra
       end
 
       def connect_to_first_available(plan, errors = nil)
+        unless plan.has_next?
+          @logger.warn("Control connection failed")
+          return Ione::Future.failed(Errors::NoHostsAvailable.new(errors || {}))
+        end
+
         host = plan.next
         @logger.debug("Attempting connection to ip=#{host.ip}")
         f = connect_to_host(host)
@@ -316,9 +321,6 @@ module Cassandra
             connect_to_first_available(plan, errors)
           end
         end
-      rescue ::StopIteration
-        @logger.warn("Control connection failed")
-        Ione::Future.failed(Errors::NoHostsAvailable.new(errors || {}))
       end
 
       def connect_to_host(host)

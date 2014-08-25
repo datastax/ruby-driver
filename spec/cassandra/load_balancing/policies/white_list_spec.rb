@@ -26,7 +26,7 @@ module Cassandra
         let(:policy) { WhiteList.new(ips, wrapped_policy) }
 
         before do
-          wrapped_policy.stub(:is_a?) {|p| Policy == p}
+          wrapped_policy.stub(:respond_to?) {|method| true}
         end
 
         [:host_up, :host_down, :host_found, :host_lost].each do |method|

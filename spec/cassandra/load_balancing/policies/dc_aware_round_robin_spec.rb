@@ -44,7 +44,7 @@ module Cassandra
               let(:max_remote_hosts_to_use) { 0 }
 
               it 'is ignored' do
-                expect(distance).to be_ignore
+                expect(distance).to eq(:ignore)
               end
             end
 
@@ -52,7 +52,7 @@ module Cassandra
               let(:max_remote_hosts_to_use) { 1 }
 
               it 'is remote' do
-                expect(distance).to be_remote
+                expect(distance).to eq(:remote)
               end
 
               context('another host in remote datacenter is up') do
@@ -65,7 +65,7 @@ module Cassandra
                 let(:another_distance) { policy.distance(another_host) }
 
                 it 'is ignored' do
-                  expect(another_distance).to be_ignore
+                  expect(another_distance).to eq(:ignore)
                 end
               end
             end
@@ -75,7 +75,7 @@ module Cassandra
             let(:host_datacenter) { datacenter }
 
             it 'is local' do
-              expect(distance).to be_local
+              expect(distance).to eq(:local)
             end
           end
 
@@ -83,7 +83,7 @@ module Cassandra
             let(:host_datacenter) { nil }
 
             it 'is local' do
-              expect(distance).to be_local
+              expect(distance).to eq(:local)
             end
           end
         end
@@ -98,7 +98,7 @@ module Cassandra
             let(:host_datacenter) { datacenter }
 
             it 'starts being ignored' do
-              expect(distance).to be_ignore
+              expect(distance).to eq(:ignore)
             end
           end
 
@@ -106,7 +106,7 @@ module Cassandra
             let(:host_datacenter) { 'DC2' }
 
             it 'starts being ignored' do
-              expect(distance).to be_ignore
+              expect(distance).to eq(:ignore)
             end
           end
         end
@@ -116,7 +116,7 @@ module Cassandra
             let(:host_datacenter) { 'DC2' }
 
             it 'ignores unknown hosts' do
-              expect(policy.distance(host)).to be_ignore
+              expect(policy.distance(host)).to eq(:ignore)
             end
           end
 
@@ -124,7 +124,7 @@ module Cassandra
             let(:host_datacenter) { datacenter }
 
             it 'ignores unknown hosts' do
-              expect(policy.distance(host)).to be_ignore
+              expect(policy.distance(host)).to eq(:ignore)
             end
           end
 
@@ -132,7 +132,7 @@ module Cassandra
             let(:host_datacenter) { nil }
 
             it 'ignores unknown hosts' do
-              expect(policy.distance(host)).to be_ignore
+              expect(policy.distance(host)).to eq(:ignore)
             end
           end
         end
@@ -168,7 +168,7 @@ module Cassandra
           it 'prioritizes hosts first' do
             5.times do
               host = plan.next
-              expect(policy.distance(host)).to be_local
+              expect(policy.distance(host)).to eq(:local)
             end
           end
 
@@ -187,7 +187,7 @@ module Cassandra
                   let(:consistency) { :local_quorum }
 
                   it 'stops iteration' do
-                    expect { plan.next }.to raise_error(::StopIteration)
+                    expect(plan).to_not have_next
                   end
                 end
 
@@ -197,7 +197,7 @@ module Cassandra
                   it 'returns remote hosts last' do
                     5.times do
                       host = plan.next
-                      expect(policy.distance(host)).to be_remote
+                      expect(policy.distance(host)).to eq(:remote)
                     end
                   end
                 end
@@ -212,7 +212,7 @@ module Cassandra
                   it 'returns remote hosts' do
                     5.times do
                       host = plan.next
-                      expect(policy.distance(host)).to be_remote
+                      expect(policy.distance(host)).to eq(:remote)
                     end
                   end
                 end
@@ -223,7 +223,7 @@ module Cassandra
                   it 'returns remote hosts' do
                     5.times do
                       host = plan.next
-                      expect(policy.distance(host)).to be_remote
+                      expect(policy.distance(host)).to eq(:remote)
                     end
                   end
                 end
@@ -235,7 +235,7 @@ module Cassandra
                 end
 
                 it 'stops iteration' do
-                  expect { plan.next }.to raise_error(::StopIteration)
+                  expect(plan).to_not have_next
                 end
               end
             end
@@ -244,7 +244,7 @@ module Cassandra
               let(:max_remote_hosts_to_use) { 0 }
 
               it 'stops iteration' do
-                expect { plan.next }.to raise_error(::StopIteration)
+                expect(plan).to_not have_next
               end
             end
 
@@ -256,7 +256,7 @@ module Cassandra
                   plan.next
                 end
 
-                expect { plan.next }.to raise_error(::StopIteration)
+                expect(plan).to_not have_next
               end
             end
           end
