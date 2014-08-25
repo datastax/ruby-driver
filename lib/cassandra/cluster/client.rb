@@ -305,10 +305,6 @@ module Cassandra
             NO_CONNECTIONS
           end
         end
-      rescue ::StopIteration
-        @logger.info("Session stopped reconnecting to ip=#{host.ip}")
-        synchronize { @connecting_hosts.delete(host) }
-        NO_CONNECTIONS
       end
 
       def connect_to_host(host, distance)

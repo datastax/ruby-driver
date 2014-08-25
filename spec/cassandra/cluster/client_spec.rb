@@ -179,26 +179,6 @@ module Cassandra
             end.to change { io_reactor.connections.size }.by(2)
           end
 
-          it 'stops reconnection if schedule reaches end' do
-            reconnect_interval = 5
-            schedule = double('reconnection schedule')
-            reconnection_policy.stub(:schedule) { schedule }
-
-            expect(schedule).to receive(:next).exactly(3).times.and_return(reconnect_interval)
-            expect(schedule).to receive(:next).and_raise(::StopIteration)
-
-            client.host_up(host)
-
-            expect do
-              3.times { io_reactor.advance_time(reconnect_interval) }
-            end.to_not change { io_reactor.connections.size }
-
-            expect do
-              io_reactor.node_up(address)
-              io_reactor.advance_time(reconnect_interval)
-            end.to_not change { io_reactor.connections.size }
-          end
-
           it 'does not start a new reconnection loop when one is already in progress' do
             reconnect_interval = 4
             schedule = double('reconnection schedule', :next => reconnect_interval)
