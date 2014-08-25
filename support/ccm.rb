@@ -56,6 +56,12 @@ module CCM
   end
 
   class Cluster
+    def self.stop_existing_cluster(ccm)
+      if (ccm.exec('list') =~ /\*/) != nil
+        ccm.exec('stop')
+      end
+    end
+
     def self.exists?(cluster, ccm)
       ccm.exec('list').split("\n").map(&:strip).one? do |name|
         name == cluster || name == "*#{cluster}"
@@ -286,21 +292,13 @@ module CCM
 
   def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
     name = cassandra_cluster
-
     cluster = create_if_necessary(name, no_dc, no_nodes_per_dc)
-
-    # @prev_cluster = current_cluster
-    # if @prev_cluster == name
-    #   @prev_cluster = nil
-    # else
-    #   stop_cluster if @prev_cluster
-    #   switch_cluster(name)
-    # end
-
-    cluster
   end
 
   def create_if_necessary(name, no_dc, no_nodes_per_dc)
+    # stops any existing cluster so we can re-bind localhost
+    Cluster.stop_existing_cluster(ccm)
+
     if Cluster.exists?(name, ccm)
       switch_cluster(name) unless name == current_cluster
       cluster = Cluster.new(name, ccm)
