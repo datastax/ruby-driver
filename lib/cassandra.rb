@@ -39,10 +39,13 @@ module Cassandra
   #   discovered automatically once a connection to any hosts from the original
   #   list is successful
   #
-  # @option options [Integer] :port (9042) cassandra native protocol port.
+  # @option options [Integer] :port (9042) cassandra native protocol port
   #
-  # @option options [Hash{Symbol => String}] :credentials (none) hash with
-  #   `:username` and `:password` keys
+  # @option options [String] :username (none) username to use for
+  #   authentication to cassandra. Note that you must also specify `:password`
+  #
+  # @option options [String] :password (none) password to use for
+  #   authentication to cassandra. Note that you must also specify `:username`
   #
   # @option options [Symbol] :compression (none) compression to use. Must be
   #   either `:snappy` or `:lz4`. Also note, that in order for compression to
@@ -77,23 +80,27 @@ module Cassandra
   # @option options [Integer] :page_size (nil) default page size for all select
   #   queries
   #
-  # @option options [Cassandra::Auth::Provider] :auth_provider (none) auth
-  #   provider. Note that if you have specified `:credentials`, then a
+  # @option options [Hash{String => String}] :credentials (none) a hash of
+  #   credentials - to be used with credentials authentication in cassandra 1.2.
+  #   Note that if you specified `:username` and `:password` options, those
+  #   credentials are configured automatically
+  #
+  # @option options [Cassandra::Auth::Provider] :auth_provider (none) a custom
+  #   auth provider to be used with SASL authentication in cassandra 2.0. Note
+  #   that if you have specified `:username` and `:password`, then a
   #   {Cassandra::Auth::Providers::PlainText} will be used automatically
   #
-  # @option options [Cassandra::Compressor] :compressor (none) compressor. Note
-  #   that if you have specified `:compression`, an appropriate compressor will
-  #   automatically be provided
+  # @option options [Cassandra::Compressor] :compressor (none) a custom
+  #   compressor. Note that if you have specified `:compression`, an
+  #   appropriate compressor will be provided automatically
   #
   # @example Connecting to localhost
   #   cluster = Cassandra.connect
   #
   # @example Configuring {Cassandra::Cluster}
   #   cluster = Cassandra.connect(
-  #               credentials: {
-  #                 :username => username,
-  #                 :password => password
-  #               },
+  #               username: username,
+  #               password: password,
   #               hosts: ['10.0.1.1', '10.0.1.2', '10.0.1.3']
   #             )
   #
@@ -102,18 +109,37 @@ module Cassandra
     options.select! do |key, value|
       [ :credentials, :auth_provider, :compression, :hosts, :logger, :port,
         :load_balancing_policy, :reconnection_policy, :retry_policy, :listeners,
-        :consistency, :trace, :page_size, :compressor
+        :consistency, :trace, :page_size, :compressor, :username, :password
       ].include?(key)
+    end
+
+    has_username = options.has_key?(:username)
+    has_password = options.has_key?(:password)
+    if has_username || has_password
+      if has_username && !has_password
+        raise ::ArgumentError, "both :username and :password options must be specified, but only :username given"
+      end
+
+      if !has_username && has_password
+        raise ::ArgumentError, "both :username and :password options must be specified, but only :password given"
+      end
+
+      username = String(options.delete(:username))
+      password = String(options.delete(:password))
+
+      raise ::ArgumentError, ":username cannot be empty" if username.empty?
+      raise ::ArgumentError, ":password cannot be empty" if password.empty?
+
+      options[:credentials]   = {:username => username, :password => password}
+      options[:auth_provider] = Auth::Providers::PlainText.new(username, password)
     end
 
     if options.has_key?(:credentials)
       credentials = options[:credentials]
 
-      unless credentials.has_key?(:username) && credentials.has_key?(:password)
-        raise ::ArgumentError, ":credentials must be a hash with :username and :password, #{credentials.inspect} given"
+      unless credentials.is_a?(Hash)
+        raise ::ArgumentError, ":credentials must be a hash, #{credentials.inspect} given"
       end
-
-      options[:auth_provider] = Auth::Providers::PlainText.new(credentials[:username], credentials[:password])
     end
 
     if options.has_key?(:auth_provider)

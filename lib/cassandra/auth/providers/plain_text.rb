@@ -19,9 +19,9 @@ module Cassandra
     module Providers
       # Auth provider used for Cassandra's built in authentication.
       #
-      # @note No need to instantiate this class manually, use `:credentials`
-      #   option of {Cassandra.connect} method and one will be created
-      #   automatically for you.
+      # @note No need to instantiate this class manually, use `:username` and
+      #   `:password` options when calling {Cassandra.connect} and one will be
+      #   created automatically for you.
       class PlainText < Provider
         # Authenticator used for Cassandra's built in authentication,
         # see {Cassandra::Auth::Providers::PlainText}

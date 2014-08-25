@@ -11,10 +11,10 @@ Feature: Standard authentication
       require 'cassandra'
       
       begin
-        cluster = Cassandra.connect(credentials: {
-                      :username => ENV['USERNAME'],
-                      :password => ENV['PASSWORD']
-                    })
+        cluster = Cassandra.connect(
+                    username: ENV['USERNAME'],
+                    password: ENV['PASSWORD']
+                  )
         puts "authentication successful"
       rescue Cassandra::Errors::AuthenticationError => e
         puts "#{e.class.name}: #{e.message}"
