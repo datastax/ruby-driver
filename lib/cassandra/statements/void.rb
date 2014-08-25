@@ -16,9 +16,12 @@
 
 module Cassandra
   module Statements
+    # This statement is passed to {Cassandra::LoadBalancing::Policy#plan} when
+    # establishing connections and preparing statements
     class Void
       include Statement
 
+      # @return [nil] there is no cql for the void statement
       def cql
         nil
       end

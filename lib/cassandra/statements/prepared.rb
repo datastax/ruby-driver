@@ -19,8 +19,17 @@ module Cassandra
     class Prepared
       include Statement
 
-      attr_reader :cql, :params_metadata, :result_metadata, :execution_info
+      # @return [String] original cql used to prepare this statement
+      attr_reader :cql
+      # @return [Cassandra::Execution::Info] execution info for PREPARE request
+      attr_reader :execution_info
 
+      # @private
+      attr_reader :params_metadata
+      # @private
+      attr_reader :result_metadata
+
+      # @private
       def initialize(cql, params_metadata, result_metadata, execution_info)
         @cql             = cql
         @params_metadata = params_metadata
@@ -28,6 +37,11 @@ module Cassandra
         @execution_info  = execution_info
       end
 
+      # Creates a statement bound with specific arguments
+      # @param args [*Object] arguments to bind, must contain the same number
+      #   of parameters as the number of positional arguments (`?`) in the
+      #   original cql passed to {Cassandra::Session#prepare}
+      # @return [Cassandra::Statements::Bound] bound statement
       def bind(*args)
         raise ::ArgumentError, "expecting exactly #{@params_metadata.size} bind parameters, #{args.size} given" if args.size != @params_metadata.size
 

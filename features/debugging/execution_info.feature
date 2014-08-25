@@ -1,6 +1,6 @@
 Feature: Execution information
 
-  Every result contains useful execution information.
+  Every result contains [useful execution information](/api/execution/info/).
 
   Background:
     Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
