@@ -37,36 +37,32 @@ module Cassandra
   # @option options [Array<String, IPAddr>] :hosts (['127.0.0.1']) a list of
   #   initial addresses. Note that the entire cluster members will be
   #   discovered automatically once a connection to any hosts from the original
-  #   list is successful.
+  #   list is successful
+  #
+  # @option options [Integer] :port (9042) cassandra native protocol port.
   #
   # @option options [Hash{Symbol => String}] :credentials (none) hash with
   #   `:username` and `:password` keys
   #
-  # @option options [Cassandra::Auth::Provider] :auth_provider (none) auth provider.
-  #   Note that if you have specified `:credentials`, then a
-  #   {Cassandra::Auth::Providers::PlainText} will be used automatically
-  #
   # @option options [Symbol] :compression (none) compression to use. Must be
   #   either `:snappy` or `:lz4`. Also note, that in order for compression to
-  #   work, you must install 'snappy' or 'lz4-ruby' gems.
-  #
-  # @option options [Logger] :logger (none) logger. a {Logger} instance from the
-  #   standard library or any object responding to standard log methods
-  #   (`#debug`, `#info`, `#warn`, `#error` and `#fatal`)
-  #
-  # @option options [Integer] :port (9042) cassandra native protocol port.
+  #   work, you must install 'snappy' or 'lz4-ruby' gems
   #
   # @option options [Cassandra::LoadBalancing::Policy] :load_balancing_policy
   #   (Cassandra::LoadBalancing::Policies::RoundRobin) [a load balancing
-  #   policy](/features/load_balancing).
+  #   policy](/features/load_balancing)
   #
   # @option options [Cassandra::Reconnection::Policy] :reconnection_policy
-  #   (Cassandra::Reconnection::Policies::Exponential) a reconnection policy to use.
-  #   Note that default {Reconnection::Policies::Exponential} is configured
+  #   (Cassandra::Reconnection::Policies::Exponential) a reconnection policy to
+  #   use. Note that default {Reconnection::Policies::Exponential} is configured
   #   with `Reconnection::Policies::Exponential.new(0.5, 30, 2)`
   #
   # @option options [Cassandra::Retry::Policy] :retry_policy
   #   (Retry::Policies::Default) a retry policy
+  #
+  # @option options [Logger] :logger (none) logger. a {Logger} instance from the
+  #   standard library or any object responding to standard log methods
+  #   (`#debug`, `#info`, `#warn`, `#error` and `#fatal`)
   #
   # @option options [Enumerable<Cassandra::Listener>] :listeners (none)
   #   initial listeners. A list of initial cluster state listeners. Note that a
@@ -80,6 +76,14 @@ module Cassandra
   #
   # @option options [Integer] :page_size (nil) default page size for all select
   #   queries
+  #
+  # @option options [Cassandra::Auth::Provider] :auth_provider (none) auth
+  #   provider. Note that if you have specified `:credentials`, then a
+  #   {Cassandra::Auth::Providers::PlainText} will be used automatically
+  #
+  # @option options [Cassandra::Compressor] :compressor (none) compressor. Note
+  #   that if you have specified `:compression`, an appropriate compressor will
+  #   automatically be provided
   #
   # @example Connecting to localhost
   #   cluster = Cassandra.connect
@@ -98,7 +102,7 @@ module Cassandra
     options.select! do |key, value|
       [ :credentials, :auth_provider, :compression, :hosts, :logger, :port,
         :load_balancing_policy, :reconnection_policy, :retry_policy, :listeners,
-        :consistency, :trace, :page_size
+        :consistency, :trace, :page_size, :compressor
       ].include?(key)
     end
 
@@ -125,13 +129,22 @@ module Cassandra
 
       case compression
       when :snappy
-        require 'cassandra/compression/snappy_compressor'
-        options[:compressor] = Compression::SnappyCompressor.new
+        require 'cassandra/compression/compressors/snappy'
+        options[:compressor] = Compression::Compressors::Snappy.new
       when :lz4
-        require 'cassandra/compression/lz4_compressor'
-        options[:compressor] = Compression::Lz4Compressor.new
+        require 'cassandra/compression/compressors/lz4'
+        options[:compressor] = Compression::Compressors::Lz4.new
       else
         raise ::ArgumentError, ":compression must be either :snappy or :lz4, #{compression.inspect} given"
+      end
+    end
+
+    if options.has_key?(:compressor)
+      compressor = options[:compressor]
+      methods    = [:algorithm, :compress?, :compress, :decompress]
+
+      unless methods.all? {|method| compressor.respond_to?(method)}
+        raise ::ArgumentError, ":compressor #{compressor.inspect} must respond to #{methods.inspect}, but doesn't"
       end
     end
 

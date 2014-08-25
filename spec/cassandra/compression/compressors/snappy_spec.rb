@@ -15,21 +15,23 @@
 # limitations under the License.
 
 require 'spec_helper'
-require 'cassandra/compression/compression_common'
+require 'cassandra/compression/common'
 
 
 module Cassandra
   module Compression
-    begin
-      require 'cassandra/compression/snappy_compressor'
+    module Compressors
+      begin
+        require 'cassandra/compression/compressors/snappy'
     
-      describe SnappyCompressor do
-        include_examples 'compressor', 'snappy', "\x19\x10helloN\x05\x00"
-      end
-    rescue LoadError => e
-      describe 'SnappyCompressor' do
-        it 'supports Snappy' do
-          pending e.message
+        describe Snappy do
+          include_examples 'compressor', 'snappy', "\x19\x10helloN\x05\x00"
+        end
+      rescue LoadError => e
+        describe 'Snappy' do
+          it 'supports Snappy' do
+            pending e.message
+          end
         end
       end
     end

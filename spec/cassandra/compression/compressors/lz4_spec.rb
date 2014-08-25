@@ -15,21 +15,23 @@
 # limitations under the License.
 
 require 'spec_helper'
-require 'cassandra/compression/compression_common'
+require 'cassandra/compression/common'
 
 
 module Cassandra
   module Compression
-    begin
-      require 'cassandra/compression/lz4_compressor'
+    module Compressors
+      begin
+        require 'cassandra/compression/compressors/lz4'
 
-      describe Lz4Compressor do
-        include_examples 'compressor', 'lz4', "\x00\x00\x01\xF4[hello\x05\x00Phello"
-      end
-    rescue LoadError => e
-      describe 'Lz4Compressor' do
-        it 'supports LZ4' do
-          pending e.message
+        describe Lz4 do
+          include_examples 'compressor', 'lz4', "\x00\x00\x01\xF4[hello\x05\x00Phello"
+        end
+      rescue LoadError => e
+        describe 'Lz4' do
+          it 'supports LZ4' do
+            pending e.message
+          end
         end
       end
     end

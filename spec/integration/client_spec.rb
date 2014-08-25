@@ -287,8 +287,8 @@ describe 'A CQL client', :integration do
 
   context 'with Snappy compression' do
     begin
-      require 'cassandra/compression/snappy_compressor'
-      include_examples 'with_compressor', Cassandra::Compression::SnappyCompressor
+      require 'cassandra/compression/compressors/snappy'
+      include_examples 'with_compressor', Cassandra::Compression::Compressors::Snappy
     rescue LoadError
       include_examples 'no_compressor'
     end
@@ -296,8 +296,8 @@ describe 'A CQL client', :integration do
 
   context 'with LZ4 compression', :unless => cassandra_version.start_with?('1.2') do
     begin
-      require 'cassandra/compression/lz4_compressor'
-      include_examples 'with_compressor', Cassandra::Compression::Lz4Compressor
+      require 'cassandra/compression/compressors/lz4'
+      include_examples 'with_compressor', Cassandra::Compression::Compressors::Lz4
     rescue LoadError
       include_examples 'no_compressor'
     end

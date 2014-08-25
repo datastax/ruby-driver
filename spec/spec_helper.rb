@@ -49,5 +49,5 @@ unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
 end
 
 require 'cassandra'
-require 'cassandra/compression/snappy_compressor'
-require 'cassandra/compression/lz4_compressor'
+require 'cassandra/compression/compressors/snappy'
+require 'cassandra/compression/compressors/lz4'

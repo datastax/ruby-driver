@@ -549,7 +549,7 @@ describe 'Protocol parsing and communication', :integration do
 
       context 'with compression' do
         let :compressor do
-          Cassandra::Compression::SnappyCompressor.new(0)
+          Cassandra::Compression::Compressors::Snappy.new(0)
         end
 
         let :protocol_handler_factory do

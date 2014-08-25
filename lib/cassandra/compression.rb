@@ -15,14 +15,10 @@
 # limitations under the License.
 
 module Cassandra
-  # @private
   module Compression
-    CompressionError = Class.new(Error)
-
-    # @note Compressors given to {Cassandra::Client.connect} as the `:compressor`
-    #   option don't need to be subclasses of this class, but need to
-    #   implement the same methods. This class exists only for documentation
-    #   purposes.
+    # @note Compressors given to {Cassandra.connect} as the `:compressor`
+    #   option don't need to be subclasses of this class, but need to implement
+    #   the same methods. This class exists only for documentation purposes.
     class Compressor
       # @!method algorithm
       #
