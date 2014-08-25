@@ -45,13 +45,13 @@ module Cassandra
           return @connected_future if @state == :connecting || @state == :connected
 
           @state = :connecting
+          @connecting_hosts.merge(@registry.hosts)
         end
 
         @connected_future = begin
           @registry.add_listener(self)
 
-          futures = @registry.hosts.map do |host|
-            @connecting_hosts << host
+          futures = @connecting_hosts.map do |host|
             f = connect_to_host_maybe_retry(host, @load_balancing_policy.distance(host))
             f.recover do |error|
               Cassandra::Client::FailedConnection.new(error, host)
