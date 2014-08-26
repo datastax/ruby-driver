@@ -3,7 +3,7 @@ if ENV.include?('TRAVIS')
   SimpleCov.formatter = Coveralls::SimpleCov::Formatter
 end
 
-SimpleCov.start do
+SimpleCov.configure do
   load_profile 'root_filter'
 
   add_group 'Source', 'lib'
