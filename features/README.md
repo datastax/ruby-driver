@@ -9,7 +9,7 @@ require 'cassandra'
 
 cluster = Cassandra.connect
 
-cluster.hosts.each do |host|
+cluster.each_hosts do |host|
   puts "Host #{host.ip}: id=#{host.id} datacenter=#{host.datacenter} rack=#{host.rack}"
 end
 ```
