@@ -17,7 +17,9 @@
 module Cassandra
   module Reconnection
     module Policies
-      class Exponential
+      # A reconnection policy that returns a constant exponentially growing
+      # reconnection interval up to a given maximum
+      class Exponential < Policy
         # @private
         class Schedule
           def initialize(start, max, exponent)
@@ -43,14 +45,29 @@ module Cassandra
           end
         end
 
-        include Policy
-
+        # @param start    [Numeric] beginning interval
+        # @param max      [Numeric] maximum reconnection interval
+        # @param exponent [Numeric] (2) interval exponent to use
+        #
+        # @example Using this policy
+        #   policy   = Cassandra::Reconnection::Policies::Exponential.new(0.5, 10, 2)
+        #   schedule = policy.schedule
+        #   schedule.next # 0.5
+        #   schedule.next # 1.0
+        #   schedule.next # 2.0
+        #   schedule.next # 4.0
+        #   schedule.next # 8.0
+        #   schedule.next # 10.0
+        #   schedule.next # 10.0
+        #   schedule.next # 10.0
         def initialize(start, max, exponent = 2)
           @start    = start
           @max      = max
           @exponent = exponent
         end
 
+        # @return [Cassandra::Reconnection::Schedule] an exponential
+        #   reconnection schedule
         def schedule
           Schedule.new(@start, @max, @exponent)
         end
