@@ -375,7 +375,7 @@ There's a known issue with collections that get too big. The protocol uses a sho
 
 ## Authentication doesn't work
 
-Please open an issue. It should be working, but it's hard to set up and write automated tests for, so there may be edge cases that aren't covered. If you're using Cassandra 2.0 or DataStax Enterprise 3.1 or higher and/or are using something other than the built in `PasswordAuthenticator` your setup is theoretically supported, but it's not field tested.
+If you're using Cassandra 2.0 or DataStax Enterprise 3.1 or higher and/or are using something other than the built in [`Password` authenticator](/api/auth/providers/password/) your setup is theoretically supported, but it's not field tested.
 
 If you are using DataStax Enterprise earlier than 3.1 authentication is unfortunately not supported. Please open an issue and we might be able to get it working, I just need someone who's willing to test it out. DataStax backported the authentication from Cassandra 2.0 into DSE 3.0, even though it only uses Cassandra 1.2. The authentication logic might not be able to handle this and will try to authenticate with DSE using an earlier version of the protocol. In short, DSE before 3.1 uses a non-standard protocol, but it should be possible to get it working. DSE 3.1 and 4.0 have been confirmed to work.
 
