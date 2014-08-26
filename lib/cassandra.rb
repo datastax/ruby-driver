@@ -124,7 +124,7 @@ module Cassandra
       raise ::ArgumentError, ":password cannot be empty" if password.empty?
 
       options[:credentials]   = {:username => username, :password => password}
-      options[:auth_provider] = Auth::Providers::PlainText.new(username, password)
+      options[:auth_provider] = Auth::Providers::Password.new(username, password)
     end
 
     if options.has_key?(:credentials)

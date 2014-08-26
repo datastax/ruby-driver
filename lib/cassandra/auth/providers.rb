@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'cassandra/auth/providers/plain_text'
+require 'cassandra/auth/providers/password'

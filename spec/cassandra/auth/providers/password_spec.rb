@@ -20,7 +20,7 @@ require 'spec_helper'
 module Cassandra
   module Auth
     module Providers
-      describe PlainText do
+      describe Password do
         let :auth_provider do
           described_class.new('foo', 'bar')
         end
@@ -30,7 +30,7 @@ module Cassandra
         end
 
         describe '#create_authenticator' do
-          it 'creates a PlainTextAuthenticator' do
+          it 'creates a PasswordAuthenticator' do
             authenticator = auth_provider.create_authenticator(standard_authentication_class)
             authenticator.initial_response.should == "\x00foo\x00bar"
           end
@@ -42,7 +42,7 @@ module Cassandra
         end
       end
 
-      describe PlainText::Authenticator do
+      describe Password::Authenticator do
         describe '#initial_response' do
           it 'encodes the username and password' do
             response = described_class.new('user', 'pass').initial_response

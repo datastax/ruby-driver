@@ -22,9 +22,9 @@ module Cassandra
       # @note No need to instantiate this class manually, use `:username` and
       #   `:password` options when calling {Cassandra.connect} and one will be
       #   created automatically for you.
-      class PlainText < Provider
+      class Password < Provider
         # Authenticator used for Cassandra's built in authentication,
-        # see {Cassandra::Auth::Providers::PlainText}
+        # see {Cassandra::Auth::Providers::Password}
         # @private
         class Authenticator
           # @private
@@ -51,7 +51,7 @@ module Cassandra
           @password = password
         end
 
-        # Returns a PlainText Authenticator only if `org.apache.cassandra.auth.PasswordAuthenticator` is given.
+        # Returns a Password Authenticator only if `org.apache.cassandra.auth.PasswordAuthenticator` is given.
         # @param authentication_class [String] must equal to `org.apache.cassandra.auth.PasswordAuthenticator`
         # @return [Cassandra::Auth::Authenticator] when `authentication_class == "org.apache.cassandra.auth.PasswordAuthenticator"`
         # @return [nil] for all other values of `authentication_class`
