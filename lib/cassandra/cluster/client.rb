@@ -610,15 +610,17 @@ module Cassandra
 
         return pending_switch || Ione::Future.resolved if pending_keyspace == keyspace
 
-        f = connection.send_request(Protocol::QueryRequest.new("USE #{keyspace}", nil, nil, :one), timeout).map do |r|
+        request = Protocol::QueryRequest.new("USE #{keyspace}", nil, nil, :one)
+
+        f = connection.send_request(request, timeout).map do |r|
           case r
           when Protocol::SetKeyspaceResultResponse
             @keyspace = r.keyspace
             nil
           when Protocol::DetailedErrorResponse
-            raise Errors::QueryError.new(r.code, r.message, cql, r.details)
+            raise Errors::QueryError.new(r.code, r.message, request.cql, r.details)
           when Protocol::ErrorResponse
-            raise Errors::QueryError.new(r.code, r.message, cql, nil)
+            raise Errors::QueryError.new(r.code, r.message, request.cql, nil)
           else
             raise "unexpected response #{r.inspect}"
           end
