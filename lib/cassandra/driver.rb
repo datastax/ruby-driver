@@ -49,10 +49,10 @@ module Cassandra
     let(:compressor)            { nil }
     let(:credentials)           { nil }
     let(:auth_provider)         { nil }
-    let(:load_balancing_policy) { LoadBalancing::Policies::RoundRobin.new  }
+    let(:load_balancing_policy) { LoadBalancing::Policies::RoundRobin.new }
     let(:reconnection_policy)   { Reconnection::Policies::Exponential.new(0.5, 30, 2) }
     let(:retry_policy)          { Retry::Policies::Default.new }
-    let(:consistency)           { :one }
+    let(:consistency)           { :quorum }
     let(:trace)                 { false }
     let(:page_size)             { nil }
 

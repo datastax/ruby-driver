@@ -71,8 +71,8 @@ module Cassandra
   #   initial listeners. A list of initial cluster state listeners. Note that a
   #   load_balancing policy is automatically registered with the cluster.
   #
-  # @option options [Symbol] :consistency (:one) default consistency to use for
-  #   all requests. Must be one of {Cassandra::CONSISTENCIES}
+  # @option options [Symbol] :consistency (:quorum) default consistency to use
+  #   for all requests. Must be one of {Cassandra::CONSISTENCIES}
   #
   # @option options [Boolean] :trace (false) whether or not to trace all
   #   requests by default
