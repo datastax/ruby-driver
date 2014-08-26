@@ -35,7 +35,7 @@ module Cassandra
   # Creates a {Cassandra::Cluster} instance
   #
   # @option options [Array<String, IPAddr>] :hosts (['127.0.0.1']) a list of
-  #   initial addresses. Note that the entire cluster members will be
+  #   initial addresses. Note that the entire list of cluster members will be
   #   discovered automatically once a connection to any hosts from the original
   #   list is successful
   #
@@ -79,15 +79,9 @@ module Cassandra
   # @option options [Integer] :page_size (nil) default page size for all select
   #   queries
   #
-  # @option options [Hash{String => String}] :credentials (none) a hash of
-  #   credentials - to be used with credentials authentication in cassandra 1.2.
-  #   Note that if you specified `:username` and `:password` options, those
-  #   credentials are configured automatically
+  # @option options [Hash{String => String}] :credentials (none) a hash of credentials - to be used with [credentials authentication in cassandra 1.2](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L238-L250). Note that if you specified `:username` and `:password` options, those credentials are configured automatically
   #
-  # @option options [Cassandra::Auth::Provider] :auth_provider (none) a custom
-  #   auth provider to be used with SASL authentication in cassandra 2.0. Note
-  #   that if you have specified `:username` and `:password`, then a
-  #   {Cassandra::Auth::Providers::PlainText} will be used automatically
+  # @option options [Cassandra::Auth::Provider] :auth_provider (none) a custom auth provider to be used with [SASL authentication in cassandra 2.0](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L257-L273). Note that if you have specified `:username` and `:password`, then a {Cassandra::Auth::Providers::Password} will be used automatically
   #
   # @option options [Cassandra::Compressor] :compressor (none) a custom
   #   compressor. Note that if you have specified `:compression`, an
