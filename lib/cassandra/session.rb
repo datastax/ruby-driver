@@ -32,8 +32,8 @@ module Cassandra
     # @param args [*Object] arguments to paramterized query or prepared
     #   statement
     #
-    # @option options [Symbol] :consistency (:one) consistency level for the
-    #   request, one of {Cassandra::CONSISTENCIES}
+    # @option options [Symbol] :consistency consistency level for the request.
+    #   Must be one of {Cassandra::CONSISTENCIES}
     # @option options [Integer] :page_size (50000) size of results page, you
     #   can page through results using {Cassandra::Result#next_page} or
     #   {Cassandra::Result#next_page_async}

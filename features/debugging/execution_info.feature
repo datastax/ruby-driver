@@ -15,7 +15,7 @@ Feature: Execution information
       at_exit { cluster.close }
 
       session   = cluster.connect("simplex")
-      execution = session.execute("SELECT * FROM songs").execution_info
+      execution = session.execute("SELECT * FROM songs", consistency: :one).execution_info
 
       puts "coordinator: #{execution.hosts.last.ip}"
       puts "keyspace: #{execution.keyspace}"

@@ -50,7 +50,7 @@ Feature: Datacenter-aware Round Robin Policy
 
       datacenter = "dc2"
       policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
-      cluster    = Cassandra.connect(load_balancing_policy: policy)
+      cluster    = Cassandra.connect(consistency: :one, load_balancing_policy: policy)
       session    = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
@@ -77,7 +77,7 @@ Feature: Datacenter-aware Round Robin Policy
       datacenter     = "dc2"
       remotes_to_try = 1
       policy         = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, remotes_to_try)
-      cluster        = Cassandra.connect(load_balancing_policy: policy)
+      cluster        = Cassandra.connect(consistency: :one, load_balancing_policy: policy)
       session        = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
@@ -102,7 +102,7 @@ Feature: Datacenter-aware Round Robin Policy
 
       datacenter = "dc2"
       policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
-      cluster    = Cassandra.connect(load_balancing_policy: policy)
+      cluster    = Cassandra.connect(consistency: :one, load_balancing_policy: policy)
       session    = cluster.connect('simplex')
 
       session.execute("SELECT * FROM songs", :consistency => :local_one)
@@ -123,7 +123,7 @@ Feature: Datacenter-aware Round Robin Policy
       datacenter = "dc2"
       use_remote = true
       policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, nil, use_remote)
-      cluster    = Cassandra.connect(load_balancing_policy: policy)
+      cluster    = Cassandra.connect(consistency: :one, load_balancing_policy: policy)
       session    = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
