@@ -43,9 +43,9 @@ module Cassandra
       #
       # @param authentication_class [String] the authentication class used by
       #   the server.
-      # @return [Cassandra::Client::Authenticator, nil] an object with an interface
-      #   matching {Cassandra::Client::Authenticator} or nil if the authentication
-      #   class is not supported.
+      # @return [Cassandra::Auth::Authenticator, nil] an object with an
+      #   interface matching {Cassandra::Auth::Authenticator} or nil if the
+      #   authentication class is not supported.
     end
 
     # An authenticator handles the authentication challenge/response cycles of
