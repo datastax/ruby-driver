@@ -15,6 +15,12 @@
 # limitations under the License.
 
 module Cassandra
+  # Cluster represents a cassandra cluster. It serves as a {Cassandra::Session}
+  # factory and a collection of metadata.
+  #
+  # @see Cassandra::Cluster#connect Creating a new session
+  # @see Cassandra::Cluster#each_host Getting all peers in the cluster
+  # @see Cassandra::Cluster#each_keyspace Getting all existing keyspaces
   class Cluster
     extend Forwardable
 
@@ -73,14 +79,27 @@ module Cassandra
       @connector             = connector
     end
 
+    # Register a cluster state listener. State listeners receive notifications
+    # about topology and schema changes
+    #
+    # @param listener [Cassandra::Listener] cluster state listener
+    # @return [self]
     def register(listener)
       @registry.add_listener(listener)
       @schema.add_listener(listener)
       self
     end
 
+    # Asynchronously create a new session, optionally scoped to a keyspace
+    #
+    # @param keyspace [String] optional keyspace to scope session to
+    #
+    # @return [Cassandra::Future<Cassandra::Session>] a future new session that
+    #   can prepare and execute statements
     def connect_async(keyspace = nil)
-      raise ::ArgumentError, "keyspace must be a string, #{keyspace.inspect} given" if !keyspace.nil? && !keyspace.is_a?(::String)
+      if !keyspace.nil? && !keyspace.is_a?(::String)
+        return Future::Error.new(::ArgumentError.new("keyspace must be a string, #{keyspace.inspect} given"))
+      end
 
       client  = Client.new(@logger, @registry, @io_reactor, @connector, @load_balancing_policy, @reconnection_policy, @retry_policy, @connection_options)
       session = Session.new(client, @execution_options)
@@ -104,10 +123,22 @@ module Cassandra
       promise.future
     end
 
+    # Synchronously create a new session, optionally scoped to a keyspace
+    #
+    # @param keyspace [String] optional keyspace to scope session to
+    # @raise  [ArgumentError] if keyspace is not a String
+    # @return [Cassandra::Session] a new session that can prepare and execute
+    #   statements
+    #
+    # @see Cassandra::Cluster#connect_async
     def connect(keyspace = nil)
       connect_async(keyspace).get
     end
 
+    # Asynchronously closes all sessions managed by this cluster
+    #
+    # @return [Cassandra::Future<Cassandra::Cluster>] a future that resolves to
+    #   self once closed
     def close_async
       promise = Promise.new
 
@@ -122,10 +153,16 @@ module Cassandra
       promise.future
     end
 
+    # Synchronously closes all sessions managed by this cluster
+    #
+    # @return [self] this cluster
+    #
+    # @see Cassandra::Cluster#close_async
     def close
       close_async.get
     end
 
+    # @return [String] a CLI-friendly cluster representation
     def inspect
       "#<#{self.class.name}:0x#{self.object_id.to_s(16)}>"
     end

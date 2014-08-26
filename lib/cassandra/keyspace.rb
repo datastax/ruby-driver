@@ -15,7 +15,9 @@
 # limitations under the License.
 
 module Cassandra
+  # Represents a cassandra keyspace
   class Keyspace
+    # @private
     class Replication
       attr_reader :klass, :options
 
@@ -36,8 +38,12 @@ module Cassandra
       alias :== :eql?
     end
 
-    attr_reader :name, :replication
+    # @return [String] this keyspace name
+    attr_reader :name
+    # @private
+    attr_reader :replication
 
+    # @private
     def initialize(name, durable_writes, replication, tables)
       @name           = name
       @durable_writes = durable_writes
@@ -45,27 +51,40 @@ module Cassandra
       @tables         = tables
     end
 
+    # @return [Boolean] whether durables writes are enabled for this keyspace
     def durable_writes?
       @durable_writes
     end
 
+    # @return [Boolean] whether this keyspace has a table with the given name
+    # @param name [String] table name
     def has_table?(name)
       @tables.has_key?(name)
     end
 
+    # @return [Cassandra::Table, nil] a table or nil
+    # @param name [String] table name
     def table(name)
       @tables[name]
     end
 
+    # Yield or enumerate each table defined in this keyspace
+    # @overload each_table
+    #   @yieldparam table [Cassandra::Table] current table
+    #   @return [Array<Cassandra::Table>] a list of tables
+    # @overload each_table
+    #   @return [Enumerator<Cassandra::Table>] an enumerator
     def each_table(&block)
       @tables.values.each(&block)
     end
     alias :tables :each_table
 
+    # @return [String] a cql representation of this table
     def to_cql
       "CREATE KEYSPACE #{@name} WITH REPLICATION = #{@replication.to_cql} AND DURABLE_WRITES = #{@durable_writes};"
     end
 
+    # @return [Boolean] whether this keyspace is equal to the other
     def eql?(other)
       other.is_a?(Keyspace) &&
         @name == other.name &&
@@ -80,11 +99,13 @@ module Cassandra
       Keyspace.new(@name, @durable_writes, @replication, @tables.merge(table.name => table))
     end
 
+    # @private
     attr_reader :durable_writes
     protected :durable_writes
 
     protected
 
+    # @private
     def raw_tables
       @tables
     end

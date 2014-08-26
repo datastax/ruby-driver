@@ -83,6 +83,11 @@ module Cassandra
       # @return [Symbol] one of `:logged`, `:unlogged` or `:counter`
       def type
       end
+
+      # @return [String] a CLI-friendly batch statement representation
+      def inspect
+        "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @type=#{type.inspect}>"
+      end
     end
   end
 end

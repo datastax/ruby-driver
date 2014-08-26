@@ -16,11 +16,18 @@
 
 module Cassandra
   module Statements
+    # a Bound statement is created using {Cassandra::Statements::Prepared#bind}
     class Bound
       include Statement
 
-      attr_reader :cql, :params_metadata, :result_metadata, :params
+      # @return [String] original cql used to prepare this statement
+      attr_reader :cql
+      # @return [Array<Object>] a list of positional parameters for the cql
+      attr_reader :params
+      # @private
+      attr_reader :params_metadata, :result_metadata
 
+      # @private
       def initialize(cql, params_metadata, result_metadata, params)
         @cql             = cql
         @params_metadata = params_metadata
@@ -28,6 +35,7 @@ module Cassandra
         @params          = params
       end
 
+      # @return [String] a CLI-friendly bound statement representation
       def inspect
         "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @cql=#{@cql.inspect} @params=#{@params}>"
       end

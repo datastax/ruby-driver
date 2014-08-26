@@ -15,18 +15,37 @@
 # limitations under the License.
 
 module Cassandra
+  # Represents a cassandra column
   class Column
+    # @private
     class Index
-      attr_reader :name, :custom_class_name
+      # @return [String] index name
+      attr_reader :name
+      # @return [String] custom index class name
+      attr_reader :custom_class_name
 
+      # @private
       def initialize(name, custom_class_name = nil)
         @name              = name
         @custom_class_name = custom_class_name
       end
     end
 
-    attr_reader :name, :type, :order, :index, :static
+    # @return [String] column name
+    attr_reader :name
+    # @private
+    # @return [Symbol, Array(Symbol, Symbol)] column type
+    attr_reader :type
+    # @return [Symbol] column order (`:asc` or `:desc`)
+    attr_reader :order
+    # @private
+    # @return [Cassandra::Column::Index, nil] column index
+    attr_reader :index
+    # @private
+    # @return [Boolean] whether the column is static
+    attr_reader :static
 
+    # @private
     def initialize(name, type, order, index = nil, is_static = false)
       @name     = name
       @type     = type
@@ -35,10 +54,12 @@ module Cassandra
       @static   = is_static
     end
 
+    # @return [Boolean] whether the column is static
     def static?
       @static
     end
 
+    # @return [String] a cql representation of this column
     def to_cql
       type = case @type
       when Array
@@ -53,6 +74,7 @@ module Cassandra
       cql
     end
 
+    # @return [Boolean] whether this column is equal to the other
     def eql?(other)
       other.is_a?(Column) &&
         @name == other.name &&

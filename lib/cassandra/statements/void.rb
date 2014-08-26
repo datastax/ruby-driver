@@ -21,6 +21,7 @@ module Cassandra
     class Void
       include Statement
 
+      # Returns nothing
       # @return [nil] there is no cql for the void statement
       def cql
         nil

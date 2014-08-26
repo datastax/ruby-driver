@@ -37,8 +37,7 @@ module Cassandra
     # @option options [Integer] :page_size size of results page. You can page
     #   through results using {Cassandra::Result#next_page} or
     #   {Cassandra::Result#next_page_async}
-    # @option options [Boolean] :trace (false) whether to enable request
-    #   tracing
+    # @option options [Boolean] :trace (false) whether to enable request tracing
     # @option options [Numeric] :timeout (nil) if specified, it is a number of
     #   seconds after which to time out the request if it hasn't completed
     # @option options [Symbol] :serial_consistency (nil) this option is only
@@ -84,6 +83,17 @@ module Cassandra
       execute_async(*args).get
     end
 
+    # Prepares a given statement and returns a future prepared statement
+    #
+    # @param statement [String, Cassandra::Statements::Simple] a statement to
+    #   prepare
+    #
+    # @option options [Boolean] :trace (false) whether to enable request tracing
+    # @option options [Numeric] :timeout (nil) if specified, it is a number of
+    #   seconds after which to time out the request if it hasn't completed
+    #
+    # @return [Cassandra::Future<Cassandra::Statements::Prepared>] future
+    #   prepared statement
     def prepare_async(statement, options = nil)
       if options.is_a?(::Hash)
         options = @options.override(options)
@@ -101,12 +111,19 @@ module Cassandra
       end
     end
 
+    # A blocking wrapper around {Cassandra::Session#prepare_async}
+    # @see Cassandra::Session#prepare_async
+    # @see Cassandra::Future#get
+    #
+    # @return [Cassandra::Statements::Prepared] prepared statement
+    # @raise [Cassandra::Errors::NoHostsAvailable] if none of the hosts can be reached
+    # @raise [Cassandra::Errors::QueryError] if Cassandra returns an error response
     def prepare(*args)
       prepare_async(*args).get
     end
 
-    # Returns a new {Statements::Batch} instance and optionally yields it to a
-    # given block
+    # Returns a logged {Statements::Batch} instance and optionally yields it to
+    # a given block
     # @yieldparam batch [Statements::Batch] a logged batch
     # @return [Statements::Batch] a logged batch
     def logged_batch(&block)
@@ -116,18 +133,30 @@ module Cassandra
     end
     alias :batch :logged_batch
 
+    # Returns a unlogged {Statements::Batch} instance and optionally yields it
+    # to a given block
+    # @yieldparam batch [Statements::Batch] an unlogged batch
+    # @return [Statements::Batch] an unlogged batch
     def unlogged_batch
       statement = Statements::Batch::Unlogged.new
       yield(statement) if block_given?
       statement
     end
 
+    # Returns a counter {Statements::Batch} instance and optionally yields it
+    # to a given block
+    # @yieldparam batch [Statements::Batch] a counter batch
+    # @return [Statements::Batch] a counter batch
     def counter_batch
       statement = Statements::Batch::Counter.new
       yield(statement) if block_given?
       statement
     end
 
+    # Asynchronously closes current session
+    #
+    # @return [Cassandra::Future<Cassandra::Session>] a future that resolves to
+    #   self once closed
     def close_async
       promise = Promise.new
 
@@ -142,10 +171,16 @@ module Cassandra
       promise.future
     end
 
+    # Synchronously closes current session
+    #
+    # @return [self] this session
+    #
+    # @see Cassandra::Session#close_async
     def close
       close_async.get
     end
 
+    # @return [String] a CLI-friendly session representation
     def inspect
       "#<#{self.class.name}:0x#{self.object_id.to_s(16)}>"
     end

@@ -48,6 +48,7 @@ module Cassandra
         Bound.new(@cql, @params_metadata, @result_metadata, args)
       end
 
+      # @return [String] a CLI-friendly prepared statement representation
       def inspect
         "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @cql=#{@cql.inspect}>"
       end

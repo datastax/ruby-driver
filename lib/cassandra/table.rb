@@ -15,7 +15,9 @@
 # limitations under the License.
 
 module Cassandra
+  # Represents a cassandra table
   class Table
+    # @private
     class Options
       attr_reader :comment, :read_repair_chance, :local_read_repair_chance,
                   :gc_grace_seconds, :caching, :bloom_filter_fp_chance,
@@ -101,6 +103,7 @@ module Cassandra
       protected :cassandra_version
     end
 
+    # @private
     class Compaction
       attr_reader :klass, :options
 
@@ -121,8 +124,14 @@ module Cassandra
       alias :== :eql?
     end
 
-    attr_reader :keyspace, :name, :options
+    # @private
+    attr_reader :keyspace
+    # @return [String] table name
+    attr_reader :name
+    # @private
+    attr_reader :options
 
+    # @private
     def initialize(keyspace, name, partition_key, clustering_columns, columns, options, clustering_order)
       @keyspace           = keyspace
       @name               = name
@@ -133,19 +142,30 @@ module Cassandra
       @clustering_order   = clustering_order
     end
 
+    # @param name [String] column name
+    # @return [Boolean] whether this table has a given column
     def has_column?(name)
       @columns.has_key?(name)
     end
 
+    # @param name [String] column name
+    # @return [Cassandra::Column, nil] a column or nil
     def column(name)
       @columns[name]
     end
 
+    # Yield or enumerate each column defined in this table
+    # @overload each_column
+    #   @yieldparam column [Cassandra::Column] current column
+    #   @return [Array<Cassandra::Column>] a list of columns
+    # @overload each_column
+    #   @return [Enumerator<Cassandra::Column>] an enumerator
     def each_column(&block)
       @columns.values.each(&block)
     end
     alias :columns :each_column
 
+    # @return [String] a cql representation of this table
     def to_cql
       cql  = "CREATE TABLE #{@keyspace}.#{@name} (\n"
       cql << @columns.map do |(_, column)|
@@ -178,6 +198,7 @@ module Cassandra
       cql << ';'
     end
 
+    # @return [Boolean] whether this table is equal to the other
     def eql?(other)
       other.is_a?(Table) &&
         @keyspace == other.keyspace &&
@@ -190,11 +211,13 @@ module Cassandra
     end
     alias :== :eql?
 
+    # @private
     attr_reader :partition_key, :clustering_columns, :clustering_order
     protected :partition_key, :clustering_columns, :clustering_order
 
     protected
 
+    # @private
     def raw_columns
       @columns
     end
