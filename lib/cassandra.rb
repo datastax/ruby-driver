@@ -52,16 +52,15 @@ module Cassandra
   #   work, you must install 'snappy' or 'lz4-ruby' gems
   #
   # @option options [Cassandra::LoadBalancing::Policy] :load_balancing_policy
-  #   (Cassandra::LoadBalancing::Policies::RoundRobin) [a load balancing
-  #   policy](/features/load_balancing)
+  #   default: {Cassandra::LoadBalancing::Policies::RoundRobin}
   #
   # @option options [Cassandra::Reconnection::Policy] :reconnection_policy
-  #   (Cassandra::Reconnection::Policies::Exponential) a reconnection policy to
-  #   use. Note that default {Reconnection::Policies::Exponential} is configured
-  #   with `Reconnection::Policies::Exponential.new(0.5, 30, 2)`
+  #   default: {Cassandra::Reconnection::Policies::Exponential}. Note that the
+  #   default policy is configured with
+  #   `Reconnection::Policies::Exponential.new(0.5, 30, 2)`
   #
-  # @option options [Cassandra::Retry::Policy] :retry_policy
-  #   (Retry::Policies::Default) a retry policy
+  # @option options [Cassandra::Retry::Policy] :retry_policy default:
+  #   {Cassandra::Retry::Policies::Default}
   #
   # @option options [Logger] :logger (none) logger. a {Logger} instance from the
   #   standard library or any object responding to standard log methods
