@@ -16,6 +16,8 @@
 
 module Cassandra
   module LoadBalancing
+    # A list of possible load balancing distances that
+    # {Cassandra::LoadBalancing::Policy#distance} must return
     DISTANCES = [:ignore, :local, :remote].freeze
 
     # @note Actual load balancing policies don't need to extend this class,
@@ -47,7 +49,7 @@ module Cassandra
       #
       # @abstract implementation should be provided by an actual policy
       # @param host [Cassandra::Host] a host instance
-      # @return [Symbol] distance to host, one of
+      # @return [Symbol] distance to host. Must be one of
       #   {Cassandra::LoadBalancing::DISTANCES}
       def distance(host)
         :ignore
