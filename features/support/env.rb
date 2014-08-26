@@ -7,6 +7,10 @@ require 'bundler/setup'
 unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
   require 'coveralls'
   require 'simplecov'
+
+  SimpleCov.start do
+    command_name 'Cucumber'
+  end
 end
 
 require 'aruba/cucumber'
