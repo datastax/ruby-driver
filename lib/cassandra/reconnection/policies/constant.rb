@@ -17,7 +17,8 @@
 module Cassandra
   module Reconnection
     module Policies
-      class Constant
+      # A reconnection policy that returns a constant reconnection interval
+      class Constant < Policy
         # @private
         class Schedule
           def initialize(interval)
@@ -29,13 +30,13 @@ module Cassandra
           end
         end
 
-        include Policy
-
+        # @param interval [Numeric] reconnection interval (in seconds)
         def initialize(interval)
-          @schedule = Schedule.new(interval)
+          @schedule = Schedule.new(Float(interval))
         end
 
-        # @return [Cassandra::Reconnection::Schedule]
+        # @return [Cassandra::Reconnection::Schedule] reconnection schedule
+        #   with constant interval
         def schedule
           @schedule
         end

@@ -36,45 +36,43 @@ module Cassandra
   # Creates a {Cassandra::Cluster} instance
   #
   # @option options [Array<String, IPAddr>] :hosts (['127.0.0.1']) a list of
-  #   initial addresses. Note that the entire cluster members will be
+  #   initial addresses. Note that the entire list of cluster members will be
   #   discovered automatically once a connection to any hosts from the original
-  #   list is successful.
+  #   list is successful
   #
-  # @option options [Hash{Symbol => String}] :credentials (none) hash with
-  #   `:username` and `:password` keys
+  # @option options [Integer] :port (9042) cassandra native protocol port
   #
-  # @option options [Cassandra::Auth::Provider] :auth_provider (none) auth provider.
-  #   Note that if you have specified `:credentials`, then a
-  #   {Cassandra::Auth::Providers::PlainText} will be used automatically
+  # @option options [String] :username (none) username to use for
+  #   authentication to cassandra. Note that you must also specify `:password`
+  #
+  # @option options [String] :password (none) password to use for
+  #   authentication to cassandra. Note that you must also specify `:username`
   #
   # @option options [Symbol] :compression (none) compression to use. Must be
   #   either `:snappy` or `:lz4`. Also note, that in order for compression to
-  #   work, you must install 'snappy' or 'lz4-ruby' gems.
+  #   work, you must install 'snappy' or 'lz4-ruby' gems
+  #
+  # @option options [Cassandra::LoadBalancing::Policy] :load_balancing_policy
+  #   default: {Cassandra::LoadBalancing::Policies::RoundRobin}
+  #
+  # @option options [Cassandra::Reconnection::Policy] :reconnection_policy
+  #   default: {Cassandra::Reconnection::Policies::Exponential}. Note that the
+  #   default policy is configured with
+  #   `Reconnection::Policies::Exponential.new(0.5, 30, 2)`
+  #
+  # @option options [Cassandra::Retry::Policy] :retry_policy default:
+  #   {Cassandra::Retry::Policies::Default}
   #
   # @option options [Logger] :logger (none) logger. a {Logger} instance from the
   #   standard library or any object responding to standard log methods
   #   (`#debug`, `#info`, `#warn`, `#error` and `#fatal`)
   #
-  # @option options [Integer] :port (9042) cassandra native protocol port.
-  #
-  # @option options [Cassandra::LoadBalancing::Policy] :load_balancing_policy
-  #   (Cassandra::LoadBalancing::Policies::RoundRobin) [a load balancing
-  #   policy](/features/load_balancing).
-  #
-  # @option options [Cassandra::Reconnection::Policy] :reconnection_policy
-  #   (Cassandra::Reconnection::Policies::Exponential) a reconnection policy to use.
-  #   Note that default {Reconnection::Policies::Exponential} is configured
-  #   with `Reconnection::Policies::Exponential.new(0.5, 30, 2)`
-  #
-  # @option options [Cassandra::Retry::Policy] :retry_policy
-  #   (Retry::Policies::Default) a retry policy
-  #
   # @option options [Enumerable<Cassandra::Listener>] :listeners (none)
   #   initial listeners. A list of initial cluster state listeners. Note that a
   #   load_balancing policy is automatically registered with the cluster.
   #
-  # @option options [Symbol] :consistency (:one) default consistency to use for
-  #   all requests. Must be one of {Cassandra::CONSISTENCIES}
+  # @option options [Symbol] :consistency (:quorum) default consistency to use
+  #   for all requests. Must be one of {Cassandra::CONSISTENCIES}
   #
   # @option options [Boolean] :trace (false) whether or not to trace all
   #   requests by default
@@ -82,15 +80,21 @@ module Cassandra
   # @option options [Integer] :page_size (nil) default page size for all select
   #   queries
   #
+  # @option options [Hash{String => String}] :credentials (none) a hash of credentials - to be used with [credentials authentication in cassandra 1.2](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L238-L250). Note that if you specified `:username` and `:password` options, those credentials are configured automatically
+  #
+  # @option options [Cassandra::Auth::Provider] :auth_provider (none) a custom auth provider to be used with [SASL authentication in cassandra 2.0](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L257-L273). Note that if you have specified `:username` and `:password`, then a {Cassandra::Auth::Providers::Password} will be used automatically
+  #
+  # @option options [Cassandra::Compressor] :compressor (none) a custom
+  #   compressor. Note that if you have specified `:compression`, an
+  #   appropriate compressor will be provided automatically
+  #
   # @example Connecting to localhost
   #   cluster = Cassandra.connect
   #
   # @example Configuring {Cassandra::Cluster}
   #   cluster = Cassandra.connect(
-  #               credentials: {
-  #                 :username => username,
-  #                 :password => password
-  #               },
+  #               username: username,
+  #               password: password,
   #               hosts: ['10.0.1.1', '10.0.1.2', '10.0.1.3']
   #             )
   #
@@ -99,18 +103,37 @@ module Cassandra
     options.select! do |key, value|
       [ :credentials, :auth_provider, :compression, :hosts, :logger, :port,
         :load_balancing_policy, :reconnection_policy, :retry_policy, :listeners,
-        :consistency, :trace, :page_size
+        :consistency, :trace, :page_size, :compressor, :username, :password
       ].include?(key)
+    end
+
+    has_username = options.has_key?(:username)
+    has_password = options.has_key?(:password)
+    if has_username || has_password
+      if has_username && !has_password
+        raise ::ArgumentError, "both :username and :password options must be specified, but only :username given"
+      end
+
+      if !has_username && has_password
+        raise ::ArgumentError, "both :username and :password options must be specified, but only :password given"
+      end
+
+      username = String(options.delete(:username))
+      password = String(options.delete(:password))
+
+      raise ::ArgumentError, ":username cannot be empty" if username.empty?
+      raise ::ArgumentError, ":password cannot be empty" if password.empty?
+
+      options[:credentials]   = {:username => username, :password => password}
+      options[:auth_provider] = Auth::Providers::Password.new(username, password)
     end
 
     if options.has_key?(:credentials)
       credentials = options[:credentials]
 
-      unless credentials.has_key?(:username) && credentials.has_key?(:password)
-        raise ::ArgumentError, ":credentials must be a hash with :username and :password, #{credentials.inspect} given"
+      unless credentials.is_a?(Hash)
+        raise ::ArgumentError, ":credentials must be a hash, #{credentials.inspect} given"
       end
-
-      options[:auth_provider] = Auth::Providers::PlainText.new(credentials[:username], credentials[:password])
     end
 
     if options.has_key?(:auth_provider)
@@ -126,13 +149,22 @@ module Cassandra
 
       case compression
       when :snappy
-        require 'cassandra/compression/snappy_compressor'
-        options[:compressor] = Compression::SnappyCompressor.new
+        require 'cassandra/compression/compressors/snappy'
+        options[:compressor] = Compression::Compressors::Snappy.new
       when :lz4
-        require 'cassandra/compression/lz4_compressor'
-        options[:compressor] = Compression::Lz4Compressor.new
+        require 'cassandra/compression/compressors/lz4'
+        options[:compressor] = Compression::Compressors::Lz4.new
       else
         raise ::ArgumentError, ":compression must be either :snappy or :lz4, #{compression.inspect} given"
+      end
+    end
+
+    if options.has_key?(:compressor)
+      compressor = options[:compressor]
+      methods    = [:algorithm, :compress?, :compress, :decompress]
+
+      unless methods.all? {|method| compressor.respond_to?(method)}
+        raise ::ArgumentError, ":compressor #{compressor.inspect} must respond to #{methods.inspect}, but doesn't"
       end
     end
 

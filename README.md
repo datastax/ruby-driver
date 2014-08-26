@@ -1,6 +1,13 @@
 # Datastax Ruby Driver for Apache Cassandra
 
-A Ruby client driver for Apache Cassandra. This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. Cassandra versions 1.2 and 2.0 are supported as well as Ruby 1.9.3, 2.0, JRuby 1.7 and Rubinius 2.1.
+A Ruby client driver for Apache Cassandra. It has built-in support for:
+
+* one-off, [prepared](/features/prepared_statements/) and [batch statements](/features/batch_statements/)
+* [asynchronous execution](/features/asynchronous_io/)
+* automatic peer discovery and cluster metadata
+* [diverse load-balancing](/features/load_balancing/), [retry](/features/retry_policies/) and reconnection policies, [with ability to write your own](/features/load_balancing/implementing_a_policy/)
+
+This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. Cassandra versions 1.2 and 2.0 are supported as well as Ruby 1.9.3, 2.0, JRuby 1.7 and Rubinius 2.1.
 
 This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [Theo Hultberg](https://github.com/iconara).
 
@@ -11,7 +18,7 @@ require 'cassandra'
 
 cluster = Cassandra.connect # connects to localhost by default
 
-cluster.hosts.each do |host| # automatically discovers all peers
+cluster.each_hosts do |host| # automatically discovers all peers
   puts "Host #{host.ip}: id=#{host.id} datacenter=#{host.datacenter} rack=#{host.rack}"
 end
 
@@ -34,6 +41,110 @@ Read more:
 * [`Cql.connect` options](/api/#connect-class_method)
 * [`Session#execute_async` options](/api/session/#execute_async-instance_method)
 * [Usage documentation](/features)
+
+## Upgrading from cql-rb
+
+Since Datastax Ruby driver introduces a lot of breaking api changes from cql-rb, it is important to understand what exactly has changed and why:
+
+* [Cassandra.connect](/api/#connect-class_method) returns a [Cassandra::Cluster](/api/cluster/) object that cannot be used to execute queries. A cluster is a metadata container and can be used to get information about all members of cassandra cluster that it is connected to, their respective datacenters, versions and more. [Read about Cassandra::Host](/api/host/) for more info. As well as to register listeners that will be notified whenever membership status changes.
+* [Cassandra::Session#execute](/api/session/#execute-instance_method) or [Cassandra::Session#execute_async](/api/session/#execute_async-instance_method) should be used to execute queries and prepare statements.
+* [Cluster#connect](/api/cluster/#connect-instance_method) or its asynchronous implementation - [Cluster#connect_async](/api/cluster/#connect_async-instance_method) - are used to get a `Cassandra::Session` instance, optionally scoped to a given `keyspace`.
+* [Cassandra::Future](/api/future/) api is incompatible with `Ione::Future`. This is done both to sipmlify the api and to preserve backwards compatibility in the future. Futures interface will stay the same even if Ione implementation changes or if a different reactor altogether is used.
+* [Cassandra::Result](/api/result/) has been enhanced to include `#execution_info` and `#next_page_async`. Methods `#trace_id` and `#metadata` have been removed. Trace can be accessed from [Cassandra::Execution::Info](/api/execution/info/) and metadata is considered private.
+* [Cassandra::Statements::Prepared](/api/statements/prepared/) now includes `#execution_info`. However `#metadata` and `#result_metadata` have been remove and are not members of the public interface anymore.
+* Finally, `#execute` and `#batch` methods have been removed from all statement implementations. [Statements](/api/statements/) are expected to be passed to `Cassandra::Session#execute` for execution.
+
+Below is an example of how to create a thin backwards compatibility shim to ease migration from cql-rb to the ruby driver:
+
+```ruby
+require 'cassandra'
+require 'ione'
+
+class PreparedStatement
+  attr_reader :statement
+
+  def initialize(client, statement)
+    @client = client
+    @statement = statement
+  end
+
+  def execute(*args)
+    @client.execute(@statement, *args)
+  end
+end
+
+class BatchStatement
+  def initialize(client, batch)
+    @client = client
+    @batch = batch
+  end
+
+  def execute(options = {})
+    @client.execute(@batch, options)
+  end
+
+  def add(*args)
+    @batch.add(*args)
+    self
+  end
+end
+
+class Client
+  def initialize(session)
+    @session = session
+  end
+
+  def execute(*args)
+    future = Ione::CompletableFuture.new
+    @session.execute_async(*args).on_complete do |e, v|
+      if e
+        future.fail(e)
+      else
+        future.resolve(v)
+      end
+    end
+    future
+  end
+
+  def prepare(statement, options = {})
+    future = Ione::CompletableFuture.new
+    @session.prepare_async(statement, options).on_complete do |e, v|
+      if e
+        future.fail(e)
+      else
+        future.resolve(PreparedStatement.new(self, v))
+      end
+    end
+    future
+  end
+
+  def batch(type = :logged, options = {})
+    batch = BatchStatement.new(self, @session.send(:"#{type}_batch"))
+    if block_given?
+      yield(batch)
+      batch.execute(options)
+    else
+      batch
+    end
+  end
+
+  def close
+    future = Ione::CompletableFuture.new
+    @session.close.on_complete do |e, v|
+      if e
+        future.fail(e)
+      else
+        future.resolve(v)
+      end
+    end
+    future
+  end
+end
+
+cluster = Cassandra.connect
+session = cluster.connect
+client  = Client.new(session)
+```
 
 ## Changelog & versioning
 

@@ -14,17 +14,97 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'cassandra/load_balancing/distances'
-require 'cassandra/load_balancing/policy'
-require 'cassandra/load_balancing/policies'
-
 module Cassandra
   module LoadBalancing
+    # A list of possible load balancing distances that
+    # {Cassandra::LoadBalancing::Policy#distance} must return
+    DISTANCES = [:ignore, :local, :remote].freeze
+
+    # @note Actual load balancing policies don't need to extend this class,
+    #   only implement its methods. This class exists for documentation
+    #   purposes only
+    class Policy
+      # @abstract implementation should be provided by an actual policy
+      # @see Cassandra::Listener#host_up
+      def host_up(host)
+      end
+
+      # @abstract implementation should be provided by an actual policy
+      # @see Cassandra::Listener#host_down
+      def host_down(host)
+      end
+
+      # @abstract implementation should be provided by an actual policy
+      # @see Cassandra::Listener#host_found
+      def host_found(host)
+      end
+
+      # @abstract implementation should be provided by an actual policy
+      # @see Cassandra::Listener#host_lost
+      def host_lost(host)
+      end
+
+      # Returns a distance that lets the driver to determine host many
+      #   connections (if any) to open to the host
+      #
+      # @abstract implementation should be provided by an actual policy
+      # @param host [Cassandra::Host] a host instance
+      # @return [Symbol] distance to host. Must be one of
+      #   {Cassandra::LoadBalancing::DISTANCES}
+      def distance(host)
+        :ignore
+      end
+
+      # Load balancing plan is used to determine the order in which hosts
+      #   should be tried in case of a network failure.
+      #
+      # @note Hosts that should be ignored, must not be included in the Plan
+      #
+      # @abstract implementation should be provided by an actual policy
+      # @param keyspace [String] current keyspace of the {Cassandra::Session}
+      # @param statement [Cassandra::Statement] actual statement to be executed
+      # @param options [Cassandra::Execution::Options] execution options to be used
+      # @raise [NotImplementedError] override this method to return a plan
+      # @return [Cassandra::LoadBalancing::Plan] a load balancing plan
+      def plan(keyspace, statement, options)
+        raise ::NotImplementedError, "must be implemented by a child"
+      end
+
+      # @return [String] a console-friendly representation of this policy
+      def inspect
+        "#<#{self.class.name}:0x#{self.object_id.to_s(16)}>"
+      end
+    end
+
+    # A load balancing plan is used to determine the order of hosts for running
+    # queries, preparing statements and establishing connections.
+    # @note Plans returned by {Cassandra::LoadBalancing::Policy}
+    #   implementations don't need to extend this class, only implement its
+    #   methods. This class exists for documentation purposes only.
+    class Plan
+      # @return [Boolean] whether the plan contains any more hosts
+      def has_next?
+      end
+
+      # @return [Cql::Host] next host to try
+      def next
+      end
+    end
+
     # @private
-    DISTANCE_IGNORE = Distances::Ignore.new
+    class EmptyPlan
+      def has_next?
+        nil
+      end
+
+      def next
+        nil
+      end
+    end
+
     # @private
-    DISTANCE_LOCAL  = Distances::Local.new
-    # @private
-    DISTANCE_REMOTE = Distances::Remote.new
+    EMPTY_PLAN = EmptyPlan.new
   end
 end
+
+require 'cassandra/load_balancing/policies'

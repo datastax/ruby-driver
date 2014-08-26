@@ -42,7 +42,8 @@ Feature: Automatic reconnection
       policy   = Cassandra::Reconnection::Policies::Constant.new(interval)
       cluster  = Cassandra.connect(
                    listeners: [PrintingListener.new($stdout)],
-                   reconnection_policy: policy
+                   reconnection_policy: policy,
+                   consistency: :one
                  )
       session = cluster.connect
       

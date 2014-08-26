@@ -14,23 +14,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-module Cassandra
-  module Reconnection
-    # @!parse [ruby]
-    #   class Schedule
-    #     # @return [Numeric] the next reconnection interval in seconds
-    #     def next
-    #     end
-    #   end
+require 'spec_helper'
+require 'cassandra/compression/common'
 
-    module Policy
-      # Returns a reconnection schedule
-      #
-      # @abstract implementation should be provided by an actual policy
-      # @note reconnection schedule doesn't need to extend
-      #   {Cassandra::Reconnection::Schedule}, only conform to its interface
-      # @return [Cassandra::Reconnection::Schedule] reconnection schedule
-      def schedule
+
+module Cassandra
+  module Compression
+    module Compressors
+      begin
+        require 'cassandra/compression/compressors/snappy'
+    
+        describe Snappy do
+          include_examples 'compressor', 'snappy', "\x19\x10helloN\x05\x00"
+        end
+      rescue LoadError => e
+        describe 'Snappy' do
+          it 'supports Snappy' do
+            pending e.message
+          end
+        end
       end
     end
   end

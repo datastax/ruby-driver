@@ -204,7 +204,7 @@ describe 'A CQL client', :integration do
 
       it 'raises an error when only an auth provider has been given' do
         pending('authentication not configured') unless authentication_enabled
-        auth_provider = Cassandra::Auth::Providers::PlainText.new('cassandra', 'cassandra')
+        auth_provider = Cassandra::Auth::Providers::Password.new('cassandra', 'cassandra')
         expect { Cassandra::Client.connect(connection_options.merge(credentials: nil, auth_provider: auth_provider, protocol_version: 1)) }.to raise_error(Cassandra::Errors::AuthenticationError)
       end
     end
@@ -220,12 +220,12 @@ describe 'A CQL client', :integration do
       end
 
       it 'uses the auth provider given in the :auth_provider option' do
-        auth_provider = Cassandra::Auth::Providers::PlainText.new('cassandra', 'cassandra')
+        auth_provider = Cassandra::Auth::Providers::Password.new('cassandra', 'cassandra')
         client = Cassandra::Client.connect(connection_options.merge(auth_provider: auth_provider, credentials: nil))
         client.execute('SELECT * FROM system.schema_keyspaces')
       end
 
-      it 'falls back on creating a Providers::PlainText using the credentials given in the :credentials option' do
+      it 'falls back on creating a Providers::Password using the credentials given in the :credentials option' do
         client = Cassandra::Client.connect(connection_options.merge(auth_provider: nil, credentials: {:username => 'cassandra', :password => 'cassandra'}))
         client.execute('SELECT * FROM system.schema_keyspaces')
       end
@@ -238,7 +238,7 @@ describe 'A CQL client', :integration do
       it 'raises an error when the credentials are bad' do
         pending('authentication not configured') unless authentication_enabled
         expect {
-          auth_provider = Cassandra::Auth::Providers::PlainText.new('foo', 'bar')
+          auth_provider = Cassandra::Auth::Providers::Password.new('foo', 'bar')
           Cassandra::Client.connect(connection_options.merge(auth_provider: auth_provider, credentials: nil))
         }.to raise_error(Cassandra::Errors::AuthenticationError)
       end
@@ -287,8 +287,8 @@ describe 'A CQL client', :integration do
 
   context 'with Snappy compression' do
     begin
-      require 'cassandra/compression/snappy_compressor'
-      include_examples 'with_compressor', Cassandra::Compression::SnappyCompressor
+      require 'cassandra/compression/compressors/snappy'
+      include_examples 'with_compressor', Cassandra::Compression::Compressors::Snappy
     rescue LoadError
       include_examples 'no_compressor'
     end
@@ -296,8 +296,8 @@ describe 'A CQL client', :integration do
 
   context 'with LZ4 compression', :unless => cassandra_version.start_with?('1.2') do
     begin
-      require 'cassandra/compression/lz4_compressor'
-      include_examples 'with_compressor', Cassandra::Compression::Lz4Compressor
+      require 'cassandra/compression/compressors/lz4'
+      include_examples 'with_compressor', Cassandra::Compression::Compressors::Lz4
     rescue LoadError
       include_examples 'no_compressor'
     end

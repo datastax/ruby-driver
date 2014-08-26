@@ -14,29 +14,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+require 'spec_helper'
+require 'cassandra/compression/common'
+
+
 module Cassandra
-  module LoadBalancing
-    # @private
-    module Distances
-      class Local
-        def local?; true; end
-        def remote?; false; end
-        def ignore?; false; end
-        def inspect; "#<#{self.class.name}>"; end
-      end
+  module Compression
+    module Compressors
+      begin
+        require 'cassandra/compression/compressors/lz4'
 
-      class Remote
-        def local?; false; end
-        def remote?; true; end
-        def ignore?; false; end
-        def inspect; "#<#{self.class.name}>"; end
-      end
-
-      class Ignore
-        def local?; false; end
-        def remote?; false; end
-        def ignore?; true; end
-        def inspect; "#<#{self.class.name}>"; end
+        describe Lz4 do
+          include_examples 'compressor', 'lz4', "\x00\x00\x01\xF4[hello\x05\x00Phello"
+        end
+      rescue LoadError => e
+        describe 'Lz4' do
+          it 'supports LZ4' do
+            pending e.message
+          end
+        end
       end
     end
   end

@@ -41,7 +41,7 @@ module Cassandra
       describe('#connect') do
         context 'when all hosts are ignored' do
           before do
-            load_balancing_policy.stub(:distance) { Cassandra::LoadBalancing::DISTANCE_IGNORE }
+            load_balancing_policy.stub(:distance) { :ignore }
           end
 
           it 'fails' do
@@ -125,7 +125,7 @@ module Cassandra
 
         context 'when host is ignored by load balancing policy' do
           it 'ignores it' do
-            load_balancing_policy.stub(:distance) { Cassandra::LoadBalancing::DISTANCE_IGNORE }
+            load_balancing_policy.stub(:distance) { :ignore }
             expect do
               client.host_up(Cassandra::Host.new('1.1.1.1'))
             end.to_not change { io_reactor.connections.size }
@@ -134,7 +134,7 @@ module Cassandra
 
         context 'when host is local' do
           it 'connects to it the right number of times' do
-            load_balancing_policy.stub(:distance) { Cassandra::LoadBalancing::DISTANCE_LOCAL }
+            load_balancing_policy.stub(:distance) { :local }
             expect do
               client.host_up(Cassandra::Host.new('1.1.1.1'))
             end.to change { io_reactor.connections.size }.from(4).to(6)
@@ -143,7 +143,7 @@ module Cassandra
 
         context 'when host is remote' do
           it 'connects to it the right number of times' do
-            load_balancing_policy.stub(:distance) { Cassandra::LoadBalancing::DISTANCE_REMOTE }
+            load_balancing_policy.stub(:distance) { :remote }
             expect do
               client.host_up(Cassandra::Host.new('1.1.1.1'))
             end.to change { io_reactor.connections.size }.from(4).to(5)
@@ -157,7 +157,7 @@ module Cassandra
           before do
             client.connect.value
             io_reactor.node_down(address)
-            load_balancing_policy.stub(:distance) { Cassandra::LoadBalancing::DISTANCE_LOCAL }
+            load_balancing_policy.stub(:distance) { :local }
           end
 
           it 'keeps trying until host responds' do
@@ -177,26 +177,6 @@ module Cassandra
               io_reactor.node_up(address)
               io_reactor.advance_time(reconnect_interval)
             end.to change { io_reactor.connections.size }.by(2)
-          end
-
-          it 'stops reconnection if schedule reaches end' do
-            reconnect_interval = 5
-            schedule = double('reconnection schedule')
-            reconnection_policy.stub(:schedule) { schedule }
-
-            expect(schedule).to receive(:next).exactly(3).times.and_return(reconnect_interval)
-            expect(schedule).to receive(:next).and_raise(::StopIteration)
-
-            client.host_up(host)
-
-            expect do
-              3.times { io_reactor.advance_time(reconnect_interval) }
-            end.to_not change { io_reactor.connections.size }
-
-            expect do
-              io_reactor.node_up(address)
-              io_reactor.advance_time(reconnect_interval)
-            end.to_not change { io_reactor.connections.size }
           end
 
           it 'does not start a new reconnection loop when one is already in progress' do
@@ -244,7 +224,7 @@ module Cassandra
 
           before do
             client.connect.value
-            load_balancing_policy.stub(:distance) { Cassandra::LoadBalancing::DISTANCE_LOCAL }
+            load_balancing_policy.stub(:distance) { :local }
           end
 
           it 'stops reconnecting' do

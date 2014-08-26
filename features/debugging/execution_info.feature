@@ -1,6 +1,6 @@
 Feature: Execution information
 
-  Every result contains useful execution information.
+  Every result contains [useful execution information](/api/execution/info/).
 
   Background:
     Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
@@ -15,7 +15,7 @@ Feature: Execution information
       at_exit { cluster.close }
 
       session   = cluster.connect("simplex")
-      execution = session.execute("SELECT * FROM songs").execution_info
+      execution = session.execute("SELECT * FROM songs", consistency: :one).execution_info
 
       puts "coordinator: #{execution.hosts.last.ip}"
       puts "keyspace: #{execution.keyspace}"

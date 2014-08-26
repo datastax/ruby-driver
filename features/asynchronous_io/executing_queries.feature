@@ -6,7 +6,7 @@ Feature: Executing queries asynchronously
   Background:
     Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
 
-  Scenario: Listerning for future
+  Scenario: Listening for future
     Given the following example:
       """ruby
       require 'cassandra'

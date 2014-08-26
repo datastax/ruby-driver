@@ -26,9 +26,9 @@ module Cassandra
     # @note Creating an authenticator must absolutely not block, or the whole
     #   connection process will block.
     #
-    # @abstract Auth providers given to {Cassandra::Builder#with_auth_provider} don't
-    #   need to be subclasses of this class, but need to implement the same
-    #   methods. This class exists only for documentation purposes.
+    # @abstract Auth providers given to {Cassandra.connect} don't need to be
+    #   subclasses of this class, but need to implement the same methods. This
+    #   class exists only for documentation purposes.
     #
     # @see Cassandra::Auth::Providers
     class Provider
@@ -43,9 +43,9 @@ module Cassandra
       #
       # @param authentication_class [String] the authentication class used by
       #   the server.
-      # @return [Cassandra::Client::Authenticator, nil] an object with an interface
-      #   matching {Cassandra::Client::Authenticator} or nil if the authentication
-      #   class is not supported.
+      # @return [Cassandra::Auth::Authenticator, nil] an object with an
+      #   interface matching {Cassandra::Auth::Authenticator} or nil if the
+      #   authentication class is not supported.
     end
 
     # An authenticator handles the authentication challenge/response cycles of
@@ -57,6 +57,7 @@ module Cassandra
     #   of this class, but need to implement the same methods. This class exists
     #   only for documentation purposes.
     #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L257-L273 Cassandra native protocol v2 SASL authentication
     # @see Cassandra::Auth::Provider
     class Authenticator
       # @!method initial_response

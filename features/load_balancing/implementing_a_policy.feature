@@ -1,15 +1,14 @@
 Feature: Implementing custom load balancing policies
 
-  To implement a load balancing policy, mix in `Cassandra::LoadBalancing::Policy`
-  module and provide implementations for its required methods. Currently, load
-  balancing policies are required to be thread-safe.
+  To implement a load balancing policy, you must implement all of the methods
+  specified in [`Cassandra::LoadBalancing::Policy`](/api/load_balancing/policy).
+  Currently, load balancing policies are required to be thread-safe.
 
-  The object returned from the `plan` method must implement method `next`
-  that returns a `Cassandra::Host` instance or raises `StopIteration`.
+  The object returned from the `plan` method must implement all methods of
+  [`Cassandra::LoadBalancing::Plan`](/api/load_balancing/plan)
 
-  This method will be called from multiple threads, but never in parallel and
-  `Plan` doesn't have to be thread-safe. However, because it is called across
-  threads, an `Enumerator` **cannot** be used as a Plan.
+  Plan will be accessed from multiple threads, but never in parallel and it
+  doesn't have to be thread-safe.
 
   Background:
     Given a running cassandra cluster with a keyspace "simplex" and a table "songs"
@@ -18,11 +17,13 @@ Feature: Implementing custom load balancing policies
     Given a file named "ignoring_keyspace_policy.rb" with:
       """ruby
       class IgnoringKeyspacePolicy
-        include Cassandra::LoadBalancing::Policy
-
         class Plan
+          def has_next?
+            false
+          end
+
           def next
-            raise ::StopIteration
+            nil
           end
         end
 
@@ -86,8 +87,6 @@ Feature: Implementing custom load balancing policies
     Given a file named "blacklist_policy.rb" with:
       """ruby
       class BlackListPolicy
-        include Cassandra::LoadBalancing::Policy
-
         def initialize(ips_to_ignore, original_policy)
           @ips    = ::Set.new
           @policy = original_policy
