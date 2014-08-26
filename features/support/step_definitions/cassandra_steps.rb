@@ -114,6 +114,19 @@ def prepend_encoding(code)
   <<-CODE
 # encoding: utf-8
 
+unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
+  require 'coveralls'
+  require 'simplecov'
+
+  SimpleCov.root '#{Dir.pwd}'
+
+  load '#{File.join(Dir.pwd, '.simplecov')}'
+
+  SimpleCov.start do
+    command_name 'Cucumber Example #{rand(100000)}'
+  end
+end
+
 #{code}
   CODE
 end
