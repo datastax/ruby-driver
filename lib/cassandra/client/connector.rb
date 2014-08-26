@@ -177,7 +177,7 @@ module Cassandra
             token = authenticator.challenge_response(response.token)
             challenge_cycle(pending_connection, authenticator, token)
           when Protocol::AuthSuccessResponse
-            authenticator.authentication_successful(response.token)
+            authenticator.authentication_successful(response.token) rescue nil
             Ione::Future.resolved(pending_connection)
           else
             Ione::Future.resolved(pending_connection)
