@@ -16,6 +16,8 @@
 
 module Cassandra
   # Represents a cassandra keyspace
+  # @see Cassandra::Cluster#each_keyspace
+  # @see Cassandra::Cluster#keyspace
   class Keyspace
     # @private
     class Replication

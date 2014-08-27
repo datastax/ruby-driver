@@ -16,6 +16,8 @@
 
 module Cassandra
   # Represents a cassandra column
+  # @see Cassandra::Table#each_column
+  # @see Cassandra::Table#column
   class Column
     # @private
     class Index

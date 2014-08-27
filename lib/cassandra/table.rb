@@ -16,6 +16,8 @@
 
 module Cassandra
   # Represents a cassandra table
+  # @see Cassandra::Keyspace#each_table
+  # @see Cassandra::Keyspace#table
   class Table
     # @private
     class Options
