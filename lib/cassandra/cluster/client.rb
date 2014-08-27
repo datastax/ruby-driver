@@ -140,22 +140,7 @@ module Cassandra
       end
 
       def query(statement, options, paging_state = nil)
-        if @connection_options.protocol_version == 1
-          i = -1
-          params = statement.params
-          cql = statement.cql.gsub('?') do
-            case (param = params[i += 1])
-            when String
-              "'#{param}'"
-            else
-              param
-            end
-          end
-
-          request = Protocol::QueryRequest.new(cql, nil, nil, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
-        else
-          request = Protocol::QueryRequest.new(statement.cql, statement.params, nil, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
-        end
+        request = Protocol::QueryRequest.new(statement.cql, statement.params, nil, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
         timeout = options.timeout
         promise = Promise.new
 
@@ -261,13 +246,13 @@ module Cassandra
       end
 
       def close_connections
-        # @logger.info('Session closing')
+        @logger.info('Session closing')
 
         futures = []
         synchronize do
           @connections.each do |host, connections|
             connections.snapshot.each do |c|
-              # @logger.info("Disconnecting ip=#{c.host}")
+              @logger.info("Disconnecting ip=#{c.host}")
               futures << c.close
             end
           end.clear
