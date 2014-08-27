@@ -30,6 +30,14 @@ Cucumber::Rake::Task.new(:cucumber) do |t|
   cassandra_version = ENV['CASSANDRA_VERSION'] || '2.0.9'
   cassandra_version_tags = ''
 
+  if cassandra_version.start_with?('2.0.10')
+    cassandra_version_tags = ',@cassandra-version->-2.0.9'
+  end
+
+  if cassandra_version.start_with?('2.0.9')
+    cassandra_version_tags = ',@cassandra-version->-2.0.9'
+  end
+
   if cassandra_version.start_with?('2.0')
     cassandra_version_tags = ',@cassandra-version-2.0'
   end

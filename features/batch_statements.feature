@@ -172,3 +172,39 @@ Feature: Batch statements
       inserting rows in a batch
       songs contain 3 rows
       """
+
+  @cassandra-version-specific @cassandra-version->-2.0.9
+  Scenario: a cas batch should not be applied more than once
+    Given the following example:
+    """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.connect
+      at_exit { cluster.close }
+
+      session = cluster.connect("simplex")
+      session.execute("DROP TABLE songs") rescue nil
+      session.execute('CREATE TABLE test (k text, v int, PRIMARY KEY (k, v))')
+
+      statement = session.prepare("INSERT INTO test (k, v) VALUES (?, ?) IF NOT EXISTS")
+      batch = session.batch
+
+      batch.add("INSERT INTO test (k, v) VALUES ('key1', 0)")
+      batch.add(statement, "key1", 1)
+      batch.add(statement, "key1", 2)
+
+      results =  session.execute(batch)
+      rows = results.first
+      puts "batch applied? #{rows["[applied]"]}"
+
+      results =  session.execute(batch)
+      rows = results.first
+      puts "batch applied? #{rows["[applied]"]}"
+
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      batch applied? true
+      batch applied? false
+      """
