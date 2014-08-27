@@ -13,8 +13,11 @@ rvm:
 jdk:
   - openjdk7
 env:
-  - CASSANDRA_VERSION=2.0.9
-  - CASSANDRA_VERSION=1.2.18
+  global:
+    - FAIL_FAST=N
+  matrix:
+    - CASSANDRA_VERSION=2.0.9
+    - CASSANDRA_VERSION=1.2.18
 matrix:
   allow_failures:
     - rvm: rbx-2
