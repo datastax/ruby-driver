@@ -1,14 +1,8 @@
 language: ruby
-script: rspec
-bundler_args: --without development
+script: bundle exec rake test
+bundler_args: --without development docs
 before_install:
-  - 'test "$CQL_ENABLE_AUTH" = "1" && sudo perl -pi -e "s/(?<=authenticator: )AllowAllAuthenticator/PasswordAuthenticator/" /usr/local/cassandra/conf/cassandra.yaml && echo "Authentication enabled" || echo "Authentication disabled"'
-  - 'test "$CQL_ENABLE_AUTH" = "1" && sudo service cassandra restart || :'
-env:
-  global:
-    - CQL_ENABLE_AUTH=0
-services:
-  - cassandra
+  - pip install ccm
 rvm:
   - 1.9.3
   - 2.0.0
@@ -18,13 +12,10 @@ rvm:
   - rbx-2
 jdk:
   - openjdk7
+env:
+  - CASSANDRA_VERSION=2.0.9
+  - CASSANDRA_VERSION=1.2.18
 matrix:
-  include:
-    - rvm: 2.1.1
-      env: CQL_ENABLE_AUTH=1
-      jdk: openjdk7
-    - rvm: jruby
-      jdk: oraclejdk8
   allow_failures:
     - rvm: rbx-2
     - rvm: jruby-head
