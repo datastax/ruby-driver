@@ -107,7 +107,6 @@ module CCM
     def create_keyspace(keyspace)
       if keyspaces.include?(keyspace)
         drop_keyspace(keyspace)
-        sleep(5)
       end
 
       execute_query("CREATE KEYSPACE #{keyspace} WITH replication = " \

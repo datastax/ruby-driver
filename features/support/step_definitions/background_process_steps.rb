@@ -6,7 +6,6 @@ Given(/^the following example running in the background:$/) do |code|
 end
 
 Then(/^background output should contain:$/) do |expected|
-  sleep(5)
   if @background_process
     @background_process.terminate
     @background_output = @background_process.output
