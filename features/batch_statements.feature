@@ -7,7 +7,7 @@ Feature: Batch statements
   Background:
     Given a running cassandra cluster with a keyspace "simplex" and an empty table "songs"
 
-  Scenario: a batch of simple statements is executed
+  Scenario: A batch of simple statements is executed
     Given the following example:
       """ruby
       require 'cassandra'
@@ -64,7 +64,7 @@ Feature: Batch statements
       songs contain 3 rows
       """
 
-  Scenario: a batch of simple statements with parameters is executed
+  Scenario: A batch of simple statements with parameters is executed
     Given the following example:
       """ruby
       require 'cassandra'
@@ -118,7 +118,7 @@ Feature: Batch statements
       songs contain 3 rows
       """
 
-  Scenario: a prepared statement is executed in a batch
+  Scenario: A prepared statement is executed in a batch
     Given the following example:
       """ruby
       require 'cassandra'
@@ -171,4 +171,40 @@ Feature: Batch statements
       songs contain 0 rows
       inserting rows in a batch
       songs contain 3 rows
+      """
+
+  @cassandra-version-specific @cassandra-version-2.0.9+
+  Scenario: A cas batch is never applied more than once
+    Given the following example:
+    """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.connect
+      at_exit { cluster.close }
+
+      session = cluster.connect("simplex")
+      session.execute("DROP TABLE test") rescue nil
+      session.execute("CREATE TABLE test (k text, v int, PRIMARY KEY (k, v))")
+
+      statement = session.prepare("INSERT INTO test (k, v) VALUES (?, ?) IF NOT EXISTS")
+      batch = session.batch
+
+      batch.add("INSERT INTO test (k, v) VALUES ('key1', 0)")
+      batch.add(statement, "key1", 1)
+      batch.add(statement, "key1", 2)
+
+      results =  session.execute(batch)
+      rows = results.first
+      puts "batch applied? #{rows["[applied]"]}"
+
+      results =  session.execute(batch)
+      rows = results.first
+      puts "batch applied? #{rows["[applied]"]}"
+
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      batch applied? true
+      batch applied? false
       """
