@@ -147,6 +147,7 @@ PLATFORMS
 DEPENDENCIES
   aruba (= 0.6.0)
   bootstrap-sass (= 3.2.0.1)
+  bundler (~> 1.6)
   cassandra-driver!
   compass (= 1.0.1)
   coveralls (= 0.7.1)
