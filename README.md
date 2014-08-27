@@ -148,7 +148,7 @@ client  = Client.new(session)
 
 ## Changelog & versioning
 
-Check out the [releases on GitHub](https://github.com/riptano/ruby-driver/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
+Check out the [releases on GitHub](https://github.com/datastax/ruby-driver/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
 
 Private and experimental APIs, defined as whatever is not in the [public API documentation][1], i.e. classes and methods marked as `@private`, will change without warning. If you've been recommended to try an experimental API by the maintainers, please let them know if you depend on that API. Experimental APIs will eventually become public, and knowing how they are used helps in determining their maturity.
 
@@ -169,4 +169,4 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-  [1]: http://riptano.github.io/ruby-driver/api
+  [1]: http://datastax.github.io/ruby-driver/api
