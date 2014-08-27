@@ -234,7 +234,6 @@ module Cassandra
         @connections_per_node = options[:connections_per_node] || 1
         @lock = Mutex.new
         @request_runner = RequestRunner.new
-        @keyspace_changer = KeyspaceChanger.new
         @connection_manager = ConnectionManager.new
         @execute_options_decoder = ExecuteOptionsDecoder.new(options[:default_consistency] || DEFAULT_CONSISTENCY)
         @port = options[:port] || DEFAULT_PORT
@@ -453,7 +452,13 @@ module Cassandra
       end
 
       def use_keyspace(connections, keyspace)
-        futures = connections.map { |connection| @keyspace_changer.use_keyspace(connection, keyspace) }
+        return Ione::Future.resolved(connections) unless keyspace
+        return Ione::Future.failed(InvalidKeyspaceNameError.new(%("#{keyspace}" is not a valid keyspace name))) unless keyspace =~ /^\w[\w\d_]*$|^"\w[\w\d_]*"$/
+
+        futures = connections.map do |connection|
+          request = Protocol::QueryRequest.new("USE #{keyspace}", nil, nil, :one)
+          @request_runner.execute(connection, request).map(connection)
+        end
         Ione::Future.all(*futures)
       end
 
