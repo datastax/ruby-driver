@@ -30,7 +30,6 @@ module Cassandra
         @cql = cql
         @values = values || EMPTY_LIST
         @type_hints = type_hints || EMPTY_LIST
-        @encoded_values = self.class.encode_values(CqlByteBuffer.new, @values, @type_hints)
         @consistency = consistency
         @serial_consistency = serial_consistency
         @page_size = page_size
@@ -38,7 +37,11 @@ module Cassandra
       end
 
       def write(protocol_version, buffer)
-        buffer.append_long_string(@cql)
+        if protocol_version > 1
+          buffer.append_long_string(@cql)
+        else
+          buffer.append_long_string(serialized_cql)
+        end
         buffer.append_consistency(@consistency)
         if protocol_version > 1
           flags  = 0
@@ -48,7 +51,7 @@ module Cassandra
           if @values && @values.size > 0
             flags |= 0x01
             buffer.append(flags.chr)
-            buffer.append(@encoded_values)
+            self.class.encode_values(buffer, @values, @type_hints)
           else
             buffer.append(flags.chr)
           end
@@ -102,6 +105,28 @@ module Cassandra
       end
 
       private
+
+      def serialized_cql
+        i = -1
+        @cql.gsub('?') { serialize_value(@values[i += 1]) }
+      end
+
+      def serialize_value(value)
+        case value
+        when Uuid, ::Numeric, ::TrueClass, ::FalseClass
+          value.to_s
+        when ::Time
+          value.to_i.to_s
+        when ::Set
+          '{' + value.map {|v| serialize_value(v)}.join(', ') + '}'
+        when ::Array
+          '[' + value.map {|v| serialize_value(v)}.join(', ') + ']'
+        when ::Hash
+          '{' + value.map {|k, v| serialize_value(k) + ' : ' + serialize_value(v)}.join(', ') + '}'
+        else
+          '\'' + value.to_s.gsub('\'', %q(\\\')) + '\''
+        end
+      end
 
       def self.guess_type(value)
         type = TYPE_GUESSES[value.class]

@@ -59,6 +59,24 @@ module Cassandra
           it 'encodes the consistency' do
             frame_bytes.to_s[14, 999].should == "\x00\x05"
           end
+
+          context 'and there are bound values' do
+            let :cql do
+              'SELECT * FROM something WHERE value = ?'
+            end
+
+            [
+              ['foobar', "'foobar'"],
+              [::Set['foobar', 5, ::Time.at(1409164051)], "{'foobar', 5, 1409164051}"],
+              [::Hash['foobar' => Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488')], "{'foobar' : f6071e72-48ec-4fcb-bf3e-379c8a696488}"],
+              [::Array[123, 'foobar'], "[123, 'foobar']"],
+            ].each do |(value, result)|
+              it "serializes #{value.inspect} as #{result.inspect}" do
+                frame_bytes = QueryRequest.new(cql, [value], nil, :all, nil, nil, nil, false).write(1, CqlByteBuffer.new)
+                frame_bytes.to_s[42, 999].should == "#{result}\x00\x05"
+              end
+            end
+          end
         end
 
         context 'when the protocol version is 2' do
