@@ -22,9 +22,7 @@ task :release => :test do
   system %(git push && git push --tags; gem build #{project_name}.gemspec && gem push #{project_name}-*.gem && mv #{project_name}-*.gem pkg)
 end
 
-RSpec::Core::RakeTask.new(:rspec) do |t|
-  t.rspec_opts = "--fail-fast" if ENV["FAIL_FAST"] == 'Y'
-end
+RSpec::Core::RakeTask.new(:rspec)
 
 Cucumber::Rake::Task.new(:cucumber)
 

@@ -1,2 +1,3 @@
 --color
 --format doc
+<% if ENV["FAIL_FAST"] == 'Y' %>--fail-fast<% end %>
