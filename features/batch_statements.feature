@@ -1,4 +1,3 @@
-@cassandra-version-specific @cassandra-version-2.0
 Feature: Batch statements
 
   Session objects can be used to construct a logged batch statement and later
@@ -7,6 +6,7 @@ Feature: Batch statements
   Background:
     Given a running cassandra cluster with a keyspace "simplex" and an empty table "songs"
 
+  @cassandra-version-specific @cassandra-version-2.0
   Scenario: A batch of simple statements is executed
     Given the following example:
       """ruby
@@ -64,6 +64,7 @@ Feature: Batch statements
       songs contain 3 rows
       """
 
+  @cassandra-version-specific @cassandra-version-2.0
   Scenario: A batch of simple statements with parameters is executed
     Given the following example:
       """ruby
@@ -118,6 +119,7 @@ Feature: Batch statements
       songs contain 3 rows
       """
 
+  @cassandra-version-specific @cassandra-version-2.0
   Scenario: A prepared statement is executed in a batch
     Given the following example:
       """ruby
@@ -173,7 +175,7 @@ Feature: Batch statements
       songs contain 3 rows
       """
 
-  @cassandra-version-specific @cassandra-version-2.0.9+
+  @cassandra-version-specific @cassandra-version-2.0.9
   Scenario: A cas batch is never applied more than once
     Given the following example:
     """ruby
