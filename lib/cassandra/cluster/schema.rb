@@ -163,7 +163,7 @@ module Cassandra
         compression_parameters = ::JSON.load(table['compression_parameters'])
 
         options = Table::Options.new(table, compaction_strategy, compression_parameters, is_compact, version)
-        columns = create_columns(key_validator, table, columns, version, partition_key, clustering_columns, clustering_order)
+        columns = create_columns(key_validator, comparator, column_aliases, is_dense, clustering_size, table, columns, version, partition_key, clustering_columns, clustering_order)
 
         Table.new(keyspace, name, partition_key, clustering_columns, columns, options, clustering_order)
       end
@@ -195,12 +195,12 @@ module Cassandra
         end
       end
 
-      def create_columns(key_validator, table, columns, cassandra_version, partition_key, clustering_columns, clustering_order)
+      def create_columns(key_validator, comparator, column_aliases, is_dense, clustering_size, table, columns, cassandra_version, partition_key, clustering_columns, clustering_order)
         table_columns      = {}
         other_columns      = []
 
         if cassandra_version.start_with?('1')
-          key_aliases = @json.load(table['key_aliases'])
+          key_aliases = ::JSON.load(table['key_aliases'])
 
           key_validator.results.each_with_index do |(type, order), i|
             key_alias = key_aliases.fetch(i) { i.zero? ? "key" : "key#{i + 1}" }
@@ -208,19 +208,19 @@ module Cassandra
             partition_key[i] = Column.new(key_alias, type, order)
           end
 
-          if comparator.composite?
+          if comparator.results.size > 1
             clustering_size.times do |i|
               column_alias = column_aliases.fetch(i) { "column#{i + 1}" }
               type, order  = comparator.results.fetch(i)
 
-              clustering_columns[i] = Column.new(key_alias, type, order)
+              clustering_columns[i] = Column.new(column_alias, type, order)
               clustering_order[i]   = order
             end
           else
             column_alias = column_aliases.first || "column1"
             type, order  = comparator.results.first
 
-            clustering_columns[0] = Column.new(key_alias, type, order)
+            clustering_columns[0] = Column.new(column_alias, type, order)
             clustering_order[0]   = order
           end
 
