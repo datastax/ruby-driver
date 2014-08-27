@@ -65,7 +65,7 @@ module Cassandra
     def_delegators :@schema, :keyspaces, :each_keyspace, :keyspace, :has_keyspace?
 
     # @private
-    def initialize(logger, io_reactor, control_connection, cluster_registry, cluster_schema, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, connector)
+    def initialize(logger, io_reactor, control_connection, cluster_registry, cluster_schema, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, connector, futures_factory)
       @logger                = logger
       @io_reactor            = io_reactor
       @control_connection    = control_connection
@@ -77,6 +77,7 @@ module Cassandra
       @reconnection_policy   = reconnection_policy
       @retry_policy          = retry_policy
       @connector             = connector
+      @futures               = futures_factory
     end
 
     # Register a cluster state listener. State listeners receive notifications
@@ -98,12 +99,12 @@ module Cassandra
     #   can prepare and execute statements
     def connect_async(keyspace = nil)
       if !keyspace.nil? && !keyspace.is_a?(::String)
-        return Future::Error.new(::ArgumentError.new("keyspace must be a string, #{keyspace.inspect} given"))
+        return @futures.error(::ArgumentError.new("keyspace must be a string, #{keyspace.inspect} given"))
       end
 
-      client  = Client.new(@logger, @registry, @io_reactor, @connector, @load_balancing_policy, @reconnection_policy, @retry_policy, @connection_options)
-      session = Session.new(client, @execution_options)
-      promise = Promise.new
+      client  = Client.new(@logger, @registry, @io_reactor, @connector, @load_balancing_policy, @reconnection_policy, @retry_policy, @connection_options, @futures)
+      session = Session.new(client, @execution_options, @futures)
+      promise = @futures.promise
 
       client.connect.on_complete do |f|
         if f.resolved?
@@ -140,7 +141,7 @@ module Cassandra
     # @return [Cassandra::Future<Cassandra::Cluster>] a future that resolves to
     #   self once closed
     def close_async
-      promise = Promise.new
+      promise = @futures.promise
 
       @control_connection.close_async.on_complete do |f|
         if f.resolved?

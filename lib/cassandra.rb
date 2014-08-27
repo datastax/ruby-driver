@@ -88,6 +88,12 @@ module Cassandra
   #   compressor. Note that if you have specified `:compression`, an
   #   appropriate compressor will be provided automatically
   #
+  # @option options [Object<#all, #error, #value, #promise>] :futures_factory
+  #   (none) a custom futures factory to assist with integration into existing
+  #   futures library. Note that promises returned by this object must conform
+  #   to {Cassandra::Promise} api, which is not yet public. Things may change,
+  #   use at your own risk.
+  #
   # @example Connecting to localhost
   #   cluster = Cassandra.connect
   #
@@ -103,7 +109,8 @@ module Cassandra
     options.select! do |key, value|
       [ :credentials, :auth_provider, :compression, :hosts, :logger, :port,
         :load_balancing_policy, :reconnection_policy, :retry_policy, :listeners,
-        :consistency, :trace, :page_size, :compressor, :username, :password
+        :consistency, :trace, :page_size, :compressor, :username, :password,
+        :futures_factory
       ].include?(key)
     end
 
@@ -236,6 +243,15 @@ module Cassandra
 
       if page_size <= 0
         raise ::ArgumentError, ":page_size must be a positive integer, #{page_size.inspect} given"
+      end
+    end
+
+    if options.has_key?(:futures_factory)
+      futures_factory = options[:futures_factory]
+      methods = [:error, :value, :promise, :all]
+
+      unless methods.all? {|method| futures_factory.respond_to?(method)}
+        raise ::ArgumentError, ":futures_factory #{futures_factory.inspect} must respond to #{methods.inspect}, but doesn't"
       end
     end
 

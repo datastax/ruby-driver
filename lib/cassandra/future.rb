@@ -208,6 +208,12 @@ module Cassandra
     end
 
     # @private
+    # Returns a new promise instance
+    def self.promise
+      Promise.new
+    end
+
+    # @private
     def initialize(signal)
       @signal = signal
     end

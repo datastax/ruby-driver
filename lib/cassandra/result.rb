@@ -16,9 +16,6 @@
 
 module Cassandra
   class Result
-    # @private
-    FULFILLED_FUTURE = Future::Value.new(nil)
-
     include Enumerable
 
     # Query execution information, such as number of retries and all tried hosts, etc.
@@ -74,7 +71,7 @@ module Cassandra
   # @private
   module Results
     class Paged < Result
-      def initialize(rows, paging_state, trace_id, keyspace, statement, options, hosts, consistency, retries, client)
+      def initialize(rows, paging_state, trace_id, keyspace, statement, options, hosts, consistency, retries, client, futures_factory)
         @rows           = rows
         @paging_state   = paging_state
         @trace_id       = trace_id
@@ -85,6 +82,7 @@ module Cassandra
         @consistency    = consistency
         @retries        = retries
         @client         = client
+        @futures        = futures_factory
       end
 
       # Returns whether or not there are any rows in this result set
@@ -122,7 +120,7 @@ module Cassandra
       end
 
       def next_page_async(options = nil)
-        return FULFILLED_FUTURE if @paging_state.nil?
+        return @futures.value(nil) if @paging_state.nil?
 
         options = options ? @options.override(options) : @options
 
@@ -139,7 +137,7 @@ module Cassandra
     end
 
     class Void < Result
-      def initialize(trace_id, keyspace, statement, options, hosts, consistency, retries, client)
+      def initialize(trace_id, keyspace, statement, options, hosts, consistency, retries, client, futures_factory)
         @trace_id    = trace_id
         @keyspace    = keyspace
         @statement   = statement
@@ -148,6 +146,7 @@ module Cassandra
         @consistency = consistency
         @retries     = retries
         @client      = client
+        @futures     = futures_factory
       end
 
       # Returns whether or not there are any rows in this result set
@@ -195,7 +194,7 @@ module Cassandra
       #
       # @see Cassandra::Client::Client#execute
       def next_page_async(options = nil)
-        FULFILLED_FUTURE
+        @futures.value(nil)
       end
 
       def next_page(options = nil)

@@ -26,6 +26,7 @@ module Cassandra
     let(:io_reactor)       { Io::IoReactor.new }
     let(:cluster_registry) { Cluster::Registry.new(logger) }
     let(:cluster_schema)   { Cluster::Schema.new(schema_type_parser) }
+    let(:futures_factory)  { Future }
 
     let(:schema_type_parser) { Cluster::Schema::TypeParser.new }
 
@@ -33,7 +34,7 @@ module Cassandra
 
     let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, request_runner, cluster_registry, cluster_schema, load_balancing_policy, reconnection_policy, connector, connection_options) }
 
-    let(:cluster) { Cluster.new(logger, io_reactor, control_connection, cluster_registry, cluster_schema, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, connector) }
+    let(:cluster) { Cluster.new(logger, io_reactor, control_connection, cluster_registry, cluster_schema, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, connector, futures_factory) }
 
     let(:execution_options) do
       Execution::Options.new({

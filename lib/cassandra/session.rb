@@ -18,9 +18,10 @@ module Cassandra
   # Sessions are used for query execution. Each session tracks its current keyspace. A session should be reused as much as possible, however it is ok to create several independent session for interacting with different keyspaces in the same application.
   class Session
     # @private
-    def initialize(client, default_options)
+    def initialize(client, default_options, futures_factory)
       @client  = client
       @options = default_options
+      @futures = futures_factory
     end
 
     # Executes a given statement and returns a future result
@@ -67,7 +68,7 @@ module Cassandra
       when Statements::Batch
         @client.batch(statement, options)
       else
-        Future::Error.new(::ArgumentError.new("unsupported statement #{statement.inspect}"))
+        @futures.error(::ArgumentError.new("unsupported statement #{statement.inspect}"))
       end
     end
 
@@ -107,7 +108,7 @@ module Cassandra
       when Statements::Simple
         @client.prepare(statement.cql, options)
       else
-        Future::Error.new(::ArgumentError.new("unsupported statement #{statement.inspect}"))
+        @futures.error(::ArgumentError.new("unsupported statement #{statement.inspect}"))
       end
     end
 
@@ -158,7 +159,7 @@ module Cassandra
     # @return [Cassandra::Future<Cassandra::Session>] a future that resolves to
     #   self once closed
     def close_async
-      promise = Promise.new
+      promise = @futures.promise
 
       @client.close.on_complete do |f|
         if f.resolved?

@@ -20,7 +20,7 @@ module Cassandra
     class Client
       include MonitorMixin
 
-      def initialize(logger, cluster_registry, io_reactor, connector, load_balancing_policy, reconnection_policy, retry_policy, connection_options)
+      def initialize(logger, cluster_registry, io_reactor, connector, load_balancing_policy, reconnection_policy, retry_policy, connection_options, futures_factory)
         @logger                      = logger
         @registry                    = cluster_registry
         @reactor                     = io_reactor
@@ -29,6 +29,7 @@ module Cassandra
         @reconnection_policy         = reconnection_policy
         @retry_policy                = retry_policy
         @connection_options          = connection_options
+        @futures                     = futures_factory
         @connecting_hosts            = ::Set.new
         @connections                 = ::Hash.new
         @prepared_statements         = ::Hash.new
@@ -142,7 +143,7 @@ module Cassandra
       def query(statement, options, paging_state = nil)
         request = Protocol::QueryRequest.new(statement.cql, statement.params, nil, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
         timeout = options.timeout
-        promise = Promise.new
+        promise = @futures.promise
 
         keyspace = @keyspace
         plan     = @load_balancing_policy.plan(keyspace, statement, options)
@@ -155,7 +156,7 @@ module Cassandra
       def prepare(cql, options)
         request = Protocol::PrepareRequest.new(cql, options.trace?)
         timeout = options.timeout
-        promise = Promise.new
+        promise = @futures.promise
 
         keyspace  = @keyspace
         statement = VOID_STATEMENT
@@ -170,7 +171,7 @@ module Cassandra
         timeout         = options.timeout
         result_metadata = statement.result_metadata
         request         = Protocol::ExecuteRequest.new(nil, statement.params_metadata, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
-        promise         = Promise.new
+        promise         = @futures.promise
 
         keyspace = @keyspace
         plan     = @load_balancing_policy.plan(keyspace, statement, options)
@@ -184,7 +185,7 @@ module Cassandra
         timeout  = options.timeout
         keyspace = @keyspace
         plan     = @load_balancing_policy.plan(keyspace, statement, options)
-        promise  = Promise.new
+        promise  = @futures.promise
 
         batch_by_plan(promise, keyspace, statement, options, plan, timeout)
 
@@ -541,7 +542,7 @@ module Cassandra
                 request.consistency = decision.consistency
                 do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts, retries + 1)
               when Retry::Decisions::Ignore
-                promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
+                promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
               when Retry::Decisions::Reraise
                 promise.break(Errors::QueryError.new(r.code, r.message, statement.cql, r.details))
               else
@@ -551,7 +552,7 @@ module Cassandra
               promise.break(Errors::QueryError.new(r.code, r.message, statement.cql, nil))
             when Protocol::SetKeyspaceResultResponse
               @keyspace = r.keyspace
-              promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
+              promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
             when Protocol::PreparedResultResponse
               cql = request.cql
               synchronize do
@@ -564,11 +565,11 @@ module Cassandra
               promise.fulfill(Statements::Prepared.new(cql, r.metadata, r.result_metadata, execution_info))
             when Protocol::RawRowsResultResponse
               r.materialize(statement.result_metadata)
-              promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
+              promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
             when Protocol::RowsResultResponse
-              promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
+              promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
             else
-              promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self))
+              promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
             end
           else
             f.on_failure do |e|

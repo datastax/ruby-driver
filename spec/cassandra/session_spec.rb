@@ -21,7 +21,7 @@ module Cassandra
     let(:default_options) { {:consistency => :one, :timeout => 5, :trace => false} }
     let(:session_options) { Execution::Options.new(default_options) }
     let(:client)          { double('cassandra-driver') }
-    let(:session)         { Session.new(client, session_options) }
+    let(:session)         { Session.new(client, session_options, Future) }
 
     describe('#execute_async') do
       context 'cql string' do
