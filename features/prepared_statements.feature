@@ -62,6 +62,7 @@ Feature: Prepared statements
       Mick Jager: Memo From Turner / Performance
       """
 
+  @cassandra-version-specific @cassandra-version-2.0
   Scenario: a SELECT statement with parameterized LIMIT is prepared
     Given a running cassandra cluster with a keyspace "simplex" and a table "playlists"
     And the following example:
