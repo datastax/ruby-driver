@@ -211,15 +211,17 @@ module Cassandra
 
         @logger.debug("Fetching keyspace #{keyspace.inspect} metadata")
 
-        params   = [keyspace]
-        keyspace = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?", params, nil, :one))
-        tables   = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ?", params, nil, :one))
-        columns  = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = ?", params, nil, :one))
+        params    = [keyspace]
+        keyspaces = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?", params, nil, :one))
+        tables    = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ?", params, nil, :one))
+        columns   = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = ?", params, nil, :one))
 
-        Ione::Future.all(keyspace, tables, columns).map do |(keyspace, tables, columns)|
+        Ione::Future.all(keyspaces, tables, columns).map do |(keyspaces, tables, columns)|
+          @logger.debug("Fetched keyspace #{keyspace.inspect} metadata")
+
           host = @registry.host(connection.host)
 
-          @schema.update_keyspace(host, keyspace.first, tables, columns)
+          @schema.update_keyspace(host, keyspaces.first, tables, columns)
         end
       end
 
@@ -235,6 +237,8 @@ module Cassandra
         columns  = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = ? AND columnfamily_name = ?", params, nil, :one))
 
         Ione::Future.all(table, columns).map do |(table, columns)|
+          @logger.debug("Fetched table \"#{keyspace}.#{table}\" metadata")
+
           host = @registry.host(connection.host)
 
           @schema.udpate_table(host, keyspace, table, columns)
@@ -322,26 +326,14 @@ module Cassandra
         @logger.debug('Fetching node information for %s' % ip)
 
         if ip == connection.host
-          request = @request_runner.execute(
-                      connection,
-                      Protocol::QueryRequest.new(
-                        'SELECT rack, data_center, host_id, release_version' \
-                        'FROM system.local',
-                        nil, nil, :one
-                      )
-                    )
+          request = SELECT_LOCAL
         else
-          request = @request_runner.execute(
-                      connection,
-                      Protocol::QueryRequest.new(
-                        'SELECT rack, data_center, host_id, rpc_address,' \
-                        'release_version FROM system.peers WHERE peer = ?',
-                        [address], nil, :one
-                      )
-                    )
+          request = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, rpc_address, release_version FROM system.peers WHERE peer = ?', [address], nil, :one)
         end
 
-        request.map do |result|
+        @request_runner.execute(connection, request).map do |result|
+          @logger.debug('Fetched node information for %s' % ip)
+
           @registry.host_found(address, result.first) unless result.empty?
 
           self
