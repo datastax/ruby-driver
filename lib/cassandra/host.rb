@@ -16,7 +16,22 @@
 
 module Cassandra
   class Host
-    attr_reader :ip, :id, :rack, :datacenter, :release_version, :status
+    # @return [IPAddr] host ip
+    attr_reader :ip
+    # @return [Cassandra::Uuid, nil] host id. Note that can be nil before
+    #   cluster established a connection.
+    attr_reader :id
+    # @return [String, nil] host datacenter. Note that can be nil before
+    #   cluster established a connection.
+    attr_reader :datacenter
+    # @return [String, nil] host rack. Note that can be nil before cluster
+    #   established a connection.
+    attr_reader :rack
+    # @return [String, nil] version of cassandra that a host is running. Note
+    #   that can be nil before cluster established a connection.
+    attr_reader :release_version
+    # @return [Symbol] host status. Must be `:up` or `:down`
+    attr_reader :status
 
     # @private
     def initialize(ip, id = nil, rack = nil, datacenter = nil, release_version = nil, status = :up)
@@ -28,26 +43,29 @@ module Cassandra
       @status          = status
     end
 
+    # @return [Boolean] whether this host's status is `:up`
     def up?
       @status == :up
     end
 
+    # @return [Boolean] whether this host's status is `:down`
     def down?
       @status == :down
     end
 
+    # @private
     def hash
       @hash ||= @ip.hash
     end
 
-    def ==(other)
-      other == @ip
-    end
-
+    # @param other [Cassandra::Host] a host to compare
+    # @return [Boolean] whether this host has the same ip as the other
     def eql?(other)
       other.eql?(@ip)
     end
+    alias :== :eql?
 
+    # @return [String] a CLI-friendly host representation
     def inspect
       "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @ip=#{@ip}>"
     end
