@@ -22,12 +22,8 @@ env:
     - CASSANDRA_VERSION=2.0.9
     - CASSANDRA_VERSION=1.2.18
 matrix:
-  include:
-    - rvm: jruby-head
-      env: CASSANDRA_VERSION=2.0.9
   allow_failures:
     - rvm: rbx-2
-    - rvm: jruby-head
   fast_finish: true
 deploy:
   provider: rubygems
