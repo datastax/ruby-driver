@@ -15,5 +15,5 @@
 # limitations under the License.
 
 module Cassandra
-  VERSION = '1.0.0.beta1'.freeze
+  VERSION = '1.0.0.beta.1'.freeze
 end
