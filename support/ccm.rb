@@ -34,6 +34,14 @@ module CCM
     end
   end
 
+  class NullNotifier
+    def executing_command(cmd)
+    end
+
+    def executed_command(cmd, out, status)
+    end
+  end
+
   class Runner
     def initialize(cmd, notifier)
       @cmd      = cmd
@@ -42,12 +50,15 @@ module CCM
 
     def exec(*args)
       cmd = args.unshift(@cmd).join(' ')
+      out = ''
 
       @notifier.executing_command(cmd)
 
-      out = `#{cmd}`
-
-      @notifier.executed_command(cmd, out, $?)
+      IO.popen(cmd + ' 2>&1') do |io|
+        out << io.read
+        Process.wait(io.pid)
+        @notifier.executed_command(cmd, out, $?)
+      end
 
       raise "#{cmd} failed" unless $?.success?
 
@@ -252,7 +263,7 @@ module CCM
   end
 
   def ccm
-    @ccm ||= Runner.new('ccm', PrintingNotifier.new($stderr))
+    @ccm ||= Runner.new('ccm', NullNotifier.new)
   end
 
 

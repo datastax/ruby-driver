@@ -22,6 +22,7 @@ require 'ipaddr'
 require 'set'
 require 'bigdecimal'
 require 'forwardable'
+require 'timeout'
 
 module Cassandra
   # A list of all supported request consistencies

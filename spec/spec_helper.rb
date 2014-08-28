@@ -44,7 +44,6 @@ RSpec.configure do |config|
 end
 
 unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
-  require 'coveralls'
   require 'simplecov'
 
   SimpleCov.start do

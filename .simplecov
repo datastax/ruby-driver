@@ -1,8 +1,3 @@
-if ENV.include?('TRAVIS')
-  Coveralls.wear!
-  SimpleCov.formatter = Coveralls::SimpleCov::Formatter
-end
-
 SimpleCov.configure do
   load_profile 'root_filter'
 

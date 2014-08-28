@@ -115,7 +115,6 @@ def prepend_encoding(code)
 # encoding: utf-8
 
 unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
-  require 'coveralls'
   require 'simplecov'
 
   SimpleCov.root '#{Dir.pwd}'
