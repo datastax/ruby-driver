@@ -25,9 +25,9 @@ module Cassandra
       # Returns the name of the algorithm this compressor supports,
       # e.g. "snappy" or "lz4".
       #
-      # @return [String]
+      # @return [String] algorithm
 
-      # @!method compress?
+      # @!method compress?(frame)
       #
       # Before compressing a frame the compressor will be asked if it wants
       # to compress it or not. One reason it could say no is if the frame is
@@ -42,23 +42,23 @@ module Cassandra
       #
       # The bytes given to {#compress?} are the same as to {#compress}
       #
-      # @param [String] frame the bytes of the frame to be compressed
-      # @return [true, false]
+      # @param frame [String] the bytes of the frame to be compressed
+      # @return [true, false] whether to perform compression or not
 
-      # @!method compress
+      # @!method compress(frame)
       #
       # Compresses the raw bytes of a frame.
       #
-      # @param [String] frame the bytes of the frame to be compressed
+      # @param frame [String] the bytes of the frame to be compressed
       # @return [String] the compressed frame
 
-      # @!method decompress
+      # @!method decompress(compressed_frame)
       #
       # Decompresses the raw bytes of a compressed frame.
       #
-      # @param [String] compressed_frame the bytes of the compressed
-      #   frame to be uncompressed
-      # @return [String]
+      # @param compressed_frame [String] the bytes of the compressed frame to
+      #   be uncompressed
+      # @return [String] uncompressed bytes
     end
   end
 end
