@@ -406,7 +406,7 @@ module Cassandra
           it 'returns a future that resolves later' do
             resolved = false
             future   = signal.fallback {|e| 'some value'}
-            thread   = Thread.new { resolved = (p future.get == 'some value') }
+            thread   = Thread.new { resolved = (future.get == 'some value') }
             sleep(0.001)
             expect(resolved).to be_falsey
             signal.failure(RuntimeError.new)
