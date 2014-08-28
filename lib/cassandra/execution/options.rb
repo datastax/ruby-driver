@@ -17,8 +17,19 @@
 module Cassandra
   module Execution
     class Options
-      attr_reader :consistency, :serial_consistency, :page_size, :timeout
+      # @return [Symbol] consistency for request. Must be one of
+      #   {Cassandra::CONSISTENCIES}
+      attr_reader :consistency
+      # @return [Symbol] consistency for request with conditional updates
+      #   (lightweight - compare-and-set, CAS - transactions). Must be one of
+      #   {Cassandra::SERIAL_CONSISTENCIES}
+      attr_reader :serial_consistency
+      # @return [Integer] requested page size
+      attr_reader :page_size
+      # @return [Numeric] request timeout interval
+      attr_reader :timeout
 
+      # @private
       def initialize(options)
         consistency        = options[:consistency]
         page_size          = options[:page_size]
@@ -39,6 +50,7 @@ module Cassandra
         @serial_consistency = serial_consistency
       end
 
+      # @return [Boolean] whether request tracing was enabled
       def trace?
         @trace
       end
