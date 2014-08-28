@@ -18,17 +18,17 @@ module Cassandra
   class Host
     # @return [IPAddr] host ip
     attr_reader :ip
-    # @return [Cassandra::Uuid, nil] host id. Note that can be nil before
-    #   cluster established a connection.
+    # @note Host id can be `nil` before cluster connected.
+    # @return [Cassandra::Uuid, nil] host id.
     attr_reader :id
-    # @return [String, nil] host datacenter. Note that can be nil before
-    #   cluster established a connection.
+    # @note Host datacenter can be `nil` before cluster connected.
+    # @return [String, nil] host datacenter
     attr_reader :datacenter
-    # @return [String, nil] host rack. Note that can be nil before cluster
-    #   established a connection.
+    # @note Host rack can be `nil` before cluster connected.
+    # @return [String, nil] host rack
     attr_reader :rack
-    # @return [String, nil] version of cassandra that a host is running. Note
-    #   that can be nil before cluster established a connection.
+    # @note Host's cassandra version can be `nil` before cluster connected.
+    # @return [String, nil] version of cassandra that a host is running
     attr_reader :release_version
     # @return [Symbol] host status. Must be `:up` or `:down`
     attr_reader :status
