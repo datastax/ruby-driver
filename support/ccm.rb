@@ -56,10 +56,10 @@ module CCM
 
       IO.popen(cmd + ' 2>&1') do |io|
         out << io.read
-        Process.wait(io.pid) rescue nil
-        @notifier.executed_command(cmd, out, $?)
-        raise "#{cmd} failed" unless $?.success?
       end
+
+      @notifier.executed_command(cmd, out, $?)
+      raise "#{cmd} failed" unless $?.success?
 
       out
     end
