@@ -58,9 +58,8 @@ module CCM
         out << io.read
         Process.wait(io.pid)
         @notifier.executed_command(cmd, out, $?)
+        raise "#{cmd} failed" unless $?.success?
       end
-
-      raise "#{cmd} failed" unless $?.success?
 
       out
     end
