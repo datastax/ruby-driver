@@ -1,6 +1,14 @@
 # Datastax Ruby Driver for Apache Cassandra
 
-A Ruby client driver for Apache Cassandra. It has built-in support for:
+A Ruby client driver for Apache Cassandra. This driver works exclusively with
+the Cassandra Query Language version 3 (CQL3) and Cassandra's native protocol.
+
+- JIRA: https://datastax-oss.atlassian.net/browse/RUBY
+- MAILING LIST: https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user
+- IRC: #datastax-drivers on [irc.freenode.net](http://freenode.net>)
+- TWITTER: Follow the latest news about DataStax Drivers - [@avalanche123](http://twitter.com/avalanche123), [@mfiguiere](http://twitter.com/mfiguiere) 
+
+It has built-in support for:
 
 * one-off, [prepared](/features/prepared_statements/) and [batch statements](/features/batch_statements/)
 * [asynchronous execution](/features/asynchronous_io/)
@@ -158,6 +166,12 @@ Prereleases will be stable, in the sense that they will have finished and proper
 
 * JRuby 1.6 is not officially supported, although 1.6.8 should work, if you're stuck in JRuby 1.6.8 try and see if it works for you.
 * Because the driver reactor is using `IO.select`, the maximum number of tcp connections allowed is 1024.
+
+
+## Credits
+
+This driver is based on the original work of [Theo Hultberg](https://github.com/iconara) on [cql-rb](https://github.com/iconara/cql-rb/), which will be discontinued. The development effort to provide an up to date, high performance, full featured Ruby Driver for Apache Cassandra will continue on this project.
+
 
 ## Copyright
 
