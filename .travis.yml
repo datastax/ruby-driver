@@ -3,7 +3,7 @@ script: bundle exec rake test
 bundler_args: --without development docs
 before_install:
   - sudo apt-get install -y python-pip
-  - pip install ccm
+  - sudo pip install ccm
 rvm:
   - 1.9.3
   - 2.0.0
