@@ -50,13 +50,10 @@ module CCM
 
     def exec(*args)
       cmd = args.unshift(@cmd).join(' ')
-      out = ''
 
       @notifier.executing_command(cmd)
 
-      IO.popen(cmd + ' 2>&1') do |io|
-        out << io.read
-      end
+      out = `#{cmd} 2>&1`
 
       @notifier.executed_command(cmd, out, $?)
       raise "#{cmd} failed" unless $?.success?
@@ -262,7 +259,7 @@ module CCM
   end
 
   def ccm
-    @ccm ||= Runner.new('ccm', NullNotifier.new)
+    @ccm ||= Runner.new('ccm', PrintingNotifier.new($stderr))
   end
 
 
