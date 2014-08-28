@@ -3,6 +3,7 @@
 A Ruby client driver for Apache Cassandra. This driver works exclusively with
 the Cassandra Query Language version 3 (CQL3) and Cassandra's native protocol.
 
+- Docs: http://datastax.github.io/ruby-driver/
 - JIRA: https://datastax-oss.atlassian.net/browse/RUBY
 - MAILING LIST: https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user
 - IRC: #datastax-drivers on [irc.freenode.net](http://freenode.net>)
