@@ -34,7 +34,13 @@ module Docs
 
       def start_feature(feature)
         output = "<div class=\"feature-section\">"
-        output << "<h1 id=\"#{feature.id}\">#{feature.name}</h1>"
+        feature.tags.each do |tag|
+          next unless tag.name.start_with?('@cassandra-version-')
+          next if tag.name == '@cassandra-version-specific'
+          output << "<div class=\"pull-right\"><span class=\"label label-primary\">since cassadra v#{tag.name.sub('@cassandra-version-', '')}</span></div>"
+        end
+        output << "<h1 id=\"#{feature.id}\">#{feature.name}"
+        output << "</h1>"
         output << @markdown.render(feature.description)
       end
 
@@ -44,7 +50,14 @@ module Docs
 
       def start_scenario(scenario)
         id = scenario.id.split(';').last
-        output = "<h2 id=\"#{id}\">#{scenario.name}</h2><dl class=\"steps\">"
+        output = ''
+        scenario.tags.each do |tag|
+          next unless tag.name.start_with?('@cassandra-version-')
+          next if tag.name == '@cassandra-version-specific'
+          output << "<div class=\"pull-right\"><span class=\"label label-primary\">since cassadra v#{tag.name.sub('@cassandra-version-', '')}</span></div>"
+        end
+        output << "<h2 id=\"#{id}\">#{scenario.name}"
+        output << "</h2><dl class=\"steps\">"
       end
 
       def end_scenario(scenario)
