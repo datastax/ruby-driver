@@ -48,6 +48,7 @@ GEM
       multi_json (>= 1.7.5, < 2.0)
       multi_test (>= 0.1.1)
     diff-lcs (1.2.5)
+    ditaarb (0.1.1)
     docile (1.1.5)
     ffi (1.9.3)
     ffi (1.9.3-java)
@@ -152,6 +153,7 @@ DEPENDENCIES
   compass
   coveralls
   cucumber
+  ditaarb
   gherkin
   guard
   guard-nanoc

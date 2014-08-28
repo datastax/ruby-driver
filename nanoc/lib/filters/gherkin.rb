@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 require 'base64'
-require 'fileutils'
+require 'ditaarb'
 
 module Docs
   class GherkinFilter < Nanoc::Filter
@@ -239,17 +239,7 @@ module Docs
         when nil, ''
           "<pre><code>#{code}</code></pre>"
         when 'ditaa'
-          id = Digest::MD5.hexdigest(code)
-          txt = Tempfile.new([id, '.txt'])
-          png = Tempfile.new([id, '.png'])
-          txt.write(code)
-          txt.close
-          png.close
-          `ditaa -E #{txt.path} #{png.path}`
-          txt.unlink
-          data = File.read(png.path)
-          png.unlink
-          data = Base64.encode64(data)
+          data = Base64.encode64(Ditaa.render(code, :separation => false))
           "<img src=\"data:image/png;base64,#{data}\" alt=\"Text Diagram\" class=\"img-rounded img-thumbnail center-block ditaa\" />"
         else
           markup = ::Pygments.highlight(code, :lexer => language)

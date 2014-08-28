@@ -37,5 +37,6 @@ group :docs do
     gem 'guard-nanoc'
     gem 'pygments.rb'
     gem 'redcarpet'
+    gem 'ditaarb'
   end
 end
