@@ -6,18 +6,28 @@ the Cassandra Query Language version 3 (CQL3) and Cassandra's native protocol.
 - JIRA: https://datastax-oss.atlassian.net/browse/RUBY
 - MAILING LIST: https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user
 - IRC: #datastax-drivers on [irc.freenode.net](http://freenode.net>)
-- TWITTER: Follow the latest news about DataStax Drivers - [@avalanche123](http://twitter.com/avalanche123), [@mfiguiere](http://twitter.com/mfiguiere) 
+- TWITTER: Follow the latest news about DataStax Drivers - [@avalanche123](http://twitter.com/avalanche123), [@mfiguiere](http://twitter.com/mfiguiere), [@al3xandru](https://twitter.com/al3xandru) 
 
-It has built-in support for:
+This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [Theo Hultberg](https://github.com/iconara) and we addded support for:
 
-* one-off, [prepared](/features/prepared_statements/) and [batch statements](/features/batch_statements/)
 * [asynchronous execution](/features/asynchronous_io/)
+* one-off, [prepared](/features/prepared_statements/) and [batch statements](/features/batch_statements/)
 * automatic peer discovery and cluster metadata
-* [diverse load-balancing](/features/load_balancing/), [retry](/features/retry_policies/) and reconnection policies, [with ability to write your own](/features/load_balancing/implementing_a_policy/)
+* various [load-balancing](/features/load_balancing/), [retry](/features/retry_policies/) and reconnection policies, [with ability to write your own](/features/load_balancing/implementing_a_policy/)
 
-This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. Cassandra versions 1.2 and 2.0 are supported as well as Ruby 1.9.3, 2.0, JRuby 1.7 and Rubinius 2.1.
+## Compability
 
-This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [Theo Hultberg](https://github.com/iconara).
+This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. The current version works with:
+
+*   Cassandra versions 1.2 and 2.0
+*   Ruby 1.9.3 and 2.0
+*   JRuby 1.7
+
+    _Note_: JRuby 1.6 is not officially supported, although 1.6.8 should work.
+
+*   Rubinius 2.1
+
+
 
 ## Quick start
 
@@ -52,107 +62,7 @@ Read more:
 
 ## Upgrading from cql-rb
 
-Since Datastax Ruby driver introduces a lot of breaking api changes from cql-rb, it is important to understand what exactly has changed and why:
-
-* [Cassandra.connect](/api/#connect-class_method) returns a [Cassandra::Cluster](/api/cluster/) object that cannot be used to execute queries. A cluster is a metadata container and can be used to get information about all members of cassandra cluster that it is connected to, their respective datacenters, versions and more. [Read about Cassandra::Host](/api/host/) for more info. As well as to register listeners that will be notified whenever membership status changes.
-* [Cassandra::Session#execute](/api/session/#execute-instance_method) or [Cassandra::Session#execute_async](/api/session/#execute_async-instance_method) should be used to execute queries and prepare statements.
-* [Cluster#connect](/api/cluster/#connect-instance_method) or its asynchronous implementation - [Cluster#connect_async](/api/cluster/#connect_async-instance_method) - are used to get a `Cassandra::Session` instance, optionally scoped to a given `keyspace`.
-* [Cassandra::Future](/api/future/) api is incompatible with `Ione::Future`. This is done both to sipmlify the api and to preserve backwards compatibility in the future. Futures interface will stay the same even if Ione implementation changes or if a different reactor altogether is used.
-* [Cassandra::Result](/api/result/) has been enhanced to include `#execution_info` and `#next_page_async`. Methods `#trace_id` and `#metadata` have been removed. Trace can be accessed from [Cassandra::Execution::Info](/api/execution/info/) and metadata is considered private.
-* [Cassandra::Statements::Prepared](/api/statements/prepared/) now includes `#execution_info`. However `#metadata` and `#result_metadata` have been remove and are not members of the public interface anymore.
-* Finally, `#execute` and `#batch` methods have been removed from all statement implementations. [Statements](/api/statements/) are expected to be passed to `Cassandra::Session#execute` for execution.
-
-Below is an example of how to create a thin backwards compatibility shim to ease migration from cql-rb to the ruby driver:
-
-```ruby
-require 'cassandra'
-require 'ione'
-
-class PreparedStatement
-  attr_reader :statement
-
-  def initialize(client, statement)
-    @client = client
-    @statement = statement
-  end
-
-  def execute(*args)
-    @client.execute(@statement, *args)
-  end
-end
-
-class BatchStatement
-  def initialize(client, batch)
-    @client = client
-    @batch = batch
-  end
-
-  def execute(options = {})
-    @client.execute(@batch, options)
-  end
-
-  def add(*args)
-    @batch.add(*args)
-    self
-  end
-end
-
-class Client
-  def initialize(session)
-    @session = session
-  end
-
-  def execute(*args)
-    future = Ione::CompletableFuture.new
-    @session.execute_async(*args).on_complete do |e, v|
-      if e
-        future.fail(e)
-      else
-        future.resolve(v)
-      end
-    end
-    future
-  end
-
-  def prepare(statement, options = {})
-    future = Ione::CompletableFuture.new
-    @session.prepare_async(statement, options).on_complete do |e, v|
-      if e
-        future.fail(e)
-      else
-        future.resolve(PreparedStatement.new(self, v))
-      end
-    end
-    future
-  end
-
-  def batch(type = :logged, options = {})
-    batch = BatchStatement.new(self, @session.send(:"#{type}_batch"))
-    if block_given?
-      yield(batch)
-      batch.execute(options)
-    else
-      batch
-    end
-  end
-
-  def close
-    future = Ione::CompletableFuture.new
-    @session.close.on_complete do |e, v|
-      if e
-        future.fail(e)
-      else
-        future.resolve(v)
-      end
-    end
-    future
-  end
-end
-
-cluster = Cassandra.connect
-session = cluster.connect
-client  = Client.new(session)
-```
+Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API. Primarily around promise and statements interfaces. In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/master/examples/cql-rb-wrapper.rb) to assist you with gradual upgrade.
 
 ## Changelog & versioning
 
@@ -170,7 +80,9 @@ Prereleases will be stable, in the sense that they will have finished and proper
 
 ## Credits
 
-This driver is based on the original work of [Theo Hultberg](https://github.com/iconara) on [cql-rb](https://github.com/iconara/cql-rb/), which will be discontinued. The development effort to provide an up to date, high performance, full featured Ruby Driver for Apache Cassandra will continue on this project.
+This driver is based on the original work of [Theo Hultberg](https://github.com/iconara) on [cql-rb](https://github.com/iconara/cql-rb/) and adds a series of advanced features that are common across all other DataStax drivers for Apache Cassandra.
+
+The development effort to provide an up to date, high performance, fully featured Ruby Driver for Apache Cassandra will continue on this project, while [cql-rb](https://github.com/iconara/cql-rb/) will be discontinued. 
 
 
 ## Copyright
