@@ -6,6 +6,11 @@ Given(/^a running cassandra cluster with a keyspace "(.*?)" and (a|an empty) tab
   step "#{a} table \"#{table}\""
 end
 
+Given(/^a running cassandra cluster with a keyspace "(.*?)"$/) do |keyspace|
+  step "a running cassandra cluster"
+  step "a keyspace \"#{keyspace}\""
+end
+
 Given(/^a running cassandra cluster$/) do
   step "a running cassandra cluster in 1 datacenter with 3 nodes in each"
 end
