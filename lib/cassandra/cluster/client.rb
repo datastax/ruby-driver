@@ -351,7 +351,9 @@ module Cassandra
               prepare_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               s.on_failure do |e|
-                promise.break(e)
+                errors ||= {}
+                errors[host] = e
+                execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
               end
             end
           end
@@ -379,7 +381,9 @@ module Cassandra
               do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               prepare.on_failure do |e|
-                promise.break(e)
+                errors ||= {}
+                errors[host] = e
+                execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
               end
             end
           end
@@ -411,7 +415,9 @@ module Cassandra
               batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, plan, timeout, errors, hosts)
             else
               s.on_failure do |e|
-                promise.break(e)
+                errors ||= {}
+                errors[host] = e
+                batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
               end
             end
           end
@@ -464,7 +470,9 @@ module Cassandra
               do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               f.on_failure do |e|
-                promise.break(e)
+                errors ||= {}
+                errors[host] = e
+                batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
               end
             end
           end
@@ -496,7 +504,9 @@ module Cassandra
               do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               s.on_failure do |e|
-                promise.break(e)
+                errors ||= {}
+                errors[host] = e
+                send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
               end
             end
           end
