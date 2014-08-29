@@ -75,9 +75,8 @@ module Cassandra
           sleep(0.001)
           expect(resolved).to be_falsey
           signal.failure(RuntimeError.new)
-          sleep(0.001)
+          thread.join(1)
           expect(resolved).to be_truthy
-          thread.join
         end
 
         it 'blocks until success' do
@@ -86,9 +85,8 @@ module Cassandra
           sleep(0.001)
           expect(resolved).to be_falsey
           signal.success(double('some value'))
-          sleep(0.001)
+          thread.join(1)
           expect(resolved).to be_truthy
-          thread.join
         end
       end
 
@@ -124,9 +122,8 @@ module Cassandra
             sleep(0.001)
             expect(resolved).to be_falsey
             signal.success(double('some value'))
-            sleep(0.001)
+            thread.join(1)
             expect(resolved).to be_truthy
-            thread.join
           end
         end
       end
@@ -360,7 +357,7 @@ module Cassandra
             sleep(0.001)
             expect(resolved).to be_falsey
             signal.success(nil)
-            sleep(0.001)
+            thread.join(1)
             expect(resolved).to be_truthy
           end
         end
@@ -410,7 +407,7 @@ module Cassandra
             sleep(0.001)
             expect(resolved).to be_falsey
             signal.failure(RuntimeError.new)
-            sleep(0.001)
+            thread.join(1)
             expect(resolved).to be_truthy
           end
         end
