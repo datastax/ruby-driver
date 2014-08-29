@@ -199,7 +199,7 @@ module CCM
     def enable_authentication
       @username = 'cassandra'
       @password = 'cassandra'
-      @ccm.exec('updateconf', "'authenticator: PasswordAuthenticator'")
+      @ccm.exec('updateconf', 'authenticator: PasswordAuthenticator')
       restart
       sleep(10)
 
@@ -207,7 +207,7 @@ module CCM
     end
 
     def disable_authentication
-      @ccm.exec('updateconf', "'authenticator: AllowAllAuthenticator'")
+      @ccm.exec('updateconf', 'authenticator: AllowAllAuthenticator')
     end
 
     def restart
