@@ -52,7 +52,7 @@ Feature: Schema change detection
 
       session = Cassandra.connect.connect
 
-      session.execute("CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}")
+      session.execute("CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}", consistency: :all)
       """
     When it is executed
     Then background output should contain:
@@ -84,7 +84,7 @@ Feature: Schema change detection
 
       session = Cassandra.connect.connect
 
-      session.execute("CREATE TABLE new_keyspace.new_table (id timeuuid PRIMARY KEY)")
+      session.execute("CREATE TABLE new_keyspace.new_table (id timeuuid PRIMARY KEY)", consistency: :all)
       """
     When it is executed
     Then background output should contain:
