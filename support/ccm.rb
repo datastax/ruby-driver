@@ -22,11 +22,11 @@ module CCM
       @out = out
     end
 
-    def executing_command(cmd)
-      @out << "$> #{cmd}\n"
+    def executing_command(cmd, pid)
+      @out << "$> #{cmd} (#{pid})\n"
     end
 
-    def executed_command(cmd, out, status)
+    def executed_command(cmd, pid, out, status)
       out.split("\n").each do |line|
         @out << "      #{line}\n"
       end
@@ -35,15 +35,16 @@ module CCM
   end
 
   class NullNotifier
-    def executing_command(cmd)
+    def executing_command(cmd, pid)
     end
 
-    def executed_command(cmd, out, status)
+    def executed_command(cmd, pid, out, status)
     end
   end
 
   class Runner
-    def initialize(cmd, notifier)
+    def initialize(env, cmd, notifier)
+      @env      = env
       @cmd      = cmd
       @notifier = notifier
     end
@@ -51,14 +52,19 @@ module CCM
     def exec(*args)
       cmd = args.unshift(@cmd).join(' ')
 
-      @notifier.executing_command(cmd)
+      IO.pipe do |read, write|
+        pid = Process.spawn(@env, cmd, [:err, :out] => write)
+        write.close
+        @notifier.executing_command(cmd, pid)
+        Process.wait(pid)
 
-      out = `#{cmd} 2>&1`
+        out = read.read
 
-      @notifier.executed_command(cmd, out, $?)
-      raise "#{cmd} failed" unless $?.success?
+        @notifier.executed_command(cmd, pid, out, $?)
+        raise "#{cmd} failed" unless $?.success?
 
-      out
+        out
+      end
     end
   end
 
@@ -259,7 +265,14 @@ module CCM
   end
 
   def ccm
-    @ccm ||= Runner.new('ccm', PrintingNotifier.new($stderr))
+    @ccm ||= begin
+      Runner.new({
+          'HOME' => File.expand_path(File.dirname(__FILE__) + '/../tmp')
+        },
+        'ccm',
+        PrintingNotifier.new($stderr)
+      )
+    end
   end
 
 
