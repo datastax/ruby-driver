@@ -63,35 +63,31 @@ module CCM
     end
 
     def exec(*args)
-      cmd = args.unshift(@cmd).join(' ')
+      cmd = args.dup.unshift(@cmd).join(' ')
+      pid = nil
       out = ''
 
-      IO.pipe do |read, write|
-        pid = Process.spawn(@env, cmd, [:err, :out] => write)
-        write.close
+      IO.popen([@env, @cmd, *args]) do |io|
+        pid = io.pid
         @notifier.executing_command(cmd, pid)
 
-        out = ''
         loop do
-          if IO.select([read], nil, nil, 30)
-            begin
-              out << chunk = read.read_nonblock(4096)
+          begin
+            Timeout.timeout(30) do
+              out << chunk = io.readpartial(4096)
 
               @notifier.command_output(pid, chunk)
-            rescue IO::WaitReadable
-            rescue EOFError
-              break
             end
-          else
+          rescue Timeout::Error
             @notifier.command_running(pid)
+          rescue EOFError
+            break
           end
         end
-
-        Process.wait(pid)
-
-        @notifier.executed_command(cmd, pid, $?)
-        raise "#{cmd} failed" unless $?.success?
       end
+
+      @notifier.executed_command(cmd, pid, $?)
+      raise "#{cmd} failed" unless $?.success?
 
       out
     end
