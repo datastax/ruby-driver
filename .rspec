@@ -1,3 +1,3 @@
 --color
-<% unless ENV['TRAVIS'] == 'true' %>--format documentation<% end %>
+--format documentation
 <% if ENV["FAIL_FAST"] == 'Y' %>--fail-fast<% end %>
