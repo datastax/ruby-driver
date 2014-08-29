@@ -72,14 +72,15 @@ module CCM
         @notifier.executing_command(cmd, pid)
 
         out = ''
-
-        until read.eof?
-          if IO.select([read], [], [], 30)
+        loop do
+          if IO.select([read], nil, nil, 30)
             begin
               out << chunk = read.read_nonblock(4096)
 
               @notifier.command_output(pid, chunk)
             rescue IO::WaitReadable
+            rescue EOFError
+              break
             end
           else
             @notifier.command_running(pid)
