@@ -1,6 +1,8 @@
 Feature: Datatypes
 
-  A columnfamily can have all the datatypes defined in protocol v2 of Cassandra.
+  A columnfamily can have all the datatypes defined in Cassandra.
+  [See here](http://www.datastax.com/documentation/cql/3.0/cql/cql_reference/cql_data_types_c.html)
+  for a full list of datatypes and their differences.
 
   Background:
     Given a running cassandra cluster with a keyspace "simplex"
