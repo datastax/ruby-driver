@@ -107,6 +107,7 @@ module Cassandra
       private
 
       def serialized_cql
+        return @cql if @values.nil? || @values.empty?
         i = -1
         @cql.gsub('?') { serialize_value(@values[i += 1]) }
       end
