@@ -28,10 +28,15 @@ module CCM
       @out << "$> #{cmd} (#{pid})\n"
     end
 
-    def executed_command(cmd, pid, out, status)
-      out.split("\n").each do |line|
-        @out << "      #{line}\n"
-      end
+    def command_output(pid, chunk)
+      @out << chunk
+    end
+
+    def command_running(pid)
+      @out << "\n....still running....\n"
+    end
+
+    def executed_command(cmd, pid, status)
       @out << "   [exit=#{status.exitstatus}]\n"
     end
   end
@@ -40,7 +45,13 @@ module CCM
     def executing_command(cmd, pid)
     end
 
-    def executed_command(cmd, pid, out, status)
+    def command_output(pid, chunk)
+    end
+
+    def command_running(pid)
+    end
+
+    def executed_command(cmd, pid, status)
     end
   end
 
@@ -53,20 +64,35 @@ module CCM
 
     def exec(*args)
       cmd = args.unshift(@cmd).join(' ')
+      out = ''
 
       IO.pipe do |read, write|
         pid = Process.spawn(@env, cmd, [:err, :out] => write)
         write.close
         @notifier.executing_command(cmd, pid)
+
+        out = ''
+
+        until read.eof?
+          if IO.select([read], [], [], 30)
+            begin
+              out << chunk = read.read_nonblock(4096)
+
+              @notifier.command_output(pid, chunk)
+            rescue IO::WaitReadable
+            end
+          else
+            @notifier.command_running(pid)
+          end
+        end
+
         Process.wait(pid)
 
-        out = read.read
-
-        @notifier.executed_command(cmd, pid, out, $?)
+        @notifier.executed_command(cmd, pid, $?)
         raise "#{cmd} failed" unless $?.success?
-
-        out
       end
+
+      out
     end
   end
 
