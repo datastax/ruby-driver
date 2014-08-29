@@ -19,9 +19,98 @@ env:
   global:
     - FAIL_FAST=N
   matrix:
-    - CASSANDRA_VERSION=2.0.9
-    - CASSANDRA_VERSION=1.2.18
+    - VM_NUMBER=1 CASSANDRA_VERSION=2.0.9
+    - VM_NUMBER=2 CASSANDRA_VERSION=2.0.9
+    - VM_NUMBER=3 CASSANDRA_VERSION=2.0.9
+    - VM_NUMBER=4 CASSANDRA_VERSION=2.0.9
+    - VM_NUMBER=5 CASSANDRA_VERSION=2.0.9
+    - VM_NUMBER=1 CASSANDRA_VERSION=1.2.18
+    - VM_NUMBER=2 CASSANDRA_VERSION=1.2.18
+    - VM_NUMBER=3 CASSANDRA_VERSION=1.2.18
+    - VM_NUMBER=4 CASSANDRA_VERSION=1.2.18
+    - VM_NUMBER=5 CASSANDRA_VERSION=1.2.18
 matrix:
+  exclude:
+    - rvm: 1.9.3
+      env: VM_NUMBER=2 CASSANDRA_VERSION=2.0.9
+    - rvm: 1.9.3
+      env: VM_NUMBER=3 CASSANDRA_VERSION=2.0.9
+    - rvm: 1.9.3
+      env: VM_NUMBER=4 CASSANDRA_VERSION=2.0.9
+    - rvm: 1.9.3
+      env: VM_NUMBER=5 CASSANDRA_VERSION=2.0.9
+    - rvm: 1.9.3
+      env: VM_NUMBER=2 CASSANDRA_VERSION=1.2.18
+    - rvm: 1.9.3
+      env: VM_NUMBER=3 CASSANDRA_VERSION=1.2.18
+    - rvm: 1.9.3
+      env: VM_NUMBER=4 CASSANDRA_VERSION=1.2.18
+    - rvm: 1.9.3
+      env: VM_NUMBER=5 CASSANDRA_VERSION=1.2.18
+    - rvm: 2.0.0
+      env: VM_NUMBER=1 CASSANDRA_VERSION=2.0.9
+    - rvm: 2.0.0
+      env: VM_NUMBER=3 CASSANDRA_VERSION=2.0.9
+    - rvm: 2.0.0
+      env: VM_NUMBER=4 CASSANDRA_VERSION=2.0.9
+    - rvm: 2.0.0
+      env: VM_NUMBER=5 CASSANDRA_VERSION=2.0.9
+    - rvm: 2.0.0
+      env: VM_NUMBER=1 CASSANDRA_VERSION=1.2.18
+    - rvm: 2.0.0
+      env: VM_NUMBER=3 CASSANDRA_VERSION=1.2.18
+    - rvm: 2.0.0
+      env: VM_NUMBER=4 CASSANDRA_VERSION=1.2.18
+    - rvm: 2.0.0
+      env: VM_NUMBER=5 CASSANDRA_VERSION=1.2.18
+    - rvm: 2.1.1
+      env: VM_NUMBER=1 CASSANDRA_VERSION=2.0.9
+    - rvm: 2.1.1
+      env: VM_NUMBER=2 CASSANDRA_VERSION=2.0.9
+    - rvm: 2.1.1
+      env: VM_NUMBER=4 CASSANDRA_VERSION=2.0.9
+    - rvm: 2.1.1
+      env: VM_NUMBER=5 CASSANDRA_VERSION=2.0.9
+    - rvm: 2.1.1
+      env: VM_NUMBER=1 CASSANDRA_VERSION=1.2.18
+    - rvm: 2.1.1
+      env: VM_NUMBER=2 CASSANDRA_VERSION=1.2.18
+    - rvm: 2.1.1
+      env: VM_NUMBER=4 CASSANDRA_VERSION=1.2.18
+    - rvm: 2.1.1
+      env: VM_NUMBER=5 CASSANDRA_VERSION=1.2.18
+    - rvm: jruby
+      env: VM_NUMBER=1 CASSANDRA_VERSION=2.0.9
+    - rvm: jruby
+      env: VM_NUMBER=2 CASSANDRA_VERSION=2.0.9
+    - rvm: jruby
+      env: VM_NUMBER=3 CASSANDRA_VERSION=2.0.9
+    - rvm: jruby
+      env: VM_NUMBER=5 CASSANDRA_VERSION=2.0.9
+    - rvm: jruby
+      env: VM_NUMBER=1 CASSANDRA_VERSION=1.2.18
+    - rvm: jruby
+      env: VM_NUMBER=2 CASSANDRA_VERSION=1.2.18
+    - rvm: jruby
+      env: VM_NUMBER=3 CASSANDRA_VERSION=1.2.18
+    - rvm: jruby
+      env: VM_NUMBER=5 CASSANDRA_VERSION=1.2.18
+    - rvm: rbx-2
+      env: VM_NUMBER=1 CASSANDRA_VERSION=2.0.9
+    - rvm: rbx-2
+      env: VM_NUMBER=2 CASSANDRA_VERSION=2.0.9
+    - rvm: rbx-2
+      env: VM_NUMBER=3 CASSANDRA_VERSION=2.0.9
+    - rvm: rbx-2
+      env: VM_NUMBER=4 CASSANDRA_VERSION=2.0.9
+    - rvm: rbx-2
+      env: VM_NUMBER=1 CASSANDRA_VERSION=1.2.18
+    - rvm: rbx-2
+      env: VM_NUMBER=2 CASSANDRA_VERSION=1.2.18
+    - rvm: rbx-2
+      env: VM_NUMBER=3 CASSANDRA_VERSION=1.2.18
+    - rvm: rbx-2
+      env: VM_NUMBER=4 CASSANDRA_VERSION=1.2.18
   allow_failures:
     - rvm: rbx-2
   fast_finish: true
