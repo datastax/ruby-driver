@@ -48,6 +48,10 @@ module Cassandra
     # @see Cassandra.connect for description of options that can be specified
     #   on the cluster-level as well as default values chosen.
     #
+    # @note Last argument will be treated as `options` if it is a {Hash}.
+    #   Therefore, make sure to pass empty `options` when executing a statement
+    #   with the last parameter required to be a map datatype.
+    #
     # @return [Cassandra::Future<Cassandra::Result>]
     def execute_async(statement, *args)
       if args.last.is_a?(::Hash)
