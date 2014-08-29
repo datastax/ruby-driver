@@ -89,6 +89,8 @@ module CCM
       @notifier.executed_command(cmd, pid, $?)
       raise "#{cmd} failed" unless $?.success?
 
+      sleep(1)
+
       out
     end
   end
@@ -115,7 +117,7 @@ module CCM
 
     def self.count_datacenters(node, ccm)
       ccm.
-          exec("#{node} status").
+          exec(node, 'status').
           split("\n").
           find_all { |line| line.start_with? "Datacenter:" }.
           count
@@ -277,7 +279,7 @@ module CCM
       # for some reason cqlsh -x it eating first 4 lines of output, so we make it output 4 lines of version first
       prefix  = 'show version; ' * 4
 
-      @ccm.exec(any_node, 'cqlsh', '-v', '-x', "\"#{prefix}#{query}\"")
+      @ccm.exec(any_node, 'cqlsh', '-v', '-x', "#{prefix}#{query}")
     end
   end
 
