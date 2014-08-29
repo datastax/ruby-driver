@@ -105,14 +105,19 @@ Feature: Datacenter-aware Round Robin Policy
       cluster    = Cassandra.connect(consistency: :one, load_balancing_policy: policy)
       session    = cluster.connect('simplex')
 
-      session.execute("SELECT * FROM songs", :consistency => :local_one)
+      begin
+        session.execute("SELECT * FROM songs", :consistency => :local_one)
+        puts "failure"
+      rescue Cassandra::Errors::NoHostsAvailable
+        puts "success"
+      end
       """
     And node 3 is stopped
     And node 4 is stopped
     When it is executed
     Then its output should contain:
       """
-      no hosts available, check #errors property for details (Cassandra::Errors::NoHostsAvailable)
+      success
       """
 
   Scenario: Routing requests with local consistencies to remote datacenters
