@@ -94,7 +94,7 @@ module Cassandra
     # @private
     class EmptyPlan
       def has_next?
-        nil
+        false
       end
 
       def next
