@@ -26,8 +26,8 @@ Feature: Datatypes
       session.execute(insert, 0, 'ascii', "blob", 'text', 'varchar')
 
       rows = session.execute("SELECT * FROM mytable").first
-      rows.each_value do |datatype|
-        puts datatype
+      rows.keys.sort.each do |cell_name|
+        puts rows[cell_name]
       end
 
       """
@@ -63,8 +63,8 @@ Feature: Datatypes
                                   Math::PI, 3.14, 4, 67890656781923123918798273492834712837198237)
 
       rows = session.execute("SELECT * FROM mytable").first
-      rows.each_value do |datatype|
-        puts datatype
+      rows.keys.sort.each do |cell_name|
+        puts rows[cell_name]
       end
 
       """
@@ -102,8 +102,8 @@ Feature: Datatypes
                                   Cassandra::Uuid.new('00b69180-d0e1-11e2-8b8b-0800200c9a66'))
 
       rows = session.execute("SELECT * FROM mytable").first
-      rows.each_value do |datatype|
-        puts datatype
+      rows.keys.sort.each do |cell_name|
+        puts rows[cell_name]
       end
 
       """
@@ -116,4 +116,42 @@ Feature: Datatypes
       2013-12-11 02:09:08 -0800
       fe2b4360-28c6-11e2-81c1-0800200c9a66
       00b69180-d0e1-11e2-8b8b-0800200c9a66
+      """
+
+  Scenario: Collection-datatypes are inserted into a column family
+    Given the following example:
+    """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.connect
+      at_exit { cluster.close }
+
+      session = cluster.connect("simplex")
+      session.execute("CREATE TABLE user (id int PRIMARY KEY, user_name text,
+                                                              logins List<timestamp>,
+                                                              locations Map<timestamp, double>,
+                                                              ip_addresses Set<inet>
+                                                              )")
+
+      insert = session.prepare("INSERT INTO user (id, user_name, logins, locations, ip_addresses) VALUES (?, ?, ?, ?, ?)")
+      session.execute(insert, 0, "cassandra_user",
+                                 [Time.utc(2014, 9, 11, 10, 9, 8), Time.utc(2014, 9, 12, 10, 9, 0)],
+                                 {Time.utc(2014, 9, 11, 10, 9, 8) => 37.397357},
+                                 Set.new([IPAddr.new('200.199.198.197'), IPAddr.new('192.168.1.15')])
+                                 )
+
+      rows = session.execute("SELECT * FROM user").first
+      rows.keys.sort.each do |cell_name|
+        p rows[cell_name]
+      end
+
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      0
+      #<Set: {#<IPAddr: IPv4:192.168.1.15/255.255.255.255>, #<IPAddr: IPv4:200.199.198.197/255.255.255.255>}>
+      {2014-09-11 03:09:08 -0700=>37.397357}
+      [2014-09-11 03:09:08 -0700, 2014-09-12 03:09:00 -0700]
+      "cassandra_user"
       """
