@@ -17,7 +17,8 @@ jdk:
   - openjdk7
 env:
   global:
-    - FAIL_FAST=N
+    - FAIL_FAST=no
+    - COVERAGE=no
   matrix:
     - CASSANDRA_VERSION=2.0.9
     - CASSANDRA_VERSION=1.2.18
