@@ -14,7 +14,6 @@ end
 
 require 'aruba/cucumber'
 require 'pathname'
-require 'fileutils'
 require 'tempfile'
 require 'yaml'
 

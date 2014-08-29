@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+require 'fileutils'
+
 # Cassandra Cluster Manager integration for
 # driving a cassandra cluster from tests.
 module CCM
@@ -266,8 +268,10 @@ module CCM
 
   def ccm
     @ccm ||= begin
+      ccm_home = File.expand_path(File.dirname(__FILE__) + '/../tmp')
+      FileUtils.mkdir_p(ccm_home) unless File.directory?(ccm_home)
       Runner.new({
-          'HOME' => File.expand_path(File.dirname(__FILE__) + '/../tmp')
+          'HOME' => ccm_home
         },
         'ccm',
         PrintingNotifier.new($stderr)
