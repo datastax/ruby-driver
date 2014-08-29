@@ -3,6 +3,7 @@
 Given(/^the following example running in the background:$/) do |code|
   step 'a file named "background_example.rb" with:', prepend_encoding(code)
   @background_process = run('ruby -I. -rbundler/setup background_example.rb', 5)
+  sleep(5)
 end
 
 Then(/^background output should contain:$/) do |expected|
