@@ -318,7 +318,7 @@ module CCM
   def create_cluster(cluster, version, no_dc, no_nodes_per_dc)
     nodes = Array.new(no_dc, no_nodes_per_dc).join(":")
 
-    ccm.exec('create', '-n', nodes, '-v', version, '-b', '-s', '-i', '127.0.0.', cluster)
+    ccm.exec('create', '-n', nodes, '-v', 'binary:' + version, '-b', '-s', '-i', '127.0.0.', cluster)
     @current_no_dc=no_dc
     @current_no_nodes_per_dc=no_nodes_per_dc
     nil

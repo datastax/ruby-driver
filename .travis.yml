@@ -6,7 +6,9 @@ before_install:
   - sudo pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
-  - pip install -r requirements.txt
+  - cd support/ccm
+  - python setup.py install
+  - cd -
 rvm:
   - 1.9.3
   - 2.0.0

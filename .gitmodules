@@ -1,0 +1,3 @@
+[submodule "support/ccm"]
+	path = support/ccm
+	url = git@github.com:pcmanus/ccm.git

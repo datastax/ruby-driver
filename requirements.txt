@@ -1,5 +1,0 @@
-PyYAML==3.11
-ccm==0.9
-cql==1.4.0
-thrift==0.9.1
-wsgiref==0.1.2
