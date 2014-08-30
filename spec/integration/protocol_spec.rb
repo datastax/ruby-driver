@@ -616,7 +616,7 @@ describe 'Protocol parsing and communication', :integration do
       protocol_handler_factory = lambda { |connection| Cassandra::Protocol::CqlProtocolHandler.new(connection, io_reactor, protocol_version) }
       io_reactor = Cassandra::Io::IoReactor.new
       io_reactor.start.value
-      connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1, &protocol_handler_factory).value
+      connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 5, &protocol_handler_factory).value
       response = connection.send_request(Cassandra::Protocol::StartupRequest.new(cql_version)).value
       if response.is_a?(Cassandra::Protocol::AuthenticateResponse)
         response = connection.send_request(Cassandra::Protocol::AuthResponseRequest.new("\x00cassandra\x00cassandra")).value

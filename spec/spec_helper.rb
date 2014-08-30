@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ENV['CASSANDRA_HOST'] ||= 'localhost'
+ENV['CASSANDRA_HOST'] ||= '127.0.0.1'
 
 require File.dirname(__FILE__) + '/../support/ccm.rb'
 
