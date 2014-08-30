@@ -96,6 +96,8 @@ module CCM
   end
 
   class Cluster
+    Node = Struct.new(:name, :status)
+
     def self.stop_existing_cluster(ccm)
       if (ccm.exec('list') =~ /\*/) != nil
         ccm.exec('stop')
@@ -110,8 +112,8 @@ module CCM
 
     def self.list_nodes(ccm)
       ccm.exec('status').split("\n").map do |line|
-        node, _ = line.split(": ")
-        node
+        name, status = line.chomp.split(": ")
+        Node.new(name, status)
       end
     end
 
@@ -132,7 +134,7 @@ module CCM
       start unless running?
 
       @nodes = Cluster.list_nodes(ccm)
-      @no_dc = Cluster.count_datacenters(@nodes.first, ccm)
+      @no_dc = Cluster.count_datacenters(any_node.name, ccm)
     end
 
     def has_n_datacenters?(n)
@@ -272,14 +274,21 @@ module CCM
     end
 
     def any_node
-      @nodes.sample
+      node = @nodes.select {|n| n.status == 'UP'}.sample
+
+      if node.nil?
+        start
+        @nodes.select {|n| n.status == 'UP'}.sample
+      else
+        node
+      end
     end
 
     def execute_query(query)
       # for some reason cqlsh -x it eating first 4 lines of output, so we make it output 4 lines of version first
       prefix  = 'show version; ' * 4
 
-      @ccm.exec(any_node, 'cqlsh', '-v', '-x', "#{prefix}#{query}")
+      @ccm.exec(any_node.name, 'cqlsh', '-v', '-x', "#{prefix}#{query}")
     end
   end
 
