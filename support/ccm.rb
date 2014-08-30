@@ -363,8 +363,16 @@ module CCM
       end
 
       cluster = Cluster.new(name, ccm)
-      if cluster.running? and cluster.has_n_datacenters?(no_dc) and cluster.has_n_nodes_per_dc?(no_nodes_per_dc)
-        cluster.start_down_nodes
+
+      if cluster.running?
+        if cluster.has_n_datacenters?(no_dc) && cluster.has_n_nodes_per_dc?(no_nodes_per_dc)
+          cluster.start_down_nodes
+        else
+          Cluster.stop_existing_cluster(ccm)
+          remove_cluster(name)
+          create_cluster(name, cassandra_version, no_dc, no_nodes_per_dc)
+          Cluster.new(name, ccm).start
+        end
       else
         remove_cluster(name)
         create_cluster(name, cassandra_version, no_dc, no_nodes_per_dc)
