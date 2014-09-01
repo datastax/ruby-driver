@@ -30,8 +30,6 @@ This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Ca
 
 *   Rubinius 2.1
 
-
-
 ## Quick start
 
 ```ruby
@@ -62,6 +60,23 @@ Read more:
 * [`Cql.connect` options](/api/#connect-class_method)
 * [`Session#execute_async` options](/api/session/#execute_async-instance_method)
 * [Usage documentation](/features)
+
+## Installation
+
+Install via rubygems
+
+```bash
+gem install cassandra-driver
+```
+
+Install via Gemfile
+
+```ruby
+gem 'cassandra-driver'
+```
+
+Note: if you want to use compression you should also install [snappy](http://rubygems.org/gems/snappy) or [lz4-ruby](http://rubygems.org/gems/lz4-ruby). [Read more about compression.](/features/#compression)
+
 
 ## Upgrading from cql-rb
 
