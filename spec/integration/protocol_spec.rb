@@ -19,7 +19,7 @@ require 'spec_helper'
 
 describe 'Protocol parsing and communication', :integration do
   let :protocol_version do
-    if cassandra_version.start_with?('1.2')
+    if CCM.cassandra_version.start_with?('1.2')
       1
     else
       2
@@ -27,7 +27,7 @@ describe 'Protocol parsing and communication', :integration do
   end
 
   let :cql_version do
-    if cassandra_version.start_with?('1.2')
+    if CCM.cassandra_version.start_with?('1.2')
       '3.0.5'
     else
       '3.1.0'
@@ -51,7 +51,7 @@ describe 'Protocol parsing and communication', :integration do
   end
 
   before :all do
-    cql_version = if cassandra_version.start_with?('1.2')
+    cql_version = if CCM.cassandra_version.start_with?('1.2')
       '3.0.5'
     else
       '3.1.0'
@@ -398,7 +398,7 @@ describe 'Protocol parsing and communication', :integration do
           end
         end
 
-        it 'sends an INSERT command with bound values', :unless => cassandra_version.start_with?('1.2') do
+        it 'sends an INSERT command with bound values', :unless => CCM.cassandra_version.start_with?('1.2') do
           in_keyspace_with_table do
             cql = %<INSERT INTO users (user_name, email) VALUES (?, ?)>
             response = execute_request(Cassandra::Protocol::QueryRequest.new(cql, ['sue', 'sue@inter.net'], nil, :one))
@@ -406,7 +406,7 @@ describe 'Protocol parsing and communication', :integration do
           end
         end
 
-        it 'sends an UPDATE command with bound values', :unless => cassandra_version.start_with?('1.2') do
+        it 'sends an UPDATE command with bound values', :unless => CCM.cassandra_version.start_with?('1.2') do
           in_keyspace_with_table do
             cql = %<UPDATE users SET email = ? WHERE user_name = ?>
             response = execute_request(Cassandra::Protocol::QueryRequest.new(cql, ['sue@inter.net', 'sue'], nil, :one))
@@ -414,7 +414,7 @@ describe 'Protocol parsing and communication', :integration do
           end
         end
 
-        it 'sends a SELECT command with bound values', :unless => cassandra_version.start_with?('1.2') do
+        it 'sends a SELECT command with bound values', :unless => CCM.cassandra_version.start_with?('1.2') do
           in_keyspace_with_table do
             query(%<INSERT INTO users (user_name, email) VALUES ('phil', 'phil@heck.com')>)
             query(%<INSERT INTO users (user_name, email) VALUES ('sue', 'sue@inter.net')>)
@@ -426,7 +426,7 @@ describe 'Protocol parsing and communication', :integration do
           end
         end
 
-        it 'guesses the types of bound values', :unless => cassandra_version.start_with?('1.2') do
+        it 'guesses the types of bound values', :unless => CCM.cassandra_version.start_with?('1.2') do
           in_keyspace do
             query('CREATE TABLE types (a BIGINT PRIMARY KEY, b DOUBLE, c ASCII, d BOOLEAN, e TIMESTAMP, f UUID, g DECIMAL, h BLOB)')
             cql = %<UPDATE types SET b = ?, c = ?, d = ?, e = ?, f = ?, g = ?, h = ? WHERE a = ?>
@@ -436,7 +436,7 @@ describe 'Protocol parsing and communication', :integration do
           end
         end
 
-        it 'uses the provided type hints to encode bound values', :unless => cassandra_version.start_with?('1.2') do
+        it 'uses the provided type hints to encode bound values', :unless => CCM.cassandra_version.start_with?('1.2') do
           in_keyspace do
             query('CREATE TABLE types (a INT PRIMARY KEY, b FLOAT)')
             cql = %<UPDATE types SET b = ? WHERE a = ?>
@@ -447,7 +447,7 @@ describe 'Protocol parsing and communication', :integration do
           end
         end
 
-        it 'sends a SELECT command with a page size and receives a ROWS RESULT with a paging state', :unless => cassandra_version.start_with?('1.2') do
+        it 'sends a SELECT command with a page size and receives a ROWS RESULT with a paging state', :unless => CCM.cassandra_version.start_with?('1.2') do
           in_keyspace_with_table do
             10.times do
               query(%<INSERT INTO users (user_name, email) VALUES ('#{rand(234234).to_s(36)}', 'someone@somewhere.sx')>)
@@ -485,7 +485,7 @@ describe 'Protocol parsing and communication', :integration do
           end
         end
 
-        it 'sends an EXECUTE with a page size and receives a RESULT with a paging state', :unless => cassandra_version.start_with?('1.2') do
+        it 'sends an EXECUTE with a page size and receives a RESULT with a paging state', :unless => CCM.cassandra_version.start_with?('1.2') do
           in_keyspace_with_table do
             10.times do
               query(%<INSERT INTO users (user_name, email) VALUES ('#{rand(234234).to_s(36)}', 'someone@somewhere.sx')>)
@@ -503,7 +503,7 @@ describe 'Protocol parsing and communication', :integration do
         end
       end
 
-      context 'with BATCH requests', :unless => cassandra_version.start_with?('1.2') do
+      context 'with BATCH requests', :unless => CCM.cassandra_version.start_with?('1.2') do
         it 'sends a BATCH request and receives RESULT' do
           in_keyspace_with_table do
             cql1 = %<INSERT INTO users (user_name, email) VALUES (?, ?)>

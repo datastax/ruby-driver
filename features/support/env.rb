@@ -21,8 +21,6 @@ require 'cassandra'
 require 'cassandra/compression/compressors/snappy'
 require 'cassandra/compression/compressors/lz4'
 
-World(CCM)
-
 Before do
   @aruba_timeout_seconds = 15
 end
