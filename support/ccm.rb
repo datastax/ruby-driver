@@ -418,7 +418,7 @@ module CCM extend self
     if cluster_exists?(cassandra_cluster)
       switch_cluster(cassandra_cluster)
 
-      if @current_cluster.datacenters_count == no_dc && @current_cluster.nodes_count == no_dc * no_nodes_per_dc
+      if @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
         @current_cluster.start
       else
         @current_cluster.stop
