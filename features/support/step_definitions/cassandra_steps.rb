@@ -1,9 +1,9 @@
 # encoding: utf-8
 
-Given(/^a running cassandra cluster with a keyspace "(.*?)" and (a|an empty) table "(.*?)"$/) do |keyspace, a, table|
+Given(/^a running cassandra cluster with a keyspace "(.*?)" and (a|an empty) table "(.*?)"$/) do |keyspace, empty, table|
   step "a running cassandra cluster"
   step "a keyspace \"#{keyspace}\""
-  step "#{a} table \"#{table}\""
+  step "#{empty} table \"#{table}\""
 end
 
 Given(/^a running cassandra cluster with a keyspace "(.*?)"$/) do |keyspace|
