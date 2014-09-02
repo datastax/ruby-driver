@@ -16,6 +16,7 @@ Feature: Datatypes
       at_exit { cluster.close }
 
       session = cluster.connect("simplex")
+      session.execute("DROP TABLE mytable") rescue nil
       session.execute("CREATE TABLE mytable (
         a int PRIMARY KEY,
         b ascii,
@@ -53,6 +54,7 @@ Feature: Datatypes
       at_exit { cluster.close }
 
       session = cluster.connect("simplex")
+      session.execute("DROP TABLE mytable") rescue nil
       session.execute("CREATE TABLE mytable (
         a int PRIMARY KEY,
         b bigint,
@@ -98,6 +100,7 @@ Feature: Datatypes
       at_exit { cluster.close }
 
       session = cluster.connect("simplex")
+      session.execute("DROP TABLE mytable") rescue nil
       session.execute("CREATE TABLE mytable (
         a int PRIMARY KEY,
         b boolean,
@@ -141,6 +144,7 @@ Feature: Datatypes
       at_exit { cluster.close }
 
       session = cluster.connect("simplex")
+      session.execute("DROP TABLE user") rescue nil
       session.execute("CREATE TABLE user (
         id int PRIMARY KEY,
         user_name text,

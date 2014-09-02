@@ -1,3 +1,4 @@
+@schema
 Feature: Schema change detection
 
   A state listener registered with Cluster object will be notified of schema changes.
@@ -82,9 +83,10 @@ Feature: Schema change detection
       """ruby
       require 'cassandra'
 
-      session = Cassandra.connect.connect
+      session = Cassandra.connect.connect('new_keyspace')
 
-      session.execute("CREATE TABLE new_keyspace.new_table (id timeuuid PRIMARY KEY)", consistency: :all)
+      session.execute('DROP new_table', consistency: :all) rescue nil
+      session.execute("CREATE TABLE new_table (id timeuuid PRIMARY KEY)", consistency: :all)
       """
     When it is executed
     Then background output should contain:

@@ -116,6 +116,10 @@ After('@auth') do
   @cluster.disable_authentication
 end
 
+After('@schema') do
+  @cluster.clear_schema
+end
+
 def prepend_encoding(code)
   <<-CODE
 # encoding: utf-8
