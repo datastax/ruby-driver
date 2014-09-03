@@ -23,13 +23,12 @@ This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [
 
 This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. The current version works with:
 
-*   Cassandra versions 1.2 and 2.0
-*   Ruby 1.9.3 and 2.0
-*   JRuby 1.7
+* Cassandra versions 1.2 and 2.0
+* Ruby 1.9.3 and 2.0
+* JRuby 1.7
+* Rubinius 2.1
 
-    _Note_: JRuby 1.6 is not officially supported, although 1.6.8 should work.
-
-*   Rubinius 2.1
+__Note__: JRuby 1.6 is not officially supported, although 1.6.8 should work.
 
 ## Quick start
 
