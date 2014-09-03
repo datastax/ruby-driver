@@ -8,6 +8,7 @@ Feature: Datatypes
   Background:
     Given a running cassandra cluster with a keyspace "simplex"
 
+  @cassandra-version-specific @cassandra-version-2.0
   Scenario: Non-prepared statements are executed with synchronous paging
     Given the following example:
     """ruby
@@ -17,6 +18,7 @@ Feature: Datatypes
       at_exit { cluster.close }
 
       session = cluster.connect("simplex")
+      session.execute("DROP TABLE test", consistency: :all) rescue nil
       session.execute("CREATE TABLE test (k text, v int, PRIMARY KEY (k, v))", consistency: :all)
       sleep(1) # wait for the change to propagate
 
@@ -77,6 +79,7 @@ Feature: Datatypes
 
       """
 
+  @cassandra-version-specific @cassandra-version-2.0
   Scenario: Prepared statements are executed with asynchronous paging
     Given the following example:
     """ruby
@@ -86,6 +89,7 @@ Feature: Datatypes
       at_exit { cluster.close }
 
       session = cluster.connect("simplex")
+      session.execute("DROP TABLE test", consistency: :all) rescue nil
       session.execute("CREATE TABLE test (k text, v int, PRIMARY KEY (k, v))", consistency: :all)
       sleep(1) # wait for the change to propagate
 
