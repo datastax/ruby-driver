@@ -264,8 +264,7 @@ module CCM extend self
     def stop
       return if nodes.all?(&:down?)
 
-      @ccm.exec('stop')
-      @nodes.each(&:down!)
+      nodes.select(&:up?).each(&:stop)
 
       nil
     end
@@ -273,8 +272,7 @@ module CCM extend self
     def start
       return if nodes.all?(&:up?)
 
-      @ccm.exec('start')
-      @nodes.each(&:up!)
+      nodes.select(&:down?).each(&:start)
 
       nil
     end
@@ -353,6 +351,7 @@ module CCM extend self
 
       execute_query("CREATE KEYSPACE #{name} WITH replication = " \
                     "{'class': 'SimpleStrategy', 'replication_factor': 3}")
+      sleep(2)
 
       keyspaces << keyspace = Keyspace.new(name, self)
       keyspace
@@ -396,7 +395,7 @@ module CCM extend self
       @ccm.exec('updateconf', 'authenticator: PasswordAuthenticator')
       start
 
-      sleep(10)
+      sleep(2)
 
       [@username, @password]
     end
