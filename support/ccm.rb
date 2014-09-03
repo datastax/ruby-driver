@@ -433,6 +433,7 @@ module CCM extend self
     @current_cluster
   rescue
     clear
+    ccm.exec('stop') rescue nil
     raise if attempts == 3
     attempts += 1
     retry
