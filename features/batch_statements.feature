@@ -185,9 +185,8 @@ Feature: Batch statements
       at_exit { cluster.close }
 
       session = cluster.connect("simplex")
-      session.execute("DROP TABLE test", consistency: :all) rescue nil
-      session.execute("CREATE TABLE test (k text, v int, PRIMARY KEY (k, v))", consistency: :all)
-      sleep(1) # wait for the change to propagate
+      session.execute("DROP TABLE test") rescue nil
+      session.execute("CREATE TABLE test (k text, v int, PRIMARY KEY (k, v))")
 
       statement = session.prepare("INSERT INTO test (k, v) VALUES (?, ?) IF NOT EXISTS")
       batch = session.batch
