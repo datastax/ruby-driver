@@ -22,7 +22,6 @@ module Cassandra
       define_method(:"#{name}=") { |object| @instances[name] = object }
     end
 
-    let(:request_runner)   { Client::RequestRunner.new }
     let(:io_reactor)       { Io::IoReactor.new }
     let(:cluster_registry) { Cluster::Registry.new(logger) }
     let(:cluster_schema)   { Cluster::Schema.new(schema_type_parser) }
@@ -32,7 +31,7 @@ module Cassandra
 
     let(:connector) { Cluster::Connector.new(logger, io_reactor, cluster_registry, connection_options) }
 
-    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, request_runner, cluster_registry, cluster_schema, load_balancing_policy, reconnection_policy, connector, connection_options) }
+    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, load_balancing_policy, reconnection_policy, connector, connection_options) }
 
     let(:cluster) { Cluster.new(logger, io_reactor, control_connection, cluster_registry, cluster_schema, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, connector, futures_factory) }
 

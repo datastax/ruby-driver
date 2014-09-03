@@ -20,7 +20,7 @@ module Cassandra
   class Cluster
     describe(ControlConnection) do
       let :control_connection do
-        ControlConnection.new(logger, io_reactor, request_runner, cluster_registry, cluster_schema, load_balancing_policy, reconnection_policy, driver.connector, driver.connection_options)
+        ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, load_balancing_policy, reconnection_policy, driver.connector, driver.connection_options)
       end
 
       let :io_reactor do
@@ -33,10 +33,6 @@ module Cassandra
 
       let :cluster_schema do
         driver.cluster_schema
-      end
-
-      let :request_runner do
-        driver.request_runner
       end
 
       let :logger do
