@@ -56,40 +56,81 @@ module CCM extend self
   end
 
   class Runner
-    def initialize(env, cmd, notifier)
-      @env      = env
-      @cmd      = cmd
-      @notifier = notifier
+    def initialize(ccm_home, ccm_script, notifier)
+      @ccm_home   = ccm_home
+      @ccm_script = ccm_script
+      @notifier   = notifier
     end
 
     def exec(*args)
-      cmd = args.dup.unshift(@cmd).join(' ')
-      pid = nil
+      start_ccm_helper
+
+      cmd = args.dup.unshift('ccm').join(' ')
       out = ''
+      done = false
 
-      IO.popen([@env, @cmd, *args]) do |io|
-        pid = io.pid
-        @notifier.executing_command(cmd, pid)
+      @notifier.executing_command(cmd, @pid)
 
-        loop do
-          begin
-            Timeout.timeout(30) do
-              out << chunk = io.readpartial(4096)
-
-              @notifier.command_output(pid, chunk)
+      @stdin.write(encode(args))
+      until done
+        begin
+          Timeout.timeout(30) do
+            chunk = @stdout.readpartial(4096)
+            if chunk.end_with?('=== DONE ===')
+              chunk.sub!('=== DONE ===', '')
+              done = true
             end
-          rescue Timeout::Error
-            @notifier.command_running(pid)
-          rescue EOFError
-            break
+            out << chunk
+            @notifier.command_output(@pid, chunk) unless chunk.empty?
           end
+        rescue Timeout::Error
+          @notifier.command_running(@pid)
+        rescue EOFError
+          @stdin.close
+          @stdout.close
+          Process.waitpid(@pid)
+
+          @notifier.executed_command(cmd, @pid, $?)
+          @stdin  = nil
+          @stdout = nil
+          @pid    = nil
+
+          raise "#{cmd} failed"
         end
       end
 
-      @notifier.executed_command(cmd, pid, $?)
-      raise "#{cmd} failed" unless $?.success?
-
       out
+    end
+
+    private
+
+    def start_ccm_helper
+      return if @stdin && @stdout && @pid
+
+      in_r, @stdin = IO.pipe
+      @stdout, out_w = IO.pipe
+
+      @stdin.sync = true
+
+      @pid = Process.spawn(
+        {
+          'HOME' => @ccm_home
+        },
+        'python', '-u', @ccm_script,
+        {
+          :in => in_r,
+          [:out, :err] => out_w
+        }
+      )
+
+      in_r.close
+      out_w.close
+    end
+
+    def encode(args)
+      body = JSON.dump(args)
+      size = body.bytesize
+      [size, body].pack("S!A#{size}")
     end
   end
 
@@ -445,12 +486,8 @@ module CCM extend self
     @ccm ||= begin
       ccm_home = File.expand_path(File.dirname(__FILE__) + '/../tmp')
       FileUtils.mkdir_p(ccm_home) unless File.directory?(ccm_home)
-      Runner.new({
-          'HOME' => ccm_home
-        },
-        'ccm',
-        PrintingNotifier.new($stderr)
-      )
+      ccm_script = File.expand_path(File.dirname(__FILE__) + '/ccm.py')
+      Runner.new(ccm_home, ccm_script, PrintingNotifier.new($stderr))
     end
   end
 
