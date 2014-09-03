@@ -212,7 +212,7 @@ module CCM extend self
       @keyspaces   = keyspaces
 
       @nodes = (1..nodes_count).map do |i|
-        Node.new("node#{i}", 'DOWN', self)
+        Node.new("node#{i}", 'UP', self)
       end if nodes_count
     end
 
@@ -414,7 +414,7 @@ module CCM extend self
     'ruby-driver-cassandra-' + cassandra_version + '-test-cluster'
   end
 
-  def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
+  def setup_cluster(no_dc = 1, no_nodes_per_dc = 3, attempts = 1)
     if cluster_exists?(cassandra_cluster)
       switch_cluster(cassandra_cluster)
 
@@ -431,6 +431,11 @@ module CCM extend self
     end
 
     @current_cluster
+  rescue
+    clear
+    raise if attempts == 3
+    attempts += 1
+    retry
   end
 
   private
@@ -477,7 +482,6 @@ module CCM extend self
     ccm.exec('create', '-n', nodes, '-v', 'binary:' + version, '-b', '-s', '-i', '127.0.0.', name)
 
     @current_cluster = cluster = Cluster.new(name, ccm, nodes_per_datacenter * datacenters, datacenters, [])
-    @current_cluster.start
 
     clusters << cluster
 
@@ -504,5 +508,13 @@ module CCM extend self
 
   def cluster_exists?(name)
     clusters.any? {|cluster| cluster.name == name}
+  end
+
+  def clear
+    instance_variables.each do |ivar|
+      remove_instance_variable(ivar)
+    end
+
+    nil
   end
 end
