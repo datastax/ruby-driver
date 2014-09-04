@@ -264,10 +264,7 @@ module CCM extend self
     end
 
     def start
-      return if nodes.all?(&:up?)
-
-      @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
-      @nodes.each(&:up!)
+      return if @cluster && nodes.all?(&:up?)
 
       if @cluster
         @cluster.close
@@ -276,16 +273,31 @@ module CCM extend self
 
       attempts = 1
 
+      begin
+        @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
+      rescue
+        @ccm.exec('stop') rescue nil
+
+        raise if attempts >= 10
+        attempts += 1
+        sleep(1)
+        retry
+      end
+
+      @nodes.each(&:up!)
+
       if @username && @password
         options = {:username => @username, :password => @password}
       else
         options = {}
       end
 
+      attempts = 1
+
       begin
         @cluster = Cassandra.connect(options)
       rescue
-        raise if attempts >= 3
+        raise if attempts >= 10
         attempts += 1
         sleep(1)
         retry
@@ -312,7 +324,7 @@ module CCM extend self
       rescue
         @ccm.exec(node.name, 'stop') rescue nil
 
-        raise if attempts >= 3
+        raise if attempts >= 10
         attempts += 1
         sleep(1)
         retry
@@ -397,6 +409,10 @@ module CCM extend self
     end
 
     def setup_schema(schema)
+      start
+
+      sleep(1) until @cluster.hosts.all?(&:up?)
+
       @cluster.each_keyspace do |keyspace|
         @session.execute("DROP KEYSPACE #{keyspace.name}") unless keyspace.name.start_with?('system')
       end
@@ -437,13 +453,11 @@ module CCM extend self
     'ruby-driver-cassandra-' + cassandra_version + '-test-cluster'
   end
 
-  def setup_cluster(no_dc = 1, no_nodes_per_dc = 3, attempts = 1)
+  def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
     if cluster_exists?(cassandra_cluster)
       switch_cluster(cassandra_cluster)
 
-      if @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
-        @current_cluster.start
-      else
+      unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
         @current_cluster.stop
         remove_cluster(@current_cluster.name)
         create_cluster(cassandra_cluster, cassandra_version, no_dc, no_nodes_per_dc)
@@ -453,13 +467,8 @@ module CCM extend self
       create_cluster(cassandra_cluster, cassandra_version, no_dc, no_nodes_per_dc)
     end
 
+    @current_cluster.start
     @current_cluster
-  rescue
-    clear
-    ccm.exec('stop') rescue nil
-    raise if attempts == 3
-    attempts += 1
-    retry
   end
 
   private
@@ -524,10 +533,7 @@ module CCM extend self
     ccm.exec('updateconf', 'in_memory_compaction_limit_in_mb: 1')
     ccm.exec('updateconf', 'key_cache_size_in_mb: 0')
 
-    @current_cluster = cluster = Cluster.new(name, ccm, nodes_per_datacenter * datacenters, datacenters, [])
-    @current_cluster.start
-
-    clusters << cluster
+    clusters << @current_cluster = Cluster.new(name, ccm, nodes_per_datacenter * datacenters, datacenters, [])
 
     nil
   end
