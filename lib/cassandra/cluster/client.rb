@@ -643,14 +643,14 @@ module Cassandra
           else
             @logger.debug("Hosts don't yet agree on schema: #{versions.to_a.inspect}, retrying later")
             @reactor.schedule_timer(1).flat_map do
-              wait_for_schema_agreement(connection, promise, trace_id, keyspace, statement, options, hosts, consistency, retries, attempts + 1)
+              wait_for_schema_agreement(connection, attempts + 1)
             end
           end
         end
       end
 
       def peer_ip(data)
-        data['rpc_address']
+        ip = data['rpc_address']
         ip = data['peer'] if ip == '0.0.0.0'
         ip
       end
