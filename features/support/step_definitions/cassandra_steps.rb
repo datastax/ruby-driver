@@ -20,6 +20,7 @@ end
 
 Given(/^the following schema:$/) do |schema|
   @cluster.execute_query(schema.strip.chomp(";"))
+  sleep(2)
 end
 
 Given(/^the following example:$/) do |code|
