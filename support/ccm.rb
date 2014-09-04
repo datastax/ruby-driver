@@ -261,7 +261,7 @@ module CCM extend self
     def start
       return if nodes.all?(&:up?)
 
-      @ccm.exec('start', '-v', '--wait-other-notice', '--wait-for-binary-proto')
+      @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
       @nodes.each(&:up!)
 
       nil
@@ -275,7 +275,7 @@ module CCM extend self
     def start_node(name)
       node = nodes.find {|n| n.name == name}
       return if node.nil? || node.up?
-      @ccm.exec(node.name, 'start', '-v', '--wait-other-notice', '--wait-for-binary-proto')
+      @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto')
       node.up!
 
       nil
