@@ -253,7 +253,7 @@ module CCM extend self
       @keyspaces   = keyspaces
 
       @nodes = (1..nodes_count).map do |i|
-        Node.new("node#{i}", 'UP', self)
+        Node.new("node#{i}", 'DOWN', self)
       end if nodes_count
     end
 
@@ -518,9 +518,10 @@ module CCM extend self
   def create_cluster(name, version, datacenters, nodes_per_datacenter)
     nodes = Array.new(datacenters, nodes_per_datacenter).join(':')
 
-    ccm.exec('create', '-n', nodes, '-v', 'binary:' + version, '-b', '-s', '-i', '127.0.0.', name)
+    ccm.exec('create', '-n', nodes, '-v', 'binary:' + version, '-b', '-i', '127.0.0.', name)
 
     @current_cluster = cluster = Cluster.new(name, ccm, nodes_per_datacenter * datacenters, datacenters, [])
+    @current_cluster.start
 
     clusters << cluster
 
