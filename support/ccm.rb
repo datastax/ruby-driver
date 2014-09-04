@@ -55,82 +55,124 @@ module CCM extend self
     end
   end
 
-  class Runner
-    def initialize(ccm_home, ccm_script, notifier)
-      @ccm_home   = ccm_home
-      @ccm_script = ccm_script
-      @notifier   = notifier
-    end
-
-    def exec(*args)
-      start_ccm_helper
-
-      cmd = args.dup.unshift('ccm').join(' ')
-      out = ''
-      done = false
-
-      @notifier.executing_command(cmd, @pid)
-
-      @stdin.write(encode(args))
-      until done
-        begin
-          Timeout.timeout(30) do
-            chunk = @stdout.readpartial(4096)
-            if chunk.end_with?('=== DONE ===')
-              chunk.sub!('=== DONE ===', '')
-              done = true
-            end
-            out << chunk
-            @notifier.command_output(@pid, chunk) unless chunk.empty?
-          end
-        rescue Timeout::Error
-          @notifier.command_running(@pid)
-        rescue EOFError
-          @stdin.close
-          @stdout.close
-          Process.waitpid(@pid)
-
-          @notifier.executed_command(cmd, @pid, $?)
-          @stdin  = nil
-          @stdout = nil
-          @pid    = nil
-
-          raise "#{cmd} failed"
-        end
+  if RUBY_ENGINE == 'jruby'
+    class Runner
+      def initialize(ccm_home, ccm_script, notifier)
+        @env      = {'HOME' => ccm_home}
+        @cmd      = 'ccm'
+        @notifier = notifier
       end
 
-      out
+      def exec(*args)
+        cmd = args.dup.unshift(@cmd).join(' ')
+        pid = nil
+        out = ''
+
+        IO.popen([@env, @cmd, *args]) do |io|
+          pid = io.pid
+          @notifier.executing_command(cmd, pid)
+
+          loop do
+            begin
+              Timeout.timeout(30) do
+                out << chunk = io.readpartial(4096)
+
+                @notifier.command_output(pid, chunk)
+              end
+            rescue Timeout::Error
+              @notifier.command_running(pid)
+            rescue EOFError
+              break
+            end
+          end
+        end
+
+        @notifier.executed_command(cmd, pid, $?)
+        raise "#{cmd} failed" unless $?.success?
+
+        out
+      end
     end
+  else
+    class Runner
+      def initialize(ccm_home, ccm_script, notifier)
+        @ccm_home   = ccm_home
+        @ccm_script = ccm_script
+        @notifier   = notifier
+      end
 
-    private
+      def exec(*args)
+        start_ccm_helper
 
-    def start_ccm_helper
-      return if @stdin && @stdout && @pid
+        cmd = args.dup.unshift('ccm').join(' ')
+        out = ''
+        done = false
 
-      in_r, @stdin = IO.pipe
-      @stdout, out_w = IO.pipe
+        @notifier.executing_command(cmd, @pid)
 
-      @stdin.sync = true
+        @stdin.write(encode(args))
 
-      @pid = Process.spawn(
-        {
-          'HOME' => @ccm_home
-        },
-        'python', '-u', @ccm_script,
-        {
-          :in => in_r,
-          [:out, :err] => out_w
-        }
-      )
+        until done
+          if IO.select([@stdout], nil, nil, 30)
+            begin
+              chunk = @stdout.read_nonblock(4096)
+              if chunk.end_with?('=== DONE ===')
+                chunk.sub!('=== DONE ===', '')
+                done = true
+              end
+              out << chunk
+              @notifier.command_output(@pid, chunk) unless chunk.empty?
+            rescue IO::WaitReadable
+            rescue EOFError
+              @stdin.close
+              @stdout.close
+              Process.waitpid(@pid)
 
-      in_r.close
-      out_w.close
-    end
+              @notifier.executed_command(cmd, @pid, $?)
+              @stdin  = nil
+              @stdout = nil
+              @pid    = nil
 
-    def encode(args)
-      body = JSON.dump(args)
-      size = body.bytesize
-      [size, body].pack("S!A#{size}")
+              raise "#{cmd} failed"
+            end
+          else
+            @notifier.command_running(@pid)
+          end
+        end
+
+        out
+      end
+
+      private
+
+      def start_ccm_helper
+        return if @stdin && @stdout && @pid
+
+        in_r, @stdin = IO.pipe
+        @stdout, out_w = IO.pipe
+
+        @stdin.sync = true
+
+        @pid = Process.spawn(
+          {
+            'HOME' => @ccm_home
+          },
+          'python', '-u', @ccm_script,
+          {
+            :in => in_r,
+            [:out, :err] => out_w
+          }
+        )
+
+        in_r.close
+        out_w.close
+      end
+
+      def encode(args)
+        body = JSON.dump(args)
+        size = body.bytesize
+        [size, body].pack("S!A#{size}")
+      end
     end
   end
 
