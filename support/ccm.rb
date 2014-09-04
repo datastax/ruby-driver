@@ -273,7 +273,7 @@ module CCM extend self
     def start
       return if nodes.all?(&:up?)
 
-      @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
+      @ccm.exec('start', '--wait-for-binary-proto')
       @nodes.each(&:up!)
 
       nil
