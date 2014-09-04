@@ -410,7 +410,6 @@ module CCM extend self
       create_cluster(cassandra_cluster, cassandra_version, no_dc, no_nodes_per_dc)
     end
 
-    @current_cluster.clear
     @current_cluster
   rescue
     clear

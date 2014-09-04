@@ -19,6 +19,7 @@ Given(/^a running cassandra cluster with schema:$/) do |schema|
 end
 
 Given(/^the following schema:$/) do |schema|
+  @current_cluster.clear
   @cluster.execute_query(schema.strip.chomp(";"))
   sleep(2)
 end
