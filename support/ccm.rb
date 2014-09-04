@@ -269,6 +269,19 @@ module CCM extend self
       @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
       @nodes.each(&:up!)
 
+      attempts = 1
+
+      begin
+        @cluster = Cassandra.connect
+      rescue
+        raise if attempts >= 3
+        attempts += 1
+        sleep(1)
+        retry
+      end
+
+      @session = @cluster.connect
+
       nil
     end
 
@@ -372,14 +385,14 @@ module CCM extend self
     end
 
     def setup_schema(schema)
-      cluster.each_keyspace do |keyspace|
-        session.execute("DROP KEYSPACE #{keyspace.name}") unless keyspace.name.start_with?('system')
+      @cluster.each_keyspace do |keyspace|
+        @session.execute("DROP KEYSPACE #{keyspace.name}") unless keyspace.name.start_with?('system')
       end
 
       schema.strip!
       schema.chomp!(";")
       schema.split(";\n").each do |statement|
-        session.execute(statement)
+        @session.execute(statement)
       end
 
       nil
@@ -400,27 +413,6 @@ module CCM extend self
           name, status = line.split(": ")
           Node.new(name, status, self)
         end
-      end
-    end
-
-    def cluster
-      @cluster ||= begin
-        attempts = 1
-
-        begin
-          Cassandra.connect
-        rescue
-          raise if attempts >= 3
-          attempts += 1
-          sleep(1)
-          retry
-        end
-      end
-    end
-
-    def session
-      @session ||= begin
-        cluster.connect
       end
     end
   end
