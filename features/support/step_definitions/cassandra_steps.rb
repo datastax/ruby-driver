@@ -21,7 +21,7 @@ end
 Given(/^the following schema:$/) do |schema|
   @current_cluster.clear
   @cluster.execute_query(schema.strip.chomp(";"))
-  sleep(2)
+  sleep(5)
 end
 
 Given(/^the following example:$/) do |code|
