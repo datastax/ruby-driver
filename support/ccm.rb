@@ -269,6 +269,11 @@ module CCM extend self
       @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
       @nodes.each(&:up!)
 
+      if @cluster
+        @cluster.close
+        @cluster = @session = nil
+      end
+
       attempts = 1
 
       if @username && @password
