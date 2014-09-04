@@ -21,7 +21,25 @@ require 'cassandra'
 require 'cassandra/compression/compressors/snappy'
 require 'cassandra/compression/compressors/lz4'
 
-World(CCM)
+AfterConfiguration do |configuration|
+  slow_features = ['features/load_balancing/datacenter_aware.feature', 'features/load_balancing/round_robin.feature']
+
+  features_files = configuration.feature_files.sort do |a, b|
+    if slow_features.include?(a)
+      1
+    elsif slow_features.include?(b)
+      -1
+    else
+      a <=> b
+    end
+  end
+
+  # Get the singleton class/eigenclass for configuration
+  klass = class << configuration; self; end
+
+  klass.send(:undef_method, :feature_files)
+  klass.send(:define_method, :feature_files) { features_files }
+end
 
 Before do
   @aruba_timeout_seconds = 15

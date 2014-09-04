@@ -212,6 +212,9 @@ module Cassandra
       WRITE_TIMEOUT_ERROR_CODE = 0x1100
       READ_TIMEOUT_ERROR_CODE  = 0x1200
 
+      SELECT_SCHEMA_PEERS = Protocol::QueryRequest.new("SELECT peer, rpc_address, schema_version FROM system.peers", nil, nil, :one)
+      SELECT_SCHEMA_LOCAL = Protocol::QueryRequest.new("SELECT schema_version FROM system.local WHERE key='local'", nil, nil, :one)
+
       def connected(f)
         if f.resolved?
           synchronize do
@@ -578,6 +581,16 @@ module Cassandra
               promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
             when Protocol::RowsResultResponse
               promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
+            when Protocol::SchemaChangeResultResponse
+              wait_for_schema_agreement(connection).on_complete do |f|
+                if f.resolved?
+                  promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
+                else
+                  f.on_failure do |e|
+                    promise.break(e)
+                  end
+                end
+              end
             else
               promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
             end
@@ -598,6 +611,48 @@ module Cassandra
             end
           end
         end
+      end
+
+      def wait_for_schema_agreement(connection, attempts = 1)
+        @logger.debug('Fetching schema versions')
+
+        peers = connection.send_request(SELECT_SCHEMA_PEERS)
+        local = connection.send_request(SELECT_SCHEMA_LOCAL)
+
+        Ione::Future.all(peers, local).flat_map do |(peers, local)|
+          @logger.debug('Fetched schema versions')
+
+          peers = peers.rows
+          local = local.rows
+
+          versions = ::Set.new
+
+          versions << local.first['schema_version'] unless local.empty?
+
+          peers.each do |row|
+            host = @registry.host(peer_ip(row))
+            versions << row['schema_version'] if host && host.up?
+          end
+
+          if versions.one?
+            @logger.debug('All hosts have the same schema version')
+            Ione::Future.resolved
+          elsif attempts >= 10
+            @logger.warn("Hosts don't yet agree on schema: #{versions.to_a.inspect}, maximum retries reached")
+            Ione::Future.resolved
+          else
+            @logger.debug("Hosts don't yet agree on schema: #{versions.to_a.inspect}, retrying later")
+            @reactor.schedule_timer(1).flat_map do
+              wait_for_schema_agreement(connection, attempts + 1)
+            end
+          end
+        end
+      end
+
+      def peer_ip(data)
+        ip = data['rpc_address']
+        ip = data['peer'] if ip == '0.0.0.0'
+        ip
       end
 
       def switch_keyspace(connection, keyspace, timeout)

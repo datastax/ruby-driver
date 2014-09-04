@@ -20,10 +20,9 @@ module Cassandra
     class ControlConnection
       include MonitorMixin
 
-      def initialize(logger, io_reactor, request_runner, cluster_registry, cluster_schema, load_balancing_policy, reconnection_policy, connector, connection_options)
+      def initialize(logger, io_reactor, cluster_registry, cluster_schema, load_balancing_policy, reconnection_policy, connector, connection_options)
         @logger                = logger
         @io_reactor            = io_reactor
-        @request_runner        = request_runner
         @registry              = cluster_registry
         @schema                = cluster_schema
         @load_balancing_policy = load_balancing_policy
@@ -135,7 +134,7 @@ module Cassandra
 
         @logger.debug('Registering for events')
 
-        @request_runner.execute(connection, REGISTER).map do
+        connection.send_request(REGISTER).map do
           @logger.debug('Registered for events')
 
           connection.on_event do |event|
@@ -191,16 +190,16 @@ module Cassandra
 
         @logger.debug('Fetching schema metadata')
 
-        keyspaces = @request_runner.execute(connection, SELECT_KEYSPACES)
-        tables    = @request_runner.execute(connection, SELECT_TABLES)
-        columns   = @request_runner.execute(connection, SELECT_COLUMNS)
+        keyspaces = connection.send_request(SELECT_KEYSPACES)
+        tables    = connection.send_request(SELECT_TABLES)
+        columns   = connection.send_request(SELECT_COLUMNS)
 
         Ione::Future.all(keyspaces, tables, columns).map do |(keyspaces, tables, columns)|
           @logger.debug('Fetched schema metadata')
 
           host = @registry.host(connection.host)
 
-          @schema.update_keyspaces(host, keyspaces, tables, columns)
+          @schema.update_keyspaces(host, keyspaces.rows, tables.rows, columns.rows)
         end
       end
 
@@ -212,16 +211,16 @@ module Cassandra
         @logger.debug("Fetching keyspace #{keyspace.inspect} metadata")
 
         params    = [keyspace]
-        keyspaces = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?", params, nil, :one))
-        tables    = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ?", params, nil, :one))
-        columns   = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = ?", params, nil, :one))
+        keyspaces = connection.send_request(Protocol::QueryRequest.new("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?", params, nil, :one))
+        tables    = connection.send_request(Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ?", params, nil, :one))
+        columns   = connection.send_request(Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = ?", params, nil, :one))
 
         Ione::Future.all(keyspaces, tables, columns).map do |(keyspaces, tables, columns)|
           @logger.debug("Fetched keyspace #{keyspace.inspect} metadata")
 
           host = @registry.host(connection.host)
 
-          @schema.update_keyspace(host, keyspaces.first, tables, columns)
+          @schema.update_keyspace(host, keyspaces.rows.first, tables.rows, columns.rows)
         end
       end
 
@@ -233,15 +232,15 @@ module Cassandra
         @logger.debug("Fetching table \"#{keyspace}.#{table}\" metadata")
 
         params   = [keyspace, table]
-        table    = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ? AND columnfamily_name = ?", params, nil, :one))
-        columns  = @request_runner.execute(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = ? AND columnfamily_name = ?", params, nil, :one))
+        table    = connection.send_request(Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ? AND columnfamily_name = ?", params, nil, :one))
+        columns  = connection.send_request(Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = ? AND columnfamily_name = ?", params, nil, :one))
 
         Ione::Future.all(table, columns).map do |(table, columns)|
           @logger.debug("Fetched table \"#{keyspace}.#{table}\" metadata")
 
           host = @registry.host(connection.host)
 
-          @schema.udpate_table(host, keyspace, table, columns)
+          @schema.udpate_table(host, keyspace, table.rows, columns.rows)
         end
       end
 
@@ -252,10 +251,13 @@ module Cassandra
 
         @logger.debug('Fetching cluster metadata and peers')
 
-        local = @request_runner.execute(connection, SELECT_LOCAL)
-        peers = @request_runner.execute(connection, SELECT_PEERS)
+        local = connection.send_request(SELECT_LOCAL)
+        peers = connection.send_request(SELECT_PEERS)
 
         Ione::Future.all(local, peers).flat_map do |(local, peers)|
+          local = local.rows
+          peers = peers.rows
+
           @logger.debug('%d peers found' % peers.size)
 
           raise NO_HOSTS if local.empty? && peers.empty?
@@ -331,10 +333,12 @@ module Cassandra
           request = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, rpc_address, release_version FROM system.peers WHERE peer = ?', [address], nil, :one)
         end
 
-        @request_runner.execute(connection, request).map do |result|
+        connection.send_request(request).map do |response|
           @logger.debug('Fetched node information for %s' % ip)
 
-          @registry.host_found(address, result.first) unless result.empty?
+          rows = response.rows
+
+          @registry.host_found(address, rows.first) unless rows.empty?
 
           self
         end

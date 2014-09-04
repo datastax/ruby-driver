@@ -18,7 +18,7 @@ require 'fileutils'
 
 # Cassandra Cluster Manager integration for
 # driving a cassandra cluster from tests.
-module CCM
+module CCM extend self
   class PrintingNotifier
     def initialize(out)
       @out = out
@@ -56,160 +56,227 @@ module CCM
   end
 
   class Runner
-    def initialize(env, cmd, notifier)
-      @env      = env
-      @cmd      = cmd
-      @notifier = notifier
+    def initialize(ccm_home, ccm_script, notifier)
+      @ccm_home   = ccm_home
+      @ccm_script = ccm_script
+      @notifier   = notifier
     end
 
     def exec(*args)
-      cmd = args.dup.unshift(@cmd).join(' ')
-      pid = nil
+      start_ccm_helper
+
+      cmd = args.dup.unshift('ccm').join(' ')
       out = ''
+      done = false
 
-      IO.popen([@env, @cmd, *args]) do |io|
-        pid = io.pid
-        @notifier.executing_command(cmd, pid)
+      @notifier.executing_command(cmd, @pid)
 
-        loop do
-          begin
-            Timeout.timeout(30) do
-              out << chunk = io.readpartial(4096)
-
-              @notifier.command_output(pid, chunk)
+      @stdin.write(encode(args))
+      until done
+        begin
+          Timeout.timeout(30) do
+            chunk = @stdout.readpartial(4096)
+            if chunk.end_with?('=== DONE ===')
+              chunk.sub!('=== DONE ===', '')
+              done = true
             end
-          rescue Timeout::Error
-            @notifier.command_running(pid)
-          rescue EOFError
-            break
+            out << chunk
+            @notifier.command_output(@pid, chunk) unless chunk.empty?
           end
+        rescue Timeout::Error
+          @notifier.command_running(@pid)
+        rescue EOFError
+          @stdin.close
+          @stdout.close
+          Process.waitpid(@pid)
+
+          @notifier.executed_command(cmd, @pid, $?)
+          @stdin  = nil
+          @stdout = nil
+          @pid    = nil
+
+          raise "#{cmd} failed"
         end
       end
 
-      @notifier.executed_command(cmd, pid, $?)
-      raise "#{cmd} failed" unless $?.success?
-
-      sleep(1)
-
       out
+    end
+
+    private
+
+    def start_ccm_helper
+      return if @stdin && @stdout && @pid
+
+      in_r, @stdin = IO.pipe
+      @stdout, out_w = IO.pipe
+
+      @stdin.sync = true
+
+      @pid = Process.spawn(
+        {
+          'HOME' => @ccm_home
+        },
+        'python', '-u', @ccm_script,
+        {
+          :in => in_r,
+          [:out, :err] => out_w
+        }
+      )
+
+      in_r.close
+      out_w.close
+    end
+
+    def encode(args)
+      body = JSON.dump(args)
+      size = body.bytesize
+      [size, body].pack("S!A#{size}")
     end
   end
 
   class Cluster
-    Node = Struct.new(:name, :status)
+    class Node
+      attr_reader :name, :status
 
-    def self.stop_existing_cluster(ccm)
-      if (ccm.exec('list') =~ /\*/) != nil
-        ccm.exec('stop')
+      def initialize(name, status, cluster)
+        @name    = name
+        @status  = status
+        @cluster = cluster
+      end
+
+      def stop
+        return if @status == 'DOWN'
+        @cluster.stop_node(@name)
+        @status = 'DOWN'
+        nil
+      end
+
+      def start
+        return if @status == 'UP'
+        @cluster.start_node(@name)
+        @status = 'UP'
+        nil
+      end
+
+      def decommission
+        @cluster.decommission_node(@name)
+        nil
+      end
+
+      def remove
+        stop
+        @cluster.remove_node(@name)
+        nil
+      end
+
+      def up!
+        @status = 'UP'
+        nil
+      end
+
+      def down!
+        @status = 'DOWN'
+        nil
+      end
+
+      def up?
+        @status == 'UP'
+      end
+
+      def down?
+        @status == 'DOWN'
       end
     end
 
-    def self.exists?(cluster, ccm)
-      ccm.exec('list').split("\n").map(&:strip).one? do |name|
-        name == cluster || name == "*#{cluster}"
+    class Keyspace
+      attr_reader :name
+
+      def initialize(name, cluster)
+        @name    = name
+        @cluster = cluster
+      end
+
+      def drop
+        @cluster.drop_keyspace(@name)
+      end
+
+      def tables
+        @tables ||= begin
+          data = @cluster.execute_query("USE #{@name}; DESCRIBE TABLES")
+          data.strip!
+
+          if data == "<empty>"
+            []
+          else
+            data.split(/\s+/).map! do |name|
+              Table.new(name, @name, @cluster)
+            end
+          end
+        end
+      end
+
+      def table(name)
+        table = tables.find {|t| t.name == name}
+
+        return table if table
+
+        @cluster.create_table(@name, name)
+        tables << table = Table.new(name, @name, @cluster)
+        table
       end
     end
 
-    def self.list_nodes(ccm)
-      ccm.exec('status').split("\n").map do |line|
-        name, status = line.chomp.split(": ")
-        Node.new(name, status)
+    class Table
+      attr_reader :name, :keyspace
+
+      def initialize(name, keyspace, cluster)
+        @name     = name
+        @keyspace = keyspace
+        @cluster  = cluster
+      end
+
+      def load
+        @cluster.populate_table(@keyspace, @name)
+      end
+
+      def clear
+        @cluster.clear_table(@keyspace, @name)
       end
     end
 
-    def self.count_datacenters(node, ccm)
-      ccm.
-          exec(node, 'status').
-          split("\n").
-          find_all { |line| line.start_with? "Datacenter:" }.
-          count
+    attr_reader :name
+
+    def initialize(name, ccm, nodes_count = nil, datacenters = nil, keyspaces = nil)
+      @name        = name
+      @ccm         = ccm
+      @datacenters = datacenters
+      @keyspaces   = keyspaces
+
+      @nodes = (1..nodes_count).map do |i|
+        Node.new("node#{i}", 'DOWN', self)
+      end if nodes_count
     end
 
-    # initialize could just take name, cmm and find out the nodes by itself
-
-    def initialize(name, ccm)
-      @name  = name
-      @ccm   = ccm
-
-      start unless running?
-
-      @nodes = Cluster.list_nodes(ccm)
-      @no_dc = Cluster.count_datacenters(any_node.name, ccm)
+    def running?
+      nodes.any?(&:up?)
     end
 
-    def has_n_datacenters?(n)
-      n == @no_dc
+    def stop
+      return if nodes.all?(&:down?)
+
+      @ccm.exec('stop')
+      @nodes.each(&:down!)
+
+      nil
     end
 
-    def has_n_nodes_per_dc?(n)
-      # Could be improved : assume that the nodes are evenly distributed amongst datacenters
-      n == (@nodes.count / @no_dc)
-    end
+    def start
+      return if nodes.all?(&:up?)
 
-    def create_keyspace(keyspace)
-      if keyspaces.include?(keyspace)
-        drop_keyspace(keyspace)
-      end
+      @ccm.exec('start', '--wait-for-binary-proto')
+      @nodes.each(&:up!)
 
-      execute_query("CREATE KEYSPACE #{keyspace} WITH replication = " \
-                    "{'class': 'SimpleStrategy', 'replication_factor': 3}")
-    end
-
-    def use_keyspace(keyspace)
-      @keyspace = keyspace
-    end
-
-    def drop_keyspace(keyspace)
-      execute_query("DROP KEYSPACE #{keyspace}")
-    end
-
-    def create_table(table)
-      raise "no keyspace selected" if @keyspace.nil?
-
-      execute_query("USE #{@keyspace}; DROP TABLE IF EXISTS #{table}; " +
-                    keyspace_for(table).chomp(";\n"))
-    end
-
-    def populate_table(table)
-      execute_query("USE #{@keyspace}; " + data_for(table).chomp(";\n"))
-    end
-
-    def start_nth_node(i)
-      start_node("node#{i}")
-    end
-
-    def start_node(node)
-      @ccm.exec(node, 'start')
-    end
-
-    def stop_node(i)
-      @ccm.exec("node#{i}", 'stop')
-    end
-
-    def add_node(i)
-      @ccm.exec('add', '-b', "-t 127.0.0.#{i}:9160", "-l 127.0.0.#{i}:7000", "--binary-itf=127.0.0.#{i}:9042", "node#{i}")
-    end
-
-    def decommission_node(i)
-      @ccm.exec("node#{i}", 'decommission')
-    end
-
-    def remove_node(i)
-      @ccm.exec("node#{i}", 'remove')
-    end
-
-    def enable_authentication
-      @username = 'cassandra'
-      @password = 'cassandra'
-      @ccm.exec('updateconf', 'authenticator: PasswordAuthenticator')
-      restart
-      sleep(10)
-
-      [@username, @password]
-    end
-
-    def disable_authentication
-      @ccm.exec('updateconf', 'authenticator: AllowAllAuthenticator')
+      nil
     end
 
     def restart
@@ -217,45 +284,152 @@ module CCM
       start
     end
 
-    def clear
-      @ccm.exec('clear')
-      self
+    def start_node(name)
+      node = nodes.find {|n| n.name == name}
+      return if node.nil? || node.up?
+      @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto')
+      node.up!
+
+      nil
     end
 
-    def start
-      @ccm.exec('start')
-      self
+    def stop_node(name)
+      node = nodes.find {|n| n.name == name}
+      return if node.nil? || node.down?
+      @ccm.exec(node.name, 'stop')
+      node.down!
+
+      nil
     end
 
-    def stop
-      @ccm.exec('stop')
-      self
+    def remove_node(name)
+      node = nodes.find {|n| n.name == name}
+      return if node.nil?
+      @ccm.exec(node.name, 'stop')
+      @ccm.exec(node.name, 'remove')
+      node.down!
+      nodes.delete(node)
+
+      nil
     end
 
-    def start_down_nodes
-      @ccm.exec('status').
-          split("\n").
-          find_all { |line| line.end_with? "DOWN" }.
-          map { |line| line.sub(': DOWN', '') }.
-          each { |node| start_node(node) }
-      self
+    def decommission_node(name)
+      node = nodes.find {|n| n.name == name}
+      return if node.nil?
+      @ccm.exec(node.name, 'decommission')
+
+      nil
     end
 
-    def running?
-      @ccm.exec('status').
-        split("\n").
-        find_all { |line| line.end_with? "DOWN" }.
-        none?
+    def add_node(name)
+      return if nodes.any? {|n| n.name == name}
+
+      i = name.sub('node', '')
+
+      @ccm.exec('add', '-b', "-t 127.0.0.#{i}:9160", "-l 127.0.0.#{i}:7000", "--binary-itf=127.0.0.#{i}:9042", name)
+      nodes << Node.new(name, 'DOWN', self)
+
+      nil
+    end
+
+    def datacenters_count
+      @datacenters ||= begin
+        start if !running?
+        node = nodes.find(&:up?)
+        @ccm.exec(node.name, 'status')
+            .split("\n")
+            .find_all { |line| line.start_with? "Datacenter:" }
+            .count
+      end
+    end
+
+    def nodes_count
+      nodes.size
+    end
+
+    def keyspace(name)
+      keyspace = keyspaces.find {|k| k.name == name}
+      return keyspace if keyspace
+
+      execute_query("CREATE KEYSPACE #{name} WITH replication = " \
+                    "{'class': 'SimpleStrategy', 'replication_factor': 3}")
+      sleep(2)
+
+      keyspaces << keyspace = Keyspace.new(name, self)
+      keyspace
+    end
+
+    def drop_keyspace(name)
+      keyspace = keyspaces.find {|k| k.name == name}
+      return if keyspace.nil?
+      execute_query("DROP KEYSPACE #{keyspace.name}")
+      keyspaces.delete(keyspace)
+
+      nil
+    end
+
+    def create_table(keyspace, table)
+      execute_query("USE #{keyspace}; DROP TABLE IF EXISTS #{table}; " + schema_for(table).chomp(";\n"))
+    end
+
+    def populate_table(keyspace, table)
+      execute_query("USE #{keyspace}; " + data_for(table).chomp(";\n"))
+    end
+
+    def clear_table(keyspace, table)
+      execute_query("USE #{keyspace}; TRUNCATE #{table}")
+    end
+
+    def execute_query(query)
+      start if !running?
+      node = nodes.find(&:up?)
+
+      # for some reason cqlsh -x it eating first 4 lines of output, so we make it output 4 lines of version first
+      prefix  = 'show version; ' * 4
+
+      @ccm.exec(node.name, 'cqlsh', '-v', '-x', "#{prefix}#{query}")
+    end
+
+    def enable_authentication
+      @username = 'cassandra'
+      @password = 'cassandra'
+      stop
+      @ccm.exec('updateconf', 'authenticator: PasswordAuthenticator')
+      start
+
+      sleep(2)
+
+      [@username, @password]
+    end
+
+    def disable_authentication
+      stop
+      @ccm.exec('updateconf', 'authenticator: AllowAllAuthenticator')
+      start
+    end
+
+    def clear_schema
+      @keyspaces = nil
     end
 
     private
+
+    def nodes
+      @nodes ||= begin
+        @ccm.exec('status').split("\n").map! do |line|
+          line.strip!
+          name, status = line.split(": ")
+          Node.new(name, status, self)
+        end
+      end
+    end
 
     # path to cql fixture files
     def fixture_path
       @fixture_path ||= Pathname(File.dirname(__FILE__) + '/cql')
     end
 
-    def keyspace_for(table)
+    def schema_for(table)
       File.read(fixture_path + 'schema' + "#{table}.cql")
     end
 
@@ -264,31 +438,13 @@ module CCM
     end
 
     def keyspaces
-      execute_query("DESCRIBE KEYSPACES").strip.split(/\s+/)
-    end
-
-    def tables
-      data = execute_query("USE #{@keyspace}; DESCRIBE TABLES").strip
-      return [] if data == "<empty>"
-      data.split(/\s+/)
-    end
-
-    def any_node
-      node = @nodes.select {|n| n.status == 'UP'}.sample
-
-      if node.nil?
-        start
-        @nodes.select {|n| n.status == 'UP'}.sample
-      else
-        node
+      @keyspaces ||= begin
+        data = execute_query("DESCRIBE KEYSPACES")
+        data.strip!
+        data.split(/\s+/).map! do |name|
+          Keyspace.new(name, self)
+        end
       end
-    end
-
-    def execute_query(query)
-      # for some reason cqlsh -x it eating first 4 lines of output, so we make it output 4 lines of version first
-      prefix  = 'show version; ' * 4
-
-      @ccm.exec(any_node.name, 'cqlsh', '-v', '-x', "#{prefix}#{query}")
     end
   end
 
@@ -300,27 +456,75 @@ module CCM
     'ruby-driver-cassandra-' + cassandra_version + '-test-cluster'
   end
 
+  def setup_cluster(no_dc = 1, no_nodes_per_dc = 3, attempts = 1)
+    if cluster_exists?(cassandra_cluster)
+      switch_cluster(cassandra_cluster)
+
+      if @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
+        @current_cluster.start
+      else
+        @current_cluster.stop
+        remove_cluster(@current_cluster.name)
+        create_cluster(cassandra_cluster, cassandra_version, no_dc, no_nodes_per_dc)
+      end
+    else
+      @current_cluster && @current_cluster.stop
+      create_cluster(cassandra_cluster, cassandra_version, no_dc, no_nodes_per_dc)
+    end
+
+    @current_cluster
+  rescue
+    clear
+    ccm.exec('stop') rescue nil
+    raise if attempts == 3
+    attempts += 1
+    retry
+  end
+
+  private
+
   def ccm
     @ccm ||= begin
       ccm_home = File.expand_path(File.dirname(__FILE__) + '/../tmp')
       FileUtils.mkdir_p(ccm_home) unless File.directory?(ccm_home)
-      Runner.new({
-          'HOME' => ccm_home
-        },
-        'ccm',
-        PrintingNotifier.new($stderr)
-      )
+      ccm_script = File.expand_path(File.dirname(__FILE__) + '/ccm.py')
+      Runner.new(ccm_home, ccm_script, PrintingNotifier.new($stderr))
     end
   end
 
+  def switch_cluster(name)
+    if @current_cluster
+      return if @current_cluster.name == name
+      @current_cluster.stop
+    end
 
-  # create new ccm cluster from a given cassandra tag
-  def create_cluster(cluster, version, no_dc, no_nodes_per_dc)
-    nodes = Array.new(no_dc, no_nodes_per_dc).join(":")
+    @current_cluster = clusters.find {|c| c.name == name}
+    return unless @current_cluster
 
-    ccm.exec('create', '-n', nodes, '-v', 'binary:' + version, '-b', '-s', '-i', '127.0.0.', cluster)
-    @current_no_dc=no_dc
-    @current_no_nodes_per_dc=no_nodes_per_dc
+    ccm.exec('switch', @current_cluster.name)
+
+    nil
+  end
+
+  def remove_cluster(name)
+    cluster = clusters.find {|c| c.name == name}
+    return unless cluster
+    ccm.exec('remove', cluster.name)
+    clusters.delete(cluster)
+
+    nil
+  end
+
+  def create_cluster(name, version, datacenters, nodes_per_datacenter)
+    nodes = Array.new(datacenters, nodes_per_datacenter).join(':')
+
+    ccm.exec('create', '-n', nodes, '-v', 'binary:' + version, '-b', '-i', '127.0.0.', name)
+
+    @current_cluster = cluster = Cluster.new(name, ccm, nodes_per_datacenter * datacenters, datacenters, [])
+    @current_cluster.start
+
+    clusters << cluster
+
     nil
   end
 
@@ -329,60 +533,28 @@ module CCM
     nil
   end
 
-  def current_cluster
-    current = ccm.exec('list') \
-                 .split("\n")  \
-                 .map(&:strip) \
-                 .find {|l| l.start_with?("*")}
-
-    return if current.nil?
-
-    current[1..-1]
-  end
-
-  def switch_cluster(cluster)
-    ccm.exec('switch', cluster)
-    nil
-  end
-
-  def remove_cluster(cluster)
-    ccm.exec('remove', cluster)
-    nil
-  end
-
-  def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
-    name = cassandra_cluster
-    cluster = create_if_necessary(name, no_dc, no_nodes_per_dc)
-  end
-
-  def create_if_necessary(name, no_dc, no_nodes_per_dc)
-    if Cluster.exists?(name, ccm)
-      if name != current_cluster
-        Cluster.stop_existing_cluster(ccm)
-        switch_cluster(name)
+  def clusters
+    @clusters ||= begin
+      ccm.exec('list').split("\n").map! do |name|
+        name.strip!
+        current = name.start_with?('*')
+        name.sub!('*', '')
+        cluster = Cluster.new(name, ccm)
+        @current_cluster = cluster if current
+        cluster
       end
-
-      cluster = Cluster.new(name, ccm)
-
-      if cluster.running?
-        if cluster.has_n_datacenters?(no_dc) && cluster.has_n_nodes_per_dc?(no_nodes_per_dc)
-          cluster.start_down_nodes
-        else
-          Cluster.stop_existing_cluster(ccm)
-          remove_cluster(name)
-          create_cluster(name, cassandra_version, no_dc, no_nodes_per_dc)
-          Cluster.new(name, ccm).start
-        end
-      else
-        remove_cluster(name)
-        create_cluster(name, cassandra_version, no_dc, no_nodes_per_dc)
-        Cluster.new(name, ccm).start
-      end
-    else
-      # stops any existing cluster so we can re-bind localhost
-      Cluster.stop_existing_cluster(ccm)
-      create_cluster(name, cassandra_version, no_dc, no_nodes_per_dc)
-      Cluster.new(name, ccm).start
     end
+  end
+
+  def cluster_exists?(name)
+    clusters.any? {|cluster| cluster.name == name}
+  end
+
+  def clear
+    instance_variables.each do |ivar|
+      remove_instance_variable(ivar)
+    end
+
+    nil
   end
 end

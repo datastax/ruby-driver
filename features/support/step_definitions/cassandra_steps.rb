@@ -1,9 +1,9 @@
 # encoding: utf-8
 
-Given(/^a running cassandra cluster with a keyspace "(.*?)" and (a|an empty) table "(.*?)"$/) do |keyspace, a, table|
+Given(/^a running cassandra cluster with a keyspace "(.*?)" and (a|an empty) table "(.*?)"$/) do |keyspace, empty, table|
   step "a running cassandra cluster"
   step "a keyspace \"#{keyspace}\""
-  step "#{a} table \"#{table}\""
+  step "#{empty} table \"#{table}\""
 end
 
 Given(/^a running cassandra cluster with a keyspace "(.*?)"$/) do |keyspace|
@@ -21,17 +21,20 @@ Given(/^a running cassandra cluster with authentication enabled$/) do
 end
 
 Given(/^a running cassandra cluster in (\d+) datacenter(?:s)? with (\d+) nodes in each$/) do |no_dc, no_nodes_per_dc|
-  @cluster = setup_cluster(no_dc.to_i, no_nodes_per_dc.to_i)
+  @cluster = CCM.setup_cluster(no_dc.to_i, no_nodes_per_dc.to_i)
 end
 
 Given(/^a keyspace "(.*?)"$/) do |keyspace|
-  @cluster.create_keyspace(keyspace)
-  @cluster.use_keyspace(keyspace)
+  @keyspace = @cluster.keyspace(keyspace)
 end
 
 Given(/^a(?:n)? (empty )?table "(.*?)"$/) do |empty, table|
-  @cluster.create_table(table)
-  @cluster.populate_table(table) unless empty
+  table = @keyspace.table(table)
+  if empty
+    table.clear
+  else
+    table.load
+  end
 end
 
 Given(/^the following example:$/) do |code|
@@ -55,11 +58,11 @@ Given(/^I wait for its output to contain "(.*?)"$/) do |output|
 end
 
 When(/^node (\d+) starts$/) do |i|
-  @cluster.start_nth_node(i)
+  @cluster.start_node("node#{i}")
 end
 
 When(/^node (\d+) stops$/) do |i|
-  @cluster.stop_node(i)
+  @cluster.stop_node("node#{i}")
 end
 
 Given(/^node (\d+) is stopped$/) do |i|
@@ -67,12 +70,12 @@ Given(/^node (\d+) is stopped$/) do |i|
 end
 
 When(/^node (\d+) joins$/) do |i|
-  @cluster.add_node(i)
+  @cluster.add_node("node#{i}")
   step "node #{i} starts"
 end
 
 When(/^node (\d+) gets decommissioned$/) do |i|
-  @cluster.decommission_node(i)
+  @cluster.decommission_node("node#{i}")
 end
 
 Given(/^all nodes are down$/) do
@@ -85,8 +88,7 @@ end
 
 When(/^node (\d+) leaves$/) do |i|
   step "node #{i} gets decommissioned"
-  step "node #{i} stops"
-  @cluster.remove_node(i)
+  @cluster.remove_node("node#{i}")
 end
 
 When(/^node (\d+) restarts$/) do |i|
@@ -112,24 +114,15 @@ end
 
 After('@auth') do
   @cluster.disable_authentication
-  @cluster.restart
+end
+
+After('@schema') do
+  @cluster.clear_schema
 end
 
 def prepend_encoding(code)
   <<-CODE
 # encoding: utf-8
-
-unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
-  require 'simplecov'
-
-  SimpleCov.root '#{Dir.pwd}'
-
-  load '#{File.join(Dir.pwd, '.simplecov')}'
-
-  SimpleCov.start do
-    command_name 'Cucumber Example #{rand(100000)}'
-  end
-end
 
 #{code}
   CODE

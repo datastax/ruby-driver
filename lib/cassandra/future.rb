@@ -332,7 +332,7 @@ module Cassandra
     #
     # @example Executing something else on error
     #   future_error = session.execute_async('SELECT * FROM invalid-table')
-    #   future       = future_error.fallback {|e| session..execute_async('SELECT * FROM another-table')}
+    #   future       = future_error.fallback {|e| session.execute_async('SELECT * FROM another-table')}
     #
     # @note The block can be called synchronously from current thread if the
     #   future has already been resolved, or, asynchronously, from background

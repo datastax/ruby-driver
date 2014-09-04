@@ -5,6 +5,7 @@
 A Ruby client driver for Apache Cassandra. This driver works exclusively with
 the Cassandra Query Language version 3 (CQL3) and Cassandra's native protocol.
 
+- Code: https://github.com/datastax/ruby-driver
 - Docs: http://datastax.github.io/ruby-driver/
 - JIRA: https://datastax-oss.atlassian.net/browse/RUBY
 - MAILING LIST: https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user
@@ -22,15 +23,12 @@ This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [
 
 This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. The current version works with:
 
-*   Cassandra versions 1.2 and 2.0
-*   Ruby 1.9.3 and 2.0
-*   JRuby 1.7
+* Cassandra versions 1.2 and 2.0
+* Ruby 1.9.3 and 2.0
+* JRuby 1.7
+* Rubinius 2.1
 
-    _Note_: JRuby 1.6 is not officially supported, although 1.6.8 should work.
-
-*   Rubinius 2.1
-
-
+__Note__: JRuby 1.6 is not officially supported, although 1.6.8 should work.
 
 ## Quick start
 
@@ -62,6 +60,23 @@ Read more:
 * [`Cql.connect` options](/api/#connect-class_method)
 * [`Session#execute_async` options](/api/session/#execute_async-instance_method)
 * [Usage documentation](/features)
+
+## Installation
+
+Install via rubygems
+
+```bash
+gem install cassandra-driver
+```
+
+Install via Gemfile
+
+```ruby
+gem 'cassandra-driver'
+```
+
+Note: if you want to use compression you should also install [snappy](http://rubygems.org/gems/snappy) or [lz4-ruby](http://rubygems.org/gems/lz4-ruby). [Read more about compression.](/features/#compression)
+
 
 ## Upgrading from cql-rb
 

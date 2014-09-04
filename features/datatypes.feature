@@ -16,14 +16,14 @@ Feature: Datatypes
       at_exit { cluster.close }
 
       session = cluster.connect("simplex")
+      session.execute("DROP TABLE mytable") rescue nil
       session.execute("CREATE TABLE mytable (
         a int PRIMARY KEY,
         b ascii,
         c blob,
         d text,
         e varchar,
-      )", consistency: :all)
-      sleep(1) # wait for the change to propagate
+      )")
 
       insert = session.prepare("INSERT INTO mytable (a, b, c, d, e) VALUES (?, ?, ?, ?, ?)")
       session.execute(insert, 0, 'ascii', "blob", 'text', 'varchar')
@@ -53,6 +53,7 @@ Feature: Datatypes
       at_exit { cluster.close }
 
       session = cluster.connect("simplex")
+      session.execute("DROP TABLE mytable") rescue nil
       session.execute("CREATE TABLE mytable (
         a int PRIMARY KEY,
         b bigint,
@@ -61,8 +62,7 @@ Feature: Datatypes
         e float,
         f int,
         g varint
-      )", consistency: :all)
-      sleep(1) # wait for the change to propagate
+      )")
 
       insert = session.prepare("INSERT INTO mytable (a, b, c, d, e, f, g) VALUES (?, ?, ?, ?, ?, ?, ?)")
       session.execute(insert, 0, 765438000, BigDecimal.new('1313123123.234234234234234234123'),
@@ -98,6 +98,7 @@ Feature: Datatypes
       at_exit { cluster.close }
 
       session = cluster.connect("simplex")
+      session.execute("DROP TABLE mytable") rescue nil
       session.execute("CREATE TABLE mytable (
         a int PRIMARY KEY,
         b boolean,
@@ -105,8 +106,7 @@ Feature: Datatypes
         d timestamp,
         e timeuuid,
         f uuid
-      )", consistency: :all)
-      sleep(1) # wait for the change to propagate
+      )")
 
       insert = session.prepare("INSERT INTO mytable (a, b, c, d, e, f) VALUES (?, ?, ?, ?, ?, ?)")
       session.execute(insert, 0, true, IPAddr.new('200.199.198.197'), Time.utc(2013, 12, 11, 10, 9, 8),
@@ -141,14 +141,14 @@ Feature: Datatypes
       at_exit { cluster.close }
 
       session = cluster.connect("simplex")
+      session.execute("DROP TABLE user") rescue nil
       session.execute("CREATE TABLE user (
         id int PRIMARY KEY,
         user_name text,
         logins List<timestamp>,
         locations Map<timestamp, double>,
         ip_addresses Set<inet>
-      )", consistency: :all)
-      sleep(1) # wait for the change to propagate
+      )")
 
       insert = session.prepare("INSERT INTO user (id, user_name, logins, locations, ip_addresses) VALUES (?, ?, ?, ?, ?)")
       session.execute(insert, 0, "cassandra_user",

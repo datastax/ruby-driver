@@ -71,7 +71,7 @@ Feature: Execution information
 
       cluster   = Cassandra.connect(retry_policy: RetryingAtAGivenConsistencyPolicy.new(:one))
       session   = cluster.connect("simplex")
-      execution = session.execute("SELECT * FROM songs", :consistency => :all).execution_info
+      execution = session.execute("SELECT * FROM songs", consistency: :all).execution_info
 
       puts "requested consistency: #{execution.options.consistency}"
       puts "actual consistency: #{execution.consistency}"
