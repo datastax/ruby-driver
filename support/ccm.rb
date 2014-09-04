@@ -280,7 +280,20 @@ module CCM extend self
     def start_node(name)
       node = nodes.find {|n| n.name == name}
       return if node.nil? || node.up?
-      @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto')
+
+      attempts = 1
+
+      begin
+        @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto')
+      rescue
+        @ccm.exec(node.name, 'stop') rescue nil
+
+        raise if attempts >= 3
+        attempts += 1
+        sleep(1)
+        retry
+      end
+
       node.up!
 
       nil
