@@ -5,27 +5,29 @@ Feature: Datatypes
   for a full list of datatypes and their differences.
 
   Background:
-    Given a running cassandra cluster with a keyspace "simplex"
+    Given a running cassandra cluster
 
   Scenario: Text-like datatypes are inserted into a column family
-    Given the following example:
-    """ruby
-      require 'cassandra'
-
-      cluster = Cassandra.connect
-      at_exit { cluster.close }
-
-      session = cluster.connect("simplex")
-      session.execute("DROP TABLE mytable") rescue nil
-      session.execute("CREATE TABLE mytable (
+    Given the following schema:
+      """sql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      USE simplex;
+      CREATE TABLE mytable (
         a int PRIMARY KEY,
         b ascii,
         c blob,
         d text,
         e varchar,
-      )")
+      );
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
 
-      insert = session.prepare("INSERT INTO mytable (a, b, c, d, e) VALUES (?, ?, ?, ?, ?)")
+      cluster = Cassandra.connect
+      session = cluster.connect("simplex")
+      insert  = session.prepare("INSERT INTO mytable (a, b, c, d, e) VALUES (?, ?, ?, ?, ?)")
+
       session.execute(insert, 0, 'ascii', "blob", 'text', 'varchar')
 
       row = session.execute("SELECT * FROM mytable").first
@@ -45,16 +47,11 @@ Feature: Datatypes
       """
 
   Scenario: Integer-like datatypes are inserted into a column family
-    Given the following example:
-    """ruby
-      require 'cassandra'
-
-      cluster = Cassandra.connect
-      at_exit { cluster.close }
-
-      session = cluster.connect("simplex")
-      session.execute("DROP TABLE mytable") rescue nil
-      session.execute("CREATE TABLE mytable (
+    Given the following schema:
+      """sql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      USE simplex;
+      CREATE TABLE mytable (
         a int PRIMARY KEY,
         b bigint,
         c decimal,
@@ -62,9 +59,16 @@ Feature: Datatypes
         e float,
         f int,
         g varint
-      )")
+      );
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
 
-      insert = session.prepare("INSERT INTO mytable (a, b, c, d, e, f, g) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      cluster = Cassandra.connect
+      session = cluster.connect("simplex")
+      insert  = session.prepare("INSERT INTO mytable (a, b, c, d, e, f, g) VALUES (?, ?, ?, ?, ?, ?, ?)")
+
       session.execute(insert, 0, 765438000, BigDecimal.new('1313123123.234234234234234234123'),
                                   Math::PI, 3.14, 4, 67890656781923123918798273492834712837198237)
 
@@ -89,26 +93,28 @@ Feature: Datatypes
       """
 
   Scenario: ID-like datatypes are inserted into a column family
-    Given the following example:
-    """ruby
-      require 'cassandra'
-      require 'time'
-
-      cluster = Cassandra.connect
-      at_exit { cluster.close }
-
-      session = cluster.connect("simplex")
-      session.execute("DROP TABLE mytable") rescue nil
-      session.execute("CREATE TABLE mytable (
+    Given the following schema:
+      """sql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      USE simplex;
+      CREATE TABLE mytable (
         a int PRIMARY KEY,
         b boolean,
         c inet,
         d timestamp,
         e timeuuid,
         f uuid
-      )")
+      );
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
+      require 'time'
 
-      insert = session.prepare("INSERT INTO mytable (a, b, c, d, e, f) VALUES (?, ?, ?, ?, ?, ?)")
+      cluster = Cassandra.connect
+      session = cluster.connect("simplex")
+      insert  = session.prepare("INSERT INTO mytable (a, b, c, d, e, f) VALUES (?, ?, ?, ?, ?, ?)")
+
       session.execute(insert, 0, true, IPAddr.new('200.199.198.197'), Time.utc(2013, 12, 11, 10, 9, 8),
                                   Cassandra::Uuid.new('FE2B4360-28C6-11E2-81C1-0800200C9A66'),
                                   Cassandra::Uuid.new('00b69180-d0e1-11e2-8b8b-0800200c9a66'))
@@ -132,25 +138,27 @@ Feature: Datatypes
       """
 
   Scenario: Collection-datatypes are inserted into a column family
-    Given the following example:
-    """ruby
-      require 'cassandra'
-      require 'time'
-
-      cluster = Cassandra.connect
-      at_exit { cluster.close }
-
-      session = cluster.connect("simplex")
-      session.execute("DROP TABLE user") rescue nil
-      session.execute("CREATE TABLE user (
+    Given the following schema:
+      """sql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      USE simplex;
+      CREATE TABLE user (
         id int PRIMARY KEY,
         user_name text,
         logins List<timestamp>,
         locations Map<timestamp, double>,
         ip_addresses Set<inet>
-      )")
+      );
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
+      require 'time'
 
-      insert = session.prepare("INSERT INTO user (id, user_name, logins, locations, ip_addresses) VALUES (?, ?, ?, ?, ?)")
+      cluster = Cassandra.connect
+      session = cluster.connect("simplex")
+      insert  = session.prepare("INSERT INTO user (id, user_name, logins, locations, ip_addresses) VALUES (?, ?, ?, ?, ?)")
+
       session.execute(insert, 0, "cassandra_user",
                                  [Time.utc(2014, 9, 11, 10, 9, 8), Time.utc(2014, 9, 12, 10, 9, 0)],
                                  {Time.utc(2014, 9, 11, 10, 9, 8) => 37.397357},

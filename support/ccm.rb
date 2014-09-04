@@ -230,62 +230,6 @@ module CCM extend self
       end
     end
 
-    class Keyspace
-      attr_reader :name
-
-      def initialize(name, cluster)
-        @name    = name
-        @cluster = cluster
-      end
-
-      def drop
-        @cluster.drop_keyspace(@name)
-      end
-
-      def tables
-        @tables ||= begin
-          data = @cluster.execute_query("USE #{@name}; DESCRIBE TABLES")
-          data.strip!
-
-          if data == "<empty>"
-            []
-          else
-            data.split(/\s+/).map! do |name|
-              Table.new(name, @name, @cluster)
-            end
-          end
-        end
-      end
-
-      def table(name)
-        table = tables.find {|t| t.name == name}
-
-        return table if table
-
-        @cluster.create_table(@name, name)
-        tables << table = Table.new(name, @name, @cluster)
-        table
-      end
-    end
-
-    class Table
-      attr_reader :name, :keyspace
-
-      def initialize(name, keyspace, cluster)
-        @name     = name
-        @keyspace = keyspace
-        @cluster  = cluster
-      end
-
-      def load
-        @cluster.populate_table(@keyspace, @name)
-      end
-
-      def clear
-        @cluster.clear_table(@keyspace, @name)
-      end
-    end
-
     attr_reader :name
 
     def initialize(name, ccm, nodes_count = nil, datacenters = nil, keyspaces = nil)
@@ -389,39 +333,6 @@ module CCM extend self
       nodes.size
     end
 
-    def keyspace(name)
-      keyspace = keyspaces.find {|k| k.name == name}
-      return keyspace if keyspace
-
-      execute_query("CREATE KEYSPACE #{name} WITH replication = " \
-                    "{'class': 'SimpleStrategy', 'replication_factor': 3}")
-      sleep(2)
-
-      keyspaces << keyspace = Keyspace.new(name, self)
-      keyspace
-    end
-
-    def drop_keyspace(name)
-      keyspace = keyspaces.find {|k| k.name == name}
-      return if keyspace.nil?
-      execute_query("DROP KEYSPACE #{keyspace.name}")
-      keyspaces.delete(keyspace)
-
-      nil
-    end
-
-    def create_table(keyspace, table)
-      execute_query("USE #{keyspace}; DROP TABLE IF EXISTS #{table}; " + schema_for(table).chomp(";\n"))
-    end
-
-    def populate_table(keyspace, table)
-      execute_query("USE #{keyspace}; " + data_for(table).chomp(";\n"))
-    end
-
-    def clear_table(keyspace, table)
-      execute_query("USE #{keyspace}; TRUNCATE #{table}")
-    end
-
     def execute_query(query)
       start if !running?
       node = nodes.find(&:up?)
@@ -450,8 +361,16 @@ module CCM extend self
       start
     end
 
-    def clear_schema
-      @keyspaces = nil
+    def clear
+      data = execute_query("DESCRIBE KEYSPACES")
+      data.strip!
+      query = data.split(/\s+/).reject! do |name|
+        name.start_with?('system')
+      end.map! do |name|
+        "DROP KEYSPACE #{name}"
+      end.join(";\n")
+      execute_query(query) unless query.empty?
+      nil
     end
 
     private
@@ -462,29 +381,6 @@ module CCM extend self
           line.strip!
           name, status = line.split(": ")
           Node.new(name, status, self)
-        end
-      end
-    end
-
-    # path to cql fixture files
-    def fixture_path
-      @fixture_path ||= Pathname(File.dirname(__FILE__) + '/cql')
-    end
-
-    def schema_for(table)
-      File.read(fixture_path + 'schema' + "#{table}.cql")
-    end
-
-    def data_for(table)
-      File.read(fixture_path + 'data' + "#{table}.cql")
-    end
-
-    def keyspaces
-      @keyspaces ||= begin
-        data = execute_query("DESCRIBE KEYSPACES")
-        data.strip!
-        data.split(/\s+/).map! do |name|
-          Keyspace.new(name, self)
         end
       end
     end
@@ -514,6 +410,7 @@ module CCM extend self
       create_cluster(cassandra_cluster, cassandra_version, no_dc, no_nodes_per_dc)
     end
 
+    @current_cluster.clear
     @current_cluster
   rescue
     clear

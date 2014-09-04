@@ -1,4 +1,3 @@
-@schema
 Feature: Schema change detection
 
   A state listener registered with Cluster object will be notified of schema changes.
@@ -46,7 +45,6 @@ Feature: Schema change detection
       """
 
   Scenario: Listening for keyspace creation
-    Given no keyspace "new_keyspace"
     And the following example:
       """ruby
       require 'cassandra'
@@ -62,7 +60,10 @@ Feature: Schema change detection
       """
 
   Scenario: Listening for keyspace drop
-    Given a keyspace "new_keyspace"
+    Given the following schema:
+      """sql
+      CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}
+      """
     And the following example:
       """ruby
       require 'cassandra'
@@ -78,14 +79,16 @@ Feature: Schema change detection
       """
 
   Scenario: Listening for keyspace changes
-    Given a keyspace "new_keyspace"
+    Given the following schema:
+      """sql
+      CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}
+      """
     And the following example:
       """ruby
       require 'cassandra'
 
       session = Cassandra.connect.connect('new_keyspace')
 
-      session.execute('DROP new_table') rescue nil
       session.execute("CREATE TABLE new_table (id timeuuid PRIMARY KEY)")
       """
     When it is executed
