@@ -271,8 +271,14 @@ module CCM extend self
 
       attempts = 1
 
+      if @username && @password
+        options = {:username => @username, :password => @password}
+      else
+        options = {}
+      end
+
       begin
-        @cluster = Cassandra.connect
+        @cluster = Cassandra.connect(options)
       rescue
         raise if attempts >= 3
         attempts += 1
@@ -367,9 +373,9 @@ module CCM extend self
     end
 
     def enable_authentication
+      stop
       @username = 'cassandra'
       @password = 'cassandra'
-      stop
       @ccm.exec('updateconf', 'authenticator: PasswordAuthenticator')
       start
 
@@ -381,6 +387,7 @@ module CCM extend self
     def disable_authentication
       stop
       @ccm.exec('updateconf', 'authenticator: AllowAllAuthenticator')
+      @username = @password = nil
       start
     end
 
