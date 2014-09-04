@@ -259,7 +259,7 @@ module CCM extend self
     def start
       return if nodes.all?(&:up?)
 
-      @ccm.exec('start', '--wait-for-binary-proto')
+      @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
       @nodes.each(&:up!)
 
       nil
@@ -361,15 +361,19 @@ module CCM extend self
       start
     end
 
+    def setup_schema(schema)
+      clear
+
+      schema.strip!
+      schema.chomp!(";")
+
+      execute_query(schema)
+      nil
+    end
+
     def clear
-      data = execute_query("DESCRIBE KEYSPACES")
-      data.strip!
-      query = data.split(/\s+/).reject! do |name|
-        name.start_with?('system')
-      end.map! do |name|
-        "DROP KEYSPACE #{name}"
-      end.join(";\n")
-      execute_query(query) unless query.empty?
+      @ccm.exec('clear')
+      @nodes.each(&:down!)
       nil
     end
 
