@@ -397,7 +397,7 @@ module CCM extend self
       @ccm.exec('updateconf', 'authenticator: PasswordAuthenticator')
       start
 
-      sleep(2)
+      sleep(10)
 
       [@username, @password]
     end
