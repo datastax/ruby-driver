@@ -58,7 +58,7 @@ module CCM extend self
   if RUBY_ENGINE == 'jruby'
     class Runner
       def initialize(ccm_home, ccm_script, notifier)
-        @env      = {'HOME' => ccm_home}
+        @env      = {'HOME' => ccm_home, 'CCM_MAX_HEAP_SIZE' => '64M', 'CCM_HEAP_NEWSIZE' => '12M'}
         @cmd      = 'ccm'
         @notifier = notifier
       end
@@ -155,7 +155,9 @@ module CCM extend self
 
         @pid = Process.spawn(
           {
-            'HOME' => @ccm_home
+            'HOME' => @ccm_home,
+            'CCM_MAX_HEAP_SIZE' => '64M',
+            'CCM_HEAP_NEWSIZE' => '12M'
           },
           'python', '-u', @ccm_script,
           {
@@ -461,6 +463,22 @@ module CCM extend self
     nodes = Array.new(datacenters, nodes_per_datacenter).join(':')
 
     ccm.exec('create', '-n', nodes, '-v', 'binary:' + version, '-b', '-i', '127.0.0.', name)
+    ccm.exec('updateconf', 'range_request_timeout_in_ms: 10000')
+    ccm.exec('updateconf', 'read_request_timeout_in_ms: 10000')
+    ccm.exec('updateconf', 'cas_contention_timeout_in_ms: 10000')
+    ccm.exec('updateconf', 'truncate_request_timeout_in_ms: 10000')
+    ccm.exec('updateconf', 'write_request_timeout_in_ms: 10000')
+    ccm.exec('updateconf', 'write_request_timeout_in_ms: 10000')
+    ccm.exec('updateconf', 'request_timeout_in_ms: 10000')
+    ccm.exec('updateconf', 'native_transport_max_threads: 1')
+    ccm.exec('updateconf', 'rpc_min_threads: 1')
+    ccm.exec('updateconf', 'rpc_max_threads: 1')
+    ccm.exec('updateconf', 'concurrent_reads: 2')
+    ccm.exec('updateconf', 'concurrent_writes: 2')
+    ccm.exec('updateconf', 'concurrent_compactors: 1')
+    ccm.exec('updateconf', 'compaction_throughput_mb_per_sec: 0')
+    ccm.exec('updateconf', 'in_memory_compaction_limit_in_mb: 1')
+    ccm.exec('updateconf', 'key_cache_size_in_mb: 0')
 
     @current_cluster = cluster = Cluster.new(name, ccm, nodes_per_datacenter * datacenters, datacenters, [])
     @current_cluster.start
