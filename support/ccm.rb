@@ -252,6 +252,11 @@ module CCM extend self
     def stop
       return if nodes.all?(&:down?)
 
+      if @cluster
+        @cluster.close
+        @cluster = @session = nil
+      end
+
       @ccm.exec('stop')
       @nodes.each(&:down!)
 
@@ -335,16 +340,6 @@ module CCM extend self
       nodes.size
     end
 
-    def execute_query(query)
-      start if !running?
-      node = nodes.find(&:up?)
-
-      # for some reason cqlsh -x it eating first 4 lines of output, so we make it output 4 lines of version first
-      prefix  = 'show version; ' * 4
-
-      @ccm.exec(node.name, 'cqlsh', '-v', '-x', "#{prefix}#{query}")
-    end
-
     def enable_authentication
       @username = 'cassandra'
       @password = 'cassandra'
@@ -364,12 +359,16 @@ module CCM extend self
     end
 
     def setup_schema(schema)
-      clear
+      cluster.each_keyspace do |keyspace|
+        session.execute("DROP KEYSPACE #{keyspace.name}") unless keyspace.name.start_with?('system')
+      end
 
       schema.strip!
       schema.chomp!(";")
+      schema.split(";\n").each do |statement|
+        session.execute(statement)
+      end
 
-      execute_query(schema)
       nil
     end
 
@@ -388,6 +387,27 @@ module CCM extend self
           name, status = line.split(": ")
           Node.new(name, status, self)
         end
+      end
+    end
+
+    def cluster
+      @cluster ||= begin
+        attempts = 1
+
+        begin
+          Cassandra.connect
+        rescue
+          raise if attempts >= 3
+          attempts += 1
+          sleep(1)
+          retry
+        end
+      end
+    end
+
+    def session
+      @session ||= begin
+        cluster.connect
       end
     end
   end
