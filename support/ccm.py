@@ -1,5 +1,4 @@
 import sys, os, signal, yaml
-from six import print_
 from struct import pack, unpack
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
