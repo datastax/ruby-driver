@@ -465,7 +465,14 @@ module CCM extend self
     ccm.exec('create', '-n', nodes, '-v', 'binary:' + version, '-b', '-i', '127.0.0.', name)
     ccm.exec('updateconf', 'range_request_timeout_in_ms: 10000')
     ccm.exec('updateconf', 'read_request_timeout_in_ms: 10000')
-    ccm.exec('updateconf', 'cas_contention_timeout_in_ms: 10000')
+
+    if cassandra_version.start_with?('1.2.')
+      ccm.exec('updateconf', 'reduce_cache_sizes_at: 0')
+      ccm.exec('updateconf', 'reduce_cache_capacity_to: 0')
+    else
+      ccm.exec('updateconf', 'cas_contention_timeout_in_ms: 10000')
+    end
+
     ccm.exec('updateconf', 'truncate_request_timeout_in_ms: 10000')
     ccm.exec('updateconf', 'write_request_timeout_in_ms: 10000')
     ccm.exec('updateconf', 'write_request_timeout_in_ms: 10000')
