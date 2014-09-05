@@ -264,7 +264,7 @@ module CCM extend self
     end
 
     def start
-      return if @cluster && nodes.all?(&:up?)
+      return if @cluster && @cluster.hosts.all?(&:up?) && nodes.all?(&:up?)
 
       if @cluster
         @cluster.close
