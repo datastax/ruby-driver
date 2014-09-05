@@ -4,7 +4,20 @@ Feature: Batch statements
   execute it.
 
   Background:
-    Given a running cassandra cluster with a keyspace "simplex" and an empty table "songs"
+    Given a running cassandra cluster with schema:
+      """sql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      USE simplex;
+      CREATE TABLE songs (
+        id uuid PRIMARY KEY,
+        title text,
+        album text,
+        artist text,
+        tags set<text>,
+        data blob
+      );
+      CREATE TABLE cas_batch (k text, v int, PRIMARY KEY (k, v));
+      """
 
   @cassandra-version-specific @cassandra-version-2.0
   Scenario: A batch of simple statements is executed
@@ -178,20 +191,18 @@ Feature: Batch statements
   @cassandra-version-specific @cassandra-version-2.0.9
   Scenario: A cas batch is never applied more than once
     Given the following example:
-    """ruby
+      """ruby
       require 'cassandra'
 
       cluster = Cassandra.connect
       at_exit { cluster.close }
 
       session = cluster.connect("simplex")
-      session.execute("DROP TABLE test") rescue nil
-      session.execute("CREATE TABLE test (k text, v int, PRIMARY KEY (k, v))")
 
-      statement = session.prepare("INSERT INTO test (k, v) VALUES (?, ?) IF NOT EXISTS")
+      statement = session.prepare("INSERT INTO cas_batch (k, v) VALUES (?, ?) IF NOT EXISTS")
       batch = session.batch
 
-      batch.add("INSERT INTO test (k, v) VALUES ('key1', 0)")
+      batch.add("INSERT INTO cas_batch (k, v) VALUES ('key1', 0)")
       batch.add(statement, "key1", 1)
       batch.add(statement, "key1", 2)
 

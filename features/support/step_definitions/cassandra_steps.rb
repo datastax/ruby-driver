@@ -1,16 +1,5 @@
 # encoding: utf-8
 
-Given(/^a running cassandra cluster with a keyspace "(.*?)" and (a|an empty) table "(.*?)"$/) do |keyspace, empty, table|
-  step "a running cassandra cluster"
-  step "a keyspace \"#{keyspace}\""
-  step "#{empty} table \"#{table}\""
-end
-
-Given(/^a running cassandra cluster with a keyspace "(.*?)"$/) do |keyspace|
-  step "a running cassandra cluster"
-  step "a keyspace \"#{keyspace}\""
-end
-
 Given(/^a running cassandra cluster$/) do
   step "a running cassandra cluster in 1 datacenter with 3 nodes in each"
 end
@@ -24,17 +13,13 @@ Given(/^a running cassandra cluster in (\d+) datacenter(?:s)? with (\d+) nodes i
   @cluster = CCM.setup_cluster(no_dc.to_i, no_nodes_per_dc.to_i)
 end
 
-Given(/^a keyspace "(.*?)"$/) do |keyspace|
-  @keyspace = @cluster.keyspace(keyspace)
+Given(/^a running cassandra cluster with schema:$/) do |schema|
+  step 'a running cassandra cluster'
+  step 'the following schema:', schema
 end
 
-Given(/^a(?:n)? (empty )?table "(.*?)"$/) do |empty, table|
-  table = @keyspace.table(table)
-  if empty
-    table.clear
-  else
-    table.load
-  end
+Given(/^the following schema:$/) do |schema|
+  @cluster.setup_schema(schema)
 end
 
 Given(/^the following example:$/) do |code|
@@ -96,28 +81,12 @@ When(/^node (\d+) restarts$/) do |i|
   step "node #{i} starts"
 end
 
-When(/^keyspace "(.*?)" is created$/) do |keyspace|
-  step "a keyspace \"#{keyspace}\""
-end
-
-When(/^keyspace "(.*?)" is dropped$/) do |keyspace|
-  step "no keyspace \"#{keyspace}\""
-end
-
-Given(/^no keyspace "(.*?)"$/) do |keyspace|
-  @cluster.drop_keyspace(keyspace)
-end
-
 When(/^I wait for (\d+) seconds$/) do |interval|
   sleep(interval.to_i)
 end
 
 After('@auth') do
   @cluster.disable_authentication
-end
-
-After('@schema') do
-  @cluster.clear_schema
 end
 
 def prepend_encoding(code)

@@ -55,82 +55,126 @@ module CCM extend self
     end
   end
 
-  class Runner
-    def initialize(ccm_home, ccm_script, notifier)
-      @ccm_home   = ccm_home
-      @ccm_script = ccm_script
-      @notifier   = notifier
-    end
-
-    def exec(*args)
-      start_ccm_helper
-
-      cmd = args.dup.unshift('ccm').join(' ')
-      out = ''
-      done = false
-
-      @notifier.executing_command(cmd, @pid)
-
-      @stdin.write(encode(args))
-      until done
-        begin
-          Timeout.timeout(30) do
-            chunk = @stdout.readpartial(4096)
-            if chunk.end_with?('=== DONE ===')
-              chunk.sub!('=== DONE ===', '')
-              done = true
-            end
-            out << chunk
-            @notifier.command_output(@pid, chunk) unless chunk.empty?
-          end
-        rescue Timeout::Error
-          @notifier.command_running(@pid)
-        rescue EOFError
-          @stdin.close
-          @stdout.close
-          Process.waitpid(@pid)
-
-          @notifier.executed_command(cmd, @pid, $?)
-          @stdin  = nil
-          @stdout = nil
-          @pid    = nil
-
-          raise "#{cmd} failed"
-        end
+  if RUBY_ENGINE == 'jruby'
+    class Runner
+      def initialize(ccm_home, ccm_script, notifier)
+        @env      = {'HOME' => ccm_home, 'CCM_MAX_HEAP_SIZE' => '64M', 'CCM_HEAP_NEWSIZE' => '12M'}
+        @cmd      = 'ccm'
+        @notifier = notifier
       end
 
-      out
+      def exec(*args)
+        cmd = args.dup.unshift(@cmd).join(' ')
+        pid = nil
+        out = ''
+
+        IO.popen([@env, @cmd, *args]) do |io|
+          pid = io.pid
+          @notifier.executing_command(cmd, pid)
+
+          loop do
+            begin
+              Timeout.timeout(30) do
+                out << chunk = io.readpartial(4096)
+
+                @notifier.command_output(pid, chunk)
+              end
+            rescue Timeout::Error
+              @notifier.command_running(pid)
+            rescue EOFError
+              break
+            end
+          end
+        end
+
+        @notifier.executed_command(cmd, pid, $?)
+        raise "#{cmd} failed" unless $?.success?
+
+        out
+      end
     end
+  else
+    class Runner
+      def initialize(ccm_home, ccm_script, notifier)
+        @ccm_home   = ccm_home
+        @ccm_script = ccm_script
+        @notifier   = notifier
+      end
 
-    private
+      def exec(*args)
+        start_ccm_helper
 
-    def start_ccm_helper
-      return if @stdin && @stdout && @pid
+        cmd = args.dup.unshift('ccm').join(' ')
+        out = ''
+        done = false
 
-      in_r, @stdin = IO.pipe
-      @stdout, out_w = IO.pipe
+        @notifier.executing_command(cmd, @pid)
 
-      @stdin.sync = true
+        @stdin.write(encode(args))
 
-      @pid = Process.spawn(
-        {
-          'HOME' => @ccm_home
-        },
-        'python', '-u', @ccm_script,
-        {
-          :in => in_r,
-          [:out, :err] => out_w
-        }
-      )
+        until done
+          if IO.select([@stdout], nil, nil, 30)
+            begin
+              chunk = @stdout.read_nonblock(4096)
+              if chunk.end_with?('=== DONE ===')
+                chunk.sub!('=== DONE ===', '')
+                done = true
+              end
+              out << chunk
+              @notifier.command_output(@pid, chunk) unless chunk.empty?
+            rescue IO::WaitReadable
+            rescue EOFError
+              @stdin.close
+              @stdout.close
+              Process.waitpid(@pid)
 
-      in_r.close
-      out_w.close
-    end
+              @notifier.executed_command(cmd, @pid, $?)
+              @stdin  = nil
+              @stdout = nil
+              @pid    = nil
 
-    def encode(args)
-      body = JSON.dump(args)
-      size = body.bytesize
-      [size, body].pack("S!A#{size}")
+              raise "#{cmd} failed"
+            end
+          else
+            @notifier.command_running(@pid)
+          end
+        end
+
+        out
+      end
+
+      private
+
+      def start_ccm_helper
+        return if @stdin && @stdout && @pid
+
+        in_r, @stdin = IO.pipe
+        @stdout, out_w = IO.pipe
+
+        @stdin.sync = true
+
+        @pid = Process.spawn(
+          {
+            'HOME' => @ccm_home,
+            'CCM_MAX_HEAP_SIZE' => '64M',
+            'CCM_HEAP_NEWSIZE' => '12M'
+          },
+          'python', '-u', @ccm_script,
+          {
+            :in => in_r,
+            [:out, :err] => out_w
+          }
+        )
+
+        in_r.close
+        out_w.close
+      end
+
+      def encode(args)
+        body = JSON.dump(args)
+        size = body.bytesize
+        [size, body].pack("S!A#{size}")
+      end
     end
   end
 
@@ -188,62 +232,6 @@ module CCM extend self
       end
     end
 
-    class Keyspace
-      attr_reader :name
-
-      def initialize(name, cluster)
-        @name    = name
-        @cluster = cluster
-      end
-
-      def drop
-        @cluster.drop_keyspace(@name)
-      end
-
-      def tables
-        @tables ||= begin
-          data = @cluster.execute_query("USE #{@name}; DESCRIBE TABLES")
-          data.strip!
-
-          if data == "<empty>"
-            []
-          else
-            data.split(/\s+/).map! do |name|
-              Table.new(name, @name, @cluster)
-            end
-          end
-        end
-      end
-
-      def table(name)
-        table = tables.find {|t| t.name == name}
-
-        return table if table
-
-        @cluster.create_table(@name, name)
-        tables << table = Table.new(name, @name, @cluster)
-        table
-      end
-    end
-
-    class Table
-      attr_reader :name, :keyspace
-
-      def initialize(name, keyspace, cluster)
-        @name     = name
-        @keyspace = keyspace
-        @cluster  = cluster
-      end
-
-      def load
-        @cluster.populate_table(@keyspace, @name)
-      end
-
-      def clear
-        @cluster.clear_table(@keyspace, @name)
-      end
-    end
-
     attr_reader :name
 
     def initialize(name, ccm, nodes_count = nil, datacenters = nil, keyspaces = nil)
@@ -264,6 +252,11 @@ module CCM extend self
     def stop
       return if nodes.all?(&:down?)
 
+      if @cluster
+        @cluster.close
+        @cluster = @session = nil
+      end
+
       @ccm.exec('stop')
       @nodes.each(&:down!)
 
@@ -271,10 +264,46 @@ module CCM extend self
     end
 
     def start
-      return if nodes.all?(&:up?)
+      return if @cluster && nodes.all?(&:up?)
 
-      @ccm.exec('start', '--wait-for-binary-proto')
+      if @cluster
+        @cluster.close
+        @cluster = @session = nil
+      end
+
+      attempts = 1
+
+      begin
+        @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
+      rescue
+        @ccm.exec('stop') rescue nil
+
+        raise if attempts >= 10
+        attempts += 1
+        sleep(1)
+        retry
+      end
+
       @nodes.each(&:up!)
+
+      if @username && @password
+        options = {:username => @username, :password => @password}
+      else
+        options = {}
+      end
+
+      attempts = 1
+
+      begin
+        @cluster = Cassandra.connect(options)
+      rescue
+        raise if attempts >= 10
+        attempts += 1
+        sleep(1)
+        retry
+      end
+
+      @session = @cluster.connect
 
       nil
     end
@@ -287,7 +316,20 @@ module CCM extend self
     def start_node(name)
       node = nodes.find {|n| n.name == name}
       return if node.nil? || node.up?
-      @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto')
+
+      attempts = 1
+
+      begin
+        @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto')
+      rescue
+        @ccm.exec(node.name, 'stop') rescue nil
+
+        raise if attempts >= 10
+        attempts += 1
+        sleep(1)
+        retry
+      end
+
       node.up!
 
       nil
@@ -347,57 +389,14 @@ module CCM extend self
       nodes.size
     end
 
-    def keyspace(name)
-      keyspace = keyspaces.find {|k| k.name == name}
-      return keyspace if keyspace
-
-      execute_query("CREATE KEYSPACE #{name} WITH replication = " \
-                    "{'class': 'SimpleStrategy', 'replication_factor': 3}")
-      sleep(2)
-
-      keyspaces << keyspace = Keyspace.new(name, self)
-      keyspace
-    end
-
-    def drop_keyspace(name)
-      keyspace = keyspaces.find {|k| k.name == name}
-      return if keyspace.nil?
-      execute_query("DROP KEYSPACE #{keyspace.name}")
-      keyspaces.delete(keyspace)
-
-      nil
-    end
-
-    def create_table(keyspace, table)
-      execute_query("USE #{keyspace}; DROP TABLE IF EXISTS #{table}; " + schema_for(table).chomp(";\n"))
-    end
-
-    def populate_table(keyspace, table)
-      execute_query("USE #{keyspace}; " + data_for(table).chomp(";\n"))
-    end
-
-    def clear_table(keyspace, table)
-      execute_query("USE #{keyspace}; TRUNCATE #{table}")
-    end
-
-    def execute_query(query)
-      start if !running?
-      node = nodes.find(&:up?)
-
-      # for some reason cqlsh -x it eating first 4 lines of output, so we make it output 4 lines of version first
-      prefix  = 'show version; ' * 4
-
-      @ccm.exec(node.name, 'cqlsh', '-v', '-x', "#{prefix}#{query}")
-    end
-
     def enable_authentication
+      stop
       @username = 'cassandra'
       @password = 'cassandra'
-      stop
       @ccm.exec('updateconf', 'authenticator: PasswordAuthenticator')
       start
 
-      sleep(2)
+      sleep(10)
 
       [@username, @password]
     end
@@ -405,11 +404,32 @@ module CCM extend self
     def disable_authentication
       stop
       @ccm.exec('updateconf', 'authenticator: AllowAllAuthenticator')
+      @username = @password = nil
       start
     end
 
-    def clear_schema
-      @keyspaces = nil
+    def setup_schema(schema)
+      start
+
+      sleep(1) until @cluster.hosts.all?(&:up?)
+
+      @cluster.each_keyspace do |keyspace|
+        @session.execute("DROP KEYSPACE #{keyspace.name}") unless keyspace.name.start_with?('system')
+      end
+
+      schema.strip!
+      schema.chomp!(";")
+      schema.split(";\n").each do |statement|
+        @session.execute(statement)
+      end
+
+      nil
+    end
+
+    def clear
+      @ccm.exec('clear')
+      @nodes.each(&:down!)
+      nil
     end
 
     private
@@ -423,29 +443,6 @@ module CCM extend self
         end
       end
     end
-
-    # path to cql fixture files
-    def fixture_path
-      @fixture_path ||= Pathname(File.dirname(__FILE__) + '/cql')
-    end
-
-    def schema_for(table)
-      File.read(fixture_path + 'schema' + "#{table}.cql")
-    end
-
-    def data_for(table)
-      File.read(fixture_path + 'data' + "#{table}.cql")
-    end
-
-    def keyspaces
-      @keyspaces ||= begin
-        data = execute_query("DESCRIBE KEYSPACES")
-        data.strip!
-        data.split(/\s+/).map! do |name|
-          Keyspace.new(name, self)
-        end
-      end
-    end
   end
 
   def cassandra_version
@@ -456,13 +453,11 @@ module CCM extend self
     'ruby-driver-cassandra-' + cassandra_version + '-test-cluster'
   end
 
-  def setup_cluster(no_dc = 1, no_nodes_per_dc = 3, attempts = 1)
+  def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
     if cluster_exists?(cassandra_cluster)
       switch_cluster(cassandra_cluster)
 
-      if @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
-        @current_cluster.start
-      else
+      unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
         @current_cluster.stop
         remove_cluster(@current_cluster.name)
         create_cluster(cassandra_cluster, cassandra_version, no_dc, no_nodes_per_dc)
@@ -472,13 +467,8 @@ module CCM extend self
       create_cluster(cassandra_cluster, cassandra_version, no_dc, no_nodes_per_dc)
     end
 
+    @current_cluster.start
     @current_cluster
-  rescue
-    clear
-    ccm.exec('stop') rescue nil
-    raise if attempts == 3
-    attempts += 1
-    retry
   end
 
   private
@@ -519,11 +509,31 @@ module CCM extend self
     nodes = Array.new(datacenters, nodes_per_datacenter).join(':')
 
     ccm.exec('create', '-n', nodes, '-v', 'binary:' + version, '-b', '-i', '127.0.0.', name)
+    ccm.exec('updateconf', 'range_request_timeout_in_ms: 10000')
+    ccm.exec('updateconf', 'read_request_timeout_in_ms: 10000')
 
-    @current_cluster = cluster = Cluster.new(name, ccm, nodes_per_datacenter * datacenters, datacenters, [])
-    @current_cluster.start
+    if cassandra_version.start_with?('1.2.')
+      ccm.exec('updateconf', 'reduce_cache_sizes_at: 0')
+      ccm.exec('updateconf', 'reduce_cache_capacity_to: 0')
+    else
+      ccm.exec('updateconf', 'cas_contention_timeout_in_ms: 10000')
+    end
 
-    clusters << cluster
+    ccm.exec('updateconf', 'truncate_request_timeout_in_ms: 10000')
+    ccm.exec('updateconf', 'write_request_timeout_in_ms: 10000')
+    ccm.exec('updateconf', 'write_request_timeout_in_ms: 10000')
+    ccm.exec('updateconf', 'request_timeout_in_ms: 10000')
+    ccm.exec('updateconf', 'native_transport_max_threads: 1')
+    ccm.exec('updateconf', 'rpc_min_threads: 1')
+    ccm.exec('updateconf', 'rpc_max_threads: 1')
+    ccm.exec('updateconf', 'concurrent_reads: 2')
+    ccm.exec('updateconf', 'concurrent_writes: 2')
+    ccm.exec('updateconf', 'concurrent_compactors: 1')
+    ccm.exec('updateconf', 'compaction_throughput_mb_per_sec: 0')
+    ccm.exec('updateconf', 'in_memory_compaction_limit_in_mb: 1')
+    ccm.exec('updateconf', 'key_cache_size_in_mb: 0')
+
+    clusters << @current_cluster = Cluster.new(name, ccm, nodes_per_datacenter * datacenters, datacenters, [])
 
     nil
   end

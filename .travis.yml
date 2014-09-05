@@ -33,4 +33,6 @@ deploy:
   api_key:
     secure: "o2spP9TWvr/r41zcddtskpgTuU9SSJxkourYe9Sjx07OcQulAXT7TbZIFwpPvCUfB5uBLKq4vrSWthG3EcCCxFH2etzmTtnPInybbVyDFjwOd/aAF4JHhXGvqoO+QZ/3CSPtHukUZX96hryy8ko46Trxeue8FtWMQYnIFSXMdWc="
   on:
+    rvm: 1.9.3
+    condition: '$CASSANDRA_VERSION = 2.0.9'
     tags: true
