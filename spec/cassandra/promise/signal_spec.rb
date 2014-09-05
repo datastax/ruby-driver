@@ -270,13 +270,13 @@ module Cassandra
 
           it 'calls block immediately with error and no value' do
             c = false
-            e = nil
             v = nil
+            e = nil
 
-            signal.on_complete {|error, value| c = true; e = error; v = value}
+            signal.on_complete {|value, error| c = true; v = value; e = error}
             expect(c).to be_truthy
-            expect(e).to eq(error)
             expect(v).to be_nil
+            expect(e).to eq(error)
           end
         end
 
@@ -289,26 +289,26 @@ module Cassandra
 
           it 'calls block immediately with value and no error' do
             c = false
-            e = nil
             v = nil
+            e = nil
 
-            signal.on_complete {|error, value| c = true; e = error; v = value}
+            signal.on_complete {|value, error| c = true; v = value; e = error}
             expect(c).to be_truthy
-            expect(e).to be_nil
             expect(v).to eq(value)
+            expect(e).to be_nil
           end
         end
 
         context 'when it is not resolved' do
           it 'adds block' do
             c = false
-            e = nil
             v = nil
+            e = nil
 
-            signal.on_complete {|error, value| c = true; e = error; v = value}
+            signal.on_complete {|value, error| c = true; v = value; e = error}
+            expect(v).to be_nil
             expect(c).to be_falsey
             expect(e).to be_nil
-            expect(v).to be_nil
           end
         end
       end
