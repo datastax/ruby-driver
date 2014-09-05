@@ -264,7 +264,7 @@ module CCM extend self
     end
 
     def start
-      return if @cluster && @cluster.hosts.all?(&:up?) && nodes.all?(&:up?)
+      return if @cluster && nodes.all?(&:up?) && @cluster.hosts.select(&:up?).count == nodes.size
 
       if @cluster
         @cluster.close
@@ -428,6 +428,11 @@ module CCM extend self
       end
 
       nil
+    rescue Cassandra::Errors::NoHostsAvailable => e
+      e.errors.each do |host, error|
+        $stderr.puts("cannot reach #{host.ip} - #{error.class.name}: #{error.message}")
+      end
+      raise e
     end
 
     def clear
