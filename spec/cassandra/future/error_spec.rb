@@ -55,11 +55,11 @@ module Cassandra
         end
 
         it 'calls block with error and no value' do
-          e = nil
           v = nil
-          future.on_complete {|error, value| e = error; v = value}
-          expect(e).to eq(error)
+          e = nil
+          future.on_complete {|value, error| v = value; e = error}
           expect(v).to be_nil
+          expect(e).to eq(error)
         end
       end
 
