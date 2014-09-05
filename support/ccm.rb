@@ -58,7 +58,7 @@ module CCM extend self
   if RUBY_ENGINE == 'jruby'
     class Runner
       def initialize(ccm_home, ccm_script, notifier)
-        @env      = {'HOME' => ccm_home, 'CCM_MAX_HEAP_SIZE' => '64M', 'CCM_HEAP_NEWSIZE' => '12M'}
+        @env      = {'HOME' => ccm_home, 'CCM_MAX_HEAP_SIZE' => '32M', 'CCM_HEAP_NEWSIZE' => '8M'}
         @cmd      = 'ccm'
         @notifier = notifier
       end
@@ -156,8 +156,8 @@ module CCM extend self
         @pid = Process.spawn(
           {
             'HOME' => @ccm_home,
-            'CCM_MAX_HEAP_SIZE' => '64M',
-            'CCM_HEAP_NEWSIZE' => '12M'
+            'CCM_MAX_HEAP_SIZE' => '32M',
+            'CCM_HEAP_NEWSIZE' => '8M'
           },
           'python', '-u', @ccm_script,
           {
@@ -519,8 +519,11 @@ module CCM extend self
     if cassandra_version.start_with?('1.2.')
       ccm.exec('updateconf', 'reduce_cache_sizes_at: 0')
       ccm.exec('updateconf', 'reduce_cache_capacity_to: 0')
+      ccm.exec('updateconf', 'flush_largest_memtables_at: 0')
+      ccm.exec('updateconf', 'index_interval: 512')
     else
       ccm.exec('updateconf', 'cas_contention_timeout_in_ms: 10000')
+      ccm.exec('updateconf', 'file_cache_size_in_mb: 0')
     end
 
     ccm.exec('updateconf', 'truncate_request_timeout_in_ms: 10000')
@@ -536,6 +539,9 @@ module CCM extend self
     ccm.exec('updateconf', 'compaction_throughput_mb_per_sec: 0')
     ccm.exec('updateconf', 'in_memory_compaction_limit_in_mb: 1')
     ccm.exec('updateconf', 'key_cache_size_in_mb: 0')
+    ccm.exec('updateconf', 'key_cache_save_period: 0')
+    ccm.exec('updateconf', 'memtable_flush_writers: 1')
+    ccm.exec('updateconf', 'max_hints_delivery_threads: 1')
 
     clusters << @current_cluster = Cluster.new(name, ccm, nodes_per_datacenter * datacenters, datacenters, [])
 
