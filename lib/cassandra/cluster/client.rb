@@ -291,6 +291,8 @@ module Cassandra
               end
             end
           else
+            @logger.info("Session reconnection to ip=#{host.ip} cancelled")
+
             NO_CONNECTIONS
           end
         end
