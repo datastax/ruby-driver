@@ -15,6 +15,7 @@
 # limitations under the License.
 
 require 'fileutils'
+require 'logger'
 
 # Cassandra Cluster Manager integration for
 # driving a cassandra cluster from tests.
@@ -57,9 +58,9 @@ module CCM extend self
 
   if RUBY_ENGINE == 'jruby'
     class Runner
-      def initialize(ccm_home, ccm_script, notifier)
-        @env      = {'HOME' => ccm_home, 'CCM_MAX_HEAP_SIZE' => '32M', 'CCM_HEAP_NEWSIZE' => '8M'}
+      def initialize(ccm_script, env, notifier)
         @cmd      = 'ccm'
+        @env      = env
         @notifier = notifier
       end
 
@@ -95,9 +96,9 @@ module CCM extend self
     end
   else
     class Runner
-      def initialize(ccm_home, ccm_script, notifier)
-        @ccm_home   = ccm_home
+      def initialize(ccm_script, env, notifier)
         @ccm_script = ccm_script
+        @env        = env
         @notifier   = notifier
       end
 
@@ -154,11 +155,7 @@ module CCM extend self
         @stdin.sync = true
 
         @pid = Process.spawn(
-          {
-            'HOME' => @ccm_home,
-            'CCM_MAX_HEAP_SIZE' => '32M',
-            'CCM_HEAP_NEWSIZE' => '8M'
-          },
+          @env,
           'python', '-u', @ccm_script,
           {
             :in => in_r,
@@ -286,7 +283,7 @@ module CCM extend self
 
       @nodes.each(&:up!)
 
-      options = {}
+      options = {:logger => Logger.new($stderr)}
 
       if @username && @password
         options[:username] = @username
@@ -484,11 +481,29 @@ module CCM extend self
 
   def ccm
     @ccm ||= begin
+      Runner.new(
+        ccm_script,
+        {
+          'HOME'             => ccm_home,
+          'MAX_HEAP_SIZE'    => '32M',
+          'HEAP_NEWSIZE'     => '8M',
+          'MALLOC_ARENA_MAX' => '1'
+        },
+        PrintingNotifier.new($stderr)
+      )
+    end
+  end
+
+  def ccm_home
+    @ccm_home ||= begin
       ccm_home = File.expand_path(File.dirname(__FILE__) + '/../tmp')
       FileUtils.mkdir_p(ccm_home) unless File.directory?(ccm_home)
-      ccm_script = File.expand_path(File.dirname(__FILE__) + '/ccm.py')
-      Runner.new(ccm_home, ccm_script, PrintingNotifier.new($stderr))
+      ccm_home
     end
+  end
+
+  def ccm_script
+    @ccm_script ||= File.expand_path(File.dirname(__FILE__) + '/ccm.py')
   end
 
   def switch_cluster(name)
@@ -518,6 +533,20 @@ module CCM extend self
     nodes = Array.new(datacenters, nodes_per_datacenter).join(':')
 
     ccm.exec('create', '-n', nodes, '-v', 'binary:' + version, '-b', '-i', '127.0.0.', name)
+    File.open(ccm_home + '/.ccm/' + name + '/cassandra.in.sh', 'w+') do |f|
+      f.write(<<-SH)
+JVM_OPTS="$JVM_OPTS -XX:ThreadStackSize=8"
+JVM_OPTS="$JVM_OPTS -XX:InitiatingHeapOccupancyPercent=0"
+JVM_OPTS="$JVM_OPTS -XX:+AggressiveOpts"
+JVM_OPTS="$JVM_OPTS -XX:MaxPermSize=24m"
+JVM_OPTS="$JVM_OPTS -XX:NewRatio=2"
+JVM_OPTS="$JVM_OPTS -XX:NewRatio=2"
+JVM_OPTS="$JVM_OPTS -XX:MinHeapFreeRatio=5"
+JVM_OPTS="$JVM_OPTS -XX:MaxHeapFreeRatio=95"
+JVM_OPTS="$JVM_OPTS -XX:LargePageSizeInBytes=1m"
+JVM_OPTS="$JVM_OPTS -XX:+UseCompressedStrings"
+SH
+    end
     ccm.exec('updateconf', 'range_request_timeout_in_ms: 10000')
     ccm.exec('updateconf', 'read_request_timeout_in_ms: 10000')
 
