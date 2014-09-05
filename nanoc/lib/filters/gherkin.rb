@@ -252,6 +252,6 @@ module Docs
       end
     end
 
-    PARSER ||= Parser.new(HTMLRenderer.new)
+    PARSER = Parser.new(HTMLRenderer.new)
   end
 end
