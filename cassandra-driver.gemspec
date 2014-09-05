@@ -10,19 +10,16 @@ Gem::Specification.new do |s|
   s.authors       = ['Theo Hultberg', 'Bulat Shakirzyanov']
   s.email         = ['theo@iconara.net', 'bulat.shakirzyanov@datastax.com']
   s.homepage      = 'http://datastax.github.io/ruby-driver'
-  s.summary       = %q{Cassandra driver}
-  s.description   = %q{A pure Ruby driver for Cassandra}
+  s.summary       = %q{Datastax Ruby Driver for Apache Cassandra}
+  s.description   = %q{A pure Ruby driver for Apache Cassandra}
   s.license       = 'Apache License 2.0'
-
-  s.files         = Dir['lib/**/*.rb', 'bin/*', 'README.md', '.yardopts']
-  s.test_files    = Dir['spec/**/*.rb']
+  s.files         = Dir['lib/**/*.rb', 'README.md', '.yardopts']
   s.require_paths = %w(lib)
-  s.bindir        = 'bin'
 
   s.platform = Gem::Platform::RUBY
   s.required_ruby_version = '>= 1.9.3'
 
-  s.add_dependency 'ione', '~> 1.0'
+  s.add_runtime_dependency 'ione', '~> 1.0'
 
   s.add_development_dependency 'bundler', '~> 1.6'
   s.add_development_dependency 'rake', '~> 10.0'
