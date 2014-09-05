@@ -263,13 +263,13 @@ module Cassandra
     end
 
     # Run block when future resolves. The block will always be called with 2
-    #   arguments - error and value. In case a future resolves to an error, the
+    #   arguments - value and error. In case a future resolves to an error, the
     #   error argument will be non-nil.
     # @note The block can be called synchronously from current thread if the
     #   future has already been resolved, or, asynchronously, from background
     #   thread upon resolution.
-    # @yieldparam error [Exception, nil] an error or nil
     # @yieldparam value [Object, nil] a value or nil
+    # @yieldparam error [Exception, nil] an error or nil
     # @raise [ArgumentError] if no block given
     # @return [self]
     def on_complete(&block)
