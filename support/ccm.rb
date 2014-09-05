@@ -285,7 +285,7 @@ module CCM extend self
 
       @nodes.each(&:up!)
 
-      options = {:logger => Logger.new($stderr)}
+      options = {:logger => logger}
 
       if @username && @password
         options[:username] = @username
@@ -449,6 +449,14 @@ module CCM extend self
           name, status = line.split(": ")
           Node.new(name, status, self)
         end
+      end
+    end
+
+    def logger
+      @logger ||= begin
+        log = Logger.new($stderr)
+        log.level = Logger::WARN
+        log
       end
     end
   end
