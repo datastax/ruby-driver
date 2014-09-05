@@ -16,6 +16,9 @@ Gem::Specification.new do |s|
   s.files         = Dir['lib/**/*.rb', 'README.md', '.yardopts']
   s.require_paths = %w(lib)
 
+  s.extra_rdoc_files = ['README.md']
+  s.rdoc_options << '--title' << 'Datastax Ruby Driver' << '--main' << 'README.md' << '--line-numbers'
+
   s.platform = Gem::Platform::RUBY
   s.required_ruby_version = '>= 1.9.3'
 
