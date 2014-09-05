@@ -52,7 +52,7 @@ module Cassandra
       end
 
       let :reconnection_policy do
-        double('reconnection policy')
+        driver.reconnection_policy
       end
 
       def connections

@@ -53,6 +53,9 @@ module Cassandra
       end
 
       def host_lost(host)
+        synchronize do
+          @refreshing_statuses.delete(host)
+        end
       end
 
       def host_up(host)
@@ -67,7 +70,7 @@ module Cassandra
 
       def host_down(host)
         synchronize do
-          return Ione::Future.resolved if (@connection && @connection.connected?) || @refreshing_statuses[host]
+          return Ione::Future.resolved if @refreshing_statuses[host]
 
           @logger.debug("Starting to continuously refresh status for ip=#{host.ip}")
           @refreshing_statuses[host] = true
@@ -295,11 +298,7 @@ module Cassandra
       end
 
       def refresh_host_status(host)
-        @logger.info("Refreshing host status ip=#{host.ip}")
-        @connector.connect(host).map do |connection|
-          @connector.close(host, connection)
-          @logger.info("Refreshed host status ip=#{host.ip}")
-        end
+        @connector.refresh_status(host)
       end
 
       def refresh_host_status_with_retry(host, schedule)

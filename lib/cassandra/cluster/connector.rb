@@ -21,22 +21,22 @@ module Cassandra
       include MonitorMixin
 
       def initialize(logger, io_reactor, cluster_registry, connection_options)
-        @logger               = logger
-        @reactor              = io_reactor
-        @registry             = cluster_registry
-        @options              = connection_options
-        @connections          = Hash.new
-        @connections_to_close = Hash.new
-        @close_futures        = Hash.new
+        @logger           = logger
+        @reactor          = io_reactor
+        @registry         = cluster_registry
+        @options          = connection_options
+        @connections      = ::Hash.new
+        @open_connections = ::Hash.new
 
         mon_initialize
       end
 
       def connect(host)
         synchronize do
-          closing_connections = @connections_to_close[host]
-          if closing_connections && !closing_connections.empty?
-            connection = closing_connections.shift
+          open_connections = @open_connections[host]
+          if open_connections
+            connection = open_connections.shift
+            @open_connections.delete(host) if open_connections.empty?
             return Ione::Future.resolved(connection)
           end
         end
@@ -46,7 +46,7 @@ module Cassandra
         f = create_connector.connect(host.ip.to_s)
 
         f.on_failure do |error|
-          @logger.warn("Connection failed ip=#{host.ip} error=#{error.message}")
+          @logger.warn("Connection failed ip=#{host.ip} error=\"#{error.class.name}: #{error.message}\"")
           connection_error(host, error)
         end
 
@@ -66,34 +66,42 @@ module Cassandra
         f
       end
 
-      def connect_many(host, count)
-        create_additional_connections(host, count, [])
+      def refresh_status(host)
+        return Future.resolved if synchronize { @connections[host] }
+
+        @logger.info("Refreshing host status ip=#{host.ip}")
+        f = create_connector.connect(host.ip.to_s)
+
+        f.on_failure do |error|
+          @logger.info("Refreshed host status ip=#{host.ip}")
+          @logger.warn("Connection failed ip=#{host.ip} error=\"#{error.class.name}: #{error.message}\"")
+          connection_error(host, error)
+        end
+
+        f.on_value do |connection|
+          @logger.info("Refreshed host status ip=#{host.ip}")
+          connection.on_closed do |cause|
+            message = "Disconnected ip=#{host.ip}"
+            message << " error=#{cause.message}" if cause
+
+            @logger.info(message)
+            disconnected(host, cause)
+          end
+
+          synchronize do
+            @open_connections[host] ||= []
+            @open_connections[host]  << connection
+          end
+
+          @logger.info("Connected ip=#{host.ip}")
+          connected(host)
+        end
+
+        f
       end
 
-      def close(host, connection)
-        synchronize do
-          if @connections_to_close[host]
-            @connections_to_close[host] << connection
-            @close_futures[host]
-          else
-            @connections_to_close[host] = [connection]
-            @close_futures[host] = @io_reactor.schedule_timer(0).flat_map do
-              connections = nil
-
-              synchronize do
-                connections = @connections_to_close.delete(host)
-                @close_futures.delete(host)
-              end
-
-              if connections && !connections.empty?
-                connections.map!(&:close)
-                Ione::Future.all(*connections).map(nil)
-              else
-                Ione::Future.resolved
-              end
-            end
-          end
-        end
+      def connect_many(host, count)
+        create_additional_connections(host, count, [])
       end
 
       private
