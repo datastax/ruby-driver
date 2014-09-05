@@ -38,27 +38,12 @@ class Client
   end
 
   def execute(*args)
-    future = Ione::CompletableFuture.new
-    @session.execute_async(*args).on_complete do |e, v|
-      if e
-        future.fail(e)
-      else
-        future.resolve(v)
-      end
-    end
-    future
+    @session.execute(*args)
   end
 
   def prepare(statement, options = {})
-    future = Ione::CompletableFuture.new
-    @session.prepare_async(statement, options).on_complete do |e, v|
-      if e
-        future.fail(e)
-      else
-        future.resolve(PreparedStatement.new(self, v))
-      end
-    end
-    future
+    s = @session.prepare(statement, options)
+    PreparedStatement.new(self, s)
   end
 
   def batch(type = :logged, options = {})
@@ -72,15 +57,7 @@ class Client
   end
 
   def close
-    future = Ione::CompletableFuture.new
-    @session.close.on_complete do |e, v|
-      if e
-        future.fail(e)
-      else
-        future.resolve(v)
-      end
-    end
-    future
+    @session.close
   end
 end
 
