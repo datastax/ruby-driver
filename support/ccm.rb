@@ -280,16 +280,17 @@ module CCM extend self
 
         raise if attempts >= 10
         attempts += 1
-        sleep(1)
+        sleep(attempts * 0.4)
         retry
       end
 
       @nodes.each(&:up!)
 
+      options = {}
+
       if @username && @password
-        options = {:username => @username, :password => @password}
-      else
-        options = {}
+        options[:username] = @username
+        options[:password] = @password
       end
 
       attempts = 1
@@ -299,9 +300,11 @@ module CCM extend self
       rescue
         raise if attempts >= 10
         attempts += 1
-        sleep(1)
+        sleep(attempts * 0.4)
         retry
       end
+
+      sleep(1) until @cluster.hosts.all?(&:up?)
 
       @session = @cluster.connect
 
@@ -326,11 +329,16 @@ module CCM extend self
 
         raise if attempts >= 10
         attempts += 1
-        sleep(1)
+        sleep(attempts * 0.4)
         retry
       end
 
       node.up!
+
+      if @cluster
+        i = name.sub('node', '')
+        sleep(1) until @cluster.host("127.0.0.#{i}").up?
+      end
 
       nil
     end
@@ -396,8 +404,6 @@ module CCM extend self
       @ccm.exec('updateconf', 'authenticator: PasswordAuthenticator')
       start
 
-      sleep(10)
-
       [@username, @password]
     end
 
@@ -410,8 +416,6 @@ module CCM extend self
 
     def setup_schema(schema)
       start
-
-      sleep(1) until @cluster.hosts.all?(&:up?)
 
       @cluster.each_keyspace do |keyspace|
         @session.execute("DROP KEYSPACE #{keyspace.name}") unless keyspace.name.start_with?('system')
