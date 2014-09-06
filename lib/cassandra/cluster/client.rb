@@ -586,7 +586,7 @@ module Cassandra
             when Protocol::RowsResultResponse
               promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
             when Protocol::SchemaChangeResultResponse
-              wait_for_schema_agreement(connection).on_complete do |f|
+              wait_for_schema_agreement(connection, @reconnection_policy.schedule).on_complete do |f|
                 unless f.resolved?
                   f.on_failure do |e|
                     @logger.error("Schema agreement error: #{e.class.name}: #{e.message}\n#{e.backtrace.join("\n")}")
@@ -616,7 +616,7 @@ module Cassandra
         end
       end
 
-      def wait_for_schema_agreement(connection, attempts = 1)
+      def wait_for_schema_agreement(connection, schedule)
         @logger.info('Fetching schema versions')
 
         peers = connection.send_request(SELECT_SCHEMA_PEERS)
@@ -650,13 +650,11 @@ module Cassandra
           if versions.one?
             @logger.info('All hosts have the same schema version')
             Ione::Future.resolved
-          elsif attempts >= 10
-            @logger.warn("Hosts don't yet agree on schema: #{versions.to_a.inspect}, maximum retries reached")
-            Ione::Future.resolved
           else
-            @logger.info("Hosts don't yet agree on schema: #{versions.to_a.inspect}, retrying later")
-            @reactor.schedule_timer(1).flat_map do
-              wait_for_schema_agreement(connection, attempts + 1)
+            interval = schedule.next
+            @logger.info("Hosts don't yet agree on schema: #{versions.to_a.inspect}, retrying in #{interval} seconds")
+            @reactor.schedule_timer(interval).flat_map do
+              wait_for_schema_agreement(connection, schedule)
             end
           end
         end
