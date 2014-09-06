@@ -421,6 +421,8 @@ module CCM extend self
         @session.execute("DROP KEYSPACE #{keyspace.name}") unless keyspace.name.start_with?('system')
       end
 
+      sleep(1)
+
       schema.strip!
       schema.chomp!(";")
       schema.split(";\n").each do |statement|
