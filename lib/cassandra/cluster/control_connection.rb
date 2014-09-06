@@ -78,7 +78,9 @@ module Cassandra
           @refreshing_statuses[host] = true
         end
 
-        refresh_host_status_with_retry(host, @reconnection_policy.schedule)
+        refresh_host_status(host).fallback do |e|
+          refresh_host_status_with_retry(host, @reconnection_policy.schedule)
+        end
       end
 
       def close_async
