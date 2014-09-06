@@ -286,7 +286,7 @@ module CCM extend self
 
       @nodes.each(&:up!)
 
-      options = {:logger => logger}
+      options = {:logger => logger, :consistency => :all}
 
       if @username && @password
         options[:username] = @username
