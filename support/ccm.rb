@@ -276,6 +276,7 @@ module CCM extend self
         @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
       rescue
         @ccm.exec('stop') rescue nil
+        %x{killall java}
 
         raise if attempts >= 10
         attempts += 1
@@ -455,7 +456,7 @@ module CCM extend self
     def logger
       @logger ||= begin
         log = Logger.new($stderr)
-        log.level = Logger::WARN
+        log.level = Logger::INFO
         log
       end
     end
