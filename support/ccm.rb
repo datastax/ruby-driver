@@ -456,7 +456,7 @@ module CCM extend self
     def logger
       @logger ||= begin
         log = Logger.new($stderr)
-        log.level = Logger::INFO
+        log.level = Logger::DEBUG
         log
       end
     end
