@@ -465,7 +465,7 @@ module CCM extend self
   end
 
   def cassandra_version
-    ENV['CASSANDRA_VERSION'] || '2.0.9'
+    ENV['CASSANDRA_VERSION'] || '2.0.10'
   end
 
   def cassandra_cluster
