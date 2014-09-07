@@ -82,14 +82,25 @@ module Cassandra
       @futures               = futures_factory
     end
 
-    # Register a cluster state listener. State listeners receive notifications
-    # about topology and schema changes
+    # Register a cluster state listener. State listener will start receiving
+    # notifications about topology and schema changes
     #
     # @param listener [Cassandra::Listener] cluster state listener
     # @return [self]
     def register(listener)
       @registry.add_listener(listener)
       @schema.add_listener(listener)
+      self
+    end
+
+    # Unregister a cluster state listener. State listener will stop receiving
+    # notifications about topology and schema changes
+    #
+    # @param listener [Cassandra::Listener] cluster state listener
+    # @return [self]
+    def unregister(listener)
+      @registry.remove_listener(listener)
+      @schema.remove_listener(listener)
       self
     end
 

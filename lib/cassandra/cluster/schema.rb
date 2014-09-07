@@ -38,6 +38,14 @@ module Cassandra
         self
       end
 
+      def remove_listener(listener)
+        synchronize do
+          @listeners = @listeners.dup.delete(listener)
+        end
+
+        self
+      end
+
       def update_keyspaces(host, keyspaces, tables, columns)
         columns = columns.each_with_object(deephash { [] }) do |row, index|
           index[row['keyspace_name']] << row
