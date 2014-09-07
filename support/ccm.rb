@@ -336,8 +336,9 @@ module CCM extend self
       node.up!
 
       if @cluster
-        i = name.sub('node', '')
-        sleep(1) until @cluster.host("127.0.0.#{i}").up?
+        i  = name.sub('node', '')
+        ip = "127.0.0.#{i}"
+        sleep(1) until @cluster.has_host?(ip) && @cluster.host(ip).up?
       end
 
       nil
