@@ -58,5 +58,28 @@ module Cassandra
     # @return [void]
     def host_lost(host)
     end
+
+    # This method is called whenever a new keyspace is created.
+    #
+    # @param host [Cassandra::Keyspace] a keyspace instance
+    # @return [void]
+    def keyspace_created(keyspace)
+    end
+
+    # This method is called whenever an existing keyspace is changed. This
+    # happens when a new table is created or an existing table is dropped or
+    # altered.
+    #
+    # @param host [Cassandra::Keyspace] a keyspace instance
+    # @return [void]
+    def keyspace_changed(keyspace)
+    end
+
+    # This method is called whenever an existing keyspace is dropped.
+    #
+    # @param host [Cassandra::Keyspace] a keyspace instance
+    # @return [void]
+    def keyspace_dropped(keyspace)
+    end
   end
 end
