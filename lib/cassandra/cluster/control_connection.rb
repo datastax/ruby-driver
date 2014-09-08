@@ -341,7 +341,11 @@ module Cassandra
 
           rows = response.rows
 
-          @registry.host_found(address, rows.first) unless rows.empty?
+          unless rows.empty?
+            @registry.host_found(address, rows.first)
+            host = @registry.host(address)
+            refresh_host_status(host) if host.down?
+          end
 
           self
         end
