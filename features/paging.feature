@@ -6,7 +6,11 @@ Feature: Datatypes
   Use `Cassandra::Result#next_page_async` to asynchronously retrieve the next page.
 
   Background:
-    Given a running cassandra cluster with a keyspace "simplex"
+    Given a running cassandra cluster with schema:
+      """sql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      USE simplex;
+      """
 
   @cassandra-version-specific @cassandra-version-2.0
   Scenario: Non-prepared statements are executed with synchronous paging
