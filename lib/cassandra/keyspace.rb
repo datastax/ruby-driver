@@ -31,7 +31,10 @@ module Cassandra
       end
 
       def to_cql
-        JSON.dump({'class' => @klass}.merge(@options))
+        replication = {'class' => @klass}
+        replication.merge!(@options)
+
+        Util.encode_hash(replication)
       end
 
       def eql?(other)

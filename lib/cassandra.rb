@@ -306,6 +306,8 @@ require 'cassandra/load_balancing'
 require 'cassandra/reconnection'
 require 'cassandra/retry'
 
+require 'cassandra/util'
+
 module Cassandra
   # @private
   Io = Ione::Io
