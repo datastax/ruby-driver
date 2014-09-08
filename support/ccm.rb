@@ -434,6 +434,7 @@ module CCM extend self
       schema.strip!
       schema.chomp!(";")
       schema.split(";\n").each do |statement|
+        $stderr.puts("executing: #{statement}")
         @session.execute(statement)
       end
 
