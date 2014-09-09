@@ -174,7 +174,7 @@ module Cassandra
 
     # @return [String] a cql representation of this table
     def to_cql
-      cql  = "CREATE TABLE #{@keyspace}.#{@name} (\n"
+      cql  = "CREATE TABLE #{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} (\n"
       cql << @columns.map do |(_, column)|
         "  #{column.to_cql}"
       end.join(",\n")

@@ -88,7 +88,7 @@ module Cassandra
 
     # @return [String] a cql representation of this table
     def to_cql
-      "CREATE KEYSPACE #{@name} WITH REPLICATION = #{@replication.to_cql} AND DURABLE_WRITES = #{@durable_writes};"
+      "CREATE KEYSPACE #{Util.escape_name(@name)} WITH REPLICATION = #{@replication.to_cql} AND DURABLE_WRITES = #{@durable_writes};"
     end
 
     # @return [Boolean] whether this keyspace is equal to the other

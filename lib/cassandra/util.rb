@@ -87,5 +87,13 @@ module Cassandra
 
       io.string
     end
+
+    def escape_name(name)
+      return name if name[LOWERCASE_REGEXP] == name
+      '"' + name + '"'
+    end
+
+    # @private
+    LOWERCASE_REGEXP = /[[:lower:]\_]*/
   end
 end
