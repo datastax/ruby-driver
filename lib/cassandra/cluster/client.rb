@@ -586,6 +586,10 @@ module Cassandra
             when Protocol::RowsResultResponse
               promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
             when Protocol::SchemaChangeResultResponse
+              if r.change == 'DROPPED' && r.keyspace == @keyspace && r.table.empty?
+                @keyspace = nil
+              end
+
               wait_for_schema_agreement(connection, @reconnection_policy.schedule).on_complete do |f|
                 unless f.resolved?
                   f.on_failure do |e|
