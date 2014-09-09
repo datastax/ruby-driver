@@ -1,13 +1,17 @@
 Feature: Datatypes
 
-  A columnfamily can have all the datatypes defined in Cassandra.
-  [See here](http://www.datastax.com/documentation/cql/3.0/cql/cql_reference/cql_data_types_c.html)
-  for a full list of datatypes and their differences.
+  Apache Cassandra [supports a variety of datatypes](http://www.datastax.com/documentation/cql/3.0/cql/cql_reference/cql_data_types_c.html).
+  Ruby driver transparently maps each of those datatypes to a specific Ruby type.
+
+  Datatypes that map to `String` can have different encodings.
+
+  Cassandra uuid and timeuuid are represented with `Cassandra::Uuid` and
+  `Cassandra::TimeUuid` accordingly.
 
   Background:
     Given a running cassandra cluster
 
-  Scenario: Text-like datatypes are inserted into a column family
+  Scenario: Using strings
     Given the following schema:
       """sql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
@@ -26,9 +30,15 @@ Feature: Datatypes
 
       cluster = Cassandra.connect
       session = cluster.connect("simplex")
-      insert  = session.prepare("INSERT INTO mytable (a, b, c, d, e) VALUES (?, ?, ?, ?, ?)")
 
-      session.execute(insert, 0, 'ascii', "blob", 'text', 'varchar')
+      session.execute("INSERT INTO mytable (a, b, c, d, e)
+                       VALUES (
+                         0,
+                         'ascii',
+                         0x626c6f62,
+                         'text',
+                         'varchar'
+                       )")
 
       row = session.execute("SELECT * FROM mytable").first
 
@@ -46,7 +56,7 @@ Feature: Datatypes
       Varchar: varchar
       """
 
-  Scenario: Integer-like datatypes are inserted into a column family
+  Scenario: Using numbers
     Given the following schema:
       """sql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
@@ -67,10 +77,17 @@ Feature: Datatypes
 
       cluster = Cassandra.connect
       session = cluster.connect("simplex")
-      insert  = session.prepare("INSERT INTO mytable (a, b, c, d, e, f, g) VALUES (?, ?, ?, ?, ?, ?, ?)")
 
-      session.execute(insert, 0, 765438000, BigDecimal.new('1313123123.234234234234234234123'),
-                                  Math::PI, 3.14, 4, 67890656781923123918798273492834712837198237)
+      session.execute("INSERT INTO mytable (a, b, c, d, e, f, g)
+                       VALUES (
+                         0,
+                         765438000,
+                         1313123123.234234234234234234123,
+                         3.141592653589793,
+                         3.14,
+                         4,
+                         67890656781923123918798273492834712837198237
+                       )")
 
       row = session.execute("SELECT * FROM mytable").first
 
@@ -92,7 +109,7 @@ Feature: Datatypes
       Varint: 67890656781923123918798273492834712837198237
       """
 
-  Scenario: ID-like datatypes are inserted into a column family
+  Scenario: Using identifiers, booleans and ip addresses
     Given the following schema:
       """sql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
@@ -113,16 +130,21 @@ Feature: Datatypes
 
       cluster = Cassandra.connect
       session = cluster.connect("simplex")
-      insert  = session.prepare("INSERT INTO mytable (a, b, c, d, e, f) VALUES (?, ?, ?, ?, ?, ?)")
 
-      session.execute(insert, 0, true, IPAddr.new('200.199.198.197'), Time.utc(2013, 12, 11, 10, 9, 8),
-                                  Cassandra::Uuid.new('FE2B4360-28C6-11E2-81C1-0800200C9A66'),
-                                  Cassandra::Uuid.new('00b69180-d0e1-11e2-8b8b-0800200c9a66'))
+      session.execute("INSERT INTO mytable (a, b, c, d, e, f)
+                       VALUES (
+                         0,
+                         true,
+                         '200.199.198.197',
+                         '2013-12-11 10:09:08+0000',
+                         FE2B4360-28C6-11E2-81C1-0800200C9A66,
+                         00b69180-d0e1-11e2-8b8b-0800200c9a66
+                       )")
 
       row = session.execute("SELECT * FROM mytable").first
 
       puts "Boolean: #{row['b']}"
-      puts "Inet: #{row['c']}"
+      puts "Inet: #{row['c'].class.name} - #{row['c']}"
       puts "Timestamp: #{row['d'].httpdate}"
       puts "Timeuuid: #{row['e']}"
       puts "Uuid: #{row['f']}"
@@ -131,20 +153,19 @@ Feature: Datatypes
     Then its output should contain:
       """
       Boolean: true
-      Inet: 200.199.198.197
+      Inet: IPAddr - 200.199.198.197
       Timestamp: Wed, 11 Dec 2013 10:09:08 GMT
       Timeuuid: fe2b4360-28c6-11e2-81c1-0800200c9a66
       Uuid: 00b69180-d0e1-11e2-8b8b-0800200c9a66
       """
 
-  Scenario: Collection-datatypes are inserted into a column family
+  Scenario: Using lists, maps and sets
     Given the following schema:
       """sql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
       USE simplex;
       CREATE TABLE user (
         id int PRIMARY KEY,
-        user_name text,
         logins List<timestamp>,
         locations Map<timestamp, double>,
         ip_addresses Set<inet>
@@ -157,25 +178,24 @@ Feature: Datatypes
 
       cluster = Cassandra.connect
       session = cluster.connect("simplex")
-      insert  = session.prepare("INSERT INTO user (id, user_name, logins, locations, ip_addresses) VALUES (?, ?, ?, ?, ?)")
 
-      session.execute(insert, 0, "cassandra_user",
-                                 [Time.utc(2014, 9, 11, 10, 9, 8), Time.utc(2014, 9, 12, 10, 9, 0)],
-                                 {Time.utc(2014, 9, 11, 10, 9, 8) => 37.397357},
-                                 Set.new([IPAddr.new('200.199.198.197'), IPAddr.new('192.168.1.15')])
-                                 )
+      session.execute("INSERT INTO user (id, logins, locations, ip_addresses)
+                       VALUES (
+                         0,
+                         ['2014-09-11 10:09:08+0000', '2014-09-12 10:09:00+0000'],
+                         {'2014-09-11 10:09:08+0000': 37.397357},
+                         {'200.199.198.197', '192.168.1.15'}
+                       )")
 
       row = session.execute("SELECT * FROM user").first
 
-      puts "Username: #{row['user_name']}"
       puts "Logins: #{row['logins'].map(&:httpdate)}"
-      puts "Location at #{Time.utc(2014, 9, 11, 10, 9, 8).httpdate}: #{row['locations'][Time.utc(2014, 9, 11, 10, 9, 8)]}"
+      puts "Location at #{row['locations'].first.first}: #{row['locations'].first.last}"
       puts "Ip Addresses: #{row['ip_addresses'].inspect}"
       """
     When it is executed
     Then its output should contain:
       """
-      Username: cassandra_user
       Logins: ["Thu, 11 Sep 2014 10:09:08 GMT", "Fri, 12 Sep 2014 10:09:00 GMT"]
       Location at Thu, 11 Sep 2014 10:09:08 GMT: 37.397357
       Ip Addresses: #<Set: {#<IPAddr: IPv4:192.168.1.15/255.255.255.255>, #<IPAddr: IPv4:200.199.198.197/255.255.255.255>}>
