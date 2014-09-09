@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+#--
 # Copyright 2013-2014 DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#++
 
 module Cassandra
   # Cassandra state listener.
@@ -55,6 +57,29 @@ module Cassandra
     # @param host [Cassandra::Host] a host instance
     # @return [void]
     def host_lost(host)
+    end
+
+    # This method is called whenever a new keyspace is created.
+    #
+    # @param keyspace [Cassandra::Keyspace] a keyspace instance
+    # @return [void]
+    def keyspace_created(keyspace)
+    end
+
+    # This method is called whenever an existing keyspace is changed. This
+    # happens when a new table is created or an existing table is dropped or
+    # altered.
+    #
+    # @param keyspace [Cassandra::Keyspace] a keyspace instance
+    # @return [void]
+    def keyspace_changed(keyspace)
+    end
+
+    # This method is called whenever an existing keyspace is dropped.
+    #
+    # @param keyspace [Cassandra::Keyspace] a keyspace instance
+    # @return [void]
+    def keyspace_dropped(keyspace)
     end
   end
 end

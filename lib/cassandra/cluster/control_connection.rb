@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+#--
 # Copyright 2013-2014 DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#++
 
 module Cassandra
   class Cluster
@@ -53,6 +55,9 @@ module Cassandra
       end
 
       def host_lost(host)
+        synchronize do
+          @refreshing_statuses.delete(host)
+        end
       end
 
       def host_up(host)
@@ -67,13 +72,15 @@ module Cassandra
 
       def host_down(host)
         synchronize do
-          return Ione::Future.resolved if (@connection && @connection.connected?) || @refreshing_statuses[host]
+          return Ione::Future.resolved if @refreshing_statuses[host]
 
           @logger.debug("Starting to continuously refresh status for ip=#{host.ip}")
           @refreshing_statuses[host] = true
         end
 
-        refresh_host_status_with_retry(host, @reconnection_policy.schedule)
+        refresh_host_status(host).fallback do |e|
+          refresh_host_status_with_retry(host, @reconnection_policy.schedule)
+        end
       end
 
       def close_async
@@ -295,11 +302,7 @@ module Cassandra
       end
 
       def refresh_host_status(host)
-        @logger.info("Refreshing host status ip=#{host.ip}")
-        @connector.connect(host).map do |connection|
-          @connector.close(host, connection)
-          @logger.info("Refreshed host status ip=#{host.ip}")
-        end
+        @connector.refresh_status(host)
       end
 
       def refresh_host_status_with_retry(host, schedule)
@@ -338,7 +341,11 @@ module Cassandra
 
           rows = response.rows
 
-          @registry.host_found(address, rows.first) unless rows.empty?
+          unless rows.empty?
+            @registry.host_found(address, rows.first)
+            host = @registry.host(address)
+            refresh_host_status(host) if host.down?
+          end
 
           self
         end

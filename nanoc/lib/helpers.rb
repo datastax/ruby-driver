@@ -11,4 +11,4 @@ def child_of?(item, parent)
   end
 end
 
-LICENSE = File.read(File.dirname(__FILE__) + '/../../LICENSE').strip
+LICENSE ||= "--\n" + File.read(File.dirname(__FILE__) + '/../../LICENSE').strip + "\n++"

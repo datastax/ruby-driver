@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+#--
 # Copyright 2013-2014 DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#++
 
 module Cassandra
   # Cluster represents a cassandra cluster. It serves as a {Cassandra::Session}
@@ -80,14 +82,25 @@ module Cassandra
       @futures               = futures_factory
     end
 
-    # Register a cluster state listener. State listeners receive notifications
-    # about topology and schema changes
+    # Register a cluster state listener. State listener will start receiving
+    # notifications about topology and schema changes
     #
     # @param listener [Cassandra::Listener] cluster state listener
     # @return [self]
     def register(listener)
       @registry.add_listener(listener)
       @schema.add_listener(listener)
+      self
+    end
+
+    # Unregister a cluster state listener. State listener will stop receiving
+    # notifications about topology and schema changes
+    #
+    # @param listener [Cassandra::Listener] cluster state listener
+    # @return [self]
+    def unregister(listener)
+      @registry.remove_listener(listener)
+      @schema.remove_listener(listener)
       self
     end
 

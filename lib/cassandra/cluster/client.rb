@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+#--
 # Copyright 2013-2014 DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#++
 
 module Cassandra
   class Cluster
@@ -291,6 +293,8 @@ module Cassandra
               end
             end
           else
+            @logger.info("Session reconnection to ip=#{host.ip} cancelled")
+
             NO_CONNECTIONS
           end
         end
@@ -582,14 +586,13 @@ module Cassandra
             when Protocol::RowsResultResponse
               promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
             when Protocol::SchemaChangeResultResponse
-              wait_for_schema_agreement(connection).on_complete do |f|
-                if f.resolved?
-                  promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
-                else
+              wait_for_schema_agreement(connection, @reconnection_policy.schedule).on_complete do |f|
+                unless f.resolved?
                   f.on_failure do |e|
-                    promise.break(e)
+                    @logger.error("Schema agreement error: #{e.class.name}: #{e.message}\n#{e.backtrace.join("\n")}")
                   end
                 end
+                promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
               end
             else
               promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
@@ -613,37 +616,45 @@ module Cassandra
         end
       end
 
-      def wait_for_schema_agreement(connection, attempts = 1)
-        @logger.debug('Fetching schema versions')
+      def wait_for_schema_agreement(connection, schedule)
+        @logger.info('Fetching schema versions')
 
         peers = connection.send_request(SELECT_SCHEMA_PEERS)
         local = connection.send_request(SELECT_SCHEMA_LOCAL)
 
         Ione::Future.all(peers, local).flat_map do |(peers, local)|
-          @logger.debug('Fetched schema versions')
+          @logger.info('Fetched schema versions')
 
           peers = peers.rows
           local = local.rows
 
           versions = ::Set.new
 
-          versions << local.first['schema_version'] unless local.empty?
+          unless local.empty?
+            host = @registry.host(connection.host)
+
+            if host && host.up?
+              versions << version = local.first['schema_version']
+              @logger.debug("Host #{host.ip} schema version: #{version}")
+            end
+          end
 
           peers.each do |row|
             host = @registry.host(peer_ip(row))
-            versions << row['schema_version'] if host && host.up?
+            next unless host && host.up?
+
+            versions << version = row['schema_version']
+            @logger.debug("Host #{host.ip} schema version: #{version}")
           end
 
           if versions.one?
-            @logger.debug('All hosts have the same schema version')
-            Ione::Future.resolved
-          elsif attempts >= 10
-            @logger.warn("Hosts don't yet agree on schema: #{versions.to_a.inspect}, maximum retries reached")
+            @logger.info('All hosts have the same schema version')
             Ione::Future.resolved
           else
-            @logger.debug("Hosts don't yet agree on schema: #{versions.to_a.inspect}, retrying later")
-            @reactor.schedule_timer(1).flat_map do
-              wait_for_schema_agreement(connection, attempts + 1)
+            interval = schedule.next
+            @logger.info("Hosts don't yet agree on schema: #{versions.to_a.inspect}, retrying in #{interval} seconds")
+            @reactor.schedule_timer(interval).flat_map do
+              wait_for_schema_agreement(connection, schedule)
             end
           end
         end

@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+#--
 # Copyright 2013-2014 DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,8 +14,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#++
 
 require 'fileutils'
+require 'logger'
 
 # Cassandra Cluster Manager integration for
 # driving a cassandra cluster from tests.
@@ -57,9 +60,9 @@ module CCM extend self
 
   if RUBY_ENGINE == 'jruby'
     class Runner
-      def initialize(ccm_home, ccm_script, notifier)
-        @env      = {'HOME' => ccm_home, 'CCM_MAX_HEAP_SIZE' => '64M', 'CCM_HEAP_NEWSIZE' => '12M'}
+      def initialize(ccm_script, env, notifier)
         @cmd      = 'ccm'
+        @env      = env
         @notifier = notifier
       end
 
@@ -95,9 +98,9 @@ module CCM extend self
     end
   else
     class Runner
-      def initialize(ccm_home, ccm_script, notifier)
-        @ccm_home   = ccm_home
+      def initialize(ccm_script, env, notifier)
         @ccm_script = ccm_script
+        @env        = env
         @notifier   = notifier
       end
 
@@ -154,11 +157,7 @@ module CCM extend self
         @stdin.sync = true
 
         @pid = Process.spawn(
-          {
-            'HOME' => @ccm_home,
-            'CCM_MAX_HEAP_SIZE' => '64M',
-            'CCM_HEAP_NEWSIZE' => '12M'
-          },
+          @env,
           'python', '-u', @ccm_script,
           {
             :in => in_r,
@@ -264,7 +263,7 @@ module CCM extend self
     end
 
     def start
-      return if @cluster && nodes.all?(&:up?)
+      return if @cluster && nodes.all?(&:up?) && @cluster.hosts.select(&:up?).count == nodes.size
 
       if @cluster
         @cluster.close
@@ -277,19 +276,21 @@ module CCM extend self
         @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
       rescue
         @ccm.exec('stop') rescue nil
+        %x{killall java}
 
         raise if attempts >= 10
         attempts += 1
-        sleep(1)
+        sleep(attempts * 0.4)
         retry
       end
 
       @nodes.each(&:up!)
 
+      options = {:logger => logger, :consistency => :all}
+
       if @username && @password
-        options = {:username => @username, :password => @password}
-      else
-        options = {}
+        options[:username] = @username
+        options[:password] = @password
       end
 
       attempts = 1
@@ -299,9 +300,11 @@ module CCM extend self
       rescue
         raise if attempts >= 10
         attempts += 1
-        sleep(1)
+        sleep(attempts * 0.4)
         retry
       end
+
+      sleep(1) until @cluster.hosts.all?(&:up?)
 
       @session = @cluster.connect
 
@@ -326,11 +329,17 @@ module CCM extend self
 
         raise if attempts >= 10
         attempts += 1
-        sleep(1)
+        sleep(attempts * 0.4)
         retry
       end
 
       node.up!
+
+      if @cluster
+        i  = name.sub('node', '')
+        ip = "127.0.0.#{i}"
+        sleep(1) until @cluster.has_host?(ip) && @cluster.host(ip).up?
+      end
 
       nil
     end
@@ -396,8 +405,6 @@ module CCM extend self
       @ccm.exec('updateconf', 'authenticator: PasswordAuthenticator')
       start
 
-      sleep(10)
-
       [@username, @password]
     end
 
@@ -411,19 +418,32 @@ module CCM extend self
     def setup_schema(schema)
       start
 
-      sleep(1) until @cluster.hosts.all?(&:up?)
+      dropped = ::Set.new
 
       @cluster.each_keyspace do |keyspace|
-        @session.execute("DROP KEYSPACE #{keyspace.name}") unless keyspace.name.start_with?('system')
+        unless keyspace.name.start_with?('system')
+          dropped << keyspace
+          @session.execute("DROP KEYSPACE #{keyspace.name}")
+        end
+      end
+
+      dropped.each do |keyspace|
+        sleep(1) while @cluster.has_keyspace?(keyspace)
       end
 
       schema.strip!
       schema.chomp!(";")
       schema.split(";\n").each do |statement|
+        $stderr.puts("executing: #{statement}")
         @session.execute(statement)
       end
 
       nil
+    rescue Cassandra::Errors::NoHostsAvailable => e
+      e.errors.each do |host, error|
+        $stderr.puts("cannot reach #{host.ip} - #{error.class.name}: #{error.message}")
+      end
+      raise e
     end
 
     def clear
@@ -443,10 +463,18 @@ module CCM extend self
         end
       end
     end
+
+    def logger
+      @logger ||= begin
+        log = Logger.new($stderr)
+        log.level = Logger::DEBUG
+        log
+      end
+    end
   end
 
   def cassandra_version
-    ENV['CASSANDRA_VERSION'] || '2.0.9'
+    ENV['CASSANDRA_VERSION'] || '2.0.10'
   end
 
   def cassandra_cluster
@@ -475,11 +503,29 @@ module CCM extend self
 
   def ccm
     @ccm ||= begin
+      Runner.new(
+        ccm_script,
+        {
+          'HOME'             => ccm_home,
+          'MAX_HEAP_SIZE'    => '32M',
+          'HEAP_NEWSIZE'     => '8M',
+          'MALLOC_ARENA_MAX' => '1'
+        },
+        PrintingNotifier.new($stderr)
+      )
+    end
+  end
+
+  def ccm_home
+    @ccm_home ||= begin
       ccm_home = File.expand_path(File.dirname(__FILE__) + '/../tmp')
       FileUtils.mkdir_p(ccm_home) unless File.directory?(ccm_home)
-      ccm_script = File.expand_path(File.dirname(__FILE__) + '/ccm.py')
-      Runner.new(ccm_home, ccm_script, PrintingNotifier.new($stderr))
+      ccm_home
     end
+  end
+
+  def ccm_script
+    @ccm_script ||= File.expand_path(File.dirname(__FILE__) + '/ccm.py')
   end
 
   def switch_cluster(name)
@@ -509,14 +555,31 @@ module CCM extend self
     nodes = Array.new(datacenters, nodes_per_datacenter).join(':')
 
     ccm.exec('create', '-n', nodes, '-v', 'binary:' + version, '-b', '-i', '127.0.0.', name)
+    File.open(ccm_home + '/.ccm/' + name + '/cassandra.in.sh', 'w+') do |f|
+      f.write(<<-SH)
+JVM_OPTS="$JVM_OPTS -XX:ThreadStackSize=8"
+JVM_OPTS="$JVM_OPTS -XX:InitiatingHeapOccupancyPercent=0"
+JVM_OPTS="$JVM_OPTS -XX:+AggressiveOpts"
+JVM_OPTS="$JVM_OPTS -XX:MaxPermSize=24m"
+JVM_OPTS="$JVM_OPTS -XX:NewRatio=2"
+JVM_OPTS="$JVM_OPTS -XX:NewRatio=2"
+JVM_OPTS="$JVM_OPTS -XX:MinHeapFreeRatio=5"
+JVM_OPTS="$JVM_OPTS -XX:MaxHeapFreeRatio=95"
+JVM_OPTS="$JVM_OPTS -XX:LargePageSizeInBytes=1m"
+JVM_OPTS="$JVM_OPTS -XX:+UseCompressedStrings"
+SH
+    end
     ccm.exec('updateconf', 'range_request_timeout_in_ms: 10000')
     ccm.exec('updateconf', 'read_request_timeout_in_ms: 10000')
 
     if cassandra_version.start_with?('1.2.')
       ccm.exec('updateconf', 'reduce_cache_sizes_at: 0')
       ccm.exec('updateconf', 'reduce_cache_capacity_to: 0')
+      ccm.exec('updateconf', 'flush_largest_memtables_at: 0')
+      ccm.exec('updateconf', 'index_interval: 512')
     else
       ccm.exec('updateconf', 'cas_contention_timeout_in_ms: 10000')
+      ccm.exec('updateconf', 'file_cache_size_in_mb: 0')
     end
 
     ccm.exec('updateconf', 'truncate_request_timeout_in_ms: 10000')
@@ -532,6 +595,9 @@ module CCM extend self
     ccm.exec('updateconf', 'compaction_throughput_mb_per_sec: 0')
     ccm.exec('updateconf', 'in_memory_compaction_limit_in_mb: 1')
     ccm.exec('updateconf', 'key_cache_size_in_mb: 0')
+    ccm.exec('updateconf', 'key_cache_save_period: 0')
+    ccm.exec('updateconf', 'memtable_flush_writers: 1')
+    ccm.exec('updateconf', 'max_hints_delivery_threads: 1')
 
     clusters << @current_cluster = Cluster.new(name, ccm, nodes_per_datacenter * datacenters, datacenters, [])
 

@@ -9,6 +9,8 @@ gem 'lz4-ruby'
 group :development do
   platforms :mri_19 do
     gem 'perftools.rb'
+    gem 'guard'
+    gem 'guard-nanoc'
   end
 end
 
@@ -21,19 +23,17 @@ group :test do
 end
 
 group :docs do
-  gem 'gherkin'
   gem 'yard'
-  gem 'htmlbeautifier'
 
   platforms :mri_19 do
+    gem 'gherkin'
+    gem 'htmlbeautifier'
     gem 'nanoc'
     gem 'nanoc-toolbox'
     gem 'compass'
     gem 'bootstrap-sass'
     gem 'nokogiri'
     gem 'rubypants'
-    gem 'guard'
-    gem 'guard-nanoc'
     gem 'pygments.rb'
     gem 'redcarpet'
     gem 'ditaarb'

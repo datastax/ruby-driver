@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+#--
 # Copyright 2013-2014 DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#++
 
 module Cassandra
   # Represents a cassandra table
@@ -67,7 +69,7 @@ module Cassandra
         options << "caching = '#{@caching}'"
         options << "comment = '#{@comment}'" if @comment
         options << "compaction = #{@compaction_strategy.to_cql}"
-        options << "compression = #{JSON.dump(@compression_parameters)}"
+        options << "compression = #{Util.encode_hash(@compression_parameters)}"
         options << "dclocal_read_repair_chance = #{@local_read_repair_chance}"
         options << "default_time_to_live = #{@default_time_to_live}" if !@cassandra_version.start_with?('1')
         options << "gc_grace_seconds = #{@gc_grace_seconds}"
@@ -115,7 +117,10 @@ module Cassandra
       end
 
       def to_cql
-        JSON.dump({'class' => @klass}.merge(@options))
+        compaction = {'class' => @klass}
+        compaction.merge!(@options)
+
+        Util.encode_hash(compaction)
       end
 
       def eql?(other)
