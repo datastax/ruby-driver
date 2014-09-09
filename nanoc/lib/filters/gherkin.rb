@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+require 'cgi'
 require 'base64'
 require 'ditaarb'
 
@@ -237,7 +238,7 @@ module Docs
       def block_code(code, language)
         case language
         when nil, ''
-          "<pre><code>#{code}</code></pre>"
+          "<pre><code>#{CGI.escapeHTML(code)}</code></pre>"
         when 'ditaa'
           data = Base64.encode64(Ditaa.render(code, :separation => false))
           "<img src=\"data:image/png;base64,#{data}\" alt=\"Text Diagram\" class=\"img-rounded img-thumbnail center-block ditaa\" />"
@@ -248,7 +249,7 @@ module Docs
           markup
         end
       rescue MentosError => e
-        "<pre><code class=\"#{language}\">#{code}</code></pre>"
+        "<pre><code class=\"#{language}\">#{CGI.escapeHTML(code)}</code></pre>"
       end
     end
 
