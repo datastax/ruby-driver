@@ -174,16 +174,32 @@ module Cassandra
 
     # @return [String] a cql representation of this table
     def to_cql
-      cql  = "CREATE TABLE #{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} (\n"
-      cql << @columns.map do |(_, column)|
-        "  #{column.to_cql}"
-      end.join(",\n")
-      cql << ",\n"
-      cql << "  PRIMARY KEY ("
+      cql   = "CREATE TABLE #{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} (\n"
+      first = true
+      @columns.each do |(_, column)|
+        next if column.name.empty?
+        if first
+          first = false
+        else
+          cql << ",\n" unless first
+        end
+        cql << "  #{column.to_cql}"
+      end
+      cql << ",\n  PRIMARY KEY ("
       if @partition_key.one?
         cql << @partition_key.first.name
       else
-        cql << '(' + @partition_key.map(&:name).join(', ') + ')'
+        cql << '('
+        first = true
+        @partition_key.each do |column|
+          if first
+            first = false
+          else
+            cql << ', '
+          end
+          cql << column.name
+        end
+        cql << ')'
       end
       @clustering_columns.each do |column|
         cql << ", #{column.name}"
@@ -194,9 +210,15 @@ module Cassandra
 
       if @clustering_order.any? {|o| o != :asc}
         cql << "CLUSTERING ORDER BY ("
-        cql << @clustering_columns.zip(@clustering_order).map do |column, order|
-          "#{column.name} #{order.to_s.upcase}"
-        end.join(', ')
+        first = true
+        @clustering_columns.zip(@clustering_order) do |column, order|
+          if first
+            first = false
+          else
+            cql << ', '
+          end
+          cql << "#{column.name} #{order.to_s.upcase}"
+        end
         cql << ")\n AND "
       end
 
