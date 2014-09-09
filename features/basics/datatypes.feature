@@ -190,7 +190,7 @@ Feature: Datatypes
       row = session.execute("SELECT * FROM user").first
 
       puts "Logins: #{row['logins'].map(&:httpdate)}"
-      puts "Location at #{row['locations'].first.first}: #{row['locations'].first.last}"
+      puts "Location at #{row['locations'].first.first.httpdate}: #{row['locations'].first.last}"
       puts "Ip Addresses: #{row['ip_addresses'].inspect}"
       """
     When it is executed
