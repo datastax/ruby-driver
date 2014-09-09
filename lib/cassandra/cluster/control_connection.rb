@@ -408,15 +408,7 @@ module Cassandra
       end
 
       def connect_to_host(host)
-        @connector.connect(host).fallback do |error|
-          if error.is_a?(Errors::QueryError) && error.code == 0x0a && @connection_options.protocol_version > 1
-            @logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@connection_options.protocol_version, @connection_options.protocol_version - 1, error.message])
-            @connection_options.protocol_version -= 1
-            connect_to_host(host)
-          else
-            Ione::Future.failed(error)
-          end
-        end
+        @connector.connect(host)
       end
 
       def peer_ip(data)

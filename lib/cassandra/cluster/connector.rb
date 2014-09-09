@@ -45,7 +45,7 @@ module Cassandra
 
         @logger.info("Connecting ip=#{host.ip}")
 
-        f = create_connector.connect(host.ip.to_s)
+        f = do_connect(host)
 
         f.on_failure do |error|
           @logger.warn("Connection failed ip=#{host.ip} error=\"#{error.class.name}: #{error.message}\"")
@@ -72,7 +72,7 @@ module Cassandra
         return Future.resolved if synchronize { @connections[host] }
 
         @logger.info("Refreshing host status ip=#{host.ip}")
-        f = create_connector.connect(host.ip.to_s)
+        f = do_connect(host)
 
         f.on_failure do |error|
           @logger.info("Refreshed host status ip=#{host.ip}")
@@ -109,6 +109,24 @@ module Cassandra
       private
 
       NO_CONNECTIONS = Ione::Future.resolved([])
+
+      def do_connect(host)
+        create_connector.connect(host.ip.to_s).fallback do |error|
+          if error.is_a?(Errors::QueryError) && error.code == 0x0a
+            synchronize do
+              if @options.protocol_version > 1
+                @logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@options.protocol_version, @options.protocol_version - 1, error.message])
+                @options.protocol_version -= 1
+                do_connect(host)
+              else
+                Ione::Future.failed(error)
+              end
+            end
+          else
+            Ione::Future.failed(error)
+          end
+        end
+      end
 
       def create_connector
         authentication_step = @options.protocol_version == 1 ? Cassandra::Client::CredentialsAuthenticationStep.new(@options.credentials) : Cassandra::Client::SaslAuthenticationStep.new(@options.auth_provider)
