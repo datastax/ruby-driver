@@ -24,19 +24,37 @@ module Cassandra
     def encode_hash(hash, io = StringIO.new)
       first = true
 
-      io.putc('{')
+      io.putc(CRL_OPN)
       hash.each do |k, v|
         if first
           first = false
         else
-          io.print(', ')
+          io.print(COMMA)
         end
 
-        encode_string(k, io)
-        io.print(': ')
+        encode_object(k, io)
+        io.print(COLON)
         encode_object(v, io)
       end
-      io.putc('}')
+      io.putc(CRL_CLS)
+
+      io.string
+    end
+
+    def encode_set(set, io = StringIO.new)
+      first = true
+
+      io.putc(CRL_OPN)
+      set.each do |object|
+        if first
+          first = false
+        else
+          io.print(COMMA)
+        end
+
+        encode_object(object, io)
+      end
+      io.putc(CRL_CLS)
 
       io.string
     end
@@ -44,56 +62,98 @@ module Cassandra
     def encode_array(array, io = StringIO.new)
       first = true
 
-      io.putc('[')
-      array.each_with_index do |object, i|
+      io.putc(SQR_OPN)
+      array.each do |object|
         if first
           first = false
         else
-          io.print(', ')
+          io.print(COMMA)
         end
 
         encode_object(object, io)
       end
-      io.putc(']')
+      io.putc(SQR_CLS)
 
       io.string
     end
 
     def encode_string(string, io = StringIO.new)
-      io.putc(?')
+      io.putc(QUOT)
       string.chars do |c|
         case c
-        when ?'
-          io.print("\\'")
+        when QUOT then io.print(ESC_QUOT)
         else
           io.putc(c)
         end
       end
-      io.putc(?')
+      io.putc(QUOT)
 
       io.string
     end
 
     def encode_object(object, io = StringIO.new)
       case object
-      when Hash    then encode_hash(object, io)
-      when Array   then encode_array(object, io)
-      when String  then encode_string(object, io)
-      when Numeric then io.print(object)
-      when true    then io.print('true')
-      when false   then io.print('false')
-      when nil     then io.print('null')
+      when ::Hash    then encode_hash(object, io)
+      when ::Array   then encode_array(object, io)
+      when ::Set     then encode_set(object, io)
+      when ::String  then encode_string(object, io)
+      when ::Time    then encode_timestamp(object, io)
+      when ::Numeric then encode_number(object, io)
+      when Uuid      then encode_uuid(object, io)
+      when nil       then io.print(NULL_STR)
+      when false     then io.print(FALSE_STR)
+      when true      then io.print(TRUE_STR)
       end
 
+      io.string
+    end
+    alias :encode :encode_object
+
+    def encode_timestamp(time, io = StringIO.new)
+      io.print(time.to_i)
+      io.string
+    end
+
+    def encode_number(number, io = StringIO.new)
+      io.print(number)
+      io.string
+    end
+
+    def encode_uuid(uuid, io = StringIO.new)
+      io.print(uuid)
       io.string
     end
 
     def escape_name(name)
       return name if name[LOWERCASE_REGEXP] == name
-      '"' + name + '"'
+      DBL_QUOT + name + DBL_QUOT
     end
 
     # @private
     LOWERCASE_REGEXP = /[[:lower:]\_]*/
+    # @private
+    NULL_STR = 'null'.freeze
+    # @private
+    FALSE_STR = 'false'.freeze
+    # @private
+    TRUE_STR = 'true'.freeze
+    # @private
+    CRL_OPN = '{'.freeze
+    # @private
+    CRL_CLS = '}'.freeze
+    # @private
+    SQR_OPN = '['.freeze
+    # @private
+    SQR_CLS = ']'.freeze
+    # @private
+    COMMA = ', '.freeze
+    # @private
+    COLON = ' : '.freeze
+    # @private
+    QUOT = ?'.freeze
+    # @private
+    ESC_QUOT = "''".freeze
+    # @private
+    DBL_QUOT = ?".freeze
   end
 end

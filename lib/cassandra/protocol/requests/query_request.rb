@@ -111,24 +111,7 @@ module Cassandra
       def serialized_cql
         return @cql if @values.nil? || @values.empty?
         i = -1
-        @cql.gsub('?') { serialize_value(@values[i += 1]) }
-      end
-
-      def serialize_value(value)
-        case value
-        when Uuid, ::Numeric, ::TrueClass, ::FalseClass
-          value.to_s
-        when ::Time
-          value.to_i.to_s
-        when ::Set
-          '{' + value.map {|v| serialize_value(v)}.join(', ') + '}'
-        when ::Array
-          '[' + value.map {|v| serialize_value(v)}.join(', ') + ']'
-        when ::Hash
-          '{' + value.map {|k, v| serialize_value(k) + ' : ' + serialize_value(v)}.join(', ') + '}'
-        else
-          '\'' + value.to_s.gsub('\'', %q(\\\')) + '\''
-        end
+        @cql.gsub('?') { Util.encode(@values[i += 1]) }
       end
 
       def self.guess_type(value)
