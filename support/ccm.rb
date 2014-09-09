@@ -431,6 +431,8 @@ module CCM extend self
         sleep(1) while @cluster.has_keyspace?(keyspace)
       end
 
+      sleep(5)
+
       schema.strip!
       schema.chomp!(";")
       schema.split(";\n").each do |statement|
