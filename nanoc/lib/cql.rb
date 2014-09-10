@@ -27,7 +27,7 @@ class CQL < Rouge::RegexLexer
     rule /\s+/m, Text
     rule /--.*?\n/, Comment::Single
     rule %r(/\*), Comment::Multiline, :multiline_comments
-    rule /(0x)?\h+/, Num::Integer
+    rule /(0x\h+|\d+)/, Num::Integer
     rule %r{'}, Str::Single, :single_string
     rule %r{"}, Name::Variable, :double_string
 
