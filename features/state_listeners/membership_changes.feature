@@ -29,7 +29,7 @@ Feature: membership change detection
         end
       end
       """
-    And the following example running in the background:
+    And the following example:
       """ruby
       require 'printing_listener'
       require 'cassandra'
@@ -37,17 +37,22 @@ Feature: membership change detection
       listener = PrintingListener.new($stderr)
       cluster  = Cassandra.connect
 
-      at_exit { cluster.close }
-
       cluster.register(listener)
 
-      sleep
+      $stdout.puts("=== START ===")
+      $stdout.flush
+      $stdin.gets
+      $stdout.puts("=== STOP ===")
+      $stdout.flush
       """
+    And it is running interactively
+    And I wait for its output to contain "START"
 
   Scenario: some existing hosts are terminated
     When node 3 stops
     And node 2 stops
-    Then background output should contain:
+    And I close the stdin stream
+    Then its output should contain:
       """
       Host 127.0.0.3 is down
       Host 127.0.0.2 is down
@@ -56,7 +61,8 @@ Feature: membership change detection
   Scenario: a new host joins and then leaves the cluster
     When node 4 joins
     And node 4 leaves
-    Then background output should contain:
+    And I close the stdin stream
+    Then its output should contain:
       """
       Host 127.0.0.4 is found
       Host 127.0.0.4 is up
