@@ -545,20 +545,24 @@ module CCM extend self
     nodes = Array.new(datacenters, nodes_per_datacenter).join(':')
 
     ccm.exec('create', '-n', nodes, '-v', 'binary:' + version, '-b', '-i', '127.0.0.', name)
-    File.open(ccm_home + '/.ccm/' + name + '/cassandra.in.sh', 'w+') do |f|
-      f.write(<<-SH)
-JVM_OPTS="$JVM_OPTS -XX:ThreadStackSize=8"
-JVM_OPTS="$JVM_OPTS -XX:InitiatingHeapOccupancyPercent=0"
-JVM_OPTS="$JVM_OPTS -XX:+AggressiveOpts"
-JVM_OPTS="$JVM_OPTS -XX:MaxPermSize=24m"
-JVM_OPTS="$JVM_OPTS -XX:NewRatio=2"
-JVM_OPTS="$JVM_OPTS -XX:NewRatio=2"
-JVM_OPTS="$JVM_OPTS -XX:MinHeapFreeRatio=5"
-JVM_OPTS="$JVM_OPTS -XX:MaxHeapFreeRatio=95"
-JVM_OPTS="$JVM_OPTS -XX:LargePageSizeInBytes=1m"
-JVM_OPTS="$JVM_OPTS -XX:+UseCompressedStrings"
-SH
+
+    if ENV['TRAVIS'] == 'true'
+      File.open(ccm_home + '/.ccm/' + name + '/cassandra.in.sh', 'w+') do |f|
+        f.write(<<-SH)
+  JVM_OPTS="$JVM_OPTS -XX:ThreadStackSize=8"
+  JVM_OPTS="$JVM_OPTS -XX:InitiatingHeapOccupancyPercent=0"
+  JVM_OPTS="$JVM_OPTS -XX:+AggressiveOpts"
+  JVM_OPTS="$JVM_OPTS -XX:MaxPermSize=24m"
+  JVM_OPTS="$JVM_OPTS -XX:NewRatio=2"
+  JVM_OPTS="$JVM_OPTS -XX:NewRatio=2"
+  JVM_OPTS="$JVM_OPTS -XX:MinHeapFreeRatio=5"
+  JVM_OPTS="$JVM_OPTS -XX:MaxHeapFreeRatio=95"
+  JVM_OPTS="$JVM_OPTS -XX:LargePageSizeInBytes=1m"
+  JVM_OPTS="$JVM_OPTS -XX:+UseCompressedStrings"
+  SH
+      end
     end
+
     ccm.exec('updateconf', 'range_request_timeout_in_ms: 10000')
     ccm.exec('updateconf', 'read_request_timeout_in_ms: 10000')
 
