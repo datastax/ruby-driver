@@ -49,6 +49,7 @@ Feature: Schema change detection
     And I wait for its output to contain "START"
 
   Scenario: Listening for keyspace creation
+    Given an empty schema
     When I execute the following cql:
       """
       CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}
@@ -81,7 +82,7 @@ Feature: Schema change detection
       """
     When I execute the following cql:
       """sql
-      CREATE TABLE new_table (id timeuuid PRIMARY KEY)
+      CREATE TABLE new_keyspace.new_table (id timeuuid PRIMARY KEY)
       """
     And I close the stdin stream
     Then its output should contain:

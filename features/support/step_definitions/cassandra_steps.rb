@@ -22,6 +22,10 @@ Given(/^the following schema:$/) do |schema|
   @cluster.setup_schema(schema)
 end
 
+Given(/^an empty schema$/) do
+  step 'the following schema:', ''
+end
+
 When(/^I execute the following cql:$/) do |cql|
   @cluster.execute(cql)
 end
