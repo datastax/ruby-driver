@@ -418,20 +418,11 @@ module CCM extend self
     def setup_schema(schema)
       start
 
-      dropped = ::Set.new
-
       @cluster.each_keyspace do |keyspace|
-        unless keyspace.name.start_with?('system')
-          dropped << keyspace
-          @session.execute("DROP KEYSPACE #{keyspace.name}")
-        end
-      end
+        next if keyspace.name.start_with?('system')
 
-      dropped.each do |keyspace|
-        sleep(1) while @cluster.has_keyspace?(keyspace)
+        @session.execute("DROP KEYSPACE #{keyspace.name}")
       end
-
-      sleep(5)
 
       schema.strip!
       schema.chomp!(";")
