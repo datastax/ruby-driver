@@ -287,7 +287,7 @@ module Cassandra
 
           @registry.each_host do |host|
             if ips.include?(host.ip.to_s)
-              futures << refresh_host_status(host) if host.down? && synchronize { !@refreshing_statuses[host] }
+              futures << refresh_host_status(host) if host.down?
             else
               @registry.host_lost(host.ip)
             end
