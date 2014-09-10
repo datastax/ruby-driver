@@ -257,7 +257,7 @@ module CCM extend self
       end
 
       @ccm.exec('stop')
-      @nodes.each(&:down!)
+      nodes.each(&:down!)
 
       nil
     end
@@ -284,7 +284,7 @@ module CCM extend self
         retry
       end
 
-      @nodes.each(&:up!)
+      nodes.each(&:up!)
 
       options = {:logger => logger, :consistency => :all}
 
@@ -436,7 +436,7 @@ module CCM extend self
 
     def clear
       @ccm.exec('clear')
-      @nodes.each(&:down!)
+      nodes.each(&:down!)
       nil
     end
 
