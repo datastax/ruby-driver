@@ -104,6 +104,8 @@ module Cassandra
       when nil       then io.print(NULL_STR)
       when false     then io.print(FALSE_STR)
       when true      then io.print(TRUE_STR)
+      else
+        raise "unsupported type: #{object.inspect}"
       end
 
       io.string
