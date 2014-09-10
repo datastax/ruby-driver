@@ -17,7 +17,7 @@ Feature: Datacenter-aware Round Robin Policy
   Background:
     Given a running cassandra cluster in 2 datacenters with 2 nodes in each
     And the following schema:
-      """sql
+      """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
       USE simplex;
       CREATE TABLE songs (

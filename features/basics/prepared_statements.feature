@@ -6,7 +6,7 @@ Feature: Prepared statements
 
   Scenario: an INSERT statement is prepared
     Given a running cassandra cluster with schema:
-      """sql
+      """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
       USE simplex;
       CREATE TABLE playlists (
@@ -75,7 +75,7 @@ Feature: Prepared statements
   @cassandra-version-specific @cassandra-version-2.0
   Scenario: a SELECT statement with parameterized LIMIT is prepared
     Given a running cassandra cluster with schema:
-      """sql
+      """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
       USE simplex;
       CREATE TABLE playlists (

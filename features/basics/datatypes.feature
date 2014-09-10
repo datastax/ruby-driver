@@ -13,7 +13,7 @@ Feature: Datatypes
 
   Scenario: Using strings
     Given the following schema:
-      """sql
+      """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
       USE simplex;
       CREATE TABLE mytable (
@@ -58,7 +58,7 @@ Feature: Datatypes
 
   Scenario: Using numbers
     Given the following schema:
-      """sql
+      """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
       USE simplex;
       CREATE TABLE mytable (
@@ -111,7 +111,7 @@ Feature: Datatypes
 
   Scenario: Using identifiers, booleans and ip addresses
     Given the following schema:
-      """sql
+      """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
       USE simplex;
       CREATE TABLE mytable (
@@ -161,7 +161,7 @@ Feature: Datatypes
 
   Scenario: Using lists, maps and sets
     Given the following schema:
-      """sql
+      """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
       USE simplex;
       CREATE TABLE user (

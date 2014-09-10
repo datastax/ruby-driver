@@ -7,7 +7,7 @@ Feature: White List Policy
 
   Scenario: Prevent queries from running on non-whitelisted hosts
     Given a running cassandra cluster with schema:
-      """sql
+      """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
       USE simplex;
       CREATE TABLE songs (

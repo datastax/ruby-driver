@@ -4,7 +4,7 @@ Feature: Execution information
 
   Background:
     Given a running cassandra cluster with schema:
-      """sql
+      """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
       USE simplex;
       CREATE TABLE songs (

@@ -62,11 +62,11 @@ Feature: Schema change detection
 
   Scenario: Listening for keyspace drop
     Given the following schema:
-      """sql
+      """cql
       CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}
       """
     When I execute the following cql:
-      """sql
+      """cql
       DROP KEYSPACE new_keyspace
       """
     And I close the stdin stream
@@ -77,11 +77,11 @@ Feature: Schema change detection
 
   Scenario: Listening for keyspace changes
     Given the following schema:
-      """sql
+      """cql
       CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}
       """
     When I execute the following cql:
-      """sql
+      """cql
       CREATE TABLE new_keyspace.new_table (id timeuuid PRIMARY KEY)
       """
     And I close the stdin stream
