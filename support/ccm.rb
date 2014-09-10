@@ -385,12 +385,7 @@ module CCM extend self
 
     def datacenters_count
       @datacenters ||= begin
-        start if !running?
-        node = nodes.find(&:up?)
-        @ccm.exec(node.name, 'status')
-            .split("\n")
-            .find_all { |line| line.start_with? "Datacenter:" }
-            .count
+        @cluster.hosts.group_by(&:datacenter).size
       end
     end
 
@@ -531,6 +526,8 @@ module CCM extend self
     return unless @current_cluster
 
     ccm.exec('switch', @current_cluster.name)
+
+    @current_cluster.start
 
     nil
   end
