@@ -520,7 +520,10 @@ module CCM extend self
 
   def switch_cluster(name)
     if @current_cluster
-      return if @current_cluster.name == name
+      if @current_cluster.name == name
+        @current_cluster.start
+        return nil
+      end
       @current_cluster.stop
     end
 
