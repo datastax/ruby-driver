@@ -99,6 +99,7 @@ module Cassandra
       when ::String  then encode_string(object, io)
       when ::Time    then encode_timestamp(object, io)
       when ::Numeric then encode_number(object, io)
+      when ::IPAddr  then encode_inet(object, io)
       when Uuid      then encode_uuid(object, io)
       when nil       then io.print(NULL_STR)
       when false     then io.print(FALSE_STR)
@@ -121,6 +122,13 @@ module Cassandra
 
     def encode_uuid(uuid, io = StringIO.new)
       io.print(uuid)
+      io.string
+    end
+
+    def encode_inet(inet, io = StringIO.new)
+      io.putc(QUOT)
+      io.print(inet)
+      io.putc(QUOT)
       io.string
     end
 
