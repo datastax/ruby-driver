@@ -29,7 +29,7 @@ Feature: Schema change detection
         end
       end
       """
-    And the following example running in the background:
+    And the following example:
       """ruby
       require 'printing_listener'
       require 'cassandra'
@@ -39,22 +39,22 @@ Feature: Schema change detection
 
       cluster.register(listener)
 
-      at_exit { cluster.close }
-
-      sleep
+      $stdout.puts("=== START ===")
+      $stdout.flush
+      $stdin.gets
+      $stdout.puts("=== STOP ===")
+      $stdout.flush
       """
+    And it is running interactively
+    And I wait for its output to contain "START"
 
   Scenario: Listening for keyspace creation
-    And the following example:
-      """ruby
-      require 'cassandra'
-
-      session = Cassandra.connect.connect
-
-      session.execute("CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}")
+    When I execute the following cql:
       """
-    When it is executed
-    Then background output should contain:
+      CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}
+      """
+    And I close the stdin stream
+    Then its output should contain:
       """
       Keyspace "new_keyspace" created
       """
@@ -64,16 +64,12 @@ Feature: Schema change detection
       """sql
       CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}
       """
-    And the following example:
-      """ruby
-      require 'cassandra'
-
-      session = Cassandra.connect.connect
-
-      session.execute("DROP KEYSPACE new_keyspace")
+    When I execute the following cql:
+      """sql
+      DROP KEYSPACE new_keyspace
       """
-    When it is executed
-    Then background output should contain:
+    And I close the stdin stream
+    Then its output should contain:
       """
       Keyspace "new_keyspace" dropped
       """
@@ -83,16 +79,12 @@ Feature: Schema change detection
       """sql
       CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}
       """
-    And the following example:
-      """ruby
-      require 'cassandra'
-
-      session = Cassandra.connect.connect('new_keyspace')
-
-      session.execute("CREATE TABLE new_table (id timeuuid PRIMARY KEY)")
+    When I execute the following cql:
+      """sql
+      CREATE TABLE new_table (id timeuuid PRIMARY KEY)
       """
-    When it is executed
-    Then background output should contain:
+    And I close the stdin stream
+    Then its output should contain:
       """
       Keyspace "new_keyspace" changed
       """

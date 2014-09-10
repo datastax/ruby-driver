@@ -419,19 +419,21 @@ module CCM extend self
         @session.execute("DROP KEYSPACE #{keyspace.name}")
       end
 
-      schema.strip!
-      schema.chomp!(";")
-      schema.split(";\n").each do |statement|
-        $stderr.puts("executing: #{statement}")
+      execute(schema)
+
+      nil
+    end
+
+    def execute(cql)
+      start
+
+      cql.strip!
+      cql.chomp!(";")
+      cql.split(";\n").each do |statement|
         @session.execute(statement)
       end
 
       nil
-    rescue Cassandra::Errors::NoHostsAvailable => e
-      e.errors.each do |host, error|
-        $stderr.puts("cannot reach #{host.ip} - #{error.class.name}: #{error.message}")
-      end
-      raise e
     end
 
     def clear

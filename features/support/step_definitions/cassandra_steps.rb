@@ -22,6 +22,10 @@ Given(/^the following schema:$/) do |schema|
   @cluster.setup_schema(schema)
 end
 
+When(/^I execute the following cql:$/) do |cql|
+  @cluster.execute(cql)
+end
+
 Given(/^the following example:$/) do |code|
   step 'a file named "example.rb" with:', prepend_encoding(code)
 end
