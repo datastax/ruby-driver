@@ -23,6 +23,14 @@ Feature: Datatypes
         d text,
         e varchar,
       );
+      INSERT INTO mytable (a, b, c, d, e)
+      VALUES (
+        0,
+        'ascii',
+        0x626c6f62,
+        'text',
+        'varchar'
+      )
       """
     And the following example:
       """ruby
@@ -30,15 +38,6 @@ Feature: Datatypes
 
       cluster = Cassandra.connect
       session = cluster.connect("simplex")
-
-      session.execute("INSERT INTO mytable (a, b, c, d, e)
-                       VALUES (
-                         0,
-                         'ascii',
-                         0x626c6f62,
-                         'text',
-                         'varchar'
-                       )")
 
       row = session.execute("SELECT * FROM mytable").first
 
@@ -70,6 +69,16 @@ Feature: Datatypes
         f int,
         g varint
       );
+      INSERT INTO mytable (a, b, c, d, e, f, g)
+      VALUES (
+        0,
+        765438000,
+        1313123123.234234234234234234123,
+        3.141592653589793,
+        3.14,
+        4,
+        67890656781923123918798273492834712837198237
+      )
       """
     And the following example:
       """ruby
@@ -77,17 +86,6 @@ Feature: Datatypes
 
       cluster = Cassandra.connect
       session = cluster.connect("simplex")
-
-      session.execute("INSERT INTO mytable (a, b, c, d, e, f, g)
-                       VALUES (
-                         0,
-                         765438000,
-                         1313123123.234234234234234234123,
-                         3.141592653589793,
-                         3.14,
-                         4,
-                         67890656781923123918798273492834712837198237
-                       )")
 
       row = session.execute("SELECT * FROM mytable").first
 
@@ -122,6 +120,15 @@ Feature: Datatypes
         e timeuuid,
         f uuid
       );
+      INSERT INTO mytable (a, b, c, d, e, f)
+      VALUES (
+        0,
+        true,
+        '200.199.198.197',
+        '2013-12-11 10:09:08+0000',
+        FE2B4360-28C6-11E2-81C1-0800200C9A66,
+        00b69180-d0e1-11e2-8b8b-0800200c9a66
+      )
       """
     And the following example:
       """ruby
@@ -130,16 +137,6 @@ Feature: Datatypes
 
       cluster = Cassandra.connect
       session = cluster.connect("simplex")
-
-      session.execute("INSERT INTO mytable (a, b, c, d, e, f)
-                       VALUES (
-                         0,
-                         true,
-                         '200.199.198.197',
-                         '2013-12-11 10:09:08+0000',
-                         FE2B4360-28C6-11E2-81C1-0800200C9A66,
-                         00b69180-d0e1-11e2-8b8b-0800200c9a66
-                       )")
 
       row = session.execute("SELECT * FROM mytable").first
 
@@ -170,6 +167,13 @@ Feature: Datatypes
         locations Map<timestamp, double>,
         ip_addresses Set<inet>
       );
+      INSERT INTO user (id, logins, locations, ip_addresses)
+      VALUES (
+        0,
+        ['2014-09-11 10:09:08+0000', '2014-09-12 10:09:00+0000'],
+        {'2014-09-11 10:09:08+0000': 37.397357},
+        {'200.199.198.197', '192.168.1.15'}
+      )
       """
     And the following example:
       """ruby
@@ -178,14 +182,6 @@ Feature: Datatypes
 
       cluster = Cassandra.connect
       session = cluster.connect("simplex")
-
-      session.execute("INSERT INTO user (id, logins, locations, ip_addresses)
-                       VALUES (
-                         0,
-                         ['2014-09-11 10:09:08+0000', '2014-09-12 10:09:00+0000'],
-                         {'2014-09-11 10:09:08+0000': 37.397357},
-                         {'200.199.198.197', '192.168.1.15'}
-                       )")
 
       row = session.execute("SELECT * FROM user").first
 
