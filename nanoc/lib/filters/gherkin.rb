@@ -243,12 +243,13 @@ module Docs
           data = Base64.encode64(Ditaa.render(code, :separation => false))
           "<img src=\"data:image/png;base64,#{data}\" alt=\"Text Diagram\" class=\"img-rounded img-thumbnail center-block ditaa\" />"
         else
-          markup = ::Pygments.highlight(code, :lexer => language)
-          markup = markup.sub(/<div class="highlight"><pre>/,'<pre class="highlight"><code class="' + language + '">')
-          markup = markup.sub(/<\/pre><\/div>/,"</code></pre>")
+          markup = ::Rouge.highlight(code, language, 'html')
+          markup.sub!(/<pre><code class="highlight">/,'<pre class="highlight"><code class="' + language + '">')
+          markup.sub!(/<\/code><\/pre>/,"</code></pre>")
+          markup.strip!
           markup
         end
-      rescue MentosError => e
+      rescue
         "<pre><code class=\"#{language}\">#{CGI.escapeHTML(code)}</code></pre>"
       end
     end

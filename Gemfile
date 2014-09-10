@@ -34,7 +34,7 @@ group :docs do
     gem 'bootstrap-sass'
     gem 'nokogiri'
     gem 'rubypants'
-    gem 'pygments.rb'
+    gem 'rouge'
     gem 'redcarpet'
     gem 'ditaarb'
   end

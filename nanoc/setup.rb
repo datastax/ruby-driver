@@ -1,7 +1,7 @@
 require 'nanoc/toolbox'
 require 'redcarpet'
 require 'gherkin'
-require 'pygments'
+require 'rouge'
 require 'nokogiri'
 require 'compass'
 

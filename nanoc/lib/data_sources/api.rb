@@ -50,9 +50,10 @@ module Docs
 
   module Helper
     def html_syntax_highlight_ruby(source)
-      markup = ::Pygments.highlight(source, :lexer => 'ruby')
-      markup = markup.sub(/<div class="highlight"><pre>/,'<pre class="highlight"><code class="ruby">')
-      markup = markup.sub(/<\/pre><\/div>/,"</code></pre>")
+      markup = ::Rouge.highlight(source, 'ruby', 'html')
+      markup.sub!(/<pre><code class="highlight">/,'<pre class="highlight"><code class="ruby">')
+      markup.sub!(/<\/code><\/pre>/,"</code></pre>")
+      markup.strip!
       markup
     end
 
