@@ -35,7 +35,7 @@ Feature: Result paging
   @cassandra-version-specific @cassandra-version-2.0
   Scenario: Paging through results synchronously
     Given the following example:
-    """ruby
+      """ruby
       require 'cassandra'
 
       cluster = Cassandra.connect
@@ -86,7 +86,7 @@ Feature: Result paging
   @cassandra-version-specific @cassandra-version-2.0
   Scenario: Paging through results asynchronously
     Given the following example:
-    """ruby
+      """ruby
       require 'cassandra'
 
       def page_through(future)
