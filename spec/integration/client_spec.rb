@@ -457,8 +457,7 @@ describe 'A CQL client', :integration do
 
   context 'with user defined types' do
     before do
-      release_version = client.execute('SELECT release_version FROM system.local').first['release_version']
-      pending 'User defined types are not available in C* before 2.1.0' unless release_version[0, 5] >= '2.1.0'
+      skip 'User defined types are not available in C* before 2.1.0' unless CCM.cassandra_version >= '2.1.0'
       create_keyspace
       client.execute(%(CREATE TYPE address (street TEXT, city TEXT, zip INT)))
       client.execute(%(CREATE TYPE company (name TEXT, addresses LIST<FROZEN<address>>)))
