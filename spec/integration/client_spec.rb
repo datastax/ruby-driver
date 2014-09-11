@@ -461,8 +461,8 @@ describe 'A CQL client', :integration do
       pending 'User defined types are not available in C* before 2.1.0' unless release_version[0, 5] >= '2.1.0'
       create_keyspace
       client.execute(%(CREATE TYPE address (street TEXT, city TEXT, zip INT)))
-      client.execute(%(CREATE TYPE company (name TEXT, addresses LIST<address>)))
-      client.execute(%(CREATE TABLE users (id VARCHAR PRIMARY KEY, primary_address address, secondary_addresses MAP<TEXT, address>, employers SET<company>)))
+      client.execute(%(CREATE TYPE company (name TEXT, addresses LIST<FROZEN<address>>)))
+      client.execute(%(CREATE TABLE users (id VARCHAR PRIMARY KEY, primary_address FROZEN<address>, secondary_addresses MAP<TEXT, FROZEN<address>>, employers SET<FROZEN<company>>)))
     end
 
     it 'inserts records into a table with a user defined type' do
