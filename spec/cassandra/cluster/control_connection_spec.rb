@@ -22,7 +22,7 @@ module Cassandra
   class Cluster
     describe(ControlConnection) do
       let :control_connection do
-        ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, load_balancing_policy, reconnection_policy, driver.connector, driver.connection_options)
+        ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, load_balancing_policy, reconnection_policy, driver.connector)
       end
 
       let :io_reactor do

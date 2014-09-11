@@ -22,7 +22,7 @@ module Cassandra
     class ControlConnection
       include MonitorMixin
 
-      def initialize(logger, io_reactor, cluster_registry, cluster_schema, load_balancing_policy, reconnection_policy, connector, connection_options)
+      def initialize(logger, io_reactor, cluster_registry, cluster_schema, load_balancing_policy, reconnection_policy, connector)
         @logger                = logger
         @io_reactor            = io_reactor
         @registry              = cluster_registry
@@ -30,7 +30,6 @@ module Cassandra
         @load_balancing_policy = load_balancing_policy
         @reconnection_policy   = reconnection_policy
         @connector             = connector
-        @connection_options    = connection_options
         @refreshing_statuses   = Hash.new(false)
         @status                = :closed
 
