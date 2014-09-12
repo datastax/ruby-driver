@@ -69,7 +69,11 @@ module Cassandra
       end
 
       def refresh_status(host)
-        return Future.resolved if synchronize { @connections[host] }
+        if synchronize { @connections[host] }
+          @registry.host_up(host.ip)
+
+          return Future.resolved
+        end
 
         @logger.info("Refreshing host status ip=#{host.ip}")
         f = do_connect(host)
