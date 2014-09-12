@@ -72,7 +72,7 @@ gem install cassandra-driver --pre
 Install via Gemfile
 
 ```ruby
-gem 'cassandra-driver'
+gem 'cassandra-driver', '~> 1.0.0.beta'
 ```
 
 Note: if you want to use compression you should also install [snappy](http://rubygems.org/gems/snappy) or [lz4-ruby](http://rubygems.org/gems/lz4-ruby). [Read more about compression.](/features/#compression)
