@@ -66,7 +66,7 @@ Read more:
 Install via rubygems
 
 ```bash
-gem install cassandra-driver
+gem install cassandra-driver --pre
 ```
 
 Install via Gemfile
