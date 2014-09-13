@@ -37,7 +37,7 @@ require 'cassandra'
 
 cluster = Cassandra.connect # connects to localhost by default
 
-cluster.each_hosts do |host| # automatically discovers all peers
+cluster.each_host do |host| # automatically discovers all peers
   puts "Host #{host.ip}: id=#{host.id} datacenter=#{host.datacenter} rack=#{host.rack}"
 end
 
