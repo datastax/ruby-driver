@@ -237,13 +237,13 @@ The CQL protocol supports frame compression, which can give you a performance bo
 Cassandra currently supports two compression algorithms: Snappy and LZ4. ruby driver supports both, but in order to use them you will have to install the [snappy](http://rubygems.org/gems/snappy) or [lz4-ruby](http://rubygems.org/gems/lz4-ruby) gems separately. Once it's installed you can enable compression like this:
 
 ```ruby
-cluster = Cassandra.connect(compressor: :snappy)
+cluster = Cassandra.connect(compression: :snappy)
 ```
 
 or
 
 ```ruby
-cluster = Cassandra.connect(compressor: :lz4)
+cluster = Cassandra.connect(compression: :lz4)
 ```
 
 Which one should you choose? On paper the LZ4 algorithm is more efficient and the one Cassandra defaults to for SSTable compression. They both achieve roughly the same compression ratio, but LZ4 does it quicker.
