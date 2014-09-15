@@ -26,19 +26,9 @@
 typedef unsigned __int64 uint64_t;
 typedef __int64 int64_t;
 
-#define FORCE_INLINE	__forceinline
+#define FORCE_INLINE __forceinline
 #else
-#ifndef HAVE_STDINT_H
-typedef char int8_t;
-
-#if SIZEOF_LONG == 8
-typedef unsigned long uint64_t;
-typedef long int64_t;
-#else
-typedef unsigned long long uint64_t;
-typedef long long int64_t;
-#endif
-#endif
+#include <stdint.h>
 #ifdef __GNUC__
 #define FORCE_INLINE __attribute__((always_inline)) inline
 #else
