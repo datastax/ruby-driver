@@ -11,3 +11,4 @@
 /docs
 /.sass-cache
 /venv
+/lib/cassandra_murmur3.*
