@@ -2,9 +2,9 @@ source 'https://rubygems.org/'
 
 gemspec
 
-gem 'rake'
-gem 'snappy'
-gem 'lz4-ruby'
+gem 'snappy',        :group => [:development, :test]
+gem 'lz4-ruby',      :group => [:development, :test]
+gem 'rake-compiler', :group => [:development, :test]
 
 group :development do
   platforms :mri_19 do
@@ -12,7 +12,6 @@ group :development do
     gem 'guard'
     gem 'guard-nanoc'
   end
-  gem 'rake-compiler'
 end
 
 group :test do

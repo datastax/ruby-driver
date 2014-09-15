@@ -148,7 +148,7 @@ DEPENDENCIES
   nanoc-toolbox
   nokogiri
   perftools.rb
-  rake
+  rake (~> 10.0)
   rake-compiler
   redcarpet
   rouge
