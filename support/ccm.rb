@@ -446,11 +446,15 @@ module CCM extend self
 
     def nodes
       @nodes ||= begin
-        @ccm.exec('status').split("\n").map! do |line|
+        nodes = []
+        @ccm.exec('status').each_line do |line|
           line.strip!
+          next if line.start_with?('Cluster: ')
           name, status = line.split(": ")
-          Node.new(name, status, self)
+          next if status.nil?
+          nodes << Node.new(name, status, self)
         end
+        nodes
       end
     end
 
