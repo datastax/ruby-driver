@@ -308,6 +308,9 @@ require 'cassandra/retry'
 
 require 'cassandra/util'
 
+# murmur3 hash extension
+require 'cassandra_murmur3'
+
 module Cassandra
   # @private
   Io = Ione::Io
