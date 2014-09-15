@@ -12,6 +12,7 @@ group :development do
     gem 'guard'
     gem 'guard-nanoc'
   end
+  gem 'rake-compiler'
 end
 
 group :test do
