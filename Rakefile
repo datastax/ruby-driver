@@ -12,7 +12,7 @@ RSpec::Core::RakeTask.new(:rspec)
 Cucumber::Rake::Task.new(:cucumber)
 
 desc 'Run all tests'
-task :test => [:rspec, :cucumber]
+task :test => [:compile, :rspec, :cucumber]
 
 desc 'Generate documentation'
 task :docs do
