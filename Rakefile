@@ -21,3 +21,16 @@ task :docs do
 
   Nanoc::Site.new('.').compile
 end
+
+ruby_engine = defined?(RUBY_ENGINE)? RUBY_ENGINE : 'ruby'
+
+case ruby_engine
+when 'jruby'
+  require 'rake/javaextensiontask'
+
+  Rake::JavaExtensionTask.new('cassandra_murmur3')
+else
+  require 'rake/extensiontask'
+
+  Rake::ExtensionTask.new('cassandra_murmur3')
+end
