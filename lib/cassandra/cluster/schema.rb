@@ -235,7 +235,8 @@ module Cassandra
           end
 
           if is_dense
-            value_alias = table['value_alias'] || 'value'
+            value_alias = table['value_alias']
+            value_alias = 'value' if value_alias.nil? || value_alias.empty?
             type, order = @type_parser.parse(table['default_validator']).results.first
             other_columns << Column.new(value_alias, type, order)
           end
@@ -245,6 +246,8 @@ module Cassandra
           end
         else
           columns.each do |name, row|
+            next if row['column_name'].empty?
+
             column = create_column(row)
             type   = row['type']
             index  = row['component_index'] || 0

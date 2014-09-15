@@ -177,7 +177,6 @@ module Cassandra
       cql   = "CREATE TABLE #{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} (\n"
       first = true
       @columns.each do |(_, column)|
-        next if column.name.empty?
         if first
           first = false
         else
