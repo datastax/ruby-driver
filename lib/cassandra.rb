@@ -26,6 +26,7 @@ require 'set'
 require 'bigdecimal'
 require 'forwardable'
 require 'timeout'
+require 'digest'
 require 'stringio'
 
 module Cassandra

@@ -321,4 +321,5 @@ module Cassandra
   end
 end
 
+require 'cassandra/cluster/schema/partitioners'
 require 'cassandra/cluster/schema/type_parser'
