@@ -35,7 +35,7 @@ describe 'A CQL client', :integration do
     client.close rescue nil
   end
 
-  def create_keyspace_and_table
+  def create_keyspace
     begin
       client.execute(%(DROP KEYSPACE cql_rb_client_spec))
     rescue Cassandra::Errors::QueryError => e
@@ -43,6 +43,10 @@ describe 'A CQL client', :integration do
     end
     client.execute(%(CREATE KEYSPACE cql_rb_client_spec WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}))
     client.use('cql_rb_client_spec')
+  end
+
+  def create_keyspace_and_table
+    create_keyspace
     client.execute(%(CREATE TABLE users (user_id VARCHAR PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)))
     client.execute(%(CREATE TABLE counters (id VARCHAR PRIMARY KEY, count COUNTER)))
   end
@@ -448,6 +452,60 @@ describe 'A CQL client', :integration do
         result_page = result_page.next_page
       end
       page_count.should == 5
+    end
+  end
+
+  context 'with user defined types' do
+    before do
+      skip 'User defined types are not available in C* before 2.1.0' unless CCM.cassandra_version >= '2.1.0'
+      create_keyspace
+      client.execute(%(CREATE TYPE address (street TEXT, city TEXT, zip INT)))
+      client.execute(%(CREATE TYPE company (name TEXT, addresses LIST<FROZEN<address>>)))
+      client.execute(%(CREATE TABLE users (id VARCHAR PRIMARY KEY, primary_address FROZEN<address>, secondary_addresses MAP<TEXT, FROZEN<address>>, employers SET<FROZEN<company>>)))
+    end
+
+    it 'inserts records into a table with a user defined type' do
+      statement = client.prepare(%(INSERT INTO users (id, primary_address) VALUES (?, ?)))
+      statement.execute('sue', {'street' => '123 Some St.', 'city' => 'Frans Sanisco', 'zip' => 76543})
+      result = client.execute(%(SELECT primary_address.street AS street FROM users WHERE id = 'sue'))
+      result.first['street'].should == '123 Some St.'
+    end
+
+    it 'reads records from a table with a user defined type' do
+      client.execute(%(INSERT INTO users (id, primary_address) VALUES ('sue', {street: '123 Some St.', city: 'Frans Sanisco', zip: 76543})))
+      result = client.execute(%(SELECT primary_address FROM users WHERE id = 'sue'))
+      result.first['primary_address'].should eql('street' => '123 Some St.', 'city' => 'Frans Sanisco', 'zip' => 76543)
+    end
+
+    it 'reads records from a table with a user defined type in a collection' do
+      client.execute(<<-CQL)
+      INSERT INTO users (id, primary_address, secondary_addresses)
+      VALUES (
+        'sue',
+        {street: '123 Some St.', city: 'Frans Sanisco', zip: 76543},
+        {'secret_lair': {street: '4 Some Other St.', city: 'Gos Latos', zip: 87654}}
+      )
+      CQL
+      result = client.execute(%(SELECT secondary_addresses FROM users WHERE id = 'sue'))
+      result.first['secondary_addresses'].should eql('secret_lair' => {'street' => '4 Some Other St.', 'city' => 'Gos Latos', 'zip' => 87654})
+    end
+
+    it 'reads records from a table with user defined types nested in other user defined types, and collections' do
+      client.execute(<<-CQL)
+      INSERT INTO users (id, employers)
+      VALUES (
+        'sue',
+        {
+          {name: 'Acme Corp', addresses: [{street: '1 St.', city: '1 City', zip: 11111}, {street: '2 St.', city: '2 City', zip: 22222}]},
+          {name: 'Foo Inc.', addresses: [{street: '3 St.', city: '3 City', zip: 33333}]}
+        }
+      )
+      CQL
+      result = client.execute(%(SELECT employers FROM users WHERE id = 'sue'))
+      result.first['employers'].should eql(Set.new([
+        {'name' => 'Acme Corp', 'addresses' => [{'street' => '1 St.', 'city' => '1 City', 'zip' => 11111}, {'street' => '2 St.', 'city' => '2 City', 'zip' => 22222}]},
+        {'name' => 'Foo Inc.', 'addresses' => [{'street' => '3 St.', 'city' => '3 City', 'zip' => 33333}]}
+      ]))
     end
   end
 

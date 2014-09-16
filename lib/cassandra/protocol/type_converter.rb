@@ -24,56 +24,79 @@ module Cassandra
         @to_bytes_converters = to_bytes_converters
       end
 
-      def from_bytes(buffer, type, size_bytes=4)
+      def from_bytes(buffer, type, size_bytes=4, override_size=false)
         return nil if buffer.empty?
         case type
         when Array
-          return nil unless read_size(buffer, size_bytes)
+          size = read_size(buffer, size_bytes)
+          return nil unless size
+          size_bytes = override_size ? size_bytes : 2
           case type.first
           when :list
-            bytes_to_list(buffer, @from_bytes_converters[type[1]])
+            bytes_to_list(buffer, type[1], size_bytes, override_size)
           when :map
-            bytes_to_map(buffer, @from_bytes_converters[type[1]], @from_bytes_converters[type[2]])
+            bytes_to_map(buffer, type[1], type[2], size_bytes, override_size)
           when :set
-            bytes_to_set(buffer, @from_bytes_converters[type[1]])
+            bytes_to_set(buffer, type[1], size_bytes, override_size)
+          when :udt
+            bytes_to_udt_value(buffer, type)
+          when :custom
+            bytes_to_custom(buffer, size)
           end
         else
           @from_bytes_converters[type].call(buffer, size_bytes)
         end
       end
 
-      def to_bytes(buffer, type, value, size_bytes=4)
+      def to_bytes(buffer, type, value, size_bytes=4, override_size=false)
         case type
         when Array
-          unless value.nil? || value.is_a?(Enumerable)
-            raise InvalidValueError, 'Value for collection must be enumerable'
-          end
           case type.first
           when :list, :set
+            unless value.nil? || value.is_a?(Enumerable)
+              raise InvalidValueError, 'Value for %s must be enumerable' % type
+            end
             _, sub_type = type
             if value
+              size_bytes = override_size ? size_bytes : 2
               raw = CqlByteBuffer.new
-              raw.append_short(value.size)
+              if size_bytes == 2
+                raw.append_short(value.size)
+              else
+                raw.append_int(value.size)
+              end
               value.each do |element|
-                to_bytes(raw, sub_type, element, 2)
+                to_bytes(raw, sub_type, element, size_bytes, override_size)
               end
               buffer.append_bytes(raw)
             else
               nil_to_bytes(buffer, size_bytes)
             end
           when :map
+            unless value.nil? || value.is_a?(Enumerable)
+              raise InvalidValueError, 'Value for %s must be enumerable' % type
+            end
             _, key_type, value_type = type
             if value
+              size_bytes = override_size ? size_bytes : 2
               raw = CqlByteBuffer.new
-              raw.append_short(value.size)
+              if size_bytes == 2
+                raw.append_short(value.size)
+              else
+                raw.append_int(value.size)
+              end
               value.each do |key, value|
-                to_bytes(raw, key_type, key, 2)
-                to_bytes(raw, value_type, value, 2)
+                to_bytes(raw, key_type, key, size_bytes, override_size)
+                to_bytes(raw, value_type, value, size_bytes, override_size)
               end
               buffer.append_bytes(raw)
             else
               nil_to_bytes(buffer, size_bytes)
             end
+          when :udt
+            udt_to_bytes(buffer, type[1], value, size_bytes)
+          when :custom
+            custom_to_bytes(buffer, type[1], value, size_bytes)
           else
             raise UnsupportedColumnTypeError, %(Unsupported column collection type: #{type.first})
           end
@@ -217,33 +240,45 @@ module Cassandra
         IPAddr.new_ntoh(buffer.read(size))
       end
 
-      def bytes_to_list(buffer, value_converter)
+      def bytes_to_list(buffer, subtype, size_bytes, override_size)
         list = []
-        size = buffer.read_short
+        size = read_size(buffer, size_bytes)
         size.times do
-          list << value_converter.call(buffer, 2)
+          list << from_bytes(buffer, subtype, size_bytes, override_size)
         end
         list
       end
 
-      def bytes_to_map(buffer, key_converter, value_converter)
+      def bytes_to_map(buffer, key_type, value_type, size_bytes, override_size)
         map = {}
-        size = buffer.read_short
+        size = read_size(buffer, size_bytes)
         size.times do
-          key = key_converter.call(buffer, 2)
-          value = value_converter.call(buffer, 2)
+          key = from_bytes(buffer, key_type, size_bytes, override_size)
+          value = from_bytes(buffer, value_type, size_bytes, override_size)
           map[key] = value
         end
         map
       end
 
-      def bytes_to_set(buffer, value_converter)
+      def bytes_to_set(buffer, subtype, size_bytes, override_size)
         set = Set.new
-        size = buffer.read_short
+        size = read_size(buffer, size_bytes)
         size.times do
-          set << value_converter.call(buffer, 2)
+          set << from_bytes(buffer, subtype, size_bytes, override_size)
         end
         set
+      end
+
+      def bytes_to_udt_value(buffer, type)
+        value = {}
+        type[1].each do |name, subtype|
+          value[name] = from_bytes(buffer, subtype, 4, true)
+        end
+        value
+      end
+
+      def bytes_to_custom(buffer, size)
+        buffer.read(size)
       end
 
       def ascii_to_bytes(buffer, value, size_bytes)
@@ -377,6 +412,29 @@ module Cassandra
           buffer.append_int(-1)
         else
           buffer.append_short(-1)
+        end
+      end
+
+      def udt_to_bytes(buffer, type, value, size_bytes)
+        if value
+          offset = buffer.length
+          size_to_bytes(buffer, 0, size_bytes)
+          type.each do |field_name, field_type|
+            field_value = value[field_name]
+            to_bytes(buffer, field_type, field_value, 4, true)
+          end
+          buffer.update(offset, size_to_bytes(CqlByteBuffer.new, buffer.length - offset - size_bytes, size_bytes))
+        else
+          nil_to_bytes(buffer, size_bytes)
+        end
+      end
+
+      def custom_to_bytes(buffer, type, value, size_bytes)
+        if value
+          size_to_bytes(buffer, value.size, size_bytes)
+          buffer.append(value)
+        else
+          nil_to_bytes(buffer, size_bytes)
         end
       end
     end

@@ -18,6 +18,17 @@
 require 'spec_helper'
 
 
+module ExecuteRequestSpec
+  module ItEncodes
+    def it_encodes(description, type, value, expected_bytes)
+      it("encodes #{description}") do
+        bytes = encode_value(type, value)
+        bytes.should eql_bytes(expected_bytes)
+      end
+    end
+  end
+end
+
 module Cassandra
   module Protocol
     describe ExecuteRequest do
@@ -79,6 +90,13 @@ module Cassandra
       end
 
       describe '#write' do
+        def encode_value(type, value)
+          request = described_class.new(id, [['ks', 'tbl', 'col', type]], [value], true, :one, nil, nil, nil, false)
+          buffer = request.write(1, CqlByteBuffer.new)
+          buffer.discard(2 + 16 + 2)
+          buffer.read(buffer.read_int)
+        end
+
         context 'when the protocol version is 1' do
           let :frame_bytes do
             ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :each_quorum, nil, nil, nil, false).write(1, CqlByteBuffer.new)
@@ -156,44 +174,150 @@ module Cassandra
           end
         end
 
-        context 'with different data types' do
-          specs = [
-            [:ascii, 'test', "test"],
-            [:bigint, 1012312312414123, "\x00\x03\x98\xB1S\xC8\x7F\xAB"],
-            [:blob, "\xab\xcd", "\xab\xcd"],
-            [:boolean, false, "\x00"],
-            [:boolean, true, "\x01"],
-            [:decimal, BigDecimal.new('1042342234234.123423435647768234'), "\x00\x00\x00\x12\r'\xFDI\xAD\x80f\x11g\xDCfV\xAA"],
-            [:double, 10000.123123123, "@\xC3\x88\x0F\xC2\x7F\x9DU"],
-            [:float, 12.13, "AB\x14{"],
-            [:inet, IPAddr.new('8.8.8.8'), "\x08\x08\x08\x08"],
-            [:inet, IPAddr.new('::1'), "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01"],
-            [:int, 12348098, "\x00\xBCj\xC2"],
-            [:text, 'FOOBAR', 'FOOBAR'],
-            [:timestamp, Time.at(1358013521.123), "\x00\x00\x01</\xE9\xDC\xE3"],
-            [:timeuuid, Uuid.new('a4a70900-24e1-11df-8924-001ff3591711'), "\xA4\xA7\t\x00$\xE1\x11\xDF\x89$\x00\x1F\xF3Y\x17\x11"],
-            [:uuid, Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'), "\xCF\xD6l\xCC\xD8WN\x90\xB1\xE5\xDF\x98\xA3\xD4\f\xD6"],
-            [:varchar, 'hello', 'hello'],
-            [:varint, 1231312312331283012830129382342342412123, "\x03\x9EV \x15\f\x03\x9DK\x18\xCDI\\$?\a["],
-            [:varint, -234234234234, "\xC9v\x8D:\x86"],
-            [[:list, :timestamp], [Time.at(1358013521.123)], "\x00\x01" + "\x00\x08\x00\x00\x01</\xE9\xDC\xE3"],
-            [[:list, :boolean], [true, false, true, true], "\x00\x04" + "\x00\x01\x01" + "\x00\x01\x00"  + "\x00\x01\x01" + "\x00\x01\x01"],
-            [[:map, :uuid, :int], {Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6') => 45345, Uuid.new('a4a70900-24e1-11df-8924-001ff3591711') => 98765}, "\x00\x02" + "\x00\x10\xCF\xD6l\xCC\xD8WN\x90\xB1\xE5\xDF\x98\xA3\xD4\f\xD6" + "\x00\x04\x00\x00\xb1\x21" + "\x00\x10\xA4\xA7\t\x00$\xE1\x11\xDF\x89$\x00\x1F\xF3Y\x17\x11" + "\x00\x04\x00\x01\x81\xcd"],
-            [[:map, :ascii, :blob], {'hello' => 'world', 'one' => "\x01", 'two' => "\x02"}, "\x00\x03" + "\x00\x05hello" + "\x00\x05world" + "\x00\x03one" + "\x00\x01\x01" + "\x00\x03two" + "\x00\x01\x02"],
-            [[:set, :int], Set.new([13, 3453, 456456, 123, 768678]), "\x00\x05" + "\x00\x04\x00\x00\x00\x0d" + "\x00\x04\x00\x00\x0d\x7d" + "\x00\x04\x00\x06\xf7\x08" + "\x00\x04\x00\x00\x00\x7b" + "\x00\x04\x00\x0b\xba\xa6"],
-            [[:set, :varchar], Set.new(['foo', 'bar', 'baz']), "\x00\x03" + "\x00\x03foo" + "\x00\x03bar" + "\x00\x03baz"],
-            [[:set, :int], [13, 3453, 456456, 123, 768678], "\x00\x05" + "\x00\x04\x00\x00\x00\x0d" + "\x00\x04\x00\x00\x0d\x7d" + "\x00\x04\x00\x06\xf7\x08" + "\x00\x04\x00\x00\x00\x7b" + "\x00\x04\x00\x0b\xba\xa6"],
-            [[:set, :varchar], ['foo', 'bar', 'baz'], "\x00\x03" + "\x00\x03foo" + "\x00\x03bar" + "\x00\x03baz"]
-          ]
-          specs.each do |type, value, expected_bytes|
-            it "encodes #{type} values" do
-              metadata = [['ks', 'tbl', 'id_column', type]]
-              buffer = ExecuteRequest.new(id, metadata, [value], true, :one, nil, nil, nil, false).write(1, CqlByteBuffer.new)
-              buffer.discard(2 + 16 + 2)
-              length = buffer.read_int
-              result_bytes = buffer.read(length)
-              result_bytes.should eql_bytes(expected_bytes)
+        context 'with scalar types' do
+          extend ExecuteRequestSpec::ItEncodes
+
+          it_encodes 'ASCII strings', :ascii, 'test', "test"
+          it_encodes 'BIGINTs', :bigint, 1012312312414123, "\x00\x03\x98\xB1S\xC8\x7F\xAB"
+          it_encodes 'BLOBs', :blob, "\xab\xcd", "\xab\xcd"
+          it_encodes 'false BOOLEANs', :boolean, false, "\x00"
+          it_encodes 'true BOOLEANs', :boolean, true, "\x01"
+          it_encodes 'DECIMALs', :decimal, BigDecimal.new('1042342234234.123423435647768234'), "\x00\x00\x00\x12\r'\xFDI\xAD\x80f\x11g\xDCfV\xAA"
+          it_encodes 'DOUBLEs', :double, 10000.123123123, "@\xC3\x88\x0F\xC2\x7F\x9DU"
+          it_encodes 'FLOATs', :float, 12.13, "AB\x14{"
+          it_encodes 'IPv4 INETs', :inet, IPAddr.new('8.8.8.8'), "\x08\x08\x08\x08"
+          it_encodes 'IPv6 INETs', :inet, IPAddr.new('::1'), "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01"
+          it_encodes 'INTs', :int, 12348098, "\x00\xBCj\xC2"
+          it_encodes 'TEXTs from UTF-8 strings', :text, 'ümlaut'.force_encoding(::Encoding::UTF_8), "\xc3\xbcmlaut"
+          it_encodes 'TIMESTAMPs from Times', :timestamp, Time.at(1358013521.123), "\x00\x00\x01</\xE9\xDC\xE3"
+          it_encodes 'TIMESTAMPs from floats', :timestamp, 1358013521.123, "\x00\x00\x01</\xE9\xDC\xE3"
+          it_encodes 'TIMESTAMPs from integers', :timestamp, 1358013521, "\x00\x00\x01</\xE9\xDCh"
+          it_encodes 'TIMEUUIDs', :timeuuid, Uuid.new('a4a70900-24e1-11df-8924-001ff3591711'), "\xA4\xA7\t\x00$\xE1\x11\xDF\x89$\x00\x1F\xF3Y\x17\x11"
+          it_encodes 'UUIDs', :uuid, Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'), "\xCF\xD6l\xCC\xD8WN\x90\xB1\xE5\xDF\x98\xA3\xD4\f\xD6"
+          it_encodes 'VARCHAR from UTF-8 strings', :varchar, 'hello'.force_encoding(::Encoding::UTF_8), 'hello'
+          it_encodes 'positive VARINTs', :varint, 1231312312331283012830129382342342412123, "\x03\x9EV \x15\f\x03\x9DK\x18\xCDI\\$?\a["
+          it_encodes 'negative VARINTs', :varint, -234234234234, "\xC9v\x8D:\x86"
+        end
+
+        context 'with collection types' do
+          extend ExecuteRequestSpec::ItEncodes
+
+          it_encodes 'LIST<TIMESTAMP>', [:list, :timestamp], [Time.at(1358013521.123)], "\x00\x01" + "\x00\x08\x00\x00\x01</\xE9\xDC\xE3"
+          it_encodes 'LIST<BOOLEAN>', [:list, :boolean], [true, false, true, true], "\x00\x04" + "\x00\x01\x01" + "\x00\x01\x00"  + "\x00\x01\x01" + "\x00\x01\x01"
+          it_encodes 'MAP<UUID,INT>', [:map, :uuid, :int], {Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6') => 45345, Uuid.new('a4a70900-24e1-11df-8924-001ff3591711') => 98765}, "\x00\x02" + "\x00\x10\xCF\xD6l\xCC\xD8WN\x90\xB1\xE5\xDF\x98\xA3\xD4\f\xD6" + "\x00\x04\x00\x00\xb1\x21" + "\x00\x10\xA4\xA7\t\x00$\xE1\x11\xDF\x89$\x00\x1F\xF3Y\x17\x11" + "\x00\x04\x00\x01\x81\xcd"
+          it_encodes 'MAP<ASCII,BLOB>', [:map, :ascii, :blob], {'hello' => 'world', 'one' => "\x01", 'two' => "\x02"}, "\x00\x03" + "\x00\x05hello" + "\x00\x05world" + "\x00\x03one" + "\x00\x01\x01" + "\x00\x03two" + "\x00\x01\x02"
+          it_encodes 'SET<INT> from Sets', [:set, :int], Set.new([13, 3453, 456456, 123, 768678]), "\x00\x05" + "\x00\x04\x00\x00\x00\x0d" + "\x00\x04\x00\x00\x0d\x7d" + "\x00\x04\x00\x06\xf7\x08" + "\x00\x04\x00\x00\x00\x7b" + "\x00\x04\x00\x0b\xba\xa6"
+          it_encodes 'SET<INT> from arrays', [:set, :int], [13, 3453, 456456, 123, 768678], "\x00\x05" + "\x00\x04\x00\x00\x00\x0d" + "\x00\x04\x00\x00\x0d\x7d" + "\x00\x04\x00\x06\xf7\x08" + "\x00\x04\x00\x00\x00\x7b" + "\x00\x04\x00\x0b\xba\xa6"
+          it_encodes 'SET<VARCHAR> from Sets', [:set, :varchar], Set.new(['foo', 'bar', 'baz']), "\x00\x03" + "\x00\x03foo" + "\x00\x03bar" + "\x00\x03baz"
+          it_encodes 'SET<VARCHAR> from arrays', [:set, :varchar], ['foo', 'bar', 'baz'], "\x00\x03" + "\x00\x03foo" + "\x00\x03bar" + "\x00\x03baz"
+        end
+
+        context 'with user defined types' do
+          context 'with a flat UDT' do
+            let :type do
+              [:udt, {'street' => :text, 'city' => :text, 'zip' => :int}]
             end
+
+            let :value do
+              {'street' => '123 Some St.', 'city' => 'Frans Sanisco', 'zip' => 76543}
+            end
+
+            it 'encodes a hash into bytes' do
+              bytes = encode_value(type, value)
+              bytes.should eql_bytes(
+                "\x00\x00\x00\f123 Some St." +
+                "\x00\x00\x00\rFrans Sanisco" +
+                "\x00\x00\x00\x04\x00\x01*\xFF"
+              )
+            end
+          end
+
+          context 'with a UDT as a MAP value' do
+            let :type do
+              [:map, :varchar, [:udt, {'street' => :text, 'city' => :text, 'zip' => :int}]]
+            end
+
+            let :value do
+              {'secret_lair' => {'street' => '4 Some Other St.', 'city' => 'Gos Latos', 'zip' => 87654}}
+            end
+
+            it 'encodes a hash into bytes' do
+              bytes = encode_value(type, value)
+              bytes.should eql_bytes(
+                "\x00\x01" +
+                "\x00\vsecret_lair" +
+                "\x00)" +
+                "\x00\x00\x00\x104 Some Other St." +
+                "\x00\x00\x00\tGos Latos" +
+                "\x00\x00\x00\x04\x00\x01Vf"
+              )
+            end
+          end
+
+          context 'with nested UDTs' do
+            let :type do
+              [:set, [:udt, {'name' => :text, 'addresses' => [:list, [:udt, {'street' => :text, 'city' => :text, 'zip' => :int}]]}]]
+            end
+
+            let :value do
+              Set.new([
+                {
+                  'name' => 'Acme Corp',
+                  'addresses' => [
+                    {'street' => '1 St.', 'city' => '1 City', 'zip' => 11111},
+                    {'street' => '2 St.', 'city' => '2 City', 'zip' => 22222}
+                  ]
+                },
+                {
+                  'name' => 'Foo Inc.',
+                  'addresses' => [
+                    {'street' => '3 St.', 'city' => '3 City', 'zip' => 33333}
+                  ]
+                }
+              ])
+            end
+
+            it 'encodes a hash into bytes' do
+              bytes = encode_value(type, value)
+              bytes.should eql_bytes(
+                "\x00\x02" +
+                "\x00S" +
+                "\x00\x00\x00\tAcme Corp" +
+                "\x00\x00\x00B" +
+                "\x00\x00\x00\x02" +
+                "\x00\x00\x00\e" +
+                "\x00\x00\x00\x051 St." +
+                "\x00\x00\x00\x061 City" +
+                "\x00\x00\x00\x04\x00\x00+g" +
+                "\x00\x00\x00\e" +
+                "\x00\x00\x00\x052 St." +
+                "\x00\x00\x00\x062 City" +
+                "\x00\x00\x00\x04\x00\x00V\xCE" +
+                "\x003" +
+                "\x00\x00\x00\bFoo Inc." +
+                "\x00\x00\x00#" +
+                "\x00\x00\x00\x01" +
+                "\x00\x00\x00\e" +
+                "\x00\x00\x00\x053 St." +
+                "\x00\x00\x00\x063 City" +
+                "\x00\x00\x00\x04\x00\x00\x825"
+              )
+            end
+          end
+        end
+
+        context 'with custom types' do
+          let :type do
+            [:custom, 'com.example.CustomType']
+          end
+
+          let :value do
+            "\x01\x02\x03\x04\x05"
+          end
+
+          it 'encodes a byte string into bytes' do
+            bytes = encode_value(type, value)
+            bytes.should eql_bytes("\x01\x02\x03\x04\x05")
           end
         end
       end

@@ -57,6 +57,7 @@ module Cassandra
 end
 
 require 'cassandra/protocol/cql_byte_buffer'
+require 'cassandra/protocol/custom_type_parser'
 require 'cassandra/protocol/type_converter'
 require 'cassandra/protocol/response'
 require 'cassandra/protocol/responses/auth_challenge_response'
