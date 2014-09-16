@@ -16,8 +16,6 @@
 # limitations under the License.
 #++
 
-require 'stringio'
-
 module Cassandra
   # @private
   module Util extend self

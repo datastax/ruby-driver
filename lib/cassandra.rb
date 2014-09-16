@@ -26,6 +26,7 @@ require 'set'
 require 'bigdecimal'
 require 'forwardable'
 require 'timeout'
+require 'stringio'
 
 module Cassandra
   # A list of all supported request consistencies
