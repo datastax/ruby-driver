@@ -82,7 +82,7 @@ module Cassandra
     # @overload each_table
     #   @return [Enumerator<Cassandra::Table>] an enumerator
     def each_table(&block)
-      @tables.values.each(&block)
+      @tables.each_value(&block)
     end
     alias :tables :each_table
 
