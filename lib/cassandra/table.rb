@@ -168,7 +168,7 @@ module Cassandra
     # @overload each_column
     #   @return [Enumerator<Cassandra::Column>] an enumerator
     def each_column(&block)
-      @columns.each_value(&block)
+      block_given? ? @columns.each_value(&block) : @columns.values
     end
     alias :columns :each_column
 
