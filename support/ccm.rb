@@ -596,7 +596,11 @@ module CCM extend self
     ccm.exec('updateconf', 'concurrent_writes: 2')
     ccm.exec('updateconf', 'concurrent_compactors: 1')
     ccm.exec('updateconf', 'compaction_throughput_mb_per_sec: 0')
-    ccm.exec('updateconf', 'in_memory_compaction_limit_in_mb: 1')
+
+    if cassandra_version < '2.1'
+      ccm.exec('updateconf', 'in_memory_compaction_limit_in_mb: 1')
+    end
+
     ccm.exec('updateconf', 'key_cache_size_in_mb: 0')
     ccm.exec('updateconf', 'key_cache_save_period: 0')
     ccm.exec('updateconf', 'memtable_flush_writers: 1')
