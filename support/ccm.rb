@@ -553,10 +553,7 @@ module CCM extend self
   def create_cluster(name, version, datacenters, nodes_per_datacenter)
     nodes = Array.new(datacenters, nodes_per_datacenter).join(':')
 
-    ccm.exec('create', '-n', nodes, '-v', 'binary:' + version, '-b', '-i', '127.0.0.', name)
-
-    ccm.exec('updateconf', 'range_request_timeout_in_ms: 10000')
-    ccm.exec('updateconf', 'read_request_timeout_in_ms: 10000')
+    ccm.exec('create', '-v', 'binary:' + version, '-b', name)
 
     if cassandra_version.start_with?('1.2.')
       ccm.exec('updateconf', 'reduce_cache_sizes_at: 0')
@@ -568,10 +565,7 @@ module CCM extend self
       ccm.exec('updateconf', 'file_cache_size_in_mb: 0')
     end
 
-    ccm.exec('updateconf', 'truncate_request_timeout_in_ms: 10000')
-    ccm.exec('updateconf', 'write_request_timeout_in_ms: 10000')
-    ccm.exec('updateconf', 'write_request_timeout_in_ms: 10000')
-    ccm.exec('updateconf', 'request_timeout_in_ms: 10000')
+    ccm.exec('updateconf', '--rt', '10000')
     ccm.exec('updateconf', 'native_transport_max_threads: 1')
     ccm.exec('updateconf', 'rpc_min_threads: 1')
     ccm.exec('updateconf', 'rpc_max_threads: 1')
@@ -588,6 +582,8 @@ module CCM extend self
     ccm.exec('updateconf', 'key_cache_save_period: 0')
     ccm.exec('updateconf', 'memtable_flush_writers: 1')
     ccm.exec('updateconf', 'max_hints_delivery_threads: 1')
+
+    ccm.exec('populate', '-n', nodes, '-i', '127.0.0.')
 
     clusters << @current_cluster = Cluster.new(name, ccm, nodes_per_datacenter * datacenters, datacenters, [])
 
