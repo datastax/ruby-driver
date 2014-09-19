@@ -90,7 +90,9 @@ module Cassandra
         created = !@keyspaces.include?(keyspace_name)
 
         synchronize do
-          @keyspaces = @keyspaces.merge(keyspace_name => keyspace)
+          keyspaces = @keyspaces.dup
+          keyspaces[keyspace_name] = keyspace
+          @keyspaces = keyspaces
         end
 
         if created
@@ -127,7 +129,9 @@ module Cassandra
         keyspace = keyspace.update_table(table)
 
         synchronize do
-          @keyspaces = @keyspaces.merge(keyspace_name => keyspace)
+          keyspaces = @keyspaces.dup
+          keyspaces[keyspace_name] = keyspace
+          @keyspaces = keyspaces
         end
 
         keyspace_updated(keyspace)

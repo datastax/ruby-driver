@@ -108,7 +108,9 @@ module Cassandra
 
     # @private
     def update_table(table)
-      Keyspace.new(@name, @durable_writes, @replication, @tables.merge(table.name => table))
+      tables = @tables.dup
+      tables[table.name] = table
+      Keyspace.new(@name, @durable_writes, @replication, tables)
     end
 
     # @private

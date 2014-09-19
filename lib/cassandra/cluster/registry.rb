@@ -86,7 +86,11 @@ module Cassandra
           notify_found(host)
         end
 
-        synchronize { @hosts = @hosts.merge(ip => host) }
+        synchronize do
+          hosts     = @hosts.dup
+          hosts[ip] = host
+          @hosts    = hosts
+        end
 
         self
       end
@@ -99,7 +103,11 @@ module Cassandra
 
         host = toggle_down(host)
 
-        synchronize { @hosts = @hosts.merge(ip => host) }
+        synchronize do
+          hosts     = @hosts.dup
+          hosts[ip] = host
+          @hosts    = hosts
+        end
 
         self
       end
@@ -112,7 +120,11 @@ module Cassandra
 
         host = toggle_up(host)
 
-        synchronize { @hosts = @hosts.merge(ip => host) }
+        synchronize do
+          hosts     = @hosts.dup
+          hosts[ip] = host
+          @hosts    = hosts
+        end
 
         self
       end
