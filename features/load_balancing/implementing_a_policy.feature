@@ -68,6 +68,9 @@ Feature: Implementing custom load balancing policies
           @policy   = original_policy
         end
 
+        def setup(cluster)
+        end
+
         def plan(keyspace, statement, options)
           if @keyspace == keyspace
             Plan.new
@@ -135,6 +138,9 @@ Feature: Implementing custom load balancing policies
               @ips << ::IPAddr.new(ip)
             end
           end
+        end
+
+        def setup(cluster)
         end
 
         def plan(keyspace, statement, options)
