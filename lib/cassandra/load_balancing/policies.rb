@@ -13,6 +13,7 @@
 # limitations under the License.
 #++
 
-require 'cassandra/load_balancing/policies/round_robin'
 require 'cassandra/load_balancing/policies/dc_aware_round_robin'
+require 'cassandra/load_balancing/policies/round_robin'
+require 'cassandra/load_balancing/policies/token_aware'
 require 'cassandra/load_balancing/policies/white_list'

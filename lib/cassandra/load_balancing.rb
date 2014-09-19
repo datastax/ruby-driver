@@ -26,6 +26,14 @@ module Cassandra
     #   only implement its methods. This class exists for documentation
     #   purposes only
     class Policy
+      # Allows policy to initialize with the cluster instance. This method is
+      # called once before connecting to the cluster.
+      # @abstract implementation should be provided by an actual policy
+      # @param cluster [Cassandra::Cluster] current cluster instance
+      # @return [void]
+      def setup(cluster)
+      end
+
       # @abstract implementation should be provided by an actual policy
       # @see Cassandra::Listener#host_up
       def host_up(host)

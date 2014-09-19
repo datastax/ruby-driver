@@ -95,6 +95,7 @@ module Cassandra
     end
 
     def connect(addresses)
+      load_balancing_policy.setup(cluster)
       cluster_registry.add_listener(load_balancing_policy)
       cluster_registry.add_listener(control_connection)
       listeners.each do |listener|

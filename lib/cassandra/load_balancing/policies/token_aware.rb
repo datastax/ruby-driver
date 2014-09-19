@@ -1,0 +1,106 @@
+# encoding: utf-8
+
+#--
+# Copyright 2013-2014 DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#++
+
+module Cassandra
+  module LoadBalancing
+    module Policies
+      class TokenAware < Policy
+        # @private
+        class Plan
+          def initialize(hosts, policy, keyspace, statement, options)
+            @hosts     = hosts
+            @policy    = policy
+            @keyspace  = keyspace
+            @statement = statement
+            @options   = options
+            @index     = 0
+          end
+
+          def has_next?
+            @index < @hosts.size || plan.has_next?
+          end
+
+          def next
+            if @index < @hosts.size
+              host    = @hosts[@index]
+              @index += 1
+
+              return host
+            end
+
+            plan.has_next?
+          end
+
+          private
+
+          def plan
+            @plan ||= @policy.plan(@keyspace, @statement, @options)
+          end
+        end
+
+        extend Forwardable
+
+        # @!method distance(host)
+        #   Delegates to wrapped policy
+        #   @see Cassandra::LoadBalancing::Policy#distance
+        #
+        # @!method host_found(host)
+        #   Delegates to wrapped policy
+        #   @see Cassandra::LoadBalancing::Policy#host_found
+        #
+        # @!method host_up(host)
+        #   Delegates to wrapped policy
+        #   @see Cassandra::LoadBalancing::Policy#host_up
+        #
+        # @!method host_down(host)
+        #   Delegates to wrapped policy
+        #   @see Cassandra::LoadBalancing::Policy#host_down
+        #
+        # @!method host_lost(host)
+        #   Delegates to wrapped policy
+        #   @see Cassandra::LoadBalancing::Policy#host_lost
+        def_delegators :@policy, :distance, :host_found, :host_up, :host_down, :host_lost
+
+        # @param wrapped_policy [Cassandra::LoadBalancing::Policy] actual policy to filter
+        def initialize(wrapped_policy)
+          methods = [:host_up, :host_down, :host_found, :host_lost, :distance, :plan]
+
+          unless methods.all? {|method| wrapped_policy.respond_to?(method)}
+            raise ::ArgumentError, "supplied policy must be a Cassandra::LoadBalancing::Policy, #{wrapped_policy.inspect} given"
+          end
+
+          @policy = wrapped_policy
+        end
+
+        def setup(cluster)
+          @cluster = cluster
+          nil
+        end
+
+        def plan(keyspace, statement, options)
+          return @policy.plan(keyspace, statement, options) unless @cluster
+
+          replicas = @cluster.find_replicas(keyspace, statement)
+          return @policy.plan(keyspace, statement, options) if replicas.empty?
+
+          Plan.new(replicas, @policy, keyspace, statement, options)
+        end
+      end
+    end
+  end
+end
