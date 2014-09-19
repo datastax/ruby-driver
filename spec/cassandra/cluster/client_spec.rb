@@ -313,7 +313,6 @@ module Cassandra
           attempts = []
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
-              request
               case request
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
