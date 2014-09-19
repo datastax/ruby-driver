@@ -516,12 +516,13 @@ module Cassandra
             end
           end
           client.connect.value
+
           statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
 
           client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
 
           expect(attempts).to have(2).items
-          expect(attempts).to eq(hosts)
+          expect(attempts.sort!).to eq(hosts)
         end
 
         it 'raises immediately on query error' do
