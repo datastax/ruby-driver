@@ -69,13 +69,14 @@ Feature: Token-aware Load Balancing Policy
       ].each do |uuid|
         result  = session.execute(statement, uuid)
         replica = result.execution_info.hosts.first
-        puts "uuid=#{uuid} token=#{result.first['token(id)']} replica=#{replica.ip}"
+        total   = result.execution_info.hosts.size
+        puts "uuid=#{uuid} token=#{result.first['token(id)']} replica=#{replica.ip} total=#{total}"
       end
       """
     When it is executed
     Then its output should contain:
       """
-      uuid=756716f7-2e54-4715-9f00-91dcbea6cf50 token=-4565826248849633211 replica=127.0.0.2
-      uuid=f6071e72-48ec-4fcb-bf3e-379c8a696488 token=-1176857621403111796 replica=127.0.0.3
-      uuid=fbdf82ed-0063-4796-9c7c-a3d4f47b4b25 token=2440231132048646025 replica=127.0.0.3
+      uuid=756716f7-2e54-4715-9f00-91dcbea6cf50 token=-4565826248849633211 replica=127.0.0.2 total=1
+      uuid=f6071e72-48ec-4fcb-bf3e-379c8a696488 token=-1176857621403111796 replica=127.0.0.3 total=1
+      uuid=fbdf82ed-0063-4796-9c7c-a3d4f47b4b25 token=2440231132048646025 replica=127.0.0.3 total=1
       """
