@@ -78,11 +78,16 @@ module Cassandra
     # Yield or enumerate each table defined in this keyspace
     # @overload each_table
     #   @yieldparam table [Cassandra::Table] current table
-    #   @return [Array<Cassandra::Table>] a list of tables
+    #   @return [Cassandra::Keyspace] self
     # @overload each_table
-    #   @return [Enumerator<Cassandra::Table>] an enumerator
+    #   @return [Array<Cassandra::Table>] a list of tables
     def each_table(&block)
-      block_given? ? @tables.each_value(&block) : @table.values
+      if block_given?
+        @tables.each_value(&block)
+        self
+      else
+        @table.values
+      end
     end
     alias :tables :each_table
 

@@ -45,7 +45,12 @@ module Cassandra
       end
 
       def each_host(&block)
-        block_given? ? @hosts.each_value(&block) : @hosts.values
+        if block_given?
+          @hosts.each_value(&block)
+          self
+        else
+          @hosts.values
+        end
       end
       alias :hosts :each_host
 

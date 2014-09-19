@@ -17,7 +17,7 @@
 #++
 
 class FakeClusterRegistry
-  attr_reader :ips, :listeners, :hosts
+  attr_reader :ips, :listeners
 
   def initialize(ips = [])
     @listeners = Set.new
@@ -34,6 +34,16 @@ class FakeClusterRegistry
     @listeners.delete(listener)
     self
   end
+
+  def each_host(&block)
+    if block_given?
+      @hosts.each(&block)
+      self
+    else
+      @hosts.dup
+    end
+  end
+  alias :hosts :each_host
 end
 
 class FakeLoadBalancingPolicy
@@ -53,6 +63,7 @@ class FakeLoadBalancingPolicy
 
   def initialize(fake_cluster_registry)
     @registry = fake_cluster_registry
+    @index    = -1
   end
 
   def distance(host)
@@ -60,6 +71,6 @@ class FakeLoadBalancingPolicy
   end
 
   def plan(keyspace, statement, options)
-    Plan.new(@registry.hosts.to_a)
+    Plan.new(@registry.hosts.to_a.rotate!(@index += 1))
   end
 end

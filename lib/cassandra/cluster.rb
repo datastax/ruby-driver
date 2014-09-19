@@ -26,15 +26,6 @@ module Cassandra
   class Cluster
     extend Forwardable
 
-    # @!method each_host
-    #   Yield or enumerate each member of this cluster
-    #   @overload each_host
-    #     @yieldparam host [Cassandra::Host] current host
-    #     @return [Array<Cassandra::Host>] a list of hosts
-    #   @overload each_host
-    #     @return [Enumerator<Cassandra::Host>] an enumerator
-    # @!parse alias :hosts :each_host
-    #
     # @!method host(address)
     #   Find a host by its address
     #   @param address [IPAddr, String] ip address
@@ -44,17 +35,8 @@ module Cassandra
     #   Determine if a host by a given address exists
     #   @param address [IPAddr, String] ip address
     #   @return [Boolean] true or false
-    def_delegators :@registry, :hosts, :each_host, :host, :has_host?
+    def_delegators :@registry, :host, :has_host?
 
-    # @!method each_keyspace
-    #   Yield or enumerate each keyspace defined in this cluster
-    #   @overload each_keyspace
-    #     @yieldparam keyspace [Cassandra::Keyspace] current keyspace
-    #     @return [Array<Cassandra::Keyspace>] a list of keyspaces
-    #   @overload each_keyspace
-    #     @return [Enumerator<Cassandra::Keyspace>] an enumerator
-    # @!parse alias :keyspaces :each_keyspace
-    #
     # @!method keyspace(name)
     #   Find a keyspace by name
     #   @param name [String] keyspace name
@@ -64,7 +46,7 @@ module Cassandra
     #   Determine if a keyspace by a given name exists
     #   @param name [String] keyspace name
     #   @return [Boolean] true or false
-    def_delegators :@schema, :keyspaces, :each_keyspace, :keyspace, :has_keyspace?
+    def_delegators :@schema, :keyspace, :has_keyspace?
 
     # @private
     def initialize(logger, io_reactor, control_connection, cluster_registry, cluster_schema, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, connector, futures_factory)
@@ -103,6 +85,32 @@ module Cassandra
       @schema.remove_listener(listener)
       self
     end
+
+    # Yield or enumerate each member of this cluster
+    # @overload each_host
+    #   @yieldparam host [Cassandra::Host] current host
+    #   @return [Cassandra::Cluster] self
+    # @overload each_host
+    #   @return [Array<Cassandra::Host>] a list of hosts
+    def each_host(&block)
+      r = @registry.each_host(&block)
+      return self if r == @registry
+      r
+    end
+    alias :hosts :each_host
+
+    # Yield or enumerate each keyspace defined in this cluster
+    # @overload each_keyspace
+    #   @yieldparam keyspace [Cassandra::Keyspace] current keyspace
+    #   @return [Cassandra::Cluster] self
+    # @overload each_keyspace
+    #   @return [Array<Cassandra::Keyspace>] a list of keyspaces
+    def each_keyspace(&block)
+      r = @schema.each_keyspace(&block)
+      return self if r == @schema
+      r
+    end
+    alias :keyspaces :each_keyspace
 
     # Asynchronously create a new session, optionally scoped to a keyspace
     #

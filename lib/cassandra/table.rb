@@ -164,11 +164,16 @@ module Cassandra
     # Yield or enumerate each column defined in this table
     # @overload each_column
     #   @yieldparam column [Cassandra::Column] current column
-    #   @return [Array<Cassandra::Column>] a list of columns
+    #   @return [Cassandra::Table] self
     # @overload each_column
-    #   @return [Enumerator<Cassandra::Column>] an enumerator
+    #   @return [Array<Cassandra::Column>] a list of columns
     def each_column(&block)
-      block_given? ? @columns.each_value(&block) : @columns.values
+      if block_given?
+        @columns.each_value(&block)
+        self
+      else
+        @columns.values
+      end
     end
     alias :columns :each_column
 

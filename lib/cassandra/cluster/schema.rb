@@ -144,7 +144,12 @@ module Cassandra
       end
 
       def each_keyspace(&block)
-        block_given? ? @keyspaces.each_value(&block) : @keyspaces.values
+        if block_given?
+          @keyspaces.each_value(&block)
+          self
+        else
+          @keyspaces.values
+        end
       end
       alias :keyspaces :each_keyspace
 
