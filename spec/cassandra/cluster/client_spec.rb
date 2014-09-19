@@ -504,7 +504,7 @@ module Cassandra
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
-                Protocol::PreparedResultResponse.new(123, [], [], nil)
+                Protocol::PreparedResultResponse.new('123', [], [], nil)
               when Cassandra::Protocol::ExecuteRequest
                 attempts << connection.host
                 if count == 0
