@@ -22,6 +22,8 @@ module Cassandra
     class Client
       include MonitorMixin
 
+      attr_reader :keyspace
+
       def initialize(logger, cluster_registry, cluster_schema, io_reactor, connector, load_balancing_policy, reconnection_policy, retry_policy, connection_options, futures_factory)
         @logger                      = logger
         @registry                    = cluster_registry

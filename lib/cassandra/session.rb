@@ -19,6 +19,13 @@
 module Cassandra
   # Sessions are used for query execution. Each session tracks its current keyspace. A session should be reused as much as possible, however it is ok to create several independent session for interacting with different keyspaces in the same application.
   class Session
+    extend Forwardable
+
+    # @!method keyspace
+    #   Returns current keyspace
+    #   @return [String] current keyspace
+    def_delegators :@client, :keyspace
+
     # @private
     def initialize(client, default_options, futures_factory)
       @client  = client
