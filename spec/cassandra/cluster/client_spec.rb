@@ -413,7 +413,7 @@ module Cassandra
           client.query(Statements::Simple.new('USE foo'), Execution::Options.new(:consistency => :one)).get
 
           # make sure we get a different host in the load balancing plan
-          cluster_registry.hosts.delete(cluster_registry.hosts.first)
+          cluster_registry.remove_host(cluster_registry.hosts.first)
 
           completed = 0
           5.times do

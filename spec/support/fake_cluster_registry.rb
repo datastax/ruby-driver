@@ -35,6 +35,11 @@ class FakeClusterRegistry
     self
   end
 
+  def remove_host(host)
+    @hosts.delete(host)
+    self
+  end
+
   def each_host(&block)
     if block_given?
       @hosts.each(&block)
