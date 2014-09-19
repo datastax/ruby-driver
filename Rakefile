@@ -7,12 +7,12 @@ require 'cucumber/rake/task'
 
 ENV["FAIL_FAST"] ||= 'Y'
 
-RSpec::Core::RakeTask.new(:rspec)
+RSpec::Core::RakeTask.new(:rspec => :compile)
 
-Cucumber::Rake::Task.new(:cucumber)
+Cucumber::Rake::Task.new(:cucumber => :compile)
 
 desc 'Run all tests'
-task :test => [:compile, :rspec, :cucumber]
+task :test => [:rspec, :cucumber]
 
 desc 'Generate documentation'
 task :docs do
