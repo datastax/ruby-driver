@@ -4,7 +4,7 @@ Features:
 
 * TokenAware load balancing policy
 
-Bugs:
+Bug fixes:
 
 * [RUBY-8] correctly update host status when down/up events received immediately after each other
 
