@@ -143,17 +143,17 @@ module Cassandra
 
         notify_lost(host)
 
-        self
+        host
       end
 
       private
 
       def create_host(ip, data)
-        Host.new(ip, data['host_id'], data['rack'], data['data_center'], data['release_version'], :up)
+        Host.new(ip, data['host_id'], data['rack'], data['data_center'], data['release_version'], data['tokens'].freeze, :up)
       end
 
       def toggle_up(host)
-        host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, :up)
+        host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, host.tokens, :up)
         @logger.debug("Host #{host.ip} is up")
         @listeners.each do |listener|
           listener.host_up(host) rescue nil
@@ -162,7 +162,7 @@ module Cassandra
       end
 
       def toggle_down(host)
-        host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, :down)
+        host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, host.tokens, :down)
         @logger.debug("Host #{host.ip} is down")
         @listeners.each do |listener|
           listener.host_down(host) rescue nil
@@ -173,7 +173,7 @@ module Cassandra
       def notify_lost(host)
         if host.up?
           @logger.debug("Host #{host.ip} is down and lost")
-          host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, :down)
+          host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, host.tokens, :down)
           @listeners.each do |listener|
             listener.host_down(host) rescue nil
             listener.host_lost(host) rescue nil

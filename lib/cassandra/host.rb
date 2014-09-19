@@ -20,28 +20,32 @@ module Cassandra
   class Host
     # @return [IPAddr] host ip
     attr_reader :ip
-    # @note Host id can be `nil` before cluster connected.
+    # @note Host id can be `nil` before cluster has connected.
     # @return [Cassandra::Uuid, nil] host id.
     attr_reader :id
-    # @note Host datacenter can be `nil` before cluster connected.
+    # @note Host datacenter can be `nil` before cluster has connected.
     # @return [String, nil] host datacenter
     attr_reader :datacenter
-    # @note Host rack can be `nil` before cluster connected.
+    # @note Host rack can be `nil` before cluster has connected.
     # @return [String, nil] host rack
     attr_reader :rack
-    # @note Host's cassandra version can be `nil` before cluster connected.
+    # @note Host's cassandra version can be `nil` before cluster has connected.
     # @return [String, nil] version of cassandra that a host is running
     attr_reader :release_version
+    # @note Host tokens will be empty before cluster has connected.
+    # @return [Array<String>] a list of tokens owned by this host
+    attr_reader :tokens
     # @return [Symbol] host status. Must be `:up` or `:down`
     attr_reader :status
 
     # @private
-    def initialize(ip, id = nil, rack = nil, datacenter = nil, release_version = nil, status = :up)
+    def initialize(ip, id = nil, rack = nil, datacenter = nil, release_version = nil, tokens = EMPTY_LIST, status = :up)
       @ip              = ip
       @id              = id
       @rack            = rack
       @datacenter      = datacenter
       @release_version = release_version
+      @tokens          = tokens
       @status          = status
     end
 
