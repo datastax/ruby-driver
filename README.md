@@ -15,7 +15,7 @@ the Cassandra Query Language version 3 (CQL3) and Cassandra's native protocol.
 This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [Theo Hultberg](https://github.com/iconara) and we addded support for:
 
 * [asynchronous execution](http://datastax.github.io/ruby-driver/features/asynchronous_io/)
-* one-off, [prepared](http://datastax.github.io/ruby-driver/features/prepared_statements/) and [batch statements](http://datastax.github.io/ruby-driver/features/batch_statements/)
+* one-off, [prepared](http://datastax.github.io/ruby-driver/features/basics/prepared_statements/) and [batch statements](http://datastax.github.io/ruby-driver/features/basics/batch_statements/)
 * automatic peer discovery and cluster metadata
 * various [load-balancing](http://datastax.github.io/ruby-driver/features/load_balancing/), [retry](http://datastax.github.io/ruby-driver/features/retry_policies/) and reconnection policies, [with ability to write your own](http://datastax.github.io/ruby-driver/features/load_balancing/implementing_a_policy/)
 
