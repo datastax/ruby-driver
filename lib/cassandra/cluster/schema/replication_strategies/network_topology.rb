@@ -38,13 +38,13 @@ module Cassandra
               replicas = ::Set.new
 
               size.times do |j|
-                break if all_replicas.size == racks.size && !all_replicas.any? {|(datacenter, r)| r.size < replication_options[datacenter]}
+                break if all_replicas.size == racks.size && !all_replicas.any? {|(datacenter, r)| r.size < Integer(replication_options[datacenter])}
 
                 host       = token_hosts[token_ring[(i + j) % size]]
                 datacenter = host.datacenter
                 next if datacenter.nil?
 
-                factor = replication_options[datacenter]
+                factor = Integer(replication_options[datacenter])
                 next unless factor
 
                 replicas_in_datacenter = all_replicas[datacenter] ||= ::Set.new

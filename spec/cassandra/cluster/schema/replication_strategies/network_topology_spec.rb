@@ -69,12 +69,11 @@ module Cassandra
             }
 
             context('with equal distribution') do
-              let(:replication_factor)  { 2 }
               let(:replication_options) {
                 {
-                  'dc1' => replication_factor,
-                  'dc2' => replication_factor,
-                  'dc3' => replication_factor,
+                  'dc1' => '2',
+                  'dc2' => '2',
+                  'dc3' => '2',
                 }
               }
 

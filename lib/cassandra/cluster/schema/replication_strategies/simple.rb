@@ -22,7 +22,7 @@ module Cassandra
       module ReplicationStrategies
         class Simple
           def replication_map(token_hosts, token_ring, replication_options)
-            factor = replication_options['replication_factor'].to_i
+            factor = Integer(replication_options['replication_factor'])
             size   = token_ring.size
             factor = size if size < factor
             replication_map = ::Hash.new
