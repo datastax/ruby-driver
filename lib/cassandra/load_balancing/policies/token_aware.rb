@@ -28,22 +28,33 @@ module Cassandra
             @keyspace  = keyspace
             @statement = statement
             @options   = options
-            @index     = 0
+            @seen      = ::Hash.new
           end
 
           def has_next?
-            @index < @hosts.size || plan.has_next?
+            return true unless @hosts.empty?
+
+            while plan.has_next?
+              host = plan.next
+
+              unless @seen[host]
+                @next = host
+                return true
+              end
+            end
+
+            false
           end
 
           def next
-            if @index < @hosts.size
-              host    = @hosts[@index]
-              @index += 1
+            unless @hosts.empty?
+              host = @hosts.shift
+              @seen[host] = true
 
               return host
             end
 
-            plan.has_next?
+            @next
           end
 
           private
@@ -89,6 +100,7 @@ module Cassandra
 
         def setup(cluster)
           @cluster = cluster
+          @policy.setup(cluster)
           nil
         end
 
