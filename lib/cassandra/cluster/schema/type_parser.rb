@@ -45,7 +45,7 @@ module Cassandra
           "org.apache.cassandra.db.marshal.MapType"           => :map,
           "org.apache.cassandra.db.marshal.SetType"           => :set,
           "org.apache.cassandra.db.marshal.ListType"          => :list
-        }
+        }.freeze
 
         def parse(string)
           create_result(parse_node(string))
