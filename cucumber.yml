@@ -14,4 +14,4 @@ if cassandra_version.start_with?('1.2')
   cassandra_version_tags += ',@cassandra-version-1.2'
 end
 %>
-default: --guess --tags ~@todo --tags ~@cassandra-version-specific<%= cassandra_version_tags %> -r features/
+default: --color --guess --tags ~@todo --tags ~@cassandra-version-specific<%= cassandra_version_tags %> -r features/
