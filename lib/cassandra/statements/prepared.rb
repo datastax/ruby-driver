@@ -23,20 +23,25 @@ module Cassandra
 
       # @return [String] original cql used to prepare this statement
       attr_reader :cql
-      # @return [Cassandra::Execution::Info] execution info for PREPARE request
-      attr_reader :execution_info
-
       # @private
       attr_reader :params_metadata
       # @private
       attr_reader :result_metadata
 
       # @private
-      def initialize(cql, params_metadata, result_metadata, execution_info)
+      def initialize(cql, params_metadata, result_metadata, trace_id, keyspace, statement, options, hosts, consistency, retries, client, futures_factory, schema)
         @cql             = cql
         @params_metadata = params_metadata
         @result_metadata = result_metadata
-        @execution_info  = execution_info
+        @trace_id        = trace_id
+        @keyspace        = keyspace
+        @statement       = statement
+        @options         = options
+        @hosts           = hosts
+        @consistency     = consistency
+        @retries         = retries
+        @client          = client
+        @schema          = schema
       end
 
       # Creates a statement bound with specific arguments
@@ -47,7 +52,24 @@ module Cassandra
       def bind(*args)
         raise ::ArgumentError, "expecting exactly #{@params_metadata.size} bind parameters, #{args.size} given" if args.size != @params_metadata.size
 
-        Bound.new(@cql, @params_metadata, @result_metadata, args)
+        return Bound.new(@cql, @params_metadata, @result_metadata, args) if @params_metadata.empty?
+
+        keyspace, table, _, _ = @params_metadata.first
+        return Bound.new(@cql, @params_metadata, @result_metadata, args, keyspace) unless keyspace && table
+
+        values = ::Hash.new
+        @params_metadata.zip(args) do |(keyspace, table, column, type), value|
+          values[column] = value
+        end
+
+        partition_key = @schema.create_partition_key(keyspace, table, values)
+
+        Bound.new(@cql, @params_metadata, @result_metadata, args, keyspace, partition_key)
+      end
+
+      # @return [Cassandra::Execution::Info] execution info for PREPARE request
+      def execution_info
+        @info ||= Execution::Info.new(@keyspace, @statement, @options, @hosts, @consistency, @retries, @trace_id ? Execution::Trace.new(@trace_id, @client) : nil)
       end
 
       # @return [String] a CLI-friendly prepared statement representation

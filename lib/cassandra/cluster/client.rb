@@ -22,9 +22,10 @@ module Cassandra
     class Client
       include MonitorMixin
 
-      def initialize(logger, cluster_registry, io_reactor, connector, load_balancing_policy, reconnection_policy, retry_policy, connection_options, futures_factory)
+      def initialize(logger, cluster_registry, cluster_schema, io_reactor, connector, load_balancing_policy, reconnection_policy, retry_policy, connection_options, futures_factory)
         @logger                      = logger
         @registry                    = cluster_registry
+        @schema                      = cluster_schema
         @reactor                     = io_reactor
         @connector                   = connector
         @load_balancing_policy       = load_balancing_policy
@@ -597,9 +598,7 @@ module Cassandra
                 @preparing_statements[host].delete(cql)
               end
 
-              execution_info = create_execution_info(keyspace, statement, options, request, r, hosts)
-
-              promise.fulfill(Statements::Prepared.new(cql, r.metadata, r.result_metadata, execution_info))
+              promise.fulfill(Statements::Prepared.new(cql, r.metadata, r.result_metadata, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures, @schema))
             when Protocol::RawRowsResultResponse
               r.materialize(statement.result_metadata)
               promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))

@@ -604,7 +604,7 @@ module Cassandra
           sent = false
           batch = Statements::Batch::Logged.new
           batch_request = double('batch request', :consistency => :one, :retries => 0)
-          params_metadata = double('params metadata', :size => 5)
+          params_metadata = double('params metadata', :size => 5, :empty? => true)
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
@@ -637,7 +637,7 @@ module Cassandra
           count = 0
           batch = Statements::Batch::Logged.new
           batch_request = double('batch request', :consistency => :one, :retries => 0)
-          params_metadata = double('params metadata', :size => 5)
+          params_metadata = double('params metadata', :size => 5, :empty? => true)
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request

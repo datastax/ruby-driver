@@ -245,6 +245,47 @@ module Cassandra
     alias :== :eql?
 
     # @private
+    def create_partition_key(values)
+      partition_key = @partition_key
+      return nil unless partition_key.size == values.size
+
+      if partition_key.one?
+        column      = partition_key.first
+        column_name = column.name
+        return nil unless values.has_key?(column_name)
+
+        buffer = Protocol::CqlByteBuffer.new
+
+        TYPE_CONVERTER.to_bytes(buffer, column.type, values[column_name])
+        buffer.discard(4)
+      else
+        buf    = nil
+        buffer = nil
+
+        partition_key.each do |column|
+          column_name = column.name
+          return nil unless values.has_key?(column_name)
+
+          buf    ||= Protocol::CqlByteBuffer.new
+          buffer ||= Protocol::CqlByteBuffer.new
+
+          TYPE_CONVERTER.to_bytes(buf, column.type, values[column_name])
+          buf.discard(4) # discard size
+
+          size = buf.length
+          buffer.append_short(size)
+          buffer << buf.read(size) << NULL_BYTE
+        end
+      end
+
+      buffer.to_str
+    end
+
+    private
+
+    NULL_BYTE = "\x00".freeze
+    TYPE_CONVERTER = Protocol::TypeConverter.new
+
     attr_reader :partition_key, :clustering_columns, :clustering_order
     protected :partition_key, :clustering_columns, :clustering_order
 

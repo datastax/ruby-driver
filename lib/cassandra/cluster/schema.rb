@@ -30,6 +30,11 @@ module Cassandra
         mon_initialize
       end
 
+      def create_partition_key(keyspace, table, values)
+        keyspace = @keyspaces[keyspace]
+        keyspace && keyspace.create_partition_key(table, values)
+      end
+
       def add_listener(listener)
         synchronize do
           @listeners = @listeners.dup.add(listener)
