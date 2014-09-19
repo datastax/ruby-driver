@@ -16,7 +16,7 @@ end
 
 You can also specify a list of seed nodes to connect to. The set of IP addresses we pass to the `Cassandra.connect` is simply an initial set of contact points. After the driver connects to one of these nodes, it will automatically discover the rest of the nodes in the cluster, so you don’t need to list every node in your cluster.
 
-[Read more in the api docs](/api/#connect-class_method)
+[Read more in the api docs](http://datastax.github.io/ruby-driver/api/#connect-class_method)
 
 ## Executing Queries
 
@@ -33,7 +33,7 @@ end
 
 For queries that will be run repeatedly, [you should use Prepared statements](#prepared-statements).
 
-[Read more in the api docs](/api/session/#execute-instance_method)
+[Read more in the api docs](http://datastax.github.io/ruby-driver/api/session/#execute-instance_method)
 
 ## Parameterized queries
 
@@ -66,7 +66,7 @@ end
 futures.each(&:join)
 ```
 
-[Read more about futures](/api/future/)
+[Read more about futures](http://datastax.github.io/ruby-driver/api/future/)
 
 ## Prepared Statements
 
@@ -84,11 +84,11 @@ A prepared statement can be run many times, but the CQL parsing will only be don
 
 `INSERT`, `UPDATE`, `DELETE` and `SELECT` statements can be prepared, other statements may raise `QueryError`.
 
-For each query, statements are prepared lazily - each call to `#execute` selects a host to try (according to [a load balancing policy](/features/load_balancing/)) and a statement is prepared if needed.
+For each query, statements are prepared lazily - each call to `#execute` selects a host to try (according to [a load balancing policy](http://datastax.github.io/ruby-driver/features/load_balancing/)) and a statement is prepared if needed.
 
 ## Changing keyspaces
 
-You can specify a keyspace to change to immediately after connection by passing the keyspace option to [`Cql::Cluster#connect`](/api/cluster/#connect-instance_method), you can also use the [`Session#execute`](/api/session/#execute-instance_method) method to change keyspace of an existing session:
+You can specify a keyspace to change to immediately after connection by passing the keyspace option to [`Cql::Cluster#connect`](http://datastax.github.io/ruby-driver/api/cluster/#connect-instance_method), you can also use the [`Session#execute`](http://datastax.github.io/ruby-driver/api/session/#execute-instance_method) method to change keyspace of an existing session:
 
 ```ruby
 session.execute('USE measurements')
@@ -178,7 +178,7 @@ end
 session.execute(batch)
 ```
 
-[Read more about `Session#batch`](/api/session/#batch-instance_method)
+[Read more about `Session#batch`](http://datastax.github.io/ruby-driver/api/session/#batch-instance_method)
 
 Cassandra 1.2 also supported batching, but only as a CQL feature, you had to build the batch as a string, and it didn't really play well with prepared statements.
 
@@ -197,7 +197,7 @@ while result
 end
 ```
 
-[Read more about paging](/api/result/#next_page-instance_method)
+[Read more about paging](http://datastax.github.io/ruby-driver/api/result/#next_page-instance_method)
 
 ## Consistency
 
@@ -207,7 +207,7 @@ You can specify the default consistency to use when you create a new `Cluster`:
 client = Cassandra.connect(consistency: :all)
 ```
 
-[Read more about default consistency](/api/#connect-class_method)
+[Read more about default consistency](http://datastax.github.io/ruby-driver/api/#connect-class_method)
 
 Consistency can also be passed to `Session#execute` and `Session#execute_async`
 
@@ -223,8 +223,8 @@ batch.add("UPDATE users SET email = 'tom@foobar.com' WHERE id = 'tom'")
 session.execute(batch, consistency: :all)
 ```
 
-[Read more about `Session#execute`](/api/session/#execute-instance_method)
-[Read more about possible consistencies](/api/#CONSISTENCIES-constant)
+[Read more about `Session#execute`](http://datastax.github.io/ruby-driver/api/session/#execute-instance_method)
+[Read more about possible consistencies](http://datastax.github.io/ruby-driver/api/#CONSISTENCIES-constant)
 
 The default consistency level unless you've set it yourself is `:quorum`.
 
@@ -262,7 +262,7 @@ Most of the logging will be when the driver connects and discovers new nodes, wh
 
 # Architecture
 
-The diagram below represents a high level architecture of the driver. Each arrow represents direction of ownership, where owner is pointed to by its children. For example, a single [Cassandra::Cluster](/api/cluster) instance can manage multiple [Cassandra::Session](/api/session) instances, etc.
+The diagram below represents a high level architecture of the driver. Each arrow represents direction of ownership, where owner is pointed to by its children. For example, a single [Cassandra::Cluster](http://datastax.github.io/ruby-driver/api/cluster) instance can manage multiple [Cassandra::Session](http://datastax.github.io/ruby-driver/api/session) instances, etc.
 
 ```ditaa
                                   /-------+
@@ -375,7 +375,7 @@ There's a known issue with collections that get too big. The protocol uses a sho
 
 ## Authentication doesn't work
 
-If you're using Cassandra 2.0 or DataStax Enterprise 3.1 or higher and/or are using something other than the built in [`Password` authenticator](/api/auth/providers/password/) your setup is supported.
+If you're using Cassandra 2.0 or DataStax Enterprise 3.1 or higher and/or are using something other than the built in [`Password` authenticator](http://datastax.github.io/ruby-driver/api/auth/providers/password/) your setup is supported.
 
 DSE before 3.1 uses a non-standard protocol and is not currently supported.
 

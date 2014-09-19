@@ -14,10 +14,10 @@ the Cassandra Query Language version 3 (CQL3) and Cassandra's native protocol.
 
 This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [Theo Hultberg](https://github.com/iconara) and we addded support for:
 
-* [asynchronous execution](/features/asynchronous_io/)
-* one-off, [prepared](/features/prepared_statements/) and [batch statements](/features/batch_statements/)
+* [asynchronous execution](http://datastax.github.io/ruby-driver/features/asynchronous_io/)
+* one-off, [prepared](http://datastax.github.io/ruby-driver/features/prepared_statements/) and [batch statements](http://datastax.github.io/ruby-driver/features/batch_statements/)
 * automatic peer discovery and cluster metadata
-* various [load-balancing](/features/load_balancing/), [retry](/features/retry_policies/) and reconnection policies, [with ability to write your own](/features/load_balancing/implementing_a_policy/)
+* various [load-balancing](http://datastax.github.io/ruby-driver/features/load_balancing/), [retry](http://datastax.github.io/ruby-driver/features/retry_policies/) and reconnection policies, [with ability to write your own](http://datastax.github.io/ruby-driver/features/load_balancing/implementing_a_policy/)
 
 ## Compability
 
@@ -57,9 +57,9 @@ The host you specify is just a seed node, the driver will automatically discover
 
 Read more:
 
-* [`Cql.connect` options](/api/#connect-class_method)
-* [`Session#execute_async` options](/api/session/#execute_async-instance_method)
-* [Usage documentation](/features)
+* [`Cql.connect` options](http://datastax.github.io/ruby-driver/api/#connect-class_method)
+* [`Session#execute_async` options](http://datastax.github.io/ruby-driver/api/session/#execute_async-instance_method)
+* [Usage documentation](http://datastax.github.io/ruby-driver/features)
 
 ## Installation
 
@@ -75,7 +75,7 @@ Install via Gemfile
 gem 'cassandra-driver', '~> 1.0.0.beta'
 ```
 
-Note: if you want to use compression you should also install [snappy](http://rubygems.org/gems/snappy) or [lz4-ruby](http://rubygems.org/gems/lz4-ruby). [Read more about compression.](/features/#compression)
+Note: if you want to use compression you should also install [snappy](http://rubygems.org/gems/snappy) or [lz4-ruby](http://rubygems.org/gems/lz4-ruby). [Read more about compression.](http://datastax.github.io/ruby-driver/features/#compression)
 
 
 ## Upgrading from cql-rb
