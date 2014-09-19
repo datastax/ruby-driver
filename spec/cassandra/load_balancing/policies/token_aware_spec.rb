@@ -68,7 +68,7 @@ module Cassandra
           context('when set up') do
             before do
               subject.setup(cluster)
-              expect(cluster).to receive(:find_replicas).once.with(keyspace, statement).and_return(replicas.dup)
+              expect(cluster).to receive(:find_replicas).once.with(keyspace, statement).and_return(replicas)
             end
 
             context('and replicas not found') do
