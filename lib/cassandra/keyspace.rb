@@ -86,7 +86,7 @@ module Cassandra
         @tables.each_value(&block)
         self
       else
-        @table.values
+        @tables.values
       end
     end
     alias :tables :each_table
