@@ -27,15 +27,38 @@ module Cassandra
     let(:io_reactor)       { Io::IoReactor.new }
     let(:cluster_registry) { Cluster::Registry.new(logger) }
     let(:cluster_schema)   { Cluster::Schema.new(schema_type_parser) }
+    let(:cluster_metadata) { Cluster::Metadata.new(
+                               cluster_registry,
+                               cluster_schema,
+                               {
+                                 'org.apache.cassandra.dht.Murmur3Partitioner'     => murmur3_partitioner,
+                                 'org.apache.cassandra.dht.ByteOrderedPartitioner' => ordered_partitioner,
+                                 'org.apache.cassandra.dht.RandomPartitioner'      => random_partitioner
+                               }.freeze,
+                               {
+                                 'org.apache.cassandra.locator.SimpleStrategy'          => simple_replication_strategy,
+                                 'org.apache.cassandra.locator.NetworkTopologyStrategy' => network_topology_replication_strategy
+                               }.freeze,
+                               no_replication_strategy
+                              )
+                           }
     let(:futures_factory)  { Future }
 
     let(:schema_type_parser) { Cluster::Schema::TypeParser.new }
 
+    let(:simple_replication_strategy)           { Cluster::Schema::ReplicationStrategies::Simple.new }
+    let(:network_topology_replication_strategy) { Cluster::Schema::ReplicationStrategies::NetworkTopology.new }
+    let(:no_replication_strategy)               { Cluster::Schema::ReplicationStrategies::None.new }
+
+    let(:murmur3_partitioner) { Cluster::Schema::Partitioners::Murmur3.new }
+    let(:ordered_partitioner) { Cluster::Schema::Partitioners::Ordered.new }
+    let(:random_partitioner)  { Cluster::Schema::Partitioners::Random.new }
+
     let(:connector) { Cluster::Connector.new(logger, io_reactor, cluster_registry, connection_options) }
 
-    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, load_balancing_policy, reconnection_policy, connector) }
+    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, connector) }
 
-    let(:cluster) { Cluster.new(logger, io_reactor, control_connection, cluster_registry, cluster_schema, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, connector, futures_factory) }
+    let(:cluster) { Cluster.new(logger, io_reactor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, connector, futures_factory) }
 
     let(:execution_options) do
       Execution::Options.new({

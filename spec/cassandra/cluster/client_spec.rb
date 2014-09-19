@@ -38,7 +38,7 @@ module Cassandra
                                } }
 
       let(:driver) { Driver.new(driver_settings) }
-      let(:client) { Client.new(driver.logger, driver.cluster_registry, driver.io_reactor, driver.connector, driver.load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.connection_options, driver.futures_factory) }
+      let(:client) { Client.new(driver.logger, driver.cluster_registry, driver.cluster_schema, driver.io_reactor, driver.connector, driver.load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.connection_options, driver.futures_factory) }
 
       describe('#connect') do
         context 'when all hosts are ignored' do

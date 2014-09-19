@@ -22,11 +22,12 @@ module Cassandra
     class ControlConnection
       include MonitorMixin
 
-      def initialize(logger, io_reactor, cluster_registry, cluster_schema, load_balancing_policy, reconnection_policy, connector)
+      def initialize(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, connector)
         @logger                = logger
         @io_reactor            = io_reactor
         @registry              = cluster_registry
         @schema                = cluster_schema
+        @metadata              = cluster_metadata
         @load_balancing_policy = load_balancing_policy
         @reconnection_policy   = reconnection_policy
         @connector             = connector
@@ -96,8 +97,8 @@ module Cassandra
 
       private
 
-      SELECT_LOCAL     = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, release_version FROM system.local', nil, nil, :one)
-      SELECT_PEERS     = Protocol::QueryRequest.new('SELECT peer, rack, data_center, host_id, rpc_address, release_version FROM system.peers', nil, nil, :one)
+      SELECT_LOCAL     = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, release_version, tokens, partitioner FROM system.local', nil, nil, :one)
+      SELECT_PEERS     = Protocol::QueryRequest.new('SELECT peer, rack, data_center, host_id, rpc_address, release_version, tokens FROM system.peers', nil, nil, :one)
       SELECT_KEYSPACES = Protocol::QueryRequest.new('SELECT * FROM system.schema_keyspaces', nil, nil, :one)
       SELECT_TABLES    = Protocol::QueryRequest.new('SELECT * FROM system.schema_columnfamilies', nil, nil, :one)
       SELECT_COLUMNS   = Protocol::QueryRequest.new('SELECT * FROM system.schema_columns', nil, nil, :one)
@@ -178,9 +179,13 @@ module Cassandra
               when 'NEW_NODE'
                 address = event.address
 
-                refresh_host_async(address) unless @registry.has_host?(address)
+                unless @registry.has_host?(address)
+                  refresh_host_async(address)
+                  refresh_schema_async
+                end
               when 'REMOVED_NODE'
                 @registry.host_lost(event.address)
+                refresh_schema_async
               end
             end
           end
@@ -206,6 +211,7 @@ module Cassandra
           host = @registry.host(connection.host)
 
           @schema.update_keyspaces(host, keyspaces.rows, tables.rows, columns.rows)
+          @metadata.rebuild_token_map
         end
       end
 
@@ -268,32 +274,31 @@ module Cassandra
 
           raise NO_HOSTS if local.empty? && peers.empty?
 
-          local_ip = connection.host
-          ips      = ::Set.new
-
-          unless local.empty?
-            ips << local_ip
-            @registry.host_found(IPAddr.new(local_ip), local.first)
-          end
+          ips = ::Set.new
 
           peers.each do |data|
-            ip = peer_ip(data)
-            ips << ip.to_s
+            ips << ip = peer_ip(data)
             @registry.host_found(ip, data)
           end
+
+          ips << ip = IPAddr.new(connection.host)
+          data = local.first
+          @registry.host_found(ip, data)
 
           futures = []
 
           @registry.each_host do |host|
-            if ips.include?(host.ip.to_s)
+            if ips.include?(host.ip)
               futures << refresh_host_status(host) if host.down?
             else
               @registry.host_lost(host.ip)
             end
           end
 
+          @metadata.update(data)
+
           if futures.empty?
-            Ione::Future.resolved(self)
+            Ione::Future.resolved
           else
             Ione::Future.all(*futures)
           end
@@ -332,7 +337,7 @@ module Cassandra
         if ip == connection.host
           request = SELECT_LOCAL
         else
-          request = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, rpc_address, release_version FROM system.peers WHERE peer = ?', [address], nil, :one)
+          request = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, rpc_address, release_version, tokens FROM system.peers WHERE peer = ?', [address], nil, :one)
         end
 
         connection.send_request(request).map do |response|

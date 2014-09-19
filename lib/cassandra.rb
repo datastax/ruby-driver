@@ -322,4 +322,6 @@ module Cassandra
   VOID_OPTIONS   = Execution::Options.new({:consistency => :one})
   # @private
   NO_HOSTS       = Errors::NoHostsAvailable.new
+  # @private
+  EMPTY_LIST = [].freeze
 end
