@@ -28,6 +28,7 @@ require 'forwardable'
 require 'timeout'
 require 'digest'
 require 'stringio'
+require 'resolv'
 
 module Cassandra
   # A list of all supported request consistencies
@@ -261,18 +262,23 @@ module Cassandra
       end
     end
 
-    hosts = options.fetch(:hosts, [])
-    hosts << ::IPAddr.new('127.0.0.1') if hosts.empty?
+    hosts = []
 
-    hosts.map! do |host|
+    Array(options.fetch(:hosts, '127.0.0.1')).each do |host|
       case host
       when ::IPAddr
-        host
-      when ::String
-        ::IPAddr.new(host)
+        hosts << host
+      when ::String # ip address or hostname
+        Resolv.each_address(host) do |ip|
+          hosts << ::IPAddr.new(ip)
+        end
       else
         raise ::ArgumentError, ":hosts must be String or IPAddr, #{host.inspect} given"
       end
+    end
+
+    if hosts.empty?
+      raise ::ArgumentError, ":hosts #{options[:hosts].inspect} could not be resolved to any ip address"
     end
 
     Driver.new(options).connect(hosts).value
