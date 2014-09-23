@@ -156,4 +156,89 @@ class SessionTest < IntegrationTestCase
     results = session.execute("SELECT * FROM users;")
     assert_equal 9, results.size
   end
+
+  def test_paging
+    skip("Paging is only available in C* after 2.0") unless CCM.cassandra_version >= '2.0.0'
+
+    cluster = Cassandra.connect
+    session = cluster.connect()
+    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};")
+    session.execute("USE simplex")
+    
+    session.execute("CREATE TABLE test (k text, v int, PRIMARY KEY (k, v));")
+    insert = session.prepare("INSERT INTO test (k, v) VALUES (?, ?);")
+    ("a".."z").zip(1..26).each do |letter, number|
+      session.execute(insert, letter, number)
+    end
+
+    # Synchronous paging
+    results  = session.execute("SELECT * FROM test", page_size: 5)
+    assert_equal 5, results.size
+    refute results.last_page?
+    count = 0
+
+    loop do
+      results.each do |row|
+        refute_nil row
+        count += 1
+      end
+      
+      break if results.last_page?
+      assert_equal 5, results.size
+      results = results.next_page
+    end
+    assert results.last_page?
+    assert_equal 26, count
+
+    # Asynchronous paging
+    def page_through(future, count)
+      future.then do |results|
+        results.each do |row|
+          refute_nil row
+          count += 1
+        end
+
+        if results.last_page? 
+          count 
+        else
+          page_through(results.next_page_async, count)
+        end
+      end
+    end
+
+    select = session.prepare("SELECT * FROM test")
+    future = session.execute_async(select, page_size: 5)
+    count = 0
+
+    count = page_through(future, count).get
+    assert_equal 26, count
+  end
+
+  def test_tracing
+    cluster = Cassandra.connect
+    session = cluster.connect()
+    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};")
+    session.execute("USE simplex")
+    session.execute("CREATE TABLE test (k text, v int, PRIMARY KEY (k, v));")
+    
+    # Void returning operations
+    result = session.execute("INSERT INTO test (k, v) VALUES ('a', 1);", trace: true)
+    refute_nil result.execution_info.trace
+    assert_instance_of Cassandra::Uuid, result.execution_info.trace.id
+
+    # Row returning operations
+    result = session.execute("SELECT * FROM test;", trace: true)
+    refute_nil result.execution_info.trace
+    assert_instance_of Cassandra::Uuid, result.execution_info.trace.id
+
+    # Batch operations
+    batch = session.batch do |b|
+      b.add("INSERT INTO test (k, v) VALUES ('b', 2);")
+      b.add("INSERT INTO test (k, v) VALUES ('c', 3);")
+      b.add("INSERT INTO test (k, v) VALUES ('d', 4);")
+    end
+    result = session.execute(batch, trace: true)
+    refute_nil result.execution_info.trace
+    assert_instance_of Cassandra::Uuid, result.execution_info.trace.id
+  end
 end
