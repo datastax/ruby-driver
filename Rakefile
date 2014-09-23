@@ -4,6 +4,7 @@ require 'bundler/setup'
 
 require 'rspec/core/rake_task'
 require 'cucumber/rake/task'
+require 'rake/testtask'
 
 ENV["FAIL_FAST"] ||= 'Y'
 
@@ -12,7 +13,7 @@ RSpec::Core::RakeTask.new(:rspec => :compile)
 Cucumber::Rake::Task.new(:cucumber => :compile)
 
 desc 'Run all tests'
-task :test => [:rspec, :cucumber]
+task :test => [:rspec, :integration, :cucumber]
 
 desc 'Generate documentation'
 task :docs do
@@ -33,4 +34,10 @@ else
   require 'rake/extensiontask'
 
   Rake::ExtensionTask.new('cassandra_murmur3')
+end
+
+Rake::TestTask.new(:integration => :compile) do |t|
+  t.libs.push "lib"
+  t.test_files = FileList['integration/*_test.rb']
+  t.verbose = true
 end
