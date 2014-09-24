@@ -3,6 +3,7 @@
 Features:
 
 * TokenAware load balancing policy
+* Domain names
 
 Bug fixes:
 
