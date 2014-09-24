@@ -29,3 +29,6 @@ matrix:
   allow_failures:
     - rvm: rbx-2
   fast_finish: true
+branches:
+  only:
+    - master
