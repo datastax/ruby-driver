@@ -45,6 +45,9 @@ module Cassandra
         page_size = page_size && Integer(page_size)
         timeout   = timeout   && Integer(timeout)
 
+        raise ::ArgumentError, ":page_size must be greater than 0, #{page_size.inspect} given" if page_size && page_size <= 0
+        raise ::ArgumentError, ":timeout must be greater than 0, #{timeout.inspect} given" if timeout && timeout <= 0
+
         @consistency        = consistency
         @page_size          = page_size
         @trace              = !!trace
