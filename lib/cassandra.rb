@@ -91,8 +91,8 @@ module Cassandra
   #
   # @option options [Cassandra::Auth::Provider] :auth_provider (none) a custom auth provider to be used with [SASL authentication in cassandra 2.0](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L257-L273). Note that if you have specified `:username` and `:password`, then a {Cassandra::Auth::Providers::Password} will be used automatically
   #
-  # @option options [Cassandra::Compressor] :compressor (none) a custom
-  #   compressor. Note that if you have specified `:compression`, an
+  # @option options [Cassandra::Compression::Compressor] :compressor (none) a
+  #   custom compressor. Note that if you have specified `:compression`, an
   #   appropriate compressor will be provided automatically
   #
   # @option options [Object<#all, #error, #value, #promise>] :futures_factory
