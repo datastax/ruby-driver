@@ -115,6 +115,8 @@ module Docs
       end
       return "<code>#{title}</code>" if obj.is_a?(::YARD::CodeObjects::Proxy)
 
+      title.sub!('Cassandra::', '')
+
       link = url_for(obj, anchor)
       link = link ? link_url(link, title, :title => h("#{obj.title} (#{obj.type})")) : title
       "<code>#{link}</code>"
