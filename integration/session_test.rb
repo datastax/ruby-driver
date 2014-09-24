@@ -20,14 +20,14 @@ require File.dirname(__FILE__) + '/integration_test_case.rb'
 
 class SessionTest < IntegrationTestCase
 
-  def test_initialially_nil
+  def test_session_keyspace_is_initially_nil
     cluster = Cassandra.connect
     session = cluster.connect()
 
     assert_nil session.keyspace
   end
 
-  def test_keyspaces_exist
+  def test_can_select_from_an_existing_keyspace
     cluster = Cassandra.connect
     session = cluster.connect()
     results = session.execute("SELECT * FROM system.schema_keyspaces")
@@ -35,7 +35,7 @@ class SessionTest < IntegrationTestCase
     refute_nil results
   end
 
-  def test_use_keyspaces
+  def test_use_keyspace_changes_current_keyspace
     cluster = Cassandra.connect
     session = cluster.connect()
     session.execute("USE system")
@@ -45,14 +45,14 @@ class SessionTest < IntegrationTestCase
     assert_equal session.keyspace, "system_traces"
   end
 
-  def test_connect_with_keyspace
+  def test_connect_session_with_existing_keyspace
     cluster = Cassandra.connect
     session = cluster.connect("system")
 
     assert_equal session.keyspace, "system"
   end
 
-  def test_keyspace_creation
+  def test_can_create_new_keyspace
     cluster = Cassandra.connect
     session = cluster.connect()
     session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
@@ -63,7 +63,7 @@ class SessionTest < IntegrationTestCase
     assert_equal session.keyspace, "simplex"
   end
 
-  def test_schema_creation_and_insert
+  def test_can_insert_after_creating_a_table
     cluster = Cassandra.connect
     session = cluster.connect()
     session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
@@ -79,7 +79,7 @@ class SessionTest < IntegrationTestCase
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
   end
 
-  def test_schema_creation_and_insert_async
+  def test_can_insert_after_creating_a_table_async
     cluster = Cassandra.connect
     session = cluster.connect()
     session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
@@ -94,7 +94,7 @@ class SessionTest < IntegrationTestCase
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
   end
 
-  def test_prepared_statements
+  def test_can_prepare_insert_and_select_statements
     cluster = Cassandra.connect
     session = cluster.connect()
     session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
@@ -111,7 +111,7 @@ class SessionTest < IntegrationTestCase
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
   end
 
-  def test_batch_statements
+  def test_can_execute_simple_batch_statements
     skip("Batch statements are only available in C* after 2.0") if CCM.cassandra_version < '2.0.0'
 
     cluster = Cassandra.connect
@@ -120,7 +120,6 @@ class SessionTest < IntegrationTestCase
     session.execute("USE simplex")
     session.execute("CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT)")
 
-    # Simple statement
     batch = session.batch do |b|
       b.add("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)")
       b.add("INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35)")
@@ -130,8 +129,17 @@ class SessionTest < IntegrationTestCase
     session.execute(batch)
     results = session.execute("SELECT * FROM users")
     assert_equal 3, results.size
+  end
 
-    # Parametrized simple statement
+  def test_can_execute_batch_statements_with_parameters
+    skip("Batch statements are only available in C* after 2.0") if CCM.cassandra_version < '2.0.0'
+
+    cluster = Cassandra.connect
+    session = cluster.connect()
+    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
+    session.execute("USE simplex")
+    session.execute("CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT)")
+
     batch = session.batch do |b|
       b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", 3, 'Apache', 'Cassandra', 8)
       b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", 4, 'DataStax', 'Ruby-Driver', 1)
@@ -140,9 +148,18 @@ class SessionTest < IntegrationTestCase
 
     session.execute(batch)
     results = session.execute("SELECT * FROM users")
-    assert_equal 6, results.size
+    assert_equal 3, results.size
+  end
 
-    # Prepared statement
+  def test_can_execute_batch_statements_with_prepared_statements
+    skip("Batch statements are only available in C* after 2.0") if CCM.cassandra_version < '2.0.0'
+
+    cluster = Cassandra.connect
+    session = cluster.connect()
+    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
+    session.execute("USE simplex")
+    session.execute("CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT)")
+    
     insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
     refute_nil insert
 
@@ -154,25 +171,10 @@ class SessionTest < IntegrationTestCase
 
     session.execute(batch)
     results = session.execute("SELECT * FROM users")
-    assert_equal 9, results.size
+    assert_equal 3, results.size
   end
 
-  def page_through(future, count)
-    future.then do |results|
-      results.each do |row|
-        refute_nil row
-        count += 1
-      end
-
-      if results.last_page? 
-        count 
-      else
-        page_through(results.next_page_async, count)
-      end
-    end
-  end
-
-  def test_paging
+  def test_result_paging
     skip("Paging is only available in C* after 2.0") if CCM.cassandra_version < '2.0.0'
 
     cluster = Cassandra.connect
@@ -186,7 +188,6 @@ class SessionTest < IntegrationTestCase
       session.execute(insert, letter, number)
     end
 
-    # Synchronous paging
     results  = session.execute("SELECT * FROM test", page_size: 5)
     assert_equal 5, results.size
     refute results.last_page?
@@ -204,8 +205,37 @@ class SessionTest < IntegrationTestCase
     end
     assert results.last_page?
     assert_equal 26, count
+  end
 
-    # Asynchronous paging
+  def page_through(future, count)
+    future.then do |results|
+      results.each do |row|
+        refute_nil row
+        count += 1
+      end
+
+      if results.last_page? 
+        count 
+      else
+        page_through(results.next_page_async, count)
+      end
+    end
+  end
+
+  def test_result_paging_async
+    skip("Paging is only available in C* after 2.0") if CCM.cassandra_version < '2.0.0'
+
+    cluster = Cassandra.connect
+    session = cluster.connect()
+    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
+    session.execute("USE simplex")
+    
+    session.execute("CREATE TABLE test (k text, v int, PRIMARY KEY (k, v))")
+    insert = session.prepare("INSERT INTO test (k, v) VALUES (?, ?)")
+    ("a".."z").each_with_index do |letter, number|
+      session.execute(insert, letter, number)
+    end
+
     select = session.prepare("SELECT * FROM test")
     future = session.execute_async(select, page_size: 5)
     count = 0
@@ -214,7 +244,7 @@ class SessionTest < IntegrationTestCase
     assert_equal 26, count
   end
 
-  def test_tracing
+  def test_query_tracing
     cluster = Cassandra.connect
     session = cluster.connect()
     session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
