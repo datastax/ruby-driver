@@ -231,14 +231,16 @@ class SessionTest < IntegrationTestCase
     refute_nil result.execution_info.trace
     assert_instance_of Cassandra::Uuid, result.execution_info.trace.id
 
-    # Batch operations
-    batch = session.batch do |b|
-      b.add("INSERT INTO test (k, v) VALUES ('b', 2)")
-      b.add("INSERT INTO test (k, v) VALUES ('c', 3)")
-      b.add("INSERT INTO test (k, v) VALUES ('d', 4)")
+    if CCM.cassandra_version >= '2.0'
+      # Batch operations
+      batch = session.batch do |b|
+        b.add("INSERT INTO test (k, v) VALUES ('b', 2)")
+        b.add("INSERT INTO test (k, v) VALUES ('c', 3)")
+        b.add("INSERT INTO test (k, v) VALUES ('d', 4)")
+      end
+      result = session.execute(batch, trace: true)
+      refute_nil result.execution_info.trace
+      assert_instance_of Cassandra::Uuid, result.execution_info.trace.id
     end
-    result = session.execute(batch, trace: true)
-    refute_nil result.execution_info.trace
-    assert_instance_of Cassandra::Uuid, result.execution_info.trace.id
   end
 end
