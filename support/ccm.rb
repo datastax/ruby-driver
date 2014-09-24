@@ -293,6 +293,22 @@ module CCM extend self
         options[:password] = @password
       end
 
+      if @server_cert
+        options[:server_cert] = @server_cert
+      end
+
+      if @client_cert
+        options[:client_cert] = @client_cert
+      end
+
+      if @private_key
+        options[:private_key] = @private_key
+      end
+
+      if @passphrase
+        options[:passphrase] = @passphrase
+      end
+
       attempts = 1
 
       begin
@@ -407,6 +423,48 @@ module CCM extend self
       stop
       @ccm.exec('updateconf', 'authenticator: AllowAllAuthenticator')
       @username = @password = nil
+      start
+    end
+
+    def enable_ssl
+      stop
+      ssl_root = File.expand_path(File.dirname(__FILE__) + '/../support/ssl')
+      @ccm.exec('updateconf',
+        'client_encryption_options.enabled: true',
+        "client_encryption_options.keystore: #{ssl_root}/.keystore",
+        'client_encryption_options.keystore_password: ruby-driver'
+      )
+      @server_cert = ssl_root + '/cassandra.pem'
+      start
+      @server_cert
+    end
+
+    def enable_ssl_client_auth
+      stop
+      ssl_root = File.expand_path(File.dirname(__FILE__) + '/../support/ssl')
+      @ccm.exec('updateconf',
+        'client_encryption_options.enabled: true',
+        "client_encryption_options.keystore: #{ssl_root}/.keystore",
+        'client_encryption_options.keystore_password: ruby-driver',
+        'client_encryption_options.require_client_auth: true',
+        "client_encryption_options.truststore: #{ssl_root}/.truststore",
+        'client_encryption_options.truststore_password: ruby-driver'
+      )
+      @server_cert = ssl_root + '/cassandra.pem'
+      @client_cert = ssl_root + '/driver.pem'
+      @private_key = ssl_root + '/driver.key'
+      @passphrase  = 'ruby-driver'
+      start
+      [@server_cert, @client_cert, @private_key, @passphrase]
+    end
+
+    def disable_ssl
+      stop
+      @ccm.exec('updateconf', 'client_encryption_options.enabled: false')
+      @server_cert = nil
+      @client_cert = nil
+      @private_key = nil
+      @passphrase  = nil
       start
     end
 

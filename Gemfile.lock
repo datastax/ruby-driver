@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     cassandra-driver (1.0.0.beta.2)
-      ione (~> 1.0)
+      ione (~> 1.2.0.pre4)
 
 GEM
   remote: https://rubygems.org/
@@ -62,7 +62,7 @@ GEM
       nanoc (>= 3.6.3)
     hitimes (1.2.2)
     htmlbeautifier (0.0.9)
-    ione (1.1.4)
+    ione (1.2.0.pre4)
     jsmin (1.0.1)
     listen (2.7.9)
       celluloid (>= 0.15.2)

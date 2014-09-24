@@ -462,7 +462,7 @@ describe 'A CQL client', :integration do
 
     it 'fails gracefully when connecting to the Thrift port' do
       opts = connection_options.merge(port: 9160)
-      expect { Cassandra::Client.connect(opts) }.to raise_error(EOFError)
+      expect { Cassandra::Client.connect(opts) }.to raise_error(Cassandra::Io::ConnectionClosedError)
     end
 
     it 'fails gracefully when connecting to something that does not run C*' do

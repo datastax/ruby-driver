@@ -9,6 +9,16 @@ Given(/^a running cassandra cluster with authentication enabled$/) do
   @username, @password = @cluster.enable_authentication
 end
 
+Given(/^a running cassandra cluster with SSL encryption enabled$/) do
+  step "a running cassandra cluster"
+  @server_cert = @cluster.enable_ssl
+end
+
+Given(/^a running cassandra cluster with SSL client authentication enabled$/) do
+  step "a running cassandra cluster"
+  @server_cert, @client_cert, @private_key, @passphrase = @cluster.enable_ssl_client_auth
+end
+
 Given(/^a running cassandra cluster in (\d+) datacenter(?:s)? with (\d+) nodes in each$/) do |no_dc, no_nodes_per_dc|
   @cluster = CCM.setup_cluster(no_dc.to_i, no_nodes_per_dc.to_i)
 end
@@ -91,10 +101,6 @@ end
 
 When(/^I wait for (\d+) seconds$/) do |interval|
   sleep(interval.to_i)
-end
-
-After('@auth') do
-  @cluster.disable_authentication
 end
 
 def prepend_encoding(code)
