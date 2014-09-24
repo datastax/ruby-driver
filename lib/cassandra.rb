@@ -29,6 +29,7 @@ require 'timeout'
 require 'digest'
 require 'stringio'
 require 'resolv'
+require 'openssl'
 
 module Cassandra
   # A list of all supported request consistencies
@@ -49,11 +50,33 @@ module Cassandra
   #
   # @option options [Integer] :port (9042) cassandra native protocol port
   #
+  # @option options [Numeric] :connect_timeout (10) connection timeout in
+  #   seconds
+  #
   # @option options [String] :username (none) username to use for
   #   authentication to cassandra. Note that you must also specify `:password`
   #
   # @option options [String] :password (none) password to use for
   #   authentication to cassandra. Note that you must also specify `:username`
+  #
+  # @option options [Boolean, OpenSSL::SSL::SSLContext] :ssl (false) enable
+  #   default ssl authentication if true (not recommended). Also accepts an
+  #   initialized OpenSSL::SSL::SSLContext. Note that this option should be
+  #   ignored if `:server_cert`, `:client_cert`, `:private_key` or
+  #   `:passphrase` are given.
+  #
+  # @option options [String] :server_cert (none) path to server certificate or
+  #   certificate authority file.
+  #
+  # @option options [String] :client_cert (none) path to client certificate
+  #   file. Note that this option is only required when encryption is
+  #   configured to require client authentication
+  #
+  # @option options [String] :private_key (none) path to client private key.
+  #   Note that this option is only required when encryption is configured to
+  #   require client authentication
+  #
+  # @option options [String] :passphrase (none) password to client private key.
   #
   # @option options [Symbol] :compression (none) compression to use. Must be
   #   either `:snappy` or `:lz4`. Also note, that in order for compression to
@@ -91,8 +114,8 @@ module Cassandra
   #
   # @option options [Cassandra::Auth::Provider] :auth_provider (none) a custom auth provider to be used with [SASL authentication in cassandra 2.0](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L257-L273). Note that if you have specified `:username` and `:password`, then a {Cassandra::Auth::Providers::Password} will be used automatically
   #
-  # @option options [Cassandra::Compression::Compressor] :compressor (none) a
-  #   custom compressor. Note that if you have specified `:compression`, an
+  # @option options [Cassandra::Compressor] :compressor (none) a custom
+  #   compressor. Note that if you have specified `:compression`, an
   #   appropriate compressor will be provided automatically
   #
   # @option options [Object<#all, #error, #value, #promise>] :futures_factory
@@ -117,7 +140,8 @@ module Cassandra
       [ :credentials, :auth_provider, :compression, :hosts, :logger, :port,
         :load_balancing_policy, :reconnection_policy, :retry_policy, :listeners,
         :consistency, :trace, :page_size, :compressor, :username, :password,
-        :futures_factory
+        :ssl, :server_cert, :client_cert, :private_key, :passphrase,
+        :connect_timeout, :futures_factory
       ].include?(key)
     end
 
@@ -155,6 +179,69 @@ module Cassandra
 
       unless auth_provider.respond_to?(:create_authenticator)
         raise ::ArgumentError, ":auth_provider #{auth_provider.inspect} must respond to :create_authenticator, but doesn't"
+      end
+    end
+
+    has_client_cert = options.has_key?(:client_cert)
+    has_private_key = options.has_key?(:private_key)
+
+    if has_client_cert || has_private_key
+      if has_client_cert && !has_private_key
+        raise ::ArgumentError, "both :client_cert and :private_key options must be specified, but only :client_cert given"
+      end
+
+      if !has_client_cert && has_private_key
+        raise ::ArgumentError, "both :client_cert and :private_key options must be specified, but only :private_key given"
+      end
+
+      client_cert = ::File.expand_path(options[:client_cert])
+      private_key = ::File.expand_path(options[:private_key])
+
+      unless ::File.exists?(client_cert)
+        raise ::ArgumentError, ":client_cert #{client_cert.inspect} doesn't exist"
+      end
+
+      unless ::File.exists?(private_key)
+        raise ::ArgumentError, ":private_key #{private_key.inspect} doesn't exist"
+      end
+    end
+
+    has_server_cert = options.has_key?(:server_cert)
+
+    if has_server_cert
+      server_cert = ::File.expand_path(options[:server_cert])
+
+      unless ::File.exists?(server_cert)
+        raise ::ArgumentError, ":server_cert #{server_cert.inspect} doesn't exist"
+      end
+    end
+
+    if has_client_cert || has_server_cert
+      context = ::OpenSSL::SSL::SSLContext.new
+
+      if has_server_cert
+        context.ca_file     = server_cert
+        context.verify_mode = ::OpenSSL::SSL::VERIFY_PEER
+      end
+
+      if has_client_cert
+        context.cert = ::OpenSSL::X509::Certificate.new(File.read(client_cert))
+
+        if options.has_key?(:passphrase)
+          context.key = ::OpenSSL::PKey::RSA.new(File.read(private_key), options[:passphrase])
+        else
+          context.key = ::OpenSSL::PKey::RSA.new(File.read(private_key))
+        end
+      end
+
+      options[:ssl] = context
+    end
+
+    if options.has_key?(:ssl)
+      ssl = options[:ssl]
+
+      unless ssl.is_a?(::TrueClass) || ssl.is_a?(::FalseClass) || ssl.is_a?(::OpenSSL::SSL::SSLContext)
+        raise ":ssl must be a boolean or an OpenSSL::SSL::SSLContext, #{ssl.inspect} given"
       end
     end
 
@@ -196,6 +283,14 @@ module Cassandra
 
       if port < 0 || port > 65536
         raise ::ArgumentError, ":port must be a valid ip port, #{port.given}"
+      end
+    end
+
+    if options.has_key?(:connect_timeout)
+      timeout = options[:connect_timeout] = Integer(options[:connect_timeout])
+
+      if timeout < 0
+        raise ::ArgumentError, ":connect_timeout must be a positive value, #{timeout.given}"
       end
     end
 

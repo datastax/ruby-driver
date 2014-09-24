@@ -279,8 +279,12 @@ module Cassandra
     end
 
     describe CacheOptionsStep do
+      let :timeout do
+        10
+      end
+
       let :step do
-        described_class.new
+        described_class.new(timeout)
       end
 
       let :pending_connection do
@@ -290,7 +294,7 @@ module Cassandra
       describe '#run' do
         before do
           response = {'CQL_VERSION' => %w[3.1.2], 'COMPRESSION' => %w[snappy magic]}
-          pending_connection.stub(:execute).with(an_instance_of(Protocol::OptionsRequest)).and_return(Ione::Future.resolved(response))
+          pending_connection.stub(:execute).with(an_instance_of(Protocol::OptionsRequest), timeout).and_return(Ione::Future.resolved(response))
           pending_connection.stub(:[]=)
         end
 

@@ -88,16 +88,16 @@ module Cassandra
 
     # @private
     class ConnectStep
-      def initialize(io_reactor, protocol_handler_factory, port, connection_timeout, logger)
+      def initialize(io_reactor, protocol_handler_factory, port, connection_options, logger)
         @io_reactor = io_reactor
         @protocol_handler_factory = protocol_handler_factory
         @port = port
-        @connection_timeout = connection_timeout
+        @connection_options = connection_options
         @logger = logger
       end
 
       def run(pending_connection)
-        @io_reactor.connect(pending_connection.host, @port, @connection_timeout, &@protocol_handler_factory).map do |connection|
+        @io_reactor.connect(pending_connection.host, @port, @connection_options, &@protocol_handler_factory).map do |connection|
           pending_connection.with_connection(connection)
         end
       end
@@ -105,12 +105,17 @@ module Cassandra
 
     # @private
     class CacheOptionsStep
+      def initialize(timeout = nil)
+        @timeout = timeout
+      end
+
       def run(pending_connection)
-        f = pending_connection.execute(Protocol::OptionsRequest.new)
+        f = pending_connection.execute(Protocol::OptionsRequest.new, @timeout)
         f.on_value do |supported_options|
           pending_connection[:cql_version] = supported_options['CQL_VERSION']
           pending_connection[:compression] = supported_options['COMPRESSION']
         end
+
         f.map(pending_connection)
       end
     end
@@ -250,8 +255,8 @@ module Cassandra
         @connection[key] = value
       end
 
-      def execute(request, &block)
-        @request_runner.execute(@connection, request, nil, nil, &block)
+      def execute(request, timeout = nil, &block)
+        @request_runner.execute(@connection, request, timeout, nil, &block)
       end
     end
 

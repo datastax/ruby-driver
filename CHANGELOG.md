@@ -4,6 +4,7 @@ Features:
 
 * TokenAware load balancing policy
 * Domain names
+* SSL encryption
 
 Bug fixes:
 

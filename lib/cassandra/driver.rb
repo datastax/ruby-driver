@@ -68,11 +68,12 @@ module Cassandra
       })
     end
 
-    let(:connection_options) { Cluster::Options.new(protocol_version, credentials, auth_provider, compressor, port, connection_timeout, connections_per_local_node, connections_per_remote_node) }
+    let(:connection_options) { Cluster::Options.new(protocol_version, credentials, auth_provider, compressor, port, connect_timeout, ssl, connections_per_local_node, connections_per_remote_node) }
 
     let(:port)                  { 9042 }
     let(:protocol_version)      { 2 }
-    let(:connection_timeout)    { 10 }
+    let(:connect_timeout)       { 10 }
+    let(:ssl)                   { false }
     let(:logger)                { Client::NullLogger.new  }
     let(:compressor)            { nil }
     let(:credentials)           { nil }

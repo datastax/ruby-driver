@@ -49,3 +49,11 @@ After do |s|
   # Tell Cucumber to quit after this scenario is done - if it failed.
   Cucumber.wants_to_quit = true if s.failed? and ENV["FAIL_FAST"] == 'Y'
 end
+
+After('@auth') do
+  @cluster.disable_authentication
+end
+
+After('@ssl') do
+  @cluster.disable_ssl
+end
