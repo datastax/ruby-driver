@@ -24,7 +24,7 @@ env:
   matrix:
     - CASSANDRA_VERSION=2.1.0
     - CASSANDRA_VERSION=2.0.10
-    - CASSANDRA_VERSION=1.2.18
+    - CASSANDRA_VERSION=1.2.19
 matrix:
   allow_failures:
     - rvm: rbx-2
