@@ -63,6 +63,20 @@ class SessionTest < IntegrationTestCase
     assert_equal session.keyspace, "simplex"
   end
 
+  def test_execute_errors_on_invalid_keyspaces
+    cluster = Cassandra.connect
+    session = cluster.connect()
+
+    assert_raises(Cassandra::Errors::QueryError) do 
+      session.execute("CREATE TABLE users (user_id INT PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)")
+    end
+
+    session.execute("USE system")
+    assert_raises(Cassandra::Errors::QueryError) do 
+      session.execute("CREATE TABLE users (user_id INT PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)")
+    end
+  end
+
   def test_can_insert_after_creating_a_table
     cluster = Cassandra.connect
     session = cluster.connect()
@@ -109,6 +123,21 @@ class SessionTest < IntegrationTestCase
     session.execute(insert, 0, 'John', 'Doe', 40)
     result = session.execute(select).first
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
+  end
+
+  def test_prepare_errors_on_non_existent_table
+    cluster = Cassandra.connect
+    session = cluster.connect()
+    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
+    session.execute("USE simplex")
+
+    assert_raises(Cassandra::Errors::QueryError) do
+      session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
+    end
+
+    assert_raises(Cassandra::Errors::QueryError) do
+      session.prepare("SELECT * FROM users")
+    end    
   end
 
   def test_can_execute_simple_batch_statements
@@ -188,6 +217,7 @@ class SessionTest < IntegrationTestCase
       session.execute(insert, letter, number)
     end
 
+    # Small page_size
     results  = session.execute("SELECT * FROM test", page_size: 5)
     assert_equal 5, results.size
     refute results.last_page?
@@ -205,6 +235,16 @@ class SessionTest < IntegrationTestCase
     end
     assert results.last_page?
     assert_equal 26, count
+
+    # Lage page_size
+    results  = session.execute("SELECT * FROM test", page_size: 500)
+    assert_equal 26, results.size
+    assert results.last_page?
+
+    # Invalid page_size
+    assert_raises(ArgumentError) do
+      session.execute("SELECT * FROM test", page_size: 0)
+    end
   end
 
   def page_through(future, count)
