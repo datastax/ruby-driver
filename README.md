@@ -12,7 +12,7 @@ the Cassandra Query Language version 3 (CQL3) and Cassandra's native protocol.
 - IRC: #datastax-drivers on [irc.freenode.net](http://freenode.net>)
 - TWITTER: Follow the latest news about DataStax Drivers - [@avalanche123](http://twitter.com/avalanche123), [@mfiguiere](http://twitter.com/mfiguiere), [@al3xandru](https://twitter.com/al3xandru) 
 
-This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [Theo Hultberg](https://github.com/iconara) and we addded support for:
+This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [Theo Hultberg](https://github.com/iconara) and we added support for:
 
 * [asynchronous execution](http://datastax.github.io/ruby-driver/features/asynchronous_io/)
 * one-off, [prepared](http://datastax.github.io/ruby-driver/features/basics/prepared_statements/) and [batch statements](http://datastax.github.io/ruby-driver/features/basics/batch_statements/)
