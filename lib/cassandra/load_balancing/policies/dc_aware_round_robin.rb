@@ -124,7 +124,7 @@ module Cassandra
           if LOCAL_CONSISTENCIES.include?(options.consistency) && !@use_remote
             remote = EMPTY_ARRAY
           else
-            remote   = @remote
+            remote = @remote
           end
 
           position = @position
