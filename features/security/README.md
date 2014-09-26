@@ -12,6 +12,28 @@ Out of the box, Ruby driver supports [Cassandra's internal authentication mechan
 
 Setting up SSL encryption for Apache Cassandra may seem borderline impossible for someone unfamiliar with the process. I know, I've been there. Let me guide you through it.
 
+#### Installing Java Cryptography Extension
+
+Before we begin, we have to install Java Cryptography Extension (JCE). Feel free to skip this step if you already have it. Without JCE, cassandra processes will fail to start after enabling encryption.
+
+1. [Download JCE from Oracle](http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html)
+2. Extract files from the downloaded archive.
+3. Copy `local_policy.jar` and `US_export_policy.jar` to `$JAVA_HOME/jre/lib/security`
+
+Below are some tips for finding `$JAVA_HOME` if you don't know how to.
+
+##### Mac OS X
+
+```bash
+JAVA_HOME=$(/usr/libexec/java_home)
+```
+
+##### Ubuntu
+
+```bash
+JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
+```
+
 #### Setting up cassandra keystore
 
 First, we're going to have to create a server certificate. It is recommended to use a different certificate for every node that we want to secure communication with using SSL encryption:
