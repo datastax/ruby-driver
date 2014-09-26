@@ -12,4 +12,3 @@
 /.sass-cache
 /venv
 /lib/cassandra_murmur3.*
-/integration/tmp
