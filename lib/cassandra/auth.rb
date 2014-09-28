@@ -46,7 +46,7 @@ module Cassandra
       # @param authentication_class [String] the authentication class used by
       #   the server.
       # @return [Cassandra::Auth::Authenticator, nil] an object with an
-      #   interface matching {Cassandra::Auth::Authenticator} or nil if the
+      #   interface matching {Cassandra::Auth::Authenticator} or `nil` if the
       #   authentication class is not supported.
     end
 
@@ -60,7 +60,7 @@ module Cassandra
     #   class exists only for documentation purposes.
     #
     # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L257-L273 Cassandra native protocol v2 SASL authentication
-    # @see Cassandra::Auth::Provider
+    # @see Cassandra::Auth::Provider#create_authenticator
     class Authenticator
       # @!method initial_response
       #

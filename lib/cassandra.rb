@@ -46,22 +46,22 @@ module Cassandra
   # @option options [Array<String, IPAddr>] :hosts (['127.0.0.1']) a list of
   #   initial addresses. Note that the entire list of cluster members will be
   #   discovered automatically once a connection to any hosts from the original
-  #   list is successful
+  #   list is successful.
   #
-  # @option options [Integer] :port (9042) cassandra native protocol port
+  # @option options [Integer] :port (9042) cassandra native protocol port.
   #
   # @option options [Numeric] :connect_timeout (10) connection timeout in
-  #   seconds
+  #   seconds.
   #
   # @option options [String] :username (none) username to use for
-  #   authentication to cassandra. Note that you must also specify `:password`
+  #   authentication to cassandra. Note that you must also specify `:password`.
   #
   # @option options [String] :password (none) password to use for
-  #   authentication to cassandra. Note that you must also specify `:username`
+  #   authentication to cassandra. Note that you must also specify `:username`.
   #
   # @option options [Boolean, OpenSSL::SSL::SSLContext] :ssl (false) enable
-  #   default ssl authentication if true (not recommended). Also accepts an
-  #   initialized OpenSSL::SSL::SSLContext. Note that this option should be
+  #   default ssl authentication if `true` (not recommended). Also accepts an
+  #   initialized {OpenSSL::SSL::SSLContext}. Note that this option should be
   #   ignored if `:server_cert`, `:client_cert`, `:private_key` or
   #   `:passphrase` are given.
   #
@@ -70,53 +70,53 @@ module Cassandra
   #
   # @option options [String] :client_cert (none) path to client certificate
   #   file. Note that this option is only required when encryption is
-  #   configured to require client authentication
+  #   configured to require client authentication.
   #
   # @option options [String] :private_key (none) path to client private key.
   #   Note that this option is only required when encryption is configured to
-  #   require client authentication
+  #   require client authentication.
   #
-  # @option options [String] :passphrase (none) password to client private key.
+  # @option options [String] :passphrase (none) passphrase for private key.
   #
   # @option options [Symbol] :compression (none) compression to use. Must be
   #   either `:snappy` or `:lz4`. Also note, that in order for compression to
-  #   work, you must install 'snappy' or 'lz4-ruby' gems
+  #   work, you must install 'snappy' or 'lz4-ruby' gems.
   #
   # @option options [Cassandra::LoadBalancing::Policy] :load_balancing_policy
-  #   default: {Cassandra::LoadBalancing::Policies::RoundRobin}
+  #   default: {Cassandra::LoadBalancing::Policies::RoundRobin}.
   #
   # @option options [Cassandra::Reconnection::Policy] :reconnection_policy
   #   default: {Cassandra::Reconnection::Policies::Exponential}. Note that the
   #   default policy is configured with
-  #   `Reconnection::Policies::Exponential.new(0.5, 30, 2)`
+  #   `Reconnection::Policies::Exponential.new(0.5, 30, 2)`.
   #
   # @option options [Cassandra::Retry::Policy] :retry_policy default:
-  #   {Cassandra::Retry::Policies::Default}
+  #   {Cassandra::Retry::Policies::Default}.
   #
   # @option options [Logger] :logger (none) logger. a {Logger} instance from the
   #   standard library or any object responding to standard log methods
-  #   (`#debug`, `#info`, `#warn`, `#error` and `#fatal`)
+  #   (`#debug`, `#info`, `#warn`, `#error` and `#fatal`).
   #
   # @option options [Enumerable<Cassandra::Listener>] :listeners (none)
   #   initial listeners. A list of initial cluster state listeners. Note that a
-  #   load_balancing policy is automatically registered with the cluster.
+  #   `:load_balancing` policy is automatically registered with the cluster.
   #
   # @option options [Symbol] :consistency (:quorum) default consistency to use
-  #   for all requests. Must be one of {Cassandra::CONSISTENCIES}
+  #   for all requests. Must be one of {Cassandra::CONSISTENCIES}.
   #
   # @option options [Boolean] :trace (false) whether or not to trace all
-  #   requests by default
+  #   requests by default.
   #
   # @option options [Integer] :page_size (nil) default page size for all select
-  #   queries
+  #   queries.
   #
-  # @option options [Hash{String => String}] :credentials (none) a hash of credentials - to be used with [credentials authentication in cassandra 1.2](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L238-L250). Note that if you specified `:username` and `:password` options, those credentials are configured automatically
+  # @option options [Hash{String => String}] :credentials (none) a hash of credentials - to be used with [credentials authentication in cassandra 1.2](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L238-L250). Note that if you specified `:username` and `:password` options, those credentials are configured automatically.
   #
-  # @option options [Cassandra::Auth::Provider] :auth_provider (none) a custom auth provider to be used with [SASL authentication in cassandra 2.0](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L257-L273). Note that if you have specified `:username` and `:password`, then a {Cassandra::Auth::Providers::Password} will be used automatically
+  # @option options [Cassandra::Auth::Provider] :auth_provider (none) a custom auth provider to be used with [SASL authentication in cassandra 2.0](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L257-L273). Note that if you have specified `:username` and `:password`, then a {Cassandra::Auth::Providers::Password} will be used automatically.
   #
   # @option options [Cassandra::Compressor] :compressor (none) a custom
   #   compressor. Note that if you have specified `:compression`, an
-  #   appropriate compressor will be provided automatically
+  #   appropriate compressor will be provided automatically.
   #
   # @option options [Object<#all, #error, #value, #promise>] :futures_factory
   #   (none) a custom futures factory to assist with integration into existing
