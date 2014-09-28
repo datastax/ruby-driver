@@ -22,34 +22,29 @@ module Cassandra
     # {Cassandra::LoadBalancing::Policy#distance} must return
     DISTANCES = [:ignore, :local, :remote].freeze
 
-    # @note Actual load balancing policies don't need to extend this class,
+    # @abstract Actual load balancing policies don't need to extend this class,
     #   only implement its methods. This class exists for documentation
-    #   purposes only
+    #   purposes only.
     class Policy
       # Allows policy to initialize with the cluster instance. This method is
       # called once before connecting to the cluster.
-      # @abstract implementation should be provided by an actual policy
       # @param cluster [Cassandra::Cluster] current cluster instance
       # @return [void]
       def setup(cluster)
       end
 
-      # @abstract implementation should be provided by an actual policy
       # @see Cassandra::Listener#host_up
       def host_up(host)
       end
 
-      # @abstract implementation should be provided by an actual policy
       # @see Cassandra::Listener#host_down
       def host_down(host)
       end
 
-      # @abstract implementation should be provided by an actual policy
       # @see Cassandra::Listener#host_found
       def host_found(host)
       end
 
-      # @abstract implementation should be provided by an actual policy
       # @see Cassandra::Listener#host_lost
       def host_lost(host)
       end
@@ -57,7 +52,6 @@ module Cassandra
       # Returns a distance that lets the driver to determine host many
       #   connections (if any) to open to the host
       #
-      # @abstract implementation should be provided by an actual policy
       # @param host [Cassandra::Host] a host instance
       # @return [Symbol] distance to host. Must be one of
       #   {Cassandra::LoadBalancing::DISTANCES}
@@ -70,7 +64,6 @@ module Cassandra
       #
       # @note Hosts that should be ignored, must not be included in the Plan
       #
-      # @abstract implementation should be provided by an actual policy
       # @param keyspace [String] current keyspace of the {Cassandra::Session}
       # @param statement [Cassandra::Statement] actual statement to be executed
       # @param options [Cassandra::Execution::Options] execution options to be used
@@ -88,7 +81,7 @@ module Cassandra
 
     # A load balancing plan is used to determine the order of hosts for running
     # queries, preparing statements and establishing connections.
-    # @note Plans returned by {Cassandra::LoadBalancing::Policy}
+    # @abstract Plans returned by {Cassandra::LoadBalancing::Policy#plan}
     #   implementations don't need to extend this class, only implement its
     #   methods. This class exists for documentation purposes only.
     class Plan

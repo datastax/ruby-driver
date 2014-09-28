@@ -19,7 +19,7 @@
 module Cassandra
   module Reconnection
     # Reconnection schedule
-    # @note actual reconnection schedules returned from
+    # @abstract Actual reconnection schedules returned from
     #   {Cassandra::Reconnection::Policy} implementation don't need to inherit
     #   this class. This class exists for documentation purposes only.
     class Schedule
@@ -29,16 +29,16 @@ module Cassandra
     end
 
     # A reconnection policy
-    # @note actual reconnection policies supplied as `:reconnection_policy`
+    # @abstract Actual reconnection policies supplied as `:reconnection_policy`
     #   option to {Cassandra.connect} don't need to inherit this class, only
     #   implement its methods. This class exists for documentation purposes
     #   only.
     class Policy
       # Returns a reconnection schedule
       #
-      # @abstract implementation should be provided by an actual policy
-      # @note reconnection schedule doesn't need to extend
-      #   {Cassandra::Reconnection::Schedule}, only conform to its interface
+      # @note Reconnection schedule returned from this method doesn't need to
+      #   extend {Cassandra::Reconnection::Schedule}, only conform to its
+      #   interface.
       # @return [Cassandra::Reconnection::Schedule] reconnection schedule
       def schedule
       end

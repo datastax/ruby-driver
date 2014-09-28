@@ -18,6 +18,9 @@
 
 module Cassandra
   module Retry
+    # @abstract Actual retry policies supplied as `:retry_policy` option to
+    #   {Cassandra.connect} don't need to inherit this class, only implement
+    #   its methods. This class exists for documentation purposes only.
     module Policy
       # Decides wether to retry a read and at what consistency level.
       # 
@@ -35,7 +38,6 @@ module Cassandra
       #   checksum) was present in the received responses.
       # @param retries [Integer] the number of retries already performed
       # 
-      # @abstract implementation should be provided by an actual policy
       # @return [Cassandra::Policies::Retry::Decision] a retry decision
       #
       # @see Cassandra::Retry::Policy#try_again
@@ -57,7 +59,6 @@ module Cassandra
       #   query timed out
       # @param retries [Integer] the number of retries already performed
       # 
-      # @abstract implementation should be provided by an actual policy
       # @return [Cassandra::Policies::Retry::Decision] a retry decision
       #
       # @see Cassandra::Retry::Policy#try_again
@@ -78,7 +79,6 @@ module Cassandra
       #   query timed out
       # @param retries [Integer] the number of retries already performed
       # 
-      # @abstract implementation should be provided by an actual policy
       # @return [Cassandra::Policies::Retry::Decision] a retry decision
       #
       # @see Cassandra::Retry::Policy#try_again

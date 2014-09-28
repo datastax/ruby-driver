@@ -19,9 +19,9 @@
 module Cassandra
   # Cassandra state listener.
   #
-  # @note Actual state listener implementations don't need to inherit from this
-  #   class as long as they conform to its interface. This class exists solely
-  #   for documentation purposes
+  # @abstract Actual state listener implementations don't need to inherit from
+  #   this class as long as they conform to its interface. This class exists
+  #   solely for documentation purposes
   #
   # @see Cassandra::Cluster#register
   class Listener

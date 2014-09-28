@@ -18,7 +18,7 @@
 
 module Cassandra
   module Compression
-    # @note Compressors given to {Cassandra.connect} as the `:compressor`
+    # @abstract Compressors given to {Cassandra.connect} as the `:compressor`
     #   option don't need to be subclasses of this class, but need to implement
     #   the same methods. This class exists only for documentation purposes.
     class Compressor

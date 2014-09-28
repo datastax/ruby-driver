@@ -55,9 +55,9 @@ module Cassandra
     # block. If any of the method calls block, the whole connection process
     # will be blocked.
     #
-    # @note Authenticators created by auth providers don't need to be subclasses
-    #   of this class, but need to implement the same methods. This class exists
-    #   only for documentation purposes.
+    # @abstract Authenticators created by auth providers don't need to be
+    #   subclasses of this class, but need to implement the same methods. This
+    #   class exists only for documentation purposes.
     #
     # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L257-L273 Cassandra native protocol v2 SASL authentication
     # @see Cassandra::Auth::Provider

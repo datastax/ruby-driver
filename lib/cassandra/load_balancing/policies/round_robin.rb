@@ -52,12 +52,22 @@ module Cassandra
           mon_initialize
         end
 
+        # Adds this host to rotation
+        #
+        # @param host [Cassandra::Host] a host instance
+        # @return [Cassandra::LoadBalancing::Policies::RoundRobin] self
+        # @see Cassandra::Listener#host_up
         def host_up(host)
           synchronize { @hosts = @hosts.dup.push(host) }
 
           self
         end
 
+        # Removes this host from rotation
+        #
+        # @param host [Cassandra::Host] a host instance
+        # @return [Cassandra::LoadBalancing::Policies::RoundRobin] self
+        # @see Cassandra::Listener#host_down
         def host_down(host)
           synchronize do
             @hosts = @hosts.dup
@@ -67,18 +77,45 @@ module Cassandra
           self
         end
 
+        # Noop
+        #
+        # @param host [Cassandra::Host] a host instance
+        # @return [Cassandra::LoadBalancing::Policies::RoundRobin] self
+        # @see Cassandra::Listener#host_found
         def host_found(host)
           self
         end
 
+        # Noop
+        #
+        # @param host [Cassandra::Host] a host instance
+        # @return [Cassandra::LoadBalancing::Policies::RoundRobin] self
+        # @see Cassandra::Listener#host_lost
         def host_lost(host)
           self
         end
 
+        # Returns distance to host. All hosts in rotation are considered
+        # `:local`, all other hosts - `:ignore`.
+        #
+        # @param host [Cassandra::Host] a host instance
+        # @return [Symbol] `:local` for all hosts in rotation and `:ignore` for
+        #   all other hosts.
+        # @see Cassandra::LoadBalancing::Policy#distance
         def distance(host)
           @hosts.include?(host) ? :local : :ignore
         end
 
+        # Returns a load balancing plan that rotates hosts by 1 each time a
+        # plan is requested.
+        #
+        # @param keyspace [String] current keyspace of the {Cassandra::Session}
+        # @param statement [Cassandra::Statement] actual statement to be
+        #   executed
+        # @param options [Cassandra::Execution::Options] execution options to
+        #   be used
+        # @return [Cassandra::LoadBalancing::Plan] a rotated load balancing plan
+        # @see Cassandra::LoadBalancing::Policy#plan
         def plan(keyspace, statement, options)
           hosts    = @hosts
           position = @position
