@@ -24,7 +24,7 @@ module Docs
 
       def start_background(background)
         # p ['background', background]
-        output = "<h2 id=\"background\">Background</h2>"
+        output = "<h2>Background</h2>"
         output << @markdown.render(background.description)
         output << "<dl class=\"steps\">"
       end
@@ -40,7 +40,7 @@ module Docs
           next if tag.name == '@cassandra-version-specific'
           output << "<div class=\"pull-right\"><span class=\"label label-primary\">since cassadra v#{tag.name.sub('@cassandra-version-', '')}</span></div>"
         end
-        output << "<h1 id=\"#{feature.id}\">#{feature.name}"
+        output << "<h1>#{feature.name}"
         output << "</h1>"
         output << @markdown.render(feature.description)
       end
@@ -50,14 +50,13 @@ module Docs
       end
 
       def start_scenario(scenario)
-        id = scenario.id.split(';').last
         output = ''
         scenario.tags.each do |tag|
           next unless tag.name.start_with?('@cassandra-version-')
           next if tag.name == '@cassandra-version-specific'
           output << "<div class=\"pull-right\"><span class=\"label label-primary\">since cassadra v#{tag.name.sub('@cassandra-version-', '')}</span></div>"
         end
-        output << "<h2 id=\"#{id}\">#{scenario.name}"
+        output << "<h2>#{scenario.name}"
         output << "</h2><dl class=\"steps\">"
       end
 
