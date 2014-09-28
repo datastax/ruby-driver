@@ -1,5 +1,5 @@
 $font-size-base: 16px;
-$line-height-base: 1.6;
+$line-height-base: 1.5;
 
 @import "bootstrap";
 
@@ -7,6 +7,10 @@ $line-height-base: 1.6;
 //  padding-top: 60px;
 //  position: relative;
 //}
+
+.label {
+  padding: .2em .6em .2em;
+}
 
 .steps {
   font-size: 16px;
@@ -34,7 +38,7 @@ $line-height-base: 1.6;
 .side-nav .nav>li>a {
 //    color: #999;
     padding: 4px 20px;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 400;
 }
 
@@ -43,7 +47,7 @@ $line-height-base: 1.6;
     padding-top: 1px;
     padding-bottom: 1px;
     padding-left: 30px;
-    font-size: 16px;
+    font-size: 14px;
 }
 
 /* nested links */
@@ -51,7 +55,7 @@ $line-height-base: 1.6;
     padding-top: 1px;
     padding-bottom: 1px;
     padding-left: 35px;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .side-nav .nav>li>a {
@@ -88,6 +92,10 @@ $line-height-base: 1.6;
     width: 258px;
     top: 10px;
   }
+}
+
+.side-nav .affix-bottom {
+  position: relative;
 }
 
 .inline,

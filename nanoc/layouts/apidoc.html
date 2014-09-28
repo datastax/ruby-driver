@@ -60,7 +60,7 @@
           <%= yield %>
         </div>
         <nav class="col-md-3 side-nav">
-          <ol class="nav nav-pills nav-stacked toc" data-spy="affix" data-offset-top="60" data-offset-bottom="0">
+          <ol class="nav nav-pills nav-stacked toc" data-spy="affix" data-offset-top="60" data-offset-bottom="20">
             <%= render 'side-nav', :items => @items.at('/api/cassandra/')[:nav] %>
           </ol>
         </nav>
