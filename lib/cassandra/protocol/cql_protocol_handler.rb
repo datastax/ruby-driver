@@ -219,7 +219,6 @@ module Cassandra
             complete_request(id, @current_frame.body)
           end
           @current_frame = @frame_decoder.decode_frame(@read_buffer)
-          flush_request_queue
         end
       end
 
@@ -249,6 +248,7 @@ module Cassandra
         if response.is_a?(Protocol::SetKeyspaceResultResponse)
           @keyspace = response.keyspace
         end
+        flush_request_queue
         unless promise.timed_out?
           promise.fulfill(response)
         end
@@ -272,7 +272,7 @@ module Cassandra
             if @request_queue_out.any? && (id = next_stream_id)
               promise = @request_queue_out.shift
               if promise.timed_out?
-                id = nil
+                next
               else
                 frame = promise.frame
                 @promises[id] = promise
