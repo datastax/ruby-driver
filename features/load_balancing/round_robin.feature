@@ -86,8 +86,6 @@ Feature: Round Robin Policy
       end
 
       puts coordinator_ips.sort
-
-      puts ips.sort
       """
     When it is executed
     Then its output should contain:
