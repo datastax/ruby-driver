@@ -10,6 +10,11 @@ Bug fixes:
 
 * [RUBY-8] correctly update host status when down/up events received immediately after each other
 
+Breaking changes:
+
+* `Cassandra::LoadBalancing::Policy#setup` is required to be implemented.
+* `Cassandra::Cluster#each_host`, `Cassandra::Cluster#each_keyspace`, `Cassandra::Keyspace#each_table` and `Cassandra::Table#each_column` return `Array` or `self`.
+
 # 1.0.0.beta.1
 
 Features:
