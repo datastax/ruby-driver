@@ -37,13 +37,13 @@ module Cassandra
             end
           end
 
-          describe('#parse_string') do
+          describe('#parse_token') do
             [
               ['157970483071155125909128549510757983302', 157970483071155125909128549510757983302],
             ].each do |(string, token)|
               context "with #{string.inspect}" do
                 it "creates #{token}" do
-                  expect(subject.parse_string(string)).to eq(token)
+                  expect(subject.parse_token(string)).to eq(token)
                 end
               end
             end

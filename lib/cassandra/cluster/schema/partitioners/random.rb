@@ -25,7 +25,7 @@ module Cassandra
             Digest::MD5.hexdigest(partition_key).to_i(16)
           end
 
-          def parse_string(token_string)
+          def parse_token(token_string)
             token_string.to_i
           end
         end

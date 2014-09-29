@@ -72,7 +72,7 @@ module Cassandra
 
         @registry.each_host do |host|
           host.tokens.each do |token|
-            token = partitioner.parse_string(token) rescue next
+            token = partitioner.parse_token(token) rescue next
             tokens.add(token)
             token_to_host[token] = host
           end

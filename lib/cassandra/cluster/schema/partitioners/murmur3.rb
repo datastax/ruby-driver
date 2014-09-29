@@ -28,7 +28,7 @@ module Cassandra
             token
           end
 
-          def parse_string(token_string)
+          def parse_token(token_string)
             token_string.to_i
           end
 

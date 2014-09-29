@@ -22,11 +22,11 @@ module Cassandra
       module Partitioners
         class Ordered
           def create_token(partition_key)
-            return partition_key
+            partition_key
           end
 
-          def parse_string(token_string)
-            return token_string
+          def parse_token(token_string)
+            token_string
           end
         end
       end
