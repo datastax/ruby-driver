@@ -296,7 +296,7 @@ module Cassandra
 
     if options.has_key?(:load_balancing_policy)
       load_balancing_policy = options[:load_balancing_policy]
-      methods = [:host_up, :host_down, :host_found, :host_lost, :distance, :plan]
+      methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :distance, :plan]
 
       unless methods.all? {|method| load_balancing_policy.respond_to?(method)}
         raise ::ArgumentError, ":load_balancing_policy #{load_balancing_policy.inspect} must respond to #{methods.inspect}, but doesn't"
