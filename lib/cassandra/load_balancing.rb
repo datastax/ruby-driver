@@ -49,8 +49,8 @@ module Cassandra
       def host_lost(host)
       end
 
-      # Returns a distance that lets the driver to determine host many
-      #   connections (if any) to open to the host
+      # Returns a distance that determines how many connections (if any) the
+      # driver will open to the host.
       #
       # @param host [Cassandra::Host] a host instance
       # @return [Symbol] distance to host. Must be one of
