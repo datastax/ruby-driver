@@ -57,7 +57,7 @@ The host you specify is just a seed node, the driver will automatically discover
 
 Read more:
 
-* [`Cql.connect` options](http://datastax.github.io/ruby-driver/api/#connect-class_method)
+* [`Cassandra.connect` options](http://datastax.github.io/ruby-driver/api/#connect-class_method)
 * [`Session#execute_async` options](http://datastax.github.io/ruby-driver/api/session/#execute_async-instance_method)
 * [Usage documentation](http://datastax.github.io/ruby-driver/features)
 
