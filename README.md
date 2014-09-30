@@ -82,9 +82,17 @@ Note: if you want to use compression you should also install [snappy](http://rub
 
 Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API. In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/master/examples/cql-rb-wrapper.rb) to assist you with gradual upgrade.
 
+## What's new
+
+Current release introduces the following new features:
+
+* TokenAware load balancing policy
+* Domain names
+* SSL encryption
+
 ## Changelog & versioning
 
-Check out the [releases on GitHub](https://github.com/datastax/ruby-driver/releases). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
+Check out the [releases on GitHub](https://github.com/datastax/ruby-driver/releases) and [changelog](https://github.com/datastax/ruby-driver/blob/master/CHANGELOG.md). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
 
 Private and experimental APIs, defined as whatever is not in the [public API documentation][1], i.e. classes and methods marked as `@private`, will change without warning. If you've been recommended to try an experimental API by the maintainers, please let them know if you depend on that API. Experimental APIs will eventually become public, and knowing how they are used helps in determining their maturity.
 
