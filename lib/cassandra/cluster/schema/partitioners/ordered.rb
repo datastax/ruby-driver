@@ -19,7 +19,9 @@
 module Cassandra
   class Cluster
     class Schema
+      # @private
       module Partitioners
+        # @private
         class Ordered
           def create_token(partition_key)
             partition_key

@@ -19,7 +19,9 @@
 module Cassandra
   class Cluster
     class Schema
+      # @private
       module ReplicationStrategies
+        # @private
         class None
           def replication_map(token_hosts, token_ring, replication_options)
             replication_map = ::Hash.new

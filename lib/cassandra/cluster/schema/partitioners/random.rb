@@ -19,7 +19,9 @@
 module Cassandra
   class Cluster
     class Schema
+      # @private
       module Partitioners
+        # @private
         class Random
           def create_token(partition_key)
             Digest::MD5.hexdigest(partition_key).to_i(16)

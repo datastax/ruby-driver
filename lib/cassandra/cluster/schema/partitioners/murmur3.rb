@@ -19,7 +19,9 @@
 module Cassandra
   class Cluster
     class Schema
+      # @private
       module Partitioners
+        # @private
         class Murmur3
           def create_token(partition_key)
             token = Cassandra::Murmur3.hash(partition_key)
