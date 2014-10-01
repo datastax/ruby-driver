@@ -32,10 +32,22 @@ module Cassandra
           end
 
           def has_next?
-            return true unless @hosts.empty?
+            until @hosts.empty?
+              host = @hosts.shift
 
-            while plan.has_next?
-              host = plan.next
+              if @policy.distance(host) == :local
+                @seen[host] = true
+                @next = host
+                break
+              end
+            end
+
+            return true if @next
+
+            @plan ||= @policy.plan(@keyspace, @statement, @options)
+
+            while @plan.has_next?
+              host = @plan.next
 
               unless @seen[host]
                 @next = host
@@ -47,20 +59,9 @@ module Cassandra
           end
 
           def next
-            unless @hosts.empty?
-              host = @hosts.shift
-              @seen[host] = true
-
-              return host
-            end
-
-            @next
-          end
-
-          private
-
-          def plan
-            @plan ||= @policy.plan(@keyspace, @statement, @options)
+            host  = @next
+            @next = nil
+            host
           end
         end
 

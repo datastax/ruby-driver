@@ -22,10 +22,14 @@ module Cassandra
   module LoadBalancing
     module Policies
       describe(TokenAware) do
-        let(:policy)  { double('load balancing policy').as_null_object }
+        let(:policy)  { double('load balancing policy') }
         let(:cluster) { double('cassandra cluster') }
 
         subject { TokenAware.new(policy) }
+
+        before do
+          allow(policy).to receive(:respond_to?) { true }
+        end
 
         describe('#setup') do
           it 'sets up wrapped policy' do
@@ -67,6 +71,7 @@ module Cassandra
 
           context('when set up') do
             before do
+              allow(policy).to receive(:setup)
               subject.setup(cluster)
               expect(cluster).to receive(:find_replicas).once.with(keyspace, statement).and_return(replicas)
             end
@@ -91,21 +96,57 @@ module Cassandra
               }
               let(:plan) { subject.plan(keyspace, statement, options) }
 
-              it 'prioritizes found replicas' do
-                expect(plan.next).to eq(replicas[0])
-                expect(plan.next).to eq(replicas[1])
-                expect(plan.next).to eq(replicas[2])
-              end
-
-              context('and all replicas failed') do
+              context('and all replicas are local') do
                 before do
-                  replicas.size.times do
-                    plan.next
+                  allow(policy).to receive(:distance) { :local }
+                end
+
+                it 'prioritizes found replicas' do
+                  expect(plan.has_next?).to eq(true)
+                  expect(plan.next).to eq(replicas[0])
+                  expect(plan.has_next?).to eq(true)
+                  expect(plan.next).to eq(replicas[1])
+                  expect(plan.has_next?).to eq(true)
+                  expect(plan.next).to eq(replicas[2])
+                end
+
+                context('and all replicas failed') do
+                  before do
+                    replicas.size.times do
+                      expect(plan.has_next?).to eq(true)
+                      plan.next
+                    end
+
+                    allow(child_plan).to receive(:next).and_return(next_host)
+                    allow(child_plan).to receive(:has_next?).and_return(true, false)
+                    allow(policy).to receive(:plan).and_return(child_plan)
                   end
 
-                  allow(child_plan).to receive(:next).and_return(next_host)
-                  allow(child_plan).to receive(:has_next?).and_return(true, false)
-                  allow(policy).to receive(:plan).and_return(child_plan)
+                  let(:next_host)  { double('next host from the wrapped policy plan') }
+                  let(:child_plan) { double('wrapped policy plan') }
+
+                  it 'delegates to the wrapped policy' do
+                    expect(plan.has_next?).to be_truthy
+                    expect(plan.next).to eq(next_host)
+                  end
+
+                  context('and replica host returned from the child plan') do
+                    let(:next_host) { replicas.sample }
+
+                    it 'is ignored' do
+                      expect(plan.has_next?).to be_falsey
+                    end
+                  end
+                end
+              end
+
+              context('and all replicas are not local') do
+                before do
+                  allow(policy).to receive(:distance) { :remote }
+                  allow(policy).to receive(:plan)     { child_plan }
+
+                  allow(child_plan).to receive(:next)      { next_host }
+                  allow(child_plan).to receive(:has_next?) { true }
                 end
 
                 let(:next_host)  { double('next host from the wrapped policy plan') }
@@ -114,14 +155,6 @@ module Cassandra
                 it 'delegates to the wrapped policy' do
                   expect(plan.has_next?).to be_truthy
                   expect(plan.next).to eq(next_host)
-                end
-
-                context('and replica host returned from the child plan') do
-                  let(:next_host) { replicas.sample }
-
-                  it 'is ignored' do
-                    expect(plan.has_next?).to be_falsey
-                  end
                 end
               end
             end
