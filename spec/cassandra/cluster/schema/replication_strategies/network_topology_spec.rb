@@ -91,6 +91,27 @@ module Cassandra
                 ])
               end
             end
+
+            context('with datacenters missing replication factor') do
+              let(:replication_options) {
+                {
+                  'dc1' => '2',
+                  'dc2' => '2'
+                }
+              }
+
+              it 'skips those datacenters in replication map' do
+                replication_map = subject.replication_map(token_hosts, token_ring, replication_options)
+                expect(replication_map[token_ring[0]].map do |host|
+                  [host.datacenter, host.rack]
+                end).to eq([
+                  ['dc1', 'rack1'],
+                  ['dc2', 'rack1'],
+                  ['dc1', 'rack2'],
+                  ['dc2', 'rack2'],
+                ])
+              end
+            end
           end
         end
       end

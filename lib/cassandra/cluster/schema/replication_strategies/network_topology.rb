@@ -46,8 +46,10 @@ module Cassandra
                 datacenter = host.datacenter
                 next if datacenter.nil?
 
-                factor = Integer(replication_options[datacenter])
+                factor = replication_options[datacenter]
                 next unless factor
+
+                factor = Integer(factor) rescue next
 
                 replicas_in_datacenter = all_replicas[datacenter] ||= ::Set.new
                 next if replicas_in_datacenter.size >= factor
