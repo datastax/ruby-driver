@@ -86,9 +86,9 @@ Some of the new features added to the driver have unfortunately led to changes i
 
 Current release introduces the following new features:
 
-* TokenAware load balancing policy
+* [Token-aware load balancing policy](http://datastax.github.io/ruby-driver/features/load_balancing/token_aware/)
+* [SSL encryption](http://datastax.github.io/ruby-driver/features/security/ssl_encryption/)
 * Domain names
-* SSL encryption
 
 ## Changelog & versioning
 
