@@ -12,6 +12,8 @@ group :development do
     gem 'guard'
     gem 'guard-nanoc'
   end
+
+  gem 'cliver'
 end
 
 group :test do
