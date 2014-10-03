@@ -106,6 +106,8 @@ class DatatypeTest < IntegrationTestCase
     result.each_value do |actual|
       assert_nil actual
     end
+
+    cluster.close
   end
 
   def test_can_insert_all_primitive_datatypes_nil_values
@@ -143,6 +145,8 @@ class DatatypeTest < IntegrationTestCase
     result.each_value.zip(params) do |actual, expected|
       assert_equal expected, actual
     end
+
+    cluster.close
   end
 
   def test_can_insert_each_primitive_datatype
@@ -180,6 +184,8 @@ class DatatypeTest < IntegrationTestCase
     result.each_value.zip(params) do |actual, expected|
       assert_equal expected, actual
     end
+
+    cluster.close
   end
 
   def test_all_collection_types_initially_nil
@@ -213,6 +219,8 @@ class DatatypeTest < IntegrationTestCase
     result.each_value do |actual|
       assert_nil actual
     end
+
+    cluster.close
   end
 
   def test_can_insert_all_collection_types_nil_values
@@ -263,6 +271,8 @@ class DatatypeTest < IntegrationTestCase
     result.each_value.zip(params) do |actual, expected|
       assert_equal expected, actual
     end
+
+    cluster.close
   end
 
   def test_can_insert_each_collection_type
@@ -313,5 +323,7 @@ class DatatypeTest < IntegrationTestCase
     result.each_value.zip(params) do |actual, expected|
       assert_equal expected, actual
     end
+
+    cluster.close
   end
 end

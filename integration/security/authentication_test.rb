@@ -34,6 +34,7 @@ class AuthenticationTest < IntegrationTestCase
               )
 
     refute_nil cluster
+    cluster.close
   end
 
   def test_raise_error_on_invalid_auth
@@ -42,6 +43,7 @@ class AuthenticationTest < IntegrationTestCase
                   username: '',
                   password: ''
                 )
+      cluster.close
     end
 
     assert_raises(Cassandra::Errors::AuthenticationError) do
@@ -49,6 +51,8 @@ class AuthenticationTest < IntegrationTestCase
                   username: 'invalidname',
                   password: 'badpassword'
                 )
+      cluster.close
     end
+
   end
 end

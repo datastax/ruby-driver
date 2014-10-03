@@ -25,6 +25,7 @@ class SessionTest < IntegrationTestCase
     session = cluster.connect()
 
     assert_nil session.keyspace
+    cluster.close
   end
 
   def test_can_select_from_an_existing_keyspace
@@ -33,6 +34,7 @@ class SessionTest < IntegrationTestCase
     results = session.execute("SELECT * FROM system.schema_keyspaces")
 
     refute_nil results
+    cluster.close
   end
 
   def test_use_keyspace_changes_current_keyspace
@@ -50,6 +52,7 @@ class SessionTest < IntegrationTestCase
     session = cluster.connect("system")
 
     assert_equal session.keyspace, "system"
+    cluster.close
   end
 
   def test_can_create_new_keyspace
@@ -61,6 +64,7 @@ class SessionTest < IntegrationTestCase
     
     session.execute("USE simplex")
     assert_equal session.keyspace, "simplex"
+    cluster.close
   end
 
   def test_execute_errors_on_invalid_keyspaces
@@ -75,6 +79,8 @@ class SessionTest < IntegrationTestCase
     assert_raises(Cassandra::Errors::QueryError) do 
       session.execute("CREATE TABLE users (user_id INT PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)")
     end
+
+    cluster.close
   end
 
   def test_can_insert_after_creating_a_table
@@ -91,6 +97,7 @@ class SessionTest < IntegrationTestCase
     result = session.execute("SELECT * FROM users").first
 
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
+    cluster.close
   end
 
   def test_can_insert_after_creating_a_table_async
@@ -106,6 +113,7 @@ class SessionTest < IntegrationTestCase
     future = session.execute_async("SELECT * FROM users")
     result = future.get.first
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
+    cluster.close
   end
 
   def test_can_prepare_insert_and_select_statements
@@ -123,6 +131,7 @@ class SessionTest < IntegrationTestCase
     session.execute(insert, 0, 'John', 'Doe', 40)
     result = session.execute(select).first
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
+    cluster.close
   end
 
   def test_prepare_errors_on_non_existent_table
@@ -137,7 +146,9 @@ class SessionTest < IntegrationTestCase
 
     assert_raises(Cassandra::Errors::QueryError) do
       session.prepare("SELECT * FROM users")
-    end    
+    end
+
+    cluster.close    
   end
 
   def test_can_execute_simple_batch_statements
@@ -158,6 +169,7 @@ class SessionTest < IntegrationTestCase
     session.execute(batch)
     results = session.execute("SELECT * FROM users")
     assert_equal 3, results.size
+    cluster.close
   end
 
   def test_can_execute_batch_statements_with_parameters
@@ -178,6 +190,7 @@ class SessionTest < IntegrationTestCase
     session.execute(batch)
     results = session.execute("SELECT * FROM users")
     assert_equal 3, results.size
+    cluster.close
   end
 
   def test_can_execute_batch_statements_with_prepared_statements
@@ -201,6 +214,7 @@ class SessionTest < IntegrationTestCase
     session.execute(batch)
     results = session.execute("SELECT * FROM users")
     assert_equal 3, results.size
+    cluster.close
   end
 
   def test_result_paging
@@ -245,6 +259,8 @@ class SessionTest < IntegrationTestCase
     assert_raises(ArgumentError) do
       session.execute("SELECT * FROM test", page_size: 0)
     end
+
+    cluster.close
   end
 
   def page_through(future, count)
@@ -282,6 +298,7 @@ class SessionTest < IntegrationTestCase
 
     count = page_through(future, count).get
     assert_equal 26, count
+    cluster.close
   end
 
   def test_query_tracing
@@ -312,5 +329,7 @@ class SessionTest < IntegrationTestCase
       refute_nil result.execution_info.trace
       assert_instance_of Cassandra::Uuid, result.execution_info.trace.id
     end
+
+    cluster.close
   end
 end
