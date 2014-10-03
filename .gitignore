@@ -12,3 +12,6 @@
 /.sass-cache
 /venv
 /lib/cassandra_murmur3.*
+/lib/cql_scanner.*
+/ext/cql_scanner/cql_scanner.c
+/ext/cql_scanner/CqlScannerService.java
