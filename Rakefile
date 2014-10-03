@@ -31,10 +31,14 @@ when 'jruby'
   require 'rake/javaextensiontask'
 
   Rake::JavaExtensionTask.new('cassandra_murmur3')
+  Rake::JavaExtensionTask.new('cql_scanner')
+  Rake::Task['compile'].prerequisites.unshift(FileList['ext/cql_scanner/CqlScannerService.java'])
 else
   require 'rake/extensiontask'
 
   Rake::ExtensionTask.new('cassandra_murmur3')
+  Rake::ExtensionTask.new('cql_scanner')
+  Rake::Task['compile'].prerequisites.unshift(FileList['ext/cql_scanner/cql_scanner.c'])
 end
 
 Rake::TestTask.new(:integration => :compile) do |t|
@@ -44,3 +48,20 @@ Rake::TestTask.new(:integration => :compile) do |t|
                   'integration/load_balancing/*_test.rb']
   t.verbose = true
 end
+
+task :check_ragel do
+  require 'cliver'
+  Cliver.detect!('ragel')
+end
+
+file 'ext/cql_scanner/cql_scanner.c' => [:check_ragel] do
+  system('ragel', '-C', '-o', 'ext/cql_scanner/cql_scanner.c', 'ragel/scanner_c.rl')
+end
+
+CLOBBER.include('ext/cql_scanner/cql_scanner.c')
+
+file 'ext/cql_scanner/CqlScannerService.java' => [:check_ragel] do
+  system('ragel', '-J', '-o', 'ext/cql_scanner/CqlScannerService.java', 'ragel/scanner_java.rl')
+end
+
+CLOBBER.include('ext/cql_scanner/CqlScannerService.java')
