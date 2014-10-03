@@ -22,19 +22,12 @@ require 'cassandra'
 
 class IntegrationTestCase < MiniTest::Unit::TestCase
   def setup
-    ccm_cluster
-  end
+    @ccm_cluster = CCM.setup_cluster(1, 1)
 
-  def ccm_cluster
-    $ccm_cluster ||= begin
-      cluster = CCM.setup_cluster(1, 1)
-      
+    $stop_cluster ||= begin
       at_exit do
-        $ccm_cluster.stop
-        $ccm_cluster = nil
+        @ccm_cluster.stop
       end
-      
-      cluster
     end
   end
 
@@ -47,5 +40,7 @@ class IntegrationTestCase < MiniTest::Unit::TestCase
 
       session.execute("DROP KEYSPACE #{keyspace.name}")
     end
+
+    cluster.close
   end
 end
