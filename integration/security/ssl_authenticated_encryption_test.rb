@@ -20,11 +20,13 @@ require File.dirname(__FILE__) + '/../integration_test_case.rb'
 
 class SSLAuthenticatedEncryptionTest < IntegrationTestCase
   def setup
-    @server_cert, @client_cert, @private_key, @passphrase = ccm_cluster.enable_ssl_client_auth
+    super
+    @server_cert, @client_cert, @private_key, @passphrase = @ccm_cluster.enable_ssl_client_auth
   end
 
   def teardown
-    ccm_cluster.disable_ssl
+    @ccm_cluster.disable_ssl
+    super
   end
 
   def test_can_connect_with_ssl_authentication

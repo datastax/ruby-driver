@@ -20,11 +20,13 @@ require File.dirname(__FILE__) + '/../integration_test_case.rb'
 
 class AuthenticationTest < IntegrationTestCase
   def setup
-    @username, @password = ccm_cluster.enable_authentication
+    super
+    @username, @password = @ccm_cluster.enable_authentication
   end
 
   def teardown
-    ccm_cluster.disable_authentication
+    @ccm_cluster.disable_authentication
+    super
   end
 
   def test_can_authenticate_to_cluster
