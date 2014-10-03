@@ -5,6 +5,7 @@ require 'bundler/setup'
 require 'rspec/core/rake_task'
 require 'cucumber/rake/task'
 require 'rake/testtask'
+require 'bundler/gem_tasks'
 
 ENV["FAIL_FAST"] ||= 'Y'
 
