@@ -414,6 +414,9 @@ require 'cassandra/util'
 # murmur3 hash extension
 require 'cassandra_murmur3'
 
+# cql scanner extension
+require 'cql_scanner'
+
 module Cassandra
   # @private
   Io = Ione::Io
