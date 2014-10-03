@@ -35,6 +35,7 @@ class SSLAuthenticatedEncryptionTest < IntegrationTestCase
                 passphrase:   @passphrase
               )
     refute_nil cluster
+    cluster.close
   end
 
   def test_raise_error_on_invalid_ssl_auth
@@ -45,6 +46,7 @@ class SSLAuthenticatedEncryptionTest < IntegrationTestCase
                   private_key:  @private_key,
                   passphrase:   'badpassword'
                 )
+      cluster.close
     end
   end
 end

@@ -30,22 +30,26 @@ class SSLEncryptionTest < IntegrationTestCase
   def test_can_connect_with_default_ssl
     cluster = Cassandra.connect(ssl: true)
     refute_nil cluster
+    cluster.close
   end
 
   def test_raise_error_when_not_using_ssl
     assert_raises(Cassandra::Errors::NoHostsAvailable) do
       cluster = Cassandra.connect
+      cluster.close
     end
   end
 
   def test_can_connect_with_ssl_ca
     cluster = Cassandra.connect(server_cert: @server_cert)
     refute_nil cluster
+    cluster.close
   end
 
   def test_raise_error_on_invalid_ca_provided
     assert_raises(Cassandra::Errors::NoHostsAvailable) do
       cluster = Cassandra.connect(server_cert: '')
+      cluster.close
     end
   end
 end
