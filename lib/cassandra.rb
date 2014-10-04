@@ -414,8 +414,9 @@ require 'cassandra/util'
 # murmur3 hash extension
 require 'cassandra_murmur3'
 
-# cql scanner extension
+# cql scanner
 require 'cql_scanner'
+require 'cassandra/cql/type_guesser'
 
 module Cassandra
   # @private
