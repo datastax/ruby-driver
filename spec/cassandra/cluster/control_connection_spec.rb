@@ -300,6 +300,46 @@ module Cassandra
           end
         end
 
+        context 'with empty peers' do
+          it 'skips empty peers' do
+            additional_rpc_addresses = additional_nodes.dup
+
+            handle_request do |request|
+              case request
+              when Protocol::QueryRequest
+                case request.cql
+                when /FROM system\.peers/
+                  rows = min_peers[0].times.map do |host_id|
+                    ip = additional_rpc_addresses.shift
+                    {
+                      'peer'            => ip,
+                      'rack'            => racks[ip],
+                      'data_center'     => data_centers[ip],
+                      'host_id'         => host_ids[ip],
+                      'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
+                      'release_version' => release_versions[ip]
+                    }
+                  end
+
+                  rows << {
+                    'peer'            => nil,
+                    'rack'            => nil,
+                    'data_center'     => nil,
+                    'host_id'         => nil,
+                    'rpc_address'     => nil,
+                    'release_version' => nil
+                  }
+                  Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
+                end
+              end
+            end
+
+            control_connection.connect_async.value
+
+            expect(cluster_registry).to have(3).hosts
+          end
+        end
+
         context 'with logging' do
           it 'logs when fetching cluster state' do
             logger.stub(:debug)

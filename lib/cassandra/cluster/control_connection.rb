@@ -277,7 +277,9 @@ module Cassandra
           ips = ::Set.new
 
           peers.each do |data|
-            ips << ip = peer_ip(data)
+            ip = peer_ip(data)
+            next unless ip
+            ips << ip
             @registry.host_found(ip, data)
           end
 
