@@ -149,7 +149,7 @@ module Cassandra
       private
 
       def create_host(ip, data)
-        Host.new(ip, data['host_id'], data['rack'], data['data_center'], data['release_version'], data['tokens'].freeze, :up)
+        Host.new(ip, data['host_id'], data['rack'], data['data_center'], data['release_version'], Array(data['tokens']).freeze, :up)
       end
 
       def toggle_up(host)
