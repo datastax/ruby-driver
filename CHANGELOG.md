@@ -1,3 +1,9 @@
+# 1.0.0.beta.3
+
+Bug fixes:
+
+* [RUBY-35] handle ghost entries in system.peers table (CASSANDRA-7825)
+
 # 1.0.0.beta.2
 
 Features:
