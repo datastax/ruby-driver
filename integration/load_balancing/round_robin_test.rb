@@ -19,24 +19,16 @@
 require File.dirname(__FILE__) + '/../integration_test_case.rb'
 
 class RoundRobinTest < IntegrationTestCase
-  def setup
-    @ccm_cluster = CCM.setup_cluster(2, 2)
-
-    $stop_cluster ||= begin
-      at_exit do
-        @ccm_cluster.stop
-      end
-    end
+  def self.before_suite
+    @@ccm_cluster = CCM.setup_cluster(2, 2)
   end
 
   def setup_schema
-    cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("DROP KEYSPACE simplex") rescue nil
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
-    session.execute("CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT)")
-    cluster.close
+    @@ccm_cluster.setup_schema(<<-CQL)
+    CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+    USE simplex;
+    CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+    CQL
   end
 
   def test_round_robin_is_default_policy
@@ -128,8 +120,8 @@ class RoundRobinTest < IntegrationTestCase
     cluster = Cassandra.connect(consistency: :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
 
-    @ccm_cluster.stop_node('node3')
-    @ccm_cluster.stop_node('node4')
+    @@ccm_cluster.stop_node('node3')
+    @@ccm_cluster.stop_node('node4')
 
     hosts_used = []
     4.times do
@@ -148,14 +140,14 @@ class RoundRobinTest < IntegrationTestCase
     cluster = Cassandra.connect(consistency: :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
 
-    @ccm_cluster.stop_node('node1')
-    @ccm_cluster.stop_node('node2')
+    @@ccm_cluster.stop_node('node1')
+    @@ccm_cluster.stop_node('node2')
 
     assert_raises(Cassandra::Errors::QueryError) do
       session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)")
     end
 
-    @ccm_cluster.start_node('node1')
+    @@ccm_cluster.start_node('node1')
     cluster.close
   end
 
@@ -167,8 +159,8 @@ class RoundRobinTest < IntegrationTestCase
     cluster = Cassandra.connect(consistency: :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
 
-    @ccm_cluster.stop_node('node3')
-    @ccm_cluster.stop_node('node4')
+    @@ccm_cluster.stop_node('node3')
+    @@ccm_cluster.stop_node('node4')
 
     hosts_used = []
     4.times do
@@ -189,8 +181,8 @@ class RoundRobinTest < IntegrationTestCase
     cluster = Cassandra.connect(consistency: :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
 
-    @ccm_cluster.stop_node('node3')
-    @ccm_cluster.stop_node('node4')
+    @@ccm_cluster.stop_node('node3')
+    @@ccm_cluster.stop_node('node4')
 
     assert_raises(Cassandra::Errors::NoHostsAvailable) do 
       session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)", :consistency => :local_one)
@@ -207,8 +199,8 @@ class RoundRobinTest < IntegrationTestCase
     cluster = Cassandra.connect(consistency: :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
 
-    @ccm_cluster.stop_node('node3')
-    @ccm_cluster.stop_node('node4')
+    @@ccm_cluster.stop_node('node3')
+    @@ccm_cluster.stop_node('node4')
 
     hosts_used = []
     4.times do

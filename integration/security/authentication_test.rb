@@ -19,23 +19,24 @@
 require File.dirname(__FILE__) + '/../integration_test_case.rb'
 
 class AuthenticationTest < IntegrationTestCase
-  def setup
+  def self.before_suite
     super
-    @username, @password = @ccm_cluster.enable_authentication
+    @@username, @@password = @@ccm_cluster.enable_authentication
   end
 
-  def teardown
-    @ccm_cluster.disable_authentication
+  def self.after_suite
+    @@ccm_cluster.disable_authentication
     super
   end
 
   def test_can_authenticate_to_cluster
     cluster = Cassandra.connect(
-                username: @username,
-                password: @password
+                username: @@username,
+                password: @@password
               )
 
     refute_nil cluster
+  ensure
     cluster.close
   end
 

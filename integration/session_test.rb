@@ -19,12 +19,21 @@
 require File.dirname(__FILE__) + '/integration_test_case.rb'
 
 class SessionTest < IntegrationTestCase
+  def setup_schema
+    @@ccm_cluster.setup_schema(<<-CQL)
+    CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+    USE simplex;
+    CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+    CREATE TABLE test (k text, v int, PRIMARY KEY (k, v));
+    CQL
+  end
 
   def test_session_keyspace_is_initially_nil
     cluster = Cassandra.connect
     session = cluster.connect()
 
     assert_nil session.keyspace
+  ensure
     cluster.close
   end
 
@@ -34,6 +43,7 @@ class SessionTest < IntegrationTestCase
     results = session.execute("SELECT * FROM system.schema_keyspaces")
 
     refute_nil results
+  ensure
     cluster.close
   end
 
@@ -45,6 +55,8 @@ class SessionTest < IntegrationTestCase
 
     session.execute("USE system_traces")
     assert_equal session.keyspace, "system_traces"
+  ensure
+    cluster.close
   end
 
   def test_connect_session_with_existing_keyspace
@@ -52,18 +64,21 @@ class SessionTest < IntegrationTestCase
     session = cluster.connect("system")
 
     assert_equal session.keyspace, "system"
+  ensure
     cluster.close
   end
 
   def test_can_create_new_keyspace
+    setup_schema
+
     cluster = Cassandra.connect
     session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    sleep(1)
+
     assert cluster.has_keyspace?("simplex"), "Expected cluster to have keyspace 'simplex'"
     
     session.execute("USE simplex")
     assert_equal session.keyspace, "simplex"
+  ensure
     cluster.close
   end
 
@@ -79,49 +94,47 @@ class SessionTest < IntegrationTestCase
     assert_raises(Cassandra::Errors::QueryError) do 
       session.execute("CREATE TABLE users (user_id INT PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)")
     end
-
+  ensure
     cluster.close
   end
 
   def test_can_insert_after_creating_a_table
-    cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
+    setup_schema
 
-    session.execute("CREATE TABLE users (user_id INT PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)")
-    sleep(1)
+    cluster = Cassandra.connect
+    session = cluster.connect("simplex")
+
     assert cluster.keyspace("simplex").has_table?("users"), "Expected to keyspace 'simplex' to have table 'users'"
 
     session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)")
     result = session.execute("SELECT * FROM users").first
 
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
+  ensure
     cluster.close
   end
 
   def test_can_insert_after_creating_a_table_async
-    cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
+    setup_schema
 
-    session.execute("CREATE TABLE users (user_id INT PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)")
+    cluster = Cassandra.connect
+    session = cluster.connect("simplex")
+
     future = session.execute_async("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)")
     refute_nil future.get
 
     future = session.execute_async("SELECT * FROM users")
     result = future.get.first
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
+  ensure
     cluster.close
   end
 
   def test_can_prepare_insert_and_select_statements
+    setup_schema
+
     cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
-    session.execute("CREATE TABLE users (user_id INT PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)")
+    session = cluster.connect("simplex")
 
     insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
     select = session.prepare("SELECT * FROM users")
@@ -131,136 +144,144 @@ class SessionTest < IntegrationTestCase
     session.execute(insert, 0, 'John', 'Doe', 40)
     result = session.execute(select).first
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
+  ensure
     cluster.close
   end
 
   def test_prepare_errors_on_non_existent_table
+    setup_schema
+
     cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
+    session = cluster.connect("simplex")
 
     assert_raises(Cassandra::Errors::QueryError) do
-      session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
+      session.prepare("INSERT INTO badtable (user_id, first, last, age) VALUES (?, ?, ?, ?)")
     end
 
     assert_raises(Cassandra::Errors::QueryError) do
-      session.prepare("SELECT * FROM users")
+      session.prepare("SELECT * FROM badtable")
     end
-
-    cluster.close    
+  ensure
+    cluster.close
   end
 
   def test_can_execute_simple_batch_statements
     skip("Batch statements are only available in C* after 2.0") if CCM.cassandra_version < '2.0.0'
 
-    cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
-    session.execute("CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT)")
+    setup_schema
 
-    batch = session.batch do |b|
-      b.add("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)")
-      b.add("INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35)")
-      b.add("INSERT INTO users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32)")
+    begin
+      cluster = Cassandra.connect
+      session = cluster.connect("simplex")
+
+      batch = session.batch do |b|
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)")
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35)")
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32)")
+      end
+
+      session.execute(batch)
+      results = session.execute("SELECT * FROM users")
+      assert_equal 3, results.size
+    ensure
+      cluster.close
     end
-
-    session.execute(batch)
-    results = session.execute("SELECT * FROM users")
-    assert_equal 3, results.size
-    cluster.close
   end
 
   def test_can_execute_batch_statements_with_parameters
     skip("Batch statements are only available in C* after 2.0") if CCM.cassandra_version < '2.0.0'
 
-    cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
-    session.execute("CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT)")
+    setup_schema
 
-    batch = session.batch do |b|
-      b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", 3, 'Apache', 'Cassandra', 8)
-      b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", 4, 'DataStax', 'Ruby-Driver', 1)
-      b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", 5, 'Cassandra', 'Community', 8)
+    begin
+      cluster = Cassandra.connect
+      session = cluster.connect("simplex")
+
+      batch = session.batch do |b|
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", 3, 'Apache', 'Cassandra', 8)
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", 4, 'DataStax', 'Ruby-Driver', 1)
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", 5, 'Cassandra', 'Community', 8)
+      end
+
+      session.execute(batch)
+      results = session.execute("SELECT * FROM users")
+      assert_equal 3, results.size
+    ensure
+      cluster.close
     end
-
-    session.execute(batch)
-    results = session.execute("SELECT * FROM users")
-    assert_equal 3, results.size
-    cluster.close
   end
 
   def test_can_execute_batch_statements_with_prepared_statements
     skip("Batch statements are only available in C* after 2.0") if CCM.cassandra_version < '2.0.0'
 
-    cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
-    session.execute("CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT)")
+    setup_schema
+
+    begin
+      cluster = Cassandra.connect
+      session = cluster.connect("simplex")
     
-    insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
-    refute_nil insert
+      insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
+      refute_nil insert
 
-    batch = session.batch do |b|
-      b.add(insert, 6, 'Joséphine', 'Baker', 108)
-      b.add(insert, 7, 'Stefan', 'Löfven', 57)
-      b.add(insert, 8, 'Mick', 'Jager', 71)
+      batch = session.batch do |b|
+        b.add(insert, 6, 'Joséphine', 'Baker', 108)
+        b.add(insert, 7, 'Stefan', 'Löfven', 57)
+        b.add(insert, 8, 'Mick', 'Jager', 71)
+      end
+
+      session.execute(batch)
+      results = session.execute("SELECT * FROM users")
+      assert_equal 3, results.size
+    ensure
+      cluster.close
     end
-
-    session.execute(batch)
-    results = session.execute("SELECT * FROM users")
-    assert_equal 3, results.size
-    cluster.close
   end
 
   def test_result_paging
     skip("Paging is only available in C* after 2.0") if CCM.cassandra_version < '2.0.0'
 
-    cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
-    
-    session.execute("CREATE TABLE test (k text, v int, PRIMARY KEY (k, v))")
-    insert = session.prepare("INSERT INTO test (k, v) VALUES (?, ?)")
-    ("a".."z").each_with_index do |letter, number|
-      session.execute(insert, letter, number)
-    end
+    setup_schema
 
-    # Small page_size
-    results  = session.execute("SELECT * FROM test", page_size: 5)
-    assert_equal 5, results.size
-    refute results.last_page?
-    count = 0
+    begin
+      cluster = Cassandra.connect
+      session = cluster.connect("simplex")
 
-    loop do
-      results.each do |row|
-        refute_nil row
-        count += 1
+      insert = session.prepare("INSERT INTO test (k, v) VALUES (?, ?)")
+      ("a".."z").each_with_index do |letter, number|
+        session.execute(insert, letter, number)
       end
-      
-      break if results.last_page?
+
+      # Small page_size
+      results  = session.execute("SELECT * FROM test", page_size: 5)
       assert_equal 5, results.size
-      results = results.next_page
+      refute results.last_page?
+      count = 0
+
+      loop do
+        results.each do |row|
+          refute_nil row
+          count += 1
+        end
+      
+        break if results.last_page?
+        assert_equal 5, results.size
+        results = results.next_page
+      end
+      assert results.last_page?
+      assert_equal 26, count
+
+      # Lage page_size
+      results  = session.execute("SELECT * FROM test", page_size: 500)
+      assert_equal 26, results.size
+      assert results.last_page?
+
+      # Invalid page_size
+      assert_raises(ArgumentError) do
+        session.execute("SELECT * FROM test", page_size: 0)
+      end
+    ensure
+      cluster.close
     end
-    assert results.last_page?
-    assert_equal 26, count
-
-    # Lage page_size
-    results  = session.execute("SELECT * FROM test", page_size: 500)
-    assert_equal 26, results.size
-    assert results.last_page?
-
-    # Invalid page_size
-    assert_raises(ArgumentError) do
-      session.execute("SELECT * FROM test", page_size: 0)
-    end
-
-    cluster.close
   end
 
   def page_through(future, count)
@@ -281,32 +302,33 @@ class SessionTest < IntegrationTestCase
   def test_result_paging_async
     skip("Paging is only available in C* after 2.0") if CCM.cassandra_version < '2.0.0'
 
-    cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
-    
-    session.execute("CREATE TABLE test (k text, v int, PRIMARY KEY (k, v))")
-    insert = session.prepare("INSERT INTO test (k, v) VALUES (?, ?)")
-    ("a".."z").each_with_index do |letter, number|
-      session.execute(insert, letter, number)
+    setup_schema
+
+    begin
+      cluster = Cassandra.connect
+      session = cluster.connect("simplex")
+
+      insert = session.prepare("INSERT INTO test (k, v) VALUES (?, ?)")
+      ("a".."z").each_with_index do |letter, number|
+        session.execute(insert, letter, number)
+      end
+
+      select = session.prepare("SELECT * FROM test")
+      future = session.execute_async(select, page_size: 5)
+      count = 0
+
+      count = page_through(future, count).get
+      assert_equal 26, count
+    ensure
+      cluster.close
     end
-
-    select = session.prepare("SELECT * FROM test")
-    future = session.execute_async(select, page_size: 5)
-    count = 0
-
-    count = page_through(future, count).get
-    assert_equal 26, count
-    cluster.close
   end
 
   def test_query_tracing
+    setup_schema
+
     cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
-    session.execute("CREATE TABLE test (k text, v int, PRIMARY KEY (k, v))")
+    session = cluster.connect("simplex")
     
     # Void returning operations
     result = session.execute("INSERT INTO test (k, v) VALUES ('a', 1)", trace: true)
@@ -329,7 +351,7 @@ class SessionTest < IntegrationTestCase
       refute_nil result.execution_info.trace
       assert_instance_of Cassandra::Uuid, result.execution_info.trace.id
     end
-
+  ensure
     cluster.close
   end
 end

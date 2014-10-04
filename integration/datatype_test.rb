@@ -20,6 +20,10 @@ require File.dirname(__FILE__) + '/integration_test_case.rb'
 
 class DatatypeTest < IntegrationTestCase
 
+  def setup
+    @@ccm_cluster.setup_schema("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
+  end
+
   def primitive_datatypes
     [ 'ascii',
       'bigint',
@@ -83,9 +87,7 @@ class DatatypeTest < IntegrationTestCase
 
   def test_all_primitive_datatypes_initially_nil
     cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
+    session = cluster.connect("simplex")
 
     # Create the table
     alpha_type_list = ["zz int PRIMARY KEY"]
@@ -106,15 +108,13 @@ class DatatypeTest < IntegrationTestCase
     result.each_value do |actual|
       assert_nil actual
     end
-
+  ensure
     cluster.close
   end
 
   def test_can_insert_all_primitive_datatypes_nil_values
     cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
+    session = cluster.connect("simplex")
 
     # Create the table
     alpha_type_list = ["zz int PRIMARY KEY"]
@@ -145,15 +145,13 @@ class DatatypeTest < IntegrationTestCase
     result.each_value.zip(params) do |actual, expected|
       assert_equal expected, actual
     end
-
+  ensure
     cluster.close
   end
 
   def test_can_insert_each_primitive_datatype
     cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
+    session = cluster.connect("simplex")
 
     # Create the table
     alpha_type_list = ["zz int PRIMARY KEY"]
@@ -184,15 +182,13 @@ class DatatypeTest < IntegrationTestCase
     result.each_value.zip(params) do |actual, expected|
       assert_equal expected, actual
     end
-
+  ensure
     cluster.close
   end
 
   def test_all_collection_types_initially_nil
     cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
+    session = cluster.connect("simplex")
 
     # Create the table
     alpha_type_list = ["zz int PRIMARY KEY"]
@@ -219,15 +215,13 @@ class DatatypeTest < IntegrationTestCase
     result.each_value do |actual|
       assert_nil actual
     end
-
+  ensure
     cluster.close
   end
 
   def test_can_insert_all_collection_types_nil_values
     cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
+    session = cluster.connect("simplex")
 
     # Create the table
     alpha_type_list = ["zz int PRIMARY KEY"]
@@ -271,15 +265,13 @@ class DatatypeTest < IntegrationTestCase
     result.each_value.zip(params) do |actual, expected|
       assert_equal expected, actual
     end
-
+  ensure
     cluster.close
   end
 
   def test_can_insert_each_collection_type
     cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
-    session.execute("USE simplex")
+    session = cluster.connect("simplex")
 
     # Create the table
     alpha_type_list = ["zz int PRIMARY KEY"]
@@ -323,7 +315,7 @@ class DatatypeTest < IntegrationTestCase
     result.each_value.zip(params) do |actual, expected|
       assert_equal expected, actual
     end
-
+  ensure
     cluster.close
   end
 end
