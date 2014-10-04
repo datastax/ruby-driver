@@ -286,7 +286,7 @@ module CCM extend self
 
       nodes.each(&:up!)
 
-      options = {:logger => logger, :consistency => :all}
+      options = {:logger => logger, :consistency => :one}
 
       if @username && @password
         options[:username] = @username
@@ -469,14 +469,7 @@ module CCM extend self
     end
 
     def setup_schema(schema)
-      start
-
-      @cluster.each_keyspace do |keyspace|
-        next if keyspace.name.start_with?('system')
-
-        @session.execute("DROP KEYSPACE #{keyspace.name}")
-      end
-
+      clear
       execute(schema)
 
       nil
@@ -495,8 +488,12 @@ module CCM extend self
     end
 
     def clear
-      @ccm.exec('clear')
-      nodes.each(&:down!)
+      start
+      @cluster.each_keyspace do |keyspace|
+        next if keyspace.name.start_with?('system')
+
+        @session.execute("DROP KEYSPACE #{keyspace.name}")
+      end
       nil
     end
 
@@ -534,6 +531,17 @@ module CCM extend self
   end
 
   def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
+    if @current_cluster
+      unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
+        @current_cluster.stop
+        remove_cluster(@current_cluster.name)
+        create_cluster(cassandra_cluster, cassandra_version, no_dc, no_nodes_per_dc)
+      end
+
+      @current_cluster.start
+      return @current_cluster
+    end
+
     if cluster_exists?(cassandra_cluster)
       switch_cluster(cassandra_cluster)
 

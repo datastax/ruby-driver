@@ -17,30 +17,43 @@
 #++
 
 require File.dirname(__FILE__) + '/../support/ccm.rb'
+require 'minitest/unit'
 require 'minitest/autorun'
 require 'cassandra'
 
 class IntegrationTestCase < MiniTest::Unit::TestCase
-  def setup
-    @ccm_cluster = CCM.setup_cluster(1, 1)
-
-    $stop_cluster ||= begin
-      at_exit do
-        @ccm_cluster.stop
-      end
-    end
+  def self.before_suite
+    @@ccm_cluster = CCM.setup_cluster(1, 1)
   end
 
-  def teardown
-    cluster = Cassandra.connect
-    session = cluster.connect()
-
-    cluster.each_keyspace do |keyspace|
-      next if keyspace.name.start_with?('system')
-
-      session.execute("DROP KEYSPACE #{keyspace.name}")
-    end
-
-    cluster.close
+  def self.after_suite
   end
 end
+
+class IntegrationUnit < MiniTest::Unit
+  def before_suites
+  end
+
+  def after_suites
+  end
+
+  def _run_suites(suites, type)
+    begin
+      before_suites
+      super(suites, type)
+    ensure
+      after_suites
+    end
+  end
+
+  def _run_suite(suite, type)
+    begin
+      suite.before_suite if suite.respond_to?(:before_suite)
+      super(suite, type)
+    ensure
+      suite.after_suite if suite.respond_to?(:after_suite)
+    end
+  end
+end
+
+MiniTest::Unit.runner = IntegrationUnit.new

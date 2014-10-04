@@ -19,29 +19,20 @@
 require File.dirname(__FILE__) + '/../integration_test_case.rb'
 
 class TokenAwareTest < IntegrationTestCase
-  def setup
-    @ccm_cluster = CCM.setup_cluster(2, 2)
-
-    $stop_cluster ||= begin
-      at_exit do
-        @ccm_cluster.stop
-      end
-    end
+  def self.before_suite
+    @@ccm_cluster = CCM.setup_cluster(2, 2)
   end
 
   def setup_schema
-    cluster = Cassandra.connect
-    session = cluster.connect()
-    session.execute("DROP KEYSPACE simplex") rescue nil
-    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 4}")
-    session.execute("USE simplex")
-    session.execute("CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT)")
-  
-    session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)")
-    session.execute("INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35)")
-    session.execute("INSERT INTO users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32)")
-    session.execute("INSERT INTO users (user_id, first, last, age) VALUES (3, 'Apache', 'Cassandra', 7)")
-    cluster.close  
+    @@ccm_cluster.setup_schema(<<-CQL)
+    CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 4};
+    USE simplex;
+    CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+    INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
+    INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
+    INSERT INTO users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
+    INSERT INTO users (user_id, first, last, age) VALUES (3, 'Apache', 'Cassandra', 7);
+    CQL
   end
 
   def test_token_aware_routes_to_primary_replica
@@ -85,13 +76,13 @@ class TokenAwareTest < IntegrationTestCase
     assert_equal 1, result.execution_info.hosts.size
     assert_equal "127.0.0.2", result.execution_info.hosts.first.ip.to_s
 
-    @ccm_cluster.stop_node("node2")
+    @@ccm_cluster.stop_node("node2")
 
     result  = session.execute(select, 2)
     assert_equal 1, result.execution_info.hosts.size
     assert_equal "127.0.0.4", result.execution_info.hosts.first.ip.to_s
 
-    @ccm_cluster.stop_node("node4")
+    @@ccm_cluster.stop_node("node4")
 
     result  = session.execute(select, 2)
     assert_equal 1, result.execution_info.hosts.size
@@ -161,13 +152,13 @@ class TokenAwareTest < IntegrationTestCase
     assert_equal 1, result.execution_info.hosts.size
     assert_equal "127.0.0.4", result.execution_info.hosts.first.ip.to_s
 
-    @ccm_cluster.stop_node("node4")
+    @@ccm_cluster.stop_node("node4")
 
     result  = session.execute(select, 2)
     assert_equal 1, result.execution_info.hosts.size
     assert_equal "127.0.0.3", result.execution_info.hosts.first.ip.to_s
 
-    @ccm_cluster.stop_node("node3")
+    @@ccm_cluster.stop_node("node3")
 
     result  = session.execute(select, 2, :consistency => :one)
     assert_equal 1, result.execution_info.hosts.size

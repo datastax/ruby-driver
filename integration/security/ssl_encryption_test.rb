@@ -19,19 +19,20 @@
 require File.dirname(__FILE__) + '/../integration_test_case.rb'
 
 class SSLEncryptionTest < IntegrationTestCase
-  def setup
+  def self.before_suite
     super
-    @server_cert = @ccm_cluster.enable_ssl
+    @@server_cert = @@ccm_cluster.enable_ssl
   end
 
-  def teardown
-    @ccm_cluster.disable_ssl
+  def self.after_suite
+    @@ccm_cluster.disable_ssl
     super
   end
 
   def test_can_connect_with_default_ssl
     cluster = Cassandra.connect(ssl: true)
     refute_nil cluster
+  ensure
     cluster.close
   end
 
@@ -43,8 +44,9 @@ class SSLEncryptionTest < IntegrationTestCase
   end
 
   def test_can_connect_with_ssl_ca
-    cluster = Cassandra.connect(server_cert: @server_cert)
+    cluster = Cassandra.connect(server_cert: @@server_cert)
     refute_nil cluster
+  ensure
     cluster.close
   end
 

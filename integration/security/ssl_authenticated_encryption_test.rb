@@ -19,33 +19,34 @@
 require File.dirname(__FILE__) + '/../integration_test_case.rb'
 
 class SSLAuthenticatedEncryptionTest < IntegrationTestCase
-  def setup
+  def self.before_suite
     super
-    @server_cert, @client_cert, @private_key, @passphrase = @ccm_cluster.enable_ssl_client_auth
+    @@server_cert, @@client_cert, @@private_key, @@passphrase = @@ccm_cluster.enable_ssl_client_auth
   end
 
-  def teardown
-    @ccm_cluster.disable_ssl
+  def self.after_suite
+    @@ccm_cluster.disable_ssl
     super
   end
 
   def test_can_connect_with_ssl_authentication
     cluster = Cassandra.connect(
-                server_cert:  @server_cert,
-                client_cert:  @client_cert,
-                private_key:  @private_key,
-                passphrase:   @passphrase
+                server_cert:  @@server_cert,
+                client_cert:  @@client_cert,
+                private_key:  @@private_key,
+                passphrase:   @@passphrase
               )
     refute_nil cluster
+  ensure
     cluster.close
   end
 
   def test_raise_error_on_invalid_ssl_auth
     assert_raises(OpenSSL::PKey::RSAError) do
       cluster = Cassandra.connect(
-                  server_cert:  @server_cert,
-                  client_cert:  @client_cert,
-                  private_key:  @private_key,
+                  server_cert:  @@server_cert,
+                  client_cert:  @@client_cert,
+                  private_key:  @@private_key,
                   passphrase:   'badpassword'
                 )
       cluster.close
