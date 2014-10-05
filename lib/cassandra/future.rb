@@ -188,7 +188,7 @@ module Cassandra
       monitor   = Monitor.new
       promise   = Promise.new
       remaining = futures.length
-      values    = Array.new(length)
+      values    = Array.new(remaining)
 
       futures.each_with_index do |future, i|
         future.on_complete do |v, e|
