@@ -25,7 +25,7 @@ class SSLAuthenticatedEncryptionTest < IntegrationTestCase
   end
 
   def self.after_suite
-    @@ccm_cluster.disable_ssl
+    @@ccm_cluster && @@ccm_cluster.disable_ssl
     super
   end
 

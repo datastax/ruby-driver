@@ -18,9 +18,9 @@
 
 ENV['CASSANDRA_HOST'] ||= '127.0.0.1'
 
-require File.dirname(__FILE__) + '/../support/ccm.rb'
-
 require 'bundler/setup'
+
+require File.dirname(__FILE__) + '/../support/ccm.rb'
 
 require 'rspec/collection_matchers'
 
