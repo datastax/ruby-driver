@@ -29,29 +29,29 @@ module Cassandra
         CqlByteBuffer.new
       end
 
+      numeric_types = [
+        :bigint,
+        :counter,
+        :decimal,
+        :double,
+        :float,
+        :int,
+        :varint,
+      ]
+
+      types = numeric_types + [
+        :ascii,
+        :blob,
+        :boolean,
+        :inet,
+        :text,
+        :varchar,
+        :timestamp,
+        :timeuuid,
+        :uuid,
+      ]
+
       describe '#to_bytes' do
-        numeric_types = [
-          :bigint,
-          :counter,
-          :decimal,
-          :double,
-          :float,
-          :int,
-          :varint,
-        ]
-
-        types = numeric_types + [
-          :ascii,
-          :blob,
-          :boolean,
-          :inet,
-          :text,
-          :varchar,
-          :timestamp,
-          :timeuuid,
-          :uuid,
-        ]
-
         context 'when encoding normal value' do
           types.each do |type|
             it "encodes a null #{type.upcase}" do
@@ -87,6 +87,16 @@ module Cassandra
               value = type == :decimal ? BigDecimal.new('-1') : -1
               encoded = converter.to_bytes(buffer, type, value, 4)
               converter.from_bytes(encoded, type, 4).should == value
+            end
+          end
+        end
+      end
+
+      describe('#from_bytes') do
+        context('with empty buffer') do
+          it 'returns nil' do
+            types.each do |type|
+              expect(converter.from_bytes(buffer, type, size_bytes=4)).to be_nil
             end
           end
         end
