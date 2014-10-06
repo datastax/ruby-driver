@@ -1,3 +1,9 @@
+# HEAD
+
+Bug fixes:
+
+* [RUBY-34] handle empty values without crashing
+
 # 1.0.0.beta.3
 
 Bug fixes:
