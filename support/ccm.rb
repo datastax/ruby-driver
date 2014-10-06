@@ -18,6 +18,7 @@
 
 require 'fileutils'
 require 'logger'
+require 'cliver'
 
 # Cassandra Cluster Manager integration for
 # driving a cassandra cluster from tests.
@@ -61,7 +62,7 @@ module CCM extend self
   if RUBY_ENGINE == 'jruby'
     class Runner
       def initialize(ccm_script, env, notifier)
-        @cmd      = 'ccm'
+        @cmd      = Cliver.detect!('ccm')
         @env      = env
         @notifier = notifier
       end
@@ -99,9 +100,10 @@ module CCM extend self
   else
     class Runner
       def initialize(ccm_script, env, notifier)
-        @ccm_script = ccm_script
-        @env        = env
-        @notifier   = notifier
+        @ccm_script  = ccm_script
+        @env         = env
+        @notifier    = notifier
+        @python_path = Cliver.detect!('python', '~> 2.7', detector: /(?<=Python )[0-9][.0-9a-z]+/)
       end
 
       def exec(*args)
@@ -158,7 +160,7 @@ module CCM extend self
 
         @pid = Process.spawn(
           @env,
-          'python', '-u', @ccm_script,
+          @python_path, '-u', @ccm_script,
           {
             :in => in_r,
             [:out, :err] => out_w

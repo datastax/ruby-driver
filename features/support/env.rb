@@ -1,8 +1,8 @@
 # encoding: utf-8
 
-require File.dirname(__FILE__) + '/../../support/ccm.rb'
-
 require 'bundler/setup'
+
+require File.dirname(__FILE__) + '/../../support/ccm.rb'
 
 unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
   require 'simplecov'

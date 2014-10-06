@@ -22,6 +22,8 @@ require 'minitest/autorun'
 require 'cassandra'
 
 class IntegrationTestCase < MiniTest::Unit::TestCase
+  @@ccm_cluster = nil
+
   def self.before_suite
     @@ccm_cluster = CCM.setup_cluster(1, 1)
   end

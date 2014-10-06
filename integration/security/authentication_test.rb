@@ -25,7 +25,7 @@ class AuthenticationTest < IntegrationTestCase
   end
 
   def self.after_suite
-    @@ccm_cluster.disable_authentication
+    @@ccm_cluster && @@ccm_cluster.disable_authentication
     super
   end
 
