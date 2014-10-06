@@ -140,6 +140,7 @@ module Cassandra
           size = buffer.read_signed_int
           return nil if size & 0x80000000 == 0x80000000
         end
+        return nil if size.zero?
         size
       end
 
