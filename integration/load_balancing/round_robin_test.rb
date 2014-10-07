@@ -31,21 +31,6 @@ class RoundRobinTest < IntegrationTestCase
     CQL
   end
 
-  def test_round_robin_is_default_policy
-    setup_schema
-    cluster = Cassandra.connect
-    session = cluster.connect("simplex")
-
-    hosts_used = []
-    4.times do
-      info =  session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)").execution_info
-      hosts_used.push(info.hosts.last.ip.to_s)
-    end
-
-    assert_equal ['127.0.0.1', '127.0.0.2', '127.0.0.3', '127.0.0.4'], hosts_used.sort
-    cluster.close
-  end
-
   def test_round_robin_used_explicitly
     setup_schema
     policy  = Cassandra::LoadBalancing::Policies::RoundRobin.new

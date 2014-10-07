@@ -56,11 +56,11 @@ module Cassandra
 
         include MonitorMixin
 
-        def initialize(datacenter, max_remote_hosts_to_use = nil, use_remote_hosts_for_local_consistency = false)
-          datacenter              = String(datacenter)
+        def initialize(datacenter = nil, max_remote_hosts_to_use = nil, use_remote_hosts_for_local_consistency = false)
+          datacenter              = datacenter && String(datacenter)
           max_remote_hosts_to_use = max_remote_hosts_to_use && Integer(max_remote_hosts_to_use)
 
-          raise ::ArgumentError, "datacenter cannot be nil" if datacenter.nil?
+          raise ::ArgumentError, "datacenter cannot be empty" if datacenter && datacenter.empty?
           raise ::ArgumentError, "max_remote_hosts_to_use must be nil or >= 0" if max_remote_hosts_to_use && max_remote_hosts_to_use < 0
 
           @datacenter = datacenter
@@ -75,6 +75,10 @@ module Cassandra
         end
 
         def host_up(host)
+          if !@datacenter && host.datacenter
+            @datacenter = host.datacenter
+          end
+
           if host.datacenter.nil? || host.datacenter == @datacenter
             synchronize { @local = @local.dup.push(host) }
           else

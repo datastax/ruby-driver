@@ -276,16 +276,16 @@ module Cassandra
 
           ips = ::Set.new
 
+          ips << ip = IPAddr.new(connection.host)
+          data = local.first
+          @registry.host_found(ip, data)
+
           peers.each do |data|
             ip = peer_ip(data)
             next unless ip
             ips << ip
             @registry.host_found(ip, data)
           end
-
-          ips << ip = IPAddr.new(connection.host)
-          data = local.first
-          @registry.host_found(ip, data)
 
           futures = []
 

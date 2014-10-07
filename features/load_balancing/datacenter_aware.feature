@@ -54,6 +54,30 @@ Feature: Datacenter-aware Round Robin Policy
       );
       """
 
+  Scenario: First seen datacenter is considered local when not explicitly given
+    Given the following example:
+      """ruby
+      require 'cassandra'
+
+      policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new
+      hosts      = ['127.0.0.3', '127.0.0.4']
+      cluster    = Cassandra.connect(hosts: hosts, load_balancing_policy: policy)
+      session    = cluster.connect('simplex')
+
+      hosts_used = 4.times.map do
+        info = session.execute("SELECT * FROM songs").execution_info
+        info.hosts.last.ip
+      end.sort.uniq
+
+      puts hosts_used
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      127.0.0.3
+      127.0.0.4
+      """
+
   Scenario: Requests are automatically routed to local datacenter
     Given the following example:
       """ruby

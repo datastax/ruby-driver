@@ -78,7 +78,8 @@ module Cassandra
     let(:compressor)            { nil }
     let(:credentials)           { nil }
     let(:auth_provider)         { nil }
-    let(:load_balancing_policy) { LoadBalancing::Policies::RoundRobin.new }
+    let(:datacenter)            { nil }
+    let(:load_balancing_policy) { LoadBalancing::Policies::TokenAware.new(LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)) }
     let(:reconnection_policy)   { Reconnection::Policies::Exponential.new(0.5, 30, 2) }
     let(:retry_policy)          { Retry::Policies::Default.new }
     let(:consistency)           { :quorum }

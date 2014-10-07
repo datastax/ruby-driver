@@ -50,6 +50,11 @@ module Cassandra
   #
   # @option options [Integer] :port (9042) cassandra native protocol port.
   #
+  # @option options [String] :datacenter (nil) name of current datacenter.
+  #   First datacenter found will be assumed current by default. Note that you
+  #   can skip this option if you specify only hosts from the local datacenter
+  #   in `:hosts` option.
+  #
   # @option options [Numeric] :connect_timeout (10) connection timeout in
   #   seconds.
   #
@@ -83,7 +88,7 @@ module Cassandra
   #   work, you must install 'snappy' or 'lz4-ruby' gems.
   #
   # @option options [Cassandra::LoadBalancing::Policy] :load_balancing_policy
-  #   default: {Cassandra::LoadBalancing::Policies::RoundRobin}.
+  #   default: token aware data center aware round robin.
   #
   # @option options [Cassandra::Reconnection::Policy] :reconnection_policy
   #   default: {Cassandra::Reconnection::Policies::Exponential}. Note that the
@@ -141,7 +146,7 @@ module Cassandra
         :load_balancing_policy, :reconnection_policy, :retry_policy, :listeners,
         :consistency, :trace, :page_size, :compressor, :username, :password,
         :ssl, :server_cert, :client_cert, :private_key, :passphrase,
-        :connect_timeout, :futures_factory
+        :connect_timeout, :futures_factory, :datacenter
       ].include?(key)
     end
 
@@ -284,6 +289,10 @@ module Cassandra
       if port < 0 || port > 65536
         raise ::ArgumentError, ":port must be a valid ip port, #{port.given}"
       end
+    end
+
+    if options.has_key?(:datacenter)
+      options[:datacenter] = String(options[:datacenter])
     end
 
     if options.has_key?(:connect_timeout)
