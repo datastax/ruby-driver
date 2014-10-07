@@ -12,10 +12,10 @@ Feature: Token-aware Load Balancing Policy
   onto the wrapped policy plan.
 
   Background:
-    Given a running cassandra cluster
+    Given a running cassandra cluster in 2 datacenters with 2 nodes in each
     And the following schema:
       """cql
-      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      CREATE KEYSPACE simplex WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2, 'dc2': 2};
       USE simplex;
       CREATE TABLE songs (
         id uuid PRIMARY KEY,
@@ -56,7 +56,7 @@ Feature: Token-aware Load Balancing Policy
       """ruby
       require 'cassandra'
 
-      policy    = Cassandra::LoadBalancing::Policies::RoundRobin.new
+      policy    = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new
       policy    = Cassandra::LoadBalancing::Policies::TokenAware.new(policy)
       cluster   = Cassandra.connect(load_balancing_policy: policy)
       session   = cluster.connect('simplex')
@@ -77,8 +77,8 @@ Feature: Token-aware Load Balancing Policy
     Then its output should contain:
       """
       uuid=756716f7-2e54-4715-9f00-91dcbea6cf50 token=-4565826248849633211 replica=127.0.0.2 total=1
-      uuid=f6071e72-48ec-4fcb-bf3e-379c8a696488 token=-1176857621403111796 replica=127.0.0.3 total=1
-      uuid=fbdf82ed-0063-4796-9c7c-a3d4f47b4b25 token=2440231132048646025 replica=127.0.0.3 total=1
+      uuid=f6071e72-48ec-4fcb-bf3e-379c8a696488 token=-1176857621403111796 replica=127.0.0.2 total=1
+      uuid=fbdf82ed-0063-4796-9c7c-a3d4f47b4b25 token=2440231132048646025 replica=127.0.0.1 total=1
       """
 
     Scenario: Requests are routed to a secondary replica if primary replica down
@@ -86,7 +86,7 @@ Feature: Token-aware Load Balancing Policy
       """ruby
       require 'cassandra'
 
-      policy    = Cassandra::LoadBalancing::Policies::RoundRobin.new
+      policy    = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new
       policy    = Cassandra::LoadBalancing::Policies::TokenAware.new(policy)
       cluster   = Cassandra.connect(load_balancing_policy: policy)
       session   = cluster.connect('simplex')
@@ -102,7 +102,7 @@ Feature: Token-aware Load Balancing Policy
         puts "uuid=#{uuid} token=#{result.first['token(id)']} replica=#{replica.ip} total=#{total}"
       end
       """
-    And node 3 is stopped
+    And node 2 is stopped
     When it is executed
     Then its output should contain:
       """

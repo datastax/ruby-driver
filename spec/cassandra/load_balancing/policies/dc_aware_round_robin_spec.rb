@@ -39,6 +39,43 @@ module Cassandra
             policy.host_up(host)
           end
 
+          context('when no datacenter provided in constructor') do
+            let(:datacenter)      { nil }
+            let(:host_datacenter) { 'DC1' }
+            let(:distance)        { policy.distance(host) }
+
+            it 'is local' do
+              expect(distance).to eq(:local)
+            end
+
+            context('and another host in remote datacenter is up') do
+              let(:another_host) { Host.new('127.0.0.2', nil, nil, host_datacenter) }
+
+              before do
+                policy.host_up(another_host)
+              end
+
+              let(:another_distance) { policy.distance(another_host) }
+
+              it 'is also local' do
+                expect(another_distance).to eq(:local)
+              end
+
+              context('and a host in a different datacenter is up') do
+                let(:third_host)     { Host.new('127.0.0.3', nil, nil, 'DC2') }
+                let(:third_distance) { policy.distance(third_host) }
+
+                before do
+                  policy.host_up(third_host)
+                end
+
+                it 'is remote' do
+                  expect(third_distance).to eq(:remote)
+                end
+              end
+            end
+          end
+
           context('host is in a different datacenter') do
             let(:host_datacenter) { 'DC2' }
 

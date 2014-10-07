@@ -1,4 +1,6 @@
+default_policy
 round_robin
 datacenter_aware
+token_aware
 whitelist
 implementing_a_policy

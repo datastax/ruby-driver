@@ -35,6 +35,22 @@ class TokenAwareTest < IntegrationTestCase
     CQL
   end
 
+
+  def test_token_aware_datacenter_aware_is_used_by_default
+    setup_schema
+    cluster = Cassandra.connect
+    session = cluster.connect("simplex")
+
+    hosts_used = []
+    4.times do
+      info =  session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)").execution_info
+      hosts_used.push(info.hosts.last.ip.to_s)
+    end
+
+    assert_equal ['127.0.0.1', '127.0.0.1', '127.0.0.2', '127.0.0.2'], hosts_used.sort
+    cluster.close
+  end
+
   def test_token_aware_routes_to_primary_replica
     setup_schema
     base_policy = Cassandra::LoadBalancing::Policies::RoundRobin.new
@@ -162,11 +178,11 @@ class TokenAwareTest < IntegrationTestCase
 
     result  = session.execute(select, 2, :consistency => :one)
     assert_equal 1, result.execution_info.hosts.size
-    assert_equal "127.0.0.2", result.execution_info.hosts.first.ip.to_s
+    assert_equal "127.0.0.1", result.execution_info.hosts.first.ip.to_s
 
     result  = session.execute(select, 2, :consistency => :one)
     assert_equal 1, result.execution_info.hosts.size
-    assert_equal "127.0.0.1", result.execution_info.hosts.first.ip.to_s
+    assert_equal "127.0.0.2", result.execution_info.hosts.first.ip.to_s
 
     cluster.close
   end

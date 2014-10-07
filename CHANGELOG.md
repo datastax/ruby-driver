@@ -1,5 +1,9 @@
 # HEAD
 
+Features:
+
+* Token Aware Data Center Aware Round Robin load balancing is used by default
+
 Bug fixes:
 
 * [RUBY-34] handle empty values without crashing

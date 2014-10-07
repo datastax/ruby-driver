@@ -47,31 +47,7 @@ Feature: Round Robin Policy
       );
       """
 
-  Scenario: Round Robin policy is used by default
-    Given the following example:
-      """ruby
-      require 'cassandra'
-
-      cluster = Cassandra.connect
-      session = cluster.connect('simplex')
-
-      coordinator_ips = 4.times.map do
-        info = session.execute("SELECT * FROM songs").execution_info
-        info.hosts.last.ip
-      end
-
-      puts coordinator_ips.sort
-      """
-    When it is executed
-    Then its output should contain:
-      """
-      127.0.0.1
-      127.0.0.2
-      127.0.0.3
-      127.0.0.4
-      """
-
-  Scenario: Round Robin policy is used explicitly
+  Scenario: Configuring Round Robin load balancing policy
     Given the following example:
       """ruby
       require 'cassandra'
