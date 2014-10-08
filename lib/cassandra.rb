@@ -58,6 +58,17 @@ module Cassandra
   # @option options [Numeric] :connect_timeout (10) connection timeout in
   #   seconds.
   #
+  # @option options [Numeric] :heartbeat_interval (15) how often should a
+  #   heartbeat be sent to determine if a connection is alive. Several things to
+  #   note about this option. Only one heartbeat request will ever be
+  #   outstanding on a given connection. Each heatbeat will be sent in least
+  #   `:heartbeat_interval` seconds after the last request has been sent on a
+  #   given connection.
+  #
+  # @option options [Numeric] :idle_timeout (60) period of inactivity after
+  #   which a connection is considered dead. Note that this value should be at
+  #   least a few times larger than `:heartbeat_interval`.
+  #
   # @option options [String] :username (none) username to use for
   #   authentication to cassandra. Note that you must also specify `:password`.
   #
@@ -106,8 +117,8 @@ module Cassandra
   #   initial listeners. A list of initial cluster state listeners. Note that a
   #   `:load_balancing` policy is automatically registered with the cluster.
   #
-  # @option options [Symbol] :consistency (:quorum) default consistency to use
-  #   for all requests. Must be one of {Cassandra::CONSISTENCIES}.
+  # @option options [Symbol] :consistency (:one) default consistency to use for
+  #   all requests. Must be one of {Cassandra::CONSISTENCIES}.
   #
   # @option options [Boolean] :trace (false) whether or not to trace all
   #   requests by default.

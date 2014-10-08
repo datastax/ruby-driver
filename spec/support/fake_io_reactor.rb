@@ -33,6 +33,10 @@ class FakeIoReactor
     def expired?
       @timeout <= 0
     end
+
+    def resolves_future?(future)
+      @promise.future == future
+    end
   end
 
   attr_reader :connections, :last_used_connection
@@ -108,6 +112,12 @@ class FakeIoReactor
     promise = Ione::Promise.new
     @timers << Timer.new(promise, seconds)
     promise.future
+  end
+
+  def cancel_timer(timer_future)
+    @timers.delete_if do |timer|
+      timer.resolves_future?(timer_future)
+    end
   end
 
   def advance_time(seconds)

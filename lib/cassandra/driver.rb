@@ -68,7 +68,7 @@ module Cassandra
       })
     end
 
-    let(:connection_options) { Cluster::Options.new(protocol_version, credentials, auth_provider, compressor, port, connect_timeout, ssl, connections_per_local_node, connections_per_remote_node) }
+    let(:connection_options) { Cluster::Options.new(protocol_version, credentials, auth_provider, compressor, port, connect_timeout, ssl, connections_per_local_node, connections_per_remote_node, heartbeat_interval, idle_timeout) }
 
     let(:port)                  { 9042 }
     let(:protocol_version)      { 2 }
@@ -82,9 +82,11 @@ module Cassandra
     let(:load_balancing_policy) { LoadBalancing::Policies::TokenAware.new(LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)) }
     let(:reconnection_policy)   { Reconnection::Policies::Exponential.new(0.5, 30, 2) }
     let(:retry_policy)          { Retry::Policies::Default.new }
-    let(:consistency)           { :quorum }
+    let(:consistency)           { :one }
     let(:trace)                 { false }
     let(:page_size)             { nil }
+    let(:heartbeat_interval)    { 15 }
+    let(:idle_timeout)          { 60 }
 
     let(:connections_per_local_node)  { 2 }
     let(:connections_per_remote_node) { 1 }

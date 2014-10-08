@@ -35,7 +35,7 @@ module Cassandra
       # @return [String] the current keyspace for the underlying connection
       attr_reader :keyspace
 
-      def initialize(connection, scheduler, protocol_version, compressor=nil)
+      def initialize(connection, scheduler, protocol_version, compressor=nil, heartbeat_interval = 15, idle_timeout = 60)
         @connection = connection
         @scheduler = scheduler
         @compressor = compressor
@@ -53,6 +53,10 @@ module Cassandra
         @lock = Mutex.new
         @closed_promise = Ione::Promise.new
         @keyspace = nil
+        @heartbeat = nil
+        @terminate = nil
+        @heartbeat_interval = heartbeat_interval
+        @idle_timeout = idle_timeout
       end
 
       # Returns the hostname of the underlying connection
@@ -138,8 +142,9 @@ module Cassandra
       #   failing the request
       # @return [Ione::Future<Cassandra::Protocol::Response>] a future that resolves to
       #   the response
-      def send_request(request, timeout=nil)
+      def send_request(request, timeout=nil, with_heartbeat = true)
         return Ione::Future.failed(Errors::NotConnectedError.new) if closed?
+        schedule_heartbeat if with_heartbeat
         promise = RequestPromise.new(request, @frame_encoder)
         id = nil
         @lock.lock
@@ -175,6 +180,16 @@ module Cassandra
       #
       # @return [Ione::Future] a future that completes when the connection has closed
       def close
+        if @heartbeat
+          @scheduler.cancel_timer(@heartbeat)
+          @heartbeat = nil
+        end
+
+        if @terminate
+          @scheduler.cancel_timer(@terminate)
+          @terminate = nil
+        end
+
         @connection.close
         @closed_promise.future
       end
@@ -209,6 +224,7 @@ module Cassandra
       end
 
       def receive_data(data)
+        reschedule_termination
         @read_buffer << data
         @current_frame = @frame_decoder.decode_frame(@read_buffer, @current_frame)
         while @current_frame.complete?
@@ -291,6 +307,16 @@ module Cassandra
       end
 
       def socket_closed(cause)
+        if @heartbeat
+          @scheduler.cancel_timer(@heartbeat)
+          @heartbeat = nil
+        end
+
+        if @terminate
+          @scheduler.cancel_timer(@terminate)
+          @terminate = nil
+        end
+
         request_failure_cause = cause || Io::ConnectionClosedError.new
         promises_to_fail = nil
         @lock.synchronize do
@@ -311,6 +337,27 @@ module Cassandra
         end
       end
 
+      def schedule_heartbeat
+        @scheduler.cancel_timer(@heartbeat) if @heartbeat
+
+        @heartbeat = @scheduler.schedule_timer(@heartbeat_interval)
+        @heartbeat.on_value do
+          send_request(HEARTBEAT, nil, false).on_value do
+            schedule_heartbeat
+          end
+        end
+      end
+
+      def reschedule_termination
+        @scheduler.cancel_timer(@terminate) if @terminate
+
+        @terminate = @scheduler.schedule_timer(@idle_timeout)
+        @terminate.on_value do
+          @scheduler.cancel_timer(@heartbeat) if @heartbeat
+          @connection.close(TERMINATED)
+        end
+      end
+
       def next_stream_id
         if (stream_id = @promises.index(nil))
           stream_id
@@ -318,6 +365,9 @@ module Cassandra
           nil
         end
       end
+
+      HEARTBEAT  = OptionsRequest.new
+      TERMINATED = RuntimeError.new('connection terminated due to inactivity')
     end
   end
 end
