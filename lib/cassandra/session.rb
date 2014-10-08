@@ -54,8 +54,8 @@ module Cassandra
     #   relevant for conditional updates and specifies a serial consistency to
     #   be used, one of {Cassandra::SERIAL_CONSISTENCIES}
     #
-    # @see Cassandra.connect for description of options that can be specified
-    #   on the cluster-level as well as default values chosen.
+    # @see Cassandra.connect Options that can be specified on the cluster-level
+    #   and their default values.
     #
     # @note Last argument will be treated as `options` if it is a {Hash}.
     #   Therefore, make sure to pass empty `options` when executing a statement
