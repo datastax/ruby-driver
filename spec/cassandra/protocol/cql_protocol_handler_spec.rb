@@ -31,7 +31,7 @@ module Cassandra
       end
 
       let :scheduler do
-        double(:scheduler)
+        FakeIoReactor.new
       end
 
       let :request do
@@ -52,13 +52,25 @@ module Cassandra
         connection.stub(:on_connected) do |&h|
           connection.stub(:connected_listener).and_return(h)
         end
-        scheduler.stub(:schedule_timer).and_return(Ione::Promise.new.future)
         protocol_handler
       end
 
       describe '#initialize' do
         it 'registers as a data listener to the socket handler' do
           connection.data_listener.should_not be_nil
+        end
+
+        it 'terminates connection after idle timeout' do
+          connection.stub(:write).and_yield(buffer)
+          connection.stub(:closed?).and_return(false)
+          connection.stub(:connected?).and_return(true)
+
+          protocol_handler.send_request(request)
+          connection.data_listener.call([0x81, 0, 0, 2, 0].pack('C4N'))
+          buffer.discard(buffer.length)
+
+          expect(connection).to receive(:close)
+          scheduler.advance_time(60)
         end
       end
 
@@ -88,6 +100,35 @@ module Cassandra
           connection.stub(:write).and_yield(buffer)
           connection.stub(:closed?).and_return(false)
           connection.stub(:connected?).and_return(true)
+        end
+
+        it 'schedules a heartbeat' do
+          protocol_handler.send_request(request)
+          expect(buffer).to_not be_empty
+          buffer.discard(buffer.length)
+          expect(buffer).to be_empty
+          scheduler.advance_time(30)
+          expect(buffer.to_s).to eq([1, 0, 1, 5, 0].pack('C4N'))
+        end
+
+        it 'schedules only one heartbeat' do
+          10.times { protocol_handler.send_request(request) }
+          buffer.discard(buffer.length)
+          scheduler.advance_time(30)
+          expect(buffer.to_s).to eq([1, 0, 10, 5, 0].pack('C4N'))
+        end
+
+        it 'schedules next heartbeat after response' do
+          protocol_handler.send_request(request)
+          connection.data_listener.call([0x81, 0, 0, 2, 0].pack('C4N'))
+          buffer.discard(buffer.length)
+
+          scheduler.advance_time(30)
+          buffer.discard(buffer.length)
+          connection.data_listener.call([0x81, 0, 0, 2, 0].pack('C4N'))
+
+          scheduler.advance_time(30)
+          expect(buffer.to_s).to eq([1, 0, 0, 5, 0].pack('C4N'))
         end
 
         it 'encodes a request frame and writes to the socket handler' do
@@ -224,23 +265,15 @@ module Cassandra
         end
 
         context 'when the request times out' do
-          let :timer_promise do
-            Ione::Promise.new
-          end
-
-          before do
-            scheduler.stub(:schedule_timer).with(3).and_return(timer_promise.future)
-          end
-
           it 'raises a TimeoutError' do
             f = protocol_handler.send_request(request, 3)
-            timer_promise.fulfill
+            scheduler.advance_time(3)
             expect { f.value }.to raise_error(TimeoutError)
           end
 
           it 'does not attempt to fulfill the promise when the request has already timed out' do
             f = protocol_handler.send_request(request, 3)
-            timer_promise.fulfill
+            scheduler.advance_time(3)
             expect { connection.data_listener.call([0x81, 0, 0, 2, 0].pack('C4N')) }.to_not raise_error
           end
 
@@ -255,12 +288,10 @@ module Cassandra
               end
             end
             128.times do
-              scheduler.stub(:schedule_timer).with(5).and_return(Ione::Promise.new.future)
               protocol_handler.send_request(request)
             end
-            scheduler.stub(:schedule_timer).with(5).and_return(timer_promise.future)
             f = protocol_handler.send_request(request, 5)
-            timer_promise.fulfill
+            scheduler.advance_time(5)
             128.times { |i| connection.data_listener.call([0x81, 0, i, 2, 0].pack('C4N')) }
             write_count.should == 128
           end

@@ -136,7 +136,7 @@ module Cassandra
         authentication_step = @options.protocol_version == 1 ? Cassandra::Client::CredentialsAuthenticationStep.new(@options.credentials) : Cassandra::Client::SaslAuthenticationStep.new(@options.auth_provider)
         protocol_handler_factory = lambda do |connection|
           raise "no connection given" unless connection
-          Protocol::CqlProtocolHandler.new(connection, @reactor, @options.protocol_version, @options.compressor)
+          Protocol::CqlProtocolHandler.new(connection, @reactor, @options.protocol_version, @options.compressor, @options.heartbeat_interval, @options.idle_timeout)
         end
 
         Cassandra::Client::Connector.new([
