@@ -11,7 +11,7 @@ Feature: Standard authentication
       require 'cassandra'
       
       begin
-        cluster = Cassandra.connect(
+        cluster = Cassandra.cluster(
                     username: ENV['USERNAME'],
                     password: ENV['PASSWORD']
                   )

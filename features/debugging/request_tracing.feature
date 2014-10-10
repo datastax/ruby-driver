@@ -46,7 +46,7 @@ Feature: Request tracing
       """ruby
       require 'cassandra'
 
-      cluster   = Cassandra.connect
+      cluster   = Cassandra.cluster
       session   = cluster.connect("simplex")
       execution = session.execute("SELECT * FROM songs").execution_info
 
@@ -69,7 +69,7 @@ Feature: Request tracing
       """ruby
       require 'cassandra'
 
-      cluster   = Cassandra.connect
+      cluster   = Cassandra.cluster
       session   = cluster.connect("simplex")
       execution = session.execute("SELECT * FROM songs", :trace => true).execution_info
       trace     = execution.trace

@@ -314,7 +314,7 @@ module CCM extend self
       attempts = 1
 
       begin
-        @cluster = Cassandra.connect(options)
+        @cluster = Cassandra.cluster(options)
       rescue
         raise if attempts >= 10
         attempts += 1

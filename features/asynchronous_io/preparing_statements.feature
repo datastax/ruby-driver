@@ -87,7 +87,7 @@ Feature: Preparing statements asynchronously
       """ruby
       require 'cassandra'
       
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
       
       # prepare 2 statements in parallel

@@ -25,7 +25,7 @@ Feature: Batch statements
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
 
       at_exit { cluster.close }
 
@@ -83,7 +83,7 @@ Feature: Batch statements
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
 
       at_exit { cluster.close }
 
@@ -138,7 +138,7 @@ Feature: Batch statements
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
 
       at_exit { cluster.close }
 
@@ -194,7 +194,7 @@ Feature: Batch statements
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       at_exit { cluster.close }
 
       session = cluster.connect("simplex")

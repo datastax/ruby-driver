@@ -29,7 +29,7 @@ class SessionTest < IntegrationTestCase
   end
 
   def test_session_keyspace_is_initially_nil
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect()
 
     assert_nil session.keyspace
@@ -38,7 +38,7 @@ class SessionTest < IntegrationTestCase
   end
 
   def test_can_select_from_an_existing_keyspace
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect()
     results = session.execute("SELECT * FROM system.schema_keyspaces")
 
@@ -48,7 +48,7 @@ class SessionTest < IntegrationTestCase
   end
 
   def test_use_keyspace_changes_current_keyspace
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect()
     session.execute("USE system")
     assert_equal session.keyspace, "system"
@@ -60,7 +60,7 @@ class SessionTest < IntegrationTestCase
   end
 
   def test_connect_session_with_existing_keyspace
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect("system")
 
     assert_equal session.keyspace, "system"
@@ -71,7 +71,7 @@ class SessionTest < IntegrationTestCase
   def test_can_create_new_keyspace
     setup_schema
 
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect()
 
     assert cluster.has_keyspace?("simplex"), "Expected cluster to have keyspace 'simplex'"
@@ -83,7 +83,7 @@ class SessionTest < IntegrationTestCase
   end
 
   def test_execute_errors_on_invalid_keyspaces
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect()
 
     assert_raises(Cassandra::Errors::InvalidError) do 
@@ -101,7 +101,7 @@ class SessionTest < IntegrationTestCase
   def test_can_insert_after_creating_a_table
     setup_schema
 
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
     assert cluster.keyspace("simplex").has_table?("users"), "Expected to keyspace 'simplex' to have table 'users'"
@@ -117,7 +117,7 @@ class SessionTest < IntegrationTestCase
   def test_can_insert_after_creating_a_table_async
     setup_schema
 
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
     future = session.execute_async("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)")
@@ -133,7 +133,7 @@ class SessionTest < IntegrationTestCase
   def test_can_prepare_insert_and_select_statements
     setup_schema
 
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
     insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
@@ -151,7 +151,7 @@ class SessionTest < IntegrationTestCase
   def test_prepare_errors_on_non_existent_table
     setup_schema
 
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
     assert_raises(Cassandra::Errors::InvalidError) do
@@ -171,7 +171,7 @@ class SessionTest < IntegrationTestCase
     setup_schema
 
     begin
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
       batch = session.batch do |b|
@@ -194,7 +194,7 @@ class SessionTest < IntegrationTestCase
     setup_schema
 
     begin
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
       batch = session.batch do |b|
@@ -217,7 +217,7 @@ class SessionTest < IntegrationTestCase
     setup_schema
 
     begin
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
     
       insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
@@ -243,7 +243,7 @@ class SessionTest < IntegrationTestCase
     setup_schema
 
     begin
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
       insert = session.prepare("INSERT INTO test (k, v) VALUES (?, ?)")
@@ -305,7 +305,7 @@ class SessionTest < IntegrationTestCase
     setup_schema
 
     begin
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
       insert = session.prepare("INSERT INTO test (k, v) VALUES (?, ?)")
@@ -327,7 +327,7 @@ class SessionTest < IntegrationTestCase
   def test_query_tracing
     setup_schema
 
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect("simplex")
     
     # Void returning operations

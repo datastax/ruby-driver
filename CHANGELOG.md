@@ -14,6 +14,7 @@ Breaking changes:
 
 * Most of the error classes have changed
 * Connections to hosts in remote datacenters will be disabled by default
+* Cassandra.connect has been renamed to Cassandra.cluster to avoid confusion
 
 # 1.0.0.beta.3
 

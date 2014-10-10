@@ -106,7 +106,7 @@ Feature: Implementing custom load balancing policies
       require 'ignoring_keyspace_policy'
       
       policy  = IgnoringKeyspacePolicy.new('simplex', Cassandra::LoadBalancing::Policies::RoundRobin.new)
-      cluster = Cassandra.connect(load_balancing_policy: policy)
+      cluster = Cassandra.cluster(load_balancing_policy: policy)
       session = cluster.connect('simplex')
       
       begin
@@ -174,7 +174,7 @@ Feature: Implementing custom load balancing policies
       require 'blacklist_policy'
       
       policy  = BlackListPolicy.new(['127.0.0.2', '127.0.0.3'], Cassandra::LoadBalancing::Policies::RoundRobin.new)
-      cluster = Cassandra.connect(load_balancing_policy: policy)
+      cluster = Cassandra.cluster(load_balancing_policy: policy)
       session = cluster.connect('simplex')
       
       host_ips = cluster.hosts.map(&:ip).sort

@@ -2,21 +2,21 @@
 
 ## Connecting and Discovering Nodes
 
-Ruby driver will connect to 127.0.0.1 if no `:hosts` given to `Cassandra.connect`. It will automatically discover all peers and add them to cluster metadata.
+Ruby driver will connect to 127.0.0.1 if no `:hosts` given to `Cassandra.cluster`. It will automatically discover all peers and add them to cluster metadata.
 
 ```ruby
 require 'cassandra'
 
-cluster = Cassandra.connect
+cluster = Cassandra.cluster
 
 cluster.each_hosts do |host|
   puts "Host #{host.ip}: id=#{host.id} datacenter=#{host.datacenter} rack=#{host.rack}"
 end
 ```
 
-You can also specify a list of seed nodes to connect to. The set of IP addresses we pass to the `Cassandra.connect` is simply an initial set of contact points. After the driver connects to one of these nodes, it will automatically discover the rest of the nodes in the cluster, so you don’t need to list every node in your cluster.
+You can also specify a list of seed nodes to connect to. The set of IP addresses we pass to the `Cassandra.cluster` is simply an initial set of contact points. After the driver connects to one of these nodes, it will automatically discover the rest of the nodes in the cluster, so you don’t need to list every node in your cluster.
 
-[Read more in the api docs](http://datastax.github.io/ruby-driver/api/#connect-class_method)
+[Read more in the api docs](http://datastax.github.io/ruby-driver/api/#cluster-class_method)
 
 ## Executing Queries
 
@@ -204,10 +204,10 @@ end
 You can specify the default consistency to use when you create a new `Cluster`:
 
 ```ruby
-client = Cassandra.connect(consistency: :all)
+client = Cassandra.cluster(consistency: :all)
 ```
 
-[Read more about default consistency](http://datastax.github.io/ruby-driver/api/#connect-class_method)
+[Read more about default consistency](http://datastax.github.io/ruby-driver/api/#cluster-class_method)
 
 Consistency can also be passed to `Session#execute` and `Session#execute_async`
 
@@ -232,18 +232,18 @@ Consistency is ignored for `USE`, `TRUNCATE`, `CREATE` and `ALTER` statements, a
 
 ## Compression
 
-The CQL protocol supports frame compression, which can give you a performance boost if your requests or responses are big. To enable it you can specify compression to use in `Cassandra.connect`.
+The CQL protocol supports frame compression, which can give you a performance boost if your requests or responses are big. To enable it you can specify compression to use in `Cassandra.cluster`.
 
 Cassandra currently supports two compression algorithms: Snappy and LZ4. ruby driver supports both, but in order to use them you will have to install the [snappy](http://rubygems.org/gems/snappy) or [lz4-ruby](http://rubygems.org/gems/lz4-ruby) gems separately. Once it's installed you can enable compression like this:
 
 ```ruby
-cluster = Cassandra.connect(compression: :snappy)
+cluster = Cassandra.cluster(compression: :snappy)
 ```
 
 or
 
 ```ruby
-cluster = Cassandra.connect(compression: :lz4)
+cluster = Cassandra.cluster(compression: :lz4)
 ```
 
 Which one should you choose? On paper the LZ4 algorithm is more efficient and the one Cassandra defaults to for SSTable compression. They both achieve roughly the same compression ratio, but LZ4 does it quicker.
@@ -255,7 +255,7 @@ You can pass a standard Ruby logger to the client to get some more information a
 ```ruby
 require 'logger'
 
-cluster = Cassandra.connect(logger: Logger.new($stderr))
+cluster = Cassandra.cluster(logger: Logger.new($stderr))
 ```
 
 Most of the logging will be when the driver connects and discovers new nodes, when connections fail and so on. The logging is designed to not cause much overhead and only relatively rare events are logged (e.g. normal requests are not logged).
@@ -306,7 +306,7 @@ A Cluster instance allows to configure different important aspects of the way co
 ```ruby
 require 'cassandra'
 
-cluster = Cassandra.connect(
+cluster = Cassandra.cluster(
             :hosts => ['10.1.1.3', '10.1.1.4', '10.1.1.5'],
             :load_balancing_policy => Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new("US_EAST")
           )

@@ -58,7 +58,7 @@ Feature: Token-aware Load Balancing Policy
 
       policy    = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new
       policy    = Cassandra::LoadBalancing::Policies::TokenAware.new(policy)
-      cluster   = Cassandra.connect(load_balancing_policy: policy)
+      cluster   = Cassandra.cluster(load_balancing_policy: policy)
       session   = cluster.connect('simplex')
       statement = session.prepare("SELECT token(id) FROM songs WHERE id = ?")
 
@@ -88,7 +88,7 @@ Feature: Token-aware Load Balancing Policy
 
       policy    = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new
       policy    = Cassandra::LoadBalancing::Policies::TokenAware.new(policy)
-      cluster   = Cassandra.connect(load_balancing_policy: policy)
+      cluster   = Cassandra.cluster(load_balancing_policy: policy)
       session   = cluster.connect('simplex')
       statement = session.prepare("SELECT token(id) FROM songs WHERE id = ?")
 

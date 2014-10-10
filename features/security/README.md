@@ -75,7 +75,7 @@ At this point you already have SSL enabled and can even connect to the servers u
 ```ruby
 require 'cassandra'
 
-cluster = Cassandra.connect(ssl: true)
+cluster = Cassandra.cluster(ssl: true)
 ```
 
 This however is like having no security at all since the driver won't be able to verify the identity of the server.
@@ -122,7 +122,7 @@ Finally, having our combined PEM certificate, we can give it to the client to ve
 ```ruby
 require 'cassandra'
 
-cluster = Cassandra.connect(server_cert: '/path/to/server.pem')
+cluster = Cassandra.cluster(server_cert: '/path/to/server.pem')
 ```
 
 This is better, as our client can now verify the identity of the server. And, combined with Standard Authentication, this provides enough security to be useful. However, we can do better still.
@@ -365,7 +365,7 @@ Make sure to update `cassandra.yaml` on each server with correct data from previ
 Finally, we can use our client certificate and key to connect to our Apache Cassandra cluster:
 
 ```ruby
-cluster = Cassandra.connect(
+cluster = Cassandra.cluster(
   server_cert:  '/path/to/server.pem',
   client_cert:  '/path/to/driver.pem',
   private_key:  '/path/to/driver.key',

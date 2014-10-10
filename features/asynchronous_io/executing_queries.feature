@@ -47,7 +47,7 @@ Feature: Executing queries asynchronously
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
       future  = session.execute_async("SELECT * FROM songs")
 
@@ -74,7 +74,7 @@ Feature: Executing queries asynchronously
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
       count   = 10
 
