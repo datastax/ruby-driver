@@ -78,9 +78,7 @@ module Cassandra
           @refreshing_statuses[host] = true
         end
 
-        refresh_host_status(host).fallback do |e|
-          refresh_host_status_with_retry(host, @reconnection_policy.schedule)
-        end
+        refresh_host_status_with_retry(host, @reconnection_policy.schedule)
       end
 
       def close_async
@@ -360,7 +358,7 @@ module Cassandra
       def connect_to_first_available(plan, errors = nil)
         unless plan.has_next?
           @logger.warn("Control connection failed")
-          return Ione::Future.failed(Errors::NoHostsAvailable.new(errors || {}))
+          return Ione::Future.failed(Errors::NoHostsAvailable.new(errors))
         end
 
         host = plan.next
@@ -397,18 +395,13 @@ module Cassandra
         f = f.flat_map { refresh_hosts_async }
         f = f.flat_map { refresh_schema_async }
         f.fallback do |error|
-          if error.is_a?(Errors::AuthenticationError)
-            Ione::Future.failed(error)
-          elsif error.is_a?(Errors::QueryError)
-            if error.code == 0x100
-              Ione::Future.failed(Errors::AuthenticationError.new(error.message))
-            else
-              Ione::Future.failed(error)
-            end
-          else
+          case error
+          when Errors::HostError
             errors ||= {}
             errors[host] = error
             connect_to_first_available(plan, errors)
+          else
+            Ione::Future.failed(error)
           end
         end
       end

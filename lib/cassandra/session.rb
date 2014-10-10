@@ -62,6 +62,9 @@ module Cassandra
     #   with the last parameter required to be a map datatype.
     #
     # @return [Cassandra::Future<Cassandra::Result>]
+    #
+    # @see Cassandra::Session#execute A list of errors this future can be
+    #   resolved with
     def execute_async(statement, *args)
       if args.last.is_a?(::Hash)
         options = @options.override(args.pop)
@@ -91,8 +94,11 @@ module Cassandra
     # @see Cassandra::Future#get
     #
     # @return [Cassandra::Result] query result
-    # @raise [Cassandra::Errors::NoHostsAvailable] if none of the hosts can be reached
-    # @raise [Cassandra::Errors::QueryError] if Cassandra returns an error response
+    # @raise [Cassandra::Errors::NoHostsAvailable] if all hosts fail
+    # @raise [Cassandra::Errors::ExecutionError] if Cassandra fails to execute
+    # @raise [Cassandra::Errors::ValidationError] if Cassandra fails to validate
+    # @raise [Cassandra::Errors::TimeoutError] if request has not completed
+    #   within the `:timeout` given
     def execute(*args)
       execute_async(*args).get
     end
@@ -131,7 +137,7 @@ module Cassandra
     #
     # @return [Cassandra::Statements::Prepared] prepared statement
     # @raise [Cassandra::Errors::NoHostsAvailable] if none of the hosts can be reached
-    # @raise [Cassandra::Errors::QueryError] if Cassandra returns an error response
+    # @raise [Cassandra::Errors::ExecutionError] if Cassandra returns an error response
     def prepare(*args)
       prepare_async(*args).get
     end

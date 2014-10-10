@@ -132,7 +132,7 @@ module Cassandra
       # closes the futures of all active requests will be failed with the error
       # that caused the connection to close, or nil.
       #
-      # When `timeout` is specified the future will fail with {Cassandra::TimeoutError}
+      # When `timeout` is specified the future will fail with {Cassandra::Errors::TimeoutError}
       # after that many seconds have passed. If a response arrives after that
       # time it will be lost. If a response never arrives for the request the
       # channel occupied by the request will _not_ be reused.
@@ -143,7 +143,7 @@ module Cassandra
       # @return [Ione::Future<Cassandra::Protocol::Response>] a future that resolves to
       #   the response
       def send_request(request, timeout=nil, with_heartbeat = true)
-        return Ione::Future.failed(Errors::NotConnectedError.new) if closed?
+        return Ione::Future.failed(Errors::IOError.new('Connection closed')) if closed?
         schedule_heartbeat if with_heartbeat
         promise = RequestPromise.new(request, @frame_encoder)
         id = nil
@@ -214,7 +214,7 @@ module Cassandra
         def time_out!
           unless future.completed?
             @timed_out = true
-            fail(TimeoutError.new)
+            fail(Errors::TimeoutError.new('Timed out'))
           end
         end
 
@@ -263,6 +263,9 @@ module Cassandra
         end
         if response.is_a?(Protocol::SetKeyspaceResultResponse)
           @keyspace = response.keyspace
+        end
+        if response.is_a?(Protocol::SchemaChangeResultResponse) && response.change == 'DROPPED' && response.keyspace == @keyspace && response.table.empty?
+          @keyspace = nil
         end
         flush_request_queue
         unless promise.timed_out?
@@ -317,7 +320,14 @@ module Cassandra
           @terminate = nil
         end
 
-        request_failure_cause = cause || Io::ConnectionClosedError.new
+        if cause
+          e = Errors::IOError.new(cause.message)
+          e.set_backtrace(cause.backtrace)
+
+          cause = e
+        end
+
+        request_failure_cause = cause || Errors::IOError.new('Connection closed')
         promises_to_fail = nil
         @lock.synchronize do
           promises_to_fail = @promises.compact
@@ -367,7 +377,7 @@ module Cassandra
       end
 
       HEARTBEAT  = OptionsRequest.new
-      TERMINATED = RuntimeError.new('connection terminated due to inactivity')
+      TERMINATED = Errors::TimeoutError.new('Terminated due to inactivity')
     end
   end
 end

@@ -24,7 +24,7 @@ module Cassandra
         if response_class
           response_class.decode(protocol_version, buffer, length, trace_id)
         else
-          raise UnsupportedOperationError, "The operation #{opcode} is not supported"
+          raise Errors::DecodingError, "Unsupported opcode #{opcode.inspect}"
         end
       end
 

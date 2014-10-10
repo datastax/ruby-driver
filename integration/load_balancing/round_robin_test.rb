@@ -128,7 +128,7 @@ class RoundRobinTest < IntegrationTestCase
     @@ccm_cluster.stop_node('node1')
     @@ccm_cluster.stop_node('node2')
 
-    assert_raises(Cassandra::Errors::QueryError) do
+    assert_raises(Cassandra::Errors::UnavailableError) do
       session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)")
     end
 

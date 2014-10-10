@@ -46,7 +46,7 @@ module Cassandra
         case type
         when Array
           unless value.nil? || value.is_a?(Enumerable)
-            raise InvalidValueError, 'Value for collection must be enumerable'
+            raise EncodingError, 'Value for collection must be enumerable'
           end
           case type.first
           when :list, :set
@@ -75,12 +75,12 @@ module Cassandra
               nil_to_bytes(buffer, size_bytes)
             end
           else
-            raise UnsupportedColumnTypeError, %(Unsupported column collection type: #{type.first})
+            raise EncodingError, %(Unsupported column collection type: #{type.first})
           end
         else
           converter = @to_bytes_converters[type]
           unless converter
-            raise UnsupportedColumnTypeError, %(Unsupported column type: #{type})
+            raise EncodingError, %(Unsupported column type: #{type})
           end
           converter.call(buffer, value, size_bytes)
         end

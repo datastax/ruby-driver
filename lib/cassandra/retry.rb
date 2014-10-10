@@ -51,8 +51,7 @@ module Cassandra
       # @param statement [Cassandra::Statement] the original statement that timed out
       # @param consistency [Symbol] the original consistency level for the
       #   request, one of {Cassandra::CONSISTENCIES}
-      # @param type [Symbol] One of `:simple`, `:batch`, `:unlogged_batch`,
-      #   `:counter` or `:batch_log`
+      # @param type [Symbol] One of {Cassandra::WRITE_TYPES}
       # @param required [Integer] the number of acks required to achieve
       #   requested consistency level
       # @param received [Integer] the number of acks received by the time the
@@ -75,8 +74,7 @@ module Cassandra
       #   request, one of {Cassandra::CONSISTENCIES}
       # @param required [Integer] the number of replicas required to achieve
       #   requested consistency level
-      # @param alive [Integer] the number of replicas received by the time the
-      #   query timed out
+      # @param alive [Integer] the number of replicas available for the request
       # @param retries [Integer] the number of retries already performed
       # 
       # @return [Cassandra::Policies::Retry::Decision] a retry decision

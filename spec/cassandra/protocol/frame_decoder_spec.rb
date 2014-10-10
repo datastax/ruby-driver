@@ -104,11 +104,11 @@ module Cassandra
           end
 
           it 'complains when the frame is a request frame' do
-            expect { decoder.decode_frame(CqlByteBuffer.new("\x01\x00\x00\x05\x00\x00\x00\x00")) }.to raise_error(UnsupportedFrameTypeError)
+            expect { decoder.decode_frame(CqlByteBuffer.new("\x01\x00\x00\x05\x00\x00\x00\x00")) }.to raise_error(Errors::DecodingError)
           end
 
           it 'complains when the opcode is unknown' do
-            expect { decoder.decode_frame(CqlByteBuffer.new("\x81\x00\x00\xff\x00\x00\x00\x00")) }.to raise_error(UnsupportedOperationError)
+            expect { decoder.decode_frame(CqlByteBuffer.new("\x81\x00\x00\xff\x00\x00\x00\x00")) }.to raise_error(Errors::DecodingError)
           end
         end
 
@@ -148,7 +148,7 @@ module Cassandra
           end
 
           it 'complains when there is no compressor' do
-            expect { described_class.new.decode_frame(buffer) }.to raise_error(UnexpectedCompressionError)
+            expect { described_class.new.decode_frame(buffer) }.to raise_error(Errors::DecodingError)
           end
         end
       end

@@ -86,12 +86,12 @@ class SessionTest < IntegrationTestCase
     cluster = Cassandra.connect
     session = cluster.connect()
 
-    assert_raises(Cassandra::Errors::QueryError) do 
+    assert_raises(Cassandra::Errors::InvalidError) do 
       session.execute("CREATE TABLE users (user_id INT PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)")
     end
 
     session.execute("USE system")
-    assert_raises(Cassandra::Errors::QueryError) do 
+    assert_raises(Cassandra::Errors::UnauthorizedError) do 
       session.execute("CREATE TABLE users (user_id INT PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)")
     end
   ensure
@@ -154,11 +154,11 @@ class SessionTest < IntegrationTestCase
     cluster = Cassandra.connect
     session = cluster.connect("simplex")
 
-    assert_raises(Cassandra::Errors::QueryError) do
+    assert_raises(Cassandra::Errors::InvalidError) do
       session.prepare("INSERT INTO badtable (user_id, first, last, age) VALUES (?, ?, ?, ?)")
     end
 
-    assert_raises(Cassandra::Errors::QueryError) do
+    assert_raises(Cassandra::Errors::InvalidError) do
       session.prepare("SELECT * FROM badtable")
     end
   ensure

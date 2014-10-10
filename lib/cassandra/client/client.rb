@@ -67,7 +67,7 @@ module Cassandra
       # The the second parameter is meant for internal use only.
       #
       # @param [String] keyspace
-      # @raise [Cassandra::Errors::NotConnectedError] raised when the client is not connected
+      # @raise [Cassandra::Errors::ClientError] raised when the client is not connected
       # @return [nil]
 
       # @!method execute(cql, *values, options={})
@@ -135,7 +135,7 @@ module Cassandra
       #   to be `:serial` by the server if none is specified. Ignored for non-
       #   conditional queries.
       # @option options [Integer] :timeout (nil) How long to wait
-      #   for a response. If this timeout expires a {Cassandra::TimeoutError} will
+      #   for a response. If this timeout expires a {Cassandra::Errors::TimeoutError} will
       #   be raised.
       # @option options [Boolean] :trace (false) Request tracing
       #   for this request. See {Cassandra::Client::QueryResult} and
@@ -152,10 +152,10 @@ module Cassandra
       #   element should be the type of the corresponding value, or nil if you
       #   prefer the encoder to guess. The types should be provided as lower
       #   case symbols, e.g. `:int`, `:time_uuid`, etc.
-      # @raise [Cassandra::Errors::NotConnectedError] raised when the client is not connected
-      # @raise [Cassandra::TimeoutError] raised when a timeout was specified and no
+      # @raise [Cassandra::Errors::ClientError] raised when the client is not connected
+      # @raise [Cassandra::Errors::TimeoutError] raised when a timeout was specified and no
       #   response was received within the timeout.
-      # @raise [Cassandra::Errors::QueryError] raised when the CQL has syntax errors or for
+      # @raise [Cassandra::Errors::ExecutionError] raised when the CQL has syntax errors or for
       #   other situations when the server complains.
       # @return [nil, Cassandra::Client::QueryResult, Cassandra::Client::VoidResult] Some
       #   queries have no result and return `nil`, but `SELECT` statements
@@ -170,10 +170,10 @@ module Cassandra
       #
       # @see Cassandra::Client::PreparedStatement
       # @param [String] cql The CQL to prepare
-      # @raise [Cassandra::Errors::NotConnectedError] raised when the client is not connected
+      # @raise [Cassandra::Errors::ClientError] raised when the client is not connected
       # @raise [Cassandra::Errors::IoError] raised when there is an IO error, for example
       #   if the server suddenly closes the connection
-      # @raise [Cassandra::Errors::QueryError] raised when there is an error on the server
+      # @raise [Cassandra::Errors::ExecutionError] raised when there is an error on the server
       #   side, for example when you specify a malformed CQL query
       # @return [Cassandra::Client::PreparedStatement] an object encapsulating the
       #   prepared statement
@@ -230,7 +230,7 @@ module Cassandra
         @cql_version = options[:cql_version]
         @logger = options[:logger] || NullLogger.new
         @protocol_version = options[:protocol_version] || 2
-        @io_reactor = options[:io_reactor] || Io::IoReactor.new
+        @io_reactor = options[:io_reactor] || Ione::Io::IoReactor.new
         @hosts = extract_hosts(options)
         @initial_keyspace = options[:keyspace]
         @connections_per_node = options[:connections_per_node] || 1
@@ -380,12 +380,12 @@ module Cassandra
       def connect_with_protocol_version_fallback
         f = create_cluster_connector.connect_all(@hosts, @connections_per_node)
         f.fallback do |error|
-          if error.is_a?(Errors::QueryError) && error.code == 0x0a && @protocol_version > 1
+          if error.is_a?(Errors::ProtocolError) && @protocol_version > 1
             @logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@protocol_version, @protocol_version - 1, error.message])
             @protocol_version -= 1
             connect_with_protocol_version_fallback
           else
-            raise error
+            raise(error, error.message, error.backtrace)
           end
         end
       end
@@ -447,7 +447,7 @@ module Cassandra
       end
 
       def with_failure_handler
-        return Ione::Future.failed(Errors::NotConnectedError.new) unless can_execute?
+        return Ione::Future.failed(Errors::ClientError.new) unless can_execute?
         yield
       rescue => e
         Ione::Future.failed(e)
@@ -472,7 +472,7 @@ module Cassandra
             if connected?
               begin
                 register_event_listener(@connection_manager.random_connection)
-              rescue Errors::NotConnectedError
+              rescue Errors::IOError
                 # we had started closing down after the connection check
               end
             end

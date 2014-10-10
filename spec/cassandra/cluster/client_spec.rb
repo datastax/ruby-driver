@@ -322,7 +322,7 @@ module Cassandra
                   attempts << connection.host
                   if count == 0
                     count += 1
-                    raise Cassandra::Errors::NotConnectedError.new
+                    raise Cassandra::Errors::ClientError.new
                   else
                     Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
                   end
@@ -347,7 +347,7 @@ module Cassandra
               when Cassandra::Protocol::QueryRequest
                 case request.cql
                 when 'SELECT * FROM songs'
-                  raise Cassandra::Errors::NotConnectedError.new
+                  raise Cassandra::Errors::ClientError.new
                 else
                   Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
                 end
@@ -360,7 +360,7 @@ module Cassandra
           end.to raise_error(Errors::NoHostsAvailable)
         end
 
-        it 'raises immediately on Errors::QueryError' do
+        it 'raises immediately on Errors::ValidationError' do
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
@@ -369,7 +369,7 @@ module Cassandra
               when Cassandra::Protocol::QueryRequest
                 case request.cql
                 when 'SELECT * FROM songs'
-                  Protocol::ErrorResponse.new(0x00, 'blargh')
+                  Protocol::ErrorResponse.new(0x2200, 'blargh')
                 else
                   Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
                 end
@@ -380,7 +380,7 @@ module Cassandra
           client.connect.value
           expect do
             client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
-          end.to raise_error(Cassandra::Errors::QueryError, 'blargh')
+          end.to raise_error(Cassandra::Errors::InvalidError, 'blargh')
         end
 
         it 'waits for keyspace to be switched before running other requests' do
@@ -509,7 +509,7 @@ module Cassandra
                 attempts << connection.host
                 if count == 0
                   count += 1
-                  raise Cassandra::Errors::NotConnectedError.new
+                  raise Cassandra::Errors::ClientError.new
                 end
                 Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
               end
@@ -534,7 +534,7 @@ module Cassandra
               when Cassandra::Protocol::PrepareRequest
                 Protocol::PreparedResultResponse.new(123, [], [], nil)
               when Cassandra::Protocol::ExecuteRequest
-                Protocol::ErrorResponse.new(0x00, 'blargh')
+                Protocol::ErrorResponse.new(0x2200, 'blargh')
               end
             end
           end
@@ -545,7 +545,7 @@ module Cassandra
 
           expect do
             client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
-          end.to raise_error(Cassandra::Errors::QueryError, 'blargh')
+          end.to raise_error(Cassandra::Errors::InvalidError, 'blargh')
         end
 
         it 'raises if all hosts failed' do
@@ -557,7 +557,7 @@ module Cassandra
               when Cassandra::Protocol::PrepareRequest
                 Protocol::PreparedResultResponse.new(123, [], [], nil)
               when Cassandra::Protocol::ExecuteRequest
-                raise Cassandra::Errors::NotConnectedError.new
+                raise Cassandra::Errors::ClientError.new
               end
             end
           end
@@ -683,7 +683,7 @@ module Cassandra
                 attempts << connection.host
                 if count == 0
                   count += 1
-                  raise Cassandra::Errors::NotConnectedError.new
+                  raise Cassandra::Errors::ClientError.new
                 end
                 Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
               end
@@ -706,7 +706,7 @@ module Cassandra
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::BatchRequest
-                raise Cassandra::Errors::NotConnectedError.new
+                raise Cassandra::Errors::ClientError.new
               end
             end
           end

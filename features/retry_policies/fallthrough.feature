@@ -28,7 +28,7 @@ Feature: Fallthrough Retry Policy
       begin
         session.execute('SELECT * FROM songs', consistency: :all)
         puts "failed"
-      rescue Cassandra::Errors::QueryError => e
+      rescue Cassandra::Errors::UnavailableError => e
         puts "success"
       end
       """

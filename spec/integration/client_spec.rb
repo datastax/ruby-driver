@@ -38,8 +38,7 @@ describe 'A CQL client', :integration do
   def create_keyspace_and_table
     begin
       client.execute(%(DROP KEYSPACE cql_rb_client_spec))
-    rescue Cassandra::Errors::QueryError => e
-      raise e unless e.code == 0x2300
+    rescue Cassandra::Errors::ConfigurationError
     end
     client.execute(%(CREATE KEYSPACE cql_rb_client_spec WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}))
     client.use('cql_rb_client_spec')
@@ -462,11 +461,11 @@ describe 'A CQL client', :integration do
 
     it 'fails gracefully when connecting to the Thrift port' do
       opts = connection_options.merge(port: 9160)
-      expect { Cassandra::Client.connect(opts) }.to raise_error(Cassandra::Io::ConnectionClosedError)
+      expect { Cassandra::Client.connect(opts) }.to raise_error(Cassandra::Errors::IOError)
     end
 
     it 'fails gracefully when connecting to something that does not run C*' do
-      expect { Cassandra::Client.connect(host: 'google.com') }.to raise_error(Cassandra::Io::ConnectionTimeoutError)
+      expect { Cassandra::Client.connect(host: 'google.com') }.to raise_error(Ione::Io::ConnectionTimeoutError)
     end
   end
 end

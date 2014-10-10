@@ -88,15 +88,15 @@ module Cassandra
       # @private
       def from_s(str)
         str = str.gsub(HYPHEN, EMPTY_STRING)
-        raise ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}" unless str.length == 32
-        raise ArgumentError, "invalid value for Integer(): \"#{str}\"" unless str =~ HEX_RE
+        raise ::ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}" unless str.length == 32
+        raise ::ArgumentError, "invalid value for Integer(): \"#{str}\"" unless str =~ HEX_RE
         Integer(str, 16)
       end
     else
       # @private
       def from_s(str)
         str = str.gsub(HYPHEN, EMPTY_STRING)
-        raise ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}" unless str.length == 32
+        raise ::ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}" unless str.length == 32
         Integer(str, 16)
       end
     end

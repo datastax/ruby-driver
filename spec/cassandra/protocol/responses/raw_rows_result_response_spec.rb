@@ -57,7 +57,7 @@ module Cassandra
 
       describe '#rows' do
         it 'raises an error before #materialize has been called' do
-          expect { response.rows }.to raise_error(UnmaterializedRowsError)
+          expect { response.rows }.to raise_error(Errors::DecodingError)
           response.materialize(metadata)
           response.rows
         end

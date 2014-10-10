@@ -233,7 +233,7 @@ module Cassandra
             futures.should be_all(&:failed?), 'expected all requests to have failed'
           end
 
-          it 'fails all requests with ConnectionClosedError if there is no specific error' do
+          it 'fails all requests with Errors::IOError if there is no specific error' do
             protocol_handler.send_request(request)
             future = protocol_handler.send_request(request)
             connection.data_listener.call([0x81, 0, 0, 2, 0].pack('C4N'))
@@ -241,26 +241,26 @@ module Cassandra
             begin
               future.value
             rescue => e
-              e.should be_a(Cassandra::Io::ConnectionClosedError)
+              e.should be_a(Errors::IOError)
             else
               fail('No error was raised!')
             end
           end
 
-          it 'passes the error that caused the protocol handler to close to the failed requests' do
+          it 'changes the error that caused the protocol handler to close to the failed requests' do
             error = nil
             future = protocol_handler.send_request(request)
             future.on_failure { |e| error = e }
             connection.closed_listener.call(StandardError.new('Blurgh'))
-            error.should == StandardError.new('Blurgh')
+            error.should == Cassandra::Errors::IOError.new('Blurgh')
           end
         end
 
         context 'when the protocol handler has closed' do
-          it 'fails all requests with Errors::NotConnectedError' do
+          it 'fails all requests with Errors::IOError' do
             connection.stub(:closed?).and_return(true)
             f = protocol_handler.send_request(request)
-            expect { f.value }.to raise_error(Errors::NotConnectedError)
+            expect { f.value }.to raise_error(Errors::IOError)
           end
         end
 
@@ -268,7 +268,7 @@ module Cassandra
           it 'raises a TimeoutError' do
             f = protocol_handler.send_request(request, 3)
             scheduler.advance_time(3)
-            expect { f.value }.to raise_error(TimeoutError)
+            expect { f.value }.to raise_error(Errors::TimeoutError)
           end
 
           it 'does not attempt to fulfill the promise when the request has already timed out' do

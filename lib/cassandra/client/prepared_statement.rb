@@ -90,7 +90,7 @@ module Cassandra
       #   for details on which options are available.
       # @raise [ArgumentError] raised when number of argument does not match
       #   the number of parameters needed to be bound to the statement.
-      # @raise [Cassandra::Errors::NotConnectedError] raised when the client is not connected
+      # @raise [Cassandra::Errors::ClientError] raised when the client is not connected
       # @raise [Cassandra::Errors::IoError] raised when there is an IO error, for example
       #   if the server suddenly closes the connection
       # @raise [Cassandra::Errors::QueryError] raised when there is an error on the server side
@@ -221,10 +221,10 @@ module Cassandra
       def add_to_batch(batch, connection, bound_args)
         statement_id = connection[self]
         unless statement_id
-          raise Errors::NotPreparedError
+          raise ::ArgumentError, "Statement was not prepared"
         end
         unless bound_args.size == @raw_metadata.size
-          raise ArgumentError, "Expected #{@raw_metadata.size} arguments, got #{bound_args.size}"
+          raise ::ArgumentError, "Expected #{@raw_metadata.size} arguments, got #{bound_args.size}"
         end
         batch.add_prepared(statement_id, @raw_metadata, bound_args)
       end
@@ -234,7 +234,7 @@ module Cassandra
       def run(args, connection)
         bound_args = args.shift(@raw_metadata.size)
         unless bound_args.size == @raw_metadata.size && args.size <= 1
-          raise ArgumentError, "Expected #{@raw_metadata.size} arguments, got #{bound_args.size}"
+          raise ::ArgumentError, "Expected #{@raw_metadata.size} arguments, got #{bound_args.size}"
         end
         options = @execute_options_decoder.decode_options(args.last)
         statement_id = connection[self]

@@ -85,8 +85,8 @@ module Cassandra
 
         it 'complains when the stream ID is less than 0 or more than 127' do
           encoder = described_class.new(1)
-          expect { encoder.encode_frame(request, -1) }.to raise_error(InvalidStreamIdError)
-          expect { encoder.encode_frame(request, 128) }.to raise_error(InvalidStreamIdError)
+          expect { encoder.encode_frame(request, -1) }.to raise_error(EncodingError)
+          expect { encoder.encode_frame(request, 128) }.to raise_error(EncodingError)
         end
 
         it 'encodes a header with the right opcode' do

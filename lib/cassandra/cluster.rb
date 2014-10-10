@@ -133,6 +133,9 @@ module Cassandra
     #
     # @return [Cassandra::Future<Cassandra::Session>] a future new session that
     #   can prepare and execute statements
+    #
+    # @see Cassandra::Cluster#connect A list of possible exceptions that this
+    #   future can be resolved with
     def connect_async(keyspace = nil)
       if !keyspace.nil? && !keyspace.is_a?(::String)
         return @futures.error(::ArgumentError.new("keyspace must be a string, #{keyspace.inspect} given"))
@@ -162,8 +165,14 @@ module Cassandra
 
     # Synchronously create a new session, optionally scoped to a keyspace
     #
-    # @param keyspace [String] optional keyspace to scope session to
-    # @raise  [ArgumentError] if keyspace is not a String
+    # @param keyspace [String] optional keyspace to scope the session to
+    #
+    # @raise [ArgumentError] if keyspace is not a String
+    # @raise [Cassandra::Errors::NoHostsAvailable] when all hosts failed
+    # @raise [Cassandra::Errors::AuthenticationError] when authentication fails
+    # @raise [Cassandra::Errors::ProtocolError] when protocol negotiation fails
+    # @raise [Cassandra::Error] other unexpected errors
+    #
     # @return [Cassandra::Session] a new session that can prepare and execute
     #   statements
     #

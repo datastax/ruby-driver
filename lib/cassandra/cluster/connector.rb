@@ -116,7 +116,8 @@ module Cassandra
 
       def do_connect(host)
         create_connector.connect(host.ip.to_s).fallback do |error|
-          if error.is_a?(Errors::QueryError) && error.code == 0x0a
+          case error
+          when Errors::ProtocolError
             synchronize do
               if @options.protocol_version > 1
                 @logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@options.protocol_version, @options.protocol_version - 1, error.message])
@@ -126,8 +127,12 @@ module Cassandra
                 Ione::Future.failed(error)
               end
             end
-          else
+          when Error
             Ione::Future.failed(error)
+          else
+            e = Errors::IOError.new(error.message)
+            e.set_backtrace(error.backtrace)
+            Ione::Future.failed(e)
           end
         end
       end
@@ -135,7 +140,7 @@ module Cassandra
       def create_connector
         authentication_step = @options.protocol_version == 1 ? Cassandra::Client::CredentialsAuthenticationStep.new(@options.credentials) : Cassandra::Client::SaslAuthenticationStep.new(@options.auth_provider)
         protocol_handler_factory = lambda do |connection|
-          raise "no connection given" unless connection
+          raise Errors::ClientError, 'Not connected' unless connection
           Protocol::CqlProtocolHandler.new(connection, @reactor, @options.protocol_version, @options.compressor, @options.heartbeat_interval, @options.idle_timeout)
         end
 
@@ -216,7 +221,7 @@ module Cassandra
           connections -= 1
 
           if connections == 0
-            notify = !error.nil? && !error.is_a?(Cassandra::Error)
+            notify = !error.nil?
             @connections.delete(host)
           else
             @connections[host] = connections
@@ -232,7 +237,7 @@ module Cassandra
         notify = false
 
         synchronize do
-          notify = !error.is_a?(Cassandra::Error) && !@connections.has_key?(host)
+          notify = !error.nil? && !@connections.has_key?(host)
         end
 
         @registry.host_down(host.ip) if notify

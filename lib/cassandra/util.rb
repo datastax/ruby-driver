@@ -103,7 +103,7 @@ module Cassandra
       when false     then io.print(FALSE_STR)
       when true      then io.print(TRUE_STR)
       else
-        raise "unsupported type: #{object.inspect}"
+        raise ::ArgumentError, "unsupported type: #{object.inspect}"
       end
 
       io.string

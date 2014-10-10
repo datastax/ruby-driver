@@ -37,7 +37,10 @@ module Cassandra
           details[:cl] = buffer.read_consistency
           details[:received] = buffer.read_int
           details[:blockfor] = buffer.read_int
-          details[:write_type] = buffer.read_string
+          write_type = buffer.read_string
+          write_type.downcase!
+
+          details[:write_type] = write_type.to_sym
         when 0x1200 # read_timeout
           details[:cl] = buffer.read_consistency
           details[:received] = buffer.read_int
@@ -50,6 +53,18 @@ module Cassandra
           details[:id] = buffer.read_short_bytes
         end
         new(code, message, details)
+      end
+
+      def to_error(statement = nil)
+        case code
+        when 0x1000 then Errors::UnavailableError.new(@message, statement, @details[:cl], @details[:required], @details[:alive])
+        when 0x1100 then Errors::WriteTimeoutError.new(@message, statement, @details[:write_type], @details[:cl], @details[:blockfor], @details[:received])
+        when 0x1200 then Errors::ReadTimeoutError.new(@message, statement, @details[:data_present], @details[:cl], @details[:blockfor], @details[:received])
+        when 0x2400 then Errors::AlreadyExistsError.new(@message, statement, @details[:ks], @details[:table])
+        when 0x2500 then Errors::UnpreparedError.new(@message, statement, @detauls[:id])
+        else
+          super
+        end
       end
 
       def to_s

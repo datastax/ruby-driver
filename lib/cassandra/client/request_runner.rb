@@ -31,8 +31,7 @@ module Cassandra
             response.trace_id ? VoidResult.new(response.trace_id) : VoidResult::INSTANCE
           when Protocol::ErrorResponse
             cql = request.is_a?(Protocol::QueryRequest) ? request.cql : nil
-            details = response.respond_to?(:details) ? response.details : nil
-            raise Errors::QueryError.new(response.code, response.message, cql, details)
+            raise response.to_error(cql)
           when Protocol::SetKeyspaceResultResponse
             KeyspaceChanged.new(response.keyspace)
           when Protocol::AuthenticateResponse
