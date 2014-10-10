@@ -40,7 +40,7 @@ module Cassandra
         end
 
         it 'raises an error when there is no byte available' do
-          expect { described_class.new.read_unsigned_byte }.to raise_error(DecodingError)
+          expect { described_class.new.read_unsigned_byte }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -68,7 +68,7 @@ module Cassandra
 
         it 'raises an error when there is not enough bytes available' do
           buffer = described_class.new("\xC9v\x8D:")
-          expect { buffer.read_varint(7) }.to raise_error(DecodingError)
+          expect { buffer.read_varint(7) }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -115,7 +115,7 @@ module Cassandra
 
         it 'raises an error when there is not enough bytes available' do
           b = described_class.new(buffer.read(3))
-          expect { b.read_decimal(7) }.to raise_error(DecodingError)
+          expect { b.read_decimal(7) }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -138,7 +138,7 @@ module Cassandra
 
         it 'raises an error when there is not enough bytes available' do
           b = described_class.new("\xca\xfe\xba\xbe\x00")
-          expect { b.read_long }.to raise_error(DecodingError)
+          expect { b.read_long }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -156,7 +156,7 @@ module Cassandra
 
         it 'raises an error when there is not enough bytes available' do
           buffer = described_class.new("@\xC3\x88\x0F")
-          expect { buffer.read_double }.to raise_error(DecodingError)
+          expect { buffer.read_double }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -174,7 +174,7 @@ module Cassandra
 
         it 'raises an error when there is not enough bytes available' do
           buffer = described_class.new("\x0F")
-          expect { buffer.read_float }.to raise_error(DecodingError)
+          expect { buffer.read_float }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -200,7 +200,7 @@ module Cassandra
 
         it 'raises an error when there are not enough bytes in the buffer' do
           buffer = described_class.new("\x01\xab")
-          expect { buffer.read_signed_int }.to raise_error(DecodingError)
+          expect { buffer.read_signed_int }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -221,7 +221,7 @@ module Cassandra
 
         it 'raises an error when there are not enough bytes in the buffer' do
           buffer = described_class.new("\x01")
-          expect { buffer.read_unsigned_short }.to raise_error(DecodingError)
+          expect { buffer.read_unsigned_short }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -251,7 +251,7 @@ module Cassandra
 
         it 'raises an error when there are not enough bytes in the buffer' do
           b = described_class.new(buffer.read(5))
-          expect { b.read_string }.to raise_error(DecodingError)
+          expect { b.read_string }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -278,7 +278,7 @@ module Cassandra
 
         it 'raises an error when there are not enough bytes in the buffer' do
           b = described_class.new(buffer.read(246))
-          expect { b.read_long_string }.to raise_error(DecodingError)
+          expect { b.read_long_string }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -304,7 +304,7 @@ module Cassandra
         
         it 'raises an error when there a not enough bytes in the buffer' do
           b = described_class.new(buffer.discard(2).read(5))
-          expect { b.read_uuid }.to raise_error(DecodingError)
+          expect { b.read_uuid }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -330,7 +330,7 @@ module Cassandra
 
         it 'raises an error when there are not enough bytes in the buffer' do
           b = described_class.new(buffer.read(13))
-          expect { b.read_string_list }.to raise_error(DecodingError)
+          expect { b.read_string_list }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -361,7 +361,7 @@ module Cassandra
 
         it 'raises an error when there are not enough bytes in the buffer' do
           b = described_class.new(buffer.read(10))
-          expect { b.read_bytes }.to raise_error(DecodingError)
+          expect { b.read_bytes }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -392,7 +392,7 @@ module Cassandra
 
         it 'raises an error when there are not enough bytes in the buffer' do
           b = described_class.new(buffer.read(10))
-          expect { b.read_short_bytes }.to raise_error(DecodingError)
+          expect { b.read_short_bytes }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -423,7 +423,7 @@ module Cassandra
 
         it 'raises an error when there are not enough bytes in the buffer' do
           b = described_class.new("\xaa")
-          expect { b.read_option }.to raise_error(DecodingError)
+          expect { b.read_option }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -450,9 +450,9 @@ module Cassandra
 
         it 'raises an error when there are not enough bytes in the buffer' do
           buffer1 = described_class.new("\x04\x00\x00\x00\x00\x00\x00")
-          expect { buffer1.read_inet }.to raise_error(DecodingError)
+          expect { buffer1.read_inet }.to raise_error(Errors::DecodingError)
           buffer2 = described_class.new("\x04\x00\x00\x00")
-          expect { buffer2.read_inet }.to raise_error(DecodingError)
+          expect { buffer2.read_inet }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -477,8 +477,8 @@ module Cassandra
         end
 
         it 'raises an exception for an unknown consistency' do
-          expect { CqlByteBuffer.new("\xff\xff").read_consistency }.to raise_error(DecodingError)
-          expect { CqlByteBuffer.new("\x00\x0f").read_consistency }.to raise_error(DecodingError)
+          expect { CqlByteBuffer.new("\xff\xff").read_consistency }.to raise_error(Errors::DecodingError)
+          expect { CqlByteBuffer.new("\x00\x0f").read_consistency }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -504,7 +504,7 @@ module Cassandra
 
         it 'raises an error when there are not enough bytes in the buffer' do
           b = described_class.new(buffer.read(20))
-          expect { b.read_string_map }.to raise_error(DecodingError)
+          expect { b.read_string_map }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -530,7 +530,7 @@ module Cassandra
 
         it 'raises an error when there are not enough bytes in the buffer' do
           b = described_class.new(buffer.read(40))
-          expect { b.read_string_multimap }.to raise_error(DecodingError)
+          expect { b.read_string_multimap }.to raise_error(Errors::DecodingError)
         end
       end
 
@@ -773,7 +773,7 @@ module Cassandra
         end
 
         it 'raises an exception for an unknown consistency' do
-          expect { buffer.append_consistency(:foo) }.to raise_error(EncodingError)
+          expect { buffer.append_consistency(:foo) }.to raise_error(Errors::EncodingError)
         end
 
         it 'appends to the buffer' do

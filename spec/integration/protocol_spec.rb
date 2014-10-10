@@ -37,7 +37,7 @@ describe 'Protocol parsing and communication', :integration do
   end
 
   let :io_reactor do
-    Cassandra::Io::IoReactor.new.start.value
+    Ione::Io::IoReactor.new.start.value
   end
 
   let :connection do
@@ -58,7 +58,7 @@ describe 'Protocol parsing and communication', :integration do
     else
       '3.1.0'
     end
-    ir = Cassandra::Io::IoReactor.new
+    ir = Ione::Io::IoReactor.new
     protocol_handler_factory = lambda { |connection| Cassandra::Protocol::CqlProtocolHandler.new(connection, ir, 2) }
     f = ir.start
     f = f.flat_map do |reactor|
@@ -136,7 +136,7 @@ describe 'Protocol parsing and communication', :integration do
     ensure
       begin
         drop_keyspace!
-      rescue Cassandra::Errors::NotConnectedError, Errno::EPIPE => e
+      rescue Cassandra::Errors::ClientError, Errno::EPIPE => e
         # ignore since we're shutting down, and these errors are likely caused
         # by the code under test, re-raising them would mask the real errors
       end
@@ -561,7 +561,7 @@ describe 'Protocol parsing and communication', :integration do
         it 'sends a compressed request and receives a compressed response' do
           compressor.stub(:compress).and_call_original
           compressor.stub(:decompress).and_call_original
-          io_reactor = Cassandra::Io::IoReactor.new
+          io_reactor = Ione::Io::IoReactor.new
           io_reactor.start.value
           begin
             connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 0.1, &protocol_handler_factory).value
@@ -607,16 +607,16 @@ describe 'Protocol parsing and communication', :integration do
 
   context 'in special circumstances' do
     it 'raises an exception when it cannot connect to Cassandra' do
-      io_reactor = Cassandra::Io::IoReactor.new
+      io_reactor = Ione::Io::IoReactor.new
       io_reactor.start.value
-      expect { io_reactor.connect('example.com', 9042, 0.1, &protocol_handler_factory).value }.to raise_error(Cassandra::Io::ConnectionError)
-      expect { io_reactor.connect('blackhole', 9042, 0.1, &protocol_handler_factory).value }.to raise_error(Cassandra::Io::ConnectionError)
+      expect { io_reactor.connect('example.com', 9042, 0.1, &protocol_handler_factory).value }.to raise_error(Ione::Io::ConnectionError)
+      expect { io_reactor.connect('blackhole', 9042, 0.1, &protocol_handler_factory).value }.to raise_error(Ione::Io::ConnectionError)
       io_reactor.stop.value
     end
 
     it 'does nothing the second time #start is called' do
       protocol_handler_factory = lambda { |connection| Cassandra::Protocol::CqlProtocolHandler.new(connection, io_reactor, protocol_version) }
-      io_reactor = Cassandra::Io::IoReactor.new
+      io_reactor = Ione::Io::IoReactor.new
       io_reactor.start.value
       connection = io_reactor.connect(ENV['CASSANDRA_HOST'], 9042, 5, &protocol_handler_factory).value
       response = connection.send_request(Cassandra::Protocol::StartupRequest.new(cql_version)).value

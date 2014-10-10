@@ -18,23 +18,7 @@
 
 module Cassandra
   # @private
-  ProtocolError = Class.new(Error)
-
-  # @private
   module Protocol
-    DecodingError = Class.new(ProtocolError)
-    EncodingError = Class.new(ProtocolError)
-    InvalidStreamIdError = Class.new(ProtocolError)
-    InvalidValueError = Class.new(ProtocolError)
-    UnsupportedOperationError = Class.new(ProtocolError)
-    UnsupportedFrameTypeError = Class.new(ProtocolError)
-    UnsupportedResultKindError = Class.new(ProtocolError)
-    UnsupportedColumnTypeError = Class.new(ProtocolError)
-    UnsupportedEventTypeError = Class.new(ProtocolError)
-    UnsupportedFeatureError = Class.new(ProtocolError)
-    UnexpectedCompressionError = Class.new(ProtocolError)
-    UnmaterializedRowsError = Class.new(ProtocolError)
-
     module Formats
       CHAR_FORMAT = 'c'.freeze
       DOUBLE_FORMAT = 'G'.freeze

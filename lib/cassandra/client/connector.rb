@@ -39,11 +39,8 @@ module Cassandra
         Ione::Future.all(*connections).map do |connections|
           connected_connections = connections.select(&:connected?)
           if connected_connections.empty?
-            e = connections.first.error
-            if e.is_a?(Cassandra::Errors::QueryError) && e.code == 0x100
-              e = Errors::AuthenticationError.new(e.message)
-            end
-            raise e
+            error = connections.first.error
+            raise(error, error.message, error.backtrace)
           end
           connected_connections
         end
@@ -165,10 +162,10 @@ module Cassandra
             elsif @auth_provider
               Ione::Future.failed(Errors::AuthenticationError.new('Auth provider does not support the required authentication class "%s" and/or protocol version %d' % [pending_connection.authentication_class, @protocol_version]))
             else
-              Ione::Future.failed(Errors::AuthenticationError.new('Server requested authentication, but no auth provider found'))
+              Ione::Future.failed(Errors::AuthenticationError.new('Server requested authentication, but client was not configured to authenticate'))
             end
           rescue => e
-            Ione::Future.failed(Errors::AuthenticationError.new('Auth provider raised an error: %s' % e.message))
+            Ione::Future.failed(Errors::AuthenticationError.new('Auth provider error (%s: %s)' % [e.class.name, e.message]))
           end
         else
           Ione::Future.resolved(pending_connection)
@@ -205,7 +202,7 @@ module Cassandra
             request = Protocol::CredentialsRequest.new(@credentials)
             pending_connection.execute(request).map(pending_connection)
           else
-            Ione::Future.failed(Errors::AuthenticationError.new('Server requested authentication, but no credentials provided'))
+            Ione::Future.failed(Errors::AuthenticationError.new('Server requested authentication, but client was not configured to authenticate'))
           end
         else
           Ione::Future.resolved(pending_connection)

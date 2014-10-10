@@ -76,7 +76,7 @@ module Cassandra
         end
 
         it 'complains when asked to decode an unknown result type' do
-          expect { described_class.decode(1, CqlByteBuffer.new("\x00\x00\x00\xffhello"), 9) }.to raise_error(UnsupportedResultKindError)
+          expect { described_class.decode(1, CqlByteBuffer.new("\x00\x00\x00\xffhello"), 9) }.to raise_error(Errors::DecodingError)
         end
       end
     end

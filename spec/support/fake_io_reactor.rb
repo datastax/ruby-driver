@@ -67,9 +67,9 @@ class FakeIoReactor
 
   def connect(host, port, timeout)
     if host == '0.0.0.0'
-      Ione::Future.failed(Cassandra::Io::ConnectionError.new('Can\'t connect to 0.0.0.0'))
+      Ione::Future.failed(Ione::Io::ConnectionError.new('Can\'t connect to 0.0.0.0'))
     elsif @down_nodes.include?(host)
-      Ione::Future.failed(Cassandra::Io::ConnectionError.new('Node down'))
+      Ione::Future.failed(Ione::Io::ConnectionError.new('Node down'))
     else
       connection = FakeConnection.new(host, port, timeout)
       @connections << connection
@@ -194,7 +194,7 @@ class FakeConnection
 
   def send_request(request, timeout=nil)
     if @closed
-      Ione::Future.failed(Cassandra::Errors::NotConnectedError.new)
+      Ione::Future.failed(Cassandra::Errors::ClientError.new)
     else
       @requests << request
       case request

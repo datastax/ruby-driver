@@ -28,7 +28,7 @@ module Cassandra
       def self.decode(protocol_version, buffer, length, trace_id=nil)
         kind = buffer.read_int
         impl = RESULT_TYPES[kind]
-        raise UnsupportedResultKindError, %(Unsupported result kind: #{kind}) unless impl
+        raise Errors::DecodingError, %(Unsupported result kind: #{kind}) unless impl
         impl.decode(protocol_version, buffer, length - 4, trace_id)
       end
 

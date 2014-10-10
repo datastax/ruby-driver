@@ -47,7 +47,7 @@ module Cassandra
 
       def actual_decode(buffer, fields, size)
         if (fields >> 24) & 0x80 == 0
-          raise UnsupportedFrameTypeError, 'Request frames are not supported'
+          raise Errors::DecodingError, 'Request frames are not supported'
         end
         protocol_version = (fields >> 24) & 0x7f
         compression = (fields >> 16) & 0x01
@@ -78,7 +78,7 @@ module Cassandra
           compressed_body = buffer.read(size)
           CqlByteBuffer.new(@compressor.decompress(compressed_body))
         else
-          raise UnexpectedCompressionError, 'Compressed frame received, but no compressor configured'
+          raise Errors::DecodingError, 'Compressed frame received, but no compressor configured'
         end
       end
 

@@ -47,7 +47,7 @@ module Cassandra
         it 'stops managing the connection when the connection closes' do
           manager.add_connections(connections)
           connections.each { |c| c.closed_listener.call }
-          expect { manager.random_connection }.to raise_error(Errors::NotConnectedError)
+          expect { manager.random_connection }.to raise_error(Errors::IOError)
         end
       end
 
@@ -81,8 +81,8 @@ module Cassandra
           connections.should include(manager.random_connection)
         end
 
-        it 'raises a Errors::NotConnectedError when there are no connections' do
-          expect { manager.random_connection }.to raise_error(Errors::NotConnectedError)
+        it 'raises a Errors::IOError when there are no connections' do
+          expect { manager.random_connection }.to raise_error(Errors::IOError)
         end
       end
 
@@ -105,8 +105,8 @@ module Cassandra
           manager.each.should be_an(Enumerable)
         end
 
-        it 'raises a Errors::NotConnectedError when there are no connections' do
-          expect { manager.each_connection { } }.to raise_error(Errors::NotConnectedError)
+        it 'raises a Errors::IOError when there are no connections' do
+          expect { manager.each_connection { } }.to raise_error(Errors::IOError)
         end
       end
 
@@ -125,8 +125,8 @@ module Cassandra
           manager.select { |c| c.index % 2 == 0 }.should == [connections[0], connections[2]]
         end
 
-        it 'raises a Errors::NotConnectedError when there are no connections' do
-          expect { manager.select { } }.to raise_error(Errors::NotConnectedError)
+        it 'raises a Errors::IOError when there are no connections' do
+          expect { manager.select { } }.to raise_error(Errors::IOError)
         end
       end
     end

@@ -33,6 +33,8 @@ require 'openssl'
 
 module Cassandra
   # A list of all supported request consistencies
+  # @see http://www.datastax.com/documentation/cassandra/2.0/cassandra/dml/dml_config_consistency_c.html Consistency levels in Apache Cassandra 2.0
+  # @see http://www.datastax.com/documentation/cassandra/1.2/cassandra/dml/dml_config_consistency_c.html Consistency levels in Apache Cassandra 1.2
   # @see Cassandra::Session#execute_async
   CONSISTENCIES = [ :any, :one, :two, :three, :quorum, :all, :local_quorum,
                     :each_quorum, :serial, :local_serial, :local_one ].freeze
@@ -40,6 +42,12 @@ module Cassandra
   # A list of all supported serial consistencies
   # @see Cassandra::Session#execute_async
   SERIAL_CONSISTENCIES = [:serial, :local_serial].freeze
+
+  # A list of all possible write types that a
+  # {Cassandra::Errors::WriteTimeoutError} can have.
+  #
+  # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L591-L603 Description of possible types of writes in Apache Cassandra native protocol spec v1
+  WRITE_TYPES = [:simple, :batch, :unlogged_batch, :counter, :batch_log].freeze
 
   # Creates a {Cassandra::Cluster} instance
   #
@@ -257,7 +265,7 @@ module Cassandra
       ssl = options[:ssl]
 
       unless ssl.is_a?(::TrueClass) || ssl.is_a?(::FalseClass) || ssl.is_a?(::OpenSSL::SSL::SSLContext)
-        raise ":ssl must be a boolean or an OpenSSL::SSL::SSLContext, #{ssl.inspect} given"
+        raise ::ArgumentError, ":ssl must be a boolean or an OpenSSL::SSL::SSLContext, #{ssl.inspect} given"
       end
     end
 
@@ -435,8 +443,6 @@ require 'cassandra/util'
 require 'cassandra_murmur3'
 
 module Cassandra
-  # @private
-  Io = Ione::Io
   # @private
   VOID_STATEMENT = Statements::Void.new
   # @private

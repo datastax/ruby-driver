@@ -107,10 +107,10 @@ module Cassandra
           expect { f.value }.to raise_error
         end
 
-        it 'fails with an Errors::AuthenticationError when the connections failed with a Errors::QueryError with error code 0x100' do
+        it 'fails with an Errors::AuthenticationError when the connections failed with a Errors::AuthenticationError' do
           bad_nodes.push('host0')
           bad_nodes.push('host1')
-          failure[0] = Errors::QueryError.new(0x100, 'bork')
+          failure[0] = Errors::AuthenticationError.new('bork')
           f = cluster_connector.connect_all(%w[host0 host1], 1)
           expect { f.value }.to raise_error(Errors::AuthenticationError)
         end
@@ -534,7 +534,7 @@ module Cassandra
               if request.token == '1'
                 Ione::Future.resolved(Protocol::AuthChallengeResponse.new('2'))
               else
-                Ione::Future.failed(Errors::QueryError.new(0x99, 'BORK'))
+                Ione::Future.failed(Errors::ServerError.new('BORK'))
               end
             end
             f = step.run(pending_connection)
@@ -585,7 +585,7 @@ module Cassandra
         end
 
         it 'returns a failed future when the server responds with an error' do
-          pending_connection.stub(:execute).and_return(Ione::Future.failed(Errors::QueryError.new(0x99, 'BORK')))
+          pending_connection.stub(:execute).and_return(Ione::Future.failed(Errors::ServerError.new('BORK')))
           result = step.run(pending_connection)
           expect { result.value }.to raise_error('BORK')
         end

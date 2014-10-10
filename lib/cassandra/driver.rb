@@ -24,7 +24,7 @@ module Cassandra
       define_method(:"#{name}=") { |object| @instances[name] = object }
     end
 
-    let(:io_reactor)       { Io::IoReactor.new }
+    let(:io_reactor)       { Ione::Io::IoReactor.new }
     let(:cluster_registry) { Cluster::Registry.new(logger) }
     let(:cluster_schema)   { Cluster::Schema.new(schema_type_parser) }
     let(:cluster_metadata) { Cluster::Metadata.new(

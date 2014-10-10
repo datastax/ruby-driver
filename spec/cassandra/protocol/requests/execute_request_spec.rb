@@ -60,17 +60,17 @@ module Cassandra
 
         it 'raises an error for unsupported column types' do
           column_metadata[2][3] = :imaginary
-          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :each_quorum, nil, nil, nil, false) }.to raise_error(UnsupportedColumnTypeError)
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :each_quorum, nil, nil, nil, false) }.to raise_error(EncodingError)
         end
 
         it 'raises an error for unsupported column collection types' do
           column_metadata[2][3] = [:imaginary, :varchar]
-          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, ['foo']], true, :each_quorum, nil, nil, nil, false) }.to raise_error(UnsupportedColumnTypeError)
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, ['foo']], true, :each_quorum, nil, nil, nil, false) }.to raise_error(EncodingError)
         end
 
         it 'raises an error when collection values are not enumerable' do
           column_metadata[2][3] = [:set, :varchar]
-          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :each_quorum, nil, nil, nil, false) }.to raise_error(InvalidValueError)
+          expect { ExecuteRequest.new(id, column_metadata, ['hello', 42, 'foo'], true, :each_quorum, nil, nil, nil, false) }.to raise_error(EncodingError)
         end
 
         it 'raises an error when it cannot encode the argument' do

@@ -31,7 +31,7 @@ module Cassandra
       end
 
       def rows
-        raise UnmaterializedRowsError, 'Not materialized!' unless @rows
+        raise Errors::DecodingError, 'Not materialized!' unless @rows
         @rows
       end
 

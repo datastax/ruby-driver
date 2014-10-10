@@ -50,7 +50,7 @@ module Cassandra
         end
 
         it 'complains when asked to decode an unknown event type' do
-          expect { described_class.decode(1, CqlByteBuffer.new("\x00\x04PING"), 6) }.to raise_error(UnsupportedEventTypeError, /PING/)
+          expect { described_class.decode(1, CqlByteBuffer.new("\x00\x04PING"), 6) }.to raise_error(Errors::DecodingError, /PING/)
         end
       end
     end

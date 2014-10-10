@@ -4,10 +4,15 @@ Features:
 
 * Token Aware Data Center Aware Round Robin load balancing is used by default
 * Automatic detection of broken connections using heartbeats
+* Improved exception class hierarchy and documentation
 
 Bug fixes:
 
 * [RUBY-34] handle empty values without crashing
+
+Breaking changes:
+
+* Most of the error classes have changed
 
 # 1.0.0.beta.3
 

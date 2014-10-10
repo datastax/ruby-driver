@@ -53,7 +53,7 @@ module Cassandra
       end
 
       def random_connection
-        raise Errors::NotConnectedError unless connected?
+        raise Errors::IOError, 'Not connected' unless connected?
         @lock.synchronize do
           @connections.sample
         end
@@ -61,7 +61,7 @@ module Cassandra
 
       def each_connection(&callback)
         return self unless block_given?
-        raise Errors::NotConnectedError unless connected?
+        raise Errors::IOError, 'Not connected' unless connected?
         @lock.synchronize do
           @connections.each(&callback)
         end

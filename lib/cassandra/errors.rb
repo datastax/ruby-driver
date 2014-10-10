@@ -17,63 +17,353 @@
 #++
 
 module Cassandra
-  # Base class for all Errors raised by the driver 
+  # Included in all Errors raised by the driver to allow rescuing from any
+  # driver-specific error.
+  # @example Catching all driver errors
+  #   begin
+  #     cluster = Cassandra.connect
+  #     session = cluster.connect
+  #   rescue Cassandra::Error => e
+  #     puts "#{e.class.name}: #{e.message}"
+  #   end
   # @see Cassandra::Errors
-  class Error < StandardError
+  module Error
   end
 
   module Errors
-    # @!parse class IoError < StandardError; end
-    # @private
-    IoError = Ione::IoError
-
-    # This error type represents errors sent by the server, the `code` attribute
-    # can be used to find the exact type, and `cql` contains the request's CQL,
-    # if any. `message` contains the human readable error message sent by the
-    # server.
-    class QueryError < Error
-      # @return [Integer] error code
-      attr_reader :code
-      # @return [String] original CQL used
-      attr_reader :cql
-      # @return [Hash{Symbol => String, Integer}] various error details
-      attr_reader :details
-
-      # @private
-      def initialize(code, message, cql=nil, details=nil)
-        super(message)
-        @code = code
-        @cql = cql
-        @details = details
-      end
-    end
-
-    # This error is thrown when not hosts could be reached during connection or query execution.
-    class NoHostsAvailable < Error
-      # @return [Hash{Cassandra::Host => Exception}] a map of hosts to underlying exceptions
-      attr_reader :errors
-
-      # @private
-      def initialize(errors = {})
-        super("no hosts available, check #errors property for details")
-
-        @errors = errors
-      end
-    end
-
-    # Client error represents bad driver state or configuration
+    # Mixed into any host-specific errors. Requests resulting in these errors
+    # are attempted on other hosts. Once all hosts failed with this type of
+    # error, a {Cassandra::Errors::NoHostsAvailable} error is raised with
+    # details of failures.
     #
-    # @see Cassandra::Errors::AuthenticationError
-    class ClientError < Error
+    # @see Errors::NoHostsAvailable
+    module HostError
+    end
+
+    # Raised when something unexpected happened. This indicates a server-side
+    # bug.
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L554-L555 Description of Server Error in Apache Cassandra native protocol spec v1
+    class ServerError < ::StandardError
+      include Error, HostError
+    end
+
+    # Mixed into all internal driver errors.
+    module InternalError
+      include Error, HostError
+    end
+
+    # Raised when data decoding fails.
+    class DecodingError < ::RuntimeError
+      include InternalError
+    end
+
+    # Raised when data encoding fails.
+    class EncodingError < ::RuntimeError
+      include InternalError
+    end
+
+    # Raised when a connection level error occured.
+    class IOError < ::IOError
+      include InternalError
+    end
+
+    # Raised when a timeout has occured.
+    class TimeoutError < ::Timeout::Error
+      include InternalError
+    end
+
+    # Mixed into all request execution errors.
+    module ExecutionError
+      include Error
+
+      # @return [Cassandra::Statement] statement that triggered the error.
+      attr_reader :statement
+
+      # @private
+      def initialize(message, statement)
+        super(message)
+
+        @statement = statement
+      end
+    end
+
+    # Raised when coordinator determines that a request cannot be executed
+    # because there are not enough replicas. In this scenario, the request is
+    # not sent to the nodes at all.
+    #
+    # @note This error can be handled by a {Cassandra::Retry::Policy} to
+    #   determine the desired outcome.
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L562-L572 Description of Unavailable Error in Apache Cassandra native protocol spec v1
+    class UnavailableError < ::StandardError
+      include ExecutionError
+      # Consistency level that triggered the error.
+      #
+      # @return [Symbol] the original consistency level for the request, one of
+      #   {Cassandra::CONSISTENCIES}
+      attr_reader :consistency
+
+      # @return [Integer] the number of replicas required to achieve requested
+      #   consistency level
+      attr_reader :required
+
+      # @return [Integer] the number of replicas available for the request
+      attr_reader :alive
+
+      # @private
+      def initialize(message, statement, consistency, required, alive)
+        super(message, statement)
+
+        @consistency = consistency
+        @required    = required
+        @alive       = alive
+      end
+    end
+
+    # Raised when the request cannot be processed because the coordinator node
+    # is overloaded
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L573-L574 Description of Overloaded Error in Apache Cassandra native protocol spec v1
+    class OverloadedError < ::StandardError
+      include ExecutionError, HostError
+    end
+
+    # Raise when the request was a read request but the coordinator node is
+    # bootstrapping
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L575-L576 Description of Is Bootstrapping Error in Apache Cassandra native protocol spec v1
+    class IsBootstrappingError < ::StandardError
+      include ExecutionError, HostError
+    end
+
+    # Raised when truncation failed.
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L577 Description of Truncate Error in Apache Cassandra native protocol spec v1
+    class TruncateError < ::StandardError
+      include ExecutionError
+    end
+
+    # Raised when a write request timed out.
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L578-L603 Description of Write Timeout Error in Apache Cassandra native protocol spec v1
+    class WriteTimeoutError < ::StandardError
+      include ExecutionError
+
+      # @return [Symbol] the type of write request that timed out, one of
+      #   {Cassandra::WRITE_TYPES}
+      attr_reader :type
+      # @return [Symbol] the original consistency level for the request, one of
+      #   {Cassandra::CONSISTENCIES}
+      attr_reader :consistency
+      # @return [Integer] the number of acks required to achieve requested
+      #   consistency level
+      attr_reader :required
+      # @return [Integer] the number of acks received by the time the query
+      #   timed out
+      attr_reader :received
+
+      # @private
+      def initialize(message, statement, type, consistency, required, received)
+        super(message, statement)
+
+        @type        = type
+        @consistency = consistency
+        @required    = required
+        @received    = received
+      end
+    end
+
+    # Raised when a read request timed out.
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L604-L622 Description of Read Timeout Error in Apache Cassandra native protocol spec v1
+    class ReadTimeoutError < ::StandardError
+      include ExecutionError
+
+      # @return [Boolean] whether actual data (as opposed to data checksum) was
+      #   present in the received responses.
+      attr_reader :retrieved
+      # @return [Symbol] the original consistency level for the request, one of
+      #   {Cassandra::CONSISTENCIES}
+      attr_reader :consistency
+      # @return [Integer] the number of responses required to achieve requested
+      #   consistency level
+      attr_reader :required
+      # @return [Integer] the number of responses received by the time the
+      #   query timed out
+      attr_reader :received
+
+      # @private
+      def initialize(message, statement, retrieved, consistency, required, received)
+        super(message, statement)
+
+        @retrieved   = retrieved
+        @consistency = consistency
+        @required    = required
+        @received    = received
+      end
+
+      def retrieved?
+        @retrieved
+      end
+    end
+
+    # Client error represents bad driver state or mis-configuration
+    class ClientError < ::StandardError
+      include Error
+    end
+
+    # Raised when some client message triggered a protocol violation (for
+    # instance a QUERY message is sent before a STARTUP one has been sent)
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L556-L558 Description of Protocol Error in Apache Cassandra native protocol spec v1
+    class ProtocolError < ClientError
     end
 
     # Raised when cannot authenticate to Cassandra
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L559-L561 Description of Bad Credentials Error in Apache Cassandra native protocol spec v1
     class AuthenticationError < ClientError
     end
 
-    # @private
-    NotConnectedError = Class.new(Error)
-    # @private
-    NotPreparedError = Class.new(Error)
+    # Mixed into all request validation errors.
+    module ValidationError
+      include Error
+
+      # @return [Cassandra::Statement] statement that triggered the error.
+      attr_reader :statement
+
+      # @private
+      def initialize(message, statement)
+        super(message)
+
+        @statement = statement
+      end
+    end
+
+    # Raised when a prepared statement tries to be executed and the provided
+    # prepared statement ID is not known by this host
+    #
+    # @note Seeing this error can be considered a Ruby Driver bug as it should
+    #   handle automatic re-preparing internally.
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L638-L641 Description of Unprepared Error in Apache Cassandra native protocol spec v1
+    class UnpreparedError < ::StandardError
+      include ValidationError
+      # @return [String] prepared statement id that triggered the error
+      attr_reader :id
+
+      # @private
+      def initialize(message, id)
+        super(message)
+
+        @id = id
+      end
+    end
+
+    # Raised when the submitted query has a syntax error.
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L623 Description of Syntax Error in Apache Cassandra native protocol spec v1
+    class SyntaxError < ::StandardError
+      include ValidationError
+    end
+
+    # Raised when the logged user doesn't have the right to perform the query.
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L624-L625 Description of Unauthorized Error in Apache Cassandra native protocol spec v1
+    class UnauthorizedError < ::StandardError
+      include ValidationError
+    end
+
+    # Raised when the query is syntactically correct but invalid.
+    #
+    # @example Creating a table without selecting a keyspace
+    #   begin
+    #     session.execute("CREATE TABLE users (user_id INT PRIMARY KEY)")
+    #   rescue Cassandra::Errors::InvalidError
+    #   end
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L626 Description of Invalid Error in Apache Cassandra native protocol spec v1
+    class InvalidError < ::StandardError
+      include ValidationError
+    end
+
+    # Raised when the query is invalid because of some configuration issue.
+    #
+    # @example Dropping non-existent keyspace
+    #   begin
+    #     client.execute("DROP KEYSPACE unknown_keyspace")
+    #   rescue Cassandra::Errors::ConfigurationError
+    #   end
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L627 Description of Config Error in Apache Cassandra native protocol spec v1
+    class ConfigurationError < ::StandardError
+      include ValidationError
+    end
+
+    # Raised when the query attempted to create a keyspace or a table that was
+    # already existing.
+    #
+    # @example Creating a table twice
+    #   session.execute("USE my_keyspace")
+    #   session.execute("CREATE TABLE users (user_id INT PRIMARY KEY)")
+    #   begin
+    #     session.execute("CREATE TABLE users (user_id INT PRIMARY KEY)")
+    #   rescue Cassandra::Errors::AlreadyExistsError => e
+    #     p ['already exists', e.keyspace, e.table]
+    #   end
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L628-L637 Description of Already Exists Error in Apache Cassandra native protocol spec v1
+    class AlreadyExistsError < ConfigurationError
+      # @return [String] keyspace
+      attr_reader :keyspace
+
+      # @return [String, nil] table or `nil`
+      attr_reader :table
+
+      # @private
+      def initialize(message, keyspace, table)
+        super(message)
+
+        @keyspace = keyspace
+        @table    = table
+      end
+    end
+
+    # This error is thrown when all attempted hosts raised a
+    # {Cassandra::Errors::HostError} during connection or query execution.
+    #
+    # @see Cassandra::Cluster#connect
+    # @see Cassandra::Session#execute
+    class NoHostsAvailable < ::StandardError
+      include Error
+
+      # @return [Hash{Cassandra::Host => Cassandra::Errors::HostError}] a map
+      #   of hosts to underlying exceptions
+      attr_reader :errors
+
+      # @private
+      def initialize(errors = nil)
+        if errors
+          first   = true
+          message = "All attempted hosts failed"
+          details = errors.each do |(host, error)|
+            if first
+              first = false
+              message << ': '
+            else
+              message << ', '
+            end
+            message << "#{host.ip} (#{error.class.name}: #{error.message})"
+          end
+        else
+          message = "All hosts down"
+        end
+
+        super(message)
+
+        @errors = errors || {}
+      end
+    end
   end
 end

@@ -124,7 +124,7 @@ module Cassandra
         it 'returns a failed future when something goes wrong in the preparation' do
           connections.each(&:close)
           f = described_class.prepare(cql, ExecuteOptionsDecoder.new(:three), connection_manager, logger)
-          expect { f.value }.to raise_error(Errors::NotConnectedError)
+          expect { f.value }.to raise_error(Errors::IOError)
         end
 
         it 'returns a failed future if the preparation results in an error' do
@@ -400,7 +400,7 @@ module Cassandra
         it 'raises an error when the statement has not been prepared on the specified connection' do
           connection = double(:connection)
           connection.stub(:[]).with(statement).and_return(nil)
-          expect { statement.add_to_batch(batch, connection, [11, 'foo']) }.to raise_error(Errors::NotPreparedError)
+          expect { statement.add_to_batch(batch, connection, [11, 'foo']) }.to raise_error(ArgumentError)
         end
       end
     end
@@ -529,13 +529,13 @@ module Cassandra
 
       context 'when exceptions are raised' do
         it 'replaces the backtrace of the asynchronous call to make it less confusing' do
-          error = Error.new('Bork')
+          error = Errors::ServerError.new('Bork')
           error.set_backtrace(['Hello', 'World'])
           future.stub(:value).and_raise(error)
           async_statement.stub(:execute).and_return(future)
           begin
             statement.execute('SELECT * FROM something')
-          rescue Error => e
+          rescue Errors::ServerError => e
             e.backtrace.first.should match(%r{/prepared_statement.rb:\d+:in `execute'})
           end
         end

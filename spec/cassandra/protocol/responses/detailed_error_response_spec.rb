@@ -39,7 +39,7 @@ module Cassandra
             :cl => :one,
             :received => 0,
             :blockfor => 1,
-            :write_type => 'BATCH_LOG'
+            :write_type => :batch_log
           }
         end
 

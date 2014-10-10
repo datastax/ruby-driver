@@ -54,7 +54,7 @@ module Cassandra
       # @param [Hash] options an options hash or a symbol (as a shortcut for
       #   specifying the consistency), see {Cassandra::Client::Client#execute} for
       #   full details about how this value is interpreted.
-      # @raise [Cassandra::Errors::QueryError] raised when there is an error on the server side
+      # @raise [Cassandra::Errors::ExecutionError] raised when there is an error on the server side
       # @raise [Cassandra::Errors::NotPreparedError] raised in the unlikely event that a
       #   prepared statement was not prepared on the chosen connection
       # @return [Cassandra::Client::VoidResult] a batch always returns a void result
@@ -77,7 +77,7 @@ module Cassandra
       #
       # Execute the batch and return the result.
       #
-      # @raise [Cassandra::Errors::QueryError] raised when there is an error on the server side
+      # @raise [Cassandra::Errors::ExecutionError] raised when there is an error on the server side
       # @raise [Cassandra::Errors::NotPreparedError] raised in the unlikely event that a
       #   prepared statement was not prepared on the chosen connection
       # @return [Cassandra::Client::VoidResult] a batch always returns a void result
@@ -86,7 +86,7 @@ module Cassandra
     # @private
     class AsynchronousBatch < Batch
       def initialize(type, execute_options_decoder, connection_manager, options=nil)
-        raise ArgumentError, "Unknown batch type: #{type}" unless BATCH_TYPES.include?(type)
+        raise ::ArgumentError, "Unknown batch type: #{type}" unless BATCH_TYPES.include?(type)
         @type = type
         @execute_options_decoder = execute_options_decoder
         @connection_manager = connection_manager

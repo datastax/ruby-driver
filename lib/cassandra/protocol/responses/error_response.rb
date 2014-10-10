@@ -42,6 +42,23 @@ module Cassandra
         %(ERROR 0x#{hex_code} "#@message")
       end
 
+      def to_error(statement = nil)
+        case @code
+        when 0x0000 then Errors::ServerError.new(@message)
+        when 0x000A then Errors::ProtocolError.new(@message)
+        when 0x0100 then Errors::AuthenticationError.new(@message)
+        when 0x1001 then Errors::OverloadedError.new(@message, statement)
+        when 0x1002 then Errors::IsBootstrappingError.new(@message, statement)
+        when 0x1003 then Errors::TruncateError.new(@message, statement)
+        when 0x2000 then Errors::SyntaxError.new(@message, statement)
+        when 0x2100 then Errors::UnauthorizedError.new(@message, statement)
+        when 0x2200 then Errors::InvalidError.new(@message, statement)
+        when 0x2300 then Errors::ConfigurationError.new(@message, statement)
+        else
+          Errors::ServerError.new(@message)
+        end
+      end
+
       private
 
       RESPONSE_TYPES[0x00] = self

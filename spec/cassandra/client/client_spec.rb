@@ -235,7 +235,7 @@ module Cassandra
             io_reactor.node_down('h2.example.com')
             io_reactor.node_down('h3.example.com')
             c = described_class.new(connection_options.merge(hosts: %w[h1.example.com h2.example.com h2.example.com]))
-            expect { c.connect.value }.to raise_error(Io::ConnectionError)
+            expect { c.connect.value }.to raise_error(Ione::Io::ConnectionError)
           end
         end
 
@@ -283,7 +283,7 @@ module Cassandra
             handle_request do |request|
               Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
             end
-            expect { client.connect.value }.to raise_error(Errors::QueryError)
+            expect { client.connect.value }.to raise_error(Errors::ProtocolError)
             client.should_not be_connected
           end
 
@@ -924,20 +924,20 @@ module Cassandra
           before do
             handle_request do |request|
               if request.is_a?(Protocol::QueryRequest) && request.cql =~ /FROM things/
-                Protocol::ErrorResponse.new(0xabcd, 'Blurgh')
+                Protocol::ErrorResponse.new(0x1001, 'Blurgh')
               end
             end
           end
 
           it 'raises an error' do
-            expect { client.execute('SELECT * FROM things').value }.to raise_error(Errors::QueryError, 'Blurgh')
+            expect { client.execute('SELECT * FROM things').value }.to raise_error(Errors::ExecutionError, 'Blurgh')
           end
 
           it 'decorates the error with the CQL that caused it' do
             begin
               client.execute('SELECT * FROM things').value
-            rescue Errors::QueryError => e
-              e.cql.should == 'SELECT * FROM things'
+            rescue Errors::ExecutionError => e
+              e.statement.should == 'SELECT * FROM things'
             else
               fail('No error was raised')
             end
@@ -1247,33 +1247,33 @@ module Cassandra
         end
 
         it 'complains when #use is called before #connect' do
-          expect { client.use('system').value }.to raise_error(Errors::NotConnectedError)
+          expect { client.use('system').value }.to raise_error(Errors::ClientError)
         end
 
         it 'complains when #use is called after #close' do
           client.connect.value
           client.close.value
-          expect { client.use('system').value }.to raise_error(Errors::NotConnectedError)
+          expect { client.use('system').value }.to raise_error(Errors::ClientError)
         end
 
         it 'complains when #execute is called before #connect' do
-          expect { client.execute('DELETE FROM stuff WHERE id = 3').value }.to raise_error(Errors::NotConnectedError)
+          expect { client.execute('DELETE FROM stuff WHERE id = 3').value }.to raise_error(Errors::ClientError)
         end
 
         it 'complains when #execute is called after #close' do
           client.connect.value
           client.close.value
-          expect { client.execute('DELETE FROM stuff WHERE id = 3').value }.to raise_error(Errors::NotConnectedError)
+          expect { client.execute('DELETE FROM stuff WHERE id = 3').value }.to raise_error(Errors::ClientError)
         end
 
         it 'complains when #prepare is called before #connect' do
-          expect { client.prepare('DELETE FROM stuff WHERE id = 3').value }.to raise_error(Errors::NotConnectedError)
+          expect { client.prepare('DELETE FROM stuff WHERE id = 3').value }.to raise_error(Errors::ClientError)
         end
 
         it 'complains when #prepare is called after #close' do
           client.connect.value
           client.close.value
-          expect { client.prepare('DELETE FROM stuff WHERE id = 3').value }.to raise_error(Errors::NotConnectedError)
+          expect { client.prepare('DELETE FROM stuff WHERE id = 3').value }.to raise_error(Errors::ClientError)
         end
 
         it 'complains when #execute of a prepared statement is called after #close' do
@@ -1285,7 +1285,7 @@ module Cassandra
           client.connect.value
           statement = client.prepare('DELETE FROM stuff WHERE id = 3').value
           client.close.value
-          expect { statement.execute.value }.to raise_error(Errors::NotConnectedError)
+          expect { statement.execute.value }.to raise_error(Errors::IOError)
         end
       end
 
@@ -1305,9 +1305,9 @@ module Cassandra
           expect { 10.times { client.execute('SELECT * FROM something').value } }.to_not raise_error
         end
 
-        it 'raises Errors::NotConnectedError when all nodes are down' do
+        it 'raises Errors::ClientError when all nodes are down' do
           connections.each(&:close)
-          expect { client.execute('SELECT * FROM something').value }.to raise_error(Errors::NotConnectedError)
+          expect { client.execute('SELECT * FROM something').value }.to raise_error(Errors::ClientError)
         end
 
         it 'reconnects when it receives a status change UP event' do
@@ -1347,7 +1347,7 @@ module Cassandra
 
         it 'eventually stops attempting to reconnect if no new nodes are found' do
           io_reactor.stub(:schedule_timer).and_return(Ione::Future.resolved)
-          io_reactor.stub(:connect).and_return(Ione::Future.failed(Io::ConnectionError.new))
+          io_reactor.stub(:connect).and_return(Ione::Future.failed(Ione::Io::ConnectionError.new))
           connections.first.close
           event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
@@ -1357,7 +1357,7 @@ module Cassandra
         it 'does not start a new reconnection loop when one is already in progress' do
           timer_promises = Array.new(5) { Ione::Promise.new }
           io_reactor.stub(:schedule_timer).and_return(*timer_promises.map(&:future))
-          io_reactor.stub(:connect).and_return(Ione::Future.failed(Io::ConnectionError.new))
+          io_reactor.stub(:connect).and_return(Ione::Future.failed(Ione::Io::ConnectionError.new))
           connections.first.close
           event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
@@ -1371,7 +1371,7 @@ module Cassandra
 
         it 'allows a new reconnection loop to start even if the previous failed' do
           io_reactor.stub(:schedule_timer).and_raise('BORK!')
-          io_reactor.stub(:connect).and_return(Ione::Future.failed(Io::ConnectionError.new))
+          io_reactor.stub(:connect).and_return(Ione::Future.failed(Ione::Io::ConnectionError.new))
           connections.first.close
           event = Protocol::TopologyChangeEventResponse.new('NEW_NODE', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
@@ -1468,7 +1468,7 @@ module Cassandra
           logger.stub(:warn)
           client.connect.value
           io_reactor.stub(:schedule_timer).and_return(Ione::Future.resolved)
-          io_reactor.stub(:connect).and_return(Ione::Future.failed(Io::ConnectionError.new))
+          io_reactor.stub(:connect).and_return(Ione::Future.failed(Ione::Io::ConnectionError.new))
           event = Protocol::StatusChangeEventResponse.new('UP', IPAddr.new('1.1.1.1'), 9999)
           connections.select(&:has_event_listener?).first.trigger_event(event)
           logger.should have_received(:warn).with(/Giving up looking for additional nodes/).at_least(1).times
@@ -1630,13 +1630,13 @@ module Cassandra
 
       context 'when exceptions are raised' do
         it 'replaces the backtrace of the asynchronous call to make it less confusing' do
-          error = Error.new('Bork')
+          error = Errors::ServerError.new('Bork')
           error.set_backtrace(['Hello', 'World'])
           future.stub(:value).and_raise(error)
           async_client.stub(:execute).and_return(future)
           begin
             client.execute('SELECT * FROM something')
-          rescue Error => e
+          rescue Errors::ServerError => e
             e.backtrace.first.should match(%r{/client.rb:\d+:in `execute'})
           end
         end

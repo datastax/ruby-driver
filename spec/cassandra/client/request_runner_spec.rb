@@ -67,11 +67,11 @@ module Cassandra
         end
 
         let :error_response do
-          Protocol::ErrorResponse.new(0xbad, 'Bork')
+          Protocol::ErrorResponse.new(0x1001, 'Bork')
         end
 
         let :detailed_error_response do
-          Protocol::DetailedErrorResponse.new(0xbad, 'Bork', {:cl => :quorum, :received => 1, :blockfor => 1, :write_type => 'SINGLE'})
+          Protocol::DetailedErrorResponse.new(0x1100, 'Bork', {:cl => :quorum, :received => 1, :blockfor => 1, :write_type => 'SINGLE'})
         end
 
         let :authenticate_response do
@@ -129,24 +129,27 @@ module Cassandra
         end
 
         it 'intercepts an ErrorResponse and fails the result future' do
-          expect { run(error_response) }.to raise_error(Errors::QueryError)
+          expect { run(error_response) }.to raise_error(Error)
         end
 
-        it 'sets the #cql field of Errors::QueryError when the request is a query request' do
+        it 'sets the #statement field of Errors::ServerError when the request is a query request' do
           begin
             run(error_response, Protocol::QueryRequest.new('SELECT * FROM everything', nil, nil, :all))
-          rescue Errors::QueryError => e
-            e.cql.should == 'SELECT * FROM everything'
+          rescue Errors::ExecutionError => e
+            e.statement.should == 'SELECT * FROM everything'
           else
             fail('No error was raised')
           end
         end
 
-        it 'sets the #details field of Errors::QueryError when the response has details' do
+        it 'sets appropriate fields of Errors::WriteTimeoutError' do
           begin
             run(detailed_error_response)
-          rescue Errors::QueryError => e
-            e.details.should == detailed_error_response.details
+          rescue Errors::WriteTimeoutError => e
+            e.consistency.should == detailed_error_response.details[:cl]
+            e.received.should == detailed_error_response.details[:received]
+            e.required.should == detailed_error_response.details[:blockfor]
+            e.type.should == detailed_error_response.details[:write_type].to_s.upcase
           else
             fail('No error was raised')
           end

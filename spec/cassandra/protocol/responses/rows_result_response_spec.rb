@@ -310,7 +310,7 @@ module Cassandra
         context 'with an unknown column type' do
           it 'raises an error when encountering an unknown column type' do
             buffer = CqlByteBuffer.new("\x00\x00\x00\x01\x00\x00\x00\x03\x00\ncql_rb_328\x00\x05users\x00\tuser_name\x00\xff\x00\x05email\x00\r\x00\bpassword\x00\r\x00\x00\x00\x00")
-            expect { described_class.decode(1, buffer, buffer.length) }.to raise_error(UnsupportedColumnTypeError)
+            expect { described_class.decode(1, buffer, buffer.length) }.to raise_error(Errors::DecodingError)
           end
         end
       end

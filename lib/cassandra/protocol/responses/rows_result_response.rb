@@ -87,7 +87,7 @@ module Cassandra
             sub_type = read_column_type(buffer)
             [:set, sub_type]
           else
-            raise UnsupportedColumnTypeError, %(Unsupported column type: #{id})
+            raise Errors::DecodingError, %(Unsupported column type: #{id})
           end
         end
         type

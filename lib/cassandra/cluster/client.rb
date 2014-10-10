@@ -58,7 +58,7 @@ module Cassandra
           @registry.add_listener(self)
 
           futures = @connecting_hosts.map do |host|
-            f = connect_to_host_maybe_retry(host, @load_balancing_policy.distance(host))
+            f = connect_to_host(host, @load_balancing_policy.distance(host))
             f.recover do |error|
               Cassandra::Client::FailedConnection.new(error, host)
             end
@@ -209,13 +209,16 @@ module Cassandra
         :unlogged => Protocol::BatchRequest::UNLOGGED_TYPE,
         :counter  => Protocol::BatchRequest::COUNTER_TYPE,
       }.freeze
-      CLIENT_CLOSED        = Ione::Future.failed(Errors::ClientError.new('Cannot connect a closed client'))
-      CLIENT_NOT_CONNECTED = Ione::Future.failed(Errors::ClientError.new('Cannot close a not connected client'))
-      NOT_CONNECTED        = Errors::NotConnectedError.new
+      CLIENT_CLOSED        = Ione::Future.failed(Errors::ClientError.new('Client closed'))
+      NOT_CONNECTED        = Errors::ClientError.new('Client not connected')
+      CLIENT_NOT_CONNECTED = Ione::Future.failed(NOT_CONNECTED)
 
       UNAVAILABLE_ERROR_CODE   = 0x1000
       WRITE_TIMEOUT_ERROR_CODE = 0x1100
       READ_TIMEOUT_ERROR_CODE  = 0x1200
+      OVERLOADED_ERROR_CODE    = 0x1001
+      SERVER_ERROR_CODE        = 0x0000
+      BOOTSTRAPPING_ERROR_CODE = 0x1002
 
       SELECT_SCHEMA_PEERS = Protocol::QueryRequest.new("SELECT peer, rpc_address, schema_version FROM system.peers", nil, nil, :one)
       SELECT_SCHEMA_LOCAL = Protocol::QueryRequest.new("SELECT schema_version FROM system.local WHERE key='local'", nil, nil, :one)
@@ -274,7 +277,7 @@ module Cassandra
         f = connect_to_host(host, distance)
 
         f.on_failure do |e|
-          connect_to_host_with_retry(host, @reconnection_policy.schedule) if e.is_a?(Io::ConnectionError) || e.is_a?(::SystemCallError) || e.is_a?(::SocketError)
+          connect_to_host_with_retry(host, @reconnection_policy.schedule)
         end
 
         f
@@ -289,11 +292,7 @@ module Cassandra
         f.flat_map do
           if synchronize { @connecting_hosts.include?(host) }
             connect_to_host(host, @load_balancing_policy.distance(host)).fallback do |e|
-              if e.is_a?(Io::ConnectionError) || e.is_a?(::SystemCallError) || e.is_a?(::SocketError)
-                connect_to_host_with_retry(host, schedule)
-              else
-                Ione::Future.failed(e)
-              end
+              connect_to_host_with_retry(host, schedule)
             end
           else
             @logger.info("Session reconnection to ip=#{host.ip} cancelled")
@@ -338,7 +337,7 @@ module Cassandra
 
       def execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
         unless plan.has_next?
-          promise.break(Errors::NoHostsAvailable.new(errors || {}))
+          promise.break(Errors::NoHostsAvailable.new(errors))
           return
         end
 
@@ -361,12 +360,13 @@ module Cassandra
               prepare_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               s.on_failure do |e|
-                if e.is_a?(Errors::QueryError)
-                  promise.break(e)
-                else
+                case e
+                when Errors::HostError
                   errors ||= {}
                   errors[host] = e
                   execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                else
+                  promise.break(e)
                 end
               end
             end
@@ -395,12 +395,13 @@ module Cassandra
               do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               prepare.on_failure do |e|
-                if e.is_a?(Errors::QueryError)
-                  promise.break(e)
-                else
+                case e
+                when Errors::HostError
                   errors ||= {}
                   errors[host] = e
                   execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                else
+                  promise.break(e)
                 end
               end
             end
@@ -410,7 +411,7 @@ module Cassandra
 
       def batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors = nil, hosts = [])
         unless plan.has_next?
-          promise.break(Errors::NoHostsAvailable.new(errors || {}))
+          promise.break(Errors::NoHostsAvailable.new(errors))
           return
         end
 
@@ -433,12 +434,13 @@ module Cassandra
               batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, plan, timeout, errors, hosts)
             else
               s.on_failure do |e|
-                if e.is_a?(Errors::QueryError)
-                  promise.break(e)
-                else
+                case e
+                when Errors::HostError
                   errors ||= {}
                   errors[host] = e
                   batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
+                else
+                  promise.break(e)
                 end
               end
             end
@@ -492,12 +494,13 @@ module Cassandra
               do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               f.on_failure do |e|
-                if e.is_a?(Errors::QueryError)
-                  promise.break(e)
-                else
+                case e
+                when Errors::HostError
                   errors ||= {}
                   errors[host] = e
                   batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
+                else
+                  promise.break(e)
                 end
               end
             end
@@ -507,7 +510,7 @@ module Cassandra
 
       def send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
         unless plan.has_next?
-          promise.break(Errors::NoHostsAvailable.new(errors || {}))
+          promise.break(Errors::NoHostsAvailable.new(errors))
           return
         end
 
@@ -530,12 +533,13 @@ module Cassandra
               do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               s.on_failure do |e|
-                if e.is_a?(Errors::QueryError)
-                  promise.break(e)
-                else
+                case e
+                when Errors::HostError
                   errors ||= {}
                   errors[host] = e
                   send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                else
+                  promise.break(e)
                 end
               end
             end
@@ -564,12 +568,11 @@ module Cassandra
                 when UNAVAILABLE_ERROR_CODE
                   @retry_policy.unavailable(statement, details[:cl], details[:required], details[:alive], retries)
                 when WRITE_TIMEOUT_ERROR_CODE
-                  details[:write_type] = write_type = details[:write_type].downcase!.to_sym
-                  @retry_policy.write_timeout(statement, details[:cl], write_type, details[:blockfor], details[:received], retries)
+                  @retry_policy.write_timeout(statement, details[:cl], details[:write_type], details[:blockfor], details[:received], retries)
                 when READ_TIMEOUT_ERROR_CODE
                   @retry_policy.read_timeout(statement, details[:cl], details[:blockfor], details[:received], details[:data_present], retries)
                 else
-                  promise.break(Errors::QueryError.new(r.code, r.message, statement.cql, details))
+                  promise.break(r.to_error(statement))
                   break
                 end
               rescue => e
@@ -584,12 +587,53 @@ module Cassandra
               when Retry::Decisions::Ignore
                 promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
               when Retry::Decisions::Reraise
-                promise.break(Errors::QueryError.new(r.code, r.message, statement.cql, r.details))
+                promise.break(r.to_error(statement))
               else
-                promise.break(Errors::QueryError.new(r.code, r.message, statement.cql, r.details))
+                promise.break(r.to_error(statement))
               end
             when Protocol::ErrorResponse
-              promise.break(Errors::QueryError.new(r.code, r.message, statement.cql, nil))
+              case r.code
+              when OVERLOADED_ERROR_CODE, SERVER_ERROR_CODE, BOOTSTRAPPING_ERROR_CODE
+                errors ||= {}
+                errors[host] = r.to_error(statement)
+
+                case request
+                when Protocol::QueryRequest, Protocol::PrepareRequest
+                  send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                when Protocol::ExecuteRequest
+                  execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                when Protocol::BatchRequest
+                  batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
+                end
+              when 0x2500 # unprepared
+                cql = statement.cql
+
+                synchronize do
+                  @prepared_statements[host].delete(cql)
+                  @preparing_statements[host].delete(cql)
+                end
+
+                prepare = prepare_statement(host, connection, cql, timeout)
+                prepare.on_complete do |_|
+                  if prepare.resolved?
+                    request.id = prepare.value
+                    do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                  else
+                    prepare.on_failure do |e|
+                      case e
+                      when Errors::HostError
+                        errors ||= {}
+                        errors[host] = e
+                        execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                      else
+                        promise.break(e)
+                      end
+                    end
+                  end
+                end
+              else
+                promise.break(r.to_error(statement))
+              end
             when Protocol::SetKeyspaceResultResponse
               @keyspace = r.keyspace
               promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
@@ -704,12 +748,10 @@ module Cassandra
           when Protocol::SetKeyspaceResultResponse
             @keyspace = r.keyspace
             nil
-          when Protocol::DetailedErrorResponse
-            raise Errors::QueryError.new(r.code, r.message, request.cql, r.details)
           when Protocol::ErrorResponse
-            raise Errors::QueryError.new(r.code, r.message, request.cql, nil)
+            raise r.to_error(statement)
           else
-            raise "unexpected response #{r.inspect}"
+            raise Errors::ProtocolError, "Unexpected response #{r.inspect}"
           end
         end
 
@@ -742,12 +784,10 @@ module Cassandra
               @preparing_statements[host].delete(cql)
             end
             id
-          when Protocol::DetailedErrorResponse
-            raise Errors::QueryError.new(r.code, r.message, cql, r.details)
           when Protocol::ErrorResponse
-            raise Errors::QueryError.new(r.code, r.message, cql, nil)
+            raise r.to_error(statement)
           else
-            raise "unexpected response #{r.inspect}"
+            raise Errors::ProtocolError, "Unexpected response #{r.inspect}"
           end
         end
 
@@ -756,12 +796,6 @@ module Cassandra
         end
 
         f
-      end
-
-      def create_execution_info(keyspace, statement, options, request, response, hosts)
-        trace_id = response.trace_id
-        trace    = trace_id ? Execution::Trace.new(trace_id, self) : nil
-        info     = Execution::Info.new(keyspace, statement, options, hosts, request.consistency, request.retries, trace)
       end
     end
   end

@@ -22,7 +22,7 @@ module Cassandra
       def self.decode(protocol_version, buffer, length, trace_id=nil)
         type = buffer.read_string
         impl = EVENT_TYPES[type]
-        raise UnsupportedEventTypeError, %(Unsupported event type: "#{type}") unless impl
+        raise Errors::DecodingError, %(Unsupported event type: "#{type}") unless impl
         new_length = length - 4 - type.bytesize
         impl.decode(protocol_version, buffer, new_length, trace_id)
       end
