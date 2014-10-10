@@ -702,7 +702,7 @@ module Cassandra
           unless local.empty?
             host = @registry.host(connection.host)
 
-            if host && host.up?
+            if host && @load_balancing_policy.distance(host) != :ignore
               versions << version = local.first['schema_version']
               @logger.debug("Host #{host.ip} schema version: #{version}")
             end
@@ -710,7 +710,7 @@ module Cassandra
 
           peers.each do |row|
             host = @registry.host(peer_ip(row))
-            next unless host && host.up?
+            next unless host && @load_balancing_policy.distance(host) != :ignore
 
             versions << version = row['schema_version']
             @logger.debug("Host #{host.ip} schema version: #{version}")
