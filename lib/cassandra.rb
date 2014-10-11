@@ -66,10 +66,10 @@ module Cassandra
   # @option options [Numeric] :connect_timeout (10) connection timeout in
   #   seconds.
   #
-  # @option options [Numeric] :heartbeat_interval (15) how often should a
+  # @option options [Numeric] :heartbeat_interval (30) how often should a
   #   heartbeat be sent to determine if a connection is alive. Several things to
   #   note about this option. Only one heartbeat request will ever be
-  #   outstanding on a given connection. Each heatbeat will be sent in least
+  #   outstanding on a given connection. Each heatbeat will be sent in at least
   #   `:heartbeat_interval` seconds after the last request has been sent on a
   #   given connection.
   #

@@ -35,7 +35,7 @@ module Cassandra
       # @return [String] the current keyspace for the underlying connection
       attr_reader :keyspace
 
-      def initialize(connection, scheduler, protocol_version, compressor=nil, heartbeat_interval = 15, idle_timeout = 60)
+      def initialize(connection, scheduler, protocol_version, compressor=nil, heartbeat_interval = 30, idle_timeout = 60)
         @connection = connection
         @scheduler = scheduler
         @compressor = compressor

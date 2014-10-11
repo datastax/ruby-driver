@@ -53,7 +53,7 @@ Feature: Default Load Balancing Policy
       );
       """
 
-  Scenario: Default load balancing policy considers the first datacenter local
+  Scenario: Default load balancing policy always routes to primary replicas when possible
     Given the following example:
       """ruby
       require 'cassandra'
@@ -75,7 +75,7 @@ Feature: Default Load Balancing Policy
       127.0.0.2
       """
 
-  Scenario: Default load balancing policy considers the second datacenter local
+  Scenario: Default load balancing policy always uses primary replicas from the local datacenter
     Given the following example:
       """ruby
       require 'cassandra'
@@ -120,4 +120,40 @@ Feature: Default Load Balancing Policy
     Then its output should contain:
       """
       127.0.0.2
+      """
+
+  Scenario: Default load balancing policy prevents requests to remote datacenters
+    Given the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster   = Cassandra.connect(
+                    hosts: ['127.0.0.1', '127.0.0.2']
+                  )
+      session   = cluster.connect('simplex')
+      statement = "SELECT token(id) FROM songs WHERE id = ?"
+
+      $stdout.puts("=== START ===")
+      $stdout.flush
+
+      $stdin.gets # ready, block on stdin
+
+      begin
+        execution_info = session.execute(statement).execution_info
+        $stdout.puts("Statement #{statement.inspect} fulfilled by #{execution_info.hosts.last.ip}")
+      rescue => e
+        $stdout.puts "#{e.class.name}: #{e.message}"
+      end
+      $stdout.flush
+      $stdout.puts("=== STOP ===")
+      $stdout.flush
+      """
+    And it is running interactively
+    And I wait for its output to contain "START"
+    When node 1 stops
+    And node 2 stops
+    And I close the stdin stream
+    Then its output should contain:
+      """
+      Cassandra::Errors::NoHostsAvailable: All hosts down
       """

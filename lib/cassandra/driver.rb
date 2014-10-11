@@ -79,13 +79,13 @@ module Cassandra
     let(:credentials)           { nil }
     let(:auth_provider)         { nil }
     let(:datacenter)            { nil }
-    let(:load_balancing_policy) { LoadBalancing::Policies::TokenAware.new(LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)) }
+    let(:load_balancing_policy) { LoadBalancing::Policies::TokenAware.new(LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, 0)) }
     let(:reconnection_policy)   { Reconnection::Policies::Exponential.new(0.5, 30, 2) }
     let(:retry_policy)          { Retry::Policies::Default.new }
     let(:consistency)           { :one }
     let(:trace)                 { false }
     let(:page_size)             { nil }
-    let(:heartbeat_interval)    { 15 }
+    let(:heartbeat_interval)    { 30 }
     let(:idle_timeout)          { 60 }
 
     let(:connections_per_local_node)  { 2 }

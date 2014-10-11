@@ -13,6 +13,7 @@ Bug fixes:
 Breaking changes:
 
 * Most of the error classes have changed
+* Connections to hosts in remote datacenters will be disabled by default
 
 # 1.0.0.beta.3
 
