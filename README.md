@@ -35,7 +35,7 @@ __Note__: JRuby 1.6 is not officially supported, although 1.6.8 should work.
 ```ruby
 require 'cassandra'
 
-cluster = Cassandra.connect # connects to localhost by default
+cluster = Cassandra.cluster # connects to localhost by default
 
 cluster.each_host do |host| # automatically discovers all peers
   puts "Host #{host.ip}: id=#{host.id} datacenter=#{host.datacenter} rack=#{host.rack}"
@@ -57,7 +57,7 @@ The host you specify is just a seed node, the driver will automatically discover
 
 Read more:
 
-* [`Cassandra.connect` options](http://datastax.github.io/ruby-driver/api/#connect-class_method)
+* [`Cassandra.cluster` options](http://datastax.github.io/ruby-driver/api/#cluster-class_method)
 * [`Session#execute_async` options](http://datastax.github.io/ruby-driver/api/session/#execute_async-instance_method)
 * [Usage documentation](http://datastax.github.io/ruby-driver/features)
 

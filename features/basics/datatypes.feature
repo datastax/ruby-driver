@@ -36,7 +36,7 @@ Feature: Datatypes
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
       row = session.execute("SELECT * FROM mytable").first
@@ -84,7 +84,7 @@ Feature: Datatypes
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
       row = session.execute("SELECT * FROM mytable").first
@@ -135,7 +135,7 @@ Feature: Datatypes
       require 'cassandra'
       require 'time'
 
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
       row = session.execute("SELECT * FROM mytable").first
@@ -180,7 +180,7 @@ Feature: Datatypes
       require 'cassandra'
       require 'time'
 
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
       row = session.execute("SELECT * FROM user").first

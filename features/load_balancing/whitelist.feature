@@ -50,7 +50,7 @@ Feature: White List Policy
       allowed_ips = ["127.0.0.1", "127.0.0.3"]
       round_robin = Cassandra::LoadBalancing::Policies::RoundRobin.new
       whitelist   = Cassandra::LoadBalancing::Policies::WhiteList.new(allowed_ips, round_robin)
-      cluster     = Cassandra.connect(load_balancing_policy: whitelist)
+      cluster     = Cassandra.cluster(load_balancing_policy: whitelist)
       session     = cluster.connect('simplex')
 
       coordinator_ips = 3.times.map do

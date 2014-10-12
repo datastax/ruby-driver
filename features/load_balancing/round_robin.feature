@@ -53,7 +53,7 @@ Feature: Round Robin Policy
       require 'cassandra'
 
       policy  = Cassandra::LoadBalancing::Policies::RoundRobin.new
-      cluster = Cassandra.connect(load_balancing_policy: policy)
+      cluster = Cassandra.cluster(load_balancing_policy: policy)
       session = cluster.connect('simplex')
 
       coordinator_ips = 4.times.map do
@@ -78,7 +78,7 @@ Feature: Round Robin Policy
       require 'cassandra'
 
       policy  = Cassandra::LoadBalancing::Policies::RoundRobin.new
-      cluster = Cassandra.connect(load_balancing_policy: policy)
+      cluster = Cassandra.cluster(load_balancing_policy: policy)
       session = cluster.connect('simplex')
 
       coordinator_ips = 4.times.map do

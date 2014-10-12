@@ -22,7 +22,7 @@ Feature: Fallthrough Retry Policy
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.connect(retry_policy: Cassandra::Retry::Policies::Fallthrough.new)
+      cluster = Cassandra.cluster(retry_policy: Cassandra::Retry::Policies::Fallthrough.new)
       session = cluster.connect('simplex')
 
       begin

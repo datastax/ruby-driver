@@ -28,7 +28,7 @@ module Cassandra
     # @note Creating an authenticator must absolutely not block, or the whole
     #   connection process will block.
     #
-    # @abstract Auth providers given to {Cassandra.connect} don't need to be
+    # @abstract Auth providers given to {Cassandra.cluster} don't need to be
     #   subclasses of this class, but need to implement the same methods. This
     #   class exists only for documentation purposes.
     #

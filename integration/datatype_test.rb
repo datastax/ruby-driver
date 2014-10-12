@@ -86,7 +86,7 @@ class DatatypeTest < IntegrationTestCase
   end
 
   def test_all_primitive_datatypes_initially_nil
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
     # Create the table
@@ -113,7 +113,7 @@ class DatatypeTest < IntegrationTestCase
   end
 
   def test_can_insert_all_primitive_datatypes_nil_values
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
     # Create the table
@@ -150,7 +150,7 @@ class DatatypeTest < IntegrationTestCase
   end
 
   def test_can_insert_each_primitive_datatype
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
     # Create the table
@@ -187,7 +187,7 @@ class DatatypeTest < IntegrationTestCase
   end
 
   def test_all_collection_types_initially_nil
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
     # Create the table
@@ -220,7 +220,7 @@ class DatatypeTest < IntegrationTestCase
   end
 
   def test_can_insert_all_collection_types_nil_values
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
     # Create the table
@@ -270,7 +270,7 @@ class DatatypeTest < IntegrationTestCase
   end
 
   def test_can_insert_each_collection_type
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
     # Create the table

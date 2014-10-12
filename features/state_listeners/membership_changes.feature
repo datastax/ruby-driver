@@ -35,7 +35,7 @@ Feature: membership change detection
       require 'cassandra'
 
       listener = PrintingListener.new($stderr)
-      cluster  = Cassandra.connect
+      cluster  = Cassandra.cluster
 
       cluster.register(listener)
 

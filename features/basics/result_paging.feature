@@ -38,7 +38,7 @@ Feature: Result paging
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
       result  = session.execute("SELECT * FROM test", page_size: 5)
 
@@ -103,7 +103,7 @@ Feature: Result paging
         end
       end
 
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
       select  = session.prepare("SELECT * FROM test")
       future  = session.execute_async(select, page_size: 5)

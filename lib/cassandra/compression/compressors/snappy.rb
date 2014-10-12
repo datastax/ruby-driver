@@ -31,7 +31,7 @@ module Cassandra
       #   [snappy](http://rubygems.org/gems/snappy) gem (v0.0.10 or later for
       #   JRuby support).
       # @note No need to instantiate this class manually, use `compression:
-      #   :snappy` option when calling {Cassandra.connect} and one will be
+      #   :snappy` option when calling {Cassandra.cluster} and one will be
       #   created automatically for you.
       class Snappy < Compressor
         # @return [String] `'snappy'`

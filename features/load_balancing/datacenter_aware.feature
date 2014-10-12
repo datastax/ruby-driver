@@ -61,7 +61,7 @@ Feature: Datacenter-aware Round Robin Policy
 
       policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new
       hosts      = ['127.0.0.3', '127.0.0.4']
-      cluster    = Cassandra.connect(hosts: hosts, load_balancing_policy: policy)
+      cluster    = Cassandra.cluster(hosts: hosts, load_balancing_policy: policy)
       session    = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
@@ -85,7 +85,7 @@ Feature: Datacenter-aware Round Robin Policy
 
       datacenter = "dc2"
       policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
-      cluster    = Cassandra.connect(load_balancing_policy: policy)
+      cluster    = Cassandra.cluster(load_balancing_policy: policy)
       session    = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
@@ -109,7 +109,7 @@ Feature: Datacenter-aware Round Robin Policy
 
       datacenter = "dc2"
       policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
-      cluster    = Cassandra.connect(consistency: :one, load_balancing_policy: policy)
+      cluster    = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
       session    = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
@@ -136,7 +136,7 @@ Feature: Datacenter-aware Round Robin Policy
       datacenter     = "dc2"
       remotes_to_try = 1
       policy         = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, remotes_to_try)
-      cluster        = Cassandra.connect(consistency: :one, load_balancing_policy: policy)
+      cluster        = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
       session        = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
@@ -161,7 +161,7 @@ Feature: Datacenter-aware Round Robin Policy
 
       datacenter = "dc2"
       policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
-      cluster    = Cassandra.connect(consistency: :one, load_balancing_policy: policy)
+      cluster    = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
       session    = cluster.connect('simplex')
 
       begin
@@ -187,7 +187,7 @@ Feature: Datacenter-aware Round Robin Policy
       datacenter = "dc2"
       use_remote = true
       policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, nil, use_remote)
-      cluster    = Cassandra.connect(consistency: :one, load_balancing_policy: policy)
+      cluster    = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
       session    = cluster.connect('simplex')
 
       hosts_used = 4.times.map do

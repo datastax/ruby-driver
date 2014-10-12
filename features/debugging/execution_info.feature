@@ -46,7 +46,7 @@ Feature: Execution information
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
 
       at_exit { cluster.close }
 
@@ -105,7 +105,7 @@ Feature: Execution information
       require 'cassandra'
       require 'retrying_at_a_given_consistency_policy'
 
-      cluster   = Cassandra.connect(retry_policy: RetryingAtAGivenConsistencyPolicy.new(:one))
+      cluster   = Cassandra.cluster(retry_policy: RetryingAtAGivenConsistencyPolicy.new(:one))
       session   = cluster.connect("simplex")
       execution = session.execute("SELECT * FROM songs", consistency: :all).execution_info
 

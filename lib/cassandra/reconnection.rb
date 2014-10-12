@@ -30,7 +30,7 @@ module Cassandra
 
     # A reconnection policy
     # @abstract Actual reconnection policies supplied as `:reconnection_policy`
-    #   option to {Cassandra.connect} don't need to inherit this class, only
+    #   option to {Cassandra.cluster} don't need to inherit this class, only
     #   implement its methods. This class exists for documentation purposes
     #   only.
     class Policy

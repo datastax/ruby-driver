@@ -7,19 +7,19 @@ Feature: SSL encryption
   the most.
 
   1. Using default SSL context. This method is actually not secure as there is
-     no peer validation happening. `Cassandra.connect(ssl: true)`
+     no peer validation happening. `Cassandra.cluster(ssl: true)`
   2. Using shared certificate authority. This method is more secure than the
      previous one, because the client is able to validate the identity of the
      server. Using this method the server can't trust the client unless
      additional authentication has been provided.
-     `Cassandra.connect(server_cert: '/path/to/ca.pem')`
+     `Cassandra.cluster(server_cert: '/path/to/ca.pem')`
   3. Using trusted client certificates. This method, in addition to peer
      verification, allows server to validate identities of the clients. Make
      sure to enable `client_encryption_options.require_client_auth` setting in
      `cassandra.yaml`, as well as add all trusted client keys to Apache
      Cassandra's truststore. You can use server certificate as well as client
      certificate and private key with an optional passphrase to connect to
-     Apache Cassandra. `Cassandra.connect(server_cert: '/path/to/ca.pem', client_cert: '/path/to/client.pem', private_key: '/path/to/client.key', passphrase:  'secret passphrase for private key')`
+     Apache Cassandra. `Cassandra.cluster(server_cert: '/path/to/ca.pem', client_cert: '/path/to/client.pem', private_key: '/path/to/client.key', passphrase:  'secret passphrase for private key')`
 
   Scenario: Using default SSL encryption
     Given a running cassandra cluster with SSL encryption enabled
@@ -28,7 +28,7 @@ Feature: SSL encryption
       require 'cassandra'
       
       begin
-        cluster = Cassandra.connect(ssl: true)
+        cluster = Cassandra.cluster(ssl: true)
         puts "connection successful"
       rescue => e
         puts "#{e.class.name}: #{e.message}"
@@ -50,7 +50,7 @@ Feature: SSL encryption
       require 'cassandra'
       
       begin
-        cluster = Cassandra.connect(ssl: false, connect_timeout: 2)
+        cluster = Cassandra.cluster(ssl: false, connect_timeout: 2)
         puts "connection successful"
       rescue => e
         puts "#{e.class.name}: #{e.message}"
@@ -72,7 +72,7 @@ Feature: SSL encryption
       require 'cassandra'
 
       begin
-        cluster = Cassandra.connect(server_cert: ENV['SERVER_CERT'])
+        cluster = Cassandra.cluster(server_cert: ENV['SERVER_CERT'])
         puts "connection successful"
       rescue => e
         puts "#{e.class.name}: #{e.message}"
@@ -94,7 +94,7 @@ Feature: SSL encryption
       require 'cassandra'
 
       begin
-        cluster = Cassandra.connect(
+        cluster = Cassandra.cluster(
           server_cert:  ENV['SERVER_CERT'],
           client_cert:  ENV['CLIENT_CERT'],
           private_key:  ENV['PRIVATE_KEY'],
@@ -122,7 +122,7 @@ Feature: SSL encryption
       require 'openssl'
 
       begin
-        cluster = Cassandra.connect(ssl: OpenSSL::SSL::SSLContext.new)
+        cluster = Cassandra.cluster(ssl: OpenSSL::SSL::SSLContext.new)
         puts "connection successful"
       rescue => e
         puts "#{e.class.name}: #{e.message}"

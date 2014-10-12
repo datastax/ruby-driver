@@ -31,7 +31,7 @@ module Cassandra
       #   [lz4-ruby](http://rubygems.org/gems/lz4-ruby) gem (v0.3.2 or later
       #   required).
       # @note No need to instantiate this class manually, use `compression:
-      #   :lz4` option when calling {Cassandra.connect} and one will be created
+      #   :lz4` option when calling {Cassandra.cluster} and one will be created
       #   automatically for you.
       class Lz4 < Compressor
         # @return [String] `'lz4'`

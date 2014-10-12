@@ -76,7 +76,7 @@ Feature: Automatic reconnection
       
       interval = 2 # reconnect every 2 seconds
       policy   = Cassandra::Reconnection::Policies::Constant.new(interval)
-      cluster  = Cassandra.connect(
+      cluster  = Cassandra.cluster(
                    listeners: [PrintingListener.new($stdout)],
                    reconnection_policy: policy,
                    consistency: :one

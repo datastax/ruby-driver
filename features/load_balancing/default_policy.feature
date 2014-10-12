@@ -7,11 +7,11 @@ Feature: Default Load Balancing Policy
   balancing policies.
 
   When the name of the local data center is not specified explicitly using
-  [`Cassandra.connect`](/api/#connect-class_method), the first datacenter seen
+  [`Cassandra.cluster`](/api/#cluster-class_method), the first datacenter seen
   by the load balancing policy will be considered local. Therefore, care must
   be taken to only include addresses of the nodes in the same datacenter as the
   application using the Ruby Driver in the `:hosts` option to 
-  `Cassandra.connect`, or to provide `:datacenter` option explicitly.
+  `Cassandra.cluster`, or to provide `:datacenter` option explicitly.
 
   Background:
     Given a running cassandra cluster in 2 datacenters with 2 nodes in each
@@ -58,7 +58,7 @@ Feature: Default Load Balancing Policy
       """ruby
       require 'cassandra'
 
-      cluster   = Cassandra.connect(hosts: ['127.0.0.1', '127.0.0.2'])
+      cluster   = Cassandra.cluster(hosts: ['127.0.0.1', '127.0.0.2'])
       session   = cluster.connect('simplex')
       statement = session.prepare("SELECT token(id) FROM songs WHERE id = ?")
 
@@ -80,7 +80,7 @@ Feature: Default Load Balancing Policy
       """ruby
       require 'cassandra'
 
-      cluster   = Cassandra.connect(hosts: ['127.0.0.3', '127.0.0.4'])
+      cluster   = Cassandra.cluster(hosts: ['127.0.0.3', '127.0.0.4'])
       session   = cluster.connect('simplex')
       statement = session.prepare("SELECT token(id) FROM songs WHERE id = ?")
 
@@ -102,7 +102,7 @@ Feature: Default Load Balancing Policy
       """ruby
       require 'cassandra'
 
-      cluster   = Cassandra.connect(
+      cluster   = Cassandra.cluster(
                     datacenter: 'dc1',
                     hosts: ['127.0.0.3', '127.0.0.4']
                   )
@@ -127,7 +127,7 @@ Feature: Default Load Balancing Policy
       """ruby
       require 'cassandra'
 
-      cluster   = Cassandra.connect(
+      cluster   = Cassandra.cluster(
                     hosts: ['127.0.0.1', '127.0.0.2']
                   )
       session   = cluster.connect('simplex')

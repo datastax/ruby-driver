@@ -22,7 +22,7 @@ module Cassandra
       # Auth provider used for Cassandra's built in authentication.
       #
       # @note No need to instantiate this class manually, use `:username` and
-      #   `:password` options when calling {Cassandra.connect} and one will be
+      #   `:password` options when calling {Cassandra.cluster} and one will be
       #   created automatically for you.
       class Password < Provider
         # Authenticator used for Cassandra's built in authentication,

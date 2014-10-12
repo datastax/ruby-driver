@@ -22,7 +22,7 @@ Feature: Prepared statements
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
       insert  = session.prepare(
                   "INSERT INTO playlists (id, song_id, title, artist, album) " \
@@ -123,7 +123,7 @@ Feature: Prepared statements
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.connect
+      cluster = Cassandra.cluster
       session = cluster.connect("simplex")
       select  = session.prepare("SELECT * FROM playlists LIMIT ?")
       limits  = [1, 2, 3]

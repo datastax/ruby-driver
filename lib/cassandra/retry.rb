@@ -19,7 +19,7 @@
 module Cassandra
   module Retry
     # @abstract Actual retry policies supplied as `:retry_policy` option to
-    #   {Cassandra.connect} don't need to inherit this class, only implement
+    #   {Cassandra.cluster} don't need to inherit this class, only implement
     #   its methods. This class exists for documentation purposes only.
     module Policy
       # Decides wether to retry a read and at what consistency level.

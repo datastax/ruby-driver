@@ -21,7 +21,7 @@ module Cassandra
   # driver-specific error.
   # @example Catching all driver errors
   #   begin
-  #     cluster = Cassandra.connect
+  #     cluster = Cassandra.cluster
   #     session = cluster.connect
   #   rescue Cassandra::Error => e
   #     puts "#{e.class.name}: #{e.message}"

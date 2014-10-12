@@ -30,7 +30,7 @@ class AuthenticationTest < IntegrationTestCase
   end
 
   def test_can_authenticate_to_cluster
-    cluster = Cassandra.connect(
+    cluster = Cassandra.cluster(
                 username: @@username,
                 password: @@password
               )
@@ -42,7 +42,7 @@ class AuthenticationTest < IntegrationTestCase
 
   def test_raise_error_on_invalid_auth
     assert_raises(ArgumentError) do
-      cluster = Cassandra.connect(
+      cluster = Cassandra.cluster(
                   username: '',
                   password: ''
                 )
@@ -50,7 +50,7 @@ class AuthenticationTest < IntegrationTestCase
     end
 
     assert_raises(Cassandra::Errors::AuthenticationError) do
-      cluster = Cassandra.connect(
+      cluster = Cassandra.cluster(
                   username: 'invalidname',
                   password: 'badpassword'
                 )

@@ -31,7 +31,7 @@ class PreparedInsertRubyDriver < Benchmark
 
     def connect_to_cluster
         puts "#{Time.now - start} Connecting to cluster..."
-        @cluster = Cassandra.connect(hosts: ['127.0.0.1'])
+        @cluster = Cassandra.cluster(hosts: ['127.0.0.1'])
         @session = @cluster.connect("simplex")
         @session.execute(Cassandra::Statements::Simple.new("TRUNCATE songs"))
         @statement  = @session.prepare("INSERT INTO songs (id, title, album, artist, tags) VALUES (?, 'Dummy song-id', 'Track 1', 'Unknown Artist', {'soundtrack', '1985'});")

@@ -149,17 +149,17 @@ module Cassandra
   #   use at your own risk.
   #
   # @example Connecting to localhost
-  #   cluster = Cassandra.connect
+  #   cluster = Cassandra.cluster
   #
   # @example Configuring {Cassandra::Cluster}
-  #   cluster = Cassandra.connect(
+  #   cluster = Cassandra.cluster(
   #               username: username,
   #               password: password,
   #               hosts: ['10.0.1.1', '10.0.1.2', '10.0.1.3']
   #             )
   #
   # @return [Cassandra::Cluster] a cluster instance
-  def self.connect(options = {})
+  def self.cluster(options = {})
     options.select! do |key, value|
       [ :credentials, :auth_provider, :compression, :hosts, :logger, :port,
         :load_balancing_policy, :reconnection_policy, :retry_policy, :listeners,

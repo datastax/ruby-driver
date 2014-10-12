@@ -38,7 +38,7 @@ class TokenAwareTest < IntegrationTestCase
 
   def test_token_aware_datacenter_aware_is_used_by_default
     setup_schema
-    cluster = Cassandra.connect
+    cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
     hosts_used = []
@@ -55,7 +55,7 @@ class TokenAwareTest < IntegrationTestCase
     setup_schema
     base_policy = Cassandra::LoadBalancing::Policies::RoundRobin.new
     policy = Cassandra::LoadBalancing::Policies::TokenAware.new(base_policy)
-    cluster = Cassandra.connect(load_balancing_policy: policy)
+    cluster = Cassandra.cluster(load_balancing_policy: policy)
     session = cluster.connect("simplex")
     
     select = session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?")
@@ -83,7 +83,7 @@ class TokenAwareTest < IntegrationTestCase
     setup_schema
     base_policy = Cassandra::LoadBalancing::Policies::RoundRobin.new
     policy = Cassandra::LoadBalancing::Policies::TokenAware.new(base_policy)
-    cluster = Cassandra.connect(:consistency => :one, load_balancing_policy: policy)
+    cluster = Cassandra.cluster(:consistency => :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
     
     select = session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?")
@@ -113,7 +113,7 @@ class TokenAwareTest < IntegrationTestCase
     round_robin = Cassandra::LoadBalancing::Policies::RoundRobin.new
     whitelist = Cassandra::LoadBalancing::Policies::WhiteList.new(allowed_ips, round_robin)
     policy = Cassandra::LoadBalancing::Policies::TokenAware.new(whitelist)
-    cluster = Cassandra.connect(:consistency => :one, load_balancing_policy: policy)
+    cluster = Cassandra.cluster(:consistency => :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
 
     select = session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?")
@@ -130,7 +130,7 @@ class TokenAwareTest < IntegrationTestCase
     datacenter = "dc2"
     base_policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
     policy = Cassandra::LoadBalancing::Policies::TokenAware.new(base_policy)
-    cluster = Cassandra.connect(load_balancing_policy: policy)
+    cluster = Cassandra.cluster(load_balancing_policy: policy)
     session = cluster.connect("simplex")
     
     select = session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?")
@@ -159,7 +159,7 @@ class TokenAwareTest < IntegrationTestCase
     datacenter = "dc2"
     base_policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
     policy = Cassandra::LoadBalancing::Policies::TokenAware.new(base_policy)
-    cluster = Cassandra.connect(load_balancing_policy: policy)
+    cluster = Cassandra.cluster(load_balancing_policy: policy)
     session = cluster.connect("simplex")
     
     select = session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?")

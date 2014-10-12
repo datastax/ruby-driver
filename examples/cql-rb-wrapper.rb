@@ -61,6 +61,6 @@ class Client
   end
 end
 
-cluster = Cassandra.connect
+cluster = Cassandra.cluster
 session = cluster.connect
 client  = Client.new(session)

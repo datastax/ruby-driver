@@ -30,7 +30,7 @@ class SSLAuthenticatedEncryptionTest < IntegrationTestCase
   end
 
   def test_can_connect_with_ssl_authentication
-    cluster = Cassandra.connect(
+    cluster = Cassandra.cluster(
                 server_cert:  @@server_cert,
                 client_cert:  @@client_cert,
                 private_key:  @@private_key,
@@ -43,7 +43,7 @@ class SSLAuthenticatedEncryptionTest < IntegrationTestCase
 
   def test_raise_error_on_invalid_ssl_auth
     assert_raises(OpenSSL::PKey::RSAError) do
-      cluster = Cassandra.connect(
+      cluster = Cassandra.cluster(
                   server_cert:  @@server_cert,
                   client_cert:  @@client_cert,
                   private_key:  @@private_key,
