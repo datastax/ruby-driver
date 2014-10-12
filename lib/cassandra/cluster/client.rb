@@ -219,6 +219,7 @@ module Cassandra
       OVERLOADED_ERROR_CODE    = 0x1001
       SERVER_ERROR_CODE        = 0x0000
       BOOTSTRAPPING_ERROR_CODE = 0x1002
+      UNPREPARED_ERROR_CODE    = 0x2500
 
       SELECT_SCHEMA_PEERS = Protocol::QueryRequest.new("SELECT peer, rpc_address, schema_version FROM system.peers", nil, nil, :one)
       SELECT_SCHEMA_LOCAL = Protocol::QueryRequest.new("SELECT schema_version FROM system.local WHERE key='local'", nil, nil, :one)
@@ -605,7 +606,7 @@ module Cassandra
                 when Protocol::BatchRequest
                   batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
                 end
-              when 0x2500 # unprepared
+              when UNPREPARED_ERROR_CODE
                 cql = statement.cql
 
                 synchronize do
