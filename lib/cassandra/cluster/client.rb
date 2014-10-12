@@ -749,7 +749,7 @@ module Cassandra
             @keyspace = r.keyspace
             nil
           when Protocol::ErrorResponse
-            raise r.to_error(statement)
+            raise r.to_error(Statements::Simple.new("USE #{keyspace}"))
           else
             raise Errors::ProtocolError, "Unexpected response #{r.inspect}"
           end
@@ -785,7 +785,7 @@ module Cassandra
             end
             id
           when Protocol::ErrorResponse
-            raise r.to_error(statement)
+            raise r.to_error(VOID_STATEMENT)
           else
             raise Errors::ProtocolError, "Unexpected response #{r.inspect}"
           end
