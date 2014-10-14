@@ -27,19 +27,27 @@ module Cassandra
       def initialize(logger)
         @logger    = logger
         @hosts     = ::Hash.new
-        @listeners = ::Set.new
+        @listeners = ::Array.new
 
         mon_initialize
       end
 
       def add_listener(listener)
-        synchronize { @listeners = @listeners.dup.add(listener) }
+        synchronize do
+          listeners = @listeners.dup
+          listeners.push(listener)
+          @listeners = listeners
+        end
 
         self
       end
 
       def remove_listener(listener)
-        synchronize { @listeners = @listeners.dup.delete(listener) }
+        synchronize do
+          listeners = @listeners.dup
+          listeners.delete(listener)
+          @listeners = listeners
+        end
 
         self
       end
@@ -72,7 +80,9 @@ module Cassandra
              host.rack            == data['rack']            &&
              host.datacenter      == data['data_center']
 
-            return self
+            return self if host.up?
+
+            host = toggle_up(host)
           else
             notify_lost(host)
 
@@ -164,7 +174,7 @@ module Cassandra
       def toggle_down(host)
         host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, host.tokens, :down)
         @logger.debug("Host #{host.ip} is down")
-        @listeners.each do |listener|
+        @listeners.reverse_each do |listener|
           listener.host_down(host) rescue nil
         end
         host
@@ -174,13 +184,13 @@ module Cassandra
         if host.up?
           @logger.debug("Host #{host.ip} is down and lost")
           host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, host.tokens, :down)
-          @listeners.each do |listener|
+          @listeners.reverse_each do |listener|
             listener.host_down(host) rescue nil
             listener.host_lost(host) rescue nil
           end
         else
           @logger.debug("Host #{host.ip} is lost")
-          @listeners.each do |listener|
+          @listeners.reverse_each do |listener|
             listener.host_lost(host) rescue nil
           end
         end

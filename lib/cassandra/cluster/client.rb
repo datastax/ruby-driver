@@ -116,12 +116,18 @@ module Cassandra
       end
 
       def host_up(host)
+        distance = nil
+
         synchronize do
           return Ione::Future.resolved if @connecting_hosts.include?(host)
+
+          distance = @load_balancing_policy.distance(host)
+          return Ione::Future.resolved if distance == :ignore
+
           @connecting_hosts << host
         end
 
-        connect_to_host_maybe_retry(host, @load_balancing_policy.distance(host)).map(nil)
+        connect_to_host_maybe_retry(host, distance).map(nil)
       end
 
       def host_down(host)
