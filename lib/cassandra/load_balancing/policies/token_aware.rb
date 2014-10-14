@@ -111,7 +111,7 @@ module Cassandra
           replicas = @cluster.find_replicas(keyspace, statement)
           return @policy.plan(keyspace, statement, options) if replicas.empty?
 
-          Plan.new(replicas.dup, @policy, keyspace, statement, options)
+          Plan.new(replicas.shuffle, @policy, keyspace, statement, options)
         end
       end
     end

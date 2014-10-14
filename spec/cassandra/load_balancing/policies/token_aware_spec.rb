@@ -98,6 +98,7 @@ module Cassandra
 
               context('and all replicas are local') do
                 before do
+                  allow(replicas).to receive(:shuffle) { replicas.dup }
                   allow(policy).to receive(:distance) { :local }
                 end
 
