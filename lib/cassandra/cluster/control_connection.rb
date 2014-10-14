@@ -322,7 +322,17 @@ module Cassandra
 
       def connect_to_first_available(plan, errors = nil)
         unless plan.has_next?
-          @logger.warn("Control connection failed")
+          if errors.nil? && synchronize { @refreshing_statuses.empty? }
+            @logger.fatal(<<-MSG)
+Control connection failed and is unlikely to recover.
+
+	This usually means that all hosts are ignored by current load
+	balancing policy, most likely because they changed datacenters.
+	Reconnections attempts will continue getting scheduled to
+	repeat this message in the logs.
+            MSG
+          end
+
           return Ione::Future.failed(Errors::NoHostsAvailable.new(errors))
         end
 
