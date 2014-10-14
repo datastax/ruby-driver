@@ -9,6 +9,7 @@ Features:
 Bug fixes:
 
 * [RUBY-34] handle empty values without crashing
+* [RUBY-41] prevent connections to ignored hosts
 
 Breaking changes:
 
