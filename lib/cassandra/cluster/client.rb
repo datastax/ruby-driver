@@ -51,7 +51,9 @@ module Cassandra
           return @connected_future if @state == :connecting || @state == :connected
 
           @state = :connecting
-          @connecting_hosts.merge(@registry.hosts)
+          @registry.each_host do |host|
+            @connecting_hosts << host unless @load_balancing_policy.distance(host) == :ignore
+          end
         end
 
         @connected_future = begin
