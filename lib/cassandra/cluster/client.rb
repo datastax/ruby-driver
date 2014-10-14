@@ -35,7 +35,7 @@ module Cassandra
         @retry_policy                = retry_policy
         @connection_options          = connection_options
         @futures                     = futures_factory
-        @connecting_hosts            = ::Set.new
+        @connecting_hosts            = ::Hash.new
         @connections                 = ::Hash.new
         @prepared_statements         = ::Hash.new
         @preparing_statements        = ::Hash.new
@@ -52,15 +52,18 @@ module Cassandra
 
           @state = :connecting
           @registry.each_host do |host|
-            @connecting_hosts << host unless @load_balancing_policy.distance(host) == :ignore
+            distance = @load_balancing_policy.distance(host)
+            next if distance == :ignore
+
+            @connecting_hosts[host] = distance
           end
         end
 
         @connected_future = begin
           @registry.add_listener(self)
 
-          futures = @connecting_hosts.map do |host|
-            f = connect_to_host(host, @load_balancing_policy.distance(host))
+          futures = @connecting_hosts.map do |(host, distance)|
+            f = connect_to_host(host, distance)
             f.recover do |error|
               Cassandra::Client::FailedConnection.new(error, host)
             end
@@ -126,7 +129,7 @@ module Cassandra
           distance = @load_balancing_policy.distance(host)
           return Ione::Future.resolved if distance == :ignore
 
-          @connecting_hosts << host
+          @connecting_hosts[host] = distance
         end
 
         connect_to_host_maybe_retry(host, distance).map(nil)
@@ -299,8 +302,16 @@ module Cassandra
 
         f = @reactor.schedule_timer(interval)
         f.flat_map do
-          if synchronize { @connecting_hosts.include?(host) }
-            connect_to_host(host, @load_balancing_policy.distance(host)).fallback do |e|
+          distance = nil
+
+          synchronize do
+            if @connecting_hosts.include?(host)
+              distance = @load_balancing_policy.distance(host)
+            end
+          end
+
+          if distance && distance != :ignore
+            connect_to_host(host, distance).fallback do |e|
               connect_to_host_with_retry(host, schedule)
             end
           else
