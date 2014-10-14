@@ -22,8 +22,6 @@ module Cassandra
     class Registry
       include MonitorMixin
 
-      LISTENER_METHODS = [:host_found, :host_lost, :host_up, :host_down].freeze
-
       def initialize(logger)
         @logger    = logger
         @hosts     = ::Hash.new
