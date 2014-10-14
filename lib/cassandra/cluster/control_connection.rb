@@ -64,7 +64,7 @@ module Cassandra
         synchronize do
           @refreshing_statuses.delete(host)
 
-          return connect_async if !@connection && !(@status == :closed || @status == :closed)
+          return connect_async unless @connection || (@status == :closing || @status == :closed) || @load_balancing_policy.distance(host) == :ignore
         end
 
         Ione::Future.resolved
@@ -72,7 +72,7 @@ module Cassandra
 
       def host_down(host)
         synchronize do
-          return Ione::Future.resolved if @refreshing_statuses[host]
+          return Ione::Future.resolved if @refreshing_statuses[host] || @load_balancing_policy.distance(host) == :ignore
 
           @logger.debug("Starting to continuously refresh status for ip=#{host.ip}")
           @refreshing_statuses[host] = true
@@ -264,7 +264,7 @@ module Cassandra
         local = connection.send_request(SELECT_LOCAL)
         peers = connection.send_request(SELECT_PEERS)
 
-        Ione::Future.all(local, peers).flat_map do |(local, peers)|
+        Ione::Future.all(local, peers).map do |(local, peers)|
           local = local.rows
           peers = peers.rows
 
@@ -285,23 +285,13 @@ module Cassandra
             @registry.host_found(ip, data)
           end
 
-          futures = []
-
           @registry.each_host do |host|
-            if ips.include?(host.ip)
-              futures << refresh_host_status(host) if host.down?
-            else
-              @registry.host_lost(host.ip)
-            end
+            @registry.host_lost(host.ip) unless ips.include?(host.ip)
           end
 
           @metadata.update(data)
 
-          if futures.empty?
-            Ione::Future.resolved
-          else
-            Ione::Future.all(*futures)
-          end
+          nil
         end
       end
 
@@ -347,8 +337,6 @@ module Cassandra
 
           unless rows.empty?
             @registry.host_found(address, rows.first)
-            host = @registry.host(address)
-            refresh_host_status(host) if host.down?
           end
 
           self
