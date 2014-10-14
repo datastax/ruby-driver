@@ -54,13 +54,17 @@ module Cassandra
 
       def host_lost(host)
         synchronize do
-          @refreshing_statuses.delete(host)
+          timer = @refreshing_statuses.delete(host)
+          @io_reactor.cancel_timer(timer) if timer
         end
+
+        nil
       end
 
       def host_up(host)
         synchronize do
-          @refreshing_statuses.delete(host)
+          timer = @refreshing_statuses.delete(host)
+          @io_reactor.cancel_timer(timer) if timer
 
           return connect_async unless @connection || (@status == :closing || @status == :closed) || @load_balancing_policy.distance(host) == :ignore
         end
@@ -69,14 +73,27 @@ module Cassandra
       end
 
       def host_down(host)
+        schedule = nil
+        timer    = nil 
+
         synchronize do
           return Ione::Future.resolved if @refreshing_statuses[host] || @load_balancing_policy.distance(host) == :ignore
 
-          @logger.debug("Starting to continuously refresh status for ip=#{host.ip}")
-          @refreshing_statuses[host] = true
+          schedule = @reconnection_policy.schedule
+          timeout  = schedule.next
+
+          @logger.debug("Starting to continuously refresh status of #{host.ip} in #{timeout} seconds")
+
+          @refreshing_statuses[host] = timer = @io_reactor.schedule_timer(timeout)
         end
 
-        refresh_host_status_with_retry(host, @reconnection_policy.schedule)
+        timer.on_value do
+          refresh_host_status(host).fallback do |e|
+            refresh_host_status_with_retry(host, schedule)
+          end
+        end
+
+        nil
       end
 
       def close_async
@@ -281,18 +298,19 @@ module Cassandra
       end
 
       def refresh_host_status_with_retry(host, schedule)
-        timeout = schedule.next
+        timer = nil 
 
-        @logger.info("Refreshing host status refresh ip=#{host.ip} in #{timeout}")
+        synchronize do
+          timeout = schedule.next
 
-        f = @io_reactor.schedule_timer(timeout)
-        f.flat_map do
-          if synchronize { @refreshing_statuses[host] }
-            refresh_host_status(host).fallback do |e|
-              refresh_host_status_with_retry(host, schedule)
-            end
-          else
-            Ione::Future.resolved
+          @logger.debug("Checking host #{host.ip} in #{timeout} seconds")
+
+          @refreshing_statuses[host] = timer = @io_reactor.schedule_timer(timeout)
+        end
+
+        timer.on_value do
+          refresh_host_status(host).fallback do |e|
+            refresh_host_status_with_retry(host, schedule)
           end
         end
       end
