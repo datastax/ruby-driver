@@ -22,7 +22,7 @@ require 'cassandra/compression/compressors/snappy'
 require 'cassandra/compression/compressors/lz4'
 
 AfterConfiguration do |configuration|
-  slow_features = ['features/load_balancing/datacenter_aware.feature', 'features/load_balancing/round_robin.feature']
+  slow_features = ['features/load_balancing/default_policy.feature', 'features/load_balancing/datacenter_aware.feature', 'features/load_balancing/round_robin.feature', 'features/load_balancing/token_aware.feature']
 
   features_files = configuration.feature_files.sort do |a, b|
     if slow_features.include?(a)
