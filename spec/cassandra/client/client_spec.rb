@@ -424,7 +424,7 @@ module Cassandra
         end
 
         it 'logs a warning when compression was disabled because the algorithm was not supported' do
-          logger.stub(:warn)
+          logger.stub(:info)
           handle_request do |request|
             case request
             when Protocol::OptionsRequest
@@ -434,7 +434,7 @@ module Cassandra
           compressor = double(:compressor, algorithm: 'lz4')
           c = described_class.new(connection_options.merge(compressor: compressor))
           c.connect.value
-          logger.should have_received(:warn).with(/not supported/)
+          logger.should have_received(:info).with(/not supported/)
         end
 
         it 'changes to the keyspace given as an option' do

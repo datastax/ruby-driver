@@ -60,6 +60,7 @@ module Cassandra
         end
 
         @connected_future = begin
+          @logger.info('Creating session')
           @registry.add_listener(self)
 
           futures = @connecting_hosts.map do |(host, distance)|
@@ -141,7 +142,6 @@ module Cassandra
         synchronize do
           return Ione::Future.resolved if !@connections.has_key?(host) && !@connecting_hosts.include?(host)
 
-          @logger.info("Session disconnecting from ip=#{host.ip}")
           @connecting_hosts.delete(host)
           @prepared_statements.delete(host)
           @preparing_statements.delete(host)
@@ -241,14 +241,14 @@ module Cassandra
             @state = :connected
           end
 
-          @logger.info('Session connected')
+          @logger.info('Session created')
         else
           synchronize do
             @state = :defunct
           end
 
           f.on_failure do |e|
-            @logger.error('Session connect failed: %s' % e.message)
+            @logger.error("Session failed to connect (#{e.class.name}: #{e.message})")
           end
 
           close
@@ -263,20 +263,17 @@ module Cassandra
             @logger.info('Session closed')
           else
             f.on_failure do |e|
-              @logger.error('Session close failed: %s' % e.message)
+              @logger.error("Session failed to close (#{e.class.name}: #{e.message})")
             end
           end
         end
       end
 
       def close_connections
-        @logger.info('Session closing')
-
         futures = []
         synchronize do
           @connections.each do |host, connections|
             connections.snapshot.each do |c|
-              @logger.info("Disconnecting ip=#{c.host}")
               futures << c.close
             end
           end.clear
@@ -298,7 +295,7 @@ module Cassandra
       def connect_to_host_with_retry(host, schedule)
         interval = schedule.next
 
-        @logger.info("Session started reconnecting to ip=#{host.ip} delay=#{interval}")
+        @logger.debug("Reconnecting to #{host.ip} in #{interval} seconds")
 
         f = @reactor.schedule_timer(interval)
         f.flat_map do
@@ -315,8 +312,6 @@ module Cassandra
               connect_to_host_with_retry(host, schedule)
             end
           else
-            @logger.info("Session reconnection to ip=#{host.ip} cancelled")
-
             NO_CONNECTIONS
           end
         end
@@ -331,10 +326,9 @@ module Cassandra
         when :remote
           pool_size = @connection_options.connections_per_remote_node
         else
-          raise ::ArgumentError, "distance must be one of :ignore, :local or :remote, #{distance.inspect} given"
+          @logger.error("Invalid load balancing distance, not connecting to #{host.ip}. Distance must be one of #{LoadBalancing::DISTANCES.inspect}, #{distance.inspect} given")
+          return NO_CONNECTIONS
         end
-
-        @logger.info("Session connecting to ip=#{host.ip}")
 
         f = @connector.connect_many(host, pool_size)
 
@@ -342,7 +336,6 @@ module Cassandra
           manager = nil
 
           synchronize do
-            @logger.info("Session connected to ip=#{host.ip}")
             @connecting_hosts.delete(host)
             @prepared_statements[host] = {}
             @preparing_statements[host] = {}
@@ -675,10 +668,11 @@ module Cassandra
                 @keyspace = nil
               end
 
+              @logger.info('Waiting for schema to propagate to all hosts after a change')
               wait_for_schema_agreement(connection, @reconnection_policy.schedule).on_complete do |f|
                 unless f.resolved?
                   f.on_failure do |e|
-                    @logger.error("Schema agreement error: #{e.class.name}: #{e.message}\n#{e.backtrace.join("\n")}")
+                    @logger.error("Schema agreement failure (#{e.class.name}: #{e.message})")
                   end
                 end
                 promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
@@ -706,14 +700,10 @@ module Cassandra
       end
 
       def wait_for_schema_agreement(connection, schedule)
-        @logger.info('Fetching schema versions')
-
         peers = connection.send_request(SELECT_SCHEMA_PEERS)
         local = connection.send_request(SELECT_SCHEMA_LOCAL)
 
         Ione::Future.all(peers, local).flat_map do |(peers, local)|
-          @logger.info('Fetched schema versions')
-
           peers = peers.rows
           local = local.rows
 
@@ -724,7 +714,7 @@ module Cassandra
 
             if host && @load_balancing_policy.distance(host) != :ignore
               versions << version = local.first['schema_version']
-              @logger.debug("Host #{host.ip} schema version: #{version}")
+              @logger.debug("Host #{host.ip} schema version is #{version}")
             end
           end
 
@@ -733,15 +723,15 @@ module Cassandra
             next unless host && @load_balancing_policy.distance(host) != :ignore
 
             versions << version = row['schema_version']
-            @logger.debug("Host #{host.ip} schema version: #{version}")
+            @logger.debug("Host #{host.ip} schema version is #{version}")
           end
 
           if versions.one?
-            @logger.info('All hosts have the same schema version')
+            @logger.debug('All hosts have the same schema')
             Ione::Future.resolved
           else
             interval = schedule.next
-            @logger.info("Hosts don't yet agree on schema: #{versions.to_a.inspect}, retrying in #{interval} seconds")
+            @logger.warn("Hosts have different schema versions: #{versions.to_a.inspect}, retrying in #{interval} seconds")
             @reactor.schedule_timer(interval).flat_map do
               wait_for_schema_agreement(connection, schedule)
             end

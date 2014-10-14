@@ -101,7 +101,7 @@ module Cassandra
             client.connect.value
             io_reactor.connections.first.stub(:close).and_return(Ione::Future.failed(StandardError.new('Hurgh blurgh')))
             client.close.value rescue nil
-            logger.should have_received(:error).with(/Session close failed: Hurgh blurgh/)
+            logger.should have_received(:error).with(/Session failed to close \(StandardError: Hurgh blurgh\)/)
           end
         end
 
@@ -194,7 +194,7 @@ module Cassandra
           end
 
           it 'logs reconnection attempts' do
-            logger.stub(:info)
+            logger.stub(:debug)
             logger.stub(:warn)
 
             io_reactor.node_down(address)
@@ -202,8 +202,8 @@ module Cassandra
 
             client.host_up(host)
 
-            logger.should have_received(:warn).with(/Connection failed ip=(.*) error=(.*)/).at_least(1).times
-            logger.should have_received(:info).with(/Session started reconnecting to ip=(.*) delay=(.*)/)
+            logger.should have_received(:warn).with("Host 1.1.1.1 refused all connections").at_least(1).times
+            logger.should have_received(:debug).with(/Reconnecting to (.*) in (.*) seconds/)
           end
         end
       end

@@ -106,8 +106,10 @@ module Cassandra
         cluster.register(listener)
       end
 
+      logger.debug('Populating policies and listeners with initial endpoints')
       addresses.each {|address| cluster_registry.host_found(address)}
 
+      logger.info('Establishing control connection')
       control_connection.connect_async.map(cluster)
     end
   end

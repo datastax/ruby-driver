@@ -84,6 +84,8 @@ module Cassandra
 
             host = toggle_up(host)
           else
+            @logger.debug("Host #{host.ip} metadata has been updated, it will be considered lost and found")
+
             notify_lost(host)
 
             host = create_host(address, data)
