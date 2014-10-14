@@ -111,13 +111,10 @@ Feature: Automatic reconnection
     And I type "SELECT * FROM simplex.songs"
     And I close the stdin stream
     Then its output should contain:
-    """
-    === START ===
-    Host 127.0.0.1 is down
-    Host 127.0.0.2 is down
-    Host 127.0.0.3 is down
-    Query "SELECT * FROM simplex.songs" failed with Cassandra::Errors::NoHostsAvailable: All hosts down
-    Host 127.0.0.1 is up
-    Query "SELECT * FROM simplex.songs" fulfilled by 127.0.0.1
-    === STOP ===
-    """
+      """
+      Query "SELECT * FROM simplex.songs" failed with Cassandra::Errors::NoHostsAvailable: All hosts down
+      """
+    And its output should contain:
+      """
+      Query "SELECT * FROM simplex.songs" fulfilled by 127.0.0.1
+      """
