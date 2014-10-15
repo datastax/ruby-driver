@@ -15,7 +15,7 @@ Feature: Token-aware Load Balancing Policy
     Given a running cassandra cluster in 2 datacenters with 2 nodes in each
     And the following schema:
       """cql
-      CREATE KEYSPACE simplex WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2, 'dc2': 2};
+      CREATE KEYSPACE simplex WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1, 'dc2': 1};
       USE simplex;
       CREATE TABLE songs (
         id uuid PRIMARY KEY,
@@ -81,7 +81,7 @@ Feature: Token-aware Load Balancing Policy
       uuid=fbdf82ed-0063-4796-9c7c-a3d4f47b4b25 token=2440231132048646025 replica=127.0.0.1 total=1
       """
 
-    Scenario: Requests are routed to a secondary replica if primary replica down
+    Scenario: Requests are routed according to wrapped policy plan when primary replica is down
     Given the following example:
       """ruby
       require 'cassandra'
