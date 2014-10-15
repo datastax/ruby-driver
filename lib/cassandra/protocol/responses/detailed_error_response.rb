@@ -61,7 +61,7 @@ module Cassandra
         when 0x1100 then Errors::WriteTimeoutError.new(@message, statement, @details[:write_type], @details[:cl], @details[:blockfor], @details[:received])
         when 0x1200 then Errors::ReadTimeoutError.new(@message, statement, @details[:data_present], @details[:cl], @details[:blockfor], @details[:received])
         when 0x2400 then Errors::AlreadyExistsError.new(@message, statement, @details[:ks], @details[:table])
-        when 0x2500 then Errors::UnpreparedError.new(@message, statement, @detauls[:id])
+        when 0x2500 then Errors::UnpreparedError.new(@message, statement, @details[:id])
         else
           super
         end
