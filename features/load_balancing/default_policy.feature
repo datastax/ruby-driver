@@ -17,7 +17,7 @@ Feature: Default Load Balancing Policy
     Given a running cassandra cluster in 2 datacenters with 2 nodes in each
     And the following schema:
       """cql
-      CREATE KEYSPACE simplex WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 2, 'dc2': 2};
+      CREATE KEYSPACE simplex WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': '1', 'dc2': '1'};
       USE simplex;
       CREATE TABLE songs (
         id uuid PRIMARY KEY,
