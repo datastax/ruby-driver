@@ -221,7 +221,7 @@ module Cassandra
         end
 
         it 'logs when it tries the next protocol version' do
-          logger.stub(:warn)
+          logger.stub(:info)
           counter = 0
           handle_request do |request|
             if counter < 3
@@ -235,7 +235,7 @@ module Cassandra
 
 
           control_connection.connect_async.value
-          logger.should have_received(:warn).with(/could not connect using protocol version 7 \(will try again with 6\): bork version, dummy!/i)
+          logger.should have_received(:info).with("Host 127.0.0.1 doesn't support protocol version 7, downgrading")
         end
 
         it 'gives up when the protocol version is zero' do
@@ -337,15 +337,6 @@ module Cassandra
             control_connection.connect_async.value
 
             expect(cluster_registry).to have(3).hosts
-          end
-        end
-
-        context 'with logging' do
-          it 'logs when fetching cluster state' do
-            logger.stub(:debug)
-            control_connection.connect_async.value
-            logger.should have_received(:debug).with(/Fetching cluster metadata and peers/)
-            logger.should have_received(:debug).with(/\d+ peers found/)
           end
         end
 

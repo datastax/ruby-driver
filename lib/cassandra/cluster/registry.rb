@@ -22,8 +22,6 @@ module Cassandra
     class Registry
       include MonitorMixin
 
-      LISTENER_METHODS = [:host_found, :host_lost, :host_up, :host_down].freeze
-
       def initialize(logger)
         @logger    = logger
         @hosts     = ::Hash.new
@@ -84,6 +82,8 @@ module Cassandra
 
             host = toggle_up(host)
           else
+            @logger.debug("Host #{host.ip} metadata has been updated, it will be considered lost and found")
+
             notify_lost(host)
 
             host = create_host(address, data)

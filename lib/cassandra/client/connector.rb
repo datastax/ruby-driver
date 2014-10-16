@@ -128,10 +128,9 @@ module Cassandra
         compression = @compressor && @compressor.algorithm
         supported_algorithms = pending_connection[:compression]
         if compression && !supported_algorithms.include?(compression)
-          @logger.warn(%[Compression algorithm "#{compression}" not supported (server supports "#{supported_algorithms.join('", "')}")])
+          @logger.info("Compression with #{compression.inspect} is not supported by host at #{pending_connection.host}, supported algorithms are #{supported_algorithms.inspect}")
           compression = nil
         end
-        @logger.debug('Using "%s" compression' % compression) if compression
         supported_cql_versions = pending_connection[:cql_version]
         cql_version = (supported_cql_versions && !supported_cql_versions.empty?) ? supported_cql_versions.first : '3.1.0'
 

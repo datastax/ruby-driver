@@ -101,7 +101,7 @@ module Cassandra
             client.connect.value
             io_reactor.connections.first.stub(:close).and_return(Ione::Future.failed(StandardError.new('Hurgh blurgh')))
             client.close.value rescue nil
-            logger.should have_received(:error).with(/Session close failed: Hurgh blurgh/)
+            logger.should have_received(:error).with(/Session failed to close \(StandardError: Hurgh blurgh\)/)
           end
         end
 
@@ -194,7 +194,7 @@ module Cassandra
           end
 
           it 'logs reconnection attempts' do
-            logger.stub(:info)
+            logger.stub(:debug)
             logger.stub(:warn)
 
             io_reactor.node_down(address)
@@ -202,8 +202,8 @@ module Cassandra
 
             client.host_up(host)
 
-            logger.should have_received(:warn).with(/Connection failed ip=(.*) error=(.*)/).at_least(1).times
-            logger.should have_received(:info).with(/Session started reconnecting to ip=(.*) delay=(.*)/)
+            logger.should have_received(:warn).with("Host 1.1.1.1 refused all connections").at_least(1).times
+            logger.should have_received(:debug).with(/Reconnecting to (.*) in (.*) seconds/)
           end
         end
       end
@@ -480,7 +480,6 @@ module Cassandra
                 count += 1
                 Protocol::PreparedResultResponse.new('123', [], [], nil)
               when Cassandra::Protocol::ExecuteRequest
-                sent = true
                 Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
               end
             end
@@ -493,6 +492,38 @@ module Cassandra
 
           client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
           expect(count).to eq(2)
+        end
+
+        it 're-prepares a statement on unprepared error' do
+          count = 0
+          error = true
+          io_reactor.on_connection do |connection|
+            connection.handle_request do |request|
+              case request
+              when Cassandra::Protocol::StartupRequest
+                Cassandra::Protocol::ReadyResponse.new
+              when Cassandra::Protocol::PrepareRequest
+                count += 1
+                Protocol::PreparedResultResponse.new('123', [], [], nil)
+              when Cassandra::Protocol::ExecuteRequest
+                if error
+                  error = false
+                  Cassandra::Protocol::DetailedErrorResponse.new(0x2500, 'unprepared', id: "0xbad1d")
+                else
+                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                end
+              end
+            end
+          end
+          client.connect.value
+          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
+
+          # make sure we get a different host in the load balancing plan
+          cluster_registry.hosts.delete(statement.execution_info.hosts.first)
+
+          client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
+          expect(count).to eq(3)
+          expect(error).to be(false)
         end
 
         it 'follows the plan on failure' do

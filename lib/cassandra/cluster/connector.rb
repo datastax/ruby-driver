@@ -43,25 +43,17 @@ module Cassandra
           end
         end
 
-        @logger.info("Connecting ip=#{host.ip}")
-
         f = do_connect(host)
 
         f.on_failure do |error|
-          @logger.warn("Connection failed ip=#{host.ip} error=\"#{error.class.name}: #{error.message}\"")
           connection_error(host, error)
         end
 
         f.on_value do |connection|
           connection.on_closed do |cause|
-            message = "Disconnected ip=#{host.ip}"
-            message << " error=#{cause.message}" if cause
-
-            @logger.info(message)
             disconnected(host, cause)
           end
 
-          @logger.info("Connected ip=#{host.ip}")
           connected(host)
         end
 
@@ -75,22 +67,15 @@ module Cassandra
           return Future.resolved
         end
 
-        @logger.info("Refreshing host status ip=#{host.ip}")
+        @logger.debug("Checking if host #{host.ip} is up")
         f = do_connect(host)
 
         f.on_failure do |error|
-          @logger.info("Refreshed host status ip=#{host.ip}")
-          @logger.warn("Connection failed ip=#{host.ip} error=\"#{error.class.name}: #{error.message}\"")
           connection_error(host, error)
         end
 
         f.on_value do |connection|
-          @logger.info("Refreshed host status ip=#{host.ip}")
           connection.on_closed do |cause|
-            message = "Disconnected ip=#{host.ip}"
-            message << " error=#{cause.message}" if cause
-
-            @logger.info(message)
             disconnected(host, cause)
           end
 
@@ -99,7 +84,6 @@ module Cassandra
             @open_connections[host]  << connection
           end
 
-          @logger.info("Connected ip=#{host.ip}")
           connected(host)
         end
 
@@ -120,7 +104,7 @@ module Cassandra
           when Errors::ProtocolError
             synchronize do
               if @options.protocol_version > 1
-                @logger.warn('Could not connect using protocol version %d (will try again with %d): %s' % [@options.protocol_version, @options.protocol_version - 1, error.message])
+                @logger.info("Host #{host.ip} doesn't support protocol version #{@options.protocol_version}, downgrading")
                 @options.protocol_version -= 1
                 do_connect(host)
               else
@@ -140,7 +124,7 @@ module Cassandra
       def create_connector
         authentication_step = @options.protocol_version == 1 ? Cassandra::Client::CredentialsAuthenticationStep.new(@options.credentials) : Cassandra::Client::SaslAuthenticationStep.new(@options.auth_provider)
         protocol_handler_factory = lambda do |connection|
-          raise Errors::ClientError, 'Not connected' unless connection
+          raise Errors::ClientError, 'Not connected, reactor stopped' unless connection
           Protocol::CqlProtocolHandler.new(connection, @reactor, @options.protocol_version, @options.compressor, @options.heartbeat_interval, @options.idle_timeout)
         end
 
@@ -228,7 +212,12 @@ module Cassandra
           end
         end
 
-        @registry.host_down(host.ip) if notify
+        @logger.debug("Host #{host.ip} closed connection (#{error.class.name}: #{error.message})") if error
+
+        if notify
+          @logger.warn("Host #{host.ip} closed all connections")
+          @registry.host_down(host.ip)
+        end
 
         self
       end
@@ -240,7 +229,12 @@ module Cassandra
           notify = !error.nil? && !@connections.has_key?(host)
         end
 
-        @registry.host_down(host.ip) if notify
+        @logger.debug("Host #{host.ip} refused connection (#{error.class.name}: #{error.message})")
+
+        if notify
+          @logger.warn("Host #{host.ip} refused all connections")
+          @registry.host_down(host.ip)
+        end
 
         self
       end

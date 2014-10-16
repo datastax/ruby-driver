@@ -64,7 +64,7 @@ Feature: Batch statements
 
       puts "inserting rows in a batch"
 
-      session.execute(batch)
+      session.execute(batch, consistency: :all)
       rows = session.execute("SELECT * FROM songs")
 
       puts "songs contain #{rows.size} rows"
@@ -119,7 +119,7 @@ Feature: Batch statements
 
       puts "inserting rows in a batch"
 
-      session.execute(batch)
+      session.execute(batch, consistency: :all)
       rows = session.execute("SELECT * FROM songs")
 
       puts "songs contain #{rows.size} rows"
@@ -175,7 +175,7 @@ Feature: Batch statements
 
       puts "inserting rows in a batch"
 
-      session.execute(batch)
+      session.execute(batch, consistency: :all)
       rows = session.execute("SELECT * FROM songs")
 
       puts "songs contain #{rows.size} rows"

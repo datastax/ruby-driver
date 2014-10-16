@@ -25,7 +25,7 @@ class TokenAwareTest < IntegrationTestCase
 
   def setup_schema
     @@ccm_cluster.setup_schema(<<-CQL)
-    CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 4};
+    CREATE KEYSPACE simplex WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': '1', 'dc2': '1'};
     USE simplex;
     CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
     INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
@@ -44,6 +44,7 @@ class TokenAwareTest < IntegrationTestCase
     hosts_used = []
     4.times do
       info =  session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)").execution_info
+      assert_equal 1, info.hosts.size
       hosts_used.push(info.hosts.last.ip.to_s)
     end
 
@@ -53,26 +54,30 @@ class TokenAwareTest < IntegrationTestCase
 
   def test_token_aware_routes_to_primary_replica
     setup_schema
-    base_policy = Cassandra::LoadBalancing::Policies::RoundRobin.new
+    base_policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new('dc1')
     policy = Cassandra::LoadBalancing::Policies::TokenAware.new(base_policy)
     cluster = Cassandra.cluster(load_balancing_policy: policy)
     session = cluster.connect("simplex")
-    
+
     select = session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?")
     
     result  = session.execute(select, 0)
+    assert_equal 1, result.execution_info.hosts.size
     assert_equal 2945182322382062539, result.first['token(user_id)']
     assert_equal "127.0.0.1", result.execution_info.hosts.first.ip.to_s
 
     result  = session.execute(select, 1)
+    assert_equal 1, result.execution_info.hosts.size
     assert_equal 6292367497774912474, result.first['token(user_id)']
     assert_equal "127.0.0.1", result.execution_info.hosts.first.ip.to_s
 
     result  = session.execute(select, 2)
+    assert_equal 1, result.execution_info.hosts.size
     assert_equal -8218881827949364593, result.first['token(user_id)']
     assert_equal "127.0.0.2", result.execution_info.hosts.first.ip.to_s
 
     result  = session.execute(select, 3)
+    assert_equal 1, result.execution_info.hosts.size
     assert_equal -8048510690352527683, result.first['token(user_id)']
     assert_equal "127.0.0.2", result.execution_info.hosts.first.ip.to_s
 
@@ -81,7 +86,7 @@ class TokenAwareTest < IntegrationTestCase
 
   def test_token_aware_routes_to_next_replica_if_primary_down
     setup_schema
-    base_policy = Cassandra::LoadBalancing::Policies::RoundRobin.new
+    base_policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new('dc1')
     policy = Cassandra::LoadBalancing::Policies::TokenAware.new(base_policy)
     cluster = Cassandra.cluster(:consistency => :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
@@ -96,21 +101,21 @@ class TokenAwareTest < IntegrationTestCase
 
     result  = session.execute(select, 2)
     assert_equal 1, result.execution_info.hosts.size
-    assert_equal "127.0.0.4", result.execution_info.hosts.first.ip.to_s
+    assert_equal "127.0.0.1", result.execution_info.hosts.first.ip.to_s
 
-    @@ccm_cluster.stop_node("node4")
+    @@ccm_cluster.stop_node("node1")
 
     result  = session.execute(select, 2)
     assert_equal 1, result.execution_info.hosts.size
-    assert_equal "127.0.0.1", result.execution_info.hosts.first.ip.to_s
+    assert ["127.0.0.3", "127.0.0.4"].include?(result.execution_info.hosts.first.ip.to_s)
 
     cluster.close
   end
 
   def test_token_aware_routes_to_next_whitelisted_replica_if_primary_down
     setup_schema
-    allowed_ips = ["127.0.0.1"]
-    round_robin = Cassandra::LoadBalancing::Policies::RoundRobin.new
+    allowed_ips = ["127.0.0.1", "127.0.0.3"]
+    round_robin = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new('dc1')
     whitelist = Cassandra::LoadBalancing::Policies::WhiteList.new(allowed_ips, round_robin)
     policy = Cassandra::LoadBalancing::Policies::TokenAware.new(whitelist)
     cluster = Cassandra.cluster(:consistency => :one, load_balancing_policy: policy)

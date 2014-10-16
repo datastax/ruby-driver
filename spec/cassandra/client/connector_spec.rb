@@ -392,29 +392,26 @@ module Cassandra
           end
 
           it 'does not set the compression option when the algorithm is not supported by the server' do
+            pending_connection.stub(:host).and_return('127.0.0.1')
             compressor.stub(:algorithm).and_return('bogus')
             step.run(pending_connection)
             pending_connection.last_request.options.should_not have_key('COMPRESSION')
           end
 
-          it 'logs a message when the server supports the algorithm' do
-            logger.stub(:debug)
-            step.run(pending_connection)
-            logger.should have_received(:debug).with(/using "magic" compression/i)
-          end
-
           it 'logs a message when the algorithm is not supported by the server' do
+            pending_connection.stub(:host).and_return('127.0.0.1')
             pending_connection.stub(:[]).with(:compression).and_return(%w[foo bar])
-            logger.stub(:warn)
+            logger.stub(:info)
             step.run(pending_connection)
-            logger.should have_received(:warn).with(/algorithm "magic" not supported/i)
+            logger.should have_received(:info).with(/Compression with "magic" is not supported/i)
           end
 
           it 'logs which algorithms the server supports when there is a mismatch' do
+            pending_connection.stub(:host).and_return('127.0.0.1')
             pending_connection.stub(:[]).with(:compression).and_return(%w[foo bar])
-            logger.stub(:warn)
+            logger.stub(:info)
             step.run(pending_connection)
-            logger.should have_received(:warn).with(/server supports "foo", "bar"/i)
+            logger.should have_received(:info).with(/supported algorithms are \[\"foo\", \"bar\"\]/i)
           end
         end
 

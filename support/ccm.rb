@@ -326,6 +326,8 @@ module CCM extend self
 
       @session = @cluster.connect
 
+      sleep(1) until @cluster.hosts.all?(&:up?)
+
       nil
     end
 
