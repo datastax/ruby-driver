@@ -44,6 +44,7 @@ class TokenAwareTest < IntegrationTestCase
     hosts_used = []
     4.times do
       info =  session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)").execution_info
+      assert_equal 1, info.hosts.size
       hosts_used.push(info.hosts.last.ip.to_s)
     end
 
