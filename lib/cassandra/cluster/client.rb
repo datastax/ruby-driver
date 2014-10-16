@@ -584,6 +584,33 @@ module Cassandra
                   @retry_policy.write_timeout(statement, details[:cl], details[:write_type], details[:blockfor], details[:received], retries)
                 when READ_TIMEOUT_ERROR_CODE
                   @retry_policy.read_timeout(statement, details[:cl], details[:blockfor], details[:received], details[:data_present], retries)
+                when UNPREPARED_ERROR_CODE
+                  cql = statement.cql
+
+                  synchronize do
+                    @preparing_statements[host].delete(cql)
+                    @prepared_statements[host].delete(cql)
+                  end
+
+                  prepare = prepare_statement(host, connection, cql, timeout)
+                  prepare.on_complete do |_|
+                    if prepare.resolved?
+                      request.id = prepare.value
+                      do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                    else
+                      prepare.on_failure do |e|
+                        case e
+                        when Errors::HostError
+                          errors ||= {}
+                          errors[host] = e
+                          execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                        else
+                          promise.break(e)
+                        end
+                      end
+                    end
+                  end
+                  break
                 else
                   promise.break(r.to_error(statement))
                   break
@@ -617,32 +644,6 @@ module Cassandra
                   execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
                 when Protocol::BatchRequest
                   batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
-                end
-              when UNPREPARED_ERROR_CODE
-                cql = statement.cql
-
-                synchronize do
-                  @prepared_statements[host].delete(cql)
-                  @preparing_statements[host].delete(cql)
-                end
-
-                prepare = prepare_statement(host, connection, cql, timeout)
-                prepare.on_complete do |_|
-                  if prepare.resolved?
-                    request.id = prepare.value
-                    do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
-                  else
-                    prepare.on_failure do |e|
-                      case e
-                      when Errors::HostError
-                        errors ||= {}
-                        errors[host] = e
-                        execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
-                      else
-                        promise.break(e)
-                      end
-                    end
-                  end
                 end
               else
                 promise.break(r.to_error(statement))

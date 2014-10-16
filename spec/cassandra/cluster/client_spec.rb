@@ -480,7 +480,6 @@ module Cassandra
                 count += 1
                 Protocol::PreparedResultResponse.new('123', [], [], nil)
               when Cassandra::Protocol::ExecuteRequest
-                sent = true
                 Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
               end
             end
@@ -493,6 +492,38 @@ module Cassandra
 
           client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
           expect(count).to eq(2)
+        end
+
+        it 're-prepares a statement on unprepared error' do
+          count = 0
+          error = true
+          io_reactor.on_connection do |connection|
+            connection.handle_request do |request|
+              case request
+              when Cassandra::Protocol::StartupRequest
+                Cassandra::Protocol::ReadyResponse.new
+              when Cassandra::Protocol::PrepareRequest
+                count += 1
+                Protocol::PreparedResultResponse.new('123', [], [], nil)
+              when Cassandra::Protocol::ExecuteRequest
+                if error
+                  error = false
+                  Cassandra::Protocol::DetailedErrorResponse.new(0x2500, 'unprepared', id: "0xbad1d")
+                else
+                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                end
+              end
+            end
+          end
+          client.connect.value
+          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
+
+          # make sure we get a different host in the load balancing plan
+          cluster_registry.hosts.delete(statement.execution_info.hosts.first)
+
+          client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
+          expect(count).to eq(3)
+          expect(error).to be(false)
         end
 
         it 'follows the plan on failure' do
