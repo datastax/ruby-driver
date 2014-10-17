@@ -47,13 +47,13 @@ module Cassandra
     # @param other [Cassandra::TimeUuid] another timeuuid to compare
     # @see Comparable
     #
-    # @return [nil] when other is not a {Cassandra::TimeUuid}
+    # @return [nil] when other is not a {Cassandra::Uuid}
     # @return [Integer] `-1` when less than `other`, `0` when equal to `other`
     #   and `1` when greater than `other`
     def <=>(other)
-      return nil unless other.kind_of?(Cassandra::TimeUuid)
+      return nil unless other.kind_of?(Cassandra::Uuid)
       c = self.value <=> other.value
-      return c if c == 0
+      return c if c == 0 || !other.is_a?(Cassandra::TimeUuid)
       self.time_bits <=> other.time_bits
     end
 
