@@ -118,9 +118,9 @@ module Cassandra
     #   significant events pass an object implementing the standard Ruby logger
     #   interface (e.g. quacks like `Logger` from the standard library) with
     #   this option.
-    # @raise Cassandra::Errors::IOError when a connection couldn't be established
+    # @raise [Cassandra::Errors::IOError] when a connection couldn't be established
     #   to any node
-    # @raise Cassandra::Errors::ExecutionError when the specified keyspace does not exist
+    # @raise [Cassandra::Errors::ExecutionError] when the specified keyspace does not exist
     #   or when the specifed CQL version is not supported.
     # @return [Cassandra::Client::Client]
     def self.connect(options={})
