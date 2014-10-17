@@ -13,9 +13,10 @@ Bug fixes:
 
 Breaking changes:
 
-* Most of the error classes have changed
+* Most of the error classes have changed, `Cassandra::Errors::QueryError` removed
 * Connections to hosts in remote datacenters will be disabled by default
-* Cassandra.connect has been renamed to Cassandra.cluster to avoid confusion
+* `Cassandra.connect` has been renamed to `Cassandra.cluster` to avoid confusion
+* `Cassandra::TimeUuid::Generator` renamed to `Cassandra::Uuid::Generator` and api has been changed
 
 # 1.0.0.beta.3
 
