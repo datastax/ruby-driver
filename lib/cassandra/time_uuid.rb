@@ -19,6 +19,7 @@
 module Cassandra
   # A variant of UUID which can extract its time component.
   #
+  # You can use {Cassandra::Uuid::Generator} to generate {Cassandra::TimeUuid}s
   class TimeUuid < Uuid
     include Comparable
 
@@ -59,6 +60,7 @@ module Cassandra
 
     protected
 
+    # @private
     def time_bits
       n = (value >> 64)
       t = 0
