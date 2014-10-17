@@ -148,7 +148,7 @@ module Cassandra
       client.connect.on_complete do |f|
         if f.resolved?
           if keyspace
-            f = session.execute_async("USE #{keyspace}")
+            f = session.execute_async("USE #{Util.escape_name(keyspace)}")
 
             f.on_success {promise.fulfill(session)}
             f.on_failure {|e| promise.break(e)}
