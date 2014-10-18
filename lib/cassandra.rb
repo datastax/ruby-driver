@@ -30,6 +30,8 @@ require 'digest'
 require 'stringio'
 require 'resolv'
 require 'openssl'
+require 'securerandom'
+require 'time'
 
 module Cassandra
   # A list of all supported request consistencies

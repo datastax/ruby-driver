@@ -118,10 +118,10 @@ module Cassandra
         end
 
         before do
-          uuid_generator = TimeUuid::Generator.new
+          uuid_generator = Uuid::Generator.new
           additional_rpc_addresses = additional_nodes.dup
           io_reactor.on_connection do |connection|
-            connection[:spec_host_id] = uuid_generator.next
+            connection[:spec_host_id] = uuid_generator.uuid
             connection[:spec_data_center] = data_centers[connection.host]
             connection.handle_request do |request|
               case request
@@ -137,7 +137,7 @@ module Cassandra
                 when /FROM system\.peers/
                   other_host_ids = connections.reject { |c| c[:spec_host_id] == connection[:spec_host_id] }.map { |c| c[:spec_host_id] }
                   until other_host_ids.size >= min_peers[0]
-                    other_host_ids << uuid_generator.next
+                    other_host_ids << uuid_generator.uuid
                   end
                   rows = other_host_ids.map do |host_id|
                     ip = additional_rpc_addresses.shift

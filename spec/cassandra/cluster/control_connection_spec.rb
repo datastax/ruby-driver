@@ -115,7 +115,7 @@ module Cassandra
       end
 
       let :host_ids do
-        Hash.new {|hash, ip| hash[ip] = uuid_generator.next}
+        Hash.new {|hash, ip| hash[ip] = uuid_generator.uuid}
       end
 
       let :additional_nodes do
@@ -131,7 +131,7 @@ module Cassandra
       end
 
       let :uuid_generator do
-        TimeUuid::Generator.new
+        Uuid::Generator.new
       end
 
       before do

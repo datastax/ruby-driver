@@ -61,6 +61,13 @@ module Cassandra
         expect(session).to receive(:execute_async).once.with('USE foo').and_return(future)
         cluster.connect_async('foo').get
       end
+
+      it 'quotes keyspace name' do
+        future = Future::Value.new(nil)
+        Session.stub(:new) { session }
+        expect(session).to receive(:execute_async).once.with('USE "FooBar"').and_return(future)
+        cluster.connect_async('FooBar').get
+      end
     end
 
     describe('#close_async') do

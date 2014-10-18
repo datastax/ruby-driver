@@ -69,13 +69,13 @@ describe 'Loading and storing UUIDs', :integration do
     end
   end
 
-  context Cassandra::TimeUuid::Generator do
+  context Cassandra::Uuid::Generator do
     let :store_statement do
       client.prepare(%<INSERT INTO timeline (id, time, value) VALUES (?, ?, ?)>)
     end
 
     let :generator do
-      Cassandra::TimeUuid::Generator.new
+      Cassandra::Uuid::Generator.new
     end
 
     before do
@@ -83,15 +83,15 @@ describe 'Loading and storing UUIDs', :integration do
     end
 
     it 'can be used to generate values for TIMEUUID cells' do
-      store_statement.execute('foo', generator.next, 1)
-      store_statement.execute('foo', generator.next, 2)
-      store_statement.execute('foo', generator.next, 3)
+      store_statement.execute('foo', generator.now, 1)
+      store_statement.execute('foo', generator.now, 2)
+      store_statement.execute('foo', generator.now, 3)
       result = client.execute(%<SELECT * FROM timeline WHERE id = 'foo'>)
       result.map { |row| row['value'] }.should == [1, 2, 3]
     end
 
     it 'will be used when loading data from TIMEUUID cells' do
-      store_statement.execute('foo', generator.next, 1)
+      store_statement.execute('foo', generator.now, 1)
       result = client.execute(%<SELECT * FROM timeline WHERE id = 'foo'>)
       result.first['time'].should be_a(Cassandra::TimeUuid)
     end

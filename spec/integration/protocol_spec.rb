@@ -432,7 +432,7 @@ describe 'Protocol parsing and communication', :integration do
           in_keyspace do
             query('CREATE TABLE types (a BIGINT PRIMARY KEY, b DOUBLE, c ASCII, d BOOLEAN, e TIMESTAMP, f UUID, g DECIMAL, h BLOB)')
             cql = %<UPDATE types SET b = ?, c = ?, d = ?, e = ?, f = ?, g = ?, h = ? WHERE a = ?>
-            values = [123.456, 'foo', true, Time.now, Cassandra::TimeUuid::Generator.new.next, BigDecimal.new('0.01'), 'hello', 3]
+            values = [123.456, 'foo', true, Time.now, Cassandra::Uuid::Generator.new.now, BigDecimal.new('0.01'), 'hello', 3]
             response = execute_request(Cassandra::Protocol::QueryRequest.new(cql, values, nil, :one))
             response.should be_void
           end

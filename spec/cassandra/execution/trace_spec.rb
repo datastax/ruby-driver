@@ -21,7 +21,7 @@ require 'spec_helper'
 module Cassandra
   module Execution
     describe(Trace) do
-      let(:id)     { TimeUuid::Generator.new.next }
+      let(:id)     { Uuid::Generator.new.now }
       let(:client) { double('client') }
       let(:trace)  { Trace.new(id, client) }
 
@@ -55,7 +55,7 @@ module Cassandra
       describe('#events') do
         let(:statement) { Statements::Simple.new("SELECT * FROM system_traces.events WHERE session_id = ?", id) }
         let(:rows) do
-          generator = TimeUuid::Generator.new
+          generator = Uuid::Generator.new
 
           5.times.map do |i|
             {
