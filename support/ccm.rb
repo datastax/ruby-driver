@@ -570,10 +570,10 @@ module CCM extend self
       Runner.new(
         ccm_script,
         {
-          'HOME'             => ccm_home,
-          'MAX_HEAP_SIZE'    => '32M',
-          'HEAP_NEWSIZE'     => '8M',
-          'MALLOC_ARENA_MAX' => '1'
+          'HOME'              => ccm_home,
+          'CCM_MAX_HEAP_SIZE' => '32M',
+          'CCM_HEAP_NEWSIZE'  => '8M',
+          'MALLOC_ARENA_MAX'  => '1'
         },
         PrintingNotifier.new($stderr)
       )
