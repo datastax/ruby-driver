@@ -625,34 +625,37 @@ module CCM extend self
 
     ccm.exec('create', '-v', 'binary:' + version, '-b', name)
 
+    config = []
+
     if cassandra_version.start_with?('1.2.')
-      ccm.exec('updateconf', 'reduce_cache_sizes_at: 0')
-      ccm.exec('updateconf', 'reduce_cache_capacity_to: 0')
-      ccm.exec('updateconf', 'flush_largest_memtables_at: 0')
-      ccm.exec('updateconf', 'index_interval: 512')
+      config << 'reduce_cache_sizes_at: 0'
+      config << 'reduce_cache_capacity_to: 0'
+      config << 'flush_largest_memtables_at: 0'
+      config << 'index_interval: 512'
     else
-      ccm.exec('updateconf', 'cas_contention_timeout_in_ms: 10000')
-      ccm.exec('updateconf', 'file_cache_size_in_mb: 0')
+      config << 'cas_contention_timeout_in_ms: 10000'
+      config << 'file_cache_size_in_mb: 0'
     end
 
-    ccm.exec('updateconf', '--rt', '10000')
-    ccm.exec('updateconf', 'native_transport_max_threads: 1')
-    ccm.exec('updateconf', 'rpc_min_threads: 1')
-    ccm.exec('updateconf', 'rpc_max_threads: 1')
-    ccm.exec('updateconf', 'concurrent_reads: 2')
-    ccm.exec('updateconf', 'concurrent_writes: 2')
-    ccm.exec('updateconf', 'concurrent_compactors: 1')
-    ccm.exec('updateconf', 'compaction_throughput_mb_per_sec: 0')
+    config << 'native_transport_max_threads: 1'
+    config << 'rpc_min_threads: 1'
+    config << 'rpc_max_threads: 1'
+    config << 'concurrent_reads: 2'
+    config << 'concurrent_writes: 2'
+    config << 'concurrent_compactors: 1'
+    config << 'compaction_throughput_mb_per_sec: 0'
 
     if cassandra_version < '2.1'
-      ccm.exec('updateconf', 'in_memory_compaction_limit_in_mb: 1')
+      config << 'in_memory_compaction_limit_in_mb: 1'
     end
 
-    ccm.exec('updateconf', 'key_cache_size_in_mb: 0')
-    ccm.exec('updateconf', 'key_cache_save_period: 0')
-    ccm.exec('updateconf', 'memtable_flush_writers: 1')
-    ccm.exec('updateconf', 'max_hints_delivery_threads: 1')
+    config << 'key_cache_size_in_mb: 0'
+    config << 'key_cache_save_period: 0'
+    config << 'memtable_flush_writers: 1'
+    config << 'max_hints_delivery_threads: 1'
 
+    ccm.exec('updateconf', '--rt', '10000')
+    ccm.exec('updateconf', *config)
     ccm.exec('populate', '-n', nodes, '-i', '127.0.0.')
 
     clusters << @current_cluster = Cluster.new(name, ccm, nodes_per_datacenter * datacenters, datacenters, [])
