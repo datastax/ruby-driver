@@ -10,6 +10,7 @@ Bug fixes:
 
 * [RUBY-34] handle empty values without crashing
 * [RUBY-41] prevent connections to ignored hosts
+* [RUBY-44] and [RUBY-43] correctly escape capitalized keyspaces
 
 Breaking changes:
 
