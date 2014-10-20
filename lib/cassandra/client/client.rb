@@ -458,7 +458,7 @@ module Cassandra
         return Ione::Future.failed(InvalidKeyspaceNameError.new(%("#{keyspace}" is not a valid keyspace name))) unless keyspace =~ /^\w[\w\d_]*$|^"\w[\w\d_]*"$/
 
         futures = connections.map do |connection|
-          request = Protocol::QueryRequest.new("USE #{keyspace}", nil, nil, :one)
+          request = Protocol::QueryRequest.new("USE #{Util.escape_name(keyspace)}", nil, nil, :one)
           @request_runner.execute(connection, request).map(connection)
         end
         Ione::Future.all(*futures)
