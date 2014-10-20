@@ -752,7 +752,7 @@ module Cassandra
 
         return pending_switch || Ione::Future.resolved if pending_keyspace == keyspace
 
-        request = Protocol::QueryRequest.new("USE #{keyspace}", nil, nil, :one)
+        request = Protocol::QueryRequest.new("USE #{Util.escape_name(keyspace)}", nil, nil, :one)
 
         f = connection.send_request(request, timeout).map do |r|
           case r
@@ -760,7 +760,7 @@ module Cassandra
             @keyspace = r.keyspace
             nil
           when Protocol::ErrorResponse
-            raise r.to_error(Statements::Simple.new("USE #{keyspace}"))
+            raise r.to_error(Statements::Simple.new("USE #{Util.escape_name(keyspace)}"))
           else
             raise Errors::ProtocolError, "Unexpected response #{r.inspect}"
           end
