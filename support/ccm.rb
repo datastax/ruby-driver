@@ -571,7 +571,7 @@ module CCM extend self
         ccm_script,
         {
           'HOME'              => ccm_home,
-          'CCM_MAX_HEAP_SIZE' => '32M',
+          'CCM_MAX_HEAP_SIZE' => '64M',
           'CCM_HEAP_NEWSIZE'  => '12M',
           'MALLOC_ARENA_MAX'  => '1'
         },
