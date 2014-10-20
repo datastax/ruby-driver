@@ -17,21 +17,29 @@
 #++
 
 module Cassandra
-  # Address Resolution policy allows translating a node ip address from what is
-  # recorded in Cassandra's system tables to an actual ip address for the driver
-  # to use. It is very useful in various multi-region scenarios (e.g. one EC2).
   module AddressResolution
     module Policies
+      # This policy resolves private ips of the hosts in the same datacenter and
+      # public ips of hosts in other datacenters.
+      #
+      # @note Initializing this policy is not necessary, you should just pass
+      #   `:ec_multi_region` to the `:address_resolution` option of
+      #   {Cassandra.cluster}
       class EC2MultiRegion
+        # @private
         def initialize(resolver = Resolv)
           @resolver = resolver
         end
 
-        # Returns original address.
+        # Returns ip address after a double DNS lookup. First, it will get
+        # hostname from a given ip, then resolve the resulting hostname. This
+        # policy works because AWS public hostnames resolve to a private ip
+        # address within the same datacenter.
         #
         # @param address [IPAddr] node ip address from Cassandra's system table
         #
-        # @return [IPAddr] same as `address`
+        # @return [IPAddr] private ip withing the same datacenter, public ip
+        #   otherwise. Returns original address if DNS lookups fail.
         def resolve(address)
           @resolver.each_name(Resolv::DNS::Name.create(address.reverse)) do |name|
             @resolver.each_address(name) do |addr|

@@ -12,10 +12,9 @@ might not be desireable under certain circumstances.
 Therefore, Ruby driver comes with an EC2 address resolution strategy. This
 strategy relies on some properties of AWS DNS to work. When activated, this
 strategy performs a reverse DNS lookup of a given ip address, remember that
-theses addresses are usually public (e.g. 23.21.218.233) and gets and EC2
+these addresses are usually public (e.g. 23.21.218.233) and gets and EC2
 hostname (e.g. ec2-23-21-218-233.compute-1.amazonaws.com). It then uses this
-hostname to resolve and ip address. It will resolve to a private ip if looked
-up inside the same datacenter and to public ip otherwise.
+hostname to resolve an ip address. This hostname will resolve to a private ip if looked up inside the same datacenter and to public ip otherwise.
 
 To enable EC2 Multi Region address resolution policy, use the following:
 

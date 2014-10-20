@@ -17,11 +17,9 @@
 #++
 
 module Cassandra
-  # Address Resolution policy allows translating a node ip address from what is
-  # recorded in Cassandra's system tables to an actual ip address for the driver
-  # to use. It is very useful in various multi-region scenarios (e.g. one EC2).
   module AddressResolution
     module Policies
+      # The default address resolutino policy. Always returns original address.
       class Identity
         # Returns original address.
         #
