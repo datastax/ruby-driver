@@ -572,7 +572,7 @@ module CCM extend self
         {
           'HOME'              => ccm_home,
           'CCM_MAX_HEAP_SIZE' => '32M',
-          'CCM_HEAP_NEWSIZE'  => '8M',
+          'CCM_HEAP_NEWSIZE'  => '12M',
           'MALLOC_ARENA_MAX'  => '1'
         },
         PrintingNotifier.new($stderr)
