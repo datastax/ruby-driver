@@ -22,7 +22,7 @@ module Cassandra
   class Cluster
     describe(ControlConnection) do
       let :control_connection do
-        ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, driver.connector)
+        ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, driver.connector)
       end
 
       let :io_reactor do
@@ -58,6 +58,8 @@ module Cassandra
       let :reconnection_policy do
         driver.reconnection_policy
       end
+
+      let(:address_resolution_policy) { driver.address_resolution_policy }
 
       def connections
         io_reactor.connections

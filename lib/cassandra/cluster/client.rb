@@ -24,7 +24,7 @@ module Cassandra
 
       attr_reader :keyspace
 
-      def initialize(logger, cluster_registry, cluster_schema, io_reactor, connector, load_balancing_policy, reconnection_policy, retry_policy, connection_options, futures_factory)
+      def initialize(logger, cluster_registry, cluster_schema, io_reactor, connector, load_balancing_policy, reconnection_policy, retry_policy, address_resolution_policy, connection_options, futures_factory)
         @logger                      = logger
         @registry                    = cluster_registry
         @schema                      = cluster_schema
@@ -33,6 +33,7 @@ module Cassandra
         @load_balancing_policy       = load_balancing_policy
         @reconnection_policy         = reconnection_policy
         @retry_policy                = retry_policy
+        @address_resolver            = address_resolution_policy
         @connection_options          = connection_options
         @futures                     = futures_factory
         @connecting_hosts            = ::Hash.new
@@ -743,7 +744,8 @@ module Cassandra
       def peer_ip(data)
         ip = data['rpc_address']
         ip = data['peer'] if ip == '0.0.0.0'
-        ip
+
+        @address_resolver.resolve(ip)
       end
 
       def switch_keyspace(connection, keyspace, timeout)
