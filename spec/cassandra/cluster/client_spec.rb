@@ -308,6 +308,35 @@ module Cassandra
           expect(count).to eq(2)
         end
 
+        it 'correctly escapes keyspace name when automatically switching' do
+          count = 0
+          io_reactor.on_connection do |connection|
+            connection.handle_request do |request|
+              case request
+              when Cassandra::Protocol::StartupRequest
+                Cassandra::Protocol::ReadyResponse.new
+              when Cassandra::Protocol::QueryRequest
+                case request.cql
+                when 'SELECT * FROM songs'
+                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                when 'USE "FooBar"'
+                  count += 1
+                  Cassandra::Protocol::SetKeyspaceResultResponse.new('FooBar', false)
+                else
+                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                end
+              end
+            end
+          end
+          client.connect.value
+          client.query(Statements::Simple.new('USE "FooBar"'), Execution::Options.new(:consistency => :one)).get
+          # make sure we get a different host in the load balancing plan
+          cluster_registry.hosts.delete(cluster_registry.hosts.first)
+          client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
+
+          expect(count).to eq(2)
+        end
+
         it 'follows the plan on failure' do
           count    = 0
           attempts = []
