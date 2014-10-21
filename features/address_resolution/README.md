@@ -26,24 +26,20 @@ node's ip address to another address value when necessary.
 
 Default address resolution policy simply returns original address. This should
 be enough for most cluster setups, however, can present problems in environments
-like multi-region EC2, which would make ruby-driver use public ip address of
+like multi-region EC2, since it would force ruby-driver to use public IPs of
 cassandra instances even within the same datacenter.
+
+Therefore, Ruby driver comes with an EC2 Multi-Region address resolution policy.
 
 ## EC2 Multi-Region
 
-Consider a Cassandra multi-region setup on EC2. All nodes in this setup expose
-their public ip addresses in Cassandra's system tables by default. Using this
-information only, all clients, regardless if they were in the same datacenter
-as some of the nodes or not, would connect using public ip addresses. This
-might not be desireable under certain circumstances.
+This address resolution policy relies on some properties of AWS DNS to work. 
 
-Therefore, Ruby driver comes with an EC2 address resolution strategy. This
-strategy relies on some properties of AWS DNS to work. When activated, this
-strategy performs a reverse DNS lookup of a given ip address, remember that
-these addresses are usually public (e.g. 23.21.218.233) and gets and EC2
-hostname (e.g. ec2-23-21-218-233.compute-1.amazonaws.com). It then uses this
-hostname to resolve an ip address. This hostname will resolve to a private ip
-if looked up inside the same datacenter and to public ip otherwise.
+When activated, this strategy performs a forward-confirmed reverse DNS lookup
+of a given peer's ip address. These addresses are public (e.g. 23.21.218.233).
+This lookup will resolve to a private ip when done within datacenter and to
+public ip from anywhere else. Finally, if DNS lookup fails, the policy will
+return original address.
 
 ```ditaa
 Ruby Driver   EC2 Multi–Region Policy                                    AWS DNS
@@ -69,7 +65,15 @@ Ruby Driver   EC2 Multi–Region Policy                                    AWS D
      |                  |                                                   |
 ```
 
-To enable EC2 Multi Region address resolution policy, use the following:
+Note that this policy uses blocking DNS lookups internally and may hang the
+reactor for the duration of the lookup. Fortunately, these address resolutions
+happen only during initial connect or host additions/recoveries.
+
+Also note that the policy will resolve to the first successfully looked up IP
+address. It should present no problems on EC2, but is worth mentioning
+explicitly.
+
+To enable EC2 Multi-Region address resolution policy, use the following:
 
 ```ruby
 require 'cassandra'
