@@ -56,9 +56,9 @@ module Cassandra
 
     let(:connector) { Cluster::Connector.new(logger, io_reactor, cluster_registry, connection_options) }
 
-    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, connector) }
+    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, connector) }
 
-    let(:cluster) { Cluster.new(logger, io_reactor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, connector, futures_factory) }
+    let(:cluster) { Cluster.new(logger, io_reactor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, address_resolution_policy, connector, futures_factory) }
 
     let(:execution_options) do
       Execution::Options.new({
@@ -70,23 +70,24 @@ module Cassandra
 
     let(:connection_options) { Cluster::Options.new(protocol_version, credentials, auth_provider, compressor, port, connect_timeout, ssl, connections_per_local_node, connections_per_remote_node, heartbeat_interval, idle_timeout) }
 
-    let(:port)                  { 9042 }
-    let(:protocol_version)      { 2 }
-    let(:connect_timeout)       { 10 }
-    let(:ssl)                   { false }
-    let(:logger)                { Client::NullLogger.new  }
-    let(:compressor)            { nil }
-    let(:credentials)           { nil }
-    let(:auth_provider)         { nil }
-    let(:datacenter)            { nil }
-    let(:load_balancing_policy) { LoadBalancing::Policies::TokenAware.new(LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, 0)) }
-    let(:reconnection_policy)   { Reconnection::Policies::Exponential.new(0.5, 30, 2) }
-    let(:retry_policy)          { Retry::Policies::Default.new }
-    let(:consistency)           { :one }
-    let(:trace)                 { false }
-    let(:page_size)             { nil }
-    let(:heartbeat_interval)    { 30 }
-    let(:idle_timeout)          { 60 }
+    let(:port)                      { 9042 }
+    let(:protocol_version)          { 2 }
+    let(:connect_timeout)           { 10 }
+    let(:ssl)                       { false }
+    let(:logger)                    { Client::NullLogger.new  }
+    let(:compressor)                { nil }
+    let(:credentials)               { nil }
+    let(:auth_provider)             { nil }
+    let(:datacenter)                { nil }
+    let(:load_balancing_policy)     { LoadBalancing::Policies::TokenAware.new(LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, 0)) }
+    let(:reconnection_policy)       { Reconnection::Policies::Exponential.new(0.5, 30, 2) }
+    let(:retry_policy)              { Retry::Policies::Default.new }
+    let(:address_resolution_policy) { AddressResolution::Policies::None.new }
+    let(:consistency)               { :one }
+    let(:trace)                     { false }
+    let(:page_size)                 { nil }
+    let(:heartbeat_interval)        { 30 }
+    let(:idle_timeout)              { 60 }
 
     let(:connections_per_local_node)  { 2 }
     let(:connections_per_remote_node) { 1 }

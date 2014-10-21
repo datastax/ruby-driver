@@ -5,6 +5,7 @@ Features:
 * Token Aware Data Center Aware Round Robin load balancing is used by default
 * Automatic detection of broken connections using heartbeats
 * Improved exception class hierarchy and documentation
+* Configurable node address resolution with EC2 multi-region support
 
 Bug fixes:
 

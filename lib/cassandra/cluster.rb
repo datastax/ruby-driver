@@ -63,7 +63,7 @@ module Cassandra
     def_delegators :@metadata, :name, :find_replicas
 
     # @private
-    def initialize(logger, io_reactor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, connector, futures_factory)
+    def initialize(logger, io_reactor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, address_resolution_policy, connector, futures_factory)
       @logger                = logger
       @io_reactor            = io_reactor
       @control_connection    = control_connection
@@ -75,6 +75,7 @@ module Cassandra
       @load_balancing_policy = load_balancing_policy
       @reconnection_policy   = reconnection_policy
       @retry_policy          = retry_policy
+      @address_resolver      = address_resolution_policy
       @connector             = connector
       @futures               = futures_factory
     end
@@ -141,7 +142,7 @@ module Cassandra
         return @futures.error(::ArgumentError.new("keyspace must be a string, #{keyspace.inspect} given"))
       end
 
-      client  = Client.new(@logger, @registry, @schema, @io_reactor, @connector, @load_balancing_policy, @reconnection_policy, @retry_policy, @connection_options, @futures)
+      client  = Client.new(@logger, @registry, @schema, @io_reactor, @connector, @load_balancing_policy, @reconnection_policy, @retry_policy, @address_resolver, @connection_options, @futures)
       session = Session.new(client, @execution_options, @futures)
       promise = @futures.promise
 

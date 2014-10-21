@@ -22,7 +22,7 @@ module Cassandra
     class ControlConnection
       include MonitorMixin
 
-      def initialize(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, connector)
+      def initialize(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, connector)
         @logger                = logger
         @io_reactor            = io_reactor
         @registry              = cluster_registry
@@ -30,6 +30,7 @@ module Cassandra
         @metadata              = cluster_metadata
         @load_balancing_policy = load_balancing_policy
         @reconnection_policy   = reconnection_policy
+        @address_resolver      = address_resolution_policy
         @connector             = connector
         @refreshing_statuses   = Hash.new(false)
         @status                = :closed
@@ -414,7 +415,8 @@ Control connection failed and is unlikely to recover.
       def peer_ip(data)
         ip = data['rpc_address']
         ip = data['peer'] if ip == '0.0.0.0'
-        ip
+
+        @address_resolver.resolve(ip)
       end
     end
   end

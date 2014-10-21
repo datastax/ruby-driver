@@ -68,6 +68,10 @@ module Cassandra
   # @option options [Numeric] :connect_timeout (10) connection timeout in
   #   seconds.
   #
+  # @option options [Symbol] :address_resolution (:none) a pre-configured
+  #   address resolver to use. Must be one of `:none` or
+  #   `:ec2_multi_region`.
+  #
   # @option options [Numeric] :heartbeat_interval (30) how often should a
   #   heartbeat be sent to determine if a connection is alive. Several things to
   #   note about this option. Only one heartbeat request will ever be
@@ -144,6 +148,12 @@ module Cassandra
   #   compressor. Note that if you have specified `:compression`, an
   #   appropriate compressor will be provided automatically.
   #
+  # @option options [Cassandra::AddressResolution::Policy]
+  #   :address_resolution_policy (Cassandra::AddressResolution::Policy::None) a
+  #   custom address resolution policy. Note that if you have specified
+  #   `:address_resolution`, an appropriate address resolution policy will be
+  #   provided automatically.
+  #
   # @option options [Object<#all, #error, #value, #promise>] :futures_factory
   #   (none) a custom futures factory to assist with integration into existing
   #   futures library. Note that promises returned by this object must conform
@@ -162,12 +172,13 @@ module Cassandra
   #
   # @return [Cassandra::Cluster] a cluster instance
   def self.cluster(options = {})
-    options.select! do |key, value|
+    options = options.select do |key, value|
       [ :credentials, :auth_provider, :compression, :hosts, :logger, :port,
         :load_balancing_policy, :reconnection_policy, :retry_policy, :listeners,
         :consistency, :trace, :page_size, :compressor, :username, :password,
         :ssl, :server_cert, :client_cert, :private_key, :passphrase,
-        :connect_timeout, :futures_factory, :datacenter
+        :connect_timeout, :futures_factory, :datacenter, :address_resolution,
+        :address_resolution_policy
       ].include?(key)
     end
 
@@ -387,6 +398,26 @@ module Cassandra
       end
     end
 
+    if options.has_key?(:address_resolution)
+      address_resolution = options.delete(:address_resolution)
+
+      case address_resolution
+      when :none
+      when :ec2_multi_region
+        options[:address_resolution_policy] = AddressResolution::Policies::EC2MultiRegion.new
+      else
+        raise ::ArgumentError, ":address_resolution must be either :none or :ec2_multi_region, #{address_resolution.inspect} given"
+      end
+    end
+
+    if options.has_key?(:address_resolution_policy)
+      address_resolver = options[:address_resolution_policy]
+
+      unless address_resolver.respond_to?(:resolve)
+        raise ::ArgumentError, ":address_resolution_policy must respond to :resolve, #{address_resolver.inspect} but doesn't"
+      end
+    end
+
     hosts = []
 
     Array(options.fetch(:hosts, '127.0.0.1')).each do |host|
@@ -438,6 +469,7 @@ require 'cassandra/execution/trace'
 require 'cassandra/load_balancing'
 require 'cassandra/reconnection'
 require 'cassandra/retry'
+require 'cassandra/address_resolution'
 
 require 'cassandra/util'
 
