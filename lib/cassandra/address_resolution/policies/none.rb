@@ -19,8 +19,8 @@
 module Cassandra
   module AddressResolution
     module Policies
-      # The default address resolutino policy. Always returns original address.
-      class Identity
+      # The default address resolution policy. Always returns original address.
+      class None
         # Returns original address.
         #
         # @param address [IPAddr] node ip address from Cassandra's system table

@@ -68,8 +68,8 @@ module Cassandra
   # @option options [Numeric] :connect_timeout (10) connection timeout in
   #   seconds.
   #
-  # @option options [Symbol] :address_resolution (:identity) a pre-configured
-  #   address resolver to use. Must be one of `:identity` or
+  # @option options [Symbol] :address_resolution (:none) a pre-configured
+  #   address resolver to use. Must be one of `:none` or
   #   `:ec2_multi_region`.
   #
   # @option options [Numeric] :heartbeat_interval (30) how often should a
@@ -149,9 +149,10 @@ module Cassandra
   #   appropriate compressor will be provided automatically.
   #
   # @option options [Cassandra::AddressResolution::Policy]
-  #   :address_resolution_policy (identity policy) a custom address resolution
-  #   policy. Note that if you have specified `:address_resolution`, an
-  #   appropriate address resolution policy will be provided automatically.
+  #   :address_resolution_policy (Cassandra::AddressResolution::Policy::None) a
+  #   custom address resolution policy. Note that if you have specified
+  #   `:address_resolution`, an appropriate address resolution policy will be
+  #   provided automatically.
   #
   # @option options [Object<#all, #error, #value, #promise>] :futures_factory
   #   (none) a custom futures factory to assist with integration into existing
@@ -401,11 +402,11 @@ module Cassandra
       address_resolution = options.delete(:address_resolution)
 
       case address_resolution
-      when :identity
+      when :none
       when :ec2_multi_region
         options[:address_resolution_policy] = AddressResolution::Policies::EC2MultiRegion.new
       else
-        raise ::ArgumentError, ":address_resolution must be either :identity or :ec2_multi_region, #{address_resolution.inspect} given"
+        raise ::ArgumentError, ":address_resolution must be either :none or :ec2_multi_region, #{address_resolution.inspect} given"
       end
     end
 
