@@ -3,6 +3,29 @@
 Ruby driver uses plug-able address-resolution policy to map Apache Cassandra
 node's ip address to another address value when necessary.
 
+```ditaa
+ Application        Ruby Driver      Address resolution policy
+------+------------------+----------------------+-------------
+      |                  |                      |
+      |  connect         |                      |
+      |----------------->|                      |
+      |                  |                      |
+      |             /----+-----\                |
+      |             :find peers|                |
+      |             \----+-----/                |
+      |                  |                      |
+      |    /-------------+-------------\        |
+      |    :resolve each peer's address+---+    |
+      |    \-------------+-------------/   |    |
+      |                  |          ^      v    |
+      |                  |          |   /-------+-------\
+      |                  |          +---+resolve address:
+      |                  |              \-------+-------/
+      |                  |                      |
+```
+
+## EC2 Multi-Region
+
 Consider a Cassandra multi-region setup on EC2. All nodes in this setup expose
 their public ip addresses in Cassandra's system tables by default. Using this
 information only, all clients, regardless if they were in the same datacenter
@@ -16,6 +39,30 @@ these addresses are usually public (e.g. 23.21.218.233) and gets and EC2
 hostname (e.g. ec2-23-21-218-233.compute-1.amazonaws.com). It then uses this
 hostname to resolve an ip address. This hostname will resolve to a private ip
 if looked up inside the same datacenter and to public ip otherwise.
+
+```ditaa
+Ruby Driver   EC2 Multi–Region Policy                                    AWS DNS
+-----+------------------+---------------------------------------------------+---
+     |                  |                                                   |
+     |  23.21.218.233   |                                                   |
+     |----------------->|                                                   |
+     |                  |                                                   |
+     |                  |  233.218.21.23.in–addr.arpa PTR                   |
+     |                  |-------------------------------------------------->|
+     |                  |                                                   |
+     |                  |        ec2–23–21–218–233.compute–1.amazonaws.com  |
+     |                  |<--------------------------------------------------|
+     |                  |                                                   |
+     |                  |  ec2–23–21–218–233.compute–1.amazonaws.com A      |
+     |                  |-------------------------------------------------->|
+     |                  |                                                   |
+     |                  |                                      172.31.14.4  |
+     |                  |<--------------------------------------------------|
+     |                  |                                                   |
+     |     172.31.14.4  |                                                   |
+     |<-----------------|                                                   |
+     |                  |                                                   |
+```
 
 To enable EC2 Multi Region address resolution policy, use the following:
 
