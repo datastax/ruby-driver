@@ -24,6 +24,11 @@ node's ip address to another address value when necessary.
       |                  |                      |
 ```
 
+Default address resolution policy simply returns original address. This should
+be enough for most cluster setups, however, can present problems in environments
+like multi-region EC2, which would make ruby-driver use public ip address of
+cassandra instances even within the same datacenter.
+
 ## EC2 Multi-Region
 
 Consider a Cassandra multi-region setup on EC2. All nodes in this setup expose
