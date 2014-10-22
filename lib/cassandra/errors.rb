@@ -254,8 +254,8 @@ module Cassandra
       attr_reader :id
 
       # @private
-      def initialize(message, id)
-        super(message)
+      def initialize(message, statement, id)
+        super(message, statement)
 
         @id = id
       end
@@ -322,8 +322,8 @@ module Cassandra
       attr_reader :table
 
       # @private
-      def initialize(message, keyspace, table)
-        super(message)
+      def initialize(message, statement, keyspace, table)
+        super(message, statement)
 
         @keyspace = keyspace
         @table    = table
