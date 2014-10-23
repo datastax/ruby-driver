@@ -247,7 +247,7 @@ module Cassandra
     # @private
     def create_partition_key(values)
       partition_key = @partition_key
-      return nil unless partition_key.size == values.size
+      return nil if partition_key.size > values.size
 
       if partition_key.one?
         column      = partition_key.first
