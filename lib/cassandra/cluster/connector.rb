@@ -84,6 +84,21 @@ module Cassandra
             @open_connections[host]  << connection
           end
 
+          timer = @reactor.schedule_timer(UNCLAIMED_TIMEOUT)
+          timer.on_value do
+            close = false
+
+            synchronize do
+              open_connections = @open_connections[host]
+              if open_connections
+                close = !open_connections.delete(connection).nil?
+                @open_connections.delete(host) if open_connections.empty?
+              end
+            end
+
+            connection.close if close
+          end
+
           connected(host)
         end
 
@@ -96,7 +111,8 @@ module Cassandra
 
       private
 
-      NO_CONNECTIONS = Ione::Future.resolved([])
+      NO_CONNECTIONS    = Ione::Future.resolved([])
+      UNCLAIMED_TIMEOUT = 5 # close unclaimed connections in five seconds
 
       def do_connect(host)
         create_connector.connect(host.ip.to_s).fallback do |error|
