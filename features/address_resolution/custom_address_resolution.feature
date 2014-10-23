@@ -3,7 +3,6 @@ Feature: Custom address resolution policy
   Ruby driver uses plug-able address-resolution policy to map Apache Cassandra
   node's ip address to another address value if necessary.
 
-  @wip
   Scenario: Using a custom address resolution strategy
     Given a running cassandra cluster in 2 datacenters with 2 nodes in each
     And a file named "custom_address_resolver.rb" with:
