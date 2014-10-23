@@ -348,7 +348,10 @@ module Cassandra
       end
 
       def schedule_heartbeat
-        @scheduler.cancel_timer(@heartbeat) if @heartbeat
+        if @heartbeat
+          @scheduler.cancel_timer(@heartbeat)
+          @heartbeat = nil
+        end
 
         @heartbeat = @scheduler.schedule_timer(@heartbeat_interval)
         @heartbeat.on_value do
@@ -359,11 +362,20 @@ module Cassandra
       end
 
       def reschedule_termination
-        @scheduler.cancel_timer(@terminate) if @terminate
+        if @terminate
+          @scheduler.cancel_timer(@terminate)
+          @terminate = nil
+        end
 
         @terminate = @scheduler.schedule_timer(@idle_timeout)
         @terminate.on_value do
-          @scheduler.cancel_timer(@heartbeat) if @heartbeat
+          @terminate = nil
+
+          if @heartbeat
+            @scheduler.cancel_timer(@heartbeat)
+            @heartbeat = nil
+          end
+
           @connection.close(TERMINATED)
         end
       end
