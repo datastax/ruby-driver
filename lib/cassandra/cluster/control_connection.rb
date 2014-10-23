@@ -138,7 +138,6 @@ module Cassandra
         end
         f.fallback do |e|
           @logger.error("Control connection failed (#{e.class.name}: #{e.message})")
-          @logger.debug(Array(e.backtrace).join("\n"))
 
           if synchronize { @status == :reconnecting }
             reconnect_async(schedule)
