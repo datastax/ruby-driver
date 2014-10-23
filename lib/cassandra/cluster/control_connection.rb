@@ -75,7 +75,7 @@ module Cassandra
 
       def host_down(host)
         schedule = nil
-        timer    = nil 
+        timer    = nil
 
         synchronize do
           return Ione::Future.resolved if @refreshing_statuses[host] || @load_balancing_policy.distance(host) == :ignore
@@ -90,7 +90,7 @@ module Cassandra
 
         timer.on_value do
           refresh_host_status(host).fallback do |e|
-            refresh_host_status_with_retry(host, schedule)
+            refresh_host_status_with_retry(timer, host, schedule)
           end
         end
 
@@ -298,10 +298,15 @@ module Cassandra
         @connector.refresh_status(host)
       end
 
-      def refresh_host_status_with_retry(host, schedule)
+      def refresh_host_status_with_retry(original_timer, host, schedule)
         timer = nil 
 
         synchronize do
+          timer = @refreshing_statuses[host]
+
+          # host must have been lost/up or timer was rescheduled
+          return Ione::Future.resolved if timer.nil? || timer != original_timer
+
           timeout = schedule.next
 
           @logger.debug("Checking host #{host.ip} in #{timeout} seconds")
@@ -311,7 +316,7 @@ module Cassandra
 
         timer.on_value do
           refresh_host_status(host).fallback do |e|
-            refresh_host_status_with_retry(host, schedule)
+            refresh_host_status_with_retry(timer, host, schedule)
           end
         end
       end
