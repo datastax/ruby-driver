@@ -178,7 +178,7 @@ module Cassandra
         :consistency, :trace, :page_size, :compressor, :username, :password,
         :ssl, :server_cert, :client_cert, :private_key, :passphrase,
         :connect_timeout, :futures_factory, :datacenter, :address_resolution,
-        :address_resolution_policy
+        :address_resolution_policy, :idle_timeout, :heartbeat_interval
       ].include?(key)
     end
 
@@ -332,6 +332,22 @@ module Cassandra
 
       if timeout < 0
         raise ::ArgumentError, ":connect_timeout must be a positive value, #{timeout.given}"
+      end
+    end
+
+    if options.has_key?(:heartbeat_interval)
+      timeout = options[:heartbeat_interval] = Integer(options[:heartbeat_interval])
+
+      if timeout < 0
+        raise ::ArgumentError, ":heartbeat_interval must be a positive value, #{timeout.given}"
+      end
+    end
+
+    if options.has_key?(:idle_timeout)
+      timeout = options[:idle_timeout] = Integer(options[:idle_timeout])
+
+      if timeout < 0
+        raise ::ArgumentError, ":idle_timeout must be a positive value, #{timeout.given}"
       end
     end
 
