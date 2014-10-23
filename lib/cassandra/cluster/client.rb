@@ -611,26 +611,31 @@ module Cassandra
                       end
                     end
                   end
-                  break
+
+                  nil
                 else
                   promise.break(r.to_error(statement))
-                  break
+
+                  nil
                 end
               rescue => e
                 promise.break(e)
-                break
+
+                nil
               end
 
-              case decision
-              when Retry::Decisions::Retry
-                request.consistency = decision.consistency
-                do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts, retries + 1)
-              when Retry::Decisions::Ignore
-                promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
-              when Retry::Decisions::Reraise
-                promise.break(r.to_error(statement))
-              else
-                promise.break(r.to_error(statement))
+              if decision
+                case decision
+                when Retry::Decisions::Retry
+                  request.consistency = decision.consistency
+                  do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts, retries + 1)
+                when Retry::Decisions::Ignore
+                  promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
+                when Retry::Decisions::Reraise
+                  promise.break(r.to_error(statement))
+                else
+                  promise.break(r.to_error(statement))
+                end
               end
             when Protocol::ErrorResponse
               case r.code
