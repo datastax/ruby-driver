@@ -42,7 +42,7 @@ AfterConfiguration do |configuration|
 end
 
 Before do
-  @aruba_timeout_seconds = 15
+  @aruba_timeout_seconds = 60
 end
 
 After do |s| 
@@ -56,4 +56,8 @@ end
 
 After('@ssl') do
   @cluster.disable_ssl
+end
+
+After('@netblock') do
+  @cluster.unblock_nodes
 end
