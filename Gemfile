@@ -21,6 +21,7 @@ group :test do
   gem 'simplecov'
   gem 'cucumber'
   gem 'aruba'
+  gem 'os'
 end
 
 group :docs do

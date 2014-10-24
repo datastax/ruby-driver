@@ -84,6 +84,7 @@ GEM
       nokogiri (~> 1.6)
     nokogiri (1.6.3.1)
       mini_portile (= 0.6.0)
+    os (0.9.6)
     perftools.rb (2.0.1)
     pry (0.10.1)
       coderay (~> 1.1.0)
@@ -149,6 +150,7 @@ DEPENDENCIES
   nanoc
   nanoc-toolbox
   nokogiri
+  os
   perftools.rb
   rake (~> 10.0)
   rake-compiler
