@@ -19,6 +19,7 @@
 require 'fileutils'
 require 'logger'
 require 'cliver'
+require 'os'
 
 # Cassandra Cluster Manager integration for
 # driving a cassandra cluster from tests.
@@ -179,6 +180,75 @@ module CCM extend self
     end
   end
 
+  if OS.linux?
+    class Firewall
+      def block(ip)
+        puts "Blocking #{ip}..."
+        success = system('sudo', 'iptables', '-A', 'INPUT', '-d', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
+        raise "failed tp block #{ip}" unless success
+        success = system('sudo', 'iptables', '-A', 'OUTPUT', '-s', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
+        raise "failed tp block #{ip}" unless success
+
+        nil
+      end
+
+      def unblock(ip)
+        puts "Unblocking #{ip}..."
+        success = system('sudo', 'iptables', '-D', 'INPUT', '-d', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
+        raise "failed to unblock #{ip}" unless success
+        success = system('sudo', 'iptables', '-D', 'OUTPUT', '-s', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
+        raise "failed tp unblock #{ip}" unless success
+
+        nil
+      end
+    end
+  elsif OS.mac?
+    class Firewall
+      def initialize
+        @ready = false
+      end
+
+      def block(ip)
+        prepare unless @ready
+
+        puts "Blocking #{ip}..."
+        success = system('sudo', 'pfctl', '-t', '_ruby_driver_test_blocklist_', '-T', 'add', "#{ip}/32", err: '/dev/null')
+        raise "failed tp block #{ip}" unless success
+
+        nil
+      end
+
+      def unblock(ip)
+        prepare unless @ready
+
+        puts "Unblocking #{ip}..."
+        success = system('sudo', 'pfctl', '-t', '_ruby_driver_test_blocklist_', '-T', 'delete', "#{ip}/32", err: '/dev/null')
+        raise "failed to unblock #{ip}" unless success
+
+        nil
+      end
+
+      private
+
+      def prepare
+        puts "Checking if '_ruby_driver_test_blocklist_' table is present in pf.conf"
+        if `sudo pfctl -s rules 2>/dev/null | grep 'block drop proto tcp from any to <_ruby_driver_test_blocklist_> port = 9042'`.chomp.empty?
+          puts "Ruby driver tests need to modify pf.conf to be able to simulate network partitions"
+          success = system('sudo bash -c "echo \'block drop proto tcp from any to <_ruby_driver_test_blocklist_> port {9042, 7000, 7001}\' >> /etc/pf.conf"')
+          abort "Unable to add rule to block _ruby_driver_test_blocklist_ table to /etc/pf.conf" unless success
+          success = system('sudo bash -c "echo \'block drop proto tcp from <_ruby_driver_test_blocklist_> to any port {9042, 7000, 7001}\' >> /etc/pf.conf"')
+          abort "Unable to add rule to block _ruby_driver_test_blocklist_ table to /etc/pf.conf" unless success
+          puts "Starting PF firewall"
+          system('sudo pfctl -ef /etc/pf.conf 2>/dev/null')
+        end
+
+        @ready = true
+      end
+    end
+  elsif OS.windows?
+    abort "Cannot run test on Windows, due to lack of firewall support for simulating network partitions"
+  end
+
   class Cluster
     class Node
       attr_reader :name, :status
@@ -235,15 +305,17 @@ module CCM extend self
 
     attr_reader :name
 
-    def initialize(name, ccm, nodes_count = nil, datacenters = nil, keyspaces = nil)
+    def initialize(name, ccm, firewall, nodes_count = nil, datacenters = nil, keyspaces = nil)
       @name        = name
       @ccm         = ccm
+      @firewall    = firewall
       @datacenters = datacenters
       @keyspaces   = keyspaces
 
       @nodes = (1..nodes_count).map do |i|
         Node.new("node#{i}", 'DOWN', self)
       end if nodes_count
+      @blocked = ::Set.new
     end
 
     def running?
@@ -399,6 +471,38 @@ module CCM extend self
 
       @ccm.exec('add', '-b', "-t 127.0.0.#{i}:9160", "-l 127.0.0.#{i}:7000", "--binary-itf=127.0.0.#{i}:9042", name)
       nodes << Node.new(name, 'DOWN', self)
+
+      nil
+    end
+
+    def block_node(name)
+      return if @blocked.include?(name)
+
+      i  = name.sub('node', '')
+      ip = "127.0.0.#{i}"
+
+      @firewall.block(ip)
+      @blocked.add(name)
+
+      nil
+    end
+
+    def block_nodes
+      nodes.each do |node|
+        block_node(node.name)
+      end
+    end
+
+    def unblock_nodes
+      stop
+      @blocked.each do |name|
+        i  = name.sub('node', '')
+        ip = "127.0.0.#{i}"
+
+        @firewall.unblock(ip)
+      end
+      @blocked.clear
+      start
 
       nil
     end
@@ -580,6 +684,10 @@ module CCM extend self
     end
   end
 
+  def firewall
+    @firewall ||= Firewall.new
+  end
+
   def ccm_home
     @ccm_home ||= begin
       ccm_home = File.expand_path(File.dirname(__FILE__) + '/../tmp')
@@ -625,7 +733,15 @@ module CCM extend self
 
     ccm.exec('create', '-v', 'binary:' + version, '-b', name)
 
-    config = []
+    config = [
+      '--rt', '200',
+      'read_request_timeout_in_ms: 200',
+      'write_request_timeout_in_ms: 200',
+      'request_timeout_in_ms: 200',
+      'phi_convict_threshold: 16',
+      'hinted_handoff_enabled: false',
+      'dynamic_snitch_update_interval_in_ms: 1000'
+    ]
 
     if cassandra_version.start_with?('1.2.')
       config << 'reduce_cache_sizes_at: 0'
@@ -654,11 +770,10 @@ module CCM extend self
     config << 'memtable_flush_writers: 1'
     config << 'max_hints_delivery_threads: 1'
 
-    ccm.exec('updateconf', '--rt', '10000')
     ccm.exec('updateconf', *config)
     ccm.exec('populate', '-n', nodes, '-i', '127.0.0.')
 
-    clusters << @current_cluster = Cluster.new(name, ccm, nodes_per_datacenter * datacenters, datacenters, [])
+    clusters << @current_cluster = Cluster.new(name, ccm, firewall, nodes_per_datacenter * datacenters, datacenters, [])
 
     nil
   end
@@ -674,7 +789,7 @@ module CCM extend self
         name.strip!
         current = name.start_with?('*')
         name.sub!('*', '')
-        cluster = Cluster.new(name, ccm)
+        cluster = Cluster.new(name, ccm, firewall)
         @current_cluster = cluster if current
         cluster
       end
