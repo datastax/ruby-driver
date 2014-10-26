@@ -310,16 +310,6 @@ module Cassandra
       end
 
       def socket_closed(cause)
-        if @heartbeat
-          @scheduler.cancel_timer(@heartbeat)
-          @heartbeat = nil
-        end
-
-        if @terminate
-          @scheduler.cancel_timer(@terminate)
-          @terminate = nil
-        end
-
         if cause
           e = Errors::IOError.new(cause.message)
           e.set_backtrace(cause.backtrace)
@@ -330,6 +320,12 @@ module Cassandra
         request_failure_cause = cause || Errors::IOError.new('Connection closed')
         promises_to_fail = nil
         @lock.synchronize do
+          @scheduler.cancel_timer(@heartbeat) if @heartbeat
+          @scheduler.cancel_timer(@terminate) if @terminate
+
+          @heartbeat = nil
+          @terminate = nil
+
           promises_to_fail = @promises.compact
           promises_to_fail.concat(@request_queue_in)
           promises_to_fail.concat(@request_queue_out)
@@ -348,13 +344,15 @@ module Cassandra
       end
 
       def schedule_heartbeat
-        if @heartbeat
-          @scheduler.cancel_timer(@heartbeat)
-          @heartbeat = nil
+        timer = nil
+
+        @lock.synchronize do
+          @scheduler.cancel_timer(@heartbeat) if @heartbeat
+
+          @heartbeat = timer = @scheduler.schedule_timer(@heartbeat_interval)
         end
 
-        @heartbeat = @scheduler.schedule_timer(@heartbeat_interval)
-        @heartbeat.on_value do
+        timer.on_value do
           send_request(HEARTBEAT, nil, false).on_value do
             schedule_heartbeat
           end
@@ -362,20 +360,15 @@ module Cassandra
       end
 
       def reschedule_termination
-        if @terminate
-          @scheduler.cancel_timer(@terminate)
-          @terminate = nil
+        timer = nil
+
+        @lock.synchronize do
+          @scheduler.cancel_timer(@terminate) if @terminate
+
+          @terminate = timer = @scheduler.schedule_timer(@idle_timeout)
         end
 
-        @terminate = @scheduler.schedule_timer(@idle_timeout)
-        @terminate.on_value do
-          @terminate = nil
-
-          if @heartbeat
-            @scheduler.cancel_timer(@heartbeat)
-            @heartbeat = nil
-          end
-
+        timer.on_value do
           @connection.close(TERMINATED)
         end
       end
