@@ -30,7 +30,7 @@ Gem::Specification.new do |s|
     s.files << 'ext/cassandra_murmur3/cassandra_murmur3.c'
   end
 
-  s.add_runtime_dependency 'ione', '~> 1.2.0.pre4'
+  s.add_runtime_dependency 'ione', '~> 1.2.0.pre8'
 
   s.add_development_dependency 'bundler', '~> 1.6'
   s.add_development_dependency 'rake', '~> 10.0'
