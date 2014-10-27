@@ -369,6 +369,7 @@ module Cassandra
         end
 
         timer.on_value do
+          @terminate = nil
           @connection.close(TERMINATED)
         end
       end
