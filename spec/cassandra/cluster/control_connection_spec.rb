@@ -290,18 +290,6 @@ module Cassandra
           end
         end
 
-        context 'with empty cluster state' do
-          before do
-            handle_request do |request, connection, default_response, timeout|
-              default_response.call
-            end
-          end
-
-          it 'fails' do
-            expect { control_connection.connect_async.value }.to raise_error(Errors::NoHostsAvailable)
-          end
-        end
-
         context 'with empty peers' do
           it 'skips empty peers' do
             additional_rpc_addresses = additional_nodes.dup

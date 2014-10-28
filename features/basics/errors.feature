@@ -171,13 +171,13 @@ Feature: Cassandra Ruby Driver Errors
 
       cluster = Cassandra.cluster(retry_policy: Cassandra::Retry::Policies::Fallthrough.new)
       session = cluster.connect("simplex")
-      
+
       $stdout.puts("=== START ===")
       $stdout.flush
       until (input = $stdin.gets).nil? # block until closed
         query = input.chomp
         begin
-          results = session.execute(query, :consistency => :all, :timeout => 1)
+          results = session.execute(query, consistency: :all, timeout: 2)
           puts results.inspect
           execution_info = results.execution_info
           $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")
@@ -212,7 +212,7 @@ Feature: Cassandra Ruby Driver Errors
 
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
-      
+
       query = "INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)"
       begin
         session.execute(query, :consistency => :all)
@@ -244,13 +244,13 @@ Feature: Cassandra Ruby Driver Errors
 
       cluster = Cassandra.cluster(retry_policy: Cassandra::Retry::Policies::Fallthrough.new)
       session = cluster.connect("simplex")
-      
+
       $stdout.puts("=== START ===")
       $stdout.flush
       until (input = $stdin.gets).nil? # block until closed
         query = input.chomp
         begin
-          results = session.execute(query, :consistency => :all, :timeout => 1)
+          results = session.execute(query, consistency: :all, timeout: 2)
           puts results.inspect
           execution_info = results.execution_info
           $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")
@@ -271,7 +271,7 @@ Feature: Cassandra Ruby Driver Errors
       """
       Cassandra::Errors::ReadTimeoutError: Operation timed out - received only 0 responses.
       """
-  
+
   @netblock
   Scenario: Executing an UPDATE statement when replica times out
     Given the following schema:
@@ -289,13 +289,13 @@ Feature: Cassandra Ruby Driver Errors
 
       cluster = Cassandra.cluster(retry_policy: Cassandra::Retry::Policies::Fallthrough.new)
       session = cluster.connect("simplex")
-      
+
       $stdout.puts("=== START ===")
       $stdout.flush
       until (input = $stdin.gets).nil? # block until closed
         query = input.chomp
         begin
-          results = session.execute(query, :consistency => :all, :timeout => 1)
+          results = session.execute(query, consistency: :all, timeout: 2)
           puts results.inspect
           execution_info = results.execution_info
           $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")
@@ -318,6 +318,51 @@ Feature: Cassandra Ruby Driver Errors
       """
 
   @netblock
+  Scenario: Truncating a table when replica times out
+    Given the following schema:
+      """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+      USE simplex;
+      CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
+      INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
+      INSERT INTO users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster(retry_policy: Cassandra::Retry::Policies::Fallthrough.new)
+      session = cluster.connect("simplex")
+
+      $stdout.puts("=== START ===")
+      $stdout.flush
+      until (input = $stdin.gets).nil? # block until closed
+        query = input.chomp
+        begin
+          results = session.execute(query, consistency: :all, timeout: 2)
+          puts results.inspect
+          execution_info = results.execution_info
+          $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")
+        rescue => e
+          $stdout.puts("#{e.class.name}: #{e.message}")
+        end
+        $stdout.flush
+      end
+      $stdout.puts("=== STOP ===")
+      $stdout.flush
+      """
+    When it is running interactively
+    And I wait for its output to contain "START"
+    And node 3 is unreachable
+    And I type "TRUNCATE simplex.users"
+    And I close the stdin stream
+    Then its output should contain:
+      """
+      Cassandra::Errors::TruncateError: Error during truncate
+      """
+
+  @netblock
   Scenario: Executing a statement when all nodes time out
     Given the following schema:
       """cql
@@ -330,17 +375,17 @@ Feature: Cassandra Ruby Driver Errors
       """
     And the following example:
       """ruby
-      require 'cassandra' 
+      require 'cassandra'
 
       cluster = Cassandra.cluster(retry_policy: Cassandra::Retry::Policies::Fallthrough.new)
       session = cluster.connect("simplex")
-      
+
       $stdout.puts("=== START ===")
       $stdout.flush
       until (input = $stdin.gets).nil? # block until closed
         query = input.chomp
         begin
-          results = session.execute(query, :consistency => :all, :timeout => 1)
+          results = session.execute(query, consistency: :all, timeout: 2)
           puts results.inspect
           execution_info = results.execution_info
           $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")

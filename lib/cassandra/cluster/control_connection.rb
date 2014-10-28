@@ -34,6 +34,11 @@ module Cassandra
         @connector             = connector
         @refreshing_statuses   = Hash.new(false)
         @status                = :closed
+        @refreshing_schema     = false
+        @refreshing_keyspaces  = Hash.new(false)
+        @refreshing_tables     = Hash.new
+        @refreshing_hosts      = false
+        @refreshing_host       = Hash.new(false)
 
         mon_initialize
       end
@@ -44,10 +49,14 @@ module Cassandra
           @status = :connecting
         end
 
-        @io_reactor.start.flat_map do
+        f = @io_reactor.start.flat_map do
           plan = @load_balancing_policy.plan(nil, VOID_STATEMENT, VOID_OPTIONS)
           connect_to_first_available(plan)
         end
+        f.on_failure do |e|
+          close_async
+        end
+        f
       end
 
       def host_found(host)
@@ -67,7 +76,9 @@ module Cassandra
           timer = @refreshing_statuses.delete(host)
           @io_reactor.cancel_timer(timer) if timer
 
-          return connect_async unless @connection || (@status == :closing || @status == :closed) || @load_balancing_policy.distance(host) == :ignore
+          unless @connection || (@status == :closing || @status == :closed) || @load_balancing_policy.distance(host) == :ignore
+            return connect_to_first_available(@load_balancing_policy.plan(nil, VOID_STATEMENT, VOID_OPTIONS))
+          end
         end
 
         Ione::Future.resolved
@@ -152,8 +163,18 @@ module Cassandra
 
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
-        connection.send_request(REGISTER).map do
-
+        f = connection.send_request(REGISTER)
+        f = f.map do |r|
+          case r
+          when Protocol::ReadyResponse
+            nil
+          when Protocol::ErrorResponse
+            raise r.to_error(VOID_STATEMENT)
+          else
+            raise Errors::ProtocolError, "Unexpected response #{r.inspect}"
+          end
+        end
+        f = f.map do
           connection.on_event do |event|
             @logger.debug("Event received #{event}")
 
@@ -161,21 +182,21 @@ module Cassandra
               case event.change
               when 'CREATED'
                 if event.table.empty?
-                  refresh_schema_async
+                  refresh_schema_async_maybe_retry
                 else
-                  refresh_keyspace_async(event.keyspace)
+                  refresh_keyspace_async_maybe_retry(event.keyspace)
                 end
               when 'DROPPED'
                 if event.table.empty?
-                  refresh_schema_async
+                  refresh_schema_async_maybe_retry
                 else
-                  refresh_keyspace_async(event.keyspace)
+                  refresh_keyspace_async_maybe_retry(event.keyspace)
                 end
               when 'UPDATED'
                 if event.table.empty?
-                  refresh_keyspace_async(event.keyspace)
+                  refresh_keyspace_async_maybe_retry(event.keyspace)
                 else
-                  refresh_table_async(event.keyspace, event.table)
+                  refresh_table_async_maybe_retry(event.keyspace, event.table)
                 end
               end
             else
@@ -183,19 +204,19 @@ module Cassandra
               when 'UP'
                 address = event.address
 
-                refresh_host_async(address) if @registry.has_host?(address)
+                refresh_host_async_maybe_retry(address) if @registry.has_host?(address)
               when 'DOWN'
                 @registry.host_down(event.address)
               when 'NEW_NODE'
                 address = event.address
 
                 unless @registry.has_host?(address)
-                  refresh_host_async(address)
-                  refresh_schema_async
+                  refresh_host_async_maybe_retry(address)
+                  refresh_schema_async_maybe_retry
                 end
               when 'REMOVED_NODE'
                 @registry.host_lost(event.address)
-                refresh_schema_async
+                refresh_schema_async_maybe_retry
               end
             end
           end
@@ -209,15 +230,101 @@ module Cassandra
 
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
-        keyspaces = connection.send_request(SELECT_KEYSPACES)
-        tables    = connection.send_request(SELECT_TABLES)
-        columns   = connection.send_request(SELECT_COLUMNS)
+        keyspaces = send_select_request(connection, SELECT_KEYSPACES)
+        tables    = send_select_request(connection, SELECT_TABLES)
+        columns   = send_select_request(connection, SELECT_COLUMNS)
 
         Ione::Future.all(keyspaces, tables, columns).map do |(keyspaces, tables, columns)|
           host = @registry.host(connection.host)
 
-          @schema.update_keyspaces(host, keyspaces.rows, tables.rows, columns.rows)
+          @schema.update_keyspaces(host, keyspaces, tables, columns)
           @metadata.rebuild_token_map
+        end
+      end
+
+      def refresh_schema_async_maybe_retry
+        synchronize do
+          return Ione::Future.resolved if @refreshing_schema
+          @refreshing_schema = true
+        end
+
+        refresh_schema_async.fallback do |e|
+          case e
+          when Errors::HostError
+            refresh_schema_async_retry(e, @reconnection_policy.schedule)
+          else
+            connection = @connection
+            connection && connection.close(e)
+
+            Ione::Future.resolved
+          end
+        end.map do
+          synchronize do
+            @refreshing_schema = false
+          end
+        end
+      end
+
+      def refresh_schema_async_retry(error, schedule)
+        timeout = schedule.next
+        @logger.info("Failed to refresh schema (#{error.class.name}: #{error.message}), retrying in #{timeout}")
+
+        timer = @io_reactor.schedule_timer(timeout)
+        timer.flat_map do
+          refresh_schema_async.fallback do |e|
+            case e
+            when Errors::HostError
+              refresh_schema_async_retry(e, schedule)
+            else
+              connection = @connection
+              connection && connection.close(e)
+
+              Ione::Future.resolved
+            end
+          end
+        end
+      end
+
+      def refresh_keyspace_async_maybe_retry(keyspace)
+        synchronize do
+          return Ione::Future.resolved if @refreshing_schema || @refreshing_keyspaces[keyspace]
+          @refreshing_keyspaces[keyspace] = true
+        end
+
+        refresh_keyspace_async(keyspace).fallback do |e|
+          case e
+          when Errors::HostError
+            refresh_keyspace_async_retry(keyspace, e, @reconnection_policy.schedule)
+          else
+            connection = @connection
+            connection && connection.close(e)
+
+            Ione::Future.resolved
+          end
+        end.map do
+          synchronize do
+            @refreshing_keyspaces.delete(host)
+          end
+        end
+      end
+
+      def refresh_keyspace_async_retry(keyspace, error, schedule)
+        timeout = schedule.next
+        @logger.info("Failed to refresh keyspace #{keyspace} (#{error.class.name}: #{error.message}), retrying in #{timeout}")
+
+        timer = @io_reactor.schedule_timer(timeout)
+        timer.flat_map do
+          refresh_keyspace_async(keyspace).fallback do |e|
+            case e
+            when Errors::HostError
+              refresh_keyspace_async_retry(keyspace, e, schedule)
+            else
+              connection = @connection
+              connection && connection.close(e)
+
+              Ione::Future.resolved
+            end
+          end
         end
       end
 
@@ -227,14 +334,59 @@ module Cassandra
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         params    = [keyspace]
-        keyspaces = connection.send_request(Protocol::QueryRequest.new("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?", params, nil, :one))
-        tables    = connection.send_request(Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ?", params, nil, :one))
-        columns   = connection.send_request(Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = ?", params, nil, :one))
+        keyspaces = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?", params, nil, :one))
+        tables    = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ?", params, nil, :one))
+        columns   = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = ?", params, nil, :one))
 
         Ione::Future.all(keyspaces, tables, columns).map do |(keyspaces, tables, columns)|
           host = @registry.host(connection.host)
 
-          @schema.update_keyspace(host, keyspaces.rows.first, tables.rows, columns.rows)
+          @schema.update_keyspace(host, keyspaces.first, tables, columns) unless keyspaces.empty?
+        end
+      end
+
+      def refresh_table_async_maybe_retry(keyspace, table)
+        synchronize do
+          return Ione::Future.resolved if @refreshing_schema || @refreshing_keyspaces[keyspace] || @refreshing_tables[keyspace][table]
+          @refreshing_tables[keyspace] ||= ::Hash.new(false)
+          @refreshing_tables[keyspace][table] = true
+        end
+
+        refresh_table_async(keyspace, table).fallback do |e|
+          case e
+          when Errors::HostError
+            refresh_keyspace_async_retry(keyspace, e, @reconnection_policy.schedule)
+          else
+            connection = @connection
+            connection && connection.close(e)
+
+            Ione::Future.resolved
+          end
+        end.map do
+          synchronize do
+            @refreshing_tables[keyspace].delete(table)
+            @refreshing_tables.delete(keyspace) if @refreshing_tables[keyspace].empty?
+          end
+        end
+      end
+
+      def refresh_table_async_retry(keyspace, table, error, schedule)
+        timeout = schedule.next
+        @logger.info("Failed to refresh keyspace #{keyspace} (#{error.class.name}: #{error.message}), retrying in #{timeout}")
+
+        timer = @io_reactor.schedule_timer(timeout)
+        timer.flat_map do
+          refresh_keyspace_async(keyspace).fallback do |e|
+            case e
+            when Errors::HostError
+              refresh_keyspace_async_retry(keyspace, e, schedule)
+            else
+              connection = @connection
+              connection && connection.close(e)
+
+              Ione::Future.resolved
+            end
+          end
         end
       end
 
@@ -244,13 +396,56 @@ module Cassandra
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         params   = [keyspace, table]
-        table    = connection.send_request(Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ? AND columnfamily_name = ?", params, nil, :one))
-        columns  = connection.send_request(Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = ? AND columnfamily_name = ?", params, nil, :one))
+        table    = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ? AND columnfamily_name = ?", params, nil, :one))
+        columns  = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = ? AND columnfamily_name = ?", params, nil, :one))
 
         Ione::Future.all(table, columns).map do |(table, columns)|
           host = @registry.host(connection.host)
 
-          @schema.udpate_table(host, keyspace, table.rows, columns.rows)
+          @schema.udpate_table(host, keyspace, table, columns)
+        end
+      end
+
+      def refresh_hosts_async_maybe_retry
+        synchronize do
+          return Ione::Future.resolved if @refreshing_hosts
+          @refreshing_hosts = true
+        end
+
+        refresh_hosts_async.fallback do |e|
+          case e
+          when Errors::HostError
+            refresh_hosts_async_retry(e, @reconnection_policy.schedule)
+          else
+            connection = @connection
+            connection && connection.close(e)
+
+            Ione::Future.resolved
+          end
+        end.map do
+          synchronize do
+            @refreshing_hosts = false
+          end
+        end
+      end
+
+      def refresh_hosts_async_retry(error, schedule)
+        timeout = schedule.next
+        @logger.info("Failed to refresh hosts (#{error.class.name}: #{error.message}), retrying in #{timeout}")
+
+        timer = @io_reactor.schedule_timer(timeout)
+        timer.flat_map do
+          refresh_hosts_async.fallback do |e|
+            case e
+            when Errors::HostError
+              refresh_hosts_async_retry(e, schedule)
+            else
+              connection = @connection
+              connection && connection.close(e)
+
+              Ione::Future.resolved
+            end
+          end
         end
       end
 
@@ -259,22 +454,20 @@ module Cassandra
 
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
-        local = connection.send_request(SELECT_LOCAL)
-        peers = connection.send_request(SELECT_PEERS)
+        local = send_select_request(connection, SELECT_LOCAL)
+        peers = send_select_request(connection, SELECT_PEERS)
 
         Ione::Future.all(local, peers).map do |(local, peers)|
-          local = local.rows
-          peers = peers.rows
-
           @logger.debug("#{peers.size} peer(s) found")
-
-          raise NO_HOSTS if local.empty? && peers.empty?
 
           ips = ::Set.new
 
-          ips << ip = IPAddr.new(connection.host)
-          data = local.first
-          @registry.host_found(ip, data)
+          unless local.empty?
+            ips << ip = IPAddr.new(connection.host)
+            data = local.first
+            @registry.host_found(ip, data)
+            @metadata.update(data)
+          end
 
           peers.each do |data|
             ip = peer_ip(data)
@@ -287,8 +480,6 @@ module Cassandra
             @registry.host_lost(host.ip) unless ips.include?(host.ip)
           end
 
-          @metadata.update(data)
-
           nil
         end
       end
@@ -298,7 +489,7 @@ module Cassandra
       end
 
       def refresh_host_status_with_retry(original_timer, host, schedule)
-        timer = nil 
+        timer = nil
 
         synchronize do
           timer = @refreshing_statuses[host]
@@ -320,6 +511,49 @@ module Cassandra
         end
       end
 
+      def refresh_host_async_maybe_retry(host)
+        synchronize do
+          return Ione::Future.resolved if @refreshing_hosts || @refreshing_host[host]
+          @refreshing_host[host] = true
+        end
+
+        refresh_host_async(host).fallback do |e|
+          case e
+          when Errors::HostError
+            refresh_host_async_retry(host, e, @reconnection_policy.schedule)
+          else
+            connection = @connection
+            connection && connection.close(e)
+
+            Ione::Future.resolved
+          end
+        end.map do
+          synchronize do
+            @refreshing_host.delete(host)
+          end
+        end
+      end
+
+      def refresh_host_async_retry(host, error, schedule)
+        timeout = schedule.next
+        @logger.info("Failed to refresh host #{host.ip.to_s} (#{error.class.name}: #{error.message}), retrying in #{timeout}")
+
+        timer = @io_reactor.schedule_timer(timeout)
+        timer.flat_map do
+          refresh_host_async(host).fallback do |e|
+            case e
+            when Errors::HostError
+              refresh_host_async_retry(host, e, schedule)
+            else
+              connection = @connection
+              connection && connection.close(e)
+
+              Ione::Future.resolved
+            end
+          end
+        end
+      end
+
       def refresh_host_async(address)
         connection = @connection
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
@@ -332,9 +566,7 @@ module Cassandra
           request = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, rpc_address, release_version, tokens FROM system.peers WHERE peer = ?', [address], nil, :one)
         end
 
-        connection.send_request(request).map do |response|
-          rows = response.rows
-
+        send_select_request(connection, request).map do |rows|
           unless rows.empty?
             @registry.host_found(address, rows.first)
           end
@@ -369,19 +601,26 @@ Control connection failed and is unlikely to recover.
 
             @connection = connection
 
-            connection.on_closed do
+            connection.on_closed do |cause|
               reconnect = false
 
               synchronize do
-                if @status == :closing
-                  @status = :closed
-                else
-                  @status = :reconnecting
-                  reconnect = true
-                end
+                if connection == @connection
+                  if @status == :closing
+                    @status = :closed
+                  else
+                    @status = :reconnecting
+                    reconnect = true
+                  end
 
-                @logger.info("Control connection closed")
-                @connection = nil
+                  if cause
+                    @logger.info("Control connection closed (#{cause.class.name}: #{cause.message})")
+                  else
+                    @logger.info("Control connection closed")
+                  end
+
+                  @connection = nil
+                end
               end
 
               reconnect_async(@reconnection_policy.schedule) if reconnect
@@ -390,8 +629,8 @@ Control connection failed and is unlikely to recover.
 
           register_async
         end
-        f = f.flat_map { refresh_hosts_async }
-        f = f.flat_map { refresh_schema_async }
+        f = f.flat_map { refresh_hosts_async_maybe_retry }
+        f = f.flat_map { refresh_schema_async_maybe_retry }
         f = f.fallback do |error|
           @logger.debug("Connection to #{host.ip} failed (#{error.class.name}: #{error.message})")
 
@@ -421,6 +660,19 @@ Control connection failed and is unlikely to recover.
         ip = data['peer'] if ip == '0.0.0.0'
 
         @address_resolver.resolve(ip)
+      end
+
+      def send_select_request(connection, request)
+        connection.send_request(request).map do |r|
+          case r
+          when Protocol::RowsResultResponse
+            r.rows
+          when Protocol::ErrorResponse
+            raise r.to_error(VOID_STATEMENT)
+          else
+            raise Errors::ProtocolError, "Unexpected response #{r.inspect}"
+          end
+        end
       end
     end
   end

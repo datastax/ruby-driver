@@ -1,7 +1,7 @@
 Feature: Heartbeats
 
   The Ruby driver sends periodic hearbeats to the Cassandra server to check if the connection is alive.
-  The heartbeat interval and the timeout is adjustable when creating a new `Cassandra::Cluster`. If a 
+  The heartbeat interval and the timeout is adjustable when creating a new `Cassandra::Cluster`. If a
   heartbeat is not returned, the connection will be considered dead and is closed automatically.
 
   Background:
@@ -38,9 +38,16 @@ Feature: Heartbeats
       require 'printing_listener'
       require 'cassandra'
 
-      cluster = Cassandra.cluster(:heartbeat_interval => 2, :idle_timeout => 5)
+      policy  = Cassandra::LoadBalancing::Policies::RoundRobin.new
+      policy  = Cassandra::LoadBalancing::Policies::WhiteList.new(['127.0.0.3'], policy)
+      cluster = Cassandra.cluster(
+        heartbeat_interval:    2,
+        idle_timeout:          5,
+        hosts:                 '127.0.0.3',
+        load_balancing_policy: policy
+      )
       session = cluster.connect("simplex")
-      
+
       listener = PrintingListener.new($stderr)
       cluster.register(listener)
 
@@ -63,33 +70,20 @@ Feature: Heartbeats
       """
     And it is running interactively
     And I wait for its output to contain "START"
+    And node 3 is unreachable
 
   @netblock
-  Scenario: Connection is explicitly dropped due to inactivity
-    When all nodes are unreachable
-    And I type "CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT)"
+  Scenario: Executing a query when a host is unreachable
+    When I type "CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT)"
     And I close the stdin stream
     Then its output should contain:
       """
-      Cassandra::Errors::NoHostsAvailable: All attempted hosts failed
-      """
-    And its output should contain:
-      """
-      127.0.0.1 (Cassandra::Errors::IOError: Terminated due to inactivity)
-      """
-    And its output should contain:
-      """
-      127.0.0.2 (Cassandra::Errors::IOError: Terminated due to inactivity)
-      """
-    And its output should contain:
-      """
-      127.0.0.3 (Cassandra::Errors::IOError: Terminated due to inactivity)
+      Cassandra::Errors::NoHostsAvailable: All attempted hosts failed: 127.0.0.3 (Cassandra::Errors::IOError: Terminated due to inactivity)
       """
 
   @netblock
-  Scenario: Connection is dropped during idling
-    When node 3 is unreachable
-    And I wait for 5 seconds
+  Scenario: Receiving notification that an unreachable host is down
+    When I wait for 5 seconds
     And I close the stdin stream
     Then its output should contain:
       """
