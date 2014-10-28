@@ -19,6 +19,8 @@ Breaking changes:
 * Connections to hosts in remote datacenters will be disabled by default
 * `Cassandra.connect` has been renamed to `Cassandra.cluster` to avoid confusion
 * `Cassandra::TimeUuid::Generator` renamed to `Cassandra::Uuid::Generator` and api has been changed
+* Default consistency level has been changed from `:quorum` to `:one`
+* Default request execution timeout of 10 seconds has been set
 
 # 1.0.0.beta.3
 

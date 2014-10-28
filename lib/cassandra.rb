@@ -68,9 +68,8 @@ module Cassandra
   # @option options [Numeric] :connect_timeout (10) connection timeout in
   #   seconds.
   #
-  # @option options [Symbol] :address_resolution (:none) a pre-configured
-  #   address resolver to use. Must be one of `:none` or
-  #   `:ec2_multi_region`.
+  # @option options [Numeric] :timeout (10) request execution timeout in
+  #   seconds.
   #
   # @option options [Numeric] :heartbeat_interval (30) how often should a
   #   heartbeat be sent to determine if a connection is alive. Several things to
@@ -114,6 +113,10 @@ module Cassandra
   #
   # @option options [Cassandra::LoadBalancing::Policy] :load_balancing_policy
   #   default: token aware data center aware round robin.
+  #
+  # @option options [Symbol] :address_resolution (:none) a pre-configured
+  #   address resolver to use. Must be one of `:none` or
+  #   `:ec2_multi_region`.
   #
   # @option options [Cassandra::Reconnection::Policy] :reconnection_policy
   #   default: {Cassandra::Reconnection::Policies::Exponential}. Note that the
@@ -178,7 +181,7 @@ module Cassandra
         :consistency, :trace, :page_size, :compressor, :username, :password,
         :ssl, :server_cert, :client_cert, :private_key, :passphrase,
         :connect_timeout, :futures_factory, :datacenter, :address_resolution,
-        :address_resolution_policy, :idle_timeout, :heartbeat_interval
+        :address_resolution_policy, :idle_timeout, :heartbeat_interval, :timeout
       ].include?(key)
     end
 
@@ -332,6 +335,14 @@ module Cassandra
 
       if timeout < 0
         raise ::ArgumentError, ":connect_timeout must be a positive value, #{timeout.given}"
+      end
+    end
+
+    if options.has_key?(:timeout)
+      timeout = options[:timeout] = Integer(options[:timeout])
+
+      if timeout < 0
+        raise ::ArgumentError, ":timeout must be a positive value, #{timeout.given}"
       end
     end
 

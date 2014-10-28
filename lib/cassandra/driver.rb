@@ -64,7 +64,8 @@ module Cassandra
       Execution::Options.new({
         :consistency => consistency,
         :trace       => trace,
-        :page_size   => page_size
+        :page_size   => page_size,
+        :timeout     => timeout
       })
     end
 
@@ -88,6 +89,7 @@ module Cassandra
     let(:page_size)                 { nil }
     let(:heartbeat_interval)        { 30 }
     let(:idle_timeout)              { 60 }
+    let(:timeout)                   { 10 }
 
     let(:connections_per_local_node)  { 2 }
     let(:connections_per_remote_node) { 1 }
