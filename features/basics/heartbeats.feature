@@ -1,7 +1,7 @@
 Feature: Heartbeats
 
   The Ruby driver sends periodic hearbeats to the Cassandra server to check if the connection is alive.
-  The heartbeat interval and the timeout is adjustable when creating a new `Cassandra::Cluster`. If a 
+  The heartbeat interval and the timeout is adjustable when creating a new `Cassandra::Cluster`. If a
   heartbeat is not returned, the connection will be considered dead and is closed automatically.
 
   Background:
@@ -73,14 +73,19 @@ Feature: Heartbeats
     And node 3 is unreachable
 
   @netblock
-  Scenario: Connection is explicitly dropped due to inactivity
+  Scenario: Executing a query when a host is unreachable
     When I type "CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT)"
     And I close the stdin stream
     Then its output should contain:
       """
-      Host 127.0.0.3 is down
-      """
-    And its output should contain:
-      """
       Cassandra::Errors::NoHostsAvailable: All attempted hosts failed: 127.0.0.3 (Cassandra::Errors::IOError: Terminated due to inactivity)
+      """
+
+  @netblock
+  Scenario: Receiving notification that an unreachable host is down
+    When I wait for 5 seconds
+    And I close the stdin stream
+    Then its output should contain:
+      """
+      Host 127.0.0.3 is down
       """
