@@ -394,11 +394,18 @@ module CCM extend self
         retry
       end
 
-      sleep(1) until @cluster.hosts.all?(&:up?)
+      until @cluster.hosts.all?(&:up?)
+        puts "not all hosts are up yet, retrying in 1s..."
+        sleep(1)
+      end
 
+      puts "creating session"
       @session = @cluster.connect
 
-      sleep(1) until @cluster.hosts.all?(&:up?)
+      until @cluster.hosts.all?(&:up?)
+        puts "not all hosts are up yet, retrying in 1s..."
+        sleep(1)
+      end
 
       nil
     end
@@ -597,10 +604,10 @@ module CCM extend self
 
     def clear
       start
-      @cluster.each_keyspace do |keyspace|
-        next if keyspace.name.start_with?('system')
+      @session.execute("SELECT keyspace_name FROM system.schema_keyspaces").each do |row|
+        next if row['keyspace_name'].start_with?('system')
 
-        @session.execute("DROP KEYSPACE #{keyspace.name}")
+        @session.execute("DROP KEYSPACE #{row['keyspace_name']}")
       end
       nil
     end
@@ -622,7 +629,14 @@ module CCM extend self
     end
 
     def logger
-      @logger ||= Logger.new($stderr)
+      @logger ||= begin
+        logger = Logger.new($stderr)
+        logger.level = Logger::INFO
+        logger.formatter = proc { |severity, time, progname, message|
+          "Cluster:0x#{object_id.to_s(16)} | #{time.strftime("%T,%L")} - [#{severity}] #{message}\n"
+        }
+        logger
+      end
     end
   end
 
@@ -730,10 +744,10 @@ module CCM extend self
     ccm.exec('create', '-v', 'binary:' + version, '-b', name)
 
     config = [
-      '--rt', '500',
-      'read_request_timeout_in_ms: 500',
-      'write_request_timeout_in_ms: 500',
-      'request_timeout_in_ms: 500',
+      '--rt', '1000',
+      'read_request_timeout_in_ms: 1000',
+      'write_request_timeout_in_ms: 1000',
+      'request_timeout_in_ms: 1000',
       'phi_convict_threshold: 16',
       'hinted_handoff_enabled: false',
       'dynamic_snitch_update_interval_in_ms: 1000'
