@@ -675,7 +675,7 @@ module Cassandra
                 @keyspace = nil
               end
 
-              @logger.info('Waiting for schema to propagate to all hosts after a change')
+              @logger.debug('Waiting for schema to propagate to all hosts after a change')
               wait_for_schema_agreement(connection, @reconnection_policy.schedule).on_complete do |f|
                 unless f.resolved?
                   f.on_failure do |e|
@@ -707,13 +707,10 @@ module Cassandra
       end
 
       def wait_for_schema_agreement(connection, schedule)
-        peers = connection.send_request(SELECT_SCHEMA_PEERS)
-        local = connection.send_request(SELECT_SCHEMA_LOCAL)
+        peers = send_select_request(connection, SELECT_SCHEMA_PEERS)
+        local = send_select_request(connection, SELECT_SCHEMA_LOCAL)
 
         Ione::Future.all(peers, local).flat_map do |(peers, local)|
-          peers = peers.rows
-          local = local.rows
-
           versions = ::Set.new
 
           unless local.empty?
@@ -738,7 +735,7 @@ module Cassandra
             Ione::Future.resolved
           else
             interval = schedule.next
-            @logger.warn("Hosts have different schema versions: #{versions.to_a.inspect}, retrying in #{interval} seconds")
+            @logger.info("Hosts have different schema versions: #{versions.to_a.inspect}, retrying in #{interval} seconds")
             @reactor.schedule_timer(interval).flat_map do
               wait_for_schema_agreement(connection, schedule)
             end
@@ -814,6 +811,19 @@ module Cassandra
         end
 
         f
+      end
+
+      def send_select_request(connection, request)
+        connection.send_request(request).map do |r|
+          case r
+          when Protocol::RowsResultResponse
+            r.rows
+          when Protocol::ErrorResponse
+            raise r.to_error(VOID_STATEMENT)
+          else
+            raise Errors::ProtocolError, "Unexpected response #{r.inspect}"
+          end
+        end
       end
     end
   end

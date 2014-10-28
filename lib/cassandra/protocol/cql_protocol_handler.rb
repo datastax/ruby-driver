@@ -179,7 +179,7 @@ module Cassandra
       # Closes the underlying connection.
       #
       # @return [Ione::Future] a future that completes when the connection has closed
-      def close
+      def close(cause = nil)
         if @heartbeat
           @scheduler.cancel_timer(@heartbeat)
           @heartbeat = nil
@@ -190,7 +190,7 @@ module Cassandra
           @terminate = nil
         end
 
-        @connection.close
+        @connection.close(cause)
         @closed_promise.future
       end
 
@@ -347,7 +347,7 @@ module Cassandra
         timer = nil
 
         @lock.synchronize do
-          @scheduler.cancel_timer(@heartbeat) if @heartbeat
+          @scheduler.cancel_timer(@heartbeat) if @heartbeat && !@heartbeat.resolved?
 
           @heartbeat = timer = @scheduler.schedule_timer(@heartbeat_interval)
         end
