@@ -12,7 +12,7 @@ the Cassandra Query Language version 3 (CQL3) and Cassandra's native protocol.
 - JIRA: https://datastax-oss.atlassian.net/browse/RUBY
 - MAILING LIST: https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user
 - IRC: #datastax-drivers on [irc.freenode.net](http://freenode.net>)
-- TWITTER: Follow the latest news about DataStax Drivers - [@avalanche123](http://twitter.com/avalanche123), [@mfiguiere](http://twitter.com/mfiguiere), [@al3xandru](https://twitter.com/al3xandru) 
+- TWITTER: Follow the latest news about DataStax Drivers - [@avalanche123](http://twitter.com/avalanche123), [@mfiguiere](http://twitter.com/mfiguiere), [@al3xandru](https://twitter.com/al3xandru)
 
 This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [Theo Hultberg](https://github.com/iconara) and we added support for:
 
@@ -20,6 +20,7 @@ This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [
 * one-off, [prepared](http://datastax.github.io/ruby-driver/features/basics/prepared_statements/) and [batch statements](http://datastax.github.io/ruby-driver/features/basics/batch_statements/)
 * automatic peer discovery and cluster metadata
 * various [load-balancing](http://datastax.github.io/ruby-driver/features/load_balancing/), [retry](http://datastax.github.io/ruby-driver/features/retry_policies/) and reconnection policies, [with ability to write your own](http://datastax.github.io/ruby-driver/features/load_balancing/implementing_a_policy/)
+* [SSL encryption](http://datastax.github.io/ruby-driver/features/security/ssl_encryption/)
 
 ## Compability
 
@@ -110,7 +111,7 @@ Prereleases will be stable, in the sense that they will have finished and proper
 
 This driver is based on the original work of [Theo Hultberg](https://github.com/iconara) on [cql-rb](https://github.com/iconara/cql-rb/) and adds a series of advanced features that are common across all other DataStax drivers for Apache Cassandra.
 
-The development effort to provide an up to date, high performance, fully featured Ruby Driver for Apache Cassandra will continue on this project, while [cql-rb](https://github.com/iconara/cql-rb/) will be discontinued. 
+The development effort to provide an up to date, high performance, fully featured Ruby Driver for Apache Cassandra will continue on this project, while [cql-rb](https://github.com/iconara/cql-rb/) will be discontinued.
 
 
 ## Copyright
@@ -124,4 +125,3 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
   [1]: http://datastax.github.io/ruby-driver/api
-
