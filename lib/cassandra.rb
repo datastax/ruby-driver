@@ -120,8 +120,7 @@ module Cassandra
   #
   # @option options [Cassandra::Reconnection::Policy] :reconnection_policy
   #   default: {Cassandra::Reconnection::Policies::Exponential}. Note that the
-  #   default policy is configured with
-  #   `Reconnection::Policies::Exponential.new(0.5, 30, 2)`.
+  #   default policy is configured with `(0.5, 30, 2)`.
   #
   # @option options [Cassandra::Retry::Policy] :retry_policy default:
   #   {Cassandra::Retry::Policies::Default}.
@@ -152,10 +151,10 @@ module Cassandra
   #   appropriate compressor will be provided automatically.
   #
   # @option options [Cassandra::AddressResolution::Policy]
-  #   :address_resolution_policy (Cassandra::AddressResolution::Policy::None) a
-  #   custom address resolution policy. Note that if you have specified
-  #   `:address_resolution`, an appropriate address resolution policy will be
-  #   provided automatically.
+  #   :address_resolution_policy default:
+  #   {Cassandra::AddressResolution::Policies::None} a custom address resolution
+  #   policy. Note that if you have specified `:address_resolution`, an
+  #   appropriate address resolution policy will be provided automatically.
   #
   # @option options [Object<#all, #error, #value, #promise>] :futures_factory
   #   (none) a custom futures factory to assist with integration into existing
