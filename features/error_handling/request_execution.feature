@@ -1,6 +1,8 @@
-Feature: Cassandra Ruby Driver Errors
+Feature: Request Execution Errors
 
-  The Ruby driver will error out and provide error messages for known error types.
+  The Ruby driver will error out and provide error messages for various errors.
+  [Check out the request execution diagram in Error Handling guide](/features/error_handling/)
+  and come back here for real-world examples of error handling.
 
   Background:
     Given a running cassandra cluster

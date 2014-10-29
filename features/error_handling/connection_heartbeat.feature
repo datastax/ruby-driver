@@ -1,4 +1,4 @@
-Feature: Heartbeats
+Feature: Connection Heartbeat
 
   The Ruby driver sends periodic hearbeats to the Cassandra server to check if the connection is alive.
   The heartbeat interval and the timeout is adjustable when creating a new `Cassandra::Cluster`. If a
