@@ -390,11 +390,11 @@ module Cassandra
           end
 
           def success(value)
-            @block.call(nil, value)
+            @block.call(value, nil)
           end
 
           def failure(error)
-            @block.call(error, nil)
+            @block.call(nil, error)
           end
         end
 
