@@ -85,13 +85,13 @@ Note: if you want to use compression you should also install [snappy](http://rub
 
 Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API. In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/master/examples/cql-rb-wrapper.rb) to assist you with gradual upgrade.
 
-## What's new in v1.0.0.beta.3
+## What's new in v1.0.0.rc.1
 
 Current release introduces the following new features:
 
-* [Token-aware load balancing policy](http://datastax.github.io/ruby-driver/features/load_balancing/token_aware/)
-* [SSL encryption](http://datastax.github.io/ruby-driver/features/security/ssl_encryption/)
-* Domain names
+* [Token Aware Data Center Aware Round Robin load balancing is now default](http://datastax.github.io/features/load_balancing/default_policy/)
+* [Improved exception class hierarchy and documentation and automatic detection of broken connections using heartbeats](http://datastax.github.io/features/error_handling/)
+* [Configurable node address resolution with EC2 multi-region support](http://datastax.github.io/features/address_resolution/)
 
 ## Changelog & versioning
 
