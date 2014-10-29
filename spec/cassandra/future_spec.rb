@@ -19,6 +19,41 @@
 require 'spec_helper'
 
 module Cassandra
+  class Promise
+    class Signal
+      module Listeners
+        describe(Complete) do
+          describe('#success') do
+            it 'calls block with value' do
+              value    = nil
+              error    = nil
+              listener = Complete.new do |v, e|
+                value = v
+                error = e
+              end
+
+              listener.success(123)
+              expect(value).to eq(123)
+            end
+          end
+          describe('#failure') do
+            it 'calls block with error' do
+              value    = nil
+              error    = nil
+              listener = Complete.new do |v, e|
+                value = v
+                error = e
+              end
+
+              listener.failure(123)
+              expect(error).to eq(123)
+            end
+          end
+        end
+      end
+    end
+  end
+
   describe(Future) do
     let(:signal) { double('promise signal') }
     let(:future) { Future.new(signal) }
