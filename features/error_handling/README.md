@@ -159,6 +159,10 @@ In addition to the request execution errors and timeouts, Ruby Driver performs
 periodic heart beating of each open connection to detect network outages and
 prevent stale connections from gathering.
 
+The default heartbeat interval is very conservative at 30 seconds with an idle
+timeout of 1 minute, but [these numbers can be changed when constructing a cluster](http://datastax.github.io/ruby-driver/api/).
+
 Upon detecting a stale connection, Ruby Driver will automatically close it and
 fail all outstanding requests with a host level error, which will force them to
 be retried on other hosts as part of a normal request execution.
+
