@@ -89,9 +89,9 @@ Some of the new features added to the driver have unfortunately led to changes i
 
 Current release introduces the following new features:
 
-* [Token Aware Data Center Aware Round Robin load balancing is now default](http://datastax.github.io/features/load_balancing/default_policy/)
-* [Improved exception class hierarchy and documentation and automatic detection of broken connections using heartbeats](http://datastax.github.io/features/error_handling/)
-* [Configurable node address resolution with EC2 multi-region support](http://datastax.github.io/features/address_resolution/)
+* [Token Aware Data Center Aware Round Robin load balancing is now default](http://datastax.github.io/ruby-driver/features/load_balancing/default_policy/)
+* [Improved exception class hierarchy and documentation and automatic detection of broken connections using heartbeats](http://datastax.github.io/ruby-driver/features/error_handling/)
+* [Configurable node address resolution with EC2 multi-region support](http://datastax.github.io/ruby-driver/features/address_resolution/)
 
 ## Changelog & versioning
 
