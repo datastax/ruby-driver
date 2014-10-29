@@ -80,4 +80,20 @@ In this scenario, [`Cassandra::Retry::Policy#write_timeout`](http://datastax.git
 
 When the coordinator is aware there aren't enough replica online. No requests are sent to replica nodes in this scenario, because coordinator knows that the requested consistency level cannot be possibly satisfied.
 
+```ditaa
+Application        Coordinator 
+-----+------------------+------
+     |                  |
+     |  insert          |
+     |----------------->|
+     |             /----+-----\
+     |             : no       +
+     |             : replicas +
+     |             \----+-----/
+     |                  |
+     |    unavailable   |
+     |<-----------------|
+     |                  |
+```
+
 In this scenario, [`Cassandra::Retry::Policy#unavailable`](http://datastax.github.io/ruby-driver/api/retry/policy/#unavailable-instance_method) will be used to determine the desired course of action.
