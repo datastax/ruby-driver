@@ -766,7 +766,7 @@ module Cassandra
           when Protocol::ErrorResponse
             raise r.to_error(Statements::Simple.new("USE #{Util.escape_name(keyspace)}"))
           else
-            raise Errors::ProtocolError, "Unexpected response #{r.inspect}"
+            raise Errors::InternalError, "Unexpected response #{r.inspect}"
           end
         end
 
@@ -802,7 +802,7 @@ module Cassandra
           when Protocol::ErrorResponse
             raise r.to_error(VOID_STATEMENT)
           else
-            raise Errors::ProtocolError, "Unexpected response #{r.inspect}"
+            raise Errors::InternalError, "Unexpected response #{r.inspect}"
           end
         end
 
@@ -821,7 +821,7 @@ module Cassandra
           when Protocol::ErrorResponse
             raise r.to_error(VOID_STATEMENT)
           else
-            raise Errors::ProtocolError, "Unexpected response #{r.inspect}"
+            raise Errors::InternalError, "Unexpected response #{r.inspect}"
           end
         end
       end

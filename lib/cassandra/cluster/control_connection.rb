@@ -171,7 +171,7 @@ module Cassandra
           when Protocol::ErrorResponse
             raise r.to_error(VOID_STATEMENT)
           else
-            raise Errors::ProtocolError, "Unexpected response #{r.inspect}"
+            raise Errors::InternalError, "Unexpected response #{r.inspect}"
           end
         end
         f = f.map do
@@ -670,7 +670,7 @@ Control connection failed and is unlikely to recover.
           when Protocol::ErrorResponse
             raise r.to_error(VOID_STATEMENT)
           else
-            raise Errors::ProtocolError, "Unexpected response #{r.inspect}"
+            raise Errors::InternalError, "Unexpected response #{r.inspect}"
           end
         end
       end
