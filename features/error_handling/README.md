@@ -71,6 +71,24 @@ Below is a diagram that explains request execution at a high level:
       +--------------------------------------+
 ```
 
+Requests resulting in host errors are automatically retried on other hosts. If
+no other hosts are present in the load balancing plan, a [`Cassandra::Errors::NoHostsAvailable`](http://datastax.github.io/ruby-driver/api/errors/no_hosts_available/)
+is raised that contains a map of host to host error that were seen during
+request.
+
+Additionally, if an empty load balancing plan is returned by the load balancing
+policy, the request will not be attempted on any hosts.
+
+Whenever a cluster error occurs, the [retry policy is used to decide whether to
+re-raise the error, retry the request at a different consistency or ignore the
+error and return empty result](http://datastax.github.io/ruby-driver/features/retry_policies/).
+
+Finally, all other request errors, such as validation errors, are returned to
+the application without retries.
+
+Below are top-level error classes defined in the Ruby Driver classified by host,
+cluster and request types:
+
 <table class="table table-striped table-hover table-condensed">
   <thead>
     <tr>
