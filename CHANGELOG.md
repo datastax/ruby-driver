@@ -13,6 +13,7 @@ Bug fixes:
 * [RUBY-41] prevent connections to ignored hosts
 * [RUBY-44] and [RUBY-43] correctly escape capitalized keyspaces
 * [RUBY-48] handle control connection errors with a backoff and retry
+* [RUBY-49] fix bug in Future.all
 
 Breaking changes:
 
