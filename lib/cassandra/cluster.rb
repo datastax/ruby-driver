@@ -217,8 +217,10 @@ module Cassandra
 end
 
 require 'cassandra/cluster/client'
+require 'cassandra/cluster/connection_pool'
 require 'cassandra/cluster/connector'
 require 'cassandra/cluster/control_connection'
+require 'cassandra/cluster/failed_connection'
 require 'cassandra/cluster/metadata'
 require 'cassandra/cluster/options'
 require 'cassandra/cluster/registry'

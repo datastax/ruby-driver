@@ -26,7 +26,7 @@ module Cassandra
       let(:reconnection_policy) { Reconnection::Policies::Exponential.new(0.5, 30, 2) }
       let(:load_balancing_policy) { FakeLoadBalancingPolicy.new(cluster_registry) }
       let(:cluster_registry) { FakeClusterRegistry.new(hosts) }
-      let(:logger) { Cassandra::Client::NullLogger.new }
+      let(:logger) { Cassandra::NullLogger.new }
       let(:driver_settings)  { {
                                  :io_reactor => io_reactor,
                                  :load_balancing_policy => load_balancing_policy,
@@ -260,6 +260,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::QueryRequest
@@ -284,6 +286,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::QueryRequest
@@ -313,6 +317,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::QueryRequest
@@ -343,6 +349,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::QueryRequest
@@ -371,6 +379,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::QueryRequest
@@ -393,6 +403,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::QueryRequest
@@ -419,6 +431,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::QueryRequest
@@ -463,6 +477,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
@@ -482,6 +498,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
@@ -503,6 +521,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
@@ -529,6 +549,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
@@ -561,6 +583,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
@@ -589,6 +613,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
@@ -612,6 +638,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
@@ -640,6 +668,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when batch_request
@@ -668,6 +698,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
@@ -701,6 +733,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
@@ -737,6 +771,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::BatchRequest
@@ -763,6 +799,8 @@ module Cassandra
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
+              when Cassandra::Protocol::OptionsRequest
+                Cassandra::Protocol::SupportedResponse.new({})
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::BatchRequest

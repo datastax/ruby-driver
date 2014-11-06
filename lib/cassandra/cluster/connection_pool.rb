@@ -17,14 +17,14 @@
 #++
 
 module Cassandra
-  module Client
+  class Cluster
     # @private
-    class ConnectionManager
+    class ConnectionPool
       include Enumerable
 
       def initialize
         @connections = []
-        @lock = Mutex.new
+        @lock = ::Mutex.new
       end
 
       def add_connections(connections)

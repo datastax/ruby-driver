@@ -473,7 +473,7 @@ require 'cassandra/time_uuid'
 require 'cassandra/compression'
 require 'cassandra/protocol'
 require 'cassandra/auth'
-require 'cassandra/client'
+require 'cassandra/null_logger'
 
 require 'cassandra/future'
 require 'cassandra/cluster'

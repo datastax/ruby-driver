@@ -20,9 +20,9 @@ require 'spec_helper'
 
 
 module Cassandra
-  module Client
-    describe ConnectionManager do
-      let :manager do
+  class Cluster
+    describe ConnectionPool do
+      let :pool do
         described_class.new
       end
 
@@ -40,32 +40,32 @@ module Cassandra
 
       describe '#add_connections' do
         it 'registers as a close listener on each connection' do
-          manager.add_connections(connections)
+          pool.add_connections(connections)
           connections.each { |c| c.should have_received(:on_closed) }
         end
 
         it 'stops managing the connection when the connection closes' do
-          manager.add_connections(connections)
+          pool.add_connections(connections)
           connections.each { |c| c.closed_listener.call }
-          expect { manager.random_connection }.to raise_error(Errors::IOError)
+          expect { pool.random_connection }.to raise_error(Errors::IOError)
         end
       end
 
       describe '#connected?' do
         it 'returns true when there are connections' do
-          manager.add_connections(connections)
-          manager.should be_connected
+          pool.add_connections(connections)
+          pool.should be_connected
         end
 
         it 'returns false when there are no' do
-          manager.should_not be_connected
+          pool.should_not be_connected
         end
       end
 
       describe '#snapshot' do
         it 'returns a copy of the list of connections' do
-          manager.add_connections(connections)
-          s = manager.snapshot
+          pool.add_connections(connections)
+          s = pool.snapshot
           s.should == connections
           s.should_not equal(connections)
         end
@@ -77,36 +77,36 @@ module Cassandra
         end
 
         it 'returns one of the connections it is managing' do
-          manager.add_connections(connections)
-          connections.should include(manager.random_connection)
+          pool.add_connections(connections)
+          connections.should include(pool.random_connection)
         end
 
         it 'raises a Errors::IOError when there are no connections' do
-          expect { manager.random_connection }.to raise_error(Errors::IOError)
+          expect { pool.random_connection }.to raise_error(Errors::IOError)
         end
       end
 
       describe '#each_connection' do
         it 'yields each connection to the given block' do
-          manager.add_connections(connections)
+          pool.add_connections(connections)
           yielded = []
-          manager.each_connection { |c| yielded << c }
+          pool.each_connection { |c| yielded << c }
           yielded.should == connections
         end
 
         it 'is aliased as #each' do
-          manager.add_connections(connections)
+          pool.add_connections(connections)
           yielded = []
-          manager.each { |c| yielded << c }
+          pool.each { |c| yielded << c }
           yielded.should == connections
         end
 
         it 'returns an Enumerable when no block is given' do
-          manager.each.should be_an(Enumerable)
+          pool.each.should be_an(Enumerable)
         end
 
         it 'raises a Errors::IOError when there are no connections' do
-          expect { manager.each_connection { } }.to raise_error(Errors::IOError)
+          expect { pool.each_connection { } }.to raise_error(Errors::IOError)
         end
       end
 
@@ -116,17 +116,17 @@ module Cassandra
         end
 
         it 'can be mapped' do
-          manager.add_connections(connections)
-          manager.map { |c| c.index }.should == [0, 1, 2]
+          pool.add_connections(connections)
+          pool.map { |c| c.index }.should == [0, 1, 2]
         end
 
         it 'can be filtered' do
-          manager.add_connections(connections)
-          manager.select { |c| c.index % 2 == 0 }.should == [connections[0], connections[2]]
+          pool.add_connections(connections)
+          pool.select { |c| c.index % 2 == 0 }.should == [connections[0], connections[2]]
         end
 
         it 'raises a Errors::IOError when there are no connections' do
-          expect { manager.select { } }.to raise_error(Errors::IOError)
+          expect { pool.select { } }.to raise_error(Errors::IOError)
         end
       end
     end

@@ -40,6 +40,14 @@ module Cassandra
         @connections_per_local_node  = connections_per_local_node
         @connections_per_remote_node = connections_per_remote_node
       end
+
+      def compression
+        @compressor && @compressor.algorithm
+      end
+
+      def create_authenticator(authentication_class)
+        @auth_provider && @auth_provider.create_authenticator(authentication_class)
+      end
     end
   end
 end

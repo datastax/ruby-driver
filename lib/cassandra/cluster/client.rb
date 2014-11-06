@@ -67,7 +67,7 @@ module Cassandra
           futures = @connecting_hosts.map do |(host, distance)|
             f = connect_to_host(host, distance)
             f.recover do |error|
-              Cassandra::Client::FailedConnection.new(error, host)
+              FailedConnection.new(error, host)
             end
           end
 
@@ -340,7 +340,7 @@ module Cassandra
             @connecting_hosts.delete(host)
             @prepared_statements[host] = {}
             @preparing_statements[host] = {}
-            manager = @connections[host] ||= Cassandra::Client::ConnectionManager.new
+            manager = @connections[host] ||= ConnectionPool.new
           end
 
           manager.add_connections(connections)

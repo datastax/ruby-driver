@@ -180,10 +180,9 @@ module Cassandra
       # Returns true when there are no more pages to load.
       #
       # This is only relevant when you have requested paging of the results with
-      # the `:page_size` option to {Cassandra::Client::Client#execute} or
-      # {Cassandra::Client::PreparedStatement#execute}.
+      # the `:page_size` option to {Cassandra::Session#execute}.
       #
-      # @see Cassandra::Client::Client#execute
+      # @see Cassandra::Session#execute
       def last_page?
         true
       end
@@ -191,10 +190,9 @@ module Cassandra
       # Returns the next page or nil when there is no next page.
       #
       # This is only relevant when you have requested paging of the results with
-      # the `:page_size` option to {Cassandra::Client::Client#execute} or
-      # {Cassandra::Client::PreparedStatement#execute}.
+      # the `:page_size` option to {Cassandra::Session#execute_async}.
       #
-      # @see Cassandra::Client::Client#execute
+      # @see Cassandra::Session#execute_async
       def next_page_async(options = nil)
         @futures.value(nil)
       end

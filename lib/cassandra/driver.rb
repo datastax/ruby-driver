@@ -54,7 +54,7 @@ module Cassandra
     let(:ordered_partitioner) { Cluster::Schema::Partitioners::Ordered.new }
     let(:random_partitioner)  { Cluster::Schema::Partitioners::Random.new }
 
-    let(:connector) { Cluster::Connector.new(logger, io_reactor, cluster_registry, connection_options) }
+    let(:connector) { Cluster::Connector.new(logger, io_reactor, cluster_registry, connection_options, execution_options) }
 
     let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, connector) }
 
@@ -75,7 +75,7 @@ module Cassandra
     let(:protocol_version)          { 2 }
     let(:connect_timeout)           { 10 }
     let(:ssl)                       { false }
-    let(:logger)                    { Client::NullLogger.new  }
+    let(:logger)                    { NullLogger.new  }
     let(:compressor)                { nil }
     let(:credentials)               { nil }
     let(:auth_provider)             { nil }

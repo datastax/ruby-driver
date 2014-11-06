@@ -49,28 +49,28 @@ module Cassandra
     end
 
     # Mixed into all internal driver errors.
-    module InternalError
+    class InternalError < ::RuntimeError
       include Error, HostError
     end
 
     # Raised when data decoding fails.
     class DecodingError < ::RuntimeError
-      include InternalError
+      include Error, HostError
     end
 
     # Raised when data encoding fails.
     class EncodingError < ::RuntimeError
-      include InternalError
+      include Error, HostError
     end
 
     # Raised when a connection level error occured.
     class IOError < ::IOError
-      include InternalError
+      include Error, HostError
     end
 
     # Raised when a timeout has occured.
     class TimeoutError < ::Timeout::Error
-      include InternalError
+      include Error, HostError
     end
 
     # Mixed into all request execution errors.

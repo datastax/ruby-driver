@@ -22,13 +22,14 @@ module Cassandra
     class Connector
       include MonitorMixin
 
-      def initialize(logger, io_reactor, cluster_registry, connection_options)
-        @logger           = logger
-        @reactor          = io_reactor
-        @registry         = cluster_registry
-        @options          = connection_options
-        @connections      = ::Hash.new
-        @open_connections = ::Hash.new
+      def initialize(logger, io_reactor, cluster_registry, connection_options, execution_options)
+        @logger             = logger
+        @reactor            = io_reactor
+        @registry           = cluster_registry
+        @connection_options = connection_options
+        @execution_options  = execution_options
+        @connections        = ::Hash.new
+        @open_connections   = ::Hash.new
 
         mon_initialize
       end
@@ -115,13 +116,33 @@ module Cassandra
       UNCLAIMED_TIMEOUT = 5 # close unclaimed connections in five seconds
 
       def do_connect(host)
-        create_connector.connect(host.ip.to_s).fallback do |error|
+        f = @reactor.connect(host.ip.to_s, @connection_options.port, {:timeout => @connection_options.connect_timeout, :ssl => @connection_options.ssl}) do |connection|
+          raise Errors::ClientError, 'Not connected, reactor stopped' unless connection
+          Protocol::CqlProtocolHandler.new(connection, @reactor, @connection_options.protocol_version, @connection_options.compressor, @connection_options.heartbeat_interval, @connection_options.idle_timeout)
+        end
+        f = f.flat_map do |connection|
+          request_options(connection).flat_map do |options|
+            compression = @connection_options.compression
+            supported_algorithms = options['COMPRESSION']
+
+            if compression && !supported_algorithms.include?(compression)
+              @logger.warn("Compression with #{compression.inspect} is not supported by host at #{host.ip}, supported algorithms are #{supported_algorithms.inspect}")
+              compression = nil
+            end
+
+            supported_cql_versions = options['CQL_VERSION']
+            cql_version = (supported_cql_versions && !supported_cql_versions.empty?) ? supported_cql_versions.first : '3.1.0'
+
+            startup_connection(connection, cql_version, compression)
+          end
+        end
+        f.fallback do |error|
           case error
           when Errors::ProtocolError
             synchronize do
-              if @options.protocol_version > 1
-                @logger.info("Host #{host.ip} doesn't support protocol version #{@options.protocol_version}, downgrading")
-                @options.protocol_version -= 1
+              if @connection_options.protocol_version > 1
+                @logger.info("Host #{host.ip} doesn't support protocol version #{@connection_options.protocol_version}, downgrading")
+                @connection_options.protocol_version -= 1
                 do_connect(host)
               else
                 Ione::Future.failed(error)
@@ -137,32 +158,82 @@ module Cassandra
         end
       end
 
-      def create_connector
-        authentication_step = @options.protocol_version == 1 ? Cassandra::Client::CredentialsAuthenticationStep.new(@options.credentials) : Cassandra::Client::SaslAuthenticationStep.new(@options.auth_provider)
-        protocol_handler_factory = lambda do |connection|
-          raise Errors::ClientError, 'Not connected, reactor stopped' unless connection
-          Protocol::CqlProtocolHandler.new(connection, @reactor, @options.protocol_version, @options.compressor, @options.heartbeat_interval, @options.idle_timeout)
+      def startup_connection(connection, cql_version, compression)
+        connection.send_request(Protocol::StartupRequest.new(cql_version, compression), @execution_options.timeout).flat_map do |r|
+          case r
+          when Protocol::AuthenticateResponse
+            if @connection_options.protocol_version == 1
+              credentials = @connection_options.credentials
+              if credentials
+                send_credentials(connection, credentials)
+              else
+                Ione::Future.failed(Errors::AuthenticationError.new('Server requested authentication, but client was not configured to authenticate'))
+              end
+            else
+              authenticator = @connection_options.create_authenticator(r.authentication_class)
+              if authenticator
+                challenge_response_cycle(connection, authenticator, authenticator.initial_response)
+              else
+                Ione::Future.failed(Errors::AuthenticationError.new('Server requested authentication, but client was not configured to authenticate'))
+              end
+            end
+          when Protocol::ReadyResponse
+            ::Ione::Future.resolved(connection)
+          when Protocol::ErrorResponse
+            ::Ione::Future.failed(r.to_error(VOID_STATEMENT))
+          else
+            ::Ione::Future.failed(Errors::InternalError.new("Unexpected response #{r.inspect}"))
+          end
         end
+      end
 
-        Cassandra::Client::Connector.new([
-          Cassandra::Client::ConnectStep.new(
-            @reactor,
-            protocol_handler_factory,
-            @options.port,
-            {:timeout => @options.connect_timeout, :ssl => @options.ssl},
-            @logger
-          ),
-          Cassandra::Client::CacheOptionsStep.new(@options.connect_timeout),
-          Cassandra::Client::InitializeStep.new(@options.compressor, @logger),
-          authentication_step,
-          Cassandra::Client::CachePropertiesStep.new,
-        ])
+      def request_options(connection)
+        connection.send_request(Protocol::OptionsRequest.new, @execution_options.timeout).map do |r|
+          case r
+          when Protocol::SupportedResponse
+            r.options
+          when Protocol::ErrorResponse
+            raise r.to_error(VOID_STATEMENT)
+          else
+            raise Errors::InternalError, "Unexpected response #{r.inspect}"
+          end
+        end
+      end
+
+      def send_credentials(connection, credentials)
+        connection.send_request(Protocol::CredentialsRequest.new(credentials), @execution_options.timeout).map do |r|
+          case r
+          when Protocol::ReadyResponse
+            connection
+          when Protocol::ErrorResponse
+            raise r.to_error(VOID_STATEMENT)
+          else
+            raise Errors::InternalError, "Unexpected response #{r.inspect}"
+          end
+        end
+      end
+
+      def challenge_response_cycle(connection, authenticator, token)
+        connection.send_request(Protocol::AuthResponseRequest.new(token), @execution_options.timeout).flat_map do |r|
+          case r
+          when Protocol::AuthChallengeResponse
+            token = authenticator.challenge_response(r.token)
+            challenge_response_cycle(pending_connection, authenticator, token)
+          when Protocol::AuthSuccessResponse
+            authenticator.authentication_successful(r.token) rescue nil
+            ::Ione::Future.resolved(connection)
+          when Protocol::ErrorResponse
+            ::Ione::Future.failed(r.to_error(VOID_STATEMENT))
+          else
+            ::Ione::Future.failed(Errors::InternalError.new("Unexpected response #{r.inspect}"))
+          end
+        end
       end
 
       def create_additional_connections(host, count, established_connections, error = nil)
         futures = count.times.map do
           connect(host).recover do |e|
-            Cassandra::Client::FailedConnection.new(e, host)
+            FailedConnection.new(e, host)
           end
         end
 
