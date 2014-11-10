@@ -63,6 +63,7 @@ module Cassandra
         @connected_future = begin
           @logger.info('Creating session')
           @registry.add_listener(self)
+          @schema.add_listener(self)
 
           futures = @connecting_hosts.map do |(host, distance)|
             f = connect_to_host(host, distance)
@@ -100,6 +101,7 @@ module Cassandra
 
         @closed_future = begin
           @registry.remove_listener(self)
+          @schema.remove_listener(self)
 
           if state == :connecting
             f = @connected_future.recover.flat_map { close_connections }
@@ -156,6 +158,18 @@ module Cassandra
           Ione::Future.resolved
         end
       end
+
+      def keyspace_created(keyspace)
+      end
+
+      def keyspace_changed(keyspace)
+      end
+
+      def keyspace_dropped(keyspace)
+        @keyspace = nil if @keyspace == keyspace.name
+        nil
+      end
+
 
       def query(statement, options, paging_state = nil)
         request = Protocol::QueryRequest.new(statement.cql, statement.params, nil, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
@@ -671,9 +685,7 @@ module Cassandra
             when Protocol::RowsResultResponse
               promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
             when Protocol::SchemaChangeResultResponse
-              if r.change == 'DROPPED' && r.keyspace == @keyspace && r.table.empty?
-                @keyspace = nil
-              end
+              @schema.delete_keyspace(r.keyspace) if r.change == 'DROPPED' && r.table.empty?
 
               @logger.debug('Waiting for schema to propagate to all hosts after a change')
               wait_for_schema_agreement(connection, @reconnection_policy.schedule).on_complete do |f|
