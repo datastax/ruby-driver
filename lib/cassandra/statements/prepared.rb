@@ -50,7 +50,11 @@ module Cassandra
       #   original cql passed to {Cassandra::Session#prepare}
       # @return [Cassandra::Statements::Bound] bound statement
       def bind(*args)
-        raise ::ArgumentError, "expecting exactly #{@params_metadata.size} bind parameters, #{args.size} given" if args.size != @params_metadata.size
+        Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{@params_metadata.size} bind parameters, #{args.size} given" }
+
+        @params_metadata.each_with_index do |metadata, i|
+          Util.assert_type(metadata[3], args[i]) { "argument for #{metadata[2].inspect} must be #{metadata[3].inspect}, #{args[i]} given" }
+        end
 
         return Bound.new(@cql, @params_metadata, @result_metadata, args) if @params_metadata.empty?
 

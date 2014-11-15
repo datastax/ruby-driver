@@ -60,8 +60,13 @@ module Cassandra
           datacenter              = datacenter && String(datacenter)
           max_remote_hosts_to_use = max_remote_hosts_to_use && Integer(max_remote_hosts_to_use)
 
-          raise ::ArgumentError, "datacenter cannot be empty" if datacenter && datacenter.empty?
-          raise ::ArgumentError, "max_remote_hosts_to_use must be nil or >= 0" if max_remote_hosts_to_use && max_remote_hosts_to_use < 0
+          unless datacenter.nil?
+            Util.assert_not_empty(datacenter) { "datacenter cannot be empty" }
+          end
+
+          unless max_remote_hosts_to_use.nil?
+            Util.assert(max_remote_hosts_to_use >= 0) { "max_remote_hosts_to_use must be nil or >= 0" }
+          end
 
           @datacenter = datacenter
           @max_remote = max_remote_hosts_to_use
