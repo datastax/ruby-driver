@@ -67,5 +67,17 @@
       <td><code><a href="http://datastax.github.io/ruby-driver/api/time_uuid/">Cassandra::TimeUuid</a></code></td>
       <td><code>timeuuid</code></td>
     </tr>
+    <tr>
+      <td><code>Array</code></td>
+      <td><code>list</code></td>
+    </tr>
+    <tr>
+      <td><code>Set</code></td>
+      <td><code>set</code></td>
+    </tr>
+    <tr>
+      <td><code>Hash</code></td>
+      <td><code>map</code></td>
+    </tr>
   </tbody>
 </table>
