@@ -66,7 +66,7 @@ module Cassandra
   #   in `:hosts` option.
   #
   # @option options [Numeric] :connect_timeout (10) connection timeout in
-  #   seconds. Setting value to `nil` will remove connection timeout.
+  #   seconds. Setting value to `nil` will reset it to 5 seconds.
   #
   # @option options [Numeric] :timeout (10) request execution timeout in
   #   seconds. Setting value to `nil` will remove request timeout.
