@@ -175,6 +175,16 @@ module Cassandra
   #
   # @return [Cassandra::Cluster] a cluster instance
   def self.cluster(options = {})
+    cluster_async(options).get
+  end
+
+  # Creates a {Cassandra::Cluster} instance
+  #
+  # @see Cassandra.cluster
+  #
+  # @return [Cassandra::Future<Cassandra::Cluster>] a future resolving to the
+  #   cluster instance.
+  def self.cluster_async(options = {})
     options = options.select do |key, value|
       [ :credentials, :auth_provider, :compression, :hosts, :logger, :port,
         :load_balancing_policy, :reconnection_policy, :retry_policy, :listeners,
@@ -184,6 +194,8 @@ module Cassandra
         :address_resolution_policy, :idle_timeout, :heartbeat_interval, :timeout
       ].include?(key)
     end
+
+    futures = options.fetch(:futures_factory, Future)
 
     has_username = options.has_key?(:username)
     has_password = options.has_key?(:password)
@@ -438,8 +450,20 @@ module Cassandra
     if hosts.empty?
       raise ::ArgumentError, ":hosts #{options[:hosts].inspect} could not be resolved to any ip address"
     end
+  rescue => e
+    futures.error(e)
+  else
+    promise = futures.promise
 
-    Driver.new(options).connect(hosts).value
+    Driver.new(options).connect(hosts).on_complete do |f|
+      if f.resolved?
+        promise.fulfill(f.value)
+      else
+        f.on_failure {|e| promise.break(e)}
+      end
+    end
+
+    promise.future
   end
 end
 
