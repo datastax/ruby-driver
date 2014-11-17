@@ -108,16 +108,16 @@ module Cassandra
       private
 
       # @private
-      SELECT_SESSION = "SELECT * FROM system_traces.sessions WHERE session_id = ?"
+      SELECT_SESSION = "SELECT * FROM system_traces.sessions WHERE session_id = %s"
       # @private
-      SELECT_EVENTS  = "SELECT * FROM system_traces.events WHERE session_id = ?"
+      SELECT_EVENTS  = "SELECT * FROM system_traces.events WHERE session_id = %s"
 
       # @private
       def load
         synchronize do
           return if @loaded
 
-          data = @client.query(Statements::Simple.new(SELECT_SESSION, @id), VOID_OPTIONS).get.first
+          data = @client.query(Statements::Simple.new(SELECT_SESSION % @id), VOID_OPTIONS).get.first
           raise ::RuntimeError, "unable to load trace #{@id}" if data.nil?
 
           @coordinator = data['coordinator']
@@ -138,7 +138,7 @@ module Cassandra
 
           @events = []
 
-          @client.query(Statements::Simple.new(SELECT_EVENTS, @id), VOID_OPTIONS).get.each do |row|
+          @client.query(Statements::Simple.new(SELECT_EVENTS % @id), VOID_OPTIONS).get.each do |row|
             @events << Event.new(row['event_id'], row['activity'], row['source'], row['source_elapsed'], row['thread'])
           end
 

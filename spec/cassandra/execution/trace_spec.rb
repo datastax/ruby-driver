@@ -27,7 +27,7 @@ module Cassandra
 
       [:coordinator, :duration, :parameters, :request, :started_at].each do |method|
         describe("##{method}") do
-          let(:statement) { Statements::Simple.new("SELECT * FROM system_traces.sessions WHERE session_id = ?", id) }
+          let(:statement) { Statements::Simple.new("SELECT * FROM system_traces.sessions WHERE session_id = %s" % id) }
           let(:data) do
             {
               'coordinator' => IPAddr.new('127.0.0.1'),
@@ -53,7 +53,7 @@ module Cassandra
       end
 
       describe('#events') do
-        let(:statement) { Statements::Simple.new("SELECT * FROM system_traces.events WHERE session_id = ?", id) }
+        let(:statement) { Statements::Simple.new("SELECT * FROM system_traces.events WHERE session_id = %s" % id) }
         let(:rows) do
           generator = Uuid::Generator.new
 

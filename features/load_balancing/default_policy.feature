@@ -131,7 +131,7 @@ Feature: Default Load Balancing Policy
                     hosts: ['127.0.0.1', '127.0.0.2']
                   )
       session   = cluster.connect('simplex')
-      statement = "SELECT token(id) FROM songs WHERE id = ?"
+      statement = "SELECT token(id) FROM songs"
 
       $stdout.puts("=== START ===")
       $stdout.flush

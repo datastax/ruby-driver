@@ -39,11 +39,7 @@ module Cassandra
       end
 
       def write(protocol_version, buffer)
-        if protocol_version > 1
-          buffer.append_long_string(@cql)
-        else
-          buffer.append_long_string(serialized_cql)
-        end
+        buffer.append_long_string(@cql)
         buffer.append_consistency(@consistency)
         if protocol_version > 1
           flags  = 0
@@ -107,12 +103,6 @@ module Cassandra
       end
 
       private
-
-      def serialized_cql
-        return @cql if @values.nil? || @values.empty?
-        i = -1
-        @cql.gsub('?') { Util.encode(@values[i += 1]) }
-      end
 
       def self.guess_type(value)
         type = TYPE_GUESSES[value.class]
