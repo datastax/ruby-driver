@@ -61,6 +61,9 @@ module Cassandra
     #   Therefore, make sure to pass empty `options` when executing a statement
     #   with the last parameter required to be a map datatype.
     #
+    # @note Positional arguments are only supported on Apache Cassandra 2.0 and
+    #   above.
+    #
     # @return [Cassandra::Future<Cassandra::Result>]
     #
     # @see Cassandra::Session#execute A list of errors this future can be
