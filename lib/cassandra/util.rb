@@ -137,6 +137,136 @@ module Cassandra
       DBL_QUOT + name + DBL_QUOT
     end
 
+    def assert_type(type, value, message = nil, &block)
+      return if value.nil?
+
+      case type
+      when ::Array
+        case type.first
+        when :list
+          assert_instance_of(::Array, value, message, &block)
+          value.each do |v|
+            assert_type(type[1], v)
+          end
+        when :set
+          assert_instance_of(::Set, value, message, &block)
+          value.each do |v|
+            assert_type(type[1], v)
+          end
+        when :map
+          assert_instance_of(::Hash, value, message, &block)
+          value.each do |k, v|
+            assert_type(type[1], k)
+            assert_type(type[2], v)
+          end
+        else
+          raise ::RuntimeError, "unsupported complex type #{type.inspect}"
+        end
+      else
+        case type
+        when :ascii then assert_instance_of(::String, value, message, &block)
+        when :bigint then assert_instance_of(::Numeric, value, message, &block)
+        when :blob then assert_instance_of(::String, value, message, &block)
+        when :boolean then assert_instance_of_one_of([::TrueClass, ::FalseClass], value, message, &block)
+        when :counter then assert_instance_of(::Numeric, value, message, &block)
+        when :decimal then assert_instance_of(::BigDecimal, value, message, &block)
+        when :double then assert_instance_of(::Float, value, message, &block)
+        when :float then assert_instance_of(::Float, value, message, &block)
+        when :inet then assert_instance_of(::IPAddr, value, message, &block)
+        when :int then assert_instance_of(::Numeric, value, message, &block)
+        when :text then assert_instance_of(::String, value, message, &block)
+        when :varchar then assert_instance_of(::String, value, message, &block)
+        when :timestamp then assert_instance_of(::Time, value, message, &block)
+        when :timeuuid then assert_instance_of(TimeUuid, value, message, &block)
+        when :uuid then assert_instance_of(Uuid, value, message, &block)
+        when :varint then assert_instance_of(::Numeric, value, message, &block)
+        else
+          raise ::RuntimeError, "unsupported type #{type.inspect}"
+        end
+      end
+    end
+
+    def assert_instance_of(kind, value, message = nil, &block)
+      unless value.is_a?(kind)
+        message   = yield if block_given?
+        message ||= "value must be an instance of #{kind}, #{value.inspect} given"
+
+        raise ::ArgumentError, message
+      end
+    end
+
+    def assert_instance_of_one_of(kinds, value, message = nil, &block)
+      unless kinds.any? {|kind| value.is_a?(kind)}
+        message   = yield if block_given?
+        message ||= "value must be an instance of one of #{kinds.inspect}, #{value.inspect} given"
+
+        raise ::ArgumentError, message
+      end
+    end
+
+    def assert_responds_to(method, value, message = nil, &block)
+      unless value.respond_to?(method)
+        message   = yield if block_given?
+        message ||= "value #{value.inspect} must respond to #{method.inspect}, but doesn't"
+
+        raise ::ArgumentError, message
+      end
+    end
+
+    def assert_responds_to_all(methods, value, message = nil, &block)
+      unless methods.all? {|method| value.respond_to?(method)}
+        message   = yield if block_given?
+        message ||= "value #{value.inspect} must respond to all methods #{methods.inspect}, but doesn't"
+
+        raise ::ArgumentError, message
+      end
+    end
+
+    def assert_not_empty(value, message = nil, &block)
+      if value.empty?
+        message   = yield if block_given?
+        message ||= "value cannot be empty"
+
+        raise ::ArgumentError, message
+      end
+    end
+
+    def assert_file_exists(path, message = nil, &block)
+      unless ::File.exists?(path)
+        message   = yield if block_given?
+        message ||= "expected file at #{path.inspect} to exist, but it doesn't"
+
+        raise ::ArgumentError, message
+      end
+    end
+
+    def assert_one_of(range, value, message = nil, &block)
+      unless range.include?(value)
+        message   = yield if block_given?
+        message ||= "value must be included in #{value.inspect}, #{value.inspect} given"
+
+        raise ::ArgumentError, message
+      end
+    end
+
+    def assert(condition, message = nil, &block)
+      unless condition
+        message   = yield if block_given?
+        message ||= "assertion failed"
+
+        raise ::ArgumentError, message
+      end
+    end
+
+    def assert_equal(expected, actual, message = nil, &block)
+      unless expected == actual
+        message   = yield if block_given?
+        message ||= "expected #{actual.inspect} to equal #{expected.inspect}"
+
+        raise ::ArgumentError, message
+      end
+    end
+
     # @private
     LOWERCASE_REGEXP = /[[:lower:]\_]*/
     # @private

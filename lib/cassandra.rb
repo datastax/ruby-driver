@@ -66,21 +66,22 @@ module Cassandra
   #   in `:hosts` option.
   #
   # @option options [Numeric] :connect_timeout (10) connection timeout in
-  #   seconds.
+  #   seconds. Setting value to `nil` will remove connection timeout.
   #
   # @option options [Numeric] :timeout (10) request execution timeout in
-  #   seconds.
+  #   seconds. Setting value to `nil` will remove request timeout.
   #
   # @option options [Numeric] :heartbeat_interval (30) how often should a
   #   heartbeat be sent to determine if a connection is alive. Several things to
   #   note about this option. Only one heartbeat request will ever be
   #   outstanding on a given connection. Each heatbeat will be sent in at least
   #   `:heartbeat_interval` seconds after the last request has been sent on a
-  #   given connection.
+  #   given connection. Setting value to `nil` will remove connection timeout.
   #
   # @option options [Numeric] :idle_timeout (60) period of inactivity after
   #   which a connection is considered dead. Note that this value should be at
-  #   least a few times larger than `:heartbeat_interval`.
+  #   least a few times larger than `:heartbeat_interval`. Setting value to
+  #   `nil` will remove automatic connection termination.
   #
   # @option options [String] :username (none) username to use for
   #   authentication to cassandra. Note that you must also specify `:password`.
@@ -139,8 +140,8 @@ module Cassandra
   # @option options [Boolean] :trace (false) whether or not to trace all
   #   requests by default.
   #
-  # @option options [Integer] :page_size (nil) default page size for all select
-  #   queries.
+  # @option options [Integer] :page_size (10000) default page size for all
+  #   select queries. Set this value to `nil` to disable paging.
   #
   # @option options [Hash{String => String}] :credentials (none) a hash of credentials - to be used with [credentials authentication in cassandra 1.2](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L238-L250). Note that if you specified `:username` and `:password` options, those credentials are configured automatically.
   #
@@ -195,11 +196,13 @@ module Cassandra
         raise ::ArgumentError, "both :username and :password options must be specified, but only :password given"
       end
 
-      username = String(options.delete(:username))
-      password = String(options.delete(:password))
+      username = options.delete(:username)
+      password = options.delete(:password)
 
-      raise ::ArgumentError, ":username cannot be empty" if username.empty?
-      raise ::ArgumentError, ":password cannot be empty" if password.empty?
+      Util.assert_instance_of(::String, username) { ":username must be a String, #{username.inspect} given" }
+      Util.assert_instance_of(::String, password) { ":password must be a String, #{password.inspect} given" }
+      Util.assert_not_empty(username) { ":username cannot be empty" }
+      Util.assert_not_empty(password) { ":password cannot be empty" }
 
       options[:credentials]   = {:username => username, :password => password}
       options[:auth_provider] = Auth::Providers::Password.new(username, password)
@@ -208,17 +211,13 @@ module Cassandra
     if options.has_key?(:credentials)
       credentials = options[:credentials]
 
-      unless credentials.is_a?(Hash)
-        raise ::ArgumentError, ":credentials must be a hash, #{credentials.inspect} given"
-      end
+      Util.assert_instance_of(::Hash, credentials) { ":credentials must be a hash, #{credentials.inspect} given" }
     end
 
     if options.has_key?(:auth_provider)
       auth_provider = options[:auth_provider]
 
-      unless auth_provider.respond_to?(:create_authenticator)
-        raise ::ArgumentError, ":auth_provider #{auth_provider.inspect} must respond to :create_authenticator, but doesn't"
-      end
+      Util.assert_responds_to(:create_authenticator, auth_provider) { ":auth_provider #{auth_provider.inspect} must respond to :create_authenticator, but doesn't" }
     end
 
     has_client_cert = options.has_key?(:client_cert)
@@ -236,13 +235,8 @@ module Cassandra
       client_cert = ::File.expand_path(options[:client_cert])
       private_key = ::File.expand_path(options[:private_key])
 
-      unless ::File.exists?(client_cert)
-        raise ::ArgumentError, ":client_cert #{client_cert.inspect} doesn't exist"
-      end
-
-      unless ::File.exists?(private_key)
-        raise ::ArgumentError, ":private_key #{private_key.inspect} doesn't exist"
-      end
+      Util.assert_file_exists(client_cert) { ":client_cert #{client_cert.inspect} doesn't exist" }
+      Util.assert_file_exists(private_key) { ":private_key #{private_key.inspect} doesn't exist" }
     end
 
     has_server_cert = options.has_key?(:server_cert)
@@ -250,9 +244,7 @@ module Cassandra
     if has_server_cert
       server_cert = ::File.expand_path(options[:server_cert])
 
-      unless ::File.exists?(server_cert)
-        raise ::ArgumentError, ":server_cert #{server_cert.inspect} doesn't exist"
-      end
+      Util.assert_file_exists(server_cert) { ":server_cert #{server_cert.inspect} doesn't exist" }
     end
 
     if has_client_cert || has_server_cert
@@ -279,9 +271,7 @@ module Cassandra
     if options.has_key?(:ssl)
       ssl = options[:ssl]
 
-      unless ssl.is_a?(::TrueClass) || ssl.is_a?(::FalseClass) || ssl.is_a?(::OpenSSL::SSL::SSLContext)
-        raise ::ArgumentError, ":ssl must be a boolean or an OpenSSL::SSL::SSLContext, #{ssl.inspect} given"
-      end
+      Util.assert_instance_of_one_of([::TrueClass, ::FalseClass, ::OpenSSL::SSL::SSLContext], ssl) { ":ssl must be a boolean or an OpenSSL::SSL::SSLContext, #{ssl.inspect} given" }
     end
 
     if options.has_key?(:compression)
@@ -303,26 +293,20 @@ module Cassandra
       compressor = options[:compressor]
       methods    = [:algorithm, :compress?, :compress, :decompress]
 
-      unless methods.all? {|method| compressor.respond_to?(method)}
-        raise ::ArgumentError, ":compressor #{compressor.inspect} must respond to #{methods.inspect}, but doesn't"
-      end
+      Util.assert_responds_to_all(methods, compressor) { ":compressor #{compressor.inspect} must respond to #{methods.inspect}, but doesn't" }
     end
 
     if options.has_key?(:logger)
       logger  = options[:logger]
       methods = [:debug, :info, :warn, :error, :fatal]
 
-      unless methods.all? {|method| logger.respond_to?(method)}
-        raise ::ArgumentError, ":logger #{logger.inspect} must respond to #{methods.inspect}, but doesn't"
-      end
+      Util.assert_responds_to_all(methods, logger) { ":logger #{logger.inspect} must respond to #{methods.inspect}, but doesn't" }
     end
 
     if options.has_key?(:port)
       port = options[:port] = Integer(options[:port])
 
-      if port < 0 || port > 65536
-        raise ::ArgumentError, ":port must be a valid ip port, #{port.given}"
-      end
+      Util.assert_one_of(0..65536, port) { ":port must be a valid ip port, #{port.given}" }
     end
 
     if options.has_key?(:datacenter)
@@ -330,34 +314,38 @@ module Cassandra
     end
 
     if options.has_key?(:connect_timeout)
-      timeout = options[:connect_timeout] = Integer(options[:connect_timeout])
+      timeout = options[:connect_timeout]
 
-      if timeout < 0
-        raise ::ArgumentError, ":connect_timeout must be a positive value, #{timeout.given}"
+      unless timeout.nil?
+        Util.assert_instance_of(::Numeric, timeout) { ":connect_timeout must be a number of seconds, #{timeout.given}" }
+        Util.assert(timeout > 0) { ":connect_timeout must be greater than 0, #{timeout.given}" }
       end
     end
 
     if options.has_key?(:timeout)
-      timeout = options[:timeout] = Integer(options[:timeout])
+      timeout = options[:timeout]
 
-      if timeout < 0
-        raise ::ArgumentError, ":timeout must be a positive value, #{timeout.given}"
+      unless timeout.nil?
+        Util.assert_instance_of(::Numeric, timeout) { ":timeout must be a number of seconds, #{timeout.given}" }
+        Util.assert(timeout > 0) { ":timeout must be greater than 0, #{timeout.given}" }
       end
     end
 
     if options.has_key?(:heartbeat_interval)
-      timeout = options[:heartbeat_interval] = Integer(options[:heartbeat_interval])
+      timeout = options[:heartbeat_interval]
 
-      if timeout < 0
-        raise ::ArgumentError, ":heartbeat_interval must be a positive value, #{timeout.given}"
+      unless timeout.nil?
+        Util.assert_instance_of(::Numeric, timeout) { ":heartbeat_interval must be a number of seconds, #{timeout.given}" }
+        Util.assert(timeout > 0) { ":heartbeat_interval must be greater than 0, #{timeout.given}" }
       end
     end
 
     if options.has_key?(:idle_timeout)
-      timeout = options[:idle_timeout] = Integer(options[:idle_timeout])
+      timeout = options[:idle_timeout]
 
-      if timeout < 0
-        raise ::ArgumentError, ":idle_timeout must be a positive value, #{timeout.given}"
+      unless timeout.nil?
+        Util.assert_instance_of(::Numeric, timeout) { ":idle_timeout must be a number of seconds, #{timeout.given}" }
+        Util.assert(timeout > 0) { ":idle_timeout must be greater than 0, #{timeout.given}" }
       end
     end
 
@@ -365,42 +353,32 @@ module Cassandra
       load_balancing_policy = options[:load_balancing_policy]
       methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :distance, :plan]
 
-      unless methods.all? {|method| load_balancing_policy.respond_to?(method)}
-        raise ::ArgumentError, ":load_balancing_policy #{load_balancing_policy.inspect} must respond to #{methods.inspect}, but doesn't"
-      end
+      Util.assert_responds_to_all(methods, load_balancing_policy) { ":load_balancing_policy #{load_balancing_policy.inspect} must respond to #{methods.inspect}, but doesn't" }
     end
 
     if options.has_key?(:reconnection_policy)
       reconnection_policy = options[:reconnection_policy]
 
-      unless reconnection_policy.respond_to?(:schedule)
-        raise ::ArgumentError, ":reconnection_policy #{reconnection_policy.inspect} must respond to :schedule, but doesn't"
-      end
+      Util.assert_responds_to(:schedule, reconnection_policy) { ":reconnection_policy #{reconnection_policy.inspect} must respond to :schedule, but doesn't" }
     end
 
     if options.has_key?(:retry_policy)
       retry_policy = options[:retry_policy]
       methods = [:read_timeout, :write_timeout, :unavailable]
 
-      unless methods.all? {|method| retry_policy.respond_to?(method)}
-        raise ::ArgumentError, ":retry_policy #{retry_policy.inspect} must respond to #{methods.inspect}, but doesn't"
-      end
+      Util.assert_responds_to_all(methods, retry_policy) { ":retry_policy #{retry_policy.inspect} must respond to #{methods.inspect}, but doesn't" }
     end
 
     if options.has_key?(:listeners)
       listeners = options[:listeners]
 
-      unless listeners.respond_to?(:each)
-        raise ::ArgumentError, ":listeners must be an Enumerable, #{listeners.inspect} given"
-      end
+      Util.assert_instance_of(::Enumerable, listeners) { ":listeners must be an Enumerable, #{listeners.inspect} given" }
     end
 
     if options.has_key?(:consistency)
       consistency = options[:consistency]
 
-      unless CONSISTENCIES.include?(consistency)
-        raise ::ArgumentError, ":consistency must be one of #{CONSISTENCIES.inspect}, #{consistency.inspect} given"
-      end
+      Util.assert_one_of(CONSISTENCIES, consistency) { ":consistency must be one of #{CONSISTENCIES.inspect}, #{consistency.inspect} given" }
     end
 
     if options.has_key?(:trace)
@@ -408,10 +386,11 @@ module Cassandra
     end
 
     if options.has_key?(:page_size)
-      page_size = options[:page_size] = Integer(options[:page_size])
+      page_size = options[:page_size]
 
-      if page_size <= 0
-        raise ::ArgumentError, ":page_size must be a positive integer, #{page_size.inspect} given"
+      unless page_size.nil?
+        page_size = options[:page_size] = Integer(page_size)
+        Util.assert(page_size > 0) { ":page_size must be a positive integer, #{page_size.inspect} given" }
       end
     end
 
@@ -419,9 +398,7 @@ module Cassandra
       futures_factory = options[:futures_factory]
       methods = [:error, :value, :promise, :all]
 
-      unless methods.all? {|method| futures_factory.respond_to?(method)}
-        raise ::ArgumentError, ":futures_factory #{futures_factory.inspect} must respond to #{methods.inspect}, but doesn't"
-      end
+      Util.assert_responds_to_all(methods, futures_factory) { ":futures_factory #{futures_factory.inspect} must respond to #{methods.inspect}, but doesn't" }
     end
 
     if options.has_key?(:address_resolution)
@@ -429,6 +406,7 @@ module Cassandra
 
       case address_resolution
       when :none
+        # do nothing
       when :ec2_multi_region
         options[:address_resolution_policy] = AddressResolution::Policies::EC2MultiRegion.new
       else
@@ -439,9 +417,7 @@ module Cassandra
     if options.has_key?(:address_resolution_policy)
       address_resolver = options[:address_resolution_policy]
 
-      unless address_resolver.respond_to?(:resolve)
-        raise ::ArgumentError, ":address_resolution_policy must respond to :resolve, #{address_resolver.inspect} but doesn't"
-      end
+      Util.assert_responds_to(:resolve, address_resolver) { ":address_resolution_policy must respond to :resolve, #{address_resolver.inspect} but doesn't" }
     end
 
     hosts = []

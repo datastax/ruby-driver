@@ -344,6 +344,8 @@ module Cassandra
       end
 
       def schedule_heartbeat
+        return unless @heartbeat_interval
+
         timer = nil
 
         @lock.synchronize do
@@ -360,6 +362,8 @@ module Cassandra
       end
 
       def reschedule_termination
+        return unless @idle_timeout
+
         timer = nil
 
         @lock.synchronize do

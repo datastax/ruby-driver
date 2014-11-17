@@ -86,7 +86,7 @@ module Cassandra
     let(:address_resolution_policy) { AddressResolution::Policies::None.new }
     let(:consistency)               { :one }
     let(:trace)                     { false }
-    let(:page_size)                 { nil }
+    let(:page_size)                 { 10000 }
     let(:heartbeat_interval)        { 30 }
     let(:idle_timeout)              { 60 }
     let(:timeout)                   { 10 }

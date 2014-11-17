@@ -35,12 +35,9 @@ module Cassandra
         # @param wrapped_policy [Cassandra::LoadBalancing::Policy] actual policy to filter
         # @raise [ArgumentError] if arguments are of unexpected types
         def initialize(ips, wrapped_policy)
-          raise ::ArgumentError, "ips must be enumerable" unless ips.respond_to?(:each)
+          Util.assert_instance_of(::Enumerable, ips) { "ips must be an Enumerable, #{ips.inspect} given" }
           methods = [:host_up, :host_down, :host_found, :host_lost, :distance, :plan]
-
-          unless methods.all? {|method| wrapped_policy.respond_to?(method)}
-            raise ::ArgumentError, "supplied policy must be a Cassandra::LoadBalancing::Policy, #{wrapped_policy.inspect} given"
-          end
+          Util.assert_responds_to_all(methods, wrapped_policy) { "supplied policy must respond to #{methods.inspect}, but doesn't" }
 
           @ips    = ::Set.new
           @policy = wrapped_policy
@@ -52,7 +49,7 @@ module Cassandra
             when ::String
               @ips << ::IPAddr.new(ip)
             else
-              raise ::ArgumentError, "ips must contain only instance of String or IPAddr, #{ip.inspect} given"
+              raise ::ArgumentError, "each ip must be a String or IPAddr, #{ip.inspect} given"
             end
           end
         end

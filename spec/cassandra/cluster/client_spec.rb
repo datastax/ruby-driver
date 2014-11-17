@@ -694,7 +694,13 @@ module Cassandra
           sent = false
           batch = Statements::Batch::Logged.new
           batch_request = double('batch request', :consistency => :one, :retries => 0)
-          params_metadata = double('params metadata', :size => 5, :empty? => true)
+          params_metadata = [
+            ['simplex', 'songs', 'id', :uuid],
+            ['simplex', 'songs', 'title', :varchar],
+            ['simplex', 'songs', 'album', :varchar],
+            ['simplex', 'songs', 'artist', :varchar],
+            ['simplex', 'songs', 'tags', [:set, :varchar]]
+          ]
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
@@ -715,10 +721,10 @@ module Cassandra
 
           statement = client.prepare('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', Execution::Options.new(:consistency => :one, :trace => false)).get
 
-          batch.add(statement, 1, 2, 3, 4, 5)
+          batch.add(statement, Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff'])
 
           expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false).and_return(batch_request)
-          expect(batch_request).to receive(:add_prepared).once.with(123, params_metadata, [1,2,3,4,5])
+          expect(batch_request).to receive(:add_prepared).once.with(123, params_metadata, [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])
           expect(batch_request).to receive(:retries=).once.with(0)
           client.batch(batch, Execution::Options.new(:consistency => :one, :trace => false)).get
           expect(sent).to be_truthy
@@ -729,7 +735,13 @@ module Cassandra
           count = 0
           batch = Statements::Batch::Logged.new
           batch_request = double('batch request', :consistency => :one, :retries => 0)
-          params_metadata = double('params metadata', :size => 5, :empty? => true)
+          params_metadata = [
+            ['simplex', 'songs', 'id', :uuid],
+            ['simplex', 'songs', 'title', :varchar],
+            ['simplex', 'songs', 'album', :varchar],
+            ['simplex', 'songs', 'artist', :varchar],
+            ['simplex', 'songs', 'tags', [:set, :varchar]]
+          ]
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
               case request
@@ -751,10 +763,10 @@ module Cassandra
 
           statement = client.prepare('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', Execution::Options.new(:consistency => :one, :trace => false)).get
 
-          batch.add(statement, 1, 2, 3, 4, 5)
+          batch.add(statement, Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff'])
 
           expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false).and_return(batch_request)
-          expect(batch_request).to receive(:add_prepared).once.with(123, params_metadata, [1,2,3,4,5])
+          expect(batch_request).to receive(:add_prepared).once.with(123, params_metadata, [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])
           expect(batch_request).to receive(:retries=).once.with(0)
 
           # make sure we get a different host in the load balancing plan

@@ -39,14 +39,21 @@ module Cassandra
         timeout            = options[:timeout]
         serial_consistency = options[:serial_consistency]
 
-        raise ::ArgumentError, ":consistency must be one of #{CONSISTENCIES.inspect}, #{consistency.inspect} given" unless CONSISTENCIES.include?(consistency)
-        raise ::ArgumentError, ":serial_consistency must be one of #{SERIAL_CONSISTENCIES.inspect}, #{serial_consistency.inspect} given" if serial_consistency && !SERIAL_CONSISTENCIES.include?(serial_consistency)
+        Util.assert_one_of(CONSISTENCIES, consistency) { ":consistency must be one of #{CONSISTENCIES.inspect}, #{consistency.inspect} given" }
 
-        page_size = page_size && Integer(page_size)
-        timeout   = timeout   && Integer(timeout)
+        unless serial_consistency.nil?
+          Util.assert_one_of(SERIAL_CONSISTENCIES, serial_consistency) { ":serial_consistency must be one of #{SERIAL_CONSISTENCIES.inspect}, #{serial_consistency.inspect} given" }
+        end
 
-        raise ::ArgumentError, ":page_size must be greater than 0, #{page_size.inspect} given" if page_size && page_size <= 0
-        raise ::ArgumentError, ":timeout must be greater than 0, #{timeout.inspect} given" if timeout && timeout <= 0
+        unless page_size.nil?
+          page_size = options[:page_size] = Integer(page_size)
+          Util.assert(page_size > 0) { ":page_size must be a positive integer, #{page_size.inspect} given" }
+        end
+
+        unless timeout.nil?
+          Util.assert_instance_of(::Numeric, timeout) { ":timeout must be a number of seconds, #{timeout.given}" }
+          Util.assert(timeout > 0) { ":timeout must be greater than 0, #{timeout.given}" }
+        end
 
         @consistency        = consistency
         @page_size          = page_size

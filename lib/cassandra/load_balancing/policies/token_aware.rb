@@ -92,9 +92,7 @@ module Cassandra
         def initialize(wrapped_policy)
           methods = [:host_up, :host_down, :host_found, :host_lost, :distance, :plan]
 
-          unless methods.all? {|method| wrapped_policy.respond_to?(method)}
-            raise ::ArgumentError, "supplied policy must be a Cassandra::LoadBalancing::Policy, #{wrapped_policy.inspect} given"
-          end
+          Util.assert_responds_to_all(methods, wrapped_policy) { "supplied policy must respond to #{methods.inspect}, but doesn't" }
 
           @policy = wrapped_policy
         end

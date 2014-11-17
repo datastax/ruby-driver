@@ -63,7 +63,7 @@ class DatatypeTest < IntegrationTestCase
     when 'int' then 4
     when 'text' then 'text'
     when 'timestamp' then Time.at(1358013521.123)
-    when 'timeuuid' then Cassandra::Uuid.new('FE2B4360-28C6-11E2-81C1-0800200C9A66')
+    when 'timeuuid' then Cassandra::TimeUuid.new('FE2B4360-28C6-11E2-81C1-0800200C9A66')
     when 'uuid' then Cassandra::Uuid.new('00b69180-d0e1-11e2-8b8b-0800200c9a66')
     when 'varchar' then 'varchar'
     when 'varint' then 67890656781923123918798273492834712837198237
