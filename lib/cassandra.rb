@@ -318,7 +318,7 @@ module Cassandra
     if options.has_key?(:port)
       port = options[:port] = Integer(options[:port])
 
-      Util.assert_one_of(0..65536, port) { ":port must be a valid ip port, #{port.given}" }
+      Util.assert_one_of(0..65536, port) { ":port must be a valid ip port, #{port} given" }
     end
 
     if options.has_key?(:datacenter)
@@ -329,8 +329,8 @@ module Cassandra
       timeout = options[:connect_timeout]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":connect_timeout must be a number of seconds, #{timeout.given}" }
-        Util.assert(timeout > 0) { ":connect_timeout must be greater than 0, #{timeout.given}" }
+        Util.assert_instance_of(::Numeric, timeout) { ":connect_timeout must be a number of seconds, #{timeout} given" }
+        Util.assert(timeout > 0) { ":connect_timeout must be greater than 0, #{timeout} given" }
       end
     end
 
@@ -338,8 +338,8 @@ module Cassandra
       timeout = options[:timeout]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":timeout must be a number of seconds, #{timeout.given}" }
-        Util.assert(timeout > 0) { ":timeout must be greater than 0, #{timeout.given}" }
+        Util.assert_instance_of(::Numeric, timeout) { ":timeout must be a number of seconds, #{timeout} given" }
+        Util.assert(timeout > 0) { ":timeout must be greater than 0, #{timeout} given" }
       end
     end
 
@@ -347,8 +347,8 @@ module Cassandra
       timeout = options[:heartbeat_interval]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":heartbeat_interval must be a number of seconds, #{timeout.given}" }
-        Util.assert(timeout > 0) { ":heartbeat_interval must be greater than 0, #{timeout.given}" }
+        Util.assert_instance_of(::Numeric, timeout) { ":heartbeat_interval must be a number of seconds, #{timeout} given" }
+        Util.assert(timeout > 0) { ":heartbeat_interval must be greater than 0, #{timeout} given" }
       end
     end
 
@@ -356,8 +356,8 @@ module Cassandra
       timeout = options[:idle_timeout]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":idle_timeout must be a number of seconds, #{timeout.given}" }
-        Util.assert(timeout > 0) { ":idle_timeout must be greater than 0, #{timeout.given}" }
+        Util.assert_instance_of(::Numeric, timeout) { ":idle_timeout must be a number of seconds, #{timeout} given" }
+        Util.assert(timeout > 0) { ":idle_timeout must be greater than 0, #{timeout} given" }
       end
     end
 
