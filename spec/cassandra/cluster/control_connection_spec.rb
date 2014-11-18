@@ -168,8 +168,8 @@ module Cassandra
                   'release_version' => connection[:spec_release_version]
                 }
                 Protocol::RowsResultResponse.new([row], local_metadata, nil, nil)
-              when /FROM system\.peers WHERE peer = \?/
-                ip   = request.values.first.to_s
+              when /FROM system\.peers WHERE peer = '?(\S+)'/
+                ip   = $1
                 rows = [
                   {
                     'rack'            => racks[ip],
