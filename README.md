@@ -26,10 +26,11 @@ This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [
 
 This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. The current version works with:
 
-* Cassandra versions 1.2 and 2.0
-* Ruby 1.9.3 and 2.0
+* Apache Cassandra versions 1.2 and 2.0
+* DataStax Enterprise 3.1, 3.2, 4.0 and 4.5
+* Ruby (MRI) 1.9.3, 2.0 and 2.1
 * JRuby 1.7
-* Rubinius 2.1
+* Rubinius 2.2
 
 __Note__: JRuby 1.6 is not officially supported, although 1.6.8 should work.
 
@@ -85,13 +86,18 @@ Note: if you want to use compression you should also install [snappy](http://rub
 
 Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API. In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/master/examples/cql-rb-wrapper.rb) to assist you with gradual upgrade.
 
-## What's new in v1.0.0.rc.1
+## What's new in v1.0.0
 
 Current release introduces the following new features:
 
-* [Token Aware Data Center Aware Round Robin load balancing is now default](http://datastax.github.io/ruby-driver/features/load_balancing/default_policy/)
-* [Improved exception class hierarchy and documentation and automatic detection of broken connections using heartbeats](http://datastax.github.io/ruby-driver/features/error_handling/)
-* [Configurable node address resolution with EC2 multi-region support](http://datastax.github.io/ruby-driver/features/address_resolution/)
+* [Asynchronous execution](http://datastax.github.io/ruby-driver/features/asynchronous_io/)
+* One-off, [prepared](http://datastax.github.io/ruby-driver/features/basics/prepared_statements/) and [batch statements](http://datastax.github.io/ruby-driver/features/basics/batch_statements/)
+* Automatic peer discovery and cluster metadata with [support for change notifications](http://datastax.github.io/ruby-driver/features/state_listeners/)
+* Various [load-balancing](http://datastax.github.io/ruby-driver/features/load_balancing/), [retry](http://datastax.github.io/ruby-driver/features/retry_policies/) and reconnection policies, [with ability to write your own](http://datastax.github.io/ruby-driver/features/load_balancing/implementing_a_policy/)
+* [SSL encryption](http://datastax.github.io/ruby-driver/features/security/ssl_encryption/)
+* [Flexible and robust error handling](http://datastax.github.io/ruby-driver/features/error_handling/)
+* [Per-request execution information and tracing](http://datastax.github.io/ruby-driver/features/debugging/)
+* [Configurable address resolution](http://datastax.github.io/ruby-driver/features/address_resolution/)
 
 ## Changelog & versioning
 

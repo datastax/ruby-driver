@@ -81,7 +81,7 @@ Feature: Token-aware Load Balancing Policy
       uuid=fbdf82ed-0063-4796-9c7c-a3d4f47b4b25 token=2440231132048646025 replica=127.0.0.1 total=1
       """
 
-    Scenario: Requests are routed according to wrapped policy plan when primary replica is down
+  Scenario: Requests are routed according to wrapped policy plan when primary replica is down
     Given the following example:
       """ruby
       require 'cassandra'
