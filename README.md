@@ -9,10 +9,10 @@ the Cassandra Query Language version 3 (CQL3) and Cassandra's native protocol.
 
 - Code: https://github.com/datastax/ruby-driver
 - Docs: http://datastax.github.io/ruby-driver/
-- JIRA: https://datastax-oss.atlassian.net/browse/RUBY
-- MAILING LIST: https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user
+- Jira: https://datastax-oss.atlassian.net/browse/RUBY
+- Mailing List: https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user
 - IRC: #datastax-drivers on [irc.freenode.net](http://freenode.net>)
-- TWITTER: Follow the latest news about DataStax Drivers - [@avalanche123](http://twitter.com/avalanche123), [@mfiguiere](http://twitter.com/mfiguiere), [@al3xandru](https://twitter.com/al3xandru)
+- Twitter: Follow the latest news about DataStax Drivers - [@avalanche123](http://twitter.com/avalanche123), [@mfiguiere](http://twitter.com/mfiguiere), [@al3xandru](https://twitter.com/al3xandru)
 
 This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [Theo Hultberg](https://github.com/iconara) and we added support for:
 
