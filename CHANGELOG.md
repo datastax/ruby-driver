@@ -1,3 +1,19 @@
+# 1.0.0
+
+Features:
+
+* Added Cassandra.cluster_async
+* Removed unused left-over code from cql-rb
+* Add verification of types of parameters when binding a prepared statement
+
+Bug Fixes:
+
+* [RUBY-51] Clear current keyspace in all sessions upon deletion
+
+Breaking Changes:
+
+* Removed cql string interpolation of positional arguments for cassandra < 2.0
+
 # 1.0.0.rc.1
 
 Features:
