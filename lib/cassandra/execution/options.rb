@@ -51,8 +51,8 @@ module Cassandra
         end
 
         unless timeout.nil?
-          Util.assert_instance_of(::Numeric, timeout) { ":timeout must be a number of seconds, #{timeout.given}" }
-          Util.assert(timeout > 0) { ":timeout must be greater than 0, #{timeout.given}" }
+          Util.assert_instance_of(::Numeric, timeout) { ":timeout must be a number of seconds, #{timeout} given" }
+          Util.assert(timeout > 0) { ":timeout must be greater than 0, #{timeout} given" }
         end
 
         @consistency        = consistency

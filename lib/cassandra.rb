@@ -66,7 +66,7 @@ module Cassandra
   #   in `:hosts` option.
   #
   # @option options [Numeric] :connect_timeout (10) connection timeout in
-  #   seconds. Setting value to `nil` will remove connection timeout.
+  #   seconds. Setting value to `nil` will reset it to 5 seconds.
   #
   # @option options [Numeric] :timeout (10) request execution timeout in
   #   seconds. Setting value to `nil` will remove request timeout.
@@ -175,6 +175,16 @@ module Cassandra
   #
   # @return [Cassandra::Cluster] a cluster instance
   def self.cluster(options = {})
+    cluster_async(options).get
+  end
+
+  # Creates a {Cassandra::Cluster} instance
+  #
+  # @see Cassandra.cluster
+  #
+  # @return [Cassandra::Future<Cassandra::Cluster>] a future resolving to the
+  #   cluster instance.
+  def self.cluster_async(options = {})
     options = options.select do |key, value|
       [ :credentials, :auth_provider, :compression, :hosts, :logger, :port,
         :load_balancing_policy, :reconnection_policy, :retry_policy, :listeners,
@@ -184,6 +194,8 @@ module Cassandra
         :address_resolution_policy, :idle_timeout, :heartbeat_interval, :timeout
       ].include?(key)
     end
+
+    futures = options.fetch(:futures_factory, Future)
 
     has_username = options.has_key?(:username)
     has_password = options.has_key?(:password)
@@ -306,7 +318,7 @@ module Cassandra
     if options.has_key?(:port)
       port = options[:port] = Integer(options[:port])
 
-      Util.assert_one_of(0..65536, port) { ":port must be a valid ip port, #{port.given}" }
+      Util.assert_one_of(0..65536, port) { ":port must be a valid ip port, #{port} given" }
     end
 
     if options.has_key?(:datacenter)
@@ -317,8 +329,8 @@ module Cassandra
       timeout = options[:connect_timeout]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":connect_timeout must be a number of seconds, #{timeout.given}" }
-        Util.assert(timeout > 0) { ":connect_timeout must be greater than 0, #{timeout.given}" }
+        Util.assert_instance_of(::Numeric, timeout) { ":connect_timeout must be a number of seconds, #{timeout} given" }
+        Util.assert(timeout > 0) { ":connect_timeout must be greater than 0, #{timeout} given" }
       end
     end
 
@@ -326,8 +338,8 @@ module Cassandra
       timeout = options[:timeout]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":timeout must be a number of seconds, #{timeout.given}" }
-        Util.assert(timeout > 0) { ":timeout must be greater than 0, #{timeout.given}" }
+        Util.assert_instance_of(::Numeric, timeout) { ":timeout must be a number of seconds, #{timeout} given" }
+        Util.assert(timeout > 0) { ":timeout must be greater than 0, #{timeout} given" }
       end
     end
 
@@ -335,8 +347,8 @@ module Cassandra
       timeout = options[:heartbeat_interval]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":heartbeat_interval must be a number of seconds, #{timeout.given}" }
-        Util.assert(timeout > 0) { ":heartbeat_interval must be greater than 0, #{timeout.given}" }
+        Util.assert_instance_of(::Numeric, timeout) { ":heartbeat_interval must be a number of seconds, #{timeout} given" }
+        Util.assert(timeout > 0) { ":heartbeat_interval must be greater than 0, #{timeout} given" }
       end
     end
 
@@ -344,8 +356,8 @@ module Cassandra
       timeout = options[:idle_timeout]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":idle_timeout must be a number of seconds, #{timeout.given}" }
-        Util.assert(timeout > 0) { ":idle_timeout must be greater than 0, #{timeout.given}" }
+        Util.assert_instance_of(::Numeric, timeout) { ":idle_timeout must be a number of seconds, #{timeout} given" }
+        Util.assert(timeout > 0) { ":idle_timeout must be greater than 0, #{timeout} given" }
       end
     end
 
@@ -438,8 +450,20 @@ module Cassandra
     if hosts.empty?
       raise ::ArgumentError, ":hosts #{options[:hosts].inspect} could not be resolved to any ip address"
     end
+  rescue => e
+    futures.error(e)
+  else
+    promise = futures.promise
 
-    Driver.new(options).connect(hosts).value
+    Driver.new(options).connect(hosts).on_complete do |f|
+      if f.resolved?
+        promise.fulfill(f.value)
+      else
+        f.on_failure {|e| promise.break(e)}
+      end
+    end
+
+    promise.future
   end
 end
 

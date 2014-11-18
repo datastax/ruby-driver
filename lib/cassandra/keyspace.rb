@@ -106,6 +106,11 @@ module Cassandra
     end
     alias :== :eql?
 
+    # @return [String] a CLI-friendly keyspace representation
+    def inspect
+      "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @name=#{@name}>"
+    end
+
     # @private
     def update_table(table)
       tables = @tables.dup

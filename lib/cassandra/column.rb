@@ -78,6 +78,11 @@ module Cassandra
       cql
     end
 
+    # @return [String] a CLI-friendly column representation
+    def inspect
+      "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @name=#{@name}>"
+    end
+
     # @return [Boolean] whether this column is equal to the other
     def eql?(other)
       other.is_a?(Column) &&
