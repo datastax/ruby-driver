@@ -107,7 +107,7 @@ The DataStax Ruby Driver uses the awesome [Cucumber Framework](http://cukes.info
 
 If you don't feel like reading through the following instructions on how to run ruby-driver tests, feel free to [check out .travis.yml for the entire build code](https://github.com/datastax/ruby-driver/blob/master/.travis.yml).
 
-1. Check out the driver codebase and install test dependencies:
+* Check out the driver codebase and install test dependencies:
 
 ```bash
 git clone https://github.com/datastax/ruby-driver.git
@@ -115,9 +115,9 @@ cd ruby-driver
 bundle install --without docs
 ```
 
-2. [Install ccm](http://www.datastax.com/dev/blog/ccm-a-development-tool-for-creating-local-cassandra-clusters)
+* [Install ccm](http://www.datastax.com/dev/blog/ccm-a-development-tool-for-creating-local-cassandra-clusters)
 
-3. Run tests:
+* Run tests:
 
 ```bash
 bundle exec cucumber # runs end-to-end tests (or bundle exec rake cucumber)
@@ -138,6 +138,7 @@ Prereleases will be stable, in the sense that they will have finished and proper
 
 * JRuby 1.6 is not officially supported, although 1.6.8 should work, if you're stuck in JRuby 1.6.8 try and see if it works for you.
 * Because the driver reactor is using `IO.select`, the maximum number of tcp connections allowed is 1024.
+* Because the driver uses `IO#write_nonblock`, Windows is not supported.
 
 Please [refer to the usage documentation for more information on common pitfalls](http://datastax.github.io/ruby-driver/features/)
 
