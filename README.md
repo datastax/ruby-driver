@@ -99,6 +99,33 @@ Current release introduces the following new features:
 * [Per-request execution information and tracing](http://datastax.github.io/ruby-driver/features/debugging/)
 * [Configurable address resolution](http://datastax.github.io/ruby-driver/features/address_resolution/)
 
+## Code examples
+
+The DataStax Ruby Driver uses the awesome Cucumber Framework for both end-to-end, or acceptance, testing and constructing documentation. All of the features supported by the driver have appropriate acceptance tests with easy-to-copy code examples in the `features/` directory.
+
+## Running tests
+
+If you don't feel like reading through the following instructions on how to run ruby-driver tests, feel free to [check out .travis.yml for the entire build code](https://github.com/datastax/ruby-driver/blob/master/.travis.yml).
+
+1. Check out the driver codebase and install test dependencies:
+
+```bash
+git clone https://github.com/datastax/ruby-driver.git
+cd ruby-driver
+bundle install --without docs
+```
+
+2. [Install ccm](http://www.datastax.com/dev/blog/ccm-a-development-tool-for-creating-local-cassandra-clusters)
+
+3. Run tests:
+
+```bash
+bundle exec cucumber # runs end-to-end tests (or bundle exec rake cucumber)
+bundle exec rspec # runs unit tests (or bundle exec rake rspec)
+bundle exec rake integration # run integration tests
+bundle exec rake test # run both as well as integration tests
+```
+
 ## Changelog & versioning
 
 Check out the [releases on GitHub](https://github.com/datastax/ruby-driver/releases) and [changelog](https://github.com/datastax/ruby-driver/blob/master/CHANGELOG.md). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
