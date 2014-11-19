@@ -37,7 +37,7 @@ For queries that will be run repeatedly, [you should use Prepared statements](#p
 
 ## Parameterized queries
 
-If you're using Cassandra 2.0 or later you no longer have to build CQL strings when you want to insert a value in a query, there's a new feature that lets you bind values with regular statements:
+**If you're using Cassandra 2.0 or later** you no longer have to build CQL strings when you want to insert a value in a query, there's a new feature that lets you bind values with regular statements:
 
 ```ruby
 session.execute("UPDATE users SET age = ? WHERE user_name = ?", 41, 'Sam')
@@ -45,7 +45,9 @@ session.execute("UPDATE users SET age = ? WHERE user_name = ?", 41, 'Sam')
 
 If you find yourself doing this often, it's better to use prepared statements. As a rule of thumb, if your application is sending a request more than once, a prepared statement is almost always the right choice.
 
-When you use bound values with regular statements the type of the values has to be guessed. Cassandra supports multiple different numeric types, but there's no reliable way of guessing whether or not a Ruby `Fixnum` should be encoded as a `BIGINT` or `INT`, or whether a Ruby `Float` is a `DOUBLE` or `FLOAT`. When there are multiple choices the encoder will pick the larger type (e.g. `BIGINT` over `INT`). For Ruby strings it will always guess `VARCHAR`, never `BLOB`. [Check out this types mapping table for additional details](http://datastax.github.io/ruby-driver/features/basics/#ruby-objects-to-from-apache-cassandra-datatypes).
+**When you use bound values with regular statements the type of the values has to be guessed**. Cassandra supports multiple different numeric types, but there's no reliable way of guessing whether or not a Ruby `Fixnum` should be encoded as a `BIGINT` or `INT`, or whether a Ruby `Float` is a `DOUBLE` or `FLOAT`. When there are multiple choices the encoder will pick the larger type (e.g. `BIGINT` over `INT`). For Ruby strings it will always guess `VARCHAR`, never `BLOB`. [Check out this types mapping table for additional details](http://datastax.github.io/ruby-driver/features/basics/#ruby-objects-to-from-apache-cassandra-datatypes).
+
+Also note that some parameterized queries will not work unless prepared, for example, queries with `LIMIT ?` clause.
 
 ## Executing Statements in Parallel
 

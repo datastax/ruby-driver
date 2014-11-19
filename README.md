@@ -139,6 +139,7 @@ Prereleases will be stable, in the sense that they will have finished and proper
 * JRuby 1.6 is not officially supported, although 1.6.8 should work, if you're stuck in JRuby 1.6.8 try and see if it works for you.
 * Because the driver reactor is using `IO.select`, the maximum number of tcp connections allowed is 1024.
 
+Please [refer to the usage documentation for more information on common pitfalls](http://datastax.github.io/ruby-driver/features/)
 
 ## Credits
 
