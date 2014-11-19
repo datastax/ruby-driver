@@ -101,7 +101,7 @@ Current release introduces the following new features:
 
 ## Code examples
 
-The DataStax Ruby Driver uses the awesome Cucumber Framework for both end-to-end, or acceptance, testing and constructing documentation. All of the features supported by the driver have appropriate acceptance tests with easy-to-copy code examples in the `features/` directory.
+The DataStax Ruby Driver uses the awesome [Cucumber Framework](http://cukes.info/) for both end-to-end, or acceptance, testing and constructing documentation. All of the features supported by the driver have appropriate acceptance tests with easy-to-copy code examples in the `features/` directory.
 
 ## Running tests
 
