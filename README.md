@@ -32,6 +32,7 @@ This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Ca
 * JRuby 1.7
 * Rubinius 2.2
 
+__Note__: Apache Cassandra 2.1 is supported but limited to the Cassandra 2.0 API, e.g. no user-defined types.
 __Note__: JRuby 1.6 is not officially supported, although 1.6.8 should work.
 
 ## Quick start
