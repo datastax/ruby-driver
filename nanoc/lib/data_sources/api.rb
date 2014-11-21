@@ -36,12 +36,19 @@ module Docs
         identifier = prefix + code.title.gsub(/([a-z])([A-Z])/, '\1_\2').downcase.gsub('::', '/')
 
         Nanoc::Item.new(code.format({
-          :format   => :html,
-          :template => :docs,
-          :markup   => :markdown,
-          :verifier => verifier,
-          :prefix   => prefix
-        }), {:title => code.name}, identifier)
+            :format   => :html,
+            :template => :docs,
+            :markup   => :markdown,
+            :verifier => verifier,
+            :prefix   => prefix
+          }),
+          {
+            :title     => code.name,
+            :summary   => "<code>#{code.name}</code> <small class=\"text-muted\">#{code.type}</small>",
+            :extension => 'rb'
+          },
+          identifier
+        )
       end
     end
   end

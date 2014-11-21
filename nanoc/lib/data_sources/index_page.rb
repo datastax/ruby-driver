@@ -6,7 +6,11 @@ module Docs
 
     def items
       [
-        Nanoc::Item.new(File.read('README.md'), {:title => 'Introduction', :extension => 'md'}, '/')
+        Nanoc::Item.new(File.read('README.md'), {
+          :title     => 'Introduction',
+          :summary   => 'Home Page <small class="text-muted">page</small>',
+          :extension => 'md'
+        }, '/')
       ]
     end
   end

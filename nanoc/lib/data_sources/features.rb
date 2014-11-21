@@ -22,17 +22,24 @@ module Docs
 
         if filename == 'README'
           title      = base.last.split('_').map(&:capitalize).join(' ')
+          kind       = 'section'
           identifier = base.join('/')
           type       = :section
         elsif ext == 'feature'
           title      = filename.split('_').map(&:capitalize).join(' ')
+          kind       = 'feature'
           identifier = (base << filename).join('/')
           type       = :feature
         else
           next
         end
 
-        items << Nanoc::Item.new(File.read(path), {:title => title, :extension => ext, :type => type}, identifier)
+        items << Nanoc::Item.new(File.read(path), {
+          :title     => title,
+          :extension => ext,
+          :type      => type,
+          :summary   => "#{title} <small class=\"text-muted\">#{kind}</small>"
+        }, identifier)
       end
 
       items

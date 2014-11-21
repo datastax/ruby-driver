@@ -42,7 +42,17 @@ preprocess do
   end
 end
 
+compile '/json/*/' do
+  filter :erb
+end
+
+compile '/js/*/' do
+  filter :erb
+end
+
 compile '/css/*/' do
+  filter :erb
+
   case item[:extension]
   when 'css'
   when 'scss'
@@ -71,7 +81,7 @@ compile '/features*' do
   end
 
   filter :add_ids_to_headers
-  layout 'feature'
+  layout 'default'
   filter :add_toc
   filter :relativize_paths, :type => :html
   filter :rubypants
@@ -79,7 +89,7 @@ compile '/features*' do
 end
 
 compile 'api*' do
-  layout 'apidoc'
+  layout 'default'
   filter :relativize_paths, :type => :html
   filter :rubypants
   # filter :beautify
@@ -97,7 +107,7 @@ compile '/' do
     :highlight           => true
   }
   filter :add_ids_to_headers
-  layout 'introduction'
+  layout 'default'
   filter :add_toc
   filter :relativize_paths, :type => :html
   filter :rubypants
@@ -105,6 +115,14 @@ end
 
 route '/css/*/' do
   item.identifier.chop + '.css'
+end
+
+route '/json/*/' do
+  item.identifier.chop + '.json'
+end
+
+route '/js/*/' do
+  item.identifier.chop + '.js'
 end
 
 route '/features*' do
