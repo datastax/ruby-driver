@@ -3,6 +3,17 @@
 
   app.value('pages', <%= pages_json %>)
 
+  app.factory('basePath', function() {
+    var regexp = new RegExp('<%= item.path[1..-1] %>');
+    var script = $('script').filter(function(i, el) {
+      return el.src.match(regexp);
+    })[0]
+
+    var base = script.src.substr(window.location.protocol.length + window.location.host.length + 2, script.src.length);
+
+    return base.replace('<%= item.path %>', '');
+  })
+
   app.provider('search', function() {
     function localSearchFactory($http, $timeout, $q) {
       var index = lunr.Index.load(<%= lunr_index %>);;
@@ -17,11 +28,10 @@
     };
     localSearchFactory.$inject = ['$http', '$timeout', '$q'];
 
-    function webWorkerSearchFactory($q, $rootScope) {
+    function webWorkerSearchFactory($q, $rootScope, basePath) {
       var searchIndex = $q.defer();
       var results;
-
-      var worker = new Worker('/js/search-worker.js');
+      var worker = new Worker(basePath + '/js/search-worker.js');
 
       // The worker will send us a message in two situations:
       // - when the index has been built, ready to run a query
@@ -50,7 +60,7 @@
         });
       };
     };
-    webWorkerSearchFactory.$inject = ['$q', '$rootScope'];
+    webWorkerSearchFactory.$inject = ['$q', '$rootScope', 'basePath'];
 
     return {
       $get: window.Worker ? webWorkerSearchFactory : localSearchFactory
@@ -60,9 +70,11 @@
   app.controller('search', [
     '$scope',
     '$sce',
+    '$timeout',
     'search',
     'pages',
-    function($scope, $sce, search, pages) {
+    'basePath',
+    function($scope, $sce, $timeout, search, pages, basePath) {
       $scope.hasResults = false;
       $scope.results = null;
       $scope.current = null;
@@ -100,7 +112,9 @@
         var result = $scope.results[$scope.current]
 
         if (result) {
-          window.location.pathname = result.path;
+          $timeout(function() {
+            window.location.href = basePath + result.path;
+          })
         }
       }
 
@@ -109,7 +123,6 @@
       }
 
       $scope.moveDown = function(e) {
-        console.log('moveDown', e)
         if ($scope.hasResults && $scope.current < ($scope.results.length - 1)) {
           $scope.current++
           e.stopPropagation()
@@ -117,7 +130,6 @@
       }
 
       $scope.moveUp = function(e) {
-        console.log('moveUp', e)
         if ($scope.hasResults && $scope.current > 0) {
           $scope.current--
           e.stopPropagation()
