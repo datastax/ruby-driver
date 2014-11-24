@@ -38,7 +38,7 @@
             <li<% if @item == @items.at('/features/') || child_of?(@item, @items.at('/features/')) %> class="active"<% end %>><a href="/features/">Features</a></li>
             <li<% if @item == @items.at('/api/cassandra/') || child_of?(@item, @items.at('/api/cassandra/')) %> class="active"<% end %>><a href="/api/">API docs</a></li>
           </ul>
-          <form class="navbar-form form-search navbar-right dropdown" ng-class="{open: hasResults}" role="search" ng-submit="submit()">
+          <form class="navbar-form form-search navbar-right dropdown visible-lg-block" ng-class="{open: hasResults}" role="search" ng-submit="submit()">
             <div class="form-group has-feedback">
               <input type="search" class="form-control input-sm mousetrap" placeholder="Search..." ng-model="q" ng-change="search()" data-toggle="dropdown" data-hotkey="{down: moveDown, up: moveUp, esc: reset}" data-search>
               <button type="button" class="close form-control-feedback input-sm hidden" ng-click="reset()" ng-class="{hidden: !hasResults}"><span aria-hidden="true">&times;</span><span class="sr-only">Reset</span></button>
