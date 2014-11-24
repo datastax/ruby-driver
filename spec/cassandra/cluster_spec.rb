@@ -21,13 +21,12 @@ require 'spec_helper'
 module Cassandra
   describe(Cluster) do
     let(:io_reactor)         { FakeIoReactor.new }
-    let(:control_connection) { double('control connection') }
+    let(:control_connection) { driver.control_connection }
     let(:cluster_registry)   { FakeClusterRegistry.new(['1.1.1.1', '2.2.2.2']) }
     let(:load_balancing_policy) { FakeLoadBalancingPolicy.new(cluster_registry) }
     let(:driver)             { Driver.new({
                                  :io_reactor => io_reactor,
                                  :cluster_registry => cluster_registry,
-                                 :control_connection => control_connection,
                                  :load_balancing_policy => load_balancing_policy
                                })
                              }

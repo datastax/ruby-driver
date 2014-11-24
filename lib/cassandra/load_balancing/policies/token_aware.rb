@@ -103,6 +103,12 @@ module Cassandra
           nil
         end
 
+        def teardown(cluster)
+          @cluster = nil
+          @policy.teardown(cluster)
+          nil
+        end
+
         def plan(keyspace, statement, options)
           return @policy.plan(keyspace, statement, options) unless @cluster
 

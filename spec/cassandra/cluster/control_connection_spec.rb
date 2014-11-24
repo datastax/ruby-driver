@@ -576,12 +576,32 @@ module Cassandra
           it 'closes reactor' do
             future = double('close future')
 
+            expect(future).to receive(:on_value)
+            expect(future).to receive(:on_failure)
             io_reactor.should_receive(:stop).once.and_return(future)
             control_connection.close_async
+          end
+
+          it 'calls close listeners' do
+            called = false
+
+            control_connection.on_close do
+              called = true
+            end
+
+            expect(io_reactor).to receive(:stop).once.and_return(Ione::Future.resolved)
+            control_connection.close_async.value
+
+            expect(called).to be_truthy
           end
         end
 
         context 'not connected' do
+          before do
+            control_connection.connect_async.value
+            control_connection.close_async.value
+          end
+
           it 'returns a fulfilled future' do
             future = control_connection.close_async
             future.should be_resolved
