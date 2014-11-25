@@ -22,7 +22,7 @@ module Cassandra
     class ControlConnection
       include MonitorMixin
 
-      def initialize(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, connector)
+      def initialize(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, connector, connection_options)
         @logger                = logger
         @io_reactor            = io_reactor
         @registry              = cluster_registry
@@ -32,6 +32,7 @@ module Cassandra
         @reconnection_policy   = reconnection_policy
         @address_resolver      = address_resolution_policy
         @connector             = connector
+        @connection_options    = connection_options
         @refreshing_statuses   = Hash.new(false)
         @status                = :closed
         @refreshing_schema     = false
@@ -165,11 +166,6 @@ module Cassandra
       SELECT_KEYSPACES = Protocol::QueryRequest.new('SELECT * FROM system.schema_keyspaces', nil, nil, :one)
       SELECT_TABLES    = Protocol::QueryRequest.new('SELECT * FROM system.schema_columnfamilies', nil, nil, :one)
       SELECT_COLUMNS   = Protocol::QueryRequest.new('SELECT * FROM system.schema_columns', nil, nil, :one)
-      REGISTER         = Protocol::RegisterRequest.new(
-                           Protocol::TopologyChangeEventResponse::TYPE,
-                           Protocol::StatusChangeEventResponse::TYPE,
-                           Protocol::SchemaChangeEventResponse::TYPE
-                         )
 
       def reconnect_async(schedule)
         timeout = schedule.next
@@ -201,7 +197,14 @@ module Cassandra
 
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
-        f = connection.send_request(REGISTER)
+        request = Protocol::RegisterRequest.new(
+          Protocol::TopologyChangeEventResponse::TYPE,
+          Protocol::StatusChangeEventResponse::TYPE
+        )
+
+        request.events << Protocol::SchemaChangeEventResponse::TYPE if @connection_options.synchronize_schema?
+
+        f = connection.send_request(request)
         f = f.map do |r|
           case r
           when Protocol::ReadyResponse

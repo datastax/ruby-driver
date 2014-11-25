@@ -119,6 +119,16 @@ module Cassandra
   #   address resolver to use. Must be one of `:none` or
   #   `:ec2_multi_region`.
   #
+  # @option options [Boolean] :synchronize_schema (true) whether the driver
+  #   should automatically keep schema metadata synchronized. When enabled, the
+  #   driver updates schema metadata after receiving schema change
+  #   notifications from Cassandra. Setting this setting to `false` disables
+  #   automatic schema updates. Schema metadata is used by the driver to
+  #   determine cluster partitioners as well as to find partition keys and
+  #   replicas of prepared statements, this information makes token aware load
+  #   balancing possible. One can still use {Cassandra::Cluster#refresh_schema}
+  #   to refresh schema manually.
+  #
   # @option options [Cassandra::Reconnection::Policy] :reconnection_policy
   #   default: {Cassandra::Reconnection::Policies::Exponential}. Note that the
   #   default policy is configured with `(0.5, 30, 2)`.
@@ -191,7 +201,8 @@ module Cassandra
         :consistency, :trace, :page_size, :compressor, :username, :password,
         :ssl, :server_cert, :client_cert, :private_key, :passphrase,
         :connect_timeout, :futures_factory, :datacenter, :address_resolution,
-        :address_resolution_policy, :idle_timeout, :heartbeat_interval, :timeout
+        :address_resolution_policy, :idle_timeout, :heartbeat_interval, :timeout,
+        :synchronize_schema
       ].include?(key)
     end
 
@@ -382,9 +393,7 @@ module Cassandra
     end
 
     if options.has_key?(:listeners)
-      listeners = options[:listeners]
-
-      Util.assert_instance_of(::Enumerable, listeners) { ":listeners must be an Enumerable, #{listeners.inspect} given" }
+      options[:listeners] = Array(options[:listeners])
     end
 
     if options.has_key?(:consistency)
@@ -430,6 +439,10 @@ module Cassandra
       address_resolver = options[:address_resolution_policy]
 
       Util.assert_responds_to(:resolve, address_resolver) { ":address_resolution_policy must respond to :resolve, #{address_resolver.inspect} but doesn't" }
+    end
+
+    if options.has_key?(:synchronize_schema)
+      options[:synchronize_schema] = !!options[:synchronize_schema]
     end
 
     hosts = []

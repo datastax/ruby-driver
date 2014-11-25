@@ -26,7 +26,7 @@ module Cassandra
                   :idle_timeout
       attr_accessor :protocol_version
 
-      def initialize(protocol_version, credentials, auth_provider, compressor, port, connect_timeout, ssl, connections_per_local_node, connections_per_remote_node, heartbeat_interval, idle_timeout)
+      def initialize(protocol_version, credentials, auth_provider, compressor, port, connect_timeout, ssl, connections_per_local_node, connections_per_remote_node, heartbeat_interval, idle_timeout, synchronize_schema)
         @protocol_version   = protocol_version
         @credentials        = credentials
         @auth_provider      = auth_provider
@@ -36,9 +36,14 @@ module Cassandra
         @ssl                = ssl
         @heartbeat_interval = heartbeat_interval
         @idle_timeout       = idle_timeout
+        @synchronize_schema = synchronize_schema
 
         @connections_per_local_node  = connections_per_local_node
         @connections_per_remote_node = connections_per_remote_node
+      end
+
+      def synchronize_schema?
+        @synchronize_schema
       end
 
       def compression

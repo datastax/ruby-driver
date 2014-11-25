@@ -20,7 +20,7 @@ module Cassandra
   # @private
   class Driver
     def self.let(name, &block)
-      define_method(name)        { @instances[name] ||= @defaults.fetch(name) { instance_eval(&block) } }
+      define_method(name)        { @instances.has_key?(name) ? @instances[name] : @instances[name] = instance_eval(&block) }
       define_method(:"#{name}=") { |object| @instances[name] = object }
     end
 
@@ -56,7 +56,7 @@ module Cassandra
 
     let(:connector) { Cluster::Connector.new(logger, io_reactor, cluster_registry, connection_options, execution_options) }
 
-    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, connector) }
+    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, connector, connection_options) }
 
     let(:cluster) { Cluster.new(logger, io_reactor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, address_resolution_policy, connector, futures_factory) }
 
@@ -69,7 +69,22 @@ module Cassandra
       })
     end
 
-    let(:connection_options) { Cluster::Options.new(protocol_version, credentials, auth_provider, compressor, port, connect_timeout, ssl, connections_per_local_node, connections_per_remote_node, heartbeat_interval, idle_timeout) }
+    let(:connection_options) do
+      Cluster::Options.new(
+        protocol_version,
+        credentials,
+        auth_provider,
+        compressor,
+        port,
+        connect_timeout,
+        ssl,
+        connections_per_local_node,
+        connections_per_remote_node,
+        heartbeat_interval,
+        idle_timeout,
+        synchronize_schema
+      )
+    end
 
     let(:port)                      { 9042 }
     let(:protocol_version)          { 2 }
@@ -90,6 +105,7 @@ module Cassandra
     let(:heartbeat_interval)        { 30 }
     let(:idle_timeout)              { 60 }
     let(:timeout)                   { 10 }
+    let(:synchronize_schema)        { true }
 
     let(:connections_per_local_node)  { 2 }
     let(:connections_per_remote_node) { 1 }
@@ -97,8 +113,7 @@ module Cassandra
     let(:listeners) { [] }
 
     def initialize(defaults = {})
-      @defaults  = defaults
-      @instances = {}
+      @instances = defaults
     end
 
     def connect(addresses)

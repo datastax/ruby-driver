@@ -29,6 +29,9 @@ Feature: Schema change detection
         end
       end
       """
+
+  Scenario: Listening for keyspace creation
+    Given an empty schema
     And the following example:
       """ruby
       require 'printing_listener'
@@ -45,12 +48,9 @@ Feature: Schema change detection
       $stdout.puts("=== STOP ===")
       $stdout.flush
       """
-    And it is running interactively
+    When it is running interactively
     And I wait for its output to contain "START"
-
-  Scenario: Listening for keyspace creation
-    Given an empty schema
-    When I execute the following cql:
+    And I execute the following cql:
       """
       CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}
       """
@@ -65,7 +65,25 @@ Feature: Schema change detection
       """cql
       CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}
       """
-    When I execute the following cql:
+    And the following example:
+      """ruby
+      require 'printing_listener'
+      require 'cassandra'
+
+      listener = PrintingListener.new($stderr)
+      cluster  = Cassandra.cluster
+
+      cluster.register(listener)
+
+      $stdout.puts("=== START ===")
+      $stdout.flush
+      $stdin.gets
+      $stdout.puts("=== STOP ===")
+      $stdout.flush
+      """
+    When it is running interactively
+    And I wait for its output to contain "START"
+    And I execute the following cql:
       """cql
       DROP KEYSPACE new_keyspace
       """
@@ -80,7 +98,25 @@ Feature: Schema change detection
       """cql
       CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}
       """
-    When I execute the following cql:
+    And the following example:
+      """ruby
+      require 'printing_listener'
+      require 'cassandra'
+
+      listener = PrintingListener.new($stderr)
+      cluster  = Cassandra.cluster
+
+      cluster.register(listener)
+
+      $stdout.puts("=== START ===")
+      $stdout.flush
+      $stdin.gets
+      $stdout.puts("=== STOP ===")
+      $stdout.flush
+      """
+    When it is running interactively
+    And I wait for its output to contain "START"
+    And I execute the following cql:
       """cql
       CREATE TABLE new_keyspace.new_table (id timeuuid PRIMARY KEY)
       """
@@ -88,4 +124,34 @@ Feature: Schema change detection
     Then its output should contain:
       """
       Keyspace "new_keyspace" changed
+      """
+
+  Scenario: Disabling automatic schema synchronization
+    Given an empty schema
+    And the following example:
+      """ruby
+      require 'printing_listener'
+      require 'cassandra'
+
+      listener = PrintingListener.new($stderr)
+      cluster  = Cassandra.cluster(synchronize_schema: false)
+
+      cluster.register(listener)
+
+      $stdout.puts("=== START ===")
+      $stdout.flush
+      $stdin.gets
+      $stdout.puts("=== STOP ===")
+      $stdout.flush
+      """
+    When it is running interactively
+    And I wait for its output to contain "START"
+    And I execute the following cql:
+      """cql
+      CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}
+      """
+    And I close the stdin stream
+    Then its output should not contain:
+      """
+      Keyspace "new_keyspace" created
       """
