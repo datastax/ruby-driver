@@ -36,7 +36,7 @@ module Cassandra
         # @raise [ArgumentError] if arguments are of unexpected types
         def initialize(ips, wrapped_policy)
           Util.assert_instance_of(::Enumerable, ips) { "ips must be an Enumerable, #{ips.inspect} given" }
-          methods = [:host_up, :host_down, :host_found, :host_lost, :distance, :plan]
+          methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown, :distance, :plan]
           Util.assert_responds_to_all(methods, wrapped_policy) { "supplied policy must respond to #{methods.inspect}, but doesn't" }
 
           @ips    = ::Set.new
