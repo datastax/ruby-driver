@@ -131,6 +131,29 @@ module Cassandra
         @closed_promise.fulfill
       end
 
+      def refresh_schema_async_maybe_retry
+        synchronize do
+          return Ione::Future.resolved if @refreshing_schema
+          @refreshing_schema = true
+        end
+
+        refresh_schema_async.fallback do |e|
+          case e
+          when Errors::HostError
+            refresh_schema_async_retry(e, @reconnection_policy.schedule)
+          else
+            connection = @connection
+            connection && connection.close(e)
+            @refreshing_schema = false
+
+            Ione::Future.failed(e)
+          end
+        end.map do
+          @refreshing_schema = false
+          nil
+        end
+      end
+
       def inspect
         "#<#{self.class.name}:0x#{self.object_id.to_s(16)}>"
       end
@@ -257,29 +280,6 @@ module Cassandra
         end
       end
 
-      def refresh_schema_async_maybe_retry
-        synchronize do
-          return Ione::Future.resolved if @refreshing_schema
-          @refreshing_schema = true
-        end
-
-        refresh_schema_async.fallback do |e|
-          case e
-          when Errors::HostError
-            refresh_schema_async_retry(e, @reconnection_policy.schedule)
-          else
-            connection = @connection
-            connection && connection.close(e)
-
-            Ione::Future.resolved
-          end
-        end.map do
-          synchronize do
-            @refreshing_schema = false
-          end
-        end
-      end
-
       def refresh_schema_async_retry(error, schedule)
         timeout = schedule.next
         @logger.info("Failed to refresh schema (#{error.class.name}: #{error.message}), retrying in #{timeout}")
@@ -294,7 +294,7 @@ module Cassandra
               connection = @connection
               connection && connection.close(e)
 
-              Ione::Future.resolved
+              Ione::Future.failed(e)
             end
           end
         end
