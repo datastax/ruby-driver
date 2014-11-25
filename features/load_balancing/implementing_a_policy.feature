@@ -71,6 +71,9 @@ Feature: Implementing custom load balancing policies
         def setup(cluster)
         end
 
+        def teardown(cluster)
+        end
+
         def plan(keyspace, statement, options)
           if @keyspace == keyspace
             Plan.new
@@ -141,6 +144,9 @@ Feature: Implementing custom load balancing policies
         end
 
         def setup(cluster)
+        end
+
+        def teardown(cluster)
         end
 
         def plan(keyspace, statement, options)
