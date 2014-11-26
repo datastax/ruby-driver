@@ -43,6 +43,7 @@ module Cassandra
         @closed_promise        = Ione::Promise.new
         @schema_changes        = ::Array.new
         @schema_refresh_timer  = nil
+        @schema_refresh_window = nil
 
         mon_initialize
       end
@@ -706,19 +707,46 @@ Control connection failed and is unlikely to recover.
 
       def handle_schema_change(change)
         timer = nil
+        expiration_timer = nil
 
         synchronize do
           @schema_changes << change
 
           @io_reactor.cancel_timer(@schema_refresh_timer) if @schema_refresh_timer
           timer = @schema_refresh_timer = @io_reactor.schedule_timer(@connection_options.schema_refresh_delay)
+
+          unless @schema_refresh_window
+            expiration_timer = @schema_refresh_window = @io_reactor.schedule_timer(@connection_options.schema_refresh_timeout)
+          end
+        end
+
+        if expiration_timer
+          expiration_timer.on_value do
+            schema_changes = nil
+
+            synchronize do
+              @io_reactor.cancel_timer(@schema_refresh_timer)
+
+              @schema_refresh_window = nil
+              @schema_refresh_timer  = nil
+
+              schema_changes  = @schema_changes
+              @schema_changes = ::Array.new
+            end
+
+            process_schema_changes(schema_changes)
+          end
         end
 
         timer.on_value do
           schema_changes = nil
 
           synchronize do
-            @schema_refresh_timer = nil
+            @io_reactor.cancel_timer(@schema_refresh_window)
+
+            @schema_refresh_window = nil
+            @schema_refresh_timer  = nil
+
             schema_changes  = @schema_changes
             @schema_changes = ::Array.new
           end

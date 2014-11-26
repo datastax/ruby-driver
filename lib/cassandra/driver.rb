@@ -83,7 +83,8 @@ module Cassandra
         heartbeat_interval,
         idle_timeout,
         synchronize_schema,
-        schema_refresh_delay
+        schema_refresh_delay,
+        schema_refresh_timeout
       )
     end
 
@@ -108,6 +109,7 @@ module Cassandra
     let(:timeout)                   { 10 }
     let(:synchronize_schema)        { true }
     let(:schema_refresh_delay)      { 1 }
+    let(:schema_refresh_timeout)    { 10 }
 
     let(:connections_per_local_node)  { 2 }
     let(:connections_per_remote_node) { 1 }
