@@ -39,8 +39,14 @@ module Cassandra
         @refreshing_tables     = Hash.new
         @refreshing_hosts      = false
         @refreshing_host       = Hash.new(false)
+        @closed_promise        = Ione::Promise.new
 
         mon_initialize
+      end
+
+      def on_close(&block)
+        @closed_promise.future.on_value(&block)
+        @closed_promise.future.on_failure(&block)
       end
 
       def connect_async
@@ -110,10 +116,19 @@ module Cassandra
 
       def close_async
         synchronize do
-          return Ione::Future.resolved if @status == :closing || @status == :closed
+          return @closed_promise.future if @status == :closing || @status == :closed
           @status = :closing
         end
-        @io_reactor.stop
+        f = @io_reactor.stop
+
+        f.on_value(&method(:connection_closed))
+        f.on_failure(&method(:connection_closed))
+
+        @closed_promise.future
+      end
+
+      def connection_closed(cause)
+        @closed_promise.fulfill
       end
 
       def inspect

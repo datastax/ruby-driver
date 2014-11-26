@@ -78,6 +78,10 @@ module Cassandra
       @address_resolver      = address_resolution_policy
       @connector             = connector
       @futures               = futures_factory
+
+      @control_connection.on_close do |cause|
+        @load_balancing_policy.teardown(self) rescue nil
+      end
     end
 
     # Register a cluster state listener. State listener will start receiving

@@ -1,3 +1,9 @@
+# 1.1.0
+
+Features:
+
+* Added `Cassandra::LoadBalancing::Policy#teardown`
+
 # 1.0.0
 
 Features:

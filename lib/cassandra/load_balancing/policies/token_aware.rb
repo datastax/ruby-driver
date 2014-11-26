@@ -90,7 +90,7 @@ module Cassandra
 
         # @param wrapped_policy [Cassandra::LoadBalancing::Policy] actual policy to filter
         def initialize(wrapped_policy)
-          methods = [:host_up, :host_down, :host_found, :host_lost, :distance, :plan]
+          methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown, :distance, :plan]
 
           Util.assert_responds_to_all(methods, wrapped_policy) { "supplied policy must respond to #{methods.inspect}, but doesn't" }
 
@@ -100,6 +100,12 @@ module Cassandra
         def setup(cluster)
           @cluster = cluster
           @policy.setup(cluster)
+          nil
+        end
+
+        def teardown(cluster)
+          @cluster = nil
+          @policy.teardown(cluster)
           nil
         end
 

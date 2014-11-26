@@ -28,9 +28,19 @@ module Cassandra
     class Policy
       # Allows policy to initialize with the cluster instance. This method is
       # called once before connecting to the cluster.
+      #
       # @param cluster [Cassandra::Cluster] current cluster instance
       # @return [void]
       def setup(cluster)
+      end
+
+      # Allows policy to release any external resources it might be holding.
+      # This method is called once the cluster has been terminated after calling
+      # {Cassandra::Cluster#close}
+      #
+      # @param cluster [Cassandra::Cluster] current cluster instance
+      # @return [void]
+      def teardown(cluster)
       end
 
       # @see Cassandra::Listener#host_up
