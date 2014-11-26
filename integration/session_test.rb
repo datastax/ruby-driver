@@ -34,7 +34,7 @@ class SessionTest < IntegrationTestCase
 
     assert_nil session.keyspace
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 
   def test_can_select_from_an_existing_keyspace
@@ -44,7 +44,7 @@ class SessionTest < IntegrationTestCase
 
     refute_nil results
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 
   def test_use_keyspace_changes_current_keyspace
@@ -56,7 +56,7 @@ class SessionTest < IntegrationTestCase
     session.execute("USE system_traces")
     assert_equal session.keyspace, "system_traces"
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 
   def test_connect_session_with_existing_keyspace
@@ -65,7 +65,7 @@ class SessionTest < IntegrationTestCase
 
     assert_equal session.keyspace, "system"
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 
   def test_can_create_new_keyspace
@@ -79,7 +79,7 @@ class SessionTest < IntegrationTestCase
     session.execute("USE simplex")
     assert_equal session.keyspace, "simplex"
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 
   def test_execute_errors_on_invalid_keyspaces
@@ -95,7 +95,7 @@ class SessionTest < IntegrationTestCase
       session.execute("CREATE TABLE users (user_id INT PRIMARY KEY, first VARCHAR, last VARCHAR, age INT)")
     end
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 
   def test_can_insert_after_creating_a_table
@@ -111,7 +111,7 @@ class SessionTest < IntegrationTestCase
 
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 
   def test_can_insert_after_creating_a_table_async
@@ -127,7 +127,7 @@ class SessionTest < IntegrationTestCase
     result = future.get.first
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 
   def test_can_prepare_insert_and_select_statements
@@ -145,7 +145,7 @@ class SessionTest < IntegrationTestCase
     result = session.execute(select).first
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 
   def test_prepare_errors_on_non_existent_table
@@ -162,7 +162,7 @@ class SessionTest < IntegrationTestCase
       session.prepare("SELECT * FROM badtable")
     end
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 
   def test_can_execute_simple_batch_statements
@@ -184,7 +184,7 @@ class SessionTest < IntegrationTestCase
       results = session.execute("SELECT * FROM users")
       assert_equal 3, results.size
     ensure
-      cluster.close
+      cluster && cluster.close
     end
   end
 
@@ -207,7 +207,7 @@ class SessionTest < IntegrationTestCase
       results = session.execute("SELECT * FROM users")
       assert_equal 3, results.size
     ensure
-      cluster.close
+      cluster && cluster.close
     end
   end
 
@@ -233,7 +233,7 @@ class SessionTest < IntegrationTestCase
       results = session.execute("SELECT * FROM users")
       assert_equal 3, results.size
     ensure
-      cluster.close
+      cluster && cluster.close
     end
   end
 
@@ -280,7 +280,7 @@ class SessionTest < IntegrationTestCase
         session.execute("SELECT * FROM test", page_size: 0)
       end
     ensure
-      cluster.close
+      cluster && cluster.close
     end
   end
 
@@ -320,7 +320,7 @@ class SessionTest < IntegrationTestCase
       count = page_through(future, count).get
       assert_equal 26, count
     ensure
-      cluster.close
+      cluster && cluster.close
     end
   end
 
@@ -352,6 +352,6 @@ class SessionTest < IntegrationTestCase
       assert_instance_of Cassandra::Uuid, result.execution_info.trace.id
     end
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 end
