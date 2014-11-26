@@ -129,6 +129,18 @@ module Cassandra
   #   balancing possible. One can still use {Cassandra::Cluster#refresh_schema}
   #   to refresh schema manually.
   #
+  # @option options [Numeric] :schema_refresh_delay (1) the driver will wait
+  #   for `:schema_refresh_delay` before fetching metadata after receiving a
+  #   schema change event. This timer is restarted every time a new schema
+  #   change event is received. Finally, when the timer expires or a maximum
+  #   wait time of `:schema_refresh_timeout` has been reached, a schema refresh
+  #   attempt will be made and the timeout is reset.
+  #
+  # @option options [Numeric] :schema_refresh_timeout (10) the maximum delay
+  #   before automatically refreshing schema. Such delay can occur whenever
+  #   multiple schema change events are continuously arriving within
+  #   `:schema_refresh_delay` interval.
+  #
   # @option options [Cassandra::Reconnection::Policy] :reconnection_policy
   #   default: {Cassandra::Reconnection::Policies::Exponential}. Note that the
   #   default policy is configured with `(0.5, 30, 2)`.
@@ -202,7 +214,7 @@ module Cassandra
         :ssl, :server_cert, :client_cert, :private_key, :passphrase,
         :connect_timeout, :futures_factory, :datacenter, :address_resolution,
         :address_resolution_policy, :idle_timeout, :heartbeat_interval, :timeout,
-        :synchronize_schema
+        :synchronize_schema, :schema_refresh_delay, :schema_refresh_timeout
       ].include?(key)
     end
 
@@ -370,6 +382,20 @@ module Cassandra
         Util.assert_instance_of(::Numeric, timeout) { ":idle_timeout must be a number of seconds, #{timeout} given" }
         Util.assert(timeout > 0) { ":idle_timeout must be greater than 0, #{timeout} given" }
       end
+    end
+
+    if options.has_key?(:schema_refresh_delay)
+      timeout = options[:schema_refresh_delay]
+
+      Util.assert_instance_of(::Numeric, timeout) { ":schema_refresh_delay must be a number of seconds, #{timeout} given" }
+      Util.assert(timeout > 0) { ":schema_refresh_delay must be greater than 0, #{timeout} given" }
+    end
+
+    if options.has_key?(:schema_refresh_timeout)
+      timeout = options[:schema_refresh_timeout]
+
+      Util.assert_instance_of(::Numeric, timeout) { ":schema_refresh_timeout must be a number of seconds, #{timeout} given" }
+      Util.assert(timeout > 0) { ":schema_refresh_timeout must be greater than 0, #{timeout} given" }
     end
 
     if options.has_key?(:load_balancing_policy)

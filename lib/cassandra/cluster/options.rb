@@ -23,20 +23,21 @@ module Cassandra
       attr_reader :credentials, :auth_provider, :compressor, :port,
                   :connect_timeout, :ssl, :connections_per_local_node,
                   :connections_per_remote_node, :heartbeat_interval,
-                  :idle_timeout
+                  :idle_timeout, :schema_refresh_delay
       attr_accessor :protocol_version
 
-      def initialize(protocol_version, credentials, auth_provider, compressor, port, connect_timeout, ssl, connections_per_local_node, connections_per_remote_node, heartbeat_interval, idle_timeout, synchronize_schema)
-        @protocol_version   = protocol_version
-        @credentials        = credentials
-        @auth_provider      = auth_provider
-        @compressor         = compressor
-        @port               = port
-        @connect_timeout    = connect_timeout
-        @ssl                = ssl
-        @heartbeat_interval = heartbeat_interval
-        @idle_timeout       = idle_timeout
-        @synchronize_schema = synchronize_schema
+      def initialize(protocol_version, credentials, auth_provider, compressor, port, connect_timeout, ssl, connections_per_local_node, connections_per_remote_node, heartbeat_interval, idle_timeout, synchronize_schema, schema_refresh_delay)
+        @protocol_version     = protocol_version
+        @credentials          = credentials
+        @auth_provider        = auth_provider
+        @compressor           = compressor
+        @port                 = port
+        @connect_timeout      = connect_timeout
+        @ssl                  = ssl
+        @heartbeat_interval   = heartbeat_interval
+        @idle_timeout         = idle_timeout
+        @synchronize_schema   = synchronize_schema
+        @schema_refresh_delay = schema_refresh_delay
 
         @connections_per_local_node  = connections_per_local_node
         @connections_per_remote_node = connections_per_remote_node

@@ -33,14 +33,16 @@ module Cassandra
         @address_resolver      = address_resolution_policy
         @connector             = connector
         @connection_options    = connection_options
-        @refreshing_statuses   = Hash.new(false)
+        @refreshing_statuses   = ::Hash.new(false)
         @status                = :closed
         @refreshing_schema     = false
-        @refreshing_keyspaces  = Hash.new(false)
-        @refreshing_tables     = Hash.new
+        @refreshing_keyspaces  = ::Hash.new(false)
+        @refreshing_tables     = ::Hash.new
         @refreshing_hosts      = false
-        @refreshing_host       = Hash.new(false)
+        @refreshing_host       = ::Hash.new(false)
         @closed_promise        = Ione::Promise.new
+        @schema_changes        = ::Array.new
+        @schema_refresh_timer  = nil
 
         mon_initialize
       end
@@ -220,26 +222,7 @@ module Cassandra
             @logger.debug("Event received #{event}")
 
             if event.type == 'SCHEMA_CHANGE'
-              case event.change
-              when 'CREATED'
-                if event.table.empty?
-                  refresh_schema_async_maybe_retry
-                else
-                  refresh_keyspace_async_maybe_retry(event.keyspace)
-                end
-              when 'DROPPED'
-                if event.table.empty?
-                  refresh_schema_async_maybe_retry
-                else
-                  refresh_keyspace_async_maybe_retry(event.keyspace)
-                end
-              when 'UPDATED'
-                if event.table.empty?
-                  refresh_keyspace_async_maybe_retry(event.keyspace)
-                else
-                  refresh_table_async_maybe_retry(event.keyspace, event.table)
-                end
-              end
+              handle_schema_change(event)
             else
               case event.change
               when 'UP'
@@ -317,7 +300,7 @@ module Cassandra
             connection = @connection
             connection && connection.close(e)
 
-            Ione::Future.resolved
+            Ione::Future.failed(e)
           end
         end.map do
           synchronize do
@@ -340,7 +323,7 @@ module Cassandra
               connection = @connection
               connection && connection.close(e)
 
-              Ione::Future.resolved
+              Ione::Future.failed(e)
             end
           end
         end
@@ -358,14 +341,18 @@ module Cassandra
         Ione::Future.all(keyspaces, tables, columns).map do |(keyspaces, tables, columns)|
           host = @registry.host(connection.host)
 
-          @schema.update_keyspace(host, keyspaces.first, tables, columns) unless keyspaces.empty?
+          if keyspaces.empty?
+            @schema.delete_keyspace(keyspace)
+          else
+            @schema.update_keyspace(host, keyspaces.first, tables, columns)
+          end
         end
       end
 
       def refresh_table_async_maybe_retry(keyspace, table)
         synchronize do
-          return Ione::Future.resolved if @refreshing_schema || @refreshing_keyspaces[keyspace] || @refreshing_tables[keyspace][table]
           @refreshing_tables[keyspace] ||= ::Hash.new(false)
+          return Ione::Future.resolved if @refreshing_schema || @refreshing_keyspaces[keyspace] || @refreshing_tables[keyspace][table]
           @refreshing_tables[keyspace][table] = true
         end
 
@@ -377,7 +364,7 @@ module Cassandra
             connection = @connection
             connection && connection.close(e)
 
-            Ione::Future.resolved
+            Ione::Future.failed(e)
           end
         end.map do
           synchronize do
@@ -401,7 +388,7 @@ module Cassandra
               connection = @connection
               connection && connection.close(e)
 
-              Ione::Future.resolved
+              Ione::Future.failed(e)
             end
           end
         end
@@ -413,13 +400,17 @@ module Cassandra
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         params   = [keyspace, table]
-        table    = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = '%s' AND columnfamily_name = '%s'" % params, nil, nil, :one))
+        tables   = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = '%s' AND columnfamily_name = '%s'" % params, nil, nil, :one))
         columns  = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = '%s' AND columnfamily_name = '%s'" % params, nil, nil, :one))
 
-        Ione::Future.all(table, columns).map do |(table, columns)|
+        Ione::Future.all(tables, columns).map do |(tables, columns)|
           host = @registry.host(connection.host)
 
-          @schema.udpate_table(host, keyspace, table, columns)
+          if tables.empty?
+            @schema.delete_table(keyspace, table)
+          else
+            @schema.udpate_table(host, keyspace, tables.first, columns)
+          end
         end
       end
 
@@ -437,7 +428,7 @@ module Cassandra
             connection = @connection
             connection && connection.close(e)
 
-            Ione::Future.resolved
+            Ione::Future.failed(e)
           end
         end.map do
           synchronize do
@@ -460,7 +451,7 @@ module Cassandra
               connection = @connection
               connection && connection.close(e)
 
-              Ione::Future.resolved
+              Ione::Future.failed(e)
             end
           end
         end
@@ -542,7 +533,7 @@ module Cassandra
             connection = @connection
             connection && connection.close(e)
 
-            Ione::Future.resolved
+            Ione::Future.failed(e)
           end
         end.map do
           synchronize do
@@ -565,7 +556,7 @@ module Cassandra
               connection = @connection
               connection && connection.close(e)
 
-              Ione::Future.resolved
+              Ione::Future.failed(e)
             end
           end
         end
@@ -677,6 +668,65 @@ Control connection failed and is unlikely to recover.
         ip = data['peer'] if ip == '0.0.0.0'
 
         @address_resolver.resolve(ip)
+      end
+
+      def process_schema_changes(schema_changes)
+        refresh_keyspaces = ::Hash.new
+        refresh_tables    = ::Hash.new
+
+        schema_changes.each do |change|
+          keyspace = change.keyspace
+          table    = change.table
+
+          next if refresh_keyspaces.has_key?(keyspace)
+
+          if table.empty?
+            refresh_tables.delete(keyspace)
+            refresh_keyspaces[keyspace] = true
+          else
+            tables = refresh_tables[keyspace] ||= ::Hash.new
+            tables[table] = true
+          end
+        end
+
+        futures = ::Array.new
+
+        refresh_keyspaces.each do |(keyspace, _)|
+          futures << refresh_keyspace_async_maybe_retry(keyspace)
+        end
+
+        refresh_tables.each do |(keyspace, tables)|
+          tables.each do |(table, _)|
+            futures << refresh_table_async_maybe_retry(keyspace, table)
+          end
+        end
+
+        Ione::Future.all(*futures)
+      end
+
+      def handle_schema_change(change)
+        timer = nil
+
+        synchronize do
+          @schema_changes << change
+
+          @io_reactor.cancel_timer(@schema_refresh_timer) if @schema_refresh_timer
+          timer = @schema_refresh_timer = @io_reactor.schedule_timer(@connection_options.schema_refresh_delay)
+        end
+
+        timer.on_value do
+          schema_changes = nil
+
+          synchronize do
+            @schema_refresh_timer = nil
+            schema_changes  = @schema_changes
+            @schema_changes = ::Array.new
+          end
+
+          process_schema_changes(schema_changes)
+        end
+
+        nil
       end
 
       def send_select_request(connection, request)
