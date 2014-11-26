@@ -599,6 +599,8 @@ module CCM extend self
         @session.execute(statement)
       end
 
+      @session.execute("USE system")
+
       nil
     end
 
@@ -686,7 +688,7 @@ module CCM extend self
         {
           'HOME'              => ccm_home,
           'CCM_MAX_HEAP_SIZE' => '64M',
-          'CCM_HEAP_NEWSIZE'  => '12M',
+          'CCM_HEAP_NEWSIZE'  => '16M',
           'MALLOC_ARENA_MAX'  => '1'
         },
         PrintingNotifier.new($stderr)
