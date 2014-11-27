@@ -3,6 +3,9 @@
 Features:
 
 * Added `Cassandra::LoadBalancing::Policy#teardown`
+* Allow disabling of automatic schema metadata synchronization
+* Allow manually refreshing schema metadata
+* Schema change events processing improvement
 
 # 1.0.0
 
