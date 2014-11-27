@@ -489,6 +489,8 @@ module Cassandra
     if hosts.empty?
       raise ::ArgumentError, ":hosts #{options[:hosts].inspect} could not be resolved to any ip address"
     end
+
+    hosts.shuffle!
   rescue => e
     futures.error(e)
   else
