@@ -35,9 +35,6 @@ module Cassandra
         @connection_options    = connection_options
         @refreshing_statuses   = ::Hash.new(false)
         @status                = :closed
-        @refreshing_schema     = false
-        @refreshing_keyspaces  = ::Hash.new(false)
-        @refreshing_tables     = ::Hash.new
         @refreshing_hosts      = false
         @refreshing_host       = ::Hash.new(false)
         @closed_promise        = Ione::Promise.new
@@ -136,11 +133,6 @@ module Cassandra
       end
 
       def refresh_schema_async_maybe_retry
-        synchronize do
-          return Ione::Future.resolved if @refreshing_schema
-          @refreshing_schema = true
-        end
-
         refresh_schema_async.fallback do |e|
           case e
           when Errors::HostError
@@ -148,13 +140,9 @@ module Cassandra
           else
             connection = @connection
             connection && connection.close(e)
-            @refreshing_schema = false
 
             Ione::Future.failed(e)
           end
-        end.map do
-          @refreshing_schema = false
-          nil
         end
       end
 
@@ -288,11 +276,6 @@ module Cassandra
       end
 
       def refresh_keyspace_async_maybe_retry(keyspace)
-        synchronize do
-          return Ione::Future.resolved if @refreshing_schema || @refreshing_keyspaces[keyspace]
-          @refreshing_keyspaces[keyspace] = true
-        end
-
         refresh_keyspace_async(keyspace).fallback do |e|
           case e
           when Errors::HostError
@@ -302,10 +285,6 @@ module Cassandra
             connection && connection.close(e)
 
             Ione::Future.failed(e)
-          end
-        end.map do
-          synchronize do
-            @refreshing_keyspaces.delete(host)
           end
         end
       end
@@ -351,12 +330,6 @@ module Cassandra
       end
 
       def refresh_table_async_maybe_retry(keyspace, table)
-        synchronize do
-          @refreshing_tables[keyspace] ||= ::Hash.new(false)
-          return Ione::Future.resolved if @refreshing_schema || @refreshing_keyspaces[keyspace] || @refreshing_tables[keyspace][table]
-          @refreshing_tables[keyspace][table] = true
-        end
-
         refresh_table_async(keyspace, table).fallback do |e|
           case e
           when Errors::HostError
@@ -366,11 +339,6 @@ module Cassandra
             connection && connection.close(e)
 
             Ione::Future.failed(e)
-          end
-        end.map do
-          synchronize do
-            @refreshing_tables[keyspace].delete(table)
-            @refreshing_tables.delete(keyspace) if @refreshing_tables[keyspace].empty?
           end
         end
       end
