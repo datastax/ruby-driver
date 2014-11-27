@@ -6,6 +6,7 @@ Features:
 * Allow disabling of automatic schema metadata synchronization
 * Allow manually refreshing schema metadata
 * Schema change events processing improvement
+* Added host list randomization to prevent hotspots between multiple clients
 
 # 1.0.0
 
