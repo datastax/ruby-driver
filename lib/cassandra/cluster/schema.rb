@@ -130,6 +130,9 @@ module Cassandra
 
         return self unless keyspace
 
+        columns  = columns.each_with_object(::Hash.new) do |row, index|
+          index[row['column_name']] = row
+        end
         table    = create_table(table, columns, host.release_version)
         keyspace = keyspace.update_table(table)
 
@@ -139,7 +142,25 @@ module Cassandra
           @keyspaces = keyspaces
         end
 
-        keyspace_updated(keyspace)
+        keyspace_changed(keyspace)
+
+        self
+      end
+
+      def delete_table(keyspace_name, table_name)
+        keyspace = @keyspaces[keyspace_name]
+
+        return self unless keyspace
+
+        keyspace = keyspace.delete_table(table_name)
+
+        synchronize do
+          keyspaces = @keyspaces.dup
+          keyspaces[keyspace_name] = keyspace
+          @keyspaces = keyspaces
+        end
+
+        keyspace_changed(keyspace)
 
         self
       end

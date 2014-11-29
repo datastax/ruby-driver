@@ -26,42 +26,6 @@ module Cassandra
   class Cluster
     extend Forwardable
 
-    # @!method host(address)
-    #   Find a host by its address
-    #   @param address [IPAddr, String] ip address
-    #   @return [Cassandra::Host, nil] host or nil
-    #
-    # @!method has_host?(address)
-    #   Determine if a host by a given address exists
-    #   @param address [IPAddr, String] ip address
-    #   @return [Boolean] true or false
-    def_delegators :@registry, :host, :has_host?
-
-    # @!method keyspace(name)
-    #   Find a keyspace by name
-    #   @param name [String] keyspace name
-    #   @return [Cassandra::Keyspace, nil] keyspace or nil
-    #
-    # @!method has_keyspace?(name)
-    #   Determine if a keyspace by a given name exists
-    #   @param name [String] keyspace name
-    #   @return [Boolean] true or false
-    def_delegators :@schema, :keyspace, :has_keyspace?
-
-    # @!method name
-    #   Return cluster's name
-    #   @return [String] cluster's name
-    #
-    # @!method find_replicas(keyspace, statement)
-    #   Return replicas for a given statement and keyspace
-    #   @note an empty list is returned when statement/keyspace information is
-    #     not enough to determine replica list.
-    #   @param keyspace [String] keyspace name
-    #   @param statement [Cassandra::Statement] statement for which to find
-    #     replicas
-    #   @return [Array<Cassandra::Host>] a list of replicas
-    def_delegators :@metadata, :name, :find_replicas
-
     # @private
     def initialize(logger, io_reactor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, address_resolution_policy, connector, futures_factory)
       @logger                = logger
@@ -83,6 +47,20 @@ module Cassandra
         @load_balancing_policy.teardown(self) rescue nil
       end
     end
+
+    # @!method name
+    #   Return cluster's name
+    #   @return [String] cluster's name
+    #
+    # @!method find_replicas(keyspace, statement)
+    #   Return replicas for a given statement and keyspace
+    #   @note an empty list is returned when statement/keyspace information is
+    #     not enough to determine replica list.
+    #   @param keyspace [String] keyspace name
+    #   @param statement [Cassandra::Statement] statement for which to find
+    #     replicas
+    #   @return [Array<Cassandra::Host>] a list of replicas
+    def_delegators :@metadata, :name, :find_replicas
 
     # Register a cluster state listener. State listener will start receiving
     # notifications about topology and schema changes
@@ -119,6 +97,17 @@ module Cassandra
     end
     alias :hosts :each_host
 
+    # @!method host(address)
+    #   Find a host by its address
+    #   @param address [IPAddr, String] ip address
+    #   @return [Cassandra::Host, nil] host or nil
+    #
+    # @!method has_host?(address)
+    #   Determine if a host by a given address exists
+    #   @param address [IPAddr, String] ip address
+    #   @return [Boolean] true or false
+    def_delegators :@registry, :host, :has_host?
+
     # Yield or enumerate each keyspace defined in this cluster
     # @overload each_keyspace
     #   @yieldparam keyspace [Cassandra::Keyspace] current keyspace
@@ -131,6 +120,35 @@ module Cassandra
       r
     end
     alias :keyspaces :each_keyspace
+
+    # @!method keyspace(name)
+    #   Find a keyspace by name
+    #   @param name [String] keyspace name
+    #   @return [Cassandra::Keyspace, nil] keyspace or nil
+    #
+    # @!method has_keyspace?(name)
+    #   Determine if a keyspace by a given name exists
+    #   @param name [String] keyspace name
+    #   @return [Boolean] true or false
+    def_delegators :@schema, :keyspace, :has_keyspace?
+
+    # @!method refresh_schema_async
+    #   Trigger an asynchronous schema metadata refresh
+    #   @return [Cassandra::Future<nil>] a future that will be fulfilled when
+    #     schema metadata has been refreshed
+    def_delegator :@control_connection, :refresh_schema_async_maybe_retry, \
+                                        :refresh_schema_async
+
+    # Synchronously refresh schema metadata
+    #
+    # @return [nil] nothing
+    # @raise [Cassandra::Errors::ClientError] when cluster is disconnected
+    # @raise [Cassandra::Error] other unexpected errors
+    #
+    # @see Cassandra::Cluster#refresh_schema_async
+    def refresh_schema
+      refresh_schema_async.get
+    end
 
     # Asynchronously create a new session, optionally scoped to a keyspace
     #

@@ -119,6 +119,13 @@ module Cassandra
     end
 
     # @private
+    def delete_table(table_name)
+      tables = @tables.dup
+      tables.delete(table_name)
+      Keyspace.new(@name, @durable_writes, @replication, tables)
+    end
+
+    # @private
     def create_partition_key(table, values)
       table = @tables[table]
       table && table.create_partition_key(values)
