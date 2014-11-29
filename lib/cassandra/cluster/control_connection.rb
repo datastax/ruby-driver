@@ -446,6 +446,7 @@ module Cassandra
             @metadata.update(data)
           end
 
+          peers.shuffle!
           peers.each do |data|
             ip = peer_ip(data)
             next unless ip
