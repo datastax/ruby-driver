@@ -171,8 +171,8 @@ module Cassandra
       end
 
 
-      def query(statement, options, paging_state = nil)
-        request = Protocol::QueryRequest.new(statement.cql, statement.params, nil, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
+      def query(statement, options)
+        request = Protocol::QueryRequest.new(statement.cql, statement.params, nil, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?)
         timeout = options.timeout
         promise = @futures.promise
 
@@ -198,10 +198,10 @@ module Cassandra
         promise.future
       end
 
-      def execute(statement, options, paging_state = nil)
+      def execute(statement, options)
         timeout         = options.timeout
         result_metadata = statement.result_metadata
-        request         = Protocol::ExecuteRequest.new(nil, statement.params_metadata, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, paging_state, options.trace?)
+        request         = Protocol::ExecuteRequest.new(nil, statement.params_metadata, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?)
         promise         = @futures.promise
 
         keyspace = @keyspace

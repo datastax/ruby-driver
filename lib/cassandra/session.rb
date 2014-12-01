@@ -53,6 +53,9 @@ module Cassandra
     # @option options [Symbol] :serial_consistency (nil) this option is only
     #   relevant for conditional updates and specifies a serial consistency to
     #   be used, one of {Cassandra::SERIAL_CONSISTENCIES}
+    # @option options [String] :paging_state (nil) this option is used for
+    #   stateless paging, where result paging is resumed some time after the
+    #   initial request.
     #
     # @see Cassandra.cluster Options that can be specified on the cluster-level
     #   and their default values.

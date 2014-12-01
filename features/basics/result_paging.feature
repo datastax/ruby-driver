@@ -136,3 +136,55 @@ Feature: Result paging
       {"k"=>"b", "v"=>1}
 
       """
+
+  @cassandra-version-specific @cassandra-version-2.0
+  Scenario: Using paging state for stateless paging
+    Given the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster      = Cassandra.cluster
+      session      = cluster.connect("simplex")
+      paging_state = nil
+
+      loop do
+        result = session.execute("SELECT * FROM test", page_size: 5, paging_state: paging_state)
+        puts "last page? #{result.last_page?}"
+        puts "page size: #{result.size}"
+
+        result.each do |row|
+          puts row
+        end
+        puts ""
+
+        break if result.last_page?
+        paging_state = result.paging_state
+      end
+
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      last page? false
+      page size: 5
+      {"k"=>"a", "v"=>0}
+      {"k"=>"c", "v"=>2}
+      {"k"=>"m", "v"=>12}
+      {"k"=>"f", "v"=>5}
+      {"k"=>"g", "v"=>6}
+
+      last page? false
+      page size: 5
+      {"k"=>"e", "v"=>4}
+      {"k"=>"d", "v"=>3}
+      {"k"=>"h", "v"=>7}
+      {"k"=>"l", "v"=>11}
+      {"k"=>"j", "v"=>9}
+
+      last page? true
+      page size: 3
+      {"k"=>"i", "v"=>8}
+      {"k"=>"k", "v"=>10}
+      {"k"=>"b", "v"=>1}
+
+      """
