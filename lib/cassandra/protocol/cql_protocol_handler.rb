@@ -190,7 +190,10 @@ module Cassandra
           @terminate = nil
         end
 
-        @connection.close(cause)
+        @scheduler.schedule_timer(0).on_value do
+          @connection.close(cause)
+        end
+
         @closed_promise.future
       end
 

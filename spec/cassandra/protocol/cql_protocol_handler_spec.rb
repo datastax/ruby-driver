@@ -302,13 +302,16 @@ module Cassandra
         it 'closes the underlying protocol handler' do
           connection.should_receive(:close)
           protocol_handler.close
+          scheduler.advance_time(0)
         end
 
         it 'returns a future which succeeds when the socket has closed' do
           connection.stub(:close) do
             connection.closed_listener.call(nil)
           end
-          protocol_handler.close.value
+          f = protocol_handler.close
+          scheduler.advance_time(0)
+          f.value
         end
       end
 
