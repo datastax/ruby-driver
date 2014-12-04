@@ -44,3 +44,9 @@ Rake::TestTask.new(:integration => :compile) do |t|
                   'integration/load_balancing/*_test.rb']
   t.verbose = true
 end
+
+Rake::TestTask.new(:stress => :compile) do |t|
+  t.libs.push "lib"
+  t.test_files = FileList['integration/stress_tests/*_test.rb']
+  t.verbose = true
+end
