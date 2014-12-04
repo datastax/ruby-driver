@@ -31,6 +31,20 @@ module Cassandra
       # @return [Numeric] request timeout interval
       attr_reader :timeout
 
+      # @return [String] paging state
+      #
+      # @note Although this feature exists to allow web applications to store
+      #   paging state in an [HTTP cookie](http://en.wikipedia.org/wiki/HTTP_cookie), **it is not safe to
+      #   expose without encrypting or otherwise securing it**. Paging state
+      #   contains information internal to the Apache Cassandra cluster, such as
+      #   partition key and data. Additionally, if a paging state is sent with CQL
+      #   statement, different from the original, the behavior of Cassandra is
+      #   undefined and will likely cause a server process of the coordinator of
+      #   such request to abort.
+      #
+      # @see Cassandra::Result#paging_state
+      attr_reader :paging_state
+
       # @private
       def initialize(options)
         consistency        = options[:consistency]
@@ -38,6 +52,7 @@ module Cassandra
         trace              = options[:trace]
         timeout            = options[:timeout]
         serial_consistency = options[:serial_consistency]
+        paging_state       = options[:paging_state]
 
         Util.assert_one_of(CONSISTENCIES, consistency) { ":consistency must be one of #{CONSISTENCIES.inspect}, #{consistency.inspect} given" }
 
@@ -46,7 +61,7 @@ module Cassandra
         end
 
         unless page_size.nil?
-          page_size = options[:page_size] = Integer(page_size)
+          page_size = Integer(page_size)
           Util.assert(page_size > 0) { ":page_size must be a positive integer, #{page_size.inspect} given" }
         end
 
@@ -55,11 +70,17 @@ module Cassandra
           Util.assert(timeout > 0) { ":timeout must be greater than 0, #{timeout} given" }
         end
 
+        unless paging_state.nil?
+          paging_state = String(paging_state)
+          Util.assert_not_empty(paging_state) { ":paging_state must not be empty" }
+        end
+
         @consistency        = consistency
         @page_size          = page_size
         @trace              = !!trace
         @timeout            = timeout
         @serial_consistency = serial_consistency
+        @paging_state       = paging_state
       end
 
       # @return [Boolean] whether request tracing was enabled
@@ -68,8 +89,14 @@ module Cassandra
       end
 
       # @private
-      def override(options)
-        Options.new(to_h.merge!(options))
+      def override(*options)
+        merged = options.unshift(to_h).inject do |base, opts|
+          next base unless opts
+          Util.assert_instance_of(::Hash, opts) { "options must be a Hash, #{options.inspect} given" }
+          base.merge!(opts)
+        end
+
+        Options.new(merged)
       end
 
       # @private

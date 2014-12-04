@@ -51,6 +51,8 @@ module Cassandra
     # @param options [Hash] additional options, just like the ones for
     #   {Cassandra::Session#execute}
     #
+    # @note `:paging_state` option will be ignored.
+    #
     # @return [Cassandra::Result, nil] returns `nil` if last page
     #
     # @see Cassandra::Session#execute
@@ -62,17 +64,38 @@ module Cassandra
     # @param options [Hash] additional options, just like the ones for
     #   {Cassandra::Session#execute_async}
     #
+    # @note `:paging_state` option will be ignored.
+    #
     # @return [Cassandra::Future<Cassandra::Result, nil>] `nil` if last
     #   page
     #
     # @see Cassandra::Session#execute
     def next_page_async(options = nil)
     end
+
+    # Exposes current paging state for stateless pagination.
+    #
+    # @return [String, nil] current paging state as a `String` or `nil`.
+    #
+    # @note Although this feature exists to allow web applications to store
+    #   paging state in an [HTTP cookie](http://en.wikipedia.org/wiki/HTTP_cookie), **it is not safe to
+    #   expose without encrypting or otherwise securing it**. Paging state
+    #   contains information internal to the Apache Cassandra cluster, such as
+    #   partition key and data. Additionally, if a paging state is sent with CQL
+    #   statement, different from the original, the behavior of Cassandra is
+    #   undefined and will likely cause a server process of the coordinator of
+    #   such request to abort.
+    #
+    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L482-L487 Paging State description in Cassandra Native Protocol v2 specification
+    def paging_state
+    end
   end
 
   # @private
   module Results
     class Paged < Result
+      attr_reader :paging_state
+
       def initialize(rows, paging_state, trace_id, keyspace, statement, options, hosts, consistency, retries, client, futures_factory)
         @rows           = rows
         @paging_state   = paging_state
@@ -124,12 +147,12 @@ module Cassandra
       def next_page_async(options = nil)
         return @futures.value(nil) if @paging_state.nil?
 
-        options = options ? @options.override(options) : @options
+        options = @options.override(options, paging_state: @paging_state)
 
         if @statement.is_a?(Statements::Simple)
-          @client.query(@statement, options, @paging_state)
+          @client.query(@statement, options)
         else
-          @client.execute(@statement, options, @paging_state)
+          @client.execute(@statement, options)
         end
       end
 
@@ -198,6 +221,10 @@ module Cassandra
       end
 
       def next_page(options = nil)
+        nil
+      end
+
+      def paging_state
         nil
       end
 
