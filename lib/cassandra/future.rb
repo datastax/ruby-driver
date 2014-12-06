@@ -512,8 +512,10 @@ module Cassandra
           @executor.execute(error, &listener.method(:failure))
         end
 
-        synchronize do
-          @cond.broadcast if @waiting > 0
+        @executor.execute do
+          synchronize do
+            @cond.broadcast if @waiting > 0
+          end
         end
 
         self
@@ -537,8 +539,10 @@ module Cassandra
           @executor.execute(value, &listener.method(:success))
         end
 
-        synchronize do
-          @cond.broadcast if @waiting > 0
+        @executor.execute do
+          synchronize do
+            @cond.broadcast if @waiting > 0
+          end
         end
 
         self

@@ -21,24 +21,16 @@ module Cassandra
   module Executors
     class ThreadPool
       class Task
-        def initialize(promise, *args, &block)
-          @promise = promise
+        def initialize(*args, &block)
           @args    = args
           @block   = block
         end
 
         def run
-          result = @block.call(*@args)
-
-          if result.is_a?(Future)
-            @promise.observe(result)
-          else
-            @promise.fulfill(result)
-          end
-        rescue ::Exception => e
-          @promise.break(e)
+          @block.call(*@args)
+        rescue ::Exception
         ensure
-          @promise = @args = @block = nil
+          @args = @block = nil
         end
       end
 
@@ -54,14 +46,12 @@ module Cassandra
       end
 
       def execute(*args, &block)
-        promise = Cassandra::Future.promise
-
         synchronize do
-          @tasks << Task.new(promise, *args, &block)
+          @tasks << Task.new(*args, &block)
           @cond.signal if @waiting > 0
         end
 
-        promise.future
+        nil
       end
 
       private
@@ -90,14 +80,10 @@ module Cassandra
 
     class SameThread
       def execute(*args, &block)
-        result = yield(*args)
-        if result.is_a?(Future)
-          return result
-        else
-          Future.value(result)
-        end
-      rescue ::Exception => e
-        Future.error(e)
+        yield(*args)
+        nil
+      rescue ::Exception
+        nil
       end
     end
   end
