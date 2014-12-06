@@ -204,7 +204,7 @@ module Cassandra
       end
     end
 
-    @@factory = Factory.new(Executors::ThreadPool.new(1))
+    @@factory = Factory.new(Executors::SameThread.new)
 
     # Returns a future resolved to a given value
     # @param value [Object] value for the future
@@ -230,12 +230,6 @@ module Cassandra
     #   @return [Cassandra::Future<Array<Object>>] a combined future
     def self.all(*futures)
       @@factory.all(*futures)
-    end
-
-    # @private
-    # Returns a new promise instance
-    def self.promise
-      @@factory.promise
     end
 
     # @private
@@ -508,11 +502,11 @@ module Cassandra
           listeners, @listeners = @listeners, nil
         end
 
-        listeners.each do |listener|
-          @executor.execute(error, &listener.method(:failure))
-        end
-
         @executor.execute do
+          listeners.each do |listener|
+            listener.failure(error) rescue nil
+          end
+
           synchronize do
             @cond.broadcast if @waiting > 0
           end
@@ -535,11 +529,11 @@ module Cassandra
           listeners, @listeners = @listeners, nil
         end
 
-        listeners.each do |listener|
-          @executor.execute(value, &listener.method(:success))
-        end
-
         @executor.execute do
+          listeners.each do |listener|
+            listener.success(value) rescue nil
+          end
+
           synchronize do
             @cond.broadcast if @waiting > 0
           end
