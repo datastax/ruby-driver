@@ -42,7 +42,9 @@ module Cassandra
                                no_replication_strategy
                               )
                            }
-    let(:futures_factory)  { Future }
+
+    let(:executor)         { Executors::ThreadPool.new(thread_pool_size) }
+    let(:futures_factory)  { Future::Factory.new(executor) }
 
     let(:schema_type_parser) { Cluster::Schema::TypeParser.new }
 
@@ -110,6 +112,7 @@ module Cassandra
     let(:synchronize_schema)        { true }
     let(:schema_refresh_delay)      { 1 }
     let(:schema_refresh_timeout)    { 10 }
+    let(:thread_pool_size)          { 4 }
 
     let(:connections_per_local_node)  { 2 }
     let(:connections_per_remote_node) { 1 }

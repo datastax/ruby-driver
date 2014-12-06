@@ -34,6 +34,7 @@ module Cassandra
                                  :connections_per_local_node => 2,
                                  :connections_per_remote_node => 1,
                                  :reconnection_policy => reconnection_policy,
+                                 :executor => Executors::SameThread.new,
                                  :logger => logger
                                } }
 
