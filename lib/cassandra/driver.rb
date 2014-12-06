@@ -135,7 +135,18 @@ module Cassandra
       addresses.each {|address| cluster_registry.host_found(address)}
 
       logger.info('Establishing control connection')
-      control_connection.connect_async.map(cluster)
+
+      promise = futures_factory.promise
+
+      control_connection.connect_async.on_complete do |f|
+        if f.resolved?
+          promise.fulfill(cluster)
+        else
+          f.on_failure {|e| promise.break(e)}
+        end
+      end
+
+      promise.future
     end
   end
 end
