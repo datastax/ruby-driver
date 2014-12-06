@@ -60,7 +60,7 @@ module Cassandra
 
     let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, connector, connection_options) }
 
-    let(:cluster) { Cluster.new(logger, io_reactor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, address_resolution_policy, connector, futures_factory) }
+    let(:cluster) { Cluster.new(logger, io_reactor, executor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, address_resolution_policy, connector, futures_factory) }
 
     let(:execution_options) do
       Execution::Options.new({

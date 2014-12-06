@@ -27,9 +27,10 @@ module Cassandra
     extend Forwardable
 
     # @private
-    def initialize(logger, io_reactor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, address_resolution_policy, connector, futures_factory)
+    def initialize(logger, io_reactor, executor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, address_resolution_policy, connector, futures_factory)
       @logger                = logger
       @io_reactor            = io_reactor
+      @executor              = executor
       @control_connection    = control_connection
       @registry              = cluster_registry
       @schema                = cluster_schema
@@ -217,6 +218,8 @@ module Cassandra
         else
           f.on_failure {|e| promise.break(e)}
         end
+
+        @executor.shutdown
       end
 
       promise.future

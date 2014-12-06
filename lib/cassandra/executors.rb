@@ -43,12 +43,24 @@ module Cassandra
         @tasks   = ::Array.new
         @waiting = 0
         @pool    = ::Array.new(size, &method(:spawn_thread))
+        @term    = false
       end
 
       def execute(*args, &block)
         synchronize do
           @tasks << Task.new(*args, &block)
           @cond.signal if @waiting > 0
+        end
+
+        nil
+      end
+
+      def shutdown
+        execute do
+          synchronize do
+            @term = true
+            @cond.broadcast if @waiting > 0
+          end
         end
 
         nil
@@ -61,13 +73,17 @@ module Cassandra
       end
 
       def run
+        Thread.current.abort_on_exception = true
+
         loop do
           tasks = nil
 
           synchronize do
             @waiting += 1
-            @cond.wait while @tasks.empty?
+            @cond.wait while !@term && @tasks.empty?
             @waiting -= 1
+
+            return if @tasks.empty?
 
             tasks  = @tasks
             @tasks = ::Array.new
@@ -83,6 +99,10 @@ module Cassandra
         yield(*args)
         nil
       rescue ::Exception
+        nil
+      end
+
+      def shutdown
         nil
       end
     end
