@@ -37,7 +37,8 @@ module Cassandra
             return if @remaining == 0
 
             @remaining -= 1
-            index, @index = @index, (@index + 1) % @total
+            index  = @index
+            @index = (index + 1) % @total
 
             @hosts[index]
           end
@@ -117,12 +118,13 @@ module Cassandra
         # @return [Cassandra::LoadBalancing::Plan] a rotated load balancing plan
         # @see Cassandra::LoadBalancing::Policy#plan
         def plan(keyspace, statement, options)
-          hosts    = @hosts
-          position = @position
-          total    = hosts.size
+          hosts = @hosts
+          total = hosts.size
+
           return EMPTY_PLAN if total == 0
 
-          @position = (position + 1) % total
+          position  = @position % total
+          @position = position + 1
 
           Plan.new(hosts, position)
         end
