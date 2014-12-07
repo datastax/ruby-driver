@@ -136,12 +136,12 @@ module Cassandra
             remote = @remote
           end
 
-          position = @position
-          total    = local.size + remote.size
+          total = local.size + remote.size
 
           return EMPTY_PLAN if total == 0
 
-          @position = (@position + 1) % total
+          position  = @position % total
+          @position = position + 1
 
           Plan.new(local, remote, position)
         end

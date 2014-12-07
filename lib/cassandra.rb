@@ -218,8 +218,6 @@ module Cassandra
       ].include?(key)
     end
 
-    futures = options.fetch(:futures_factory, Future)
-
     has_username = options.has_key?(:username)
     has_password = options.has_key?(:password)
     if has_username || has_password
@@ -492,19 +490,11 @@ module Cassandra
 
     hosts.shuffle!
   rescue => e
+    futures = options.fetch(:futures_factory) { Driver.new.futures_factory }
     futures.error(e)
   else
-    promise = futures.promise
-
-    Driver.new(options).connect(hosts).on_complete do |f|
-      if f.resolved?
-        promise.fulfill(f.value)
-      else
-        f.on_failure {|e| promise.break(e)}
-      end
-    end
-
-    promise.future
+    driver = Driver.new(options)
+    driver.connect(hosts)
   end
 end
 
@@ -516,6 +506,7 @@ require 'cassandra/protocol'
 require 'cassandra/auth'
 require 'cassandra/null_logger'
 
+require 'cassandra/executors'
 require 'cassandra/future'
 require 'cassandra/cluster'
 require 'cassandra/driver'

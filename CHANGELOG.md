@@ -8,6 +8,11 @@ Features:
 * Schema change events processing improvement
 * Added host list randomization to prevent hotspots between multiple clients
 
+Bug Fixes:
+
+* [RUBY-72] Reactor hangs when retrieving trace inside future listener
+* [RUBY-73] Invalid index in load balancing plan after cluster resize
+
 # 1.0.0
 
 Features:

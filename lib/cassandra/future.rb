@@ -161,18 +161,63 @@ module Cassandra
       end
     end
 
+    # @private
+    class Factory
+      def initialize(executor)
+        @executor = executor
+      end
+
+      def value(value)
+        Value.new(value)
+      end
+
+      def error(error)
+        Error.new(error)
+      end
+
+      def promise
+        Promise.new(@executor)
+      end
+
+      def all(*futures)
+        futures   = Array(futures.first) if futures.one?
+        monitor   = Monitor.new
+        promise   = Promise.new(@executor)
+        remaining = futures.length
+        values    = Array.new(remaining)
+
+        futures.each_with_index do |future, i|
+          future.on_complete do |v, e|
+            if e
+              promise.break(e)
+            else
+              done = false
+              monitor.synchronize do
+                remaining -= 1
+                done = (remaining == 0)
+                values[i] = v
+              end
+              promise.fulfill(values) if done
+            end
+          end
+        end
+      end
+    end
+
+    @@factory = Factory.new(Executors::SameThread.new)
+
     # Returns a future resolved to a given value
     # @param value [Object] value for the future
     # @return [Cassandra::Future<Object>] a future value
     def self.value(value)
-      Value.new(value)
+      @@factory.value(value)
     end
 
     # Returns a future resolved to a given error
     # @param error [Exception] error for the future
     # @return [Cassandra::Future<Exception>] a future error
     def self.error(error)
-      Error.new(error)
+      @@factory.error(error)
     end
 
     # Returns a future that resolves with values of all futures
@@ -184,35 +229,7 @@ module Cassandra
     #     combine
     #   @return [Cassandra::Future<Array<Object>>] a combined future
     def self.all(*futures)
-      futures   = Array(futures.first) if futures.one?
-      monitor   = Monitor.new
-      promise   = Promise.new
-      remaining = futures.length
-      values    = Array.new(remaining)
-
-      futures.each_with_index do |future, i|
-        future.on_complete do |v, e|
-          if e
-            promise.break(e)
-          else
-            done = false
-            monitor.synchronize do
-              remaining -= 1
-              done = (remaining == 0)
-              values[i] = v
-            end
-            promise.fulfill(values) if done
-          end
-        end
-      end
-
-      promise.future
-    end
-
-    # @private
-    # Returns a new promise instance
-    def self.promise
-      Promise.new
+      @@factory.all(*futures)
     end
 
     # @private
@@ -455,10 +472,11 @@ module Cassandra
 
       include MonitorMixin
 
-      def initialize
+      def initialize(executor)
         mon_initialize
 
         @cond      = new_cond
+        @executor  = executor
         @state     = :pending
         @waiting   = 0
         @error     = nil
@@ -484,12 +502,14 @@ module Cassandra
           listeners, @listeners = @listeners, nil
         end
 
-        listeners.each do |listener|
-          listener.failure(error) rescue nil
-        end
+        @executor.execute do
+          listeners.each do |listener|
+            listener.failure(error) rescue nil
+          end
 
-        synchronize do
-          @cond.broadcast if @waiting > 0
+          synchronize do
+            @cond.broadcast if @waiting > 0
+          end
         end
 
         self
@@ -509,12 +529,14 @@ module Cassandra
           listeners, @listeners = @listeners, nil
         end
 
-        listeners.each do |listener|
-          listener.success(value) rescue nil
-        end
+        @executor.execute do
+          listeners.each do |listener|
+            listener.success(value) rescue nil
+          end
 
-        synchronize do
-          @cond.broadcast if @waiting > 0
+          synchronize do
+            @cond.broadcast if @waiting > 0
+          end
         end
 
         self
@@ -608,7 +630,7 @@ module Cassandra
         if @state == :pending
           synchronize do
             if @state == :pending
-              promise  = Promise.new
+              promise  = Promise.new(@executor)
               listener = Listeners::Then.new(promise, &block)
               @listeners << listener
               return promise.future
@@ -631,7 +653,7 @@ module Cassandra
         if @state == :pending
           synchronize do
             if @state == :pending
-              promise  = Promise.new
+              promise  = Promise.new(@executor)
               listener = Listeners::Fallback.new(promise, &block)
               @listeners << listener
               return promise.future
@@ -653,8 +675,8 @@ module Cassandra
 
     attr_reader :future
 
-    def initialize
-      @signal = Signal.new
+    def initialize(executor)
+      @signal = Signal.new(executor)
       @future = Future.new(@signal)
     end
 

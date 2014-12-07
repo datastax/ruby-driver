@@ -42,7 +42,9 @@ module Cassandra
                                no_replication_strategy
                               )
                            }
-    let(:futures_factory)  { Future }
+
+    let(:executor)         { Executors::ThreadPool.new(thread_pool_size) }
+    let(:futures_factory)  { Future::Factory.new(executor) }
 
     let(:schema_type_parser) { Cluster::Schema::TypeParser.new }
 
@@ -58,7 +60,7 @@ module Cassandra
 
     let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, connector, connection_options) }
 
-    let(:cluster) { Cluster.new(logger, io_reactor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, address_resolution_policy, connector, futures_factory) }
+    let(:cluster) { Cluster.new(logger, io_reactor, executor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, address_resolution_policy, connector, futures_factory) }
 
     let(:execution_options) do
       Execution::Options.new({
@@ -110,6 +112,7 @@ module Cassandra
     let(:synchronize_schema)        { true }
     let(:schema_refresh_delay)      { 1 }
     let(:schema_refresh_timeout)    { 10 }
+    let(:thread_pool_size)          { 4 }
 
     let(:connections_per_local_node)  { 2 }
     let(:connections_per_remote_node) { 1 }
@@ -132,7 +135,18 @@ module Cassandra
       addresses.each {|address| cluster_registry.host_found(address)}
 
       logger.info('Establishing control connection')
-      control_connection.connect_async.map(cluster)
+
+      promise = futures_factory.promise
+
+      control_connection.connect_async.on_complete do |f|
+        if f.resolved?
+          promise.fulfill(cluster)
+        else
+          f.on_failure {|e| promise.break(e)}
+        end
+      end
+
+      promise.future
     end
   end
 end

@@ -3,7 +3,7 @@ require 'spec_helper'
 module Cassandra
   class Promise
     describe(Signal) do
-      let(:signal) { Signal.new }
+      let(:signal) { Signal.new(Executors::SameThread.new) }
 
       describe('#failure') do
         it 'raises if error is not an Exception' do

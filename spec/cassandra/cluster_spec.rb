@@ -21,17 +21,19 @@ require 'spec_helper'
 module Cassandra
   describe(Cluster) do
     let(:io_reactor)         { FakeIoReactor.new }
+    let(:executor)           { Executors::SameThread.new }
     let(:control_connection) { driver.control_connection }
     let(:cluster_registry)   { FakeClusterRegistry.new(['1.1.1.1', '2.2.2.2']) }
     let(:load_balancing_policy) { FakeLoadBalancingPolicy.new(cluster_registry) }
     let(:driver)             { Driver.new({
                                  :io_reactor => io_reactor,
                                  :cluster_registry => cluster_registry,
-                                 :load_balancing_policy => load_balancing_policy
+                                 :load_balancing_policy => load_balancing_policy,
+                                 :executor => executor
                                })
                              }
 
-    let(:cluster) { Cluster.new(driver.logger, io_reactor, control_connection, cluster_registry, driver.cluster_schema, driver.cluster_metadata, driver.execution_options, driver.connection_options, load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.address_resolution_policy, driver.connector, driver.futures_factory) }
+    let(:cluster) { Cluster.new(driver.logger, io_reactor, executor, control_connection, cluster_registry, driver.cluster_schema, driver.cluster_metadata, driver.execution_options, driver.connection_options, load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.address_resolution_policy, driver.connector, driver.futures_factory) }
 
     describe('#hosts') do
       it 'uses State#hosts' do
