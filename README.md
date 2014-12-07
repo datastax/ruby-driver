@@ -25,6 +25,8 @@ This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [
 * [Per-request execution information and tracing](http://datastax.github.io/ruby-driver/features/debugging/)
 * [Configurable address resolution](http://datastax.github.io/ruby-driver/features/address_resolution/)
 
+[Check out the slides from Ruby Driver Explained for a detailed overview of the Ruby Driver architecture](https://speakerdeck.com/avalanche123/ruby-driver-explained).
+
 ## Compability
 
 This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. The current version works with:

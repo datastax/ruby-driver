@@ -7,6 +7,7 @@ Features:
 * Allow manually refreshing schema metadata
 * Schema change events processing improvement
 * Added host list randomization to prevent hotspots between multiple clients
+* Future listeners don't block the reactor
 
 Bug Fixes:
 
