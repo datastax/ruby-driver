@@ -25,7 +25,7 @@ This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [
 * [Per-request execution information and tracing](http://datastax.github.io/ruby-driver/features/debugging/)
 * [Configurable address resolution](http://datastax.github.io/ruby-driver/features/address_resolution/)
 
-[Check out the slides from Ruby Driver Explained for a detailed overview of the Ruby Driver architecture](https://speakerdeck.com/avalanche123/ruby-driver-explained).
+[Check out the slides from Ruby Driver Explained](https://speakerdeck.com/avalanche123/ruby-driver-explained) for a detailed overview of the Ruby Driver architecture.
 
 ## Compability
 
