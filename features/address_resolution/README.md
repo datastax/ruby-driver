@@ -65,7 +65,7 @@ Ruby Driver   EC2 Multi–Region Policy                                    AWS D
      |                  |                                                   |
 ```
 
-Note that this policy uses blocking DNS lookups internally and may hang the
+__Note__: This policy uses blocking DNS lookups internally and may hang the
 reactor for the duration of the lookup. Fortunately, these address resolutions
 happen only during initial connect or host additions/recoveries.
 

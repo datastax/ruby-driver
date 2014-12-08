@@ -66,7 +66,7 @@ client_encryption_options:
   keystore_password: "some very long and secure password"
 ```
 
-Note that the values of `keystore` and `keystore_password` above must be the same as the values of `$keystore_file` and `$keystore_pass` from our shell script.
+__Note__: The values of `keystore` and `keystore_password` above must be the same as the values of `$keystore_file` and `$keystore_pass` from our shell script.
 
 Now you can restart your cassandra processes.
 
@@ -99,7 +99,7 @@ keytool -export \
   -file "$server_alias.der"
 ```
 
-Note that the values of `$server_alias`, `$keystore_file` and `$keystore_pass` must be the same as in the script that we used to generate the keystore file.
+__Note__: The values of `$server_alias`, `$keystore_file` and `$keystore_pass` must be the same as in the script that we used to generate the keystore file.
 
 Now that we have our DER certificate, we can use OpenSSL to transform it into a PEM file:
 
@@ -115,7 +115,7 @@ Once we have all PEM certificates exported we must bundle them for the client to
 cat node1.pem node2.pem node3.pem > server.pem
 ```
 
-Note that you can skip this step if you aleady have only one pem certificate.
+__Note__: You can skip this step if you aleady have only one pem certificate.
 
 Finally, having our combined PEM certificate, we can give it to the client to verify our server's identity:
 
