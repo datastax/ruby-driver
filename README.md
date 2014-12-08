@@ -97,9 +97,9 @@ Some of the new features added to the driver have unfortunately led to changes i
 
 Current release introduces the following new features:
 
-* Ability to disable automatic schem synchronization
+* Ability to disable automatic schema synchronization
 * Schema change event storm protection using a sliding delay
-* `Cassandra::LoadBalancing::Policy#teardown` added to allow LBP resource cleanup
+* `Cassandra::LoadBalancing::Policy#teardown` for cleaning up resources
 * `Cassandra::Cluster#refresh_schema` for manually refreshing schema metadata
 * Host list randomization to prevent hotspots between multiple clients
 * Future listeners run in a dedicated threadpool to not block the reactor
