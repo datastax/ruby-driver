@@ -64,7 +64,7 @@ end
 future.join
 ```
 
-The host you specify is just a seed node, the driver will automatically discover all peers in the cluster.
+__Note__: The host you specify is just a seed node, the driver will automatically discover all peers in the cluster.
 
 Read more:
 
