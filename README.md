@@ -93,18 +93,16 @@ __Note__: if you want to use compression you should also install [snappy](http:/
 
 Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API. In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/master/examples/cql-rb-wrapper.rb) to assist you with gradual upgrade.
 
-## What's new in v1.0.0
+## What's new in v1.1.0
 
 Current release introduces the following new features:
 
-* [Asynchronous execution](http://datastax.github.io/ruby-driver/features/asynchronous_io/)
-* One-off, [prepared](http://datastax.github.io/ruby-driver/features/basics/prepared_statements/) and [batch statements](http://datastax.github.io/ruby-driver/features/basics/batch_statements/)
-* Automatic peer discovery and cluster metadata with [support for change notifications](http://datastax.github.io/ruby-driver/features/state_listeners/)
-* Various [load-balancing](http://datastax.github.io/ruby-driver/features/load_balancing/), [retry](http://datastax.github.io/ruby-driver/features/retry_policies/) and reconnection policies, [with ability to write your own](http://datastax.github.io/ruby-driver/features/load_balancing/implementing_a_policy/)
-* [SSL encryption](http://datastax.github.io/ruby-driver/features/security/ssl_encryption/)
-* [Flexible and robust error handling](http://datastax.github.io/ruby-driver/features/error_handling/)
-* [Per-request execution information and tracing](http://datastax.github.io/ruby-driver/features/debugging/)
-* [Configurable address resolution](http://datastax.github.io/ruby-driver/features/address_resolution/)
+* Ability to disable automatic schem synchronization
+* Schema change event storm protection using a sliding delay
+* `Cassandra::LoadBalancing::Policy#teardown` added to allow LBP resource cleanup
+* `Cassandra::Cluster#refresh_schema` for manually refreshing schema metadata
+* Host list randomization to prevent hotspots between multiple clients
+* Future listeners run in a dedicated threadpool to not block the reactor
 
 ## Code examples
 
