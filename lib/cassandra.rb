@@ -64,6 +64,10 @@ module Cassandra
   #   can skip this option if you specify only hosts from the local datacenter
   #   in `:hosts` option.
   #
+  # @option options [Boolean] :shuffle_replicas (true) whether replicas list
+  #   found by the default Token-Aware Load Balancing Policy should be
+  #   shuffled. See {Cassandra::LoadBalancing::Policies::TokenAware#initialize}.
+  #
   # @option options [Numeric] :connect_timeout (10) connection timeout in
   #   seconds. Setting value to `nil` will reset it to 5 seconds.
   #
@@ -213,7 +217,8 @@ module Cassandra
         :ssl, :server_cert, :client_cert, :private_key, :passphrase,
         :connect_timeout, :futures_factory, :datacenter, :address_resolution,
         :address_resolution_policy, :idle_timeout, :heartbeat_interval, :timeout,
-        :synchronize_schema, :schema_refresh_delay, :schema_refresh_timeout
+        :synchronize_schema, :schema_refresh_delay, :schema_refresh_timeout,
+        :shuffle_replicas
       ].include?(key)
     end
 
@@ -427,6 +432,10 @@ module Cassandra
 
     if options.has_key?(:trace)
       options[:trace] = !!options[:trace]
+    end
+
+    if options.has_key?(:shuffle_replicas)
+      options[:shuffle_replicas] = !!options[:shuffle_replicas]
     end
 
     if options.has_key?(:page_size)
