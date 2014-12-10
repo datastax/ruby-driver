@@ -2,7 +2,7 @@
 
 ## Connecting and Discovering Nodes
 
-Ruby driver will connect to 127.0.0.1 if no `:hosts` given to `Cassandra.cluster`. It will automatically discover all peers and add them to cluster metadata.
+Ruby driver will connect to 127.0.0.1 if no `:hosts` given to [`Cassandra.cluster`](http://datastax.github.io/ruby-driver/api/#cluster-class_method). It will automatically discover all peers and add them to cluster metadata.
 
 ```ruby
 require 'cassandra'
@@ -14,7 +14,7 @@ cluster.each_host do |host|
 end
 ```
 
-You can also specify a list of seed nodes to connect to. The set of IP addresses we pass to the `Cassandra.cluster` is simply an initial set of contact points. After the driver connects to one of these nodes, it will automatically discover the rest of the nodes in the cluster, so you don’t need to list every node in your cluster.
+You can also specify a list of seed nodes to connect to. The set of IP addresses we pass to the [`Cassandra.cluster`](http://datastax.github.io/ruby-driver/api/#cluster-class_method) is simply an initial set of contact points. After the driver connects to one of these nodes, it will automatically discover the rest of the nodes in the cluster, so you don’t need to list every node in your cluster.
 
 [Read more in the api docs](http://datastax.github.io/ruby-driver/api/#cluster-class_method)
 
@@ -234,7 +234,7 @@ Consistency is ignored for `USE`, `TRUNCATE`, `CREATE` and `ALTER` statements, a
 
 ## Compression
 
-The CQL protocol supports frame compression, which can give you a performance boost if your requests or responses are big. To enable it you can specify compression to use in `Cassandra.cluster`.
+The CQL protocol supports frame compression, which can give you a performance boost if your requests or responses are big. To enable it you can specify compression to use in [`Cassandra.cluster`](http://datastax.github.io/ruby-driver/api/#cluster-class_method).
 
 Cassandra currently supports two compression algorithms: Snappy and LZ4. ruby driver supports both, but in order to use them you will have to install the [snappy](http://rubygems.org/gems/snappy) or [lz4-ruby](http://rubygems.org/gems/lz4-ruby) gems separately. Once it's installed you can enable compression like this:
 
