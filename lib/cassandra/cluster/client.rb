@@ -140,7 +140,7 @@ module Cassandra
       end
 
       def host_down(host)
-        manager = nil
+        pool = nil
 
         synchronize do
           return Ione::Future.resolved if !@connections.has_key?(host) && !@connecting_hosts.include?(host)
@@ -149,11 +149,11 @@ module Cassandra
           @prepared_statements.delete(host)
           @preparing_statements.delete(host)
 
-          manager = @connections.delete(host)
+          pool = @connections.delete(host)
         end
 
-        if manager
-          Ione::Future.all(*manager.snapshot.map! {|c| c.close}).map(nil)
+        if pool
+          Ione::Future.all(*pool.snapshot.map! {|c| c.close}).map(nil)
         else
           Ione::Future.resolved
         end
@@ -345,19 +345,46 @@ module Cassandra
           return NO_CONNECTIONS
         end
 
-        f = @connector.connect_many(host, pool_size)
+        pool = nil
+        existing_connections = 0
+
+        synchronize do
+          pool = @connections[host]
+        end
+
+        existing_connections = pool.size if pool
+        pool = nil
+        missing_connections  = (pool_size - existing_connections)
+        return Ione::Future.resolved if missing_connections <= 0
+
+        f = @connector.connect_many(host, missing_connections)
 
         f.on_value do |connections|
-          manager = nil
+          pool = nil
 
           synchronize do
             @connecting_hosts.delete(host)
             @prepared_statements[host] = {}
             @preparing_statements[host] = {}
-            manager = @connections[host] ||= ConnectionPool.new
+            pool = @connections[host] ||= ConnectionPool.new
           end
 
-          manager.add_connections(connections)
+          pool.add_connections(connections)
+
+          connections.each do |connection|
+            connection.on_closed do
+              distance = nil
+
+              synchronize do
+                if !(@state == :closed || @state == :closing) && !@connecting_hosts.include?(host) && @connections.include?(host)
+                  distance = @load_balancing_policy.distance(host)
+                  @connecting_hosts[host] = distance unless distance == :ignore
+                end
+              end
+
+              connect_to_host_maybe_retry(host, distance).map(nil) if distance
+            end
+          end
         end
 
         f
@@ -370,16 +397,16 @@ module Cassandra
         end
 
         hosts << host = plan.next
-        manager = nil
-        synchronize { manager = @connections[host] }
+        pool = nil
+        synchronize { pool = @connections[host] }
 
-        unless manager
+        unless pool
           errors ||= {}
           errors[host] = NOT_CONNECTED
           return execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
         end
 
-        connection = manager.random_connection
+        connection = pool.random_connection
 
         if keyspace && connection.keyspace != keyspace
           switch = switch_keyspace(connection, keyspace, timeout)
@@ -444,16 +471,16 @@ module Cassandra
         end
 
         hosts << host = plan.next
-        manager = nil
-        synchronize { manager = @connections[host] }
+        pool = nil
+        synchronize { pool = @connections[host] }
 
-        unless manager
+        unless pool
           errors ||= {}
           errors[host] = NOT_CONNECTED
           return batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
         end
 
-        connection = manager.random_connection
+        connection = pool.random_connection
 
         if keyspace && connection.keyspace != keyspace
           switch = switch_keyspace(connection, keyspace, timeout)
@@ -543,16 +570,16 @@ module Cassandra
         end
 
         hosts << host = plan.next
-        manager = nil
-        synchronize { manager = @connections[host] }
+        pool = nil
+        synchronize { pool = @connections[host] }
 
-        unless manager
+        unless pool
           errors ||= {}
           errors[host] = NOT_CONNECTED
           return send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
         end
 
-        connection = manager.random_connection
+        connection = pool.random_connection
 
         if keyspace && connection.keyspace != keyspace
           switch = switch_keyspace(connection, keyspace, timeout)
