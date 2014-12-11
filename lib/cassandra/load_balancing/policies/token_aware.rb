@@ -88,13 +88,24 @@ module Cassandra
         #   @see Cassandra::LoadBalancing::Policy#host_lost
         def_delegators :@policy, :distance, :host_found, :host_up, :host_down, :host_lost
 
-        # @param wrapped_policy [Cassandra::LoadBalancing::Policy] actual policy to filter
-        def initialize(wrapped_policy)
+        # @param wrapped_policy [Cassandra::LoadBalancing::Policy] actual
+        #   policy to filter
+        # @param shuffle [Boolean] (true) whether or not to shuffle the replicas
+        #
+        # @note If replicas are not shuffled (`shuffle = false`), then it is
+        #   possibile to create hotspots in a write-heavy scenario, where most
+        #   of the write requests will be handled by the same node(s). The
+        #   default behavior of shuffling replicas helps mitigate this by
+        #   universally distributing write load between replicas. However, it
+        #   under-utilizes read caching and forces multiple replicas to cache
+        #   the same read statements.
+        def initialize(wrapped_policy, shuffle = true)
           methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown, :distance, :plan]
 
           Util.assert_responds_to_all(methods, wrapped_policy) { "supplied policy must respond to #{methods.inspect}, but doesn't" }
 
-          @policy = wrapped_policy
+          @policy  = wrapped_policy
+          @shuffle = !!shuffle
         end
 
         def setup(cluster)
@@ -115,7 +126,13 @@ module Cassandra
           replicas = @cluster.find_replicas(keyspace, statement)
           return @policy.plan(keyspace, statement, options) if replicas.empty?
 
-          Plan.new(replicas.shuffle, @policy, keyspace, statement, options)
+          if @shuffle
+            replicas = replicas.shuffle
+          else
+            replicas = replicas.dup
+          end
+
+          Plan.new(replicas, @policy, keyspace, statement, options)
         end
       end
     end

@@ -17,8 +17,7 @@
 #++
 
 module Cassandra
-  # Cluster represents a cassandra cluster. It serves as a {Cassandra::Session}
-  # factory and a collection of metadata.
+  # Cluster represents a cassandra cluster. It serves as a {Cassandra::Session session factory} factory and a collection of metadata.
   #
   # @see Cassandra::Cluster#connect Creating a new session
   # @see Cassandra::Cluster#each_host Getting all peers in the cluster

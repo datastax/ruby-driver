@@ -99,7 +99,7 @@ module Cassandra
     let(:credentials)               { nil }
     let(:auth_provider)             { nil }
     let(:datacenter)                { nil }
-    let(:load_balancing_policy)     { LoadBalancing::Policies::TokenAware.new(LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, 0)) }
+    let(:load_balancing_policy)     { LoadBalancing::Policies::TokenAware.new(LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, 0), shuffle_replicas) }
     let(:reconnection_policy)       { Reconnection::Policies::Exponential.new(0.5, 30, 2) }
     let(:retry_policy)              { Retry::Policies::Default.new }
     let(:address_resolution_policy) { AddressResolution::Policies::None.new }
@@ -113,6 +113,7 @@ module Cassandra
     let(:schema_refresh_delay)      { 1 }
     let(:schema_refresh_timeout)    { 10 }
     let(:thread_pool_size)          { 4 }
+    let(:shuffle_replicas)          { true }
 
     let(:connections_per_local_node)  { 2 }
     let(:connections_per_remote_node) { 1 }

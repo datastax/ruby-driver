@@ -59,6 +59,12 @@ module Cassandra
         end
       end
 
+      def size
+        @lock.synchronize do
+          @connections.size
+        end
+      end
+
       def each_connection(&callback)
         return self unless block_given?
         raise Errors::IOError, 'Not connected' unless connected?

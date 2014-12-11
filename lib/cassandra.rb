@@ -25,7 +25,6 @@ require 'ipaddr'
 require 'set'
 require 'bigdecimal'
 require 'forwardable'
-require 'timeout'
 require 'digest'
 require 'stringio'
 require 'resolv'
@@ -51,7 +50,7 @@ module Cassandra
   # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L591-L603 Description of possible types of writes in Apache Cassandra native protocol spec v1
   WRITE_TYPES = [:simple, :batch, :unlogged_batch, :counter, :batch_log].freeze
 
-  # Creates a {Cassandra::Cluster} instance
+  # Creates a {Cassandra::Cluster instance}.
   #
   # @option options [Array<String, IPAddr>] :hosts (['127.0.0.1']) a list of
   #   initial addresses. Note that the entire list of cluster members will be
@@ -64,6 +63,10 @@ module Cassandra
   #   First datacenter found will be assumed current by default. Note that you
   #   can skip this option if you specify only hosts from the local datacenter
   #   in `:hosts` option.
+  #
+  # @option options [Boolean] :shuffle_replicas (true) whether replicas list
+  #   found by the default Token-Aware Load Balancing Policy should be
+  #   shuffled. See {Cassandra::LoadBalancing::Policies::TokenAware#initialize Token-Aware Load Balancing Policy}.
   #
   # @option options [Numeric] :connect_timeout (10) connection timeout in
   #   seconds. Setting value to `nil` will reset it to 5 seconds.
@@ -126,8 +129,7 @@ module Cassandra
   #   automatic schema updates. Schema metadata is used by the driver to
   #   determine cluster partitioners as well as to find partition keys and
   #   replicas of prepared statements, this information makes token aware load
-  #   balancing possible. One can still use {Cassandra::Cluster#refresh_schema}
-  #   to refresh schema manually.
+  #   balancing possible. One can still {Cassandra::Cluster#refresh_schema refresh schema manually}.
   #
   # @option options [Numeric] :schema_refresh_delay (1) the driver will wait
   #   for `:schema_refresh_delay` before fetching metadata after receiving a
@@ -142,11 +144,11 @@ module Cassandra
   #   `:schema_refresh_delay` interval.
   #
   # @option options [Cassandra::Reconnection::Policy] :reconnection_policy
-  #   default: {Cassandra::Reconnection::Policies::Exponential}. Note that the
-  #   default policy is configured with `(0.5, 30, 2)`.
+  #   default: {Cassandra::Reconnection::Policies::Exponential Exponential}.
+  #   Note that the default policy is configured with `(0.5, 30, 2)`.
   #
   # @option options [Cassandra::Retry::Policy] :retry_policy default:
-  #   {Cassandra::Retry::Policies::Default}.
+  #   {Cassandra::Retry::Policies::Default Default Retry Policy}.
   #
   # @option options [Logger] :logger (none) logger. a {Logger} instance from the
   #   standard library or any object responding to standard log methods
@@ -167,7 +169,7 @@ module Cassandra
   #
   # @option options [Hash{String => String}] :credentials (none) a hash of credentials - to be used with [credentials authentication in cassandra 1.2](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L238-L250). Note that if you specified `:username` and `:password` options, those credentials are configured automatically.
   #
-  # @option options [Cassandra::Auth::Provider] :auth_provider (none) a custom auth provider to be used with [SASL authentication in cassandra 2.0](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L257-L273). Note that if you have specified `:username` and `:password`, then a {Cassandra::Auth::Providers::Password} will be used automatically.
+  # @option options [Cassandra::Auth::Provider] :auth_provider (none) a custom auth provider to be used with [SASL authentication in cassandra 2.0](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L257-L273). Note that if you have specified `:username` and `:password`, then a {Cassandra::Auth::Providers::Password Password Provider} will be used automatically.
   #
   # @option options [Cassandra::Compression::Compressor] :compressor (none) a
   #   custom compressor. Note that if you have specified `:compression`, an
@@ -175,7 +177,7 @@ module Cassandra
   #
   # @option options [Cassandra::AddressResolution::Policy]
   #   :address_resolution_policy default:
-  #   {Cassandra::AddressResolution::Policies::None} a custom address resolution
+  #   {Cassandra::AddressResolution::Policies::None No Resolution Policy} a custom address resolution
   #   policy. Note that if you have specified `:address_resolution`, an
   #   appropriate address resolution policy will be provided automatically.
   #
@@ -200,7 +202,7 @@ module Cassandra
     cluster_async(options).get
   end
 
-  # Creates a {Cassandra::Cluster} instance
+  # Creates a {Cassandra::Cluster Cluster instance}.
   #
   # @see Cassandra.cluster
   #
@@ -214,7 +216,8 @@ module Cassandra
         :ssl, :server_cert, :client_cert, :private_key, :passphrase,
         :connect_timeout, :futures_factory, :datacenter, :address_resolution,
         :address_resolution_policy, :idle_timeout, :heartbeat_interval, :timeout,
-        :synchronize_schema, :schema_refresh_delay, :schema_refresh_timeout
+        :synchronize_schema, :schema_refresh_delay, :schema_refresh_timeout,
+        :shuffle_replicas
       ].include?(key)
     end
 
@@ -428,6 +431,10 @@ module Cassandra
 
     if options.has_key?(:trace)
       options[:trace] = !!options[:trace]
+    end
+
+    if options.has_key?(:shuffle_replicas)
+      options[:shuffle_replicas] = !!options[:shuffle_replicas]
     end
 
     if options.has_key?(:page_size)

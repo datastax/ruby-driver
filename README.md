@@ -99,8 +99,8 @@ Current release introduces the following new features:
 
 * Ability to disable automatic schema synchronization
 * Schema change event storm protection using a sliding delay
-* `Cassandra::LoadBalancing::Policy#teardown` for cleaning up resources
-* `Cassandra::Cluster#refresh_schema` for manually refreshing schema metadata
+* [`Cassandra::LoadBalancing::Policy#teardown`](http://datastax.github.io/ruby-driver/api/load_balancing/policy/#teardown-instance_method) for cleaning up resources
+* [`Cassandra::Cluster#refresh_schema`](http://datastax.github.io/ruby-driver/api/cluster/#refresh_schema-instance_method) for manually refreshing schema metadata
 * Host list randomization to prevent hotspots between multiple clients
 * Future listeners run in a dedicated threadpool to not block the reactor
 
