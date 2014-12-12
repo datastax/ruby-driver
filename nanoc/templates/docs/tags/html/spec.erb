@@ -1,0 +1,23 @@
+<% if object.has_tag?(:spec) %>
+<dt class="tag-title">Specifications:</dt>
+<dd class="tag-content">
+  <dl class="specs">
+  <% object.tags(:spec).each do |tag| %>
+    <% unless tag.name.empty? %>
+    <% if options.in_module %>
+    <% if object.constructor? %>
+    <dt class="spec-title"><code><%= object.namespace.name %></code> <%= htmlify_line(tag.name) %></dt>
+    <% elsif object.scope == :class %>
+    <dt class="spec-title"><code><%= object.namespace.name %>.<%= object.name %></code> <%= htmlify_line(tag.name) %></dt>
+    <% else %>
+    <dt class="spec-title"><code><%= object.namespace.name %>#<%= object.name %></code> <%= htmlify_line(tag.name) %></dt>
+    <% end %>
+    <% else %>
+    <dt class="spec-title"><code><%= object.name %></code> <%= htmlify_line(tag.name) %></dt>
+    <% end %>
+    <% end %>
+    <dd class="spec-code"><%= html_syntax_highlight(tag.text) %></dd>
+  <% end %>
+  </dl>
+</dd>
+<% end %>

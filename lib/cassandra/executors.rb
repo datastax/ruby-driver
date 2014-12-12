@@ -20,6 +20,7 @@ module Cassandra
   # @private
   module Executors
     class ThreadPool
+      # @private
       class Task
         def initialize(*args, &block)
           @args    = args

@@ -4,6 +4,7 @@
   <div class="panel panel-default" id="<%= anchor_for(const) %>">
     <div class="panel-heading constant-header">
       <var><%= const.name %></var>
+      <a class="anchor" href="#<%= anchor_for(const) %>" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
     </div>
     <div class="panel-body constant-body">
       <%= yieldall(:object => const) %>

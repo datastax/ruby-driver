@@ -9,4 +9,5 @@ guard('nanoc') do
   watch(/^nanoc\//)
   watch(/^features\//)
   watch(/^lib\//)
+  watch(/^spec\//)
 end

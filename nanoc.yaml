@@ -12,8 +12,18 @@ data_sources:
   -
     type: filesystem_unified
     layouts_dir: nanoc/layouts
-    content_dir: nanoc/assets
+    items_root: /css
+    content_dir: nanoc/assets/css
     allow_periods_in_identifiers: false
+  -
+    type: filesystem_unified
+    items_root: /js
+    content_dir: nanoc/assets/js
+    allow_periods_in_identifiers: false
+  -
+    type: static
+    items_root: /fonts
+    prefix: nanoc/assets/fonts
   -
     type: features
   -

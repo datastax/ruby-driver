@@ -18,6 +18,7 @@
 
 require 'spec_helper'
 
+# @private
 class FakeSchema < Cassandra::Cluster::Schema
   def initialize
     super(nil)

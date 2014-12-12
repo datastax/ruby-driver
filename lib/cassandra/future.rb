@@ -204,6 +204,7 @@ module Cassandra
       end
     end
 
+    # @private
     @@factory = Factory.new(Executors::SameThread.new)
 
     # Returns a future resolved to a given value
@@ -235,24 +236,6 @@ module Cassandra
     # @private
     def initialize(signal)
       @signal = signal
-    end
-
-    # Returns future value or raises future error
-    # @note This method blocks until a future is resolved
-    # @raise [Exception] error used to resolve this future if any
-    # @return [Object] value used to resolve this future if any
-    def get
-      @signal.get
-    end
-
-    # Block until the future has been resolved
-    # @note This method blocks until a future is resolved
-    # @note This method won't raise any errors or return anything but the
-    #   future itself
-    # @return [self]
-    def join
-      @signal.join
-      self
     end
 
     # Run block when future resolves to a value
@@ -364,6 +347,25 @@ module Cassandra
     def fallback(&block)
       raise ::ArgumentError, "no block given" unless block_given?
       @signal.fallback(&block)
+    end
+
+    # Returns future value or raises future error
+    # @note This method blocks until a future is resolved
+    # @raise [Exception] error used to resolve this future if any
+    # @return [Object] value used to resolve this future if any
+    def get
+      @signal.get
+      
+    end
+
+    # Block until the future has been resolved
+    # @note This method blocks until a future is resolved
+    # @note This method won't raise any errors or return anything but the
+    #   future itself
+    # @return [self]
+    def join
+      @signal.join
+      self
     end
   end
 

@@ -129,3 +129,85 @@ footer {
   font-size: 12px;
   text-align: center;
 }
+
+pre.highlight code {
+  overflow: auto;
+  word-wrap: normal;
+  overflow-wrap: normal;
+  white-space: pre;
+}
+
+.method-header,
+.constant-header {
+  .anchor {
+    color: #000000;
+    display: inline-block;
+    visibility: hidden;
+    float: left;
+    margin-left: -45px;
+    padding-right: 15px;
+  }
+
+  &:hover {
+    .anchor {
+      visibility: visible;
+    }
+  }
+}
+
+h1, .h1 {
+  .anchor {
+    margin-left: floor(($font-size-h1 * -1.6));
+    padding-right: ceil(($font-size-h1 * 0.6));
+  }
+}
+h2, .h2 {
+  .anchor {
+    margin-left: floor(($font-size-h2 * -1.6));
+    padding-right: ceil(($font-size-h2 * 0.6));
+  }
+}
+h3, .h3 {
+  .anchor {
+    margin-left: floor(($font-size-h3 * -1.6));
+    padding-right: ceil(($font-size-h3 * 0.6));
+  }
+}
+h4, .h4 {
+  .anchor {
+    margin-left: floor(($font-size-h4 * -1.6));
+    padding-right: ceil(($font-size-h4 * 0.6));
+  }
+}
+h5, .h5 {
+  .anchor {
+    margin-left: floor(($font-size-h5 * -1.6));
+    padding-right: ceil(($font-size-h5 * 0.6));
+  }
+}
+h6, .h6 {
+  .anchor {
+    margin-left: floor(($font-size-h6 * -1.6));
+    padding-right: ceil(($font-size-h6 * 0.6));
+  }
+}
+
+h1, .h1,
+h2, .h2,
+h3, .h3,
+h4, .h4,
+h5, .h5,
+h6, .h6 {
+  .anchor {
+    float: left;
+    color: #000000;
+    display: inline-block;
+    visibility: hidden;
+  }
+
+  &:hover {
+    .anchor {
+      visibility: visible;
+    }
+  }
+}

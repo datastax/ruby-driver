@@ -89,6 +89,7 @@ compile '/features*' do
 end
 
 compile 'api*' do
+  filter :add_ids_to_headers
   layout 'default'
   filter :relativize_paths, :type => :html
   filter :rubypants
@@ -124,6 +125,8 @@ end
 route '/js/*/' do
   item.identifier.chop + '.js'
 end
+
+passthrough '/fonts/*'
 
 route '/features*' do
   item.identifier + 'index.html'

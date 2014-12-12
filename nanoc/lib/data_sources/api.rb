@@ -2,17 +2,66 @@
 
 require 'yard'
 
+class ExampleGroup < YARD::Handlers::Ruby::Base
+  handles method_call(:describe)
+
+  def process
+    param = statement.parameters.first
+
+    # Class specification
+    if param.type == :var_ref && param.children.first.type == :const
+      object = YARD::Registry.resolve(namespace, param.children.first.source)
+      parse_block(statement.last.last, :owner => object, :namespace => object) if object
+
+    # Class specification (with a nested name)
+    elsif param.type == :const_path_ref
+      object = YARD::Registry.resolve(namespace, param.children.map(&:source).join('::'))
+      parse_block(statement.last.last, :owner => object, :namespace => object) if object
+
+    # Method and other specifications
+    elsif param.type == :string_literal
+      method_name = param.jump(:tstring_content).source
+
+      return unless method_name.start_with?('#') || method_name.start_with?('.')
+
+      object = YARD::Registry.resolve(namespace, method_name)
+      parse_block(statement.last.last, :owner => object) if object
+    end
+  end
+end
+
+class Example < YARD::Handlers::Ruby::Base
+
+  handles method_call(:it)
+
+  def process
+    title  = statement.parameters.first.jump(:string_content).source
+    source = statement.block && statement.block.last.map(&:source).join("\n")
+
+    owner.add_tag(YARD::Tags::Tag.new(:spec, source, nil, title))
+  end
+end
+
 module Docs
   class APIDataSource < Nanoc::DataSource
     identifier :api
 
     def up
       YARD::Templates::Engine.register_template_path templates_dir_name
-      YARD::Templates::Template.extra_includes << Helper
+      YARD::Templates::Template.extra_includes << Helper unless YARD::Templates::Template.extra_includes.include?(Helper)
+
+      unless YARD::Tags::Library.visible_tags.include?(:spec)
+        YARD::Tags::Library.visible_tags << :spec
+        YARD::Tags::Library.labels[:spec] = 'Specifications'
+      end
     end
 
     def lib_dir_name
       config.fetch(:lib_dir, 'lib').chomp('/') + '/'
+    end
+
+    def spec_dir_name
+      config.fetch(:lib_dir, 'spec').chomp('/') + '/'
     end
 
     def templates_dir_name
@@ -29,6 +78,7 @@ module Docs
         YARD::Templates::Engine.send(:remove_const, const) if const =~ /^Template_/
       end
       YARD.parse(lib_dir_name + '**/*.rb')
+      YARD.parse(spec_dir_name + '**/*_spec.rb')
 
       verifier = YARD::Verifier.new('!object.tag(:private) && (object.namespace.is_a?(CodeObjects::Proxy) || !object.namespace.tag(:private))')
 
@@ -150,6 +200,25 @@ module Docs
 
       identifier = '/' + options.prefix + object.title.gsub(/([a-z])([A-Z])/, '\1_\2').downcase.gsub('::', '/') + '/'
       identifier.sub('api/cassandra', 'api')
+    end
+
+    # @param [CodeObjects::Base] object the object to get an anchor for
+    # @return [String] the anchor for a specific object
+    def anchor_for(object)
+      case object
+      when ::YARD::CodeObjects::MethodObject
+        "#{object.name}-#{object.scope}_#{object.type}"
+      when ::YARD::CodeObjects::ClassVariableObject
+        "#{object.name.to_s.gsub('@@', '')}-#{object.type}"
+      when ::YARD::CodeObjects::ConstantObject
+        "#{object.name.downcase}-#{object.type}"
+      when ::YARD::CodeObjects::Base
+        "#{object.name}-#{object.type}"
+      when ::YARD::CodeObjects::Proxy
+        object.path
+      else
+        object.to_s
+      end
     end
   end
 end

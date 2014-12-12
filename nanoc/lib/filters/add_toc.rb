@@ -9,7 +9,7 @@ module Docs
         # Find all top-level sections
         doc = Nokogiri::HTML(content)
         headers = doc.css('h2', 'h3').map do |header|
-          { :title => header.inner_html, :id => header['id'] }
+          { :title => header.text, :id => header['id'] }
         end
 
         if headers.empty?
