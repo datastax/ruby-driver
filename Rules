@@ -127,6 +127,7 @@ route '/js/*/' do
 end
 
 passthrough '/fonts/*'
+passthrough '/flash/*'
 passthrough '/favicon.*'
 
 route '/features*' do

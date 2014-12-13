@@ -26,6 +26,10 @@ data_sources:
     prefix: nanoc/assets/fonts
   -
     type: static
+    items_root: /flash
+    prefix: nanoc/assets/flash
+  -
+    type: static
     prefix: nanoc/assets/favicons
   -
     type: features

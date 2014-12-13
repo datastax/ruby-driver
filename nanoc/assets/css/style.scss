@@ -211,3 +211,41 @@ h6, .h6 {
     }
   }
 }
+
+/*
+ * ZeroClipboard styles
+ */
+
+.zero-clipboard {
+  position: relative;
+  display: none;
+}
+.btn-clipboard {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 10;
+  display: block;
+  padding: 5px 8px;
+  font-size: 12px;
+  color: #002b36;
+  cursor: pointer;
+  background-color: #fdf6e3;
+  border: 1px solid #cccccc;
+  border-radius: 0 4px 0 4px;
+}
+.btn-clipboard-hover {
+  color: #fdf6e3;
+  background-color: #073642;
+  border-color: #002b36;
+}
+
+@media (min-width: 768px) {
+  .zero-clipboard {
+    display: block;
+  }
+  .bs-example + .zero-clipboard .btn-clipboard {
+    top: -16px;
+    border-top-right-radius: 0;
+  }
+}
