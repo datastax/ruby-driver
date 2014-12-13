@@ -24,7 +24,7 @@ preprocess do
         item.identifier + line.chomp('/') + '/'
       end
 
-      item[:nav] = item.children.sort do |a, b|
+      item[:nav] = item.children.reject {|i| i[:title].nil?}.sort do |a, b|
         a = nav.index(a.identifier)
         b = nav.index(b.identifier)
 
@@ -37,7 +37,7 @@ preprocess do
         end
       end
     else
-      item[:nav] = item.children.sort {|a, b| a[:title] <=> b[:title]}
+      item[:nav] = item.children.reject {|i| i[:title].nil?}.sort {|a, b| a[:title] <=> b[:title]}
     end
   end
 end
@@ -127,6 +127,7 @@ route '/js/*/' do
 end
 
 passthrough '/fonts/*'
+passthrough '/favicon.*'
 
 route '/features*' do
   item.identifier + 'index.html'

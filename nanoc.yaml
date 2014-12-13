@@ -25,6 +25,9 @@ data_sources:
     items_root: /fonts
     prefix: nanoc/assets/fonts
   -
+    type: static
+    prefix: nanoc/assets/favicons
+  -
     type: features
   -
     type: api
