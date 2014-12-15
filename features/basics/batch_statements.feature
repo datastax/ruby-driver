@@ -222,7 +222,7 @@ Feature: Batch statements
       batch applied? false
       """
 
-  @cassandra-version-specific @cassandra-version-1.2 @wip
+  @cassandra-version-specific @cassandra-version-1.2
   Scenario: Cassandra 1.2 doesn't support batch statements
     Given the following example:
       """ruby
