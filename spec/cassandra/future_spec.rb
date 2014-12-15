@@ -58,6 +58,19 @@ module Cassandra
     let(:signal) { double('promise signal') }
     let(:future) { Future.new(signal) }
 
+    describe('.all') do
+      it 'succeeds when all futures succeed' do
+        futures = 10.times.map {|i| Future.value(i)}
+        expect(Future.all(futures).get).to eq([0,1,2,3,4,5,6,7,8,9])
+      end
+
+      it 'fails when any futures fail' do
+        futures = 9.times.map {|i| Future.value(i)}
+        futures << Future.error(RuntimeError.new("something happened"))
+        expect { Future.all(futures).get }.to raise_error("something happened")
+      end
+    end
+
     describe('#get') do
       it 'delegates to signal' do
         expect(signal).to receive(:get).once
