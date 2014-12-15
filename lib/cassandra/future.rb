@@ -234,6 +234,11 @@ module Cassandra
       @@factory.all(*futures)
     end
 
+    # Returns a new promise instance
+    def self.promise
+      @@factory.promise
+    end
+
     # @private
     def initialize(signal)
       @signal = signal
