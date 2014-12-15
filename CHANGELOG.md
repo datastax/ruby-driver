@@ -1,3 +1,11 @@
+# 1.1.1
+
+Bug Fixes:
+
+* [RUBY-75] Raise error when Batch Statement executed against Cassandra < 2.0
+* [RUBY-76] `Cassandra::Future.all` doesn't return a future
+* [RUBY-77] Re-introduce `Cassandra::Future.promise`
+
 # 1.1.0
 
 Features:
