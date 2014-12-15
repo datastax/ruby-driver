@@ -221,3 +221,27 @@ Feature: Batch statements
       batch applied? true
       batch applied? false
       """
+
+  @cassandra-version-specific @cassandra-version-1.2 @wip
+  Scenario: Cassandra 1.2 doesn't support batch statements
+    Given the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+      batch   = session.batch
+
+      batch.add("INSERT INTO cas_batch (k, v) VALUES ('key1', 0)")
+
+      begin
+        session.execute(batch)
+      rescue => e
+        puts "#{e.class.name}: #{e.message}"
+      end
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      Cassandra::Errors::ClientError: Batch statements are not supported by the current version of Apache Cassandra
+      """

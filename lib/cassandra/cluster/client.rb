@@ -213,6 +213,8 @@ module Cassandra
       end
 
       def batch(statement, options)
+        return @futures.error(Errors::ClientError.new("Batch statements are not supported by the current version of Apache Cassandra")) if @connection_options.protocol_version < 2
+
         timeout  = options.timeout
         keyspace = @keyspace
         plan     = @load_balancing_policy.plan(keyspace, statement, options)
