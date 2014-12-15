@@ -50,7 +50,7 @@ module Cassandra
   # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L591-L603 Description of possible types of writes in Apache Cassandra native protocol spec v1
   WRITE_TYPES = [:simple, :batch, :unlogged_batch, :counter, :batch_log].freeze
 
-  # Creates a {Cassandra::Cluster instance}.
+  # Creates a {Cassandra::Cluster Cluster instance}.
   #
   # @option options [Array<String, IPAddr>] :hosts (['127.0.0.1']) a list of
   #   initial addresses. Note that the entire list of cluster members will be

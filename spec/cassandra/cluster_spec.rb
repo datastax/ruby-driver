@@ -45,12 +45,12 @@ module Cassandra
       let(:client) { double('cluster client') }
       let(:session) { double('session') }
 
-      it 'creates a new session' do
+      it 'registers a new session listener' do
         cluster.connect_async.get
         expect(cluster_registry).to have(1).listeners
       end
 
-      it 'removes client on close' do
+      it 'removes session listener on close' do
         cluster.connect_async
         cluster_registry.listeners.first.close
         expect(cluster_registry).to have(0).listeners
@@ -63,7 +63,7 @@ module Cassandra
         cluster.connect_async('foo').get
       end
 
-      it 'quotes keyspace name' do
+      it 'quotes given keyspace name' do
         future = Future::Value.new(nil)
         Session.stub(:new) { session }
         expect(session).to receive(:execute_async).once.with('USE "FooBar"').and_return(future)
