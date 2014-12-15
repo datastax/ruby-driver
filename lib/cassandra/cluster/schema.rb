@@ -225,7 +225,7 @@ module Cassandra
           max_index = nil
 
           columns.each do |cl|
-            if cl['type'].upcase == 'CLUSTERING_KEY'
+            if cl['type'].to_s.upcase == 'CLUSTERING_KEY'
               index = cl['component_index'] || 0
 
               if max_index.nil? || index > max_index
@@ -284,7 +284,7 @@ module Cassandra
             next if row['column_name'].empty?
 
             column = create_column(row)
-            type   = row['type']
+            type   = row['type'].to_s
             index  = row['component_index'] || 0
 
             case type.upcase
@@ -321,7 +321,7 @@ module Cassandra
 
         if column['index_type'].nil?
           index   = nil
-        elsif column['index_type'].upcase == 'CUSTOM' || !column['index_options']
+        elsif column['index_type'].to_s.upcase == 'CUSTOM' || !column['index_options']
           index   = Column::Index.new(column['index_name'])
         else
           options = ::JSON.load(column['index_options'])
