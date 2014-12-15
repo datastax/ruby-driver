@@ -201,6 +201,7 @@ module Cassandra
             end
           end
         end
+        promise.future
       end
     end
 
