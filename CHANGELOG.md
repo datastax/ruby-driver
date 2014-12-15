@@ -13,6 +13,7 @@ Bug Fixes:
 
 * [RUBY-72] Reactor hangs when retrieving trace inside future listener
 * [RUBY-73] Invalid index in load balancing plan after cluster resize
+* [RUBY-74] Handle partial disconnects
 
 # 1.0.0
 
