@@ -348,14 +348,19 @@ module CCM extend self
 
       begin
         @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
-      rescue
+      rescue => e
         @ccm.exec('stop') rescue nil
         %x{killall java}
 
-        raise if attempts >= 10
-        attempts += 1
-        sleep(attempts * 0.4)
-        retry
+        if attempts >= 10
+          raise e
+        else
+          wait = attempts * 0.4
+          puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
+          attempts += 1
+          sleep(wait)
+          retry
+        end
       end
 
       nodes.each(&:up!)
@@ -387,11 +392,16 @@ module CCM extend self
 
       begin
         @cluster = Cassandra.cluster(options)
-      rescue
-        raise if attempts >= 10
-        attempts += 1
-        sleep(attempts * 0.4)
-        retry
+      rescue => e
+        if attempts >= 10
+          raise e
+        else
+          wait = attempts * 0.4
+          puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
+          attempts += 1
+          sleep(wait)
+          retry
+        end
       end
 
       until @cluster.hosts.all?(&:up?)
@@ -423,13 +433,18 @@ module CCM extend self
 
       begin
         @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto')
-      rescue
+      rescue => e
         @ccm.exec(node.name, 'stop') rescue nil
 
-        raise if attempts >= 10
-        attempts += 1
-        sleep(attempts * 0.4)
-        retry
+        if attempts >= 10
+          raise e
+        else
+          wait = attempts * 0.4
+          puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
+          attempts += 1
+          sleep(wait)
+          retry
+        end
       end
 
       node.up!
