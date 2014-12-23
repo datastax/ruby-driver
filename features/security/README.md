@@ -39,22 +39,16 @@ JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
 First, we're going to have to create a server certificate. It is recommended to use a different certificate for every node that we want to secure communication with using SSL encryption:
 
 ```bash
-server_alias=node1
-keystore_file=conf/.keystore
-keystore_pass="some very long and secure password"
+node_alias=node1
+store_pass="some very long and secure password"
 
-CN="Cassandra Node 1"
-OU="Drivers and Tools"
-O="DataStax Inc."
-L="Santa Clara"
-ST="California"
-C="US"
-
-keytool -genkey -keyalg RSA -noprompt \
-  -alias "$server_alias" \
-  -keystore "$keystore_file" \
-  -storepass "$keystore_pass" \
-  -dname "CN=$CN, OU=$OU, O=$O, L=$L, ST=$ST, C=$C"
+keytool -genkeypair -noprompt \
+  -keyalg RSA \
+  -validity 36500 \
+  -alias "$node_alias" \
+  -keystore "$node_alias/conf/.keystore" \
+  -storepass "$store_pass" \
+  -dname "CN=Cassandra Server, OU=Ruby Driver Tests, O=DataStax Inc., L=Santa Clara, ST=California, C=US"
 ```
 
 Once we've run the script above for all nodes in our cluster, we can configure our Apache Cassandra servers to use their respective `.keystore`s. For this, we'll have to modify `cassandra.yaml` to include the following:
@@ -66,7 +60,7 @@ client_encryption_options:
   keystore_password: "some very long and secure password"
 ```
 
-__Note__: The values of `keystore` and `keystore_password` above must be the same as the values of `$keystore_file` and `$keystore_pass` from our shell script.
+__Note__: The values of `keystore` and `keystore_password` above must be the same as the values of `-keystore` and `storepass` options from the previous shell script.
 
 Now you can restart your cassandra processes.
 
@@ -84,30 +78,26 @@ This however is like having no security at all since the driver won't be able to
 
 There are several ways to have client verify server's identity. I'm going to extract a PEM certificate of the server, which is suitable for use with the OpenSSL library that the Ruby Driver uses, and give it to the client for verification.
 
-First, we must export a DER certificate of the server:
+Let's extract a PEM certificate out of our server's keystore:
 
 ```bash
 # values same as above
-server_alias=node1
-keystore_file=conf/.keystore
-keystore_pass="some very long and secure password"
+node_alias=node1
+store_pass="some very long and secure password"
 
-keytool -export \
-  -alias "$server_alias" \
-  -keystore "$keystore_file" \
-  -storepass "$keystore_pass" \
-  -file "$server_alias.der"
+keytool -exportcert -noprompt \
+  -rfc \
+  -alias "$node_alias" \
+  -keystore "$node_alias/conf/.keystore" \
+  -storepass "$store_pass" \
+  -file "$node_alias".pem
+
+chmod 400 "$node_alias".pem
 ```
 
-__Note__: The values of `$server_alias`, `$keystore_file` and `$keystore_pass` must be the same as in the script that we used to generate the keystore file.
+__Note__: The values of `-alias`, `-keystore` and `-storepass` options must be the same as in the script used to generate the keystore file.
 
-Now that we have our DER certificate, we can use OpenSSL to transform it into a PEM file:
-
-```bash
-openssl x509 -out "$server_alias.pem" -outform pem -in "$server_alias.der" -inform der
-```
-
-This created a PEM certificate out of our DER source certificate that we extracted from the keystore. This process has to be repeated for each unique keystore that we created in the very first section of this guide.
+This process has to be repeated for each unique keystore that we created in the very first section of this guide.
 
 Once we have all PEM certificates exported we must bundle them for the client to use:
 
@@ -173,12 +163,12 @@ servers.each do |server|
     peer_storepass = peer[:keystore_pass]
 
     # export .der certificate from this peer's keystore if we haven't already
-    unless File.exists?("#{peer_alias}.der")
-      system("keytool -export -alias \"#{peer_alias}\" -keystore \"#{peer_keystore}\" -storepass \"#{peer_storepass}\" -file \"#{peer_alias}.der\"")
+    unless File.exists?("#{peer_alias}.crt")
+      system("keytool -exportcert -rfc -alias \"#{peer_alias}\" -keystore \"#{peer_keystore}\" -storepass \"#{peer_storepass}\" -file \"#{peer_alias}.crt\"")
     end
 
     # now we can import extracted peer's DER certificate into server's truststore
-    system("keytool -import -noprompt -alias \"#{peer_alias}\" -keystore \"#{truststore}\" -storepass \"#{storepass}\" -file \"#{peer_alias}.der\"")
+    system("keytool -import -noprompt -alias \"#{peer_alias}\" -keystore \"#{truststore}\" -storepass \"#{storepass}\" -file \"#{peer_alias}.crt\"")
   end
 end
 ```
@@ -194,37 +184,30 @@ This ensures all our servers are trusting each other. But we're not done yet, it
 First, let's create a new keystore for the Ruby Driver (make sure to change the data in the example):
 
 ```bash
-driver_alias=driver
-keystore_file=driver.keystore
-keystore_pass="some very long and secure password"
+cnode_alias=driver
+cstore_pass="some very long and secure password"
 
-CN="Ruby Driver"
-OU="Drivers and Tools"
-O="DataStax Inc."
-L="Santa Clara"
-ST="California"
-C="US"
-
-keytool -genkey -keyalg RSA -noprompt \
-  -alias "$driver_alias" \
-  -keystore "$keystore_file" \
-  -storepass "$keystore_pass" \
-  -dname "CN=$CN, OU=$OU, O=$O, L=$L, ST=$ST, C=$C"
+keytool -genkeypair -noprompt \
+  -keyalg RSA
+  -validity 36500 \
+  -alias "$cnode_alias" \
+  -keystore "$cnode_alias.keystore" \
+  -storepass "$cstore_pass" \
+  -dname "CN=Ruby Driver, OU=Ruby Driver Tests, O=DataStax Inc., L=Santa Clara, ST=California, C=US"
 ```
 
-Check that a file called `driver.keystore` (or whatever the value of `$keystore_file` was) exists. Let's export its DER certificate:
+Check that a file called `driver.keystore` (or whatever the value of `-keystore` option was) exists. Let's export its certificate:
 
 ```bash
 # values same as above
-driver_alias=driver
-keystore_file=driver.keystore
-keystore_pass="some very long and secure password"
+cnode_alias=driver
+cstore_pass="some very long and secure password"
 
-keytool -export \
-  -alias "$driver_alias" \
-  -keystore "$keystore_file" \
-  -storepass "$keystore_pass" \
-  -file "$server_alias.der"
+keytool -exportcert -noprompt \
+  -alias "$cnode_alias" \
+  -keystore "$cnode_alias.keystore" \
+  -storepass "$cstore_pass" \
+  -file "$cnode_alias.crt"
 ```
 
 Time to add our driver DER certificate to the truststores of our servers:
@@ -254,14 +237,14 @@ servers = [
   },
 ]
 
-driver_alias = "driver"
-driver_cert  = "driver.pem"
+driver_cert  = "driver.der"
 
 servers.each do |server|
   truststore = server[:truststore]
   storepass  = server[:truststore_pass]
+  alias      = server[:alias]
 
-  system("keytool -import -noprompt -alias \"#{driver_alias}\" -keystore \"#{truststore}\" -storepass \"#{storepass}\" -file \"#{driver_cert}\"")
+  system("keytool -import -noprompt -alias \"#{alias}\" -keystore \"#{truststore}\" -storepass \"#{storepass}\" -file \"#{driver_cert}\"")
 end
 ```
 
@@ -271,82 +254,46 @@ Save the above script as `add_to_truststores.rb` and run it with:
 ruby add_to_truststores.rb
 ```
 
-At this point, we've added the driver's identity to the truststores of all members of Apache Cassandra cluster. Now we will use `openssl` to convert the exported DER certificate to a PEM one:
+At this point, we've added the driver's identity to the truststores of all members of Apache Cassandra cluster. Now let's extract a PEM certificate to use with the driver:
 
 ```bash
-openssl x509 -in driver.der -inform der -out driver.pem -outform pem
+cnode_alias=driver
+cstore_pass="some very long and secure password"
+
+keytool -exportcert -noprompt \
+  -rfc \
+  -alias "$cnode_alias" \
+  -keystore "$cnode_alias.keystore" \
+  -storepass "$cstore_pass" \
+  -file "$cnode_alias.pem"
+
+chmod 400 "$cnode_alias.pem"
 ```
 
-At this point we have our client PEM key, or a public key. To communicate securely, we'll also need its private key, it will be used to encrypt all communication. [We'll have to write some java code to extract this information from `driver.keystore`](http://www.herongyang.com/crypto/Migrating_Keys_keytool_to_OpenSSL_3.html):
-
-```java
-/* DumpKey.java
- * Copyright (c) 2007 by Dr. Herong Yang, http://www.herongyang.com/
- */
-import java.io.*;
-import java.security.*;
-public class DumpKey {
-   static public void main(String[] a) {
-      if (a.length<5) {
-         System.out.println("Usage:");
-         System.out.println(
-            "java DumpKey jks storepass alias keypass out");
-         return;
-      }
-      String jksFile = a[0];
-      char[] jksPass = a[1].toCharArray();
-      String keyName = a[2];
-      char[] keyPass = a[3].toCharArray();
-      String outFile = a[4];
-
-      try {
-         KeyStore jks = KeyStore.getInstance("jks");
-         jks.load(new FileInputStream(jksFile), jksPass);
-         Key key = jks.getKey(keyName, keyPass);
-         System.out.println("Key algorithm: "+key.getAlgorithm());
-         System.out.println("Key format: "+key.getFormat());
-         System.out.println("Writing key in binary form to "
-            +outFile);
-
-         FileOutputStream out = new FileOutputStream(outFile);
-         out.write(key.getEncoded());
-         out.close();
-      } catch (Exception e) {
-         e.printStackTrace();
-         return;
-      }
-   }
-}
-```
-
-Save the code above to `DumpKey.java`. Let's use it to extract the private key:
+At this point we have our client PEM key, or a public key. To communicate securely, we'll also need its private key, it will be used to encrypt all communication. We'll covert our java keystore to a format that openssl understands (pkcs12) and use it to extract a private key.
 
 ```bash
-# values same as above
-driver_alias=driver
-keystore_file=driver.keystore
-keystore_pass="some very long and secure password"
+cnode_alias=driver
+cstore_pass="some very long and secure password"
+cpassphrase="some secure passphrase for the private key"
 
-javac DumpKey.java
-java DumpKey "$keystore_file" "$keystore_pass" "$driver_alias" "$keystore_pass" driver_bin.key
+keytool -importkeystore -noprompt \
+  -srcalias certificatekey \
+  -deststoretype PKCS12 \
+  -srcalias "$cnode_alias" \
+  -srckeystore "$cnode_alias.keystore" \
+  -srcstorepass "$cstore_pass" \
+  -storepass "$cstore_pass" \
+  -destkeystore "$cnode_alias-keystore.p12"
+
+openssl pkcs12 -nomacver -nocerts \
+  -in "$cnode_alias-keystore.p12" \
+  -password pass:"$cstore_pass" \
+  -passout pass:"$cpassphrase" \
+  -out "$cnode_alias.key"
+
+chmod 400 "$cnode_alias.key"
 ```
-
-This should drop the contents of `driver.keystore` private key into `driver_bin.key`. [We must now add PEM standard header and footer](http://www.herongyang.com/crypto/Migrating_Keys_keytool_to_OpenSSL_4.html).
-
-```bash
-# prepend PEM header
-echo "-----BEGIN PRIVATE KEY-----" | cat - driver_bin.key > driver.key
-# append PEM footer
-echo "-----END PRIVATE KEY-----" >> driver.key
-```
-
-One more thing before we're ready - let's set up a passphrase for our private key, to make sure only we and our application can use it:
-
-```bash
-ssh-keygen -p -f driver.key
-```
-
-The above script will prompt you to enter a secure passphrase for the key. Make sure to remember it as we'll use it below.
 
 With all of this ready, let's enable SSL authentication. For that, we should add the following to `cassandra.yaml` on each server:
 
