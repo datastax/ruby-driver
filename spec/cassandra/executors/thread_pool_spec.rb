@@ -60,7 +60,7 @@ module Cassandra
               lock.unlock
             end
 
-            Thread.pass
+            wait_for { executed }.to eq(i + 1) if executed < pool_size
           end
 
           expect(executed).to eq(pool_size)
