@@ -26,9 +26,6 @@ Feature: Batch statements
       require 'cassandra'
 
       cluster = Cassandra.cluster
-
-      at_exit { cluster.close }
-
       session = cluster.connect("simplex")
 
       rows = session.execute("SELECT * FROM songs")
@@ -84,9 +81,6 @@ Feature: Batch statements
       require 'cassandra'
 
       cluster = Cassandra.cluster
-
-      at_exit { cluster.close }
-
       session = cluster.connect("simplex")
 
       rows = session.execute("SELECT * FROM songs")
@@ -139,9 +133,6 @@ Feature: Batch statements
       require 'cassandra'
 
       cluster = Cassandra.cluster
-
-      at_exit { cluster.close }
-
       session = cluster.connect("simplex")
 
       rows = session.execute("SELECT * FROM songs")
@@ -195,8 +186,6 @@ Feature: Batch statements
       require 'cassandra'
 
       cluster = Cassandra.cluster
-      at_exit { cluster.close }
-
       session = cluster.connect("simplex")
 
       statement = session.prepare("INSERT INTO cas_batch (k, v) VALUES (?, ?) IF NOT EXISTS")

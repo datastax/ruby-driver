@@ -46,10 +46,7 @@ Feature: Execution information
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.cluster
-
-      at_exit { cluster.close }
-
+      cluster   = Cassandra.cluster
       session   = cluster.connect("simplex")
       execution = session.execute("SELECT * FROM songs", consistency: :one).execution_info
 
