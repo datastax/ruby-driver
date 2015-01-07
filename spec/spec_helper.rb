@@ -22,6 +22,7 @@ require 'bundler/setup'
 
 require File.dirname(__FILE__) + '/../support/ccm.rb'
 
+require 'rspec/wait'
 require 'rspec/collection_matchers'
 
 require 'support/bytes_helper'

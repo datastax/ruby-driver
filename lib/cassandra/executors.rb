@@ -49,6 +49,8 @@ module Cassandra
 
       def execute(*args, &block)
         synchronize do
+          return if @term
+
           @tasks << Task.new(*args, &block)
           @cond.signal if @waiting > 0
         end
