@@ -213,7 +213,7 @@ module Cassandra
           end
 
           it 'decodes TIMESTAMP as a Time' do
-            response.rows.first['timestamp_column'].should == Time.at(1358013521.123)
+            response.rows.first['timestamp_column'].should == Time.at(1358013521, 123_000)
           end
 
           it 'decodes UUID as a Uuid' do
