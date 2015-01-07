@@ -75,7 +75,7 @@ module Cassandra
           executed = 0
 
           executor.shutdown
-          Thread.pass
+          sleep(0.01)
 
           10.times do
             executor.execute { executed += 1}
