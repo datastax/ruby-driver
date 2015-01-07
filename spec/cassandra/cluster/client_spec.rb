@@ -680,7 +680,7 @@ module Cassandra
             end
           end
 
-          batch.add('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', 1, 2, 3, 4, 5)
+          batch.add('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', [1, 2, 3, 4, 5])
 
           client.connect.value
 
@@ -722,7 +722,7 @@ module Cassandra
 
           statement = client.prepare('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', Execution::Options.new(:consistency => :one, :trace => false)).get
 
-          batch.add(statement, Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff'])
+          batch.add(statement, [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])
 
           expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false).and_return(batch_request)
           expect(batch_request).to receive(:add_prepared).once.with(123, params_metadata, [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])
@@ -764,7 +764,7 @@ module Cassandra
 
           statement = client.prepare('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', Execution::Options.new(:consistency => :one, :trace => false)).get
 
-          batch.add(statement, Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff'])
+          batch.add(statement, [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])
 
           expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false).and_return(batch_request)
           expect(batch_request).to receive(:add_prepared).once.with(123, params_metadata, [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])

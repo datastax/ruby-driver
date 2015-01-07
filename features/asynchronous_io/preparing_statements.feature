@@ -100,12 +100,12 @@ Feature: Preparing statements asynchronously
       
       # execute prepared statements
       song_id  = Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50')
-      song     = session.execute(select_song, song_id).first
+      song     = session.execute(select_song, arguments: [song_id]).first
 
       puts "#{song["artist"]}: #{song["title"]} / #{song["album"]} has id #{song_id}"
 
       playlist_id = Cassandra::Uuid.new('2cc9ccb7-6221-4ccb-8387-f22b6a1b354d')
-      playlist    = session.execute(select_playlist, playlist_id)
+      playlist    = session.execute(select_playlist, arguments: [playlist_id])
       
       puts "Playlist #{playlist_id} has #{playlist.size} songs"
       playlist.each do |song|

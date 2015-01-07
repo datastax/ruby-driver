@@ -67,7 +67,7 @@ Feature: Token-aware Load Balancing Policy
         Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
         Cassandra::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25')
       ].each do |uuid|
-        result  = session.execute(statement, uuid)
+        result  = session.execute(statement, arguments: [uuid])
         replica = result.execution_info.hosts.first
         total   = result.execution_info.hosts.size
         puts "uuid=#{uuid} token=#{result.first['token(id)']} replica=#{replica.ip} total=#{total}"
@@ -96,7 +96,7 @@ Feature: Token-aware Load Balancing Policy
         Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
         Cassandra::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25')
       ].each do |uuid|
-        result  = session.execute(statement, uuid, :consistency => :one)
+        result  = session.execute(statement, arguments: [uuid], consistency: :one)
         replica = result.execution_info.hosts.first
         total   = result.execution_info.hosts.size
         puts "uuid=#{uuid} token=#{result.first['token(id)']} replica=#{replica.ip} total=#{total}"

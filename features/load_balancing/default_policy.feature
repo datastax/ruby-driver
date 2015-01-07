@@ -63,7 +63,7 @@ Feature: Default Load Balancing Policy
       statement = session.prepare("SELECT token(id) FROM songs WHERE id = ?")
 
       coordinator_ips = 4.times.map do
-        info = session.execute(statement, Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50')).execution_info
+        info = session.execute(statement, arguments: [Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50')]).execution_info
         info.hosts.last.ip
       end
 
@@ -85,7 +85,7 @@ Feature: Default Load Balancing Policy
       statement = session.prepare("SELECT token(id) FROM songs WHERE id = ?")
 
       coordinator_ips = 4.times.map do
-        info = session.execute(statement, Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50')).execution_info
+        info = session.execute(statement, arguments: [Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50')]).execution_info
         info.hosts.last.ip
       end
 
@@ -110,7 +110,7 @@ Feature: Default Load Balancing Policy
       statement = session.prepare("SELECT token(id) FROM songs WHERE id = ?")
 
       coordinator_ips = 4.times.map do
-        info = session.execute(statement, Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50')).execution_info
+        info = session.execute(statement, arguments: [Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50')]).execution_info
         info.hosts.last.ip
       end
 
