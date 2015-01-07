@@ -339,7 +339,7 @@ module Cassandra
 
       def timestamp_to_bytes(buffer, value, size_bytes)
         if value
-          ms = (value.to_f * 1000).to_i
+          ms = (value.to_r.to_f * 1000).to_i
           size_to_bytes(buffer, 8, size_bytes)
           buffer.append_long(ms)
         else
