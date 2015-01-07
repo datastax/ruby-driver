@@ -65,15 +65,7 @@ module Cassandra
 
     # @return [String] a cql representation of this column
     def to_cql
-      type = case @type
-      when Array
-        type, *args = @type
-        "#{type.to_s}<#{args.map(&:to_s).join(', ')}>"
-      else
-        @type.to_s
-      end
-
-      cql = "#{@name} #{type}"
+      cql = "#{@name} #{Util.type_to_cql(@type)}"
       cql << ' static' if @static
       cql
     end
