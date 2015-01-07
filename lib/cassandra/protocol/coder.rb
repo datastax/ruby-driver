@@ -213,8 +213,6 @@ module Cassandra
         end
       end
 
-      private
-
       def read_ascii(buffer)
         value  = buffer.read_bytes
         value && value.force_encoding(::Encoding::ASCII)
@@ -248,7 +246,13 @@ module Cassandra
       end
 
       def read_timestamp(buffer)
-        read_size(buffer) && ::Time.at(buffer.read_long / 1000.0)
+        return nil unless read_size(buffer)
+
+        timestamp     = buffer.read_long
+        seconds       = timestamp / 1_000
+        microsenconds = (timestamp % 1_000) * 1_000
+
+        Time.at(seconds, microsenconds)
       end
 
       def read_uuid(buffer, klass = Uuid)
@@ -340,7 +344,7 @@ module Cassandra
 
       def write_timestamp(buffer, value)
         if value
-          ms = (value.to_f * 1000).to_i
+          ms = (value.to_r.to_f * 1000).to_i
           buffer.append_int(8)
           buffer.append_long(ms)
         else
