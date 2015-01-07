@@ -188,7 +188,11 @@ module Cassandra
       def bytes_to_timestamp(buffer, size_bytes)
         return nil unless read_size(buffer, size_bytes)
         timestamp = buffer.read_long
-        Time.at(timestamp/1000.0)
+
+        seconds = timestamp / 1_000
+        microsenconds = (timestamp % 1_000) * 1_000
+
+        Time.at(seconds, microsenconds)
       end
 
       def bytes_to_varchar(buffer, size_bytes)
