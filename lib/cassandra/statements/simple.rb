@@ -26,6 +26,9 @@ module Cassandra
       # @return [Array<Object>] a list of positional parameters for the cql
       attr_reader :params
 
+      # @private
+      attr_reader :params_types
+
       # @!method initialize(cql, params)
       # @param cql [String] a cql statement
       # @param params [Array] positional arguments for the query
@@ -60,8 +63,11 @@ module Cassandra
           end
         end
 
+        params_types = params.map {|value| guess_type(value)}
+
         @cql          = cql
         @params       = params
+        @params_types = params_types
       end
 
       # @return [String] a CLI-friendly simple statement representation
@@ -78,6 +84,44 @@ module Cassandra
       end
 
       alias :== :eql?
+
+      private
+
+      # @private
+      @@type_guesses = {
+        ::String     => :varchar,
+        ::Fixnum     => :bigint,
+        ::Float      => :double,
+        ::Bignum     => :varint,
+        ::BigDecimal => :decimal,
+        ::TrueClass  => :boolean,
+        ::FalseClass => :boolean,
+        ::NilClass   => :bigint,
+        Uuid         => :uuid,
+        TimeUuid     => :uuid,
+        ::IPAddr     => :inet,
+        ::Time       => :timestamp,
+        ::Hash       => :map,
+        ::Array      => :list,
+        ::Set        => :set,
+      }.freeze
+
+      def guess_type(value)
+        type = @@type_guesses[value.class]
+
+        raise ::ArgumentError, "Unable to guess the type of the argument: #{value.inspect}" unless type
+
+        if type == :map
+          pair = value.first
+          [type, guess_type(pair[0]), guess_type(pair[1])]
+        elsif type == :list
+          [type, guess_type(value.first)]
+        elsif type == :set
+          [type, guess_type(value.first)]
+        else
+          type
+        end
+      end
     end
   end
 end

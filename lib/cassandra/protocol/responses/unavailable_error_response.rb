@@ -18,23 +18,24 @@
 
 module Cassandra
   module Protocol
-    class ReadyResponse < Response
-      def eql?(rs)
-        self.class === rs
-      end
-      alias_method :==, :eql?
+    class UnavailableErrorResponse < ErrorResponse
+      attr_reader :consistency, :required, :alive
 
-      def hash
-        @h ||= to_s.hash ^ 0xbadc0de
+      def initialize(code, message, consistency, required, alive)
+        super(code, message)
+
+        @consistency = consistency
+        @required    = required
+        @alive       = alive
+      end
+
+      def to_error(statement = nil)
+        Errors::UnavailableError.new(@message, statement, @consistency, @required, @alive)
       end
 
       def to_s
-        'READY'
+        "#{super} #{@consistency} #{@required} #{@alive}"
       end
-
-      private
-
-      RESPONSE_TYPES[0x02] = self
     end
   end
 end

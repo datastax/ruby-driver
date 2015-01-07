@@ -28,7 +28,6 @@ module Cassandra
 
       BYTES_FORMAT = 'C*'.freeze
       TWO_INTS_FORMAT = 'NN'.freeze
-      HEADER_FORMAT = 'c4N'.freeze
     end
 
     module Constants
@@ -41,12 +40,15 @@ module Cassandra
 end
 
 require 'cassandra/protocol/cql_byte_buffer'
-require 'cassandra/protocol/type_converter'
 require 'cassandra/protocol/response'
 require 'cassandra/protocol/responses/auth_challenge_response'
 require 'cassandra/protocol/responses/auth_success_response'
 require 'cassandra/protocol/responses/error_response'
-require 'cassandra/protocol/responses/detailed_error_response'
+require 'cassandra/protocol/responses/already_exists_error_response'
+require 'cassandra/protocol/responses/read_timeout_error_response'
+require 'cassandra/protocol/responses/unavailable_error_response'
+require 'cassandra/protocol/responses/unprepared_error_response'
+require 'cassandra/protocol/responses/write_timeout_error_response'
 require 'cassandra/protocol/responses/ready_response'
 require 'cassandra/protocol/responses/authenticate_response'
 require 'cassandra/protocol/responses/supported_response'
@@ -72,6 +74,6 @@ require 'cassandra/protocol/requests/query_request'
 require 'cassandra/protocol/requests/void_query_request'
 require 'cassandra/protocol/requests/prepare_request'
 require 'cassandra/protocol/requests/execute_request'
-require 'cassandra/protocol/frame_encoder'
-require 'cassandra/protocol/frame_decoder'
 require 'cassandra/protocol/cql_protocol_handler'
+require 'cassandra/protocol/v1'
+require 'cassandra/protocol/coder'

@@ -32,7 +32,7 @@ module Cassandra
         false
       end
 
-      def write(protocol_version, buffer)
+      def write(buffer, protocol_version, encoder)
         buffer.append_string_map(@options)
       end
 

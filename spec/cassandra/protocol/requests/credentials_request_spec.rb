@@ -22,8 +22,10 @@ module Cassandra
   module Protocol
     describe CredentialsRequest do
       describe '#write' do
+        let(:encoder) { double('encoder') }
+
         it 'encodes a CREDENTIALS request frame' do
-          bytes = CredentialsRequest.new('username' => 'cassandra', 'password' => 'ardnassac').write(1, CqlByteBuffer.new)
+          bytes = CredentialsRequest.new('username' => 'cassandra', 'password' => 'ardnassac').write(CqlByteBuffer.new, 1, encoder)
           bytes.should eql_bytes(
             "\x00\x02" +
             "\x00\x08username" +

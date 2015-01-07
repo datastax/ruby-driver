@@ -22,13 +22,15 @@ module Cassandra
   module Protocol
     describe AuthResponseRequest do
       describe '#write' do
+        let(:encoder) { double('encoder') }
+
         it 'encodes an AUTH_RESPONSE request frame' do
-          bytes = described_class.new('bingbongpong').write(2, CqlByteBuffer.new)
+          bytes = described_class.new('bingbongpong').write(CqlByteBuffer.new, 2, encoder)
           bytes.should eql_bytes("\x00\x00\x00\x0cbingbongpong")
         end
 
         it 'encodes a nil token' do
-          bytes = described_class.new(nil).write(2, CqlByteBuffer.new)
+          bytes = described_class.new(nil).write(CqlByteBuffer.new, 2, encoder)
           bytes.should eql_bytes("\xff\xff\xff\xff")
         end
       end

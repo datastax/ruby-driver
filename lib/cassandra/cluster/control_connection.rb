@@ -152,11 +152,12 @@ module Cassandra
 
       private
 
-      SELECT_LOCAL     = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, release_version, tokens, partitioner FROM system.local', nil, nil, :one)
-      SELECT_PEERS     = Protocol::QueryRequest.new('SELECT peer, rack, data_center, host_id, rpc_address, release_version, tokens FROM system.peers', nil, nil, :one)
-      SELECT_KEYSPACES = Protocol::QueryRequest.new('SELECT * FROM system.schema_keyspaces', nil, nil, :one)
-      SELECT_TABLES    = Protocol::QueryRequest.new('SELECT * FROM system.schema_columnfamilies', nil, nil, :one)
-      SELECT_COLUMNS   = Protocol::QueryRequest.new('SELECT * FROM system.schema_columns', nil, nil, :one)
+      SELECT_LOCAL     = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, release_version, tokens, partitioner FROM system.local', EMPTY_LIST, EMPTY_LIST, :one)
+      SELECT_PEERS     = Protocol::QueryRequest.new('SELECT peer, rack, data_center, host_id, rpc_address, release_version, tokens FROM system.peers', EMPTY_LIST, EMPTY_LIST, :one)
+      SELECT_KEYSPACES = Protocol::QueryRequest.new('SELECT * FROM system.schema_keyspaces', EMPTY_LIST, EMPTY_LIST, :one)
+      SELECT_TABLES    = Protocol::QueryRequest.new('SELECT * FROM system.schema_columnfamilies', EMPTY_LIST, EMPTY_LIST, :one)
+      SELECT_COLUMNS   = Protocol::QueryRequest.new('SELECT * FROM system.schema_columns', EMPTY_LIST, EMPTY_LIST, :one)
+      SELECT_TYPES     = Protocol::QueryRequest.new('SELECT * FROM system.schema_usertypes', EMPTY_LIST, EMPTY_LIST, :one)
 
       def reconnect_async(schedule)
         timeout = schedule.next
@@ -314,9 +315,9 @@ module Cassandra
 
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
-        keyspaces = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '%s'" % keyspace, nil, nil, :one))
-        tables    = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = '%s'" % keyspace, nil, nil, :one))
-        columns   = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = '%s'" % keyspace, nil, nil, :one))
+        keyspaces = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '%s'" % keyspace, EMPTY_LIST, EMPTY_LIST, :one))
+        tables    = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = '%s'" % keyspace, EMPTY_LIST, EMPTY_LIST, :one))
+        columns   = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = '%s'" % keyspace, EMPTY_LIST, EMPTY_LIST, :one))
 
         Ione::Future.all(keyspaces, tables, columns).map do |(keyspaces, tables, columns)|
           host = @registry.host(connection.host)
@@ -369,8 +370,8 @@ module Cassandra
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         params   = [keyspace, table]
-        tables   = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = '%s' AND columnfamily_name = '%s'" % params, nil, nil, :one))
-        columns  = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = '%s' AND columnfamily_name = '%s'" % params, nil, nil, :one))
+        tables   = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = '%s' AND columnfamily_name = '%s'" % params, EMPTY_LIST, EMPTY_LIST, :one))
+        columns  = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = '%s' AND columnfamily_name = '%s'" % params, EMPTY_LIST, EMPTY_LIST, :one))
 
         Ione::Future.all(tables, columns).map do |(tables, columns)|
           host = @registry.host(connection.host)
@@ -541,7 +542,7 @@ module Cassandra
         if ip == connection.host
           request = SELECT_LOCAL
         else
-          request = Protocol::QueryRequest.new("SELECT rack, data_center, host_id, rpc_address, release_version, tokens FROM system.peers WHERE peer = '%s'" % address, nil, nil, :one)
+          request = Protocol::QueryRequest.new("SELECT rack, data_center, host_id, rpc_address, release_version, tokens FROM system.peers WHERE peer = '%s'" % address, EMPTY_LIST, EMPTY_LIST, :one)
         end
 
         send_select_request(connection, request).map do |rows|

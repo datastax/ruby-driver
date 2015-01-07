@@ -172,7 +172,7 @@ module Cassandra
 
 
       def query(statement, options)
-        request = Protocol::QueryRequest.new(statement.cql, statement.params, nil, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?)
+        request = Protocol::QueryRequest.new(statement.cql, statement.params, statement.params_types, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?)
         timeout = options.timeout
         promise = @futures.promise
 
@@ -201,7 +201,7 @@ module Cassandra
       def execute(statement, options)
         timeout         = options.timeout
         result_metadata = statement.result_metadata
-        request         = Protocol::ExecuteRequest.new(nil, statement.params_metadata, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?)
+        request         = Protocol::ExecuteRequest.new(nil, statement.params_types, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?)
         promise         = @futures.promise
 
         keyspace = @keyspace
@@ -249,8 +249,8 @@ module Cassandra
       BOOTSTRAPPING_ERROR_CODE = 0x1002
       UNPREPARED_ERROR_CODE    = 0x2500
 
-      SELECT_SCHEMA_PEERS = Protocol::QueryRequest.new("SELECT peer, rpc_address, schema_version FROM system.peers", nil, nil, :one)
-      SELECT_SCHEMA_LOCAL = Protocol::QueryRequest.new("SELECT schema_version FROM system.local WHERE key='local'", nil, nil, :one)
+      SELECT_SCHEMA_PEERS = Protocol::QueryRequest.new("SELECT peer, rpc_address, schema_version FROM system.peers", EMPTY_LIST, EMPTY_LIST, :one)
+      SELECT_SCHEMA_LOCAL = Protocol::QueryRequest.new("SELECT schema_version FROM system.local WHERE key='local'", EMPTY_LIST, EMPTY_LIST, :one)
 
       def connected(f)
         if f.resolved?
@@ -522,12 +522,12 @@ module Cassandra
             id = synchronize { @prepared_statements[host][cql] }
 
             if id
-              request.add_prepared(id, statement.params_metadata, statement.params)
+              request.add_prepared(id, statement.params, statement.params_types)
             else
               unprepared[cql] << statement
             end
           else
-            request.add_query(cql, statement.params)
+            request.add_query(cql, statement.params, statement.params_types)
           end
         end
 
@@ -544,7 +544,7 @@ module Cassandra
               prepared_ids = f.value
               to_prepare.each_with_index do |(_, statements), i|
                 statements.each do |statement|
-                  request.add_prepared(prepared_ids[i], statement.params_metadata, statement.params)
+                  request.add_prepared(prepared_ids[i], statement.params, statement.params_types)
                 end
               end
 
@@ -617,54 +617,92 @@ module Cassandra
         f.on_complete do |f|
           if f.resolved?
             r = f.value
-            case r
-            when Protocol::DetailedErrorResponse
-              details  = r.details
-              decision = begin
-                case r.code
-                when UNAVAILABLE_ERROR_CODE
-                  @retry_policy.unavailable(statement, details[:cl], details[:required], details[:alive], retries)
-                when WRITE_TIMEOUT_ERROR_CODE
-                  @retry_policy.write_timeout(statement, details[:cl], details[:write_type], details[:blockfor], details[:received], retries)
-                when READ_TIMEOUT_ERROR_CODE
-                  @retry_policy.read_timeout(statement, details[:cl], details[:blockfor], details[:received], details[:data_present], retries)
-                when UNPREPARED_ERROR_CODE
-                  cql = statement.cql
 
-                  synchronize do
-                    @preparing_statements[host].delete(cql)
-                    @prepared_statements[host].delete(cql)
-                  end
+            begin
+              decision = nil
 
-                  prepare = prepare_statement(host, connection, cql, timeout)
-                  prepare.on_complete do |_|
-                    if prepare.resolved?
-                      request.id = prepare.value
-                      do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
-                    else
-                      prepare.on_failure do |e|
-                        case e
-                        when Errors::HostError
-                          errors ||= {}
-                          errors[host] = e
-                          execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
-                        else
-                          promise.break(e)
-                        end
+              case r
+              when Protocol::UnavailableErrorResponse
+                decision = @retry_policy.unavailable(statement, r.consistency, r.required, r.alive, retries)
+              when Protocol::WriteTimeoutErrorResponse
+                decision = @retry_policy.write_timeout(statement, r.consistency, r.write_type, r.blockfor, r.received, retries)
+              when Protocol::ReadTimeoutErrorResponse
+                decision = @retry_policy.read_timeout(statement, r.consistency, r.blockfor, r.received, r.data_present, retries)
+              when Protocol::UnpreparedErrorResponse
+                cql = statement.cql
+
+                synchronize do
+                  @preparing_statements[host].delete(cql)
+                  @prepared_statements[host].delete(cql)
+                end
+
+                prepare = prepare_statement(host, connection, cql, timeout)
+                prepare.on_complete do |_|
+                  if prepare.resolved?
+                    request.id = prepare.value
+                    do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                  else
+                    prepare.on_failure do |e|
+                      case e
+                      when Errors::HostError
+                        errors ||= {}
+                        errors[host] = e
+                        execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                      else
+                        promise.break(e)
                       end
                     end
                   end
-
-                  nil
-                else
-                  promise.break(r.to_error(statement))
-
-                  nil
                 end
-              rescue => e
-                promise.break(e)
+              when Protocol::ErrorResponse
+                error = r.to_error(statement)
 
-                nil
+                case error
+                when Errors::HostError
+                  errors ||= {}
+                  errors[host] = error
+
+                  case request
+                  when Protocol::QueryRequest, Protocol::PrepareRequest
+                    send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                  when Protocol::ExecuteRequest
+                    execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                  when Protocol::BatchRequest
+                    batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
+                  end
+                else
+                  promise.break(error)
+                end
+              when Protocol::SetKeyspaceResultResponse
+                @keyspace = r.keyspace
+                promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
+              when Protocol::PreparedResultResponse
+                cql = request.cql
+                synchronize do
+                  @prepared_statements[host][cql] = r.id
+                  @preparing_statements[host].delete(cql)
+                end
+
+                promise.fulfill(Statements::Prepared.new(cql, r.metadata, r.result_metadata, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures, @schema))
+              when Protocol::RawRowsResultResponse
+                r.materialize(statement.result_metadata)
+                promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
+              when Protocol::RowsResultResponse
+                promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
+              when Protocol::SchemaChangeResultResponse
+                @schema.delete_keyspace(r.keyspace) if r.change == 'DROPPED' && r.table.empty?
+
+                @logger.debug('Waiting for schema to propagate to all hosts after a change')
+                wait_for_schema_agreement(connection, @reconnection_policy.schedule).on_complete do |f|
+                  unless f.resolved?
+                    f.on_failure do |e|
+                      @logger.error("Schema agreement failure (#{e.class.name}: #{e.message})")
+                    end
+                  end
+                  promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
+                end
+              else
+                promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
               end
 
               if decision
@@ -680,53 +718,8 @@ module Cassandra
                   promise.break(r.to_error(statement))
                 end
               end
-            when Protocol::ErrorResponse
-              case r.code
-              when OVERLOADED_ERROR_CODE, SERVER_ERROR_CODE, BOOTSTRAPPING_ERROR_CODE
-                errors ||= {}
-                errors[host] = r.to_error(statement)
-
-                case request
-                when Protocol::QueryRequest, Protocol::PrepareRequest
-                  send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
-                when Protocol::ExecuteRequest
-                  execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
-                when Protocol::BatchRequest
-                  batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
-                end
-              else
-                promise.break(r.to_error(statement))
-              end
-            when Protocol::SetKeyspaceResultResponse
-              @keyspace = r.keyspace
-              promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
-            when Protocol::PreparedResultResponse
-              cql = request.cql
-              synchronize do
-                @prepared_statements[host][cql] = r.id
-                @preparing_statements[host].delete(cql)
-              end
-
-              promise.fulfill(Statements::Prepared.new(cql, r.metadata, r.result_metadata, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures, @schema))
-            when Protocol::RawRowsResultResponse
-              r.materialize(statement.result_metadata)
-              promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
-            when Protocol::RowsResultResponse
-              promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
-            when Protocol::SchemaChangeResultResponse
-              @schema.delete_keyspace(r.keyspace) if r.change == 'DROPPED' && r.table.empty?
-
-              @logger.debug('Waiting for schema to propagate to all hosts after a change')
-              wait_for_schema_agreement(connection, @reconnection_policy.schedule).on_complete do |f|
-                unless f.resolved?
-                  f.on_failure do |e|
-                    @logger.error("Schema agreement failure (#{e.class.name}: #{e.message})")
-                  end
-                end
-                promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
-              end
-            else
-              promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
+            rescue => e
+              promise.break(e)
             end
           else
             f.on_failure do |e|
@@ -797,7 +790,7 @@ module Cassandra
 
         return pending_switch || Ione::Future.resolved if pending_keyspace == keyspace
 
-        request = Protocol::QueryRequest.new("USE #{Util.escape_name(keyspace)}", nil, nil, :one)
+        request = Protocol::QueryRequest.new("USE #{Util.escape_name(keyspace)}", EMPTY_LIST, EMPTY_LIST, :one)
 
         f = connection.send_request(request, timeout).map do |r|
           case r

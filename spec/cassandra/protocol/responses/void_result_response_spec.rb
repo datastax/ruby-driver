@@ -21,13 +21,6 @@ require 'spec_helper'
 module Cassandra
   module Protocol
     describe VoidResultResponse do
-      describe '.decode' do
-        it 'returns a new instance' do
-          unused_byte_buffer = nil
-          described_class.decode(1, unused_byte_buffer, 0).should be_a(described_class)
-        end
-      end
-
       describe '#void?' do
         it 'is void' do
           described_class.new(nil).should be_void

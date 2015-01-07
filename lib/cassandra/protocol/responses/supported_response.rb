@@ -25,10 +25,6 @@ module Cassandra
         @options = options
       end
 
-      def self.decode(protocol_version, buffer, length, trace_id=nil)
-        new(buffer.read_string_multimap)
-      end
-
       def to_s
         %(SUPPORTED #{options})
       end

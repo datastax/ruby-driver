@@ -28,10 +28,6 @@ module Cassandra
         @type = TYPE
       end
 
-      def self.decode(protocol_version, buffer, length, trace_id=nil)
-        new(buffer.read_string, *buffer.read_inet)
-      end
-
       def to_s
         %(EVENT #@type #@change #@address:#@port)
       end

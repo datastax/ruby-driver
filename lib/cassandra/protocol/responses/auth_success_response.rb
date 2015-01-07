@@ -21,16 +21,12 @@ module Cassandra
     class AuthSuccessResponse < Response
       attr_reader :token
 
-      def self.decode(protocol_version, buffer, length, trace_id=nil)
-        new(buffer.read_bytes)
-      end
-
       def initialize(token)
         @token = token
       end
 
       def to_s
-        %(AUTH_SUCCESS #{@token.bytesize})
+        %(AUTH_SUCCESS #{@token && @token.bytesize})
       end
 
       private

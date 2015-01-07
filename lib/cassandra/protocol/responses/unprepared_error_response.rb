@@ -18,23 +18,22 @@
 
 module Cassandra
   module Protocol
-    class ReadyResponse < Response
-      def eql?(rs)
-        self.class === rs
-      end
-      alias_method :==, :eql?
+    class UnpreparedErrorResponse < ErrorResponse
+      attr_reader :id
 
-      def hash
-        @h ||= to_s.hash ^ 0xbadc0de
+      def initialize(code, message, id)
+        super(code, message)
+
+        @id = id
+      end
+
+      def to_error(statement = nil)
+        Errors::UnpreparedError.new(@message, statement, @id)
       end
 
       def to_s
-        'READY'
+        "#{super} #{@id}"
       end
-
-      private
-
-      RESPONSE_TYPES[0x02] = self
     end
   end
 end

@@ -192,9 +192,9 @@ module Cassandra
             buffer.to_s.should == [1, 1, 0, 9, 18].pack('C4N') + 'FAKECOMPRESSEDBODY'
           end
 
-          it 'compresses queued request frames' do
+          it 'doesn\'t compress queued request frames' do
             130.times { protocol_handler.send_request(request) }
-            compressor.should have_received(:compress).exactly(130).times
+            expect(compressor).to have_received(:compress).exactly(128).times
           end
 
           it 'decompresses response frames' do
@@ -327,7 +327,7 @@ module Cassandra
         end
 
         it 'registers the keyspace it has changed to' do
-          f = protocol_handler.send_request(Protocol::QueryRequest.new('USE hello', nil, nil, :one))
+          f = protocol_handler.send_request(Protocol::QueryRequest.new('USE hello', EMPTY_LIST, EMPTY_LIST, :one))
           connection.data_listener.call([0x81, 0, 0, 8, 4 + 2 + 5, 3, 5].pack('C4N2n') + 'hello')
           f.value
           protocol_handler.keyspace.should == 'hello'
@@ -353,14 +353,6 @@ module Cassandra
           end
           connection.data_listener.call("\x81\x00\xFF\f\x00\x00\x00+\x00\rSCHEMA_CHANGE\x00\aDROPPED\x00\x0cthe_keyspace\x00\x09the_table")
           event.should == Protocol::SchemaChangeEventResponse.new('DROPPED', 'the_keyspace', 'the_table')
-        end
-
-        it 'ignores errors raised by the listener' do
-          called = false
-          protocol_handler.on_event { |e| raise 'Blurgh' }
-          protocol_handler.on_event { |e| called = true }
-          connection.data_listener.call("\x81\x00\xFF\f\x00\x00\x00+\x00\rSCHEMA_CHANGE\x00\aDROPPED\x00\x0cthe_keyspace\x00\x09the_table")
-          called.should be_truthy, 'expected all event listeners to have been called'
         end
       end
 

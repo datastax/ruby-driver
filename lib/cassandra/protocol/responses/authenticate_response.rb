@@ -21,10 +21,6 @@ module Cassandra
     class AuthenticateResponse < Response
       attr_reader :authentication_class
 
-      def self.decode(protocol_version, buffer, length, trace_id=nil)
-        new(buffer.read_string)
-      end
-
       def initialize(authentication_class)
         @authentication_class = authentication_class
       end

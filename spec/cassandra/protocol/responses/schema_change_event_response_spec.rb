@@ -21,25 +21,6 @@ require 'spec_helper'
 module Cassandra
   module Protocol
     describe SchemaChangeEventResponse do
-      describe '.decode' do
-        let :response do
-          buffer = CqlByteBuffer.new("\x00\aDROPPED\x00\ncql_rb_609\x00\x05users")
-          described_class.decode(1, buffer, buffer.length)
-        end
-
-        it 'decodes the change' do
-          response.change.should == 'DROPPED'
-        end
-
-        it 'decodes the keyspace' do
-          response.keyspace.should == 'cql_rb_609'
-        end
-
-        it 'decodes the table' do
-          response.table.should == 'users'
-        end
-      end
-
       describe '#to_s' do
         it 'returns a string with the change, keyspace and table' do
           response = described_class.new('DROPPED', 'ks', 'tbl')

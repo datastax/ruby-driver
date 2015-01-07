@@ -36,10 +36,9 @@ module Cassandra
         @serial_consistency = serial_consistency
         @page_size = page_size
         @paging_state = paging_state
-        @encoded_values = self.class.encode_values(CqlByteBuffer.new, @metadata, @values)
       end
 
-      def write(protocol_version, buffer)
+      def write(buffer, protocol_version, encoder)
         buffer.append_short_bytes(@id)
         if protocol_version > 1
           buffer.append_consistency(@consistency)
@@ -51,13 +50,13 @@ module Cassandra
           flags |= 0x10 if @serial_consistency
           buffer.append(flags.chr)
           if @values.size > 0
-            buffer.append(@encoded_values)
+            encoder.write_parameters(buffer, @values, @metadata)
           end
           buffer.append_int(@page_size) if @page_size
           buffer.append_bytes(@paging_state) if @paging_state
           buffer.append_consistency(@serial_consistency) if @serial_consistency
         else
-          buffer.append(@encoded_values)
+          encoder.write_parameters(buffer, @values, @metadata)
           buffer.append_consistency(@consistency)
         end
         buffer
@@ -86,18 +85,6 @@ module Cassandra
           h
         end
       end
-
-      def self.encode_values(buffer, metadata, values)
-        buffer.append_short(metadata.size)
-        metadata.each_with_index do |(_, _, _, type), index|
-          TYPE_CONVERTER.to_bytes(buffer, type, values[index])
-        end
-        buffer
-      end
-
-      private
-
-      TYPE_CONVERTER = TypeConverter.new
     end
   end
 end

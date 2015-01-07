@@ -21,16 +21,6 @@ require 'spec_helper'
 module Cassandra
   module Protocol
     describe SetKeyspaceResultResponse do
-      describe '.decode' do
-        let :response do
-          described_class.decode(1, CqlByteBuffer.new("\x00\x06system"), 8)
-        end
-
-        it 'decodes the keyspace' do
-          response.keyspace.should == 'system'
-        end
-      end
-
       describe '#void?' do
         it 'is not void' do
           response = described_class.new('system', nil)

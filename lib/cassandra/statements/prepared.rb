@@ -24,8 +24,6 @@ module Cassandra
       # @return [String] original cql used to prepare this statement
       attr_reader :cql
       # @private
-      attr_reader :params_metadata
-      # @private
       attr_reader :result_metadata
 
       # @private
@@ -81,14 +79,15 @@ module Cassandra
 
         Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{params_types.size} bind parameters, #{args.size} given" }
 
-        @params_metadata.each_with_index do |metadata, i|
-          Util.assert_type(metadata[3], args[i]) { "argument for #{metadata[2].inspect} must be #{metadata[3].inspect}, #{args[i]} given" }
+        params_types = @params_metadata.each_with_index.map do |(_, _, name, type), i|
+          Util.assert_type(type, args[i]) { "argument for #{name.inspect} must be #{type.inspect}, #{args[i]} given" }
+          type
         end
 
-        return Bound.new(@cql, @params_metadata, @result_metadata, args) if @params_metadata.empty?
+        return Bound.new(@cql, params_types, @result_metadata, args) if @params_metadata.empty?
 
         keyspace, table, _, _ = @params_metadata.first
-        return Bound.new(@cql, @params_metadata, @result_metadata, args, keyspace) unless keyspace && table
+        return Bound.new(@cql, params_types, @result_metadata, args, keyspace) unless keyspace && table
 
         values = ::Hash.new
         @params_metadata.zip(args) do |(keyspace, table, column, type), value|
@@ -97,7 +96,7 @@ module Cassandra
 
         partition_key = @schema.create_partition_key(keyspace, table, values)
 
-        Bound.new(@cql, @params_metadata, @result_metadata, args, keyspace, partition_key)
+        Bound.new(@cql, params_types, @result_metadata, args, keyspace, partition_key)
       end
 
       # @return [Cassandra::Execution::Info] execution info for PREPARE request

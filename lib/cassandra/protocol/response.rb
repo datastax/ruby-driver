@@ -19,15 +19,6 @@
 module Cassandra
   module Protocol
     class Response
-      def self.decode(opcode, protocol_version, buffer, length, trace_id)
-        response_class = RESPONSE_TYPES[opcode]
-        if response_class
-          response_class.decode(protocol_version, buffer, length, trace_id)
-        else
-          raise Errors::DecodingError, "Unsupported opcode #{opcode.inspect}"
-        end
-      end
-
       private
 
       RESPONSE_TYPES = [

@@ -30,7 +30,6 @@ module Cassandra
     #   future = protocol_handler.send_request(Cassandra::Protocol::OptionsRequest.new)
     #   response = future.get
     #   puts "These options are supported: #{response.options}"
-    #
     class CqlProtocolHandler
       # @return [String] the current keyspace for the underlying connection
       attr_reader :keyspace
@@ -42,10 +41,8 @@ module Cassandra
         @connection.on_data(&method(:receive_data))
         @connection.on_closed(&method(:socket_closed))
         @promises = Array.new(128) { nil }
-        @read_buffer = CqlByteBuffer.new
-        @frame_encoder = FrameEncoder.new(protocol_version, @compressor)
-        @frame_decoder = FrameDecoder.new(@compressor)
-        @current_frame = FrameDecoder::NULL_FRAME
+        @frame_encoder = V1::Encoder.new(@compressor, protocol_version)
+        @frame_decoder = V1::Decoder.new(self, @compressor)
         @request_queue_in = []
         @request_queue_out = []
         @event_listeners = []
@@ -145,7 +142,7 @@ module Cassandra
       def send_request(request, timeout=nil, with_heartbeat = true)
         return Ione::Future.failed(Errors::IOError.new('Connection closed')) if closed?
         schedule_heartbeat if with_heartbeat
-        promise = RequestPromise.new(request, @frame_encoder)
+        promise = RequestPromise.new(request)
         id = nil
         @lock.lock
         begin
@@ -157,12 +154,11 @@ module Cassandra
         end
         if id
           @connection.write do |buffer|
-            @frame_encoder.encode_frame(request, id, buffer)
+            @frame_encoder.encode(buffer, request, id)
           end
         else
           @lock.lock
           begin
-            promise.encode_frame
             @request_queue_in << promise
           ensure
             @lock.unlock
@@ -197,50 +193,6 @@ module Cassandra
         @closed_promise.future
       end
 
-      private
-
-      # @private
-      class RequestPromise < Ione::Promise
-        attr_reader :request, :frame
-
-        def initialize(request, frame_encoder)
-          @request = request
-          @frame_encoder = frame_encoder
-          @timed_out = false
-          super()
-        end
-
-        def timed_out?
-          @timed_out
-        end
-
-        def time_out!
-          unless future.completed?
-            @timed_out = true
-            fail(Errors::TimeoutError.new('Timed out'))
-          end
-        end
-
-        def encode_frame
-          @frame = @frame_encoder.encode_frame(@request)
-        end
-      end
-
-      def receive_data(data)
-        reschedule_termination
-        @read_buffer << data
-        @current_frame = @frame_decoder.decode_frame(@read_buffer, @current_frame)
-        while @current_frame.complete?
-          id = @current_frame.stream_id
-          if id == -1
-            notify_event_listeners(@current_frame.body)
-          else
-            complete_request(id, @current_frame.body)
-          end
-          @current_frame = @frame_decoder.decode_frame(@read_buffer)
-        end
-      end
-
       def notify_event_listeners(event_response)
         event_listeners = nil
         @lock.lock
@@ -251,7 +203,7 @@ module Cassandra
           @lock.unlock
         end
         event_listeners.each do |listener|
-          listener.call(@current_frame.body) rescue nil
+          listener.call(event_response)
         end
       end
 
@@ -276,6 +228,35 @@ module Cassandra
         end
       end
 
+      private
+
+      # @private
+      class RequestPromise < Ione::Promise
+        attr_reader :request
+
+        def initialize(request)
+          @request = request
+          @timed_out = false
+          super()
+        end
+
+        def timed_out?
+          @timed_out
+        end
+
+        def time_out!
+          unless future.completed?
+            @timed_out = true
+            fail(Errors::TimeoutError.new('Timed out'))
+          end
+        end
+      end
+
+      def receive_data(data)
+        reschedule_termination
+        @frame_decoder << data
+      end
+
       def flush_request_queue
         @lock.lock
         begin
@@ -288,7 +269,7 @@ module Cassandra
         end
         while true
           id = nil
-          frame = nil
+          promise = nil
           @lock.lock
           begin
             if @request_queue_out.any? && (id = next_stream_id)
@@ -296,7 +277,6 @@ module Cassandra
               if promise.timed_out?
                 next
               else
-                frame = promise.frame
                 @promises[id] = promise
               end
             end
@@ -304,8 +284,9 @@ module Cassandra
             @lock.unlock
           end
           if id
-            @frame_encoder.change_stream_id(id, frame)
-            @connection.write(frame)
+            @connection.write do |buffer|
+              @frame_encoder.encode(buffer, promise.request, id)
+            end
           else
             break
           end

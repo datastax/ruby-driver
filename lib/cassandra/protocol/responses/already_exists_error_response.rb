@@ -18,23 +18,23 @@
 
 module Cassandra
   module Protocol
-    class ReadyResponse < Response
-      def eql?(rs)
-        self.class === rs
-      end
-      alias_method :==, :eql?
+    class AlreadyExistsErrorResponse < ErrorResponse
+      attr_reader :keyspace, :table
 
-      def hash
-        @h ||= to_s.hash ^ 0xbadc0de
+      def initialize(code, message, keyspace, table)
+        super(code, message)
+
+        @keyspace = keyspace
+        @table    = table
+      end
+
+      def to_error(statement = nil)
+        Errors::AlreadyExistsError.new(@message, statement, @keyspace, @table)
       end
 
       def to_s
-        'READY'
+        "#{super} #{@keyspace} #{@table}"
       end
-
-      private
-
-      RESPONSE_TYPES[0x02] = self
     end
   end
 end

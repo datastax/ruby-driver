@@ -26,7 +26,7 @@ module Cassandra
         @token = token
       end
 
-      def write(protocol_version, buffer)
+      def write(buffer, protocol_version, encoder)
         buffer.append_bytes(@token)
       end
 

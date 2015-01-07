@@ -27,7 +27,7 @@ module Cassandra
 
       def materialize(metadata)
         @metadata = metadata
-        @rows = RowsResultResponse.read_rows(@protocol_version, @raw_rows, @metadata)
+        @rows = Coder.read_values_v1(@raw_rows, @metadata)
       end
 
       def rows

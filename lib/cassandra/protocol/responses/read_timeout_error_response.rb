@@ -18,23 +18,25 @@
 
 module Cassandra
   module Protocol
-    class ReadyResponse < Response
-      def eql?(rs)
-        self.class === rs
-      end
-      alias_method :==, :eql?
+    class ReadTimeoutErrorResponse < ErrorResponse
+      attr_reader :consistency, :received, :blockfor, :data_present
 
-      def hash
-        @h ||= to_s.hash ^ 0xbadc0de
+      def initialize(code, message, consistency, received, blockfor, data_present)
+        super(code, message)
+
+        @consistency  = consistency
+        @received     = received
+        @blockfor     = blockfor
+        @data_present = data_present
+      end
+
+      def to_error(statement = nil)
+        Errors::ReadTimeoutError.new(@message, statement, @data_present, @consistency, @blockfor, @received)
       end
 
       def to_s
-        'READY'
+        "#{super} #{@consistency} #{@received} #{@blockfor} #{@data_present}"
       end
-
-      private
-
-      RESPONSE_TYPES[0x02] = self
     end
   end
 end
