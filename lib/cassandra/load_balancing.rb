@@ -66,7 +66,6 @@ module Cassandra
       # @return [Symbol] distance to host. Must be one of
       #   {Cassandra::LoadBalancing::DISTANCES}
       def distance(host)
-        :ignore
       end
 
       # Load balancing plan is used to determine the order in which hosts
@@ -80,7 +79,6 @@ module Cassandra
       # @raise [NotImplementedError] override this method to return a plan
       # @return [Cassandra::LoadBalancing::Plan] a load balancing plan
       def plan(keyspace, statement, options)
-        raise ::NotImplementedError, "must be implemented by a child"
       end
 
       # @return [String] a console-friendly representation of this policy

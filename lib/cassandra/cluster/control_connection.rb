@@ -662,12 +662,12 @@ Control connection failed and is unlikely to recover.
 
         futures = ::Array.new
 
-        refresh_keyspaces.each do |(keyspace, _)|
+        refresh_keyspaces.each_key do |keyspace|
           futures << refresh_keyspace_async_maybe_retry(keyspace)
         end
 
         refresh_tables.each do |(keyspace, tables)|
-          tables.each do |(table, _)|
+          tables.each_key do |table|
             futures << refresh_table_async_maybe_retry(keyspace, table)
           end
         end
