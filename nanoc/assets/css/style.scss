@@ -29,14 +29,10 @@ $line-height-base: 1.5;
 
 /* sidebar */
 .side-nav {
-//    padding-left: 20px;
-//    margin-top: 20px;
-//    margin-bottom: 20px;
 }
 
 /* all links */
 .side-nav .nav>li>a {
-//    color: #999;
     padding: 4px 20px;
     font-size: 16px;
     font-weight: 400;
@@ -88,7 +84,7 @@ $line-height-base: 1.5;
 
 .side-nav .affix-bottom,
 .side-nav .affix {
-  @media (min-width: 1200px) {
+  @media (min-width: 768px) {
     width: 258px;
     top: 10px;
   }
@@ -96,7 +92,9 @@ $line-height-base: 1.5;
 
 .side-nav .affix-top,
 .side-nav .affix-bottom {
-  position: relative;
+  @media (min-width: 768px) {
+    position: relative;
+  }
 }
 
 .inline,
@@ -117,11 +115,11 @@ dl.notes {
   margin-bottom: 10px;
 
   dt {
-    width: 65px;
+    width: 81px;
   }
 
   dd {
-    margin-left: 70px;
+    margin-left: 86px;
   }
 }
 
@@ -130,84 +128,90 @@ footer {
   text-align: center;
 }
 
-pre code {
-  overflow: auto;
-  word-wrap: normal;
-  overflow-wrap: normal;
-  white-space: pre;
+.anchor {
+  display: none;
 }
 
-.method-header,
-.constant-header {
-  .anchor {
-    color: #000000;
-    display: inline-block;
-    visibility: hidden;
-    float: left;
-    margin-left: -45px;
-    padding-right: 15px;
+@media (min-width: 768px) {
+  pre code {
+    overflow: auto;
+    word-wrap: normal;
+    overflow-wrap: normal;
+    white-space: pre;
   }
 
-  &:hover {
+  .method-header,
+  .constant-header {
     .anchor {
-      visibility: visible;
+      color: #000000;
+      display: inline-block;
+      visibility: hidden;
+      float: left;
+      margin-left: -45px;
+      padding-right: 15px;
+    }
+
+    &:hover {
+      .anchor {
+        visibility: visible;
+      }
     }
   }
-}
 
-h1, .h1 {
-  .anchor {
-    margin-left: floor(($font-size-h1 * -1.2));
-    padding-right: ceil(($font-size-h1 * 0.2));
-  }
-}
-h2, .h2 {
-  .anchor {
-    margin-left: floor(($font-size-h2 * -1.2));
-    padding-right: ceil(($font-size-h2 * 0.2));
-  }
-}
-h3, .h3 {
-  .anchor {
-    margin-left: floor(($font-size-h3 * -1.2));
-    padding-right: ceil(($font-size-h3 * 0.2));
-  }
-}
-h4, .h4 {
-  .anchor {
-    margin-left: floor(($font-size-h4 * -1.2));
-    padding-right: ceil(($font-size-h4 * 0.2));
-  }
-}
-h5, .h5 {
-  .anchor {
-    margin-left: floor(($font-size-h5 * -1.2));
-    padding-right: ceil(($font-size-h5 * 0.2));
-  }
-}
-h6, .h6 {
-  .anchor {
-    margin-left: floor(($font-size-h6 * -1.2));
-    padding-right: ceil(($font-size-h6 * 0.2));
-  }
-}
-
-h1, .h1,
-h2, .h2,
-h3, .h3,
-h4, .h4,
-h5, .h5,
-h6, .h6 {
-  .anchor {
-    float: left;
-    color: #000000;
-    display: inline-block;
-    visibility: hidden;
-  }
-
-  &:hover {
+  h1, .h1 {
     .anchor {
-      visibility: visible;
+      margin-left: floor(($font-size-h1 * -1.2));
+      padding-right: ceil(($font-size-h1 * 0.2));
+    }
+  }
+  h2, .h2 {
+    .anchor {
+      margin-left: floor(($font-size-h2 * -1.2));
+      padding-right: ceil(($font-size-h2 * 0.2));
+    }
+  }
+  h3, .h3 {
+    .anchor {
+      margin-left: floor(($font-size-h3 * -1.2));
+      padding-right: ceil(($font-size-h3 * 0.2));
+    }
+  }
+  h4, .h4 {
+    .anchor {
+      margin-left: floor(($font-size-h4 * -1.2));
+      padding-right: ceil(($font-size-h4 * 0.2));
+    }
+  }
+  h5, .h5 {
+    .anchor {
+      margin-left: floor(($font-size-h5 * -1.2));
+      padding-right: ceil(($font-size-h5 * 0.2));
+    }
+  }
+  h6, .h6 {
+    .anchor {
+      margin-left: floor(($font-size-h6 * -1.2));
+      padding-right: ceil(($font-size-h6 * 0.2));
+    }
+  }
+
+  h1, .h1,
+  h2, .h2,
+  h3, .h3,
+  h4, .h4,
+  h5, .h5,
+  h6, .h6 {
+    .anchor {
+      float: left;
+      color: #000000;
+      display: inline-block;
+      visibility: hidden;
+    }
+
+    &:hover {
+      .anchor {
+        visibility: visible;
+      }
     }
   }
 }

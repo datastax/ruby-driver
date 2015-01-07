@@ -22,10 +22,12 @@ class ExampleGroup < YARD::Handlers::Ruby::Base
     elsif param.type == :string_literal
       method_name = param.jump(:tstring_content).source
 
-      return unless method_name.start_with?('#') || method_name.start_with?('.')
-
-      object = YARD::Registry.resolve(namespace, method_name)
-      parse_block(statement.last.last, :owner => object) if object
+      if method_name.start_with?('#') || method_name.start_with?('.')
+        object = YARD::Registry.resolve(namespace, method_name)
+        parse_block(statement.last.last, :owner => object) if object
+      else
+        parse_block(statement.last.last)
+      end
     end
   end
 end

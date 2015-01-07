@@ -1,6 +1,4 @@
-<% if object.tags(:overload).size == 1 %>
-  <%= yieldall :object => object.tag(:overload) %>
-<% elsif object.has_tag?(:overload) && object.tags(:overload).any? {|o| !o.docstring.blank? } %>
+<% if object.has_tag?(:overload) && object.tags(:overload).any? {|o| !o.docstring.blank? } %>
   <dt class="tag-title">Overloads:</dt>
   <dd class="tag-content">
     <% object.tags(:overload).each do |overload| %>
