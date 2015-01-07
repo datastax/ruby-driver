@@ -87,6 +87,8 @@
         $scope.current = null;
       }
 
+      $scope.basePath = basePath
+
       $scope.search = function() {
         if ($scope.q.length >= 2) {
           search($scope.q).then(function(hits) {
