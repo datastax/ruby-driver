@@ -100,6 +100,15 @@ module Cassandra
             end
           end
         end
+
+        context("when decoding timestamp") do
+          it "maintains microsenconds precision" do
+            time = Time.now
+            encoded = converter.to_bytes(buffer, :timestamp, time)
+            decoded = converter.from_bytes(encoded, :timestamp)
+            expect((decoded.to_r.to_f * 1000).to_i).to eq((time.to_r.to_f * 1000).to_i)
+          end
+        end
       end
     end
   end
