@@ -77,7 +77,7 @@ module Cassandra
           end
         end
 
-        Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{params_types.size} bind parameters, #{args.size} given" }
+        Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{@params_metadata.size} bind parameters, #{args.size} given" }
 
         params_types = @params_metadata.each_with_index.map do |(_, _, name, type), i|
           Util.assert_type(type, args[i]) { "argument for #{name.inspect} must be #{type.inspect}, #{args[i]} given" }
