@@ -147,9 +147,9 @@ Prereleases will be stable, in the sense that they will have finished and proper
 
 Please [refer to the usage documentation for more information on common pitfalls](http://datastax.github.io/ruby-driver/features/)
 
-##Contributing
+## Contributing
 
-For contributing read [CONTRIBUTING.md](https://github.com/datastax/ruby-driver/blob/master/CONTRIBUTING.md)
+For contributing read [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Credits
 
