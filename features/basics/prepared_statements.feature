@@ -51,7 +51,7 @@ Feature: Prepared statements
       ]
 
       songs.each do |song|
-        session.execute(insert, song[:id], song[:title], song[:artist], song[:album])
+        session.execute(insert, arguments: [song[:id], song[:title], song[:artist], song[:album]])
       end
 
       session.execute("SELECT * FROM playlists").each do |row|
@@ -129,7 +129,7 @@ Feature: Prepared statements
       limits  = [1, 2, 3]
 
       limits.each do |limit|
-        rows = session.execute(select, limit)
+        rows = session.execute(select, arguments: [limit])
         puts "selected #{rows.size} row(s)"
       end
       """

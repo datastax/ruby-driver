@@ -148,6 +148,30 @@ class SessionTest < IntegrationTestCase
     cluster && cluster.close
   end
 
+  def test_prepare_errors_on_invalid_arguments
+    setup_schema
+
+    cluster = Cassandra.cluster
+    session = cluster.connect("simplex")
+
+    insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
+    refute_nil insert
+
+    assert_raises(ArgumentError) do
+      session.execute(insert, [0, 'John', 'Doe', 40])
+    end
+
+    assert_raises(ArgumentError) do
+      session.execute(insert, arguments: [])
+    end
+
+    assert_raises(ArgumentError) do
+      session.execute(insert, arguments: ['John', 'Doe', 40, 0])
+    end
+  ensure
+    cluster && cluster.close
+  end
+
   def test_prepare_errors_on_non_existent_table
     setup_schema
 
