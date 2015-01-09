@@ -252,7 +252,7 @@ module Cassandra
         seconds       = timestamp / 1_000
         microsenconds = (timestamp % 1_000) * 1_000
 
-        Time.at(seconds, microsenconds)
+        ::Time.at(seconds, microsenconds)
       end
 
       def read_uuid(buffer, klass = Uuid)
@@ -405,7 +405,13 @@ module Cassandra
           value = buffer.read_short_bytes
           value && value.force_encoding(::Encoding::UTF_8)
         when :timestamp
-          read_short_size(buffer) && ::Time.at(buffer.read_long / 1000.0)
+          return nil unless read_short_size(buffer)
+
+          timestamp     = buffer.read_long
+          seconds       = timestamp / 1_000
+          microsenconds = (timestamp % 1_000) * 1_000
+
+          ::Time.at(seconds, microsenconds)
         when :timeuuid
           read_short_size(buffer) && buffer.read_uuid(TimeUuid)
         when :uuid
