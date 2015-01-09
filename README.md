@@ -147,6 +147,10 @@ Prereleases will be stable, in the sense that they will have finished and proper
 
 Please [refer to the usage documentation for more information on common pitfalls](http://datastax.github.io/ruby-driver/features/)
 
+## Contributing
+
+For contributing read [CONTRIBUTING.md](https://github.com/datastax/ruby-driver/blob/master/README.md)
+
 ## Credits
 
 This driver is based on the original work of [Theo Hultberg](https://github.com/iconara) on [cql-rb](https://github.com/iconara/cql-rb/) and adds a series of advanced features that are common across all other DataStax drivers for Apache Cassandra.
