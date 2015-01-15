@@ -246,18 +246,6 @@ module Cassandra
             end.to change { io_reactor.connections.size }.by(2)
           end
 
-          it 'does not start a new reconnection loop when one is already in progress' do
-            reconnect_interval = 4
-            schedule = double('reconnection schedule', :next => reconnect_interval)
-            reconnection_policy.stub(:schedule) { schedule }
-            io_reactor.should_receive(:schedule_timer).once.with(reconnect_interval).and_call_original
-
-            client.host_up(host)
-            client.host_up(host)
-            client.host_up(host)
-            client.host_up(host)
-          end
-
           it 'logs reconnection attempts' do
             logger.stub(:debug)
             logger.stub(:warn)
