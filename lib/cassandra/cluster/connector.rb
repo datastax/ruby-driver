@@ -116,12 +116,12 @@ module Cassandra
       UNCLAIMED_TIMEOUT = 5 # close unclaimed connections in five seconds
 
       def do_connect(host)
-        f = @reactor.connect(host.ip.to_s, @connection_options.port, {:timeout => @connection_options.connect_timeout, :ssl => @connection_options.ssl}) do |connection|
+        @reactor.connect(host.ip.to_s, @connection_options.port, {:timeout => @connection_options.connect_timeout, :ssl => @connection_options.ssl}) do |connection|
           raise Errors::ClientError, 'Not connected, reactor stopped' unless connection
           Protocol::CqlProtocolHandler.new(connection, @reactor, @connection_options.protocol_version, @connection_options.compressor, @connection_options.heartbeat_interval, @connection_options.idle_timeout)
-        end
-        f = f.flat_map do |connection|
-          request_options(connection).flat_map do |options|
+        end.flat_map do |connection|
+          f = request_options(connection)
+          f = f.flat_map do |options|
             compression = @connection_options.compression
             supported_algorithms = options['COMPRESSION']
 
@@ -135,19 +135,30 @@ module Cassandra
 
             startup_connection(connection, cql_version, compression)
           end
-        end
-        f.fallback do |error|
-          case error
-          when Errors::ProtocolError
-            synchronize do
-              if @connection_options.protocol_version > 1
-                @logger.info("Host #{host.ip} doesn't support protocol version #{@connection_options.protocol_version}, downgrading")
-                @connection_options.protocol_version -= 1
-                do_connect(host)
-              else
-                Ione::Future.failed(error)
+          f.fallback do |error|
+            case error
+            when Errors::ProtocolError
+              synchronize do
+                if @connection_options.protocol_version > 1
+                  @logger.info("Host #{host.ip} doesn't support protocol version #{@connection_options.protocol_version}, downgrading")
+                  @connection_options.protocol_version -= 1
+                  do_connect(host)
+                else
+                  Ione::Future.failed(error)
+                end
               end
+            when Errors::TimeoutError
+              future = Ione::CompletableFuture.new
+              connection.close(error).on_complete do |f|
+                future.fail(error)
+              end
+              future
+            else
+              Ione::Future.failed(error)
             end
+          end
+        end.fallback do |error|
+          case error
           when Error
             Ione::Future.failed(error)
           else

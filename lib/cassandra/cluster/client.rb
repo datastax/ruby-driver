@@ -36,10 +36,10 @@ module Cassandra
         @address_resolver            = address_resolution_policy
         @connection_options          = connection_options
         @futures                     = futures_factory
-        @connecting_hosts            = ::Hash.new
         @connections                 = ::Hash.new
         @prepared_statements         = ::Hash.new
         @preparing_statements        = ::Hash.new
+        @pending_connections         = ::Hash.new
         @keyspace                    = nil
         @state                       = :idle
 
@@ -47,6 +47,8 @@ module Cassandra
       end
 
       def connect
+        connecting_hosts = ::Hash.new
+
         synchronize do
           return CLIENT_CLOSED     if @state == :closed || @state == :closing
           return @connected_future if @state == :connecting || @state == :connected
@@ -54,9 +56,24 @@ module Cassandra
           @state = :connecting
           @registry.each_host do |host|
             distance = @load_balancing_policy.distance(host)
-            next if distance == :ignore
 
-            @connecting_hosts[host] = distance
+            case distance
+            when :ignore
+              next
+            when :local
+              pool_size = @connection_options.connections_per_local_node
+            when :remote
+              pool_size = @connection_options.connections_per_remote_node
+            else
+              @logger.error("Not connecting to #{host.ip} - invalid load balancing distance. Distance must be one of #{LoadBalancing::DISTANCES.inspect}, #{distance.inspect} given")
+              next
+            end
+
+            connecting_hosts[host] = pool_size
+            @pending_connections[host] = 0
+            @prepared_statements[host] = {}
+            @preparing_statements[host] = {}
+            @connections[host] = ConnectionPool.new
           end
         end
 
@@ -65,8 +82,8 @@ module Cassandra
           @registry.add_listener(self)
           @schema.add_listener(self)
 
-          futures = @connecting_hosts.map do |(host, distance)|
-            f = connect_to_host(host, distance)
+          futures = connecting_hosts.map do |(host, pool_size)|
+            f = connect_to_host(host, pool_size)
             f.recover do |error|
               FailedConnection.new(error, host)
             end
@@ -125,30 +142,40 @@ module Cassandra
       end
 
       def host_up(host)
-        distance = nil
+        pool_size = 0
 
         synchronize do
-          return Ione::Future.resolved if @connecting_hosts.include?(host)
-
           distance = @load_balancing_policy.distance(host)
-          return Ione::Future.resolved if distance == :ignore
+          case distance
+          when :ignore
+            return Ione::Future.resolved
+          when :local
+            pool_size = @connection_options.connections_per_local_node
+          when :remote
+            pool_size = @connection_options.connections_per_remote_node
+          else
+            @logger.error("Not connecting to #{host.ip} - invalid load balancing distance. Distance must be one of #{LoadBalancing::DISTANCES.inspect}, #{distance.inspect} given")
+            return Ione::Future.resolved
+          end
 
-          @connecting_hosts[host] = distance
+          @pending_connections[host] = 0
+          @prepared_statements[host] = {}
+          @preparing_statements[host] = {}
+          @connections[host] = ConnectionPool.new
         end
 
-        connect_to_host_maybe_retry(host, distance).map(nil)
+        connect_to_host_maybe_retry(host, pool_size)
       end
 
       def host_down(host)
         pool = nil
 
         synchronize do
-          return Ione::Future.resolved if !@connections.has_key?(host) && !@connecting_hosts.include?(host)
+          return Ione::Future.resolved unless @connections.has_key?(host)
 
-          @connecting_hosts.delete(host)
+          @pending_connections.delete(host)
           @prepared_statements.delete(host)
           @preparing_statements.delete(host)
-
           pool = @connections.delete(host)
         end
 
@@ -299,92 +326,86 @@ module Cassandra
         Ione::Future.all(*futures).map(self)
       end
 
-      def connect_to_host_maybe_retry(host, distance)
-        f = connect_to_host(host, distance)
-
-        f.on_failure do |e|
-          connect_to_host_with_retry(host, @reconnection_policy.schedule)
-        end
-
-        f
+      def connect_to_host_maybe_retry(host, pool_size)
+        connect_to_host(host, pool_size).fallback do |e|
+          @logger.error("Scheduling initial connection retry to #{host.ip} (#{e.class.name}: #{e.message})")
+          connect_to_host_with_retry(host, pool_size, @reconnection_policy.schedule)
+        end.map(nil)
       end
 
-      def connect_to_host_with_retry(host, schedule)
+      def connect_to_host_with_retry(host, pool_size, schedule)
         interval = schedule.next
 
         @logger.debug("Reconnecting to #{host.ip} in #{interval} seconds")
 
         f = @reactor.schedule_timer(interval)
         f.flat_map do
-          distance = nil
-
-          synchronize do
-            if @connecting_hosts.include?(host)
-              distance = @load_balancing_policy.distance(host)
-            end
-          end
-
-          if distance && distance != :ignore
-            connect_to_host(host, distance).fallback do |e|
-              connect_to_host_with_retry(host, schedule)
-            end
-          else
-            NO_CONNECTIONS
+          connect_to_host(host, pool_size).fallback do |e|
+            @logger.error("Scheduling connection retry to #{host.ip} (#{e.class.name}: #{e.message})")
+            connect_to_host_with_retry(host, pool_size, schedule)
           end
         end
       end
 
-      def connect_to_host(host, distance)
-        case distance
-        when :ignore
-          return NO_CONNECTIONS
-        when :local
-          pool_size = @connection_options.connections_per_local_node
-        when :remote
-          pool_size = @connection_options.connections_per_remote_node
-        else
-          @logger.error("Invalid load balancing distance, not connecting to #{host.ip}. Distance must be one of #{LoadBalancing::DISTANCES.inspect}, #{distance.inspect} given")
-          return NO_CONNECTIONS
-        end
-
-        pool = nil
-        existing_connections = 0
+      def connect_to_host(host, pool_size)
+        size = 0
 
         synchronize do
+          unless @connections.include?(host)
+            @logger.info("Not connecting to #{host.ip} - host is currently down")
+            return NO_CONNECTIONS
+          end
+
           pool = @connections[host]
+          size = pool_size - pool.size
+
+          if size <= 0
+            @logger.info("Not connecting to #{host.ip} - host is already fully connected")
+            return NO_CONNECTIONS
+          end
+
+          size -= @pending_connections[host]
+
+          if size <= 0
+            @logger.info("Not connecting to #{host.ip} - host is already pending connections")
+            return NO_CONNECTIONS
+          end
+
+          @pending_connections[host] += size
         end
 
-        existing_connections = pool.size if pool
-        pool = nil
-        missing_connections  = (pool_size - existing_connections)
-        return Ione::Future.resolved if missing_connections <= 0
-
-        f = @connector.connect_many(host, missing_connections)
+        @logger.debug("Creating #{size} connections to #{host.ip}")
+        f = @connector.connect_many(host, size)
 
         f.on_value do |connections|
+          @logger.debug("Created #{connections.size} connections to #{host.ip}")
+
           pool = nil
 
           synchronize do
-            @connecting_hosts.delete(host)
-            @prepared_statements[host] = {}
-            @preparing_statements[host] = {}
-            pool = @connections[host] ||= ConnectionPool.new
+            if @connections.include?(host)
+              @pending_connections[host] -= size
+              pool = @connections[host]
+            end
           end
 
-          pool.add_connections(connections)
+          if pool
+            pool.add_connections(connections)
 
-          connections.each do |connection|
-            connection.on_closed do
-              distance = nil
-
-              synchronize do
-                if !(@state == :closed || @state == :closing) && !@connecting_hosts.include?(host) && @connections.include?(host)
-                  distance = @load_balancing_policy.distance(host)
-                  @connecting_hosts[host] = distance unless distance == :ignore
-                end
+            connections.each do |connection|
+              connection.on_closed do |cause|
+                connect_to_host_maybe_retry(host, pool_size) if cause
               end
+            end
+          else
+            connections.each {|c| c.close}
+          end
+        end
 
-              connect_to_host_maybe_retry(host, distance).map(nil) if distance
+        f.on_failure do |error|
+          synchronize do
+            if @connections.include?(host)
+              @pending_connections[host] -= size
             end
           end
         end
