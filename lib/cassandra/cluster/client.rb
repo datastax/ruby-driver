@@ -158,7 +158,7 @@ module Cassandra
             return Ione::Future.resolved
           end
 
-          @pending_connections[host] = 0
+          @pending_connections[host] ||= 0
           @prepared_statements[host] = {}
           @preparing_statements[host] = {}
           @connections[host] = ConnectionPool.new
@@ -173,7 +173,7 @@ module Cassandra
         synchronize do
           return Ione::Future.resolved unless @connections.has_key?(host)
 
-          @pending_connections.delete(host)
+          @pending_connections.delete(host) unless @pending_connections[host] > 0
           @prepared_statements.delete(host)
           @preparing_statements.delete(host)
           pool = @connections.delete(host)
@@ -383,9 +383,12 @@ module Cassandra
           pool = nil
 
           synchronize do
+            @pending_connections[host] -= size
+
             if @connections.include?(host)
-              @pending_connections[host] -= size
               pool = @connections[host]
+            else
+              @pending_connections.delete(host) unless @pending_connections[host] > 0
             end
           end
 
@@ -404,9 +407,8 @@ module Cassandra
 
         f.on_failure do |error|
           synchronize do
-            if @connections.include?(host)
-              @pending_connections[host] -= size
-            end
+            @pending_connections[host] -= size
+            @pending_connections.delete(host) unless @pending_connections[host] > 0 || @connections.include?(host)
           end
         end
 
