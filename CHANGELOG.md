@@ -1,3 +1,10 @@
+# 1.2.0
+
+Bug Fixes:
+
+* [RUBY-83] Timestamps loses microseconds when retrieved from database
+* [RUBY-85] Driver doesn't always reconnect
+
 # 1.1.1
 
 Bug Fixes:
