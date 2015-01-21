@@ -95,7 +95,7 @@ Some of the new features added to the driver have unfortunately led to changes i
 
 ## What's new in v2.0.0
 
-Current release lays groundwork for the upcoming native protocol v3 and Apache Cassandra 2.1 support. This release introduces the following major public API changes:
+Current release lays groundwork for the upcoming support of native protocol v3 and Apache Cassandra 2.1. This release introduces the following major public API changes:
 
 * Positional arguments to `Session#execute` must be passed via `:arguments` option key.
 * `Batch#add` and `Prepared#bind` accept an array of arguments instead of variable arguments (`args` instead of `*args`).
