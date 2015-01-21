@@ -1,3 +1,13 @@
+# 2.0.0
+
+Features:
+
+* Refactored coding layer to support native protocol v3
+
+Breaking Changes:
+
+* Positional arguments are passed in `:arguments` option to `Session#execute`
+
 # 1.2.0
 
 Bug Fixes:
