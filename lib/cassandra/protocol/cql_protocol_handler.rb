@@ -318,7 +318,7 @@ module Cassandra
           @request_queue_out.clear
         end
         promises_to_fail.each do |promise|
-          promise.fail(request_failure_cause)
+          promise.fail(request_failure_cause) unless promise.timed_out?
         end
         if cause
           @closed_promise.fail(cause)

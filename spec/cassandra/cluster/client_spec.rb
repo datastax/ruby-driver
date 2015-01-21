@@ -80,6 +80,70 @@ module Cassandra
             client.connect.value
           end.to raise_error(Cassandra::Errors::NoHostsAvailable)
         end
+
+        context('when connections become idle') do
+          let(:io_reactor)          { StubIoReactor.new }
+          let(:port)                { '9042' }
+          let(:reconnection_policy) { Reconnection::Policies::Constant.new(reconnect_interval) }
+          let(:driver_settings)     { {
+                                       :io_reactor => io_reactor,
+                                       :connections_per_local_node => 2,
+                                       :connections_per_remote_node => 1,
+                                       :reconnection_policy => reconnection_policy,
+                                       :executor => Executors::SameThread.new,
+                                       :heartbeat_interval => heartbeat_interval,
+                                       :idle_timeout => idle_timeout,
+                                       :logger => logger,
+                                       :port => port
+                                    } }
+          let(:heartbeat_interval)  { 30 }
+          let(:idle_timeout)        { 60 }
+          let(:reconnect_interval)  { 5  }
+          let(:cluster_registry)    { driver.cluster_registry }
+
+          it 'sets host to down when all its connections are idle' do
+            cluster_registry.add_listener(driver.load_balancing_policy)
+            cluster_registry.host_found(IPAddr.new(hosts.first))
+            io_reactor.enable_node(hosts.first)
+
+            client.connect.value
+            expect(io_reactor).to have(2).connections
+            expect(cluster_registry.host(hosts.first)).to be_up
+
+            io_reactor.block_node(hosts.first)
+            io_reactor.advance_time(idle_timeout)
+
+            expect(io_reactor).to have(0).connections
+            expect(cluster_registry.host(hosts.first)).to be_down
+
+            io_reactor.unblock_node(hosts.first)
+            cluster_registry.host_up(IPAddr.new(hosts.first))
+            io_reactor.advance_time(reconnect_interval)
+            sleep(2)
+
+            expect(io_reactor).to have(2).connections
+            expect(cluster_registry.host(hosts.first)).to be_up
+          end
+
+          it 'automatically replaces hanged connections' do
+            cluster_registry.add_listener(driver.load_balancing_policy)
+            cluster_registry.host_found(IPAddr.new(hosts.first))
+            io_reactor.enable_node(hosts.first)
+
+            client.connect.value
+            expect(io_reactor).to have(2).connections
+
+            connection = io_reactor.connections.first
+            connection.block
+
+            io_reactor.advance_time(idle_timeout / 2)
+            sleep(2)
+            io_reactor.advance_time(idle_timeout / 2)
+
+            expect(io_reactor).to have(2).connections
+            expect(io_reactor.connections).to_not include(connection)
+          end
+        end
       end
 
       describe('#close') do
@@ -180,18 +244,6 @@ module Cassandra
               io_reactor.node_up(address)
               io_reactor.advance_time(reconnect_interval)
             end.to change { io_reactor.connections.size }.by(2)
-          end
-
-          it 'does not start a new reconnection loop when one is already in progress' do
-            reconnect_interval = 4
-            schedule = double('reconnection schedule', :next => reconnect_interval)
-            reconnection_policy.stub(:schedule) { schedule }
-            io_reactor.should_receive(:schedule_timer).once.with(reconnect_interval).and_call_original
-
-            client.host_up(host)
-            client.host_up(host)
-            client.host_up(host)
-            client.host_up(host)
           end
 
           it 'logs reconnection attempts' do

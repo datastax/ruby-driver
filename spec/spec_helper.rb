@@ -29,6 +29,7 @@ require 'support/bytes_helper'
 require 'support/await_helper'
 require 'support/fake_io_reactor'
 require 'support/fake_cluster_registry'
+require 'support/stub_io_reactor'
 
 RSpec.configure do |config|
   config.expect_with(:rspec) do |c|
