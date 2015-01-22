@@ -319,7 +319,7 @@ class StubIoReactor
         buffer.append_bytes(response.token)
       end
 
-      [0x80 | version, 0, stream, opcode, buffer.bytesize].pack(Cassandra::Protocol::Formats::HEADER_FORMAT) + buffer
+      [0x80 | version, 0, stream, opcode, buffer.bytesize].pack(Cassandra::Protocol::V1::Encoder::HEADER_FORMAT) + buffer
     end
 
     def handle(version, stream, request)
