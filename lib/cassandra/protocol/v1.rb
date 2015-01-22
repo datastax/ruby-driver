@@ -18,6 +18,7 @@
 
 module Cassandra
   module Protocol
+    # @private
     module V1
       class Encoder
         HEADER_FORMAT = 'c4N'.freeze
