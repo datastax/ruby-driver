@@ -93,16 +93,12 @@ __Note__: if you want to use compression you should also install [snappy](http:/
 
 Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API. In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/master/examples/cql-rb-wrapper.rb) to assist you with gradual upgrade.
 
-## What's new in v1.1.1
+## What's new in v1.2.0
 
-Current release introduces the following new features:
+Bug Fixes:
 
-* Ability to disable automatic schema synchronization
-* Schema change event storm protection using a sliding delay
-* [`Cassandra::LoadBalancing::Policy#teardown`](http://datastax.github.io/ruby-driver/api/load_balancing/policy/#teardown-instance_method) for cleaning up resources
-* [`Cassandra::Cluster#refresh_schema`](http://datastax.github.io/ruby-driver/api/cluster/#refresh_schema-instance_method) for manually refreshing schema metadata
-* Host list randomization to prevent hotspots between multiple clients
-* Future listeners run in a dedicated threadpool to not block the reactor
+* [RUBY-83] Timestamps loses microseconds when retrieved from database
+* [RUBY-85] Driver doesn't always reconnect
 
 ## Code examples
 
