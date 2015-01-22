@@ -19,6 +19,10 @@
 module Cassandra
   module Protocol
     class CqlByteBuffer < Ione::ByteBuffer
+      def inspect
+        "#<#{self.class.name}:0x#{self.object_id.to_s(16)} #{to_str.inspect}>"
+      end
+
       def read_unsigned_byte
         read_byte
       rescue RangeError => e

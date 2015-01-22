@@ -26,16 +26,6 @@ module Cassandra
         @id, @metadata, @result_metadata = id, metadata, result_metadata
       end
 
-      def self.decode(protocol_version, buffer, length, trace_id=nil)
-        id = buffer.read_short_bytes
-        metadata, _ = RowsResultResponse.read_metadata(protocol_version, buffer)
-        result_metadata = nil
-        if protocol_version > 1
-          result_metadata, _, _ = RowsResultResponse.read_metadata(protocol_version, buffer)
-        end
-        new(id, metadata, result_metadata, trace_id)
-      end
-
       def eql?(other)
         self.id == other.id && self.metadata == other.metadata && self.trace_id == other.trace_id
       end

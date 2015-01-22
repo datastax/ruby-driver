@@ -28,8 +28,10 @@ module Cassandra
       end
 
       describe '#write' do
+        let(:encoder) { V1::Encoder.new(nil, 1) }
+
         it 'encodes a PREPARE request frame' do
-          bytes = PrepareRequest.new('UPDATE users SET email = ? WHERE user_name = ?').write(1, CqlByteBuffer.new)
+          bytes = PrepareRequest.new('UPDATE users SET email = ? WHERE user_name = ?').write(CqlByteBuffer.new, 1, encoder)
           bytes.should eql_bytes("\x00\x00\x00\x2eUPDATE users SET email = ? WHERE user_name = ?")
         end
       end

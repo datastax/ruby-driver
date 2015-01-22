@@ -54,6 +54,7 @@ Feature: Schema change detection
       """
       CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}
       """
+    And I wait for 1 seconds
     And I close the stdin stream
     Then its output should contain:
       """
@@ -87,6 +88,7 @@ Feature: Schema change detection
       """cql
       DROP KEYSPACE new_keyspace
       """
+    And I wait for 1 seconds
     And I close the stdin stream
     Then its output should contain:
       """
@@ -120,6 +122,7 @@ Feature: Schema change detection
       """cql
       CREATE TABLE new_keyspace.new_table (id timeuuid PRIMARY KEY)
       """
+    And I wait for 1 seconds
     And I close the stdin stream
     Then its output should contain:
       """
@@ -150,6 +153,7 @@ Feature: Schema change detection
       """cql
       CREATE KEYSPACE new_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}
       """
+    And I wait for 1 seconds
     And I close the stdin stream
     Then its output should not contain:
       """

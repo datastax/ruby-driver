@@ -29,7 +29,7 @@ module Cassandra
         @consistency = :one
       end
 
-      def write(protocol_version, buffer)
+      def write(buffer, protocol_version, encoder)
         buffer.append_long_string(@cql)
       end
 

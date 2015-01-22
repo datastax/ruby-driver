@@ -503,11 +503,15 @@ module Cassandra
     driver = Driver.new(options)
     driver.connect(hosts)
   end
+
+  # @private
+  EMPTY_LIST = [].freeze
 end
 
-require 'cassandra/errors'
 require 'cassandra/uuid'
 require 'cassandra/time_uuid'
+
+require 'cassandra/errors'
 require 'cassandra/compression'
 require 'cassandra/protocol'
 require 'cassandra/auth'
@@ -548,6 +552,4 @@ module Cassandra
   VOID_OPTIONS   = Execution::Options.new({:consistency => :one})
   # @private
   NO_HOSTS       = Errors::NoHostsAvailable.new
-  # @private
-  EMPTY_LIST = [].freeze
 end

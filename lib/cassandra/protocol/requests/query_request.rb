@@ -22,23 +22,18 @@ module Cassandra
       attr_reader :cql, :values, :type_hints, :serial_consistency, :page_size, :paging_state
       attr_accessor :consistency, :retries
 
-      def initialize(cql, values, type_hints, consistency, serial_consistency=nil, page_size=nil, paging_state=nil, trace=false)
-        raise ArgumentError, %(No CQL given!) unless cql
-        raise ArgumentError, %(No such consistency: #{consistency.inspect}) if consistency.nil? || !CONSISTENCIES.include?(consistency)
-        raise ArgumentError, %(No such consistency: #{serial_consistency.inspect}) unless serial_consistency.nil? || CONSISTENCIES.include?(serial_consistency)
-        raise ArgumentError, %(Bound values and type hints must have the same number of elements (got #{values.size} values and #{type_hints.size} hints)) if values && type_hints && values.size != type_hints.size
-        raise ArgumentError, %(Paging state given but no page size) if paging_state && !page_size
+      def initialize(cql, values, type_hints, consistency, serial_consistency = nil, page_size = nil, paging_state = nil, trace = false)
         super(7, trace)
         @cql = cql
-        @values = values || EMPTY_LIST
-        @type_hints = type_hints || EMPTY_LIST
+        @values = values
+        @type_hints = type_hints
         @consistency = consistency
         @serial_consistency = serial_consistency
         @page_size = page_size
         @paging_state = paging_state
       end
 
-      def write(protocol_version, buffer)
+      def write(buffer, protocol_version, encoder)
         buffer.append_long_string(@cql)
         buffer.append_consistency(@consistency)
         if protocol_version > 1
@@ -49,7 +44,7 @@ module Cassandra
           if @values && @values.size > 0
             flags |= 0x01
             buffer.append(flags.chr)
-            self.class.encode_values(buffer, @values, @type_hints)
+            encoder.write_parameters(buffer, @values, @type_hints)
           else
             buffer.append(flags.chr)
           end
@@ -87,57 +82,6 @@ module Cassandra
         h = 0xffffffffffffffff & (0x100000001b3 * (h ^ @paging_state.hash))
         h
       end
-
-      def self.encode_values(buffer, values, hints)
-        if values && values.size > 0
-          buffer.append_short(values.size)
-          values.each_with_index do |value, index|
-            type = (hints && hints[index]) || guess_type(value)
-            raise EncodingError, "Could not guess a suitable type for #{value.inspect}" unless type
-            TYPE_CONVERTER.to_bytes(buffer, type, value)
-          end
-          buffer
-        else
-          buffer.append_short(0)
-        end
-      end
-
-      private
-
-      def self.guess_type(value)
-        type = TYPE_GUESSES[value.class]
-        if type == :map
-          pair = value.first
-          [type, guess_type(pair[0]), guess_type(pair[1])]
-        elsif type == :list
-          [type, guess_type(value.first)]
-        elsif type == :set
-          [type, guess_type(value.first)]
-        else
-          type
-        end
-      end
-
-      TYPE_GUESSES = {
-        String => :varchar,
-        Fixnum => :bigint,
-        Float => :double,
-        Bignum => :varint,
-        BigDecimal => :decimal,
-        TrueClass => :boolean,
-        FalseClass => :boolean,
-        NilClass => :bigint,
-        Uuid => :uuid,
-        TimeUuid => :uuid,
-        IPAddr => :inet,
-        Time => :timestamp,
-        Hash => :map,
-        Array => :list,
-        Set => :set,
-      }.freeze
-      TYPE_CONVERTER = TypeConverter.new
-      EMPTY_LIST = [].freeze
-      NO_FLAGS = "\x00".freeze
     end
   end
 end

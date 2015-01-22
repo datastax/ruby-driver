@@ -26,7 +26,7 @@ module Cassandra
         @credentials = credentials.dup.freeze
       end
 
-      def write(protocol_version, buffer)
+      def write(buffer, protocol_version, encoder)
         buffer.append_string_map(@credentials)
       end
 

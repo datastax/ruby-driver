@@ -261,7 +261,7 @@ module Cassandra
 
         buffer = Protocol::CqlByteBuffer.new
 
-        TYPE_CONVERTER.to_bytes(buffer, column.type, values[column_name])
+        Protocol::Coder.write_value_v1(buffer, values[column_name], column.type)
         buffer.discard(4)
       else
         buf    = nil
@@ -274,7 +274,7 @@ module Cassandra
           buf    ||= Protocol::CqlByteBuffer.new
           buffer ||= Protocol::CqlByteBuffer.new
 
-          TYPE_CONVERTER.to_bytes(buf, column.type, values[column_name])
+          Protocol::Coder.write_value_v1(buf, values[column_name], column.type)
           buf.discard(4) # discard size
 
           size = buf.length
@@ -289,7 +289,6 @@ module Cassandra
     private
 
     NULL_BYTE = "\x00".freeze
-    TYPE_CONVERTER = Protocol::TypeConverter.new
 
     attr_reader :partition_key, :clustering_columns, :clustering_order
     protected :partition_key, :clustering_columns, :clustering_order

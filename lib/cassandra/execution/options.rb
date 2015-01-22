@@ -30,6 +30,8 @@ module Cassandra
       attr_reader :page_size
       # @return [Numeric] request timeout interval
       attr_reader :timeout
+      # @return [Array] positional arguments for the statement
+      attr_reader :arguments
 
       # @return [String] paging state
       #
@@ -53,6 +55,7 @@ module Cassandra
         timeout            = options[:timeout]
         serial_consistency = options[:serial_consistency]
         paging_state       = options[:paging_state]
+        arguments          = options[:arguments]
 
         Util.assert_one_of(CONSISTENCIES, consistency) { ":consistency must be one of #{CONSISTENCIES.inspect}, #{consistency.inspect} given" }
 
@@ -75,18 +78,37 @@ module Cassandra
           Util.assert_not_empty(paging_state) { ":paging_state must not be empty" }
         end
 
+        if arguments.nil?
+          arguments = EMPTY_LIST
+        else
+          Util.assert_instance_of(::Array, arguments) { ":arguments must be an Array, #{arguments.inspect} given" }
+        end
+
         @consistency        = consistency
         @page_size          = page_size
         @trace              = !!trace
         @timeout            = timeout
         @serial_consistency = serial_consistency
         @paging_state       = paging_state
+        @arguments          = arguments
       end
 
       # @return [Boolean] whether request tracing was enabled
       def trace?
         @trace
       end
+
+      def eql?(other)
+        other.is_a?(Options) &&
+          other.consistency == @consistency &&
+          other.page_size == @page_size &&
+          other.trace? == @trace &&
+          other.timeout == @timeout &&
+          other.serial_consistency == @serial_consistency &&
+          other.paging_state == @paging_state &&
+          other.arguments == @arguments
+      end
+      alias :== :eql?
 
       # @private
       def override(*options)
@@ -106,7 +128,8 @@ module Cassandra
           :page_size          => @page_size,
           :trace              => @trace,
           :timeout            => @timeout,
-          :serial_consistency => @serial_consistency
+          :serial_consistency => @serial_consistency,
+          :arguments          => @arguments || EMPTY_LIST
         }
       end
     end

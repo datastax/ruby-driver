@@ -165,7 +165,7 @@ Feature: Datacenter-aware Round Robin Policy
       session    = cluster.connect('simplex')
 
       begin
-        session.execute("SELECT * FROM songs", :consistency => :local_one)
+        session.execute("SELECT * FROM songs", consistency: :local_one)
         puts "failure"
       rescue Cassandra::Errors::NoHostsAvailable
         puts "success"

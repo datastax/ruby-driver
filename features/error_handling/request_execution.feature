@@ -30,7 +30,7 @@ Feature: Request Execution Errors
     When it is executed
     Then its output should contain:
       """
-      Cassandra::Errors::SyntaxError: line 0:-1 mismatched input '<EOF>' expecting K_VALUES\n
+      Cassandra::Errors::SyntaxError
       """
 
   Scenario: Connecting to non-existent keyspace
@@ -49,7 +49,7 @@ Feature: Request Execution Errors
     When it is executed
     Then its output should contain:
       """
-      Cassandra::Errors::InvalidError: Keyspace 'badkeyspace' does not exist
+      Cassandra::Errors::InvalidError
       """
 
   Scenario: Modifying system keyspace
@@ -69,7 +69,7 @@ Feature: Request Execution Errors
     When it is executed
     Then its output should contain:
       """
-      Cassandra::Errors::UnauthorizedError: system keyspace is not user-modifiable.
+      Cassandra::Errors::UnauthorizedError
       """
 
   Scenario: Dropping non-existent keyspace
@@ -78,7 +78,7 @@ Feature: Request Execution Errors
       require 'cassandra'
 
       cluster = Cassandra.cluster
-      session = cluster.connect()
+      session = cluster.connect
 
       begin
         session.execute("DROP KEYSPACE badkeyspace")
@@ -89,7 +89,7 @@ Feature: Request Execution Errors
     When it is executed
     Then its output should contain:
       """
-      Cassandra::Errors::ConfigurationError: Cannot drop non existing keyspace 'badkeyspace'.
+      Cassandra::Errors::ConfigurationError
       """
 
   Scenario: Creating keyspace that already exists
@@ -102,7 +102,7 @@ Feature: Request Execution Errors
       require 'cassandra'
 
       cluster = Cassandra.cluster
-      session = cluster.connect()
+      session = cluster.connect
 
       begin
         session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}")
@@ -113,7 +113,7 @@ Feature: Request Execution Errors
     When it is executed
     Then its output should contain:
       """
-      Cassandra::Errors::AlreadyExistsError: Cannot add existing keyspace "simplex"
+      Cassandra::Errors::AlreadyExistsError
       """
 
   @auth
@@ -135,7 +135,7 @@ Feature: Request Execution Errors
     When it is executed
     Then its output should contain:
       """
-      Cassandra::Errors::AuthenticationError: Username and/or password are incorrect
+      Cassandra::Errors::AuthenticationError
       """
 
   @netblock
@@ -217,7 +217,7 @@ Feature: Request Execution Errors
 
       query = "INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)"
       begin
-        session.execute(query, :consistency => :all)
+        session.execute(query, consistency: :all)
       rescue => e
         puts "#{e.class.name}: #{e.message}"
       end
@@ -226,7 +226,7 @@ Feature: Request Execution Errors
     And it is executed
     Then its output should contain:
       """
-      Cassandra::Errors::UnavailableError: Cannot achieve consistency level ALL
+      Cassandra::Errors::UnavailableError
       """
 
   @netblock
@@ -271,7 +271,7 @@ Feature: Request Execution Errors
     And I close the stdin stream
     Then its output should contain:
       """
-      Cassandra::Errors::ReadTimeoutError: Operation timed out - received only 0 responses.
+      Cassandra::Errors::ReadTimeoutError
       """
 
   @netblock
@@ -316,7 +316,7 @@ Feature: Request Execution Errors
     And I close the stdin stream
     Then its output should contain:
       """
-      Cassandra::Errors::WriteTimeoutError: Operation timed out - received only 0 responses.
+      Cassandra::Errors::WriteTimeoutError
       """
 
   @netblock
@@ -361,7 +361,7 @@ Feature: Request Execution Errors
     And I close the stdin stream
     Then its output should contain:
       """
-      Cassandra::Errors::TruncateError: Error during truncate
+      Cassandra::Errors::TruncateError
       """
 
   @netblock

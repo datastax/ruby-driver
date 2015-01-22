@@ -141,9 +141,33 @@ class SessionTest < IntegrationTestCase
     refute_nil insert
     refute_nil select
 
-    session.execute(insert, 0, 'John', 'Doe', 40)
+    session.execute(insert, arguments: [0, 'John', 'Doe', 40])
     result = session.execute(select).first
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
+  ensure
+    cluster && cluster.close
+  end
+
+  def test_prepare_errors_on_invalid_arguments
+    setup_schema
+
+    cluster = Cassandra.cluster
+    session = cluster.connect("simplex")
+
+    insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
+    refute_nil insert
+
+    assert_raises(ArgumentError) do
+      session.execute(insert, [0, 'John', 'Doe', 40])
+    end
+
+    assert_raises(ArgumentError) do
+      session.execute(insert, arguments: [])
+    end
+
+    assert_raises(ArgumentError) do
+      session.execute(insert, arguments: ['John', 'Doe', 40, 0])
+    end
   ensure
     cluster && cluster.close
   end
@@ -198,9 +222,9 @@ class SessionTest < IntegrationTestCase
       session = cluster.connect("simplex")
 
       batch = session.batch do |b|
-        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", 3, 'Apache', 'Cassandra', 8)
-        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", 4, 'DataStax', 'Ruby-Driver', 1)
-        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", 5, 'Cassandra', 'Community', 8)
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", [3, 'Apache', 'Cassandra', 8])
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", [4, 'DataStax', 'Ruby-Driver', 1])
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", [5, 'Cassandra', 'Community', 8])
       end
 
       session.execute(batch)
@@ -224,9 +248,9 @@ class SessionTest < IntegrationTestCase
       refute_nil insert
 
       batch = session.batch do |b|
-        b.add(insert, 6, 'Joséphine', 'Baker', 108)
-        b.add(insert, 7, 'Stefan', 'Löfven', 57)
-        b.add(insert, 8, 'Mick', 'Jager', 71)
+        b.add(insert, [6, 'Joséphine', 'Baker', 108])
+        b.add(insert, [7, 'Stefan', 'Löfven', 57])
+        b.add(insert, [8, 'Mick', 'Jager', 71])
       end
 
       session.execute(batch)
@@ -248,7 +272,7 @@ class SessionTest < IntegrationTestCase
 
       insert = session.prepare("INSERT INTO test (k, v) VALUES (?, ?)")
       ("a".."z").each_with_index do |letter, number|
-        session.execute(insert, letter, number)
+        session.execute(insert, arguments: [letter, number])
       end
 
       # Small page_size
@@ -310,7 +334,7 @@ class SessionTest < IntegrationTestCase
 
       insert = session.prepare("INSERT INTO test (k, v) VALUES (?, ?)")
       ("a".."z").each_with_index do |letter, number|
-        session.execute(insert, letter, number)
+        session.execute(insert, arguments: [letter, number])
       end
 
       select = session.prepare("SELECT * FROM test")

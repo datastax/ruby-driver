@@ -100,7 +100,7 @@ class DatatypeTest < IntegrationTestCase
     # Insert into table
     insert = session.prepare("INSERT INTO mytable (zz)
             VALUES (?)")
-    session.execute(insert, 0)
+    session.execute(insert, arguments: [0])
 
     # Verify results
     result = session.execute("SELECT * FROM mytable").first
@@ -138,7 +138,7 @@ class DatatypeTest < IntegrationTestCase
 
     insert = session.prepare("INSERT INTO mytable (#{parameters.join(",")})
             VALUES (#{arguments.join(",")})")
-    session.execute(insert, *params)
+    session.execute(insert, arguments: params)
 
     # Verify results
     result = session.execute("SELECT * FROM mytable").first
@@ -175,7 +175,7 @@ class DatatypeTest < IntegrationTestCase
 
     insert = session.prepare("INSERT INTO mytable (#{parameters.join(",")})
             VALUES (#{arguments.join(",")})")
-    session.execute(insert, *params)
+    session.execute(insert, arguments: params)
 
     # Verify results
     result = session.execute("SELECT * FROM mytable").first
@@ -207,7 +207,7 @@ class DatatypeTest < IntegrationTestCase
     # Insert into table
     insert = session.prepare("INSERT INTO mytable (zz)
             VALUES (?)")
-    session.execute(insert, 0)
+    session.execute(insert, arguments: [0])
 
     # Verify results
     result = session.execute("SELECT * FROM mytable").first
@@ -258,7 +258,7 @@ class DatatypeTest < IntegrationTestCase
 
     insert = session.prepare("INSERT INTO mytable (#{parameters.join(",")})
             VALUES (#{arguments.join(",")})")
-    session.execute(insert, *params)
+    session.execute(insert, arguments: params)
 
     # Verify results
     result = session.execute("SELECT * FROM mytable").first
@@ -308,7 +308,7 @@ class DatatypeTest < IntegrationTestCase
 
     insert = session.prepare("INSERT INTO mytable (#{parameters.join(",")})
             VALUES (#{arguments.join(",")})")
-    session.execute(insert, *params)
+    session.execute(insert, arguments: params)
 
     # Verify results
     result = session.execute("SELECT * FROM mytable").first

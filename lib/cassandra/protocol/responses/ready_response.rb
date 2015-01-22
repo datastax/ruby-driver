@@ -19,10 +19,6 @@
 module Cassandra
   module Protocol
     class ReadyResponse < Response
-      def self.decode(protocol_version, buffer, length, trace_id=nil)
-        new
-      end
-
       def eql?(rs)
         self.class === rs
       end

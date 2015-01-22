@@ -34,13 +34,15 @@ module Cassandra
       end
 
       describe '#write' do
+        let(:encoder) { double('encoder') }
+
         it 'encodes a STARTUP request frame' do
-          bytes = StartupRequest.new('3.0.0', 'snappy').write(1, CqlByteBuffer.new)
+          bytes = StartupRequest.new('3.0.0', 'snappy').write(CqlByteBuffer.new, 1, encoder)
           bytes.should eql_bytes("\x00\x02\x00\x0bCQL_VERSION\x00\x053.0.0\x00\x0bCOMPRESSION\x00\x06snappy")
         end
 
         it 'defaults to no compression' do
-          bytes = StartupRequest.new('3.1.1').write(1, CqlByteBuffer.new)
+          bytes = StartupRequest.new('3.1.1').write(CqlByteBuffer.new, 1, encoder)
           bytes.should eql_bytes("\x00\x01\x00\x0bCQL_VERSION\x00\x053.1.1")
         end
       end

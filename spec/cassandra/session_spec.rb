@@ -27,29 +27,29 @@ module Cassandra
 
     describe('#execute_async') do
       context 'cql string' do
-        context 'without parameters' do
+        context 'without arguments' do
           let(:cql) { 'SELECT * FROM songs' }
 
           it 'sends query with a simple statement' do
             promise   = double('promise')
             statement = double('simple statement')
 
-            expect(Statements::Simple).to receive(:new).once.with(cql).and_return(statement)
+            expect(Statements::Simple).to receive(:new).once.with(cql, EMPTY_LIST).and_return(statement)
             expect(client).to receive(:query).once.with(statement, session_options).and_return(promise)
             expect(session.execute_async(cql)).to eq(promise)
           end
         end
 
-        context 'with parameters' do
+        context 'with arguments' do
           let(:cql) { 'SELECT * FROM songs LIMIT ?' }
 
           it 'sends query with a simple statement with parameters' do
             promise   = double('promise')
             statement = double('simple statement')
 
-            expect(Statements::Simple).to receive(:new).once.with(cql, 1).and_return(statement)
-            expect(client).to receive(:query).once.with(statement, session_options).and_return(promise)
-            expect(session.execute_async(cql, 1)).to eq(promise)
+            expect(Statements::Simple).to receive(:new).once.with(cql, [1]).and_return(statement)
+            expect(client).to receive(:query).once.with(statement, session_options.override(arguments: [1])).and_return(promise)
+            expect(session.execute_async(cql, arguments: [1])).to eq(promise)
           end
         end
 
@@ -60,11 +60,9 @@ module Cassandra
           it 'merges default options with options supplied' do
             promise   = double('promise')
             statement = double('simple statement')
-            opts      = double('options')
 
-            expect(session_options).to receive(:override).once.with(options).and_return(opts)
-            expect(Statements::Simple).to receive(:new).once.with(cql).and_return(statement)
-            expect(client).to receive(:query).once.with(statement, opts).and_return(promise)
+            expect(Statements::Simple).to receive(:new).once.with(cql, EMPTY_LIST).and_return(statement)
+            expect(client).to receive(:query).once.with(statement, session_options.override(options)).and_return(promise)
             expect(session.execute_async(cql, options)).to eq(promise)
           end
         end
@@ -81,10 +79,11 @@ module Cassandra
           bound_statement = double('bound statement')
           options         = double('options')
 
-          expect(Execution::Options).to receive(:new).once.with(default_options).and_return(options)
-          expect(statement).to receive(:bind).with(1, 2, 3, 4, 5).and_return(bound_statement)
+          expect(session_options).to receive(:override).once.with(arguments: [1, 2, 3, 4, 5]).and_return(options)
+          allow(options).to receive(:arguments).and_return([1, 2, 3, 4, 5])
+          expect(statement).to receive(:bind).with([1, 2, 3, 4, 5]).and_return(bound_statement)
           expect(client).to receive(:execute).once.with(bound_statement, options).and_return(promise)
-          expect(session.execute_async(statement, 1, 2, 3, 4, 5)).to eq(promise)
+          expect(session.execute_async(statement, arguments: [1, 2, 3, 4, 5])).to eq(promise)
         end
       end
 
@@ -200,30 +199,23 @@ module Cassandra
       end
     end
 
-    [
-      [:execute, ['statement to execute']],
-      [:prepare, ['statement to prepare']],
-    ].each do |method, args|
-      describe("##{method}") do
-        let(:promise)   { double('promise') }
-        before do
-          expect(session).to receive(:"#{method}_async").with(*args).and_return(promise)
-        end
+    describe('#prepare') do
+      let(:promise)   { double('promise') }
+      let(:args)      { [double('statement to prepare')] }
 
-        it "resolves a promise returned by ##{method}_async" do
-          expect(promise).to receive(:get).once
-          session.__send__(method, *args)
-        end
+      it "resolves a promise returned by #prepare_async" do
+        expect(session).to receive(:prepare_async).with(*args).and_return(promise)
+        expect(promise).to receive(:get).once
+
+        session.prepare(*args)
       end
     end
 
     describe('#close') do
-      let(:promise) { double('promise') }
-      before do
-        expect(session).to receive(:close_async).with(no_args).and_return(promise)
-      end
+      let(:promise)   { double('promise') }
 
       it 'resolves a promise returned by #close_async' do
+        expect(session).to receive(:close_async).with(no_args).and_return(promise)
         expect(promise).to receive(:get).once.and_return('success')
         expect(session.close).to eq('success')
       end

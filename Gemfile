@@ -17,6 +17,7 @@ end
 
 group :test do
   gem 'rspec'
+  gem 'rspec-wait'
   gem 'rspec-collection_matchers'
   gem 'simplecov'
   gem 'cucumber'

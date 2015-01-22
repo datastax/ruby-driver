@@ -50,8 +50,6 @@ Feature: Request tracing
       session   = cluster.connect("simplex")
       execution = session.execute("SELECT * FROM songs").execution_info
 
-      at_exit { cluster.close }
-
       if execution.trace
         puts "failure"
       else
@@ -71,10 +69,8 @@ Feature: Request tracing
 
       cluster   = Cassandra.cluster
       session   = cluster.connect("simplex")
-      execution = session.execute("SELECT * FROM songs", :trace => true).execution_info
+      execution = session.execute("SELECT * FROM songs", trace: true).execution_info
       trace     = execution.trace
-
-      at_exit { cluster.close }
 
       puts "coordinator: #{trace.coordinator}"
       puts "started at: #{trace.started_at}"

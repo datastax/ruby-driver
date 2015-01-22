@@ -30,10 +30,13 @@ module Cassandra
       end
 
       describe '#write' do
+        let(:encoder) { V1::Encoder.new(nil, 2) }
+
         it 'encodes a BATCH request frame with a single prepared query' do
           batch = described_class.new(described_class::LOGGED_TYPE, :two)
-          batch.add_prepared(statement_id, metadata, ['arg', 3])
-          bytes = batch.write(2, CqlByteBuffer.new)
+          batch.add_prepared(statement_id, ['arg', 3], metadata.map(&:last))
+          buffer = CqlByteBuffer.new
+          bytes  = batch.write(buffer, 2, encoder)
           bytes.should eql_bytes(
             "\x00" +
             "\x00\x01" +
@@ -46,8 +49,8 @@ module Cassandra
 
         it 'encodes a BATCH request frame with a single query' do
           batch = described_class.new(described_class::LOGGED_TYPE, :one)
-          batch.add_query(%<INSERT INTO things (a, b) VALUES ('foo', 3)>)
-          bytes = batch.write(2, CqlByteBuffer.new)
+          batch.add_query(%<INSERT INTO things (a, b) VALUES ('foo', 3)>, [], [])
+          bytes = batch.write(CqlByteBuffer.new, 2, encoder)
           bytes.should eql_bytes(
             "\x00" +
             "\x00\x01" +
@@ -60,8 +63,8 @@ module Cassandra
 
         it 'encodes a BATCH request frame with a single query with on-the-fly bound values' do
           batch = described_class.new(described_class::LOGGED_TYPE, :two)
-          batch.add_query('INSERT INTO things (a, b) VALUES (?, ?)', ['foo', 5])
-          bytes = batch.write(2, CqlByteBuffer.new)
+          batch.add_query('INSERT INTO things (a, b) VALUES (?, ?)', ['foo', 5], [:varchar, :bigint])
+          bytes = batch.write(CqlByteBuffer.new, 2, encoder)
           bytes.should eql_bytes(
             "\x00" +
             "\x00\x01" +
@@ -74,10 +77,10 @@ module Cassandra
 
         it 'encodes a BATCH request frame with a a mix of prepared and non-prepared queries' do
           batch = described_class.new(described_class::LOGGED_TYPE, :two)
-          batch.add_prepared(statement_id, metadata, ['arg', 3])
-          batch.add_query(%<INSERT INTO things (a, b) VALUES (?, ?)>, ['foo', 5])
-          batch.add_query(%<INSERT INTO things (a, b) VALUES ('foo', 3)>)
-          bytes = batch.write(2, CqlByteBuffer.new)
+          batch.add_prepared(statement_id, ['arg', 3], [:varchar, :int])
+          batch.add_query(%<INSERT INTO things (a, b) VALUES (?, ?)>, ['foo', 5], [:varchar, :bigint])
+          batch.add_query(%<INSERT INTO things (a, b) VALUES ('foo', 3)>, [], [])
+          bytes = batch.write(CqlByteBuffer.new, 2, encoder)
           bytes.should eql_bytes(
             "\x00" +
             "\x00\x03" +
@@ -96,47 +99,47 @@ module Cassandra
 
         it 'encodes the type when it is "logged"' do
           batch = described_class.new(described_class::LOGGED_TYPE, :two)
-          batch.add_prepared(statement_id, metadata, ['arg', 3])
-          bytes = batch.write(2, CqlByteBuffer.new)
+          batch.add_prepared(statement_id, ['arg', 3], [:varchar, :int])
+          bytes = batch.write(CqlByteBuffer.new, 2, encoder)
           bytes.to_s[0].should == "\x00"
         end
 
         it 'encodes the type when it is "unlogged"' do
           batch = described_class.new(described_class::UNLOGGED_TYPE, :two)
-          batch.add_prepared(statement_id, metadata, ['arg', 3])
-          bytes = batch.write(2, CqlByteBuffer.new)
+          batch.add_prepared(statement_id, ['arg', 3], [:varchar, :int])
+          bytes = batch.write(CqlByteBuffer.new, 2, encoder)
           bytes.to_s[0].should == "\x01"
         end
 
         it 'encodes the type when it is "counter"' do
           batch = described_class.new(described_class::COUNTER_TYPE, :two)
-          batch.add_prepared(statement_id, metadata, ['arg', 3])
-          bytes = batch.write(2, CqlByteBuffer.new)
+          batch.add_prepared(statement_id, ['arg', 3], [:varchar, :int])
+          bytes = batch.write(CqlByteBuffer.new, 2, encoder)
           bytes.to_s[0].should == "\x02"
         end
 
         it 'encodes the number of statements in the batch' do
           batch = described_class.new(described_class::LOGGED_TYPE, :two)
-          batch.add_prepared(statement_id, metadata, ['arg', 3])
-          batch.add_prepared(statement_id, metadata, ['foo', 4])
-          batch.add_prepared(statement_id, metadata, ['bar', 5])
-          bytes = batch.write(2, CqlByteBuffer.new)
+          batch.add_prepared(statement_id, ['arg', 3], [:varchar, :int])
+          batch.add_prepared(statement_id, ['foo', 4], [:varchar, :int])
+          batch.add_prepared(statement_id, ['bar', 5], [:varchar, :int])
+          bytes = batch.write(CqlByteBuffer.new, 2, encoder)
           bytes.to_s[1, 2].should == "\x00\x03"
         end
 
         it 'encodes the type of each statement' do
           batch = described_class.new(described_class::LOGGED_TYPE, :two)
-          batch.add_prepared(statement_id, metadata, ['arg', 3])
-          batch.add_query(%<INSERT INTO things (a, b) VALUES ('arg', 3)>)
-          bytes = batch.write(2, CqlByteBuffer.new)
+          batch.add_prepared(statement_id, ['arg', 3], [:varchar, :int])
+          batch.add_query(%<INSERT INTO things (a, b) VALUES ('arg', 3)>, [], [])
+          bytes = batch.write(CqlByteBuffer.new, 2, encoder)
           bytes.to_s[3, 1].should == "\x01"
           bytes.to_s[39, 1].should == "\x00"
         end
 
         it 'uses the type hints given to #add_query' do
           batch = described_class.new(described_class::LOGGED_TYPE, :two)
-          batch.add_query(%<INSERT INTO things (a, b) VALUES (?, ?)>, ['foo', 3], [nil, :int])
-          bytes = batch.write(2, CqlByteBuffer.new)
+          batch.add_query(%<INSERT INTO things (a, b) VALUES (?, ?)>, ['foo', 3], [:varchar, :int])
+          bytes = batch.write(CqlByteBuffer.new, 2, encoder)
           bytes.to_s[56, 8].should == "\x00\x00\x00\x04\x00\x00\x00\x03"
         end
       end
@@ -145,8 +148,8 @@ module Cassandra
         context 'when the type is LOGGED' do
           it 'returns a string representation of the batch request' do
             batch = described_class.new(described_class::LOGGED_TYPE, :local_quorum)
-            batch.add_prepared(statement_id, metadata, ['arg', 3])
-            batch.add_query(%<INSERT INTO things (a, b) VALUES ('arg', 3)>)
+            batch.add_prepared(statement_id, ['arg', 3], [:varchar, :int])
+            batch.add_query(%<INSERT INTO things (a, b) VALUES ('arg', 3)>, [], [:varchar, :bigint])
             batch.to_s.should == %(BATCH LOGGED 2 LOCAL_QUORUM)
           end
         end

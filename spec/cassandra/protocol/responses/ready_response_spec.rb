@@ -21,13 +21,6 @@ require 'spec_helper'
 module Cassandra
   module Protocol
     describe ReadyResponse do
-      describe '.decode' do
-        it 'returns a new instance' do
-          unused_byte_buffer = nil
-          described_class.decode(1, unused_byte_buffer, 0).should be_a(described_class)
-        end
-      end
-
       describe '#to_s' do
         it 'returns a string' do
           described_class.new.to_s.should == 'READY'
