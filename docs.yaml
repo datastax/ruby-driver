@@ -1,0 +1,49 @@
+title:    Ruby Driver for Apache Cassandra
+summary:  A pure Ruby client for Apache Cassandra
+homepage: http://datastax.github.io/ruby-driver/
+sections:
+  - title:     Features
+    prefix:    /features
+    sources:
+      - type:  markdown
+        files: 'features/**/*.md'
+      - type:  gherkin
+        files: 'features/**/*.feature'
+
+  - title:     API docs
+    prefix:    /api
+    type:      yard
+    directory: ['lib', 'spec']
+    namespace: Cassandra
+links:
+  - title: Code
+    href:  https://github.com/datastax/ruby-driver/
+  - title: Docs
+    href:  http://datastax.github.io/ruby-driver/
+  - title: Issues
+    href:  https://datastax-oss.atlassian.net/browse/RUBY/
+  - title: Mailing List
+    href:  https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user
+  - title: IRC Channel
+    href:  irc://irc.freenode.net/datastax-drivers
+  - title: Releases
+    href:  https://github.com/datastax/ruby-driver/releases
+versions:
+  - name: v2.0.0
+    ref:  4b0b0efd8e8e3d36d7eb0bfe809a4ce0f5d5aa73
+  - name: v1.2.0
+    ref:  6c398cb3dbc5218f6a77177dcc2130d11bf0158a
+  - name: v1.1.1
+    ref:  1763066e2f70db8889799aa0af4a8eb63ad9ab74
+  - name: v1.1.0
+    ref:  3a69e5b21113b91b1bc364ceeefb4e2940181194
+  - name: v1.0.0
+    ref:  72bfc9609f94e904c0186b061a02404fb2c0d22e
+  - name: v1.0.0-rc.1
+    ref:  88316da979d68df968d0fcd0f37483f034c22a81
+  - name: v1.0.0-beta.3
+    ref:  5fcb134f55b9a1a963c13cf42ad19367f71c16d2
+  - name: v1.0.0-beta.2
+    ref:  b01480252b7dfe6fbc5e1f05fc9fd745784d7730
+  - name: v1.0.0-beta.1
+    ref:  b71d503f7b75f431e747b9f1bd06dc165ee83ff6
