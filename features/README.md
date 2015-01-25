@@ -1,6 +1,6 @@
-# Usage
+## Usage
 
-## Connecting and Discovering Nodes
+### Connecting and Discovering Nodes
 
 Ruby driver will connect to 127.0.0.1 if no `:hosts` given to [`Cassandra.cluster`](http://datastax.github.io/ruby-driver/api/#cluster-class_method). It will automatically discover all peers and add them to cluster metadata.
 
@@ -18,7 +18,7 @@ You can also specify a list of seed nodes to connect to. The set of IP addresses
 
 [Read more in the api docs](http://datastax.github.io/ruby-driver/api/#cluster-class_method)
 
-## Executing Queries
+### Executing Queries
 
 You run CQL statements by passing them to `Session#execute`.
 
@@ -35,7 +35,7 @@ For queries that will be run repeatedly, [you should use Prepared statements](#p
 
 [Read more in the api docs](http://datastax.github.io/ruby-driver/api/session/#execute-instance_method)
 
-## Parameterized queries
+### Parameterized queries
 
 **If you're using Cassandra 2.0 or later** you no longer have to build CQL strings when you want to insert a value in a query, there's a new feature that lets you bind values with regular statements:
 
@@ -49,7 +49,7 @@ If you find yourself doing this often, it's better to use prepared statements. A
 
 Also note that some parameterized queries will not work unless prepared, for example, queries with `LIMIT ?` clause.
 
-## Executing Statements in Parallel
+### Executing Statements in Parallel
 
 With fully asynchronous api, it is very easy to run queries in parallel:
 
@@ -70,7 +70,7 @@ futures.each(&:join)
 
 [Read more about futures](http://datastax.github.io/ruby-driver/api/future/)
 
-## Prepared Statements
+### Prepared Statements
 
 The driver supports prepared statements. Use `#prepare` to create a statement object, and then call `#execute` on that object to run a statement. You must supply values for all bound parameters when you call `#execute`.
 
@@ -88,7 +88,7 @@ A prepared statement can be run many times, but the CQL parsing will only be don
 
 For each query, statements are prepared lazily - each call to `#execute` selects a host to try (according to [a load balancing policy](http://datastax.github.io/ruby-driver/features/load_balancing/)) and a statement is prepared if needed.
 
-## Changing keyspaces
+### Changing keyspaces
 
 You can specify a keyspace to change to immediately after connection by passing the keyspace option to [`Cql::Cluster#connect`](http://datastax.github.io/ruby-driver/api/cluster/#connect-instance_method), you can also use the [`Session#execute`](http://datastax.github.io/ruby-driver/api/session/#execute-instance_method) method to change keyspace of an existing session:
 
@@ -96,7 +96,7 @@ You can specify a keyspace to change to immediately after connection by passing 
 session.execute('USE measurements')
 ```
 
-## Creating keyspaces and tables
+### Creating keyspaces and tables
 
 There is no special facility for creating keyspaces and tables, they are created by executing CQL:
 
@@ -125,7 +125,7 @@ session.execute(table_definition)
 
 You can also `ALTER` keyspaces and tables, and you can read more about that in the [CQL3 syntax documentation][1].
 
-## Batching
+### Batching
 
 If you're using Cassandra 2.0 or later you can build batch requests, either from simple or prepared statements. Batches must not contain any select statements, only `INSERT`, `UPDATE` and `DELETE` statements are allowed.
 
@@ -184,7 +184,7 @@ session.execute(batch)
 
 Cassandra 1.2 also supported batching, but only as a CQL feature, you had to build the batch as a string, and it didn't really play well with prepared statements.
 
-## Paging
+### Paging
 
 If you're using Cassandra 2.0 or later you can page your query results by adding the `:page_size` option to a query:
 
@@ -201,7 +201,7 @@ end
 
 [Read more about paging](http://datastax.github.io/ruby-driver/api/result/#next_page-instance_method)
 
-## Consistency
+### Consistency
 
 You can specify the default consistency to use when you create a new `Cluster`:
 
@@ -232,7 +232,7 @@ The default consistency level unless you've set it yourself is `:quorum`.
 
 Consistency is ignored for `USE`, `TRUNCATE`, `CREATE` and `ALTER` statements, and some (like `:any`) aren't allowed in all situations.
 
-## Compression
+### Compression
 
 The CQL protocol supports frame compression, which can give you a performance boost if your requests or responses are big. To enable it you can specify compression to use in [`Cassandra.cluster`](http://datastax.github.io/ruby-driver/api/#cluster-class_method).
 
@@ -250,7 +250,7 @@ cluster = Cassandra.cluster(compression: :lz4)
 
 Which one should you choose? On paper the LZ4 algorithm is more efficient and the one Cassandra defaults to for SSTable compression. They both achieve roughly the same compression ratio, but LZ4 does it quicker.
 
-## Logging
+### Logging
 
 You can pass a standard Ruby logger to the client to get some more information about what is going on:
 
@@ -262,7 +262,7 @@ cluster = Cassandra.cluster(logger: Logger.new($stderr))
 
 Most of the logging will be when the driver connects and discovers new nodes, when connections fail and so on. The logging is designed to not cause much overhead and only relatively rare events are logged (e.g. normal requests are not logged).
 
-# Architecture
+## Architecture
 
 The diagram below represents a high level architecture of the driver. Each arrow represents direction of ownership, where owner is pointed to by its children. For example, a single [Cassandra::Cluster](http://datastax.github.io/ruby-driver/api/cluster) instance can manage multiple [Cassandra::Session](http://datastax.github.io/ruby-driver/api/session) instances, etc.
 
@@ -295,13 +295,13 @@ The diagram below represents a high level architecture of the driver. Each arrow
                                       +---------------------------------------+
 ```
 
-## Thread safety
+### Thread safety
 
 Except for results everything in the driver is thread safe. You only need a single cluster object in your application and usually a single session.
 
 Result objects are wrappers around an array of rows and their primary use case is iteration, something that makes little sense to do concurrently. Because of this they've been designed to not be thread safe to avoid the unnecessary cost of locking.
 
-## Cluster
+### Cluster
 
 A Cluster instance allows to configure different important aspects of the way connections and queries will be handled. At this level you can configure everything from contact points (address of the nodes to be contacted initially before the driver performs node discovery), the request routing policy, retry and reconnection policies, and so forth. Generally such settings are set once at the application level.
 
@@ -314,26 +314,26 @@ cluster = Cassandra.cluster(
           )
 ```
 
-## Session
+### Session
 
 Sessions are used for query execution. Internally a Session manages connection pools as well as tracks current keyspace. A session should be reused as much as possible, however it is ok to create several independent session for interacting with different keyspaces in the same application.
 
 
-## CQL3
+### CQL3
 
 Ruby driver doesn't parse or understand CQL3, it uses [cassandra native protocol][3] to send requests to cassandra and translates responses.
 
 Read more about CQL3 in the [CQL3 syntax documentation][1] and the [Cassandra query documentation][2].
 
-# Troubleshooting
+## Troubleshooting
 
-## I get "connection refused" errors
+### I get "connection refused" errors
 
 Make sure that the native transport protocol is enabled. If you're running Cassandra 1.2.5 or later the native transport protocol is enabled by default, if you're running an earlier version (but later than 1.2) you must enable it by editing `cassandra.yaml` and setting `start_native_transport` to `true`.
 
 To verify that the native transport protocol is enabled, search your logs for the message "Starting listening for CQL clients" and look at which IP and port it is binding to.
 
-## I get "Deadlock detected" errors
+### I get "Deadlock detected" errors
 
 This means that the driver's IO reactor has crashed hard. Most of the time it means that you're using a framework, server or runtime that forks and you call `Client.connect` in the parent process. Check the documentation and see if there's any way you can register to run some piece of code in the child process just after a fork, and connect there.
 
@@ -367,45 +367,45 @@ Since prepared statements are tied to a particular connection, you'll need to re
 
 If your process does not fork and you still encounter deadlock errors, it might also be a bug. All IO is done is a dedicated thread, and if something happens that makes that thread shut down, Ruby will detect that the locks that the client code is waiting on can't be unlocked.
 
-## I get `QueryError`
+### I get `QueryError`
 
 All errors that originate on the server side are raised as `QueryError`. If you get one of these the error is in your CQL or on the server side.
 
-## I'm not getting all elements back from my list/set/map
+### I'm not getting all elements back from my list/set/map
 
 There's a known issue with collections that get too big. The protocol uses a short for the size of collections, but there is no way for Cassandra to stop you from creating a collection bigger than 65536 elements, so when you do the size field overflows with strange results. The data is there, you just can't get it back.
 
-## Authentication doesn't work
+### Authentication doesn't work
 
 If you're using Cassandra 2.0 or DataStax Enterprise 3.1 or higher and/or are using something other than the built in [`Password` authenticator](http://datastax.github.io/ruby-driver/api/auth/providers/password/) your setup is supported.
 
 DSE before 3.1 uses a non-standard protocol and is not currently supported.
 
-## I get "end of file reached" / I'm connecting to port 9160 and it doesn't work
+### I get "end of file reached" / I'm connecting to port 9160 and it doesn't work
 
 Port 9160 is the old Thrift interface, the binary protocol runs on 9042. This is also the default port for ruby-driver, so unless you've changed the port in `cassandra.yaml`, don't override the port.
 
-## Something else is not working
+### Something else is not working
 
 Open an issue and someone will try to help you out. Please include the gem version, Casandra version and Ruby version, and explain as much about what you're doing as you can, preferably the smallest piece of code that reliably triggers the problem. The more information you give, the better the chances you will get help.
 
-# Performance tips
+## Performance tips
 
-## Use asynchronous apis
+### Use asynchronous apis
 
 To get maximum performance you can't wait for a request to complete before sending the next. Use `_async` method to run multiple requests in parallel
 
-## Use prepared statements
+### Use prepared statements
 
 When you use prepared statements you don't have to smash strings together to create a chunk of CQL to send to the server. Avoiding creating many and large strings in Ruby can be a performance gain in itself. Not sending the query every time, but only the actual data also decreases the traffic over the network, and it decreases the time it takes for the server to handle the request since it doesn't have to parse CQL. Prepared statements are also very convenient, so there is really no reason not to use them.
 
-## Use JRuby
+### Use JRuby
 
 If you want to be serious about Ruby performance you have to use JRuby. The ruby driver is completely thread safe, and the CQL protocol is pipelined by design so you can spin up as many threads as you like and your requests per second will scale more or less linearly (up to what your cores, network and Cassandra cluster can deliver, obviously).
 
 Applications using ruby driver and JRuby can do over 10,000 write requests per second from a single EC2 m1.large if tuned correctly.
 
-## Try batching
+### Try batching
 
 Batching in Cassandra isn't always as good as in other (non-distributed) databases. Since rows are distributed accross the cluster the coordinator node must still send the individual pieces of a batch to other nodes, and you could have done that yourself instead.
 
@@ -415,7 +415,7 @@ Cassandra 2.0 introduced a new form of batches where you can send a batch of pre
 
 Whenever you use batching, try compression too.
 
-## Try compression
+### Try compression
 
 If your requests or responses are big, compression can help decrease the amound of traffic over the network, which is often a good thing. If your requests and responses are small, compression often doesn't do anything. You should benchmark and see what works for you. The Snappy compressor that comes with ruby driver uses very little CPU, so most of the time it doesn't hurt to leave it on.
 
