@@ -45,7 +45,8 @@ module Cassandra
           "org.apache.cassandra.db.marshal.MapType"           => :map,
           "org.apache.cassandra.db.marshal.SetType"           => :set,
           "org.apache.cassandra.db.marshal.ListType"          => :list,
-          "org.apache.cassandra.db.marshal.UserType"          => :udt
+          "org.apache.cassandra.db.marshal.UserType"          => :udt,
+          "org.apache.cassandra.db.marshal.TupleType"         => :tuple
         }.freeze
 
         def parse(string)
@@ -117,6 +118,10 @@ module Cassandra
             end
 
             [:udt, keyspace, name, fields]
+          when :tuple
+            fields = node.children.map(&method(:lookup_type))
+
+            [:tuple, fields]
           else
             type
           end

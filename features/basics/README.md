@@ -68,8 +68,11 @@
       <td><code>timeuuid</code></td>
     </tr>
     <tr>
-      <td><code>Array</code></td>
+      <td rowspan="2"><code>Array</code></td>
       <td><code>list</code></td>
+    </tr>
+    <tr>
+      <td><code>tuple</code></td>
     </tr>
     <tr>
       <td><code>Set</code></td>

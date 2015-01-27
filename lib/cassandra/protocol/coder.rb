@@ -201,9 +201,9 @@ module Cassandra
 
             members = type[1]
 
-            Tuple.new(members.map do |member_type|
+            members.map do |member_type|
               read_value_v3(buffer, member_type)
-            end)
+            end
           when :custom
             buffer.read_bytes
           else
