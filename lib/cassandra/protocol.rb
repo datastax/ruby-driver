@@ -28,9 +28,6 @@ module Cassandra
 
       BYTES_FORMAT = 'C*'.freeze
       TWO_INTS_FORMAT = 'NN'.freeze
-
-      HEADER_FORMAT_V1 = 'c4N'.freeze
-      HEADER_FORMAT_V3 = 'c2ncN'.freeze
     end
 
     module Constants
