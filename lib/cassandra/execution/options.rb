@@ -76,6 +76,7 @@ module Cassandra
         unless paging_state.nil?
           paging_state = String(paging_state)
           Util.assert_not_empty(paging_state) { ":paging_state must not be empty" }
+          Util.assert(!page_size.nil?) { ":page_size is required when :paging_state is given" }
         end
 
         if arguments.nil?
