@@ -82,7 +82,7 @@ module Cassandra
         if arguments.nil?
           arguments = EMPTY_LIST
         else
-          Util.assert_instance_of(::Array, arguments) { ":arguments must be an Array, #{arguments.inspect} given" }
+          Util.assert_instance_of_one_of([::Array, ::Hash], arguments) { ":arguments must be an Array or a Hash, #{arguments.inspect} given" }
         end
 
         @consistency        = consistency

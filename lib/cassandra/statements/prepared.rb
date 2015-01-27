@@ -44,19 +44,31 @@ module Cassandra
 
       # Creates a statement bound with specific arguments
       #
-      # @param args [Array] positional arguments to bind, must contain the same
-      #   number of parameters as the number of positional (`?`) markers in the
-      #   original CQL passed to {Cassandra::Session#prepare}
+      # @param args [Array, Hash] positional or named arguments to bind, must
+      #   contain the same number of parameters as the number of positional
+      #   (`?`) or named (`:name`) markers in the original CQL passed to
+      #   {Cassandra::Session#prepare}
       #
       # @return [Cassandra::Statements::Bound] bound statement
       def bind(args = nil)
         if args
-          Util.assert_instance_of(::Array, args) { "args must be an Array, #{args.inspect} given" }
+          Util.assert_instance_of_one_of([::Array, ::Hash], args) { "args must be an Array or a Hash, #{args.inspect} given" }
         else
           args = EMPTY_LIST
         end
 
-        Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{@params_metadata.size} bind parameters, #{args.size} given" }
+        if args.is_a?(Hash)
+          args = @params_metadata.map do |(_, _, name, type)|
+            unless args.has_key?(name)
+              name = name.to_sym
+              raise ::ArgumentError, "argument :#{name} must be present in #{args.inspect}, but isn't" unless args.has_key?(name)
+            end
+
+            args[name]
+          end
+        else
+          Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{@params_metadata.size} bind parameters, #{args.size} given" }
+        end
 
         params_types = @params_metadata.each_with_index.map do |(_, _, name, type), i|
           Util.assert_type(type, args[i]) { "argument for #{name.inspect} must be #{Util.type_to_cql(type).inspect}, #{args[i]} given" }

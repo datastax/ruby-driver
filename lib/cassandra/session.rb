@@ -55,14 +55,17 @@ module Cassandra
     # @option options [String] :paging_state (nil) this option is used for
     #   stateless paging, where result paging is resumed some time after the
     #   initial request.
-    # @option options [Array] :arguments (nil) positional arguments for the
-    #   statement.
+    # @option options [Array, Hash] :arguments (nil) positional or named
+    #   arguments for the statement.
     #
     # @see Cassandra.cluster Options that can be specified on the cluster-level
     #   and their default values.
     #
     # @note Positional arguments for simple statements are only supported on
     #   starting with Apache Cassandra 2.0 and above.
+    #
+    # @note Named arguments for simple statements are not supported, use
+    #   prepared statements instead.
     #
     # @return [Cassandra::Future<Cassandra::Result>]
     #
