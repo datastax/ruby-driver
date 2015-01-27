@@ -41,8 +41,15 @@ module Cassandra
         @connection.on_data(&method(:receive_data))
         @connection.on_closed(&method(:socket_closed))
         @promises = Array.new(128) { nil }
-        @frame_encoder = V1::Encoder.new(@compressor, protocol_version)
-        @frame_decoder = V1::Decoder.new(self, @compressor)
+
+        if protocol_version > 2
+          @frame_encoder = V3::Encoder.new(@compressor, protocol_version)
+          @frame_decoder = V3::Decoder.new(self, @compressor)
+        else
+          @frame_encoder = V1::Encoder.new(@compressor, protocol_version)
+          @frame_decoder = V1::Decoder.new(self, @compressor)
+        end
+
         @request_queue_in = []
         @request_queue_out = []
         @event_listeners = []

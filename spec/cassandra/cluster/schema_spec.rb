@@ -2136,15 +2136,15 @@ module Cassandra
 
           it 'correctly parses schema types' do
             table = subject.keyspace('simplex').table('songs')
-            expect(table.column('tags').type).to eq([:set, :text])
+            expect(table.column('tags').type).to eq([:set, :varchar])
             expect(table.to_cql).to eq(<<-CQL.chomp!)
 CREATE TABLE simplex.songs (
   id uuid,
-  album text,
-  artist text,
+  album varchar,
+  artist varchar,
   data blob,
-  tags set<text>,
-  title text,
+  tags set<varchar>,
+  title varchar,
   PRIMARY KEY (id)
 )
 WITH bloom_filter_fp_chance = 0.01

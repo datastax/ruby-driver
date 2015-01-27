@@ -139,7 +139,7 @@ module Cassandra
     attr_reader :options
 
     # @private
-    def initialize(keyspace, name, partition_key, clustering_columns, columns, options, clustering_order)
+    def initialize(keyspace, name, partition_key, clustering_columns, columns, options, clustering_order, release_version)
       @keyspace           = keyspace
       @name               = name
       @partition_key      = partition_key
@@ -147,6 +147,7 @@ module Cassandra
       @columns            = columns
       @options            = options
       @clustering_order   = clustering_order
+      @release_version    = release_version
     end
 
     # @param name [String] column name
@@ -261,7 +262,12 @@ module Cassandra
 
         buffer = Protocol::CqlByteBuffer.new
 
-        Protocol::Coder.write_value_v1(buffer, values[column_name], column.type)
+        if @release_version > '2.1'
+          Protocol::Coder.write_value_v3(buffer, values[column_name], column.type)
+        else
+          Protocol::Coder.write_value_v1(buffer, values[column_name], column.type)
+        end
+
         buffer.discard(4)
       else
         buf    = nil
@@ -274,7 +280,12 @@ module Cassandra
           buf    ||= Protocol::CqlByteBuffer.new
           buffer ||= Protocol::CqlByteBuffer.new
 
-          Protocol::Coder.write_value_v1(buf, values[column_name], column.type)
+          if @protocol_version > 2
+            Protocol::Coder.write_value_v3(buf, values[column_name], column.type)
+          else
+            Protocol::Coder.write_value_v1(buf, values[column_name], column.type)
+          end
+
           buf.discard(4) # discard size
 
           size = buf.length

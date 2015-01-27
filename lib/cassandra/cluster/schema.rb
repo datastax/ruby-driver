@@ -210,7 +210,7 @@ module Cassandra
         options = Table::Options.new(table, compaction_strategy, compression_parameters, is_compact, version)
         columns = create_columns(key_validator, comparator, column_aliases, is_dense, clustering_size, table, columns, version, partition_key, clustering_columns, clustering_order)
 
-        Table.new(keyspace, name, partition_key, clustering_columns, columns, options, clustering_order)
+        Table.new(keyspace, name, partition_key, clustering_columns, columns, options, clustering_order, version)
       end
 
       def find_clustering_size(comparator, columns, aliases, cassandra_version)

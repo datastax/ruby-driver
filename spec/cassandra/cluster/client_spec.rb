@@ -94,7 +94,8 @@ module Cassandra
                                        :heartbeat_interval => heartbeat_interval,
                                        :idle_timeout => idle_timeout,
                                        :logger => logger,
-                                       :port => port
+                                       :port => port,
+                                       :protocol_version => 2
                                     } }
           let(:heartbeat_interval)  { 30 }
           let(:idle_timeout)        { 60 }

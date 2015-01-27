@@ -36,7 +36,7 @@ module Cassandra
           "org.apache.cassandra.db.marshal.FloatType"         => :float,
           "org.apache.cassandra.db.marshal.InetAddressType"   => :inet,
           "org.apache.cassandra.db.marshal.Int32Type"         => :int,
-          "org.apache.cassandra.db.marshal.UTF8Type"          => :text,
+          "org.apache.cassandra.db.marshal.UTF8Type"          => :varchar,
           "org.apache.cassandra.db.marshal.TimestampType"     => :timestamp,
           "org.apache.cassandra.db.marshal.DateType"          => :timestamp,
           "org.apache.cassandra.db.marshal.UUIDType"          => :uuid,
