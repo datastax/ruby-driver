@@ -647,16 +647,16 @@ Control connection failed and is unlikely to recover.
 
         schema_changes.each do |change|
           keyspace = change.keyspace
-          table    = change.table
 
           next if refresh_keyspaces.has_key?(keyspace)
 
-          if table.empty?
+          case change.target
+          when Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
             refresh_tables.delete(keyspace)
             refresh_keyspaces[keyspace] = true
-          else
+          when Protocol::Constants::SCHEMA_CHANGE_TARGET_TABLE
             tables = refresh_tables[keyspace] ||= ::Hash.new
-            tables[table] = true
+            tables[change.table] = true
           end
         end
 

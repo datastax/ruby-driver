@@ -21,13 +21,28 @@ module Cassandra
     class SchemaChangeEventResponse < EventResponse
       TYPE = 'SCHEMA_CHANGE'.freeze
 
-      attr_reader :type, :change, :keyspace, :table
+      attr_reader :change, :keyspace, :table, :type_name, :target
 
-      def initialize(*args)
-        @change, @keyspace, @table = args
-        @type = TYPE
+      def initialize(change, keyspace, name, target = nil)
+        @change   = change
+        @keyspace = keyspace
+
+        if target
+          @target = target
+          @table = @type_name = name
+        else
+          if name.empty?
+            @target = Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
+          else
+            @target = Constants::SCHEMA_CHANGE_TARGET_TABLE
+            @table  = name
+          end
+        end
       end
 
+      def type
+        TYPE
+      end
 
       def eql?(rs)
         rs.type == self.type && rs.change == self.change && rs.keyspace == self.keyspace && rs.table == self.table
@@ -46,7 +61,7 @@ module Cassandra
       end
 
       def to_s
-        %(EVENT #@type #@change "#@keyspace" "#@table")
+        %(EVENT SCHEMA_CHANGE #@change #@target "#@keyspace" "#@table")
       end
 
       private

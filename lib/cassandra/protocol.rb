@@ -35,6 +35,10 @@ module Cassandra
       FALSE_BYTE = "\x00".freeze
       PROTOCOL_VERSION = "\x01".freeze
       COMPRESSION_OFF = "\x00".freeze
+
+      SCHEMA_CHANGE_TARGET_KEYSPACE = 'KEYSPACE'.freeze
+      SCHEMA_CHANGE_TARGET_TABLE    = 'TABLE'.freeze
+      SCHEMA_CHANGE_TARGET_UDT      = 'TYPE'.freeze
     end
   end
 end

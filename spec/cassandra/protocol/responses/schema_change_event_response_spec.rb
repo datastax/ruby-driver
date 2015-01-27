@@ -25,7 +25,7 @@ module Cassandra
       describe '#to_s' do
         it 'returns a string with the change, keyspace and table' do
           response = described_class.new('DROPPED', 'ks', 'tbl')
-          response.to_s.should == 'EVENT SCHEMA_CHANGE DROPPED "ks" "tbl"'
+          response.to_s.should == 'EVENT SCHEMA_CHANGE DROPPED TABLE "ks" "tbl"'
         end
       end
 

@@ -219,7 +219,7 @@ module Cassandra
         if response.is_a?(Protocol::SetKeyspaceResultResponse)
           @keyspace = response.keyspace
         end
-        if response.is_a?(Protocol::SchemaChangeResultResponse) && response.change == 'DROPPED' && response.keyspace == @keyspace && response.table.empty?
+        if response.is_a?(Protocol::SchemaChangeResultResponse) && response.change == 'DROPPED' && response.keyspace == @keyspace && response.target == Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
           @keyspace = nil
         end
         flush_request_queue

@@ -19,15 +19,25 @@
 module Cassandra
   module Protocol
     class SchemaChangeResultResponse < ResultResponse
-      attr_reader :change, :keyspace, :table
+      attr_reader :change, :keyspace, :table, :type_name, :target
 
-      def initialize(change, keyspace, table, trace_id)
+      def initialize(change, keyspace, name, trace_id, target = nil)
         super(trace_id)
-        @change, @keyspace, @table = change, keyspace, table
-      end
 
-      def self.decode(protocol_version, buffer, length, trace_id=nil)
-        new(buffer.read_string, buffer.read_string, buffer.read_string, trace_id)
+        @change   = change
+        @keyspace = keyspace
+
+        if target
+          @target = target
+          @table = @type_name = name
+        else
+          if name.empty?
+            @target = Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
+          else
+            @target = Constants::SCHEMA_CHANGE_TARGET_TABLE
+            @table  = name
+          end
+        end
       end
 
       def eql?(other)
@@ -46,7 +56,7 @@ module Cassandra
       end
 
       def to_s
-        %(RESULT SCHEMA_CHANGE #@change "#@keyspace" "#@table")
+        %(RESULT SCHEMA_CHANGE #@change #@target "#@keyspace" "#@table")
       end
 
       private
