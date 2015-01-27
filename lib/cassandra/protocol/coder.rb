@@ -23,6 +23,251 @@ module Cassandra
       HAS_MORE_PAGES_FLAG     = 0x02
       NO_METADATA_FLAG        = 0x04
 
+      def write_values_v3(buffer, values, types)
+        if values && values.size > 0
+          buffer.append_short(values.size)
+          values.each_with_index do |value, index|
+            write_value_v3(buffer, value, types[index])
+          end
+          buffer
+        else
+          buffer.append_short(0)
+        end
+      end
+
+      def write_value_v3(buffer, value, type)
+        case type
+        when :ascii            then write_ascii(buffer, value)
+        when :bigint, :counter then write_bigint(buffer, value)
+        when :blob             then write_blob(buffer, value)
+        when :boolean          then write_boolean(buffer, value)
+        when :decimal          then write_decimal(buffer, value)
+        when :double           then write_double(buffer, value)
+        when :float            then write_float(buffer, value)
+        when :int              then write_int(buffer, value)
+        when :inet             then write_inet(buffer, value)
+        when :timestamp        then write_timestamp(buffer, value)
+        when :uuid, :timeuuid  then write_uuid(buffer, value)
+        when :varchar          then write_varchar(buffer, value)
+        when :varint           then write_varint(buffer, value)
+        when ::Array
+          case type.first
+          when :list, :set
+            if value
+              raw        = CqlByteBuffer.new
+              value_type = type[1]
+
+              raw.append_int(value.size)
+              value.each do |element|
+                write_value_v3(raw, element, value_type)
+              end
+
+              buffer.append_bytes(raw)
+            else
+              buffer.append_int(-1)
+            end
+          when :map
+            if value
+              raw        = CqlByteBuffer.new
+              key_type   = type[1]
+              value_type = type[2]
+
+              raw.append_int(value.size)
+              value.each do |key, value|
+                write_value_v3(raw, key, key_type)
+                write_value_v3(raw, value, value_type)
+              end
+
+              buffer.append_bytes(raw)
+            else
+              buffer.append_int(-1)
+            end
+          when :udt
+            if value
+              raw    = CqlByteBuffer.new
+              fields = type[3]
+
+              fields.each do |(field_name, field_type)|
+                write_value_v3(raw, value.send(field_name), field_type)
+              end
+
+              buffer.append_bytes(raw)
+            else
+              buffer.append_int(-1)
+            end
+          when :tuple
+            if value
+              raw     = CqlByteBuffer.new
+              members = type[1]
+
+              members.each_with_index do |member_type, i|
+                write_value_v3(raw, value[i], member_type)
+              end
+
+              buffer.append_bytes(raw)
+            else
+              buffer.append_int(-1)
+            end
+          when :custom
+            if value
+              buffer.append_bytes(value)
+            else
+              buffer.append_int(-1)
+            end
+          else
+            raise Errors::EncodingError, %(Unsupported complex value type: #{type})
+          end
+        else
+          raise Errors::EncodingError, %(Unsupported value type: #{type})
+        end
+      end
+
+      def read_values_v3(buffer, column_metadata)
+        ::Array.new(buffer.read_int) do |i|
+          row = ::Hash.new
+
+          column_metadata.each do |(_, _, column, type)|
+            row[column] = read_value_v3(buffer, type)
+          end
+
+          row
+        end
+      end
+
+      def read_value_v3(buffer, type)
+        case type
+        when :ascii            then read_ascii(buffer)
+        when :bigint, :counter then read_bigint(buffer)
+        when :blob             then buffer.read_bytes
+        when :boolean          then read_boolean(buffer)
+        when :decimal          then read_decimal(buffer)
+        when :double           then read_double(buffer)
+        when :float            then read_float(buffer)
+        when :int              then read_int(buffer)
+        when :timestamp        then read_timestamp(buffer)
+        when :uuid             then read_uuid(buffer)
+        when :timeuuid         then read_uuid(buffer, TimeUuid)
+        when :varchar          then read_varchar(buffer)
+        when :varint           then read_varint(buffer)
+        when :inet             then read_inet(buffer)
+        when ::Array
+          case type.first
+          when :list
+            return nil unless read_size(buffer)
+
+            value_type = type[1]
+            ::Array.new(buffer.read_signed_int) { read_value_v3(buffer, value_type) }
+          when :map
+            return nil unless read_size(buffer)
+
+            key_type   = type[1]
+            value_type = type[2]
+
+            value = ::Hash.new
+
+            buffer.read_signed_int.times do
+              value[read_value_v3(buffer, key_type)] = read_value_v3(buffer, value_type)
+            end
+
+            value
+          when :set
+            return nil unless read_size(buffer)
+
+            value_type = type[1]
+
+            value = ::Set.new
+
+            buffer.read_signed_int.times do
+              value << read_value_v3(buffer, value_type)
+            end
+
+            value
+          when :udt
+            return nil unless read_size(buffer)
+
+            keyspace = type[1]
+            name     = type[2]
+            fields   = type[3]
+
+            values = ::Hash.new
+
+            fields.each do |(field_name, field_type)|
+              values[field_name] = read_value_v3(buffer, field_type)
+            end
+
+            UserValue.new(keyspace, name, values)
+          when :tuple
+            return nil unless read_size(buffer)
+
+            members = type[1]
+
+            Tuple.new(members.map do |member_type|
+              read_value_v3(buffer, member_type)
+            end)
+          when :custom
+            buffer.read_bytes
+          else
+            raise Errors::DecodingError, %(Unsupported complex value type: #{type})
+          end
+        else
+          raise Errors::DecodingError, %(Unsupported value type: #{type})
+        end
+      end
+
+      def read_metadata_v3(buffer)
+        flags = buffer.read_int
+        count = buffer.read_int
+
+        paging_state = nil
+        paging_state = buffer.read_bytes if flags & HAS_MORE_PAGES_FLAG != 0
+        column_specs = nil
+
+        if flags & NO_METADATA_FLAG == 0
+          if flags & GLOBAL_TABLES_SPEC_FLAG != 0
+            keyspace_name = buffer.read_string
+            table_name    = buffer.read_string
+
+            column_specs = ::Array.new(count) do |i|
+              [keyspace_name, table_name, buffer.read_string, read_type_v3(buffer)]
+            end
+          else
+            column_specs = ::Array.new(count) do |i|
+              [buffer.read_string, buffer.read_string, buffer.read_string, read_type_v3(buffer)]
+            end
+          end
+        end
+
+        [column_specs, paging_state]
+      end
+
+      def read_type_v3(buffer)
+        case buffer.read_unsigned_short
+        when 0x0000 then [:custom, buffer.read_string]
+        when 0x0001 then :ascii
+        when 0x0002 then :bigint
+        when 0x0003 then :blob
+        when 0x0004 then :boolean
+        when 0x0005 then :counter
+        when 0x0006 then :decimal
+        when 0x0007 then :double
+        when 0x0008 then :float
+        when 0x0009 then :int
+        when 0x000B then :timestamp
+        when 0x000C then :uuid
+        when 0x000D then :varchar
+        when 0x000E then :varint
+        when 0x000F then :timeuuid
+        when 0x0010 then :inet
+        when 0x0020 then [:list, read_type_v3(buffer)]
+        when 0x0021 then [:map, read_type_v3(buffer), read_type_v3(buffer)]
+        when 0x0022 then [:set, read_type_v3(buffer)]
+        when 0x0030 then [:udt, *read_user_defined_type(buffer)]
+        when 0x0031 then [:tuple, read_tuple(buffer)]
+        else
+          raise Errors::DecodingError, %(Unsupported column type: #{id})
+        end
+      end
+
       def write_values_v1(buffer, values, types)
         if values && values.size > 0
           buffer.append_short(values.size)
@@ -208,7 +453,7 @@ module Cassandra
         when 0x0020 then [:list, read_type_v1(buffer)]
         when 0x0021 then [:map, read_type_v1(buffer), read_type_v1(buffer)]
         when 0x0022 then [:set, read_type_v1(buffer)]
-        else 
+        else
           raise Errors::DecodingError, %(Unsupported column type: #{id})
         end
       end
@@ -503,6 +748,18 @@ module Cassandra
         return nil if (size & 0x80000000 == 0x80000000) || (size == 0)
 
         size
+      end
+
+      def read_tuple(buffer)
+        ::Array.new(buffer.read_short) { read_type_v3(buffer) }
+      end
+
+      def read_user_defined_type(buffer)
+        keyspace = buffer.read_string
+        name     = buffer.read_string
+        fields   = ::Array.new(buffer.read_short) { [buffer.read_string, read_type_v3(buffer)] }
+
+        [keyspace, name, fields]
       end
     end
   end

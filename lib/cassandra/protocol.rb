@@ -28,6 +28,9 @@ module Cassandra
 
       BYTES_FORMAT = 'C*'.freeze
       TWO_INTS_FORMAT = 'NN'.freeze
+
+      HEADER_FORMAT_V1 = 'c4N'.freeze
+      HEADER_FORMAT_V3 = 'c2ncN'.freeze
     end
 
     module Constants
@@ -80,4 +83,5 @@ require 'cassandra/protocol/requests/prepare_request'
 require 'cassandra/protocol/requests/execute_request'
 require 'cassandra/protocol/cql_protocol_handler'
 require 'cassandra/protocol/v1'
+require 'cassandra/protocol/v3'
 require 'cassandra/protocol/coder'
