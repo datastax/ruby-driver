@@ -33,7 +33,6 @@ module Cassandra
       @futures = futures_factory
     end
 
-    # @!method execute_async(statement, options = nil)
     # Executes a given statement and returns a future result
     #
     # @param statement [String, Cassandra::Statements::Simple,
@@ -59,27 +58,6 @@ module Cassandra
     # @option options [Array] :arguments (nil) positional arguments for the
     #   statement.
     #
-    # @overload execute_async(statement, *args, options = nil)
-    #   Executes a statement using the deprecated splat-style way of passing
-    #   positional arguments/
-    #
-    #   @deprecated This style will soon be removed, use the `:arguments`
-    #     option to provide positional arguments instead.
-    #
-    #   @param statement [String, Cassandra::Statements::Simple,
-    #     Cassandra::Statements::Bound, Cassandra::Statements::Prepared]
-    #     statement to execute
-    #
-    #   @param args [*Object] **this style of positional arguments is
-    #     deprecated, please use the `:arguments` options instead** -
-    #     positional arguments to paramterized query or prepared statement.
-    #
-    #   @param options [nil, Hash] a customizable set of options
-    #
-    #   @note Last argument will be treated as `options` if it is a {Hash}.
-    #     Therefore, make sure to pass empty `options` when executing a
-    #     statement with the last parameter required to be a map datatype.
-    #
     # @see Cassandra.cluster Options that can be specified on the cluster-level
     #   and their default values.
     #
@@ -90,19 +68,7 @@ module Cassandra
     #
     # @see Cassandra::Session#execute A list of errors this future can be
     #   resolved with
-    def execute_async(statement, *args)
-      options = nil
-      options = args.pop if args.last.is_a?(::Hash)
-
-      unless args.empty?
-        ::Kernel.warn "[WARNING] Splat style (*args) positional arguments " \
-                      "are deprecated, use the :arguments option instead, " \
-                      "called from #{caller.first}"
-
-        options ||= {}
-        options[:arguments] = args
-      end
-
+    def execute_async(statement, options = nil)
       if options
         options = @options.override(options)
       else
@@ -136,27 +102,6 @@ module Cassandra
     #
     # @param options [nil, Hash] a customizable set of options
     #
-    # @overload execute(statement, *args, options = nil)
-    #   Executes a statement using the deprecated splat-style way of passing
-    #   positional arguments/
-    #
-    #   @deprecated This style will soon be removed, use the `:arguments`
-    #     option to provide positional arguments instead.
-    #
-    #   @param statement [String, Cassandra::Statements::Simple,
-    #     Cassandra::Statements::Bound, Cassandra::Statements::Prepared]
-    #     statement to execute
-    #
-    #   @param args [*Object] **this style of positional arguments is
-    #     deprecated, please use the `:arguments` options instead** -
-    #     positional arguments to paramterized query or prepared statement.
-    #
-    #   @param options [nil, Hash] a customizable set of options
-    #
-    #   @note Last argument will be treated as `options` if it is a {Hash}.
-    #     Therefore, make sure to pass empty `options` when executing a
-    #     statement with the last parameter required to be a map datatype.
-    #
     # @see Cassandra::Session#execute_async
     # @see Cassandra::Future#get
     #
@@ -166,24 +111,8 @@ module Cassandra
     # @raise [Cassandra::Errors::ValidationError] if Cassandra fails to validate
     # @raise [Cassandra::Errors::TimeoutError] if request has not completed
     #   within the `:timeout` given
-    def execute(statement, *args)
-      options = nil
-      options = args.pop if args.last.is_a?(::Hash)
-
-      unless args.empty?
-        ::Kernel.warn "[WARNING] Splat style (*args) positional arguments " \
-                      "are deprecated, use the :arguments option instead, " \
-                      "called from #{caller.first}"
-
-        options ||= {}
-        options[:arguments] = args
-      end
-
-      if options
-        execute_async(statement, options).get
-      else
-        execute_async(statement).get
-      end
+    def execute(statement, options = nil)
+      execute_async(statement, options).get
     end
 
     # Prepares a given statement and returns a future prepared statement

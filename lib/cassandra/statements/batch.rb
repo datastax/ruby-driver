@@ -55,7 +55,6 @@ module Cassandra
         @statements = []
       end
 
-      # @!method add(statement, args)
       # Adds a statement to this batch.
       #
       # @param statement [String, Cassandra::Statements::Simple,
@@ -65,28 +64,12 @@ module Cassandra
       #   the same number of parameters as the number of positional (`?`)
       #   markers in the original CQL passed to {Cassandra::Session#prepare}
       #
-      # @overload add(statement, *args)
-      #   Adds a statement to this batch using the deprecated splat-style way of
-      #   passing positional arguments
-      #
-      #   @deprecated Please pass a single {Array} of positional arguments, the
-      #     `*args` style is deprecated.
-      #
-      #   @param statement [String, Cassandra::Statements::Simple,
-      #     Cassandra::Statements::Prepared, Cassandra::Statements::Bound]
-      #     statement to add.
-      #   @param args [*Object] **this style of positional arguments is
-      #     deprecated, please pass a single {Array} instead** - arguments to
-      #     paramterized query or prepared statement
-      #
       # @return [self]
-      def add(statement, *args)
-        if args.one? && args.first.is_a?(::Array)
-          args = args.first
-        elsif !args.empty?
-          ::Kernel.warn "[WARNING] Splat style (*args) positional arguments " \
-                        "are deprecated, pass an Array instead - called " \
-                        "from #{caller.first}"
+      def add(statement, args = nil)
+        if args
+          Util.assert_instance_of(::Array, args) { "args must be an Array, #{args.inspect} given" }
+        else
+          args = EMPTY_LIST
         end
 
         case statement

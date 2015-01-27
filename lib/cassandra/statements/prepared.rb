@@ -42,39 +42,18 @@ module Cassandra
         @schema          = schema
       end
 
-      # @!method bind(args)
       # Creates a statement bound with specific arguments
       #
       # @param args [Array] positional arguments to bind, must contain the same
       #   number of parameters as the number of positional (`?`) markers in the
       #   original CQL passed to {Cassandra::Session#prepare}
       #
-      # @note Positional arguments are only supported on Apache Cassandra 2.1
-      #   and above.
-      #
-      # @overload bind(*args)
-      #   Creates a statement bound with specific arguments using the
-      #   deprecated splat-style way of passing positional arguments.
-      #
-      #   @deprecated Please pass a single {Array} of positional arguments, the
-      #     `*args` style is deprecated.
-      #
-      #   @param args [*Object] **this style of positional arguments is
-      #     deprecated, please pass a single {Array} instead** - positional
-      #     arguments to bind, must contain the same number of parameters as
-      #     the number of positional argument markers (`?`) in the CQL passed
-      #     to {Cassandra::Session#prepare}.
-      #
       # @return [Cassandra::Statements::Bound] bound statement
-      def bind(*args)
-        if args.one? && args.first.is_a?(::Array)
-          args = args.first
+      def bind(args = nil)
+        if args
+          Util.assert_instance_of(::Array, args) { "args must be an Array, #{args.inspect} given" }
         else
-          unless args.empty?
-            ::Kernel.warn "[WARNING] Splat style (*args) positional " \
-                          "arguments are deprecated, pass an Array instead " \
-                          "- called from #{caller.first}"
-          end
+          args = EMPTY_LIST
         end
 
         Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{@params_metadata.size} bind parameters, #{args.size} given" }

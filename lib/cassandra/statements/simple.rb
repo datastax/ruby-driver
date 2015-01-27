@@ -29,38 +29,20 @@ module Cassandra
       # @private
       attr_reader :params_types
 
-      # @!method initialize(cql, params)
       # @param cql [String] a cql statement
       # @param params [Array] positional arguments for the query
       #
-      # @note Positional arguments for simple statements are only supported on
+      # @note Positional arguments for simple statements are only supported
       #   starting with Apache Cassandra 2.0 and above.
       #
-      # @overload initialize(cql, *params)
-      #   Uses the deprecated splat-style way of passing positional arguments.
-      #
-      #   @deprecated Please pass a single {Array} of positional arguments, the
-      #     `*params` style is deprecated.
-      #
-      #   @param cql [String] a cql statement
-      #   @param params [*Object] **this style of positional arguments is
-      #     deprecated, please pass a single {Array} instead** - positional
-      #     arguments for the query
-      #
       # @raise [ArgumentError] if cql statement given is not a String
-      def initialize(cql, *params)
-        unless cql.is_a?(::String)
-          raise ::ArgumentError, "cql must be a string, #{cql.inspect} given"
-        end
+      def initialize(cql, params)
+        Util.assert_instance_of(::String, cql) { "cql must be a string, #{cql.inspect} given" }
 
-        if params.one? && params.first.is_a?(::Array)
-          params = params.first
+        if params
+          Util.assert_instance_of(::Array, params) { "params must be an Array, #{params.inspect} given" }
         else
-          unless params.empty?
-            ::Kernel.warn "[WARNING] Splat style (*params) positional " \
-                          "arguments are deprecated, pass an Array instead " \
-                          "- called from #{caller.first}"
-          end
+          params = EMPTY_LIST
         end
 
         params_types = params.map {|value| guess_type(value)}
