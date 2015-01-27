@@ -510,6 +510,7 @@ end
 
 require 'cassandra/uuid'
 require 'cassandra/time_uuid'
+require 'cassandra/user_value'
 
 require 'cassandra/errors'
 require 'cassandra/compression'
