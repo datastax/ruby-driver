@@ -82,5 +82,9 @@
       <td><code>Hash</code></td>
       <td><code>map</code></td>
     </tr>
+    <tr>
+      <td><code><a href="http://datastax.github.io/ruby-driver/api/user_value/">Cassandra::UserValue</a></code></td>
+      <td><code>UDT</code> (user-defined type)</td>
+    </tr>
   </tbody>
 </table>
