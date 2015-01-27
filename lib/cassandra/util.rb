@@ -190,7 +190,8 @@ module Cassandra
           end
         when :tuple
           assert_instance_of(::Array, value, message, &block)
-          values.zip(type[1]) do |(v, t)|
+          assert_size(type[1].size, value, message, &block)
+          value.zip(type[1]) do |(v, t)|
             assert_type(t, v)
           end
         when :custom
@@ -280,6 +281,15 @@ module Cassandra
       unless range.include?(value)
         message   = yield if block_given?
         message ||= "value must be included in #{value.inspect}, #{value.inspect} given"
+
+        raise ::ArgumentError, message
+      end
+    end
+
+    def assert_size(size, value, message = nil, &block)
+      unless value.size == size
+        message   = yield if block_given?
+        message ||= "value #{value.inspect} must have size equal to #{size.inspect}, but doesn't"
 
         raise ::ArgumentError, message
       end
