@@ -154,7 +154,11 @@ Feature: Request Execution Errors
     When it is executed
     Then its output should contain:
       """
-      Cassandra::Errors::IOError: Could not connect to 127.0.0.1:9042 within 1s
+      Cassandra::Errors::NoHostsAvailable: All attempted hosts failed
+      """
+    And its output should contain:
+      """
+      Cassandra::Errors::TimeoutError: Timed out
       """
 
   Scenario: Executing a statement when all hosts are down
