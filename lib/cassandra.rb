@@ -527,6 +527,7 @@ require 'cassandra/result'
 require 'cassandra/statement'
 require 'cassandra/statements'
 
+require 'cassandra/user_type'
 require 'cassandra/column'
 require 'cassandra/table'
 require 'cassandra/keyspace'

@@ -140,6 +140,8 @@ module Cassandra
           "#{type[0].to_s}<#{type_to_cql(type[1])}>"
         when :map
           "#{type[0].to_s}<#{type_to_cql(type[1])}, #{type_to_cql(type[2])}>"
+        when :udt
+          "frozen <#{escape_name(type[2])}>"
         else
           type.to_s
         end
@@ -174,6 +176,15 @@ module Cassandra
           value.each do |k, v|
             assert_type(type[1], k)
             assert_type(type[2], v)
+          end
+        when :udt
+          keyspace = type[1]
+          name     = type[2]
+          fields   = type[3]
+
+          fields.each do |(field_name, field_type)|
+            assert_responds_to(field_name, value, message, &block)
+            assert_type(field_type, value.send(field_name))
           end
         when :custom
           assert_responds_to_all([:bytesize, :to_s], value, message, &block)

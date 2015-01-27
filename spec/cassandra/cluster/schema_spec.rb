@@ -2129,9 +2129,29 @@ module Cassandra
               }
             ]
           }
+          let(:types) {
+            [
+              {
+                'keyspace_name' => 'simplex',
+                'type_name' => 'address',
+                'field_names' => [
+                  'street',
+                  'city',
+                  'zip_code',
+                  'phones'
+                ],
+                'field_types' => [
+                  'org.apache.cassandra.db.marshal.UTF8Type',
+                  'org.apache.cassandra.db.marshal.UTF8Type',
+                  'org.apache.cassandra.db.marshal.Int32Type',
+                  'org.apache.cassandra.db.marshal.SetType(org.apache.cassandra.db.marshal.UTF8Type)'
+                ]
+              }
+            ]
+          }
 
           before do
-            subject.update_keyspaces(host, keyspaces, tables, columns)
+            subject.update_keyspaces(host, keyspaces, tables, columns, types)
           end
 
           it 'correctly parses schema types' do
