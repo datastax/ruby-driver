@@ -158,6 +158,8 @@ module Cassandra
           end
         end
 
+        private
+
         CODE_ERROR          = 0x00
         CODE_READY          = 0x02
         CODE_AUTHENTICATE   = 0x03
