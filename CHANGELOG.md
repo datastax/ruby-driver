@@ -1,3 +1,16 @@
+# 2.1.0
+
+Features:
+
+* Support for Apache Cassandra native protocol v3
+* User-defined types and tuples
+* Schema metadata includes user-defined types
+* Named arguments
+
+Breaking Changes:
+
+* Splat style positional arguments support, deprecated in 2.0.0, has been dropped
+
 # 2.0.0
 
 Features:
