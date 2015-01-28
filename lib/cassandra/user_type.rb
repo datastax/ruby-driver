@@ -31,7 +31,10 @@ module Cassandra
       end
     end
 
+    # @return [String] keyspace where this type is defined
     attr_reader :keyspace
+
+    # @return [String] name of this type
     attr_reader :name
 
     # @private
@@ -49,7 +52,7 @@ module Cassandra
 
     # Yield or enumerate each field defined in this type
     # @overload each_field
-    #   @yieldparam field [Cassandra::Field] current field
+    #   @yieldparam field [String] current field
     #   @return [Cassandra::UserType] self
     # @overload each_field
     #   @return [Array<String>] a list of fields
@@ -63,6 +66,7 @@ module Cassandra
     end
     alias :fields :each_field
 
+    # Output this type in CQL
     def to_cql
       cql   = "CREATE TYPE #{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} (\n"
       first = true

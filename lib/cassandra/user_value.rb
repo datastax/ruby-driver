@@ -17,7 +17,7 @@
 #++
 
 module Cassandra
-  # A user-defined type representation
+  # A user-defined type value representation
   class UserValue
     # @private
     def initialize(keyspace, name, values)
@@ -26,6 +26,7 @@ module Cassandra
       @values   = values
     end
 
+    # @!visibility public
     # Allows access to properties of a User-Defined Type.
     #
     # @example Getting and setting values
@@ -63,6 +64,11 @@ module Cassandra
       self
     end
 
+    # Returns true if a field with a given name is present in this value.
+    #
+    # @param method [Symbol] name of the field
+    #
+    # @return [Boolean] whether a field is present
     def respond_to?(method)
       key = method.to_s
       key.chomp!('=')
@@ -93,6 +99,7 @@ module Cassandra
       self
     end
 
+    # @return [String] a CLI-friendly user-defined type value representation
     def inspect
       "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @keyspace=#{@keyspace} @name=#{@name} @values=#{@values.inspect}>"
     end
