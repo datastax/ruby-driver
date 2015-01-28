@@ -35,7 +35,8 @@ module Cassandra
                                  :connections_per_remote_node => 1,
                                  :reconnection_policy => reconnection_policy,
                                  :executor => Executors::SameThread.new,
-                                 :logger => logger
+                                 :logger => logger,
+                                 :protocol_version => 2
                                } }
 
       let(:driver) { Driver.new(driver_settings) }

@@ -21,9 +21,8 @@ module Cassandra
     # @private
     class Options
       attr_reader :credentials, :auth_provider, :compressor, :port,
-                  :connect_timeout, :ssl, :connections_per_local_node,
-                  :connections_per_remote_node, :heartbeat_interval,
-                  :idle_timeout, :schema_refresh_delay, :schema_refresh_timeout
+                  :connect_timeout, :ssl, :heartbeat_interval, :idle_timeout,
+                  :schema_refresh_delay, :schema_refresh_timeout
       attr_accessor :protocol_version
 
       def initialize(protocol_version, credentials, auth_provider, compressor, port, connect_timeout, ssl, connections_per_local_node, connections_per_remote_node, heartbeat_interval, idle_timeout, synchronize_schema, schema_refresh_delay, schema_refresh_timeout)
@@ -54,6 +53,18 @@ module Cassandra
 
       def create_authenticator(authentication_class)
         @auth_provider && @auth_provider.create_authenticator(authentication_class)
+      end
+
+      # increased number of streams in native protocol v3 allow for one
+      # connections to be sufficient
+      def connections_per_local_node
+        (@protocol_version > 2) ? 1 : @connections_per_local_node
+      end
+
+      # increased number of streams in native protocol v3 allow for one
+      # connections to be sufficient
+      def connections_per_remote_node
+        (@protocol_version > 2) ? 1 : @connections_per_remote_node
       end
     end
   end
