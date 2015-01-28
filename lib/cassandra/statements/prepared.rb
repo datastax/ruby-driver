@@ -44,8 +44,8 @@ module Cassandra
 
       # Creates a statement bound with specific arguments
       #
-      # @param args [Array, Hash] positional or named arguments to bind, must
-      #   contain the same number of parameters as the number of positional
+      # @param args [Array, Hash] (nil) positional or named arguments to bind,
+      #   must contain the same number of parameters as the number of positional
       #   (`?`) or named (`:name`) markers in the original CQL passed to
       #   {Cassandra::Session#prepare}
       #

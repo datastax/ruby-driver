@@ -60,9 +60,12 @@ module Cassandra
       # @param statement [String, Cassandra::Statements::Simple,
       #   Cassandra::Statements::Prepared, Cassandra::Statements::Bound]
       #   statement to add.
-      # @param args [Array] positional arguments to bind, must contain
-      #   the same number of parameters as the number of positional (`?`)
-      #   markers in the original CQL passed to {Cassandra::Session#prepare}
+      # @param args [Array, Hash] (nil) positional or named arguments to bind,
+      #   must contain the same number of parameters as the number of positional
+      #   (`?`) or named (`:name`) markers in the CQL passed.
+      #
+      # @note Named arguments for simple statements are not supported, use
+      #   prepared statements instead.
       #
       # @return [self]
       def add(statement, args = nil)

@@ -39,7 +39,7 @@ module Cassandra
     #   Cassandra::Statements::Bound, Cassandra::Statements::Prepared]
     #   statement to execute
     #
-    # @param options [nil, Hash] a customizable set of options
+    # @param options [Hash] (nil) a customizable set of options
     #
     # @option options [Symbol] :consistency consistency level for the request.
     #   Must be one of {Cassandra::CONSISTENCIES}
@@ -103,7 +103,7 @@ module Cassandra
     #   Cassandra::Statements::Bound, Cassandra::Statements::Prepared]
     #   statement to execute
     #
-    # @param options [nil, Hash] a customizable set of options
+    # @param options [Hash] (nil) a customizable set of options
     #
     # @see Cassandra::Session#execute_async
     # @see Cassandra::Future#get
@@ -122,6 +122,8 @@ module Cassandra
     #
     # @param statement [String, Cassandra::Statements::Simple] a statement to
     #   prepare
+    #
+    # @param options [Hash] (nil) a customizable set of options
     #
     # @option options [Boolean] :trace (false) whether to enable request tracing
     # @option options [Numeric] :timeout (nil) if specified, it is a number of

@@ -30,13 +30,13 @@ module Cassandra
       attr_reader :params_types
 
       # @param cql [String] a cql statement
-      # @param params [Array] positional arguments for the query
+      # @param params [Array] (nil) positional arguments for the query
       #
       # @note Positional arguments for simple statements are only supported
       #   starting with Apache Cassandra 2.0 and above.
       #
       # @raise [ArgumentError] if cql statement given is not a String
-      def initialize(cql, params)
+      def initialize(cql, params = nil)
         Util.assert_instance_of(::String, cql) { "cql must be a string, #{cql.inspect} given" }
 
         if params
