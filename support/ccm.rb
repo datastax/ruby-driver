@@ -185,9 +185,9 @@ module CCM extend self
       def block(ip)
         puts "Blocking #{ip}..."
         success = system('sudo', 'iptables', '-A', 'INPUT', '-d', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
-        raise "failed tp block #{ip}" unless success
+        raise "failed to block #{ip}" unless success
         success = system('sudo', 'iptables', '-A', 'OUTPUT', '-s', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
-        raise "failed tp block #{ip}" unless success
+        raise "failed to block #{ip}" unless success
 
         nil
       end
@@ -197,7 +197,7 @@ module CCM extend self
         success = system('sudo', 'iptables', '-D', 'INPUT', '-d', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
         raise "failed to unblock #{ip}" unless success
         success = system('sudo', 'iptables', '-D', 'OUTPUT', '-s', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
-        raise "failed tp unblock #{ip}" unless success
+        raise "failed to unblock #{ip}" unless success
 
         nil
       end
@@ -213,7 +213,7 @@ module CCM extend self
 
         puts "Blocking #{ip}..."
         success = system('sudo', 'pfctl', '-t', '_ruby_driver_test_blocklist_', '-T', 'add', "#{ip}/32", err: '/dev/null')
-        raise "failed tp block #{ip}" unless success
+        raise "failed to block #{ip}" unless success
 
         nil
       end
@@ -350,7 +350,7 @@ module CCM extend self
         @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
       rescue => e
         @ccm.exec('stop') rescue nil
-        %x{killall java}
+        %x{pkill -9 -f .ccm}
 
         if attempts >= 10
           raise e
@@ -498,12 +498,11 @@ module CCM extend self
     end
 
     def block_node(name)
+      node = nodes.find {|n| n.name == name}
+      return if node.nil?
       return if @blocked.include?(name)
 
-      i  = name.sub('node', '')
-      ip = "127.0.0.#{i}"
-
-      @firewall.block(ip)
+      @ccm.exec(node.name, 'pause')
       @blocked.add(name)
 
       nil
@@ -516,15 +515,13 @@ module CCM extend self
     end
 
     def unblock_nodes
-      stop
       @blocked.each do |name|
-        i  = name.sub('node', '')
-        ip = "127.0.0.#{i}"
+        node = nodes.find {|n| n.name == name}
+        return if node.nil?
 
-        @firewall.unblock(ip)
+        @ccm.exec(node.name, 'resume')
       end
       @blocked.clear
-      start
 
       nil
     end
@@ -833,5 +830,9 @@ module CCM extend self
     end
 
     nil
+  end
+
+  def self.stop_and_remove
+    @current_cluster.stop
   end
 end
