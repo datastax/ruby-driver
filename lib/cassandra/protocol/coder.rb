@@ -200,10 +200,14 @@ module Cassandra
             return nil unless read_size(buffer)
 
             members = type[1]
+            values  = ::Array.new
 
-            members.map do |member_type|
-              read_value_v3(buffer, member_type)
+            members.each do |member_type|
+              break if buffer.empty?
+              values << read_value_v3(buffer, member_type)
             end
+
+            values.fill(nil, values.length, (members.length - values.length))
           when :custom
             buffer.read_bytes
           else
