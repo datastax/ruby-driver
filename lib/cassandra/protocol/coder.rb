@@ -192,7 +192,11 @@ module Cassandra
             values = ::Hash.new
 
             fields.each do |(field_name, field_type)|
-              values[field_name] = read_value_v3(buffer, field_type)
+              if buffer.empty?
+                values[field_name] = nil
+              else
+                values[field_name] = read_value_v3(buffer, field_type)
+              end
             end
 
             UserValue.new(keyspace, name, values)
