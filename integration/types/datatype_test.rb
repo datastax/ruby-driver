@@ -361,8 +361,8 @@ class DatatypeTest < IntegrationTestCase
     # Test prepared statement
     insert = session.prepare("INSERT INTO mytable (a, b) VALUES (?, ?)")
     session.execute(insert, arguments: [3, complete])
-    session.execute(insert, arguments: [4, partial])
-    session.execute(insert, arguments: [5, subpartial])
+    session.execute(insert, arguments: [4, partial[0..1]])
+    session.execute(insert, arguments: [5, [subpartial[0]]])
 
     result = session.execute("SELECT b FROM mytable WHERE a=3").first
     assert_equal complete, result['b']
