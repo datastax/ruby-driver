@@ -69,11 +69,9 @@ module Cassandra
         READY = ReadyResponse.new
 
         def decode_header(buffer)
-          loop do
-            buffer_length = buffer.length
+          buffer_length = buffer.length
 
-            return if buffer_length < 8
-
+          while buffer_length >= 8
             frame_header = buffer.read_int
             frame_length = buffer.read_int
 
@@ -86,23 +84,22 @@ module Cassandra
             end
 
             actual_decode(buffer, frame_header, frame_length)
+            buffer_length = buffer.length
           end
 
           nil
         end
 
         def decode_body(buffer)
-          frame_header = @header
-          frame_length = @length
+          frame_header  = @header
+          frame_length  = @length
+          buffer_length = buffer.length
 
-          loop do
+          until buffer_length < frame_length
+            actual_decode(buffer, frame_header, frame_length)
             buffer_length = buffer.length
 
-            return if buffer_length < frame_length
-
-            actual_decode(buffer, frame_header, frame_length)
-
-            if (buffer_length - frame_length) < 8
+            if buffer_length < 8
               @header = nil
               @length = nil
               @state  = :header
@@ -110,8 +107,9 @@ module Cassandra
               return
             end
 
-            frame_header = buffer.read_int
-            frame_length = buffer.read_int
+            frame_header   = buffer.read_int
+            frame_length   = buffer.read_int
+            buffer_length -= 8
           end
 
           @header = frame_header

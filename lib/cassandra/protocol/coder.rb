@@ -440,7 +440,9 @@ module Cassandra
       end
 
       def read_type_v1(buffer)
-        case buffer.read_unsigned_short
+        kind = buffer.read_unsigned_short
+
+        case kind
         when 0x0000 then [:custom, buffer.read_string]
         when 0x0001 then :ascii
         when 0x0002 then :bigint
@@ -461,8 +463,8 @@ module Cassandra
         when 0x0020 then [:list, read_type_v1(buffer)]
         when 0x0021 then [:map, read_type_v1(buffer), read_type_v1(buffer)]
         when 0x0022 then [:set, read_type_v1(buffer)]
-        else
-          raise Errors::DecodingError, %(Unsupported column type: #{id})
+        else 
+          raise Errors::DecodingError, %(Unsupported column type: #{kind})
         end
       end
 

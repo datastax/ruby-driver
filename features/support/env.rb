@@ -61,3 +61,7 @@ end
 After('@netblock') do
   @cluster.unblock_nodes
 end
+
+at_exit do
+  CCM.stop_and_remove
+end
