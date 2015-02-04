@@ -71,47 +71,32 @@ module Cassandra
         READY = ReadyResponse.new
 
         def decode_initial(buffer)
-          loop do
-            buffer_length = buffer.length
+          return if buffer.length < 9
 
-            return if buffer_length < 9
+          frame_header     = buffer.read_int
+          protocol_version = (frame_header >> 24) & 0x7f
 
-            frame_header     = buffer.read_int
-            protocol_version = (frame_header >> 24) & 0x7f
+          if protocol_version < 3
+            stream_id  = (frame_header >> 8) & 0xff
+            stream_id  = (stream_id & 0x7f) - (stream_id & 0x80)
 
-            if protocol_version < 3
-              stream_id  = (frame_header >> 8) & 0xff
-              stream_id  = (stream_id & 0x7f) - (stream_id & 0x80)
+            @handler.complete_request(stream_id, ErrorResponse.new(0x000A, "Invalid or unsupported protocol version"))
 
-              @handler.complete_request(stream_id, ErrorResponse.new(0x000A, "Invalid or unsupported protocol version"))
-
-              return
-            end
-
-            frame_code   = buffer.read_byte
-            frame_length = buffer.read_int
-
-            if (buffer_length - 9) < frame_length
-              @header = frame_header
-              @code   = frame_code
-              @length = frame_length
-              @state  = :body
-
-              return
-            end
-
-            actual_decode(buffer, frame_header, frame_length, frame_code)
+            return
           end
 
-          nil
+          @header = frame_header
+          @code   = buffer.read_byte
+          @length = buffer.read_int
+          @state  = :body
+
+          decode_body(buffer)
         end
 
         def decode_header(buffer)
-          loop do
-            buffer_length = buffer.length
+          buffer_length = buffer.length
 
-            return if buffer_length < 9
-
+          while buffer_length >= 9
             frame_header = buffer.read_int
             frame_code   = buffer.read_byte
             frame_length = buffer.read_int
@@ -126,24 +111,23 @@ module Cassandra
             end
 
             actual_decode(buffer, frame_header, frame_length, frame_code)
+            buffer_length = buffer.length
           end
 
           nil
         end
 
         def decode_body(buffer)
-          frame_header = @header
-          frame_code   = @code
-          frame_length = @length
+          frame_header  = @header
+          frame_code    = @code
+          frame_length  = @length
+          buffer_length = buffer.length
 
-          loop do
+          until buffer_length < frame_length
+            actual_decode(buffer, frame_header, frame_length, frame_code)
             buffer_length = buffer.length
 
-            return if buffer_length < frame_length
-
-            actual_decode(buffer, frame_header, frame_length, frame_code)
-
-            if (buffer_length - frame_length) < 9
+            if buffer_length < 9
               @header = nil
               @code   = nil
               @length = nil
@@ -152,9 +136,10 @@ module Cassandra
               return
             end
 
-            frame_header = buffer.read_int
-            frame_code   = buffer.read_byte
-            frame_length = buffer.read_int
+            frame_header   = buffer.read_int
+            frame_code     = buffer.read_byte
+            frame_length   = buffer.read_int
+            buffer_length -= 8
           end
 
           @header = frame_header
