@@ -1,3 +1,9 @@
+# 2.0.1
+
+Bug Fixes:
+
+* [RUBY-87] Decoder corrupts incomplete response buffer
+
 # 2.0.0
 
 Features:
