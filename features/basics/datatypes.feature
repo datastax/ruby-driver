@@ -133,7 +133,6 @@ Feature: Datatypes
     And the following example:
       """ruby
       require 'cassandra'
-      require 'time'
 
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
@@ -178,7 +177,6 @@ Feature: Datatypes
     And the following example:
       """ruby
       require 'cassandra'
-      require 'time'
 
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
@@ -213,20 +211,26 @@ Feature: Datatypes
     And the following example:
       """ruby
       require 'cassandra'
-      require 'time'
 
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
       row = session.execute("SELECT * FROM user").first
-
       puts "Name: #{row['name'].join(' ')}"
 
       update = session.prepare("UPDATE user SET name=? WHERE id=0")
       session.execute(update, arguments: [['Jane', 'Doe']])
 
       row = session.execute("SELECT * FROM user").first
+      puts "Name: #{row['name'].join(' ')}"
 
+      session.execute("INSERT INTO user (id, name) VALUES (1, (?, ?))", arguments: ['Agent', 'Smith'])
+      row = session.execute("SELECT * FROM user WHERE id=1").first
+      puts "Name: #{row['name'].join(' ')}"
+
+      insert = session.prepare("INSERT INTO user (id, name) VALUES (?, ?)")
+      session.execute(insert, arguments: [2, ['Apache', 'Cassandra']])
+      row = session.execute("SELECT * FROM user WHERE id=2").first
       puts "Name: #{row['name'].join(' ')}"
 
       begin
@@ -240,5 +244,7 @@ Feature: Datatypes
       """
       Name: John Smith
       Name: Jane Doe
+      Name: Agent Smith
+      Name: Apache Cassandra
       ArgumentError: argument for "name" must be "frozen <tuple<varchar, varchar>>", ["Jane", "Doe", "Extra"] given
       """
