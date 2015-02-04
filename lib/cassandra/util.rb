@@ -184,13 +184,12 @@ module Cassandra
           name     = type[2]
           fields   = type[3]
 
-          fields.each do |(field_name, field_type)|
-            assert_responds_to(field_name, value, message, &block)
-            assert_type(field_type, value.send(field_name))
+          fields.each do |(n, t)|
+            assert_type(t, value.send(n)) if value.respond_to?(n)
           end
         when :tuple
           assert_instance_of(::Array, value, message, &block)
-          assert_size(type[1].size, value, message, &block)
+          assert(value.size <= type[1].size, message, &block)
           value.zip(type[1]) do |(v, t)|
             assert_type(t, v)
           end
