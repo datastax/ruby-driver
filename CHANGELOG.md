@@ -11,6 +11,12 @@ Breaking Changes:
 
 * Splat style positional arguments support, deprecated in 2.0.0, has been dropped
 
+# 2.0.1
+
+Bug Fixes:
+
+* [RUBY-87] Decoder corrupts incomplete response buffer
+
 # 2.0.0
 
 Features:
