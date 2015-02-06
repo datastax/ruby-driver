@@ -370,6 +370,8 @@ class DatatypeTest < IntegrationTestCase
     assert_equal partial, result['b']
     result = session.execute("SELECT b FROM mytable WHERE a=5").first
     assert_equal subpartial, result['b']
+  ensure
+    cluster.close
   end
 
   def test_raise_error_on_unmatched_tuple_lengths
@@ -398,6 +400,8 @@ class DatatypeTest < IntegrationTestCase
     assert_raises(Cassandra::Errors::InvalidError) do
       session.execute("INSERT INTO mytable (a, b) VALUES (0, (?, ?, ?))", arguments: input)
     end
+  ensure
+    cluster.close
   end
 
   def test_can_insert_tuples_with_varying_lengths
@@ -427,6 +431,8 @@ class DatatypeTest < IntegrationTestCase
         session.execute("INSERT INTO mytable (zz, #{letter}) VALUES (0, (#{(['?']*length).join(',')}))", arguments: bigger_input)
       end
     end
+  ensure
+    cluster.close
   end
 
   def test_can_insert_tuple_type_nil_values
@@ -667,6 +673,8 @@ class DatatypeTest < IntegrationTestCase
       result = session.execute("SELECT #{letter} FROM mytable WHERE zz=0").first
       assert_equal input, result["#{letter}"]
     end
+  ensure
+    cluster.close
   end
 
 end
