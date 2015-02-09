@@ -106,3 +106,52 @@ Feature: User-Defined Types
         data frozen <tuple<int, varchar, float>>
       );
       """
+  Scenario: Inserting a partially-complete User-Defined Type
+    Given the following example:
+    """ruby
+      require 'cassandra'
+      require 'ostruct'
+
+      cluster = Cassandra.cluster
+      session = cluster.connect('simplex')
+      insert  = session.prepare('INSERT INTO users (id, location) VALUES (?, ?)')
+
+      session.execute(insert, arguments: [0, OpenStruct.new(zipcode: 78723)])
+      session.execute('SELECT * FROM users').each do |row|
+        location = row['location']
+        puts "Location: #{location.class.name}, #{location.street} #{location.zipcode}"
+      end
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      Location: Cassandra::UserValue,  78723
+      """
+
+  Scenario: Nesting a User-Defined Type
+    Given the following example:
+    """ruby
+      require 'cassandra'
+      require 'ostruct'
+
+      cluster = Cassandra.cluster
+      session = cluster.connect('simplex')
+
+      session.execute("CREATE TABLE registration (id int PRIMARY KEY, info frozen<check_in>)")
+      insert  = session.prepare('INSERT INTO registration (id, info) VALUES (?, ?)')
+
+      location = OpenStruct.new(street: '123 Main St.', zipcode: 78723)
+      tuple = [42, 'math', 3.14]
+      input = OpenStruct.new(location: location, time: Time.at(1358013521, 123000), data: tuple)
+
+      session.execute(insert, arguments: [0, input])
+      session.execute('SELECT * FROM registration').each do |row|
+        info = row['info']
+        puts "Info: {street: #{info.location.street}, zipcode: #{info.location.zipcode}}, #{info.time}, #{info.data}"
+      end
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      Info: {street: 123 Main St., zipcode: 78723}, 2013-01-12 09:58:41 -0800, [42, "math", 3.140000104904175]
+      """
