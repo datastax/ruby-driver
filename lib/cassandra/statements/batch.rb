@@ -69,11 +69,7 @@ module Cassandra
       #
       # @return [self]
       def add(statement, args = nil)
-        if args
-          Util.assert_instance_of(::Array, args) { "args must be an Array, #{args.inspect} given" }
-        else
-          args = EMPTY_LIST
-        end
+        args ||= EMPTY_LIST
 
         case statement
         when String
