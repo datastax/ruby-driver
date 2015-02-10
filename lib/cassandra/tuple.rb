@@ -75,7 +75,6 @@ module Cassandra
 
     # @param i [Integer] numeric index of the value inside the tuple, must
     #   be `0 < i < tuple.size`
-    # @raise [IndexError] when index is outside of tuple bounds
     # @return [Object] value of the tuple at position `i`
     def [](i)
       @values[Integer(i)]
