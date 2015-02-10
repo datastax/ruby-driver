@@ -172,8 +172,8 @@ module Cassandra
     include Enumerable
 
     # Creates a UDT instance
-    # @param *values [Hash<String, Object>, Array<Array<String, Object>>,
-    #                 *Object, *Array<String, Object>] - 
+    # @param values [Hash<String, Object>, Array<Array<String, Object>>,
+    #                 *Object, *Array<String, Object>] - UDT field values
     def initialize(*values)
       values = Array(values.first) if values.one?
 
@@ -309,7 +309,8 @@ module Cassandra
       end
     end
 
-    # @param name [String, Integer] name or numeric index of the field to lookup
+    # @param field [String, Integer] name or numeric index of the field to
+    #   lookup
     #
     # @return [Boolean] whether the field is present in this UDT
     def has_field?(field)

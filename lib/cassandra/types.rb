@@ -26,7 +26,7 @@ module Cassandra
 
     # Coerces a given value to this type
     #
-    # @param value [Object] value to be coerced
+    # @param values [*Object] value to be coerced
     # @return [Object] a value of this type
     def new(*values)
     end
@@ -949,7 +949,7 @@ module Cassandra
       end
 
       # Coerces the value to Cassandra::Tuple
-      # @param value [Object] original value
+      # @param values [*Object] tuple values
       # @return [Cassandra::Tuple] value
       # @see Cassandra::Type#new
       # @example Creating a tuple
@@ -1168,9 +1168,9 @@ module Cassandra
 
       # Coerces a given value to this type
       #
-      # @param value [Object] value to be coerced
+      # @param value [*Object] value to be coerced
       # @return [Object] a value of this type
-      def new(*values)
+      def new(*value)
         raise ::NotImplementedError, "unable to create a value for custom type: #{@name.inspect}"
       end
 
