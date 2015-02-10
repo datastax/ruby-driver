@@ -28,9 +28,9 @@ module Cassandra
 
       let :column_metadata do
         [
-          ['ks', 'tbl', 'col1', :varchar],
-          ['ks', 'tbl', 'col2', :int],
-          ['ks', 'tbl', 'col3', :varchar]
+          ['ks', 'tbl', 'col1', Types.varchar],
+          ['ks', 'tbl', 'col2', Types.int],
+          ['ks', 'tbl', 'col3', Types.varchar]
         ]
       end
 
@@ -87,12 +87,12 @@ module Cassandra
           end
 
           it 'raises an error for unsupported column types' do
-            parameter_types[2] = :imaginary
+            parameter_types[2] = instance_double("ImaginaryType", name: :imaginary)
             expect { ExecuteRequest.new(id, parameter_types, ['hello', 42, 'foo'], true, :each_quorum, nil, nil, nil, false).write(CqlByteBuffer.new, 1, encoder) }.to raise_error(Errors::EncodingError)
           end
 
           it 'raises an error for unsupported column collection types' do
-            parameter_types[2] = [:imaginary, :varchar]
+            parameter_types[2] = instance_double("MapType", name: :map, key_type: Types.varchar, value_type: instance_double("ImaginaryType", name: :imaginary))
             expect { ExecuteRequest.new(id, parameter_types, ['hello', 42, ['foo']], true, :each_quorum, nil, nil, nil, false).write(CqlByteBuffer.new, 1, encoder) }.to raise_error(Errors::EncodingError)
           end
 
@@ -158,32 +158,32 @@ module Cassandra
 
         context 'with different data types' do
           specs = [
-            [:ascii, 'test', "test"],
-            [:bigint, 1012312312414123, "\x00\x03\x98\xB1S\xC8\x7F\xAB"],
-            [:blob, "\xab\xcd", "\xab\xcd"],
-            [:boolean, false, "\x00"],
-            [:boolean, true, "\x01"],
-            [:decimal, BigDecimal.new('1042342234234.123423435647768234'), "\x00\x00\x00\x12\r'\xFDI\xAD\x80f\x11g\xDCfV\xAA"],
-            [:double, 10000.123123123, "@\xC3\x88\x0F\xC2\x7F\x9DU"],
-            [:float, 12.13, "AB\x14{"],
-            [:inet, IPAddr.new('8.8.8.8'), "\x08\x08\x08\x08"],
-            [:inet, IPAddr.new('::1'), "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01"],
-            [:int, 12348098, "\x00\xBCj\xC2"],
-            [:text, 'FOOBAR', 'FOOBAR'],
-            [:timestamp, Time.at(1358013521.123), "\x00\x00\x01</\xE9\xDC\xE3"],
-            [:timeuuid, Uuid.new('a4a70900-24e1-11df-8924-001ff3591711'), "\xA4\xA7\t\x00$\xE1\x11\xDF\x89$\x00\x1F\xF3Y\x17\x11"],
-            [:uuid, Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'), "\xCF\xD6l\xCC\xD8WN\x90\xB1\xE5\xDF\x98\xA3\xD4\f\xD6"],
-            [:varchar, 'hello', 'hello'],
-            [:varint, 1231312312331283012830129382342342412123, "\x03\x9EV \x15\f\x03\x9DK\x18\xCDI\\$?\a["],
-            [:varint, -234234234234, "\xC9v\x8D:\x86"],
-            [[:list, :timestamp], [Time.at(1358013521.123)], "\x00\x01" + "\x00\x08\x00\x00\x01</\xE9\xDC\xE3"],
-            [[:list, :boolean], [true, false, true, true], "\x00\x04" + "\x00\x01\x01" + "\x00\x01\x00"  + "\x00\x01\x01" + "\x00\x01\x01"],
-            [[:map, :uuid, :int], {Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6') => 45345, Uuid.new('a4a70900-24e1-11df-8924-001ff3591711') => 98765}, "\x00\x02" + "\x00\x10\xCF\xD6l\xCC\xD8WN\x90\xB1\xE5\xDF\x98\xA3\xD4\f\xD6" + "\x00\x04\x00\x00\xb1\x21" + "\x00\x10\xA4\xA7\t\x00$\xE1\x11\xDF\x89$\x00\x1F\xF3Y\x17\x11" + "\x00\x04\x00\x01\x81\xcd"],
-            [[:map, :ascii, :blob], {'hello' => 'world', 'one' => "\x01", 'two' => "\x02"}, "\x00\x03" + "\x00\x05hello" + "\x00\x05world" + "\x00\x03one" + "\x00\x01\x01" + "\x00\x03two" + "\x00\x01\x02"],
-            [[:set, :int], Set.new([13, 3453, 456456, 123, 768678]), "\x00\x05" + "\x00\x04\x00\x00\x00\x0d" + "\x00\x04\x00\x00\x0d\x7d" + "\x00\x04\x00\x06\xf7\x08" + "\x00\x04\x00\x00\x00\x7b" + "\x00\x04\x00\x0b\xba\xa6"],
-            [[:set, :varchar], Set.new(['foo', 'bar', 'baz']), "\x00\x03" + "\x00\x03foo" + "\x00\x03bar" + "\x00\x03baz"],
-            [[:set, :int], [13, 3453, 456456, 123, 768678], "\x00\x05" + "\x00\x04\x00\x00\x00\x0d" + "\x00\x04\x00\x00\x0d\x7d" + "\x00\x04\x00\x06\xf7\x08" + "\x00\x04\x00\x00\x00\x7b" + "\x00\x04\x00\x0b\xba\xa6"],
-            [[:set, :varchar], ['foo', 'bar', 'baz'], "\x00\x03" + "\x00\x03foo" + "\x00\x03bar" + "\x00\x03baz"]
+            [Types.ascii, 'test', "test"],
+            [Types.bigint, 1012312312414123, "\x00\x03\x98\xB1S\xC8\x7F\xAB"],
+            [Types.blob, "\xab\xcd", "\xab\xcd"],
+            [Types.boolean, false, "\x00"],
+            [Types.boolean, true, "\x01"],
+            [Types.decimal, BigDecimal.new('1042342234234.123423435647768234'), "\x00\x00\x00\x12\r'\xFDI\xAD\x80f\x11g\xDCfV\xAA"],
+            [Types.double, 10000.123123123, "@\xC3\x88\x0F\xC2\x7F\x9DU"],
+            [Types.float, 12.13, "AB\x14{"],
+            [Types.inet, IPAddr.new('8.8.8.8'), "\x08\x08\x08\x08"],
+            [Types.inet, IPAddr.new('::1'), "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01"],
+            [Types.int, 12348098, "\x00\xBCj\xC2"],
+            [Types.text, 'FOOBAR', 'FOOBAR'],
+            [Types.timestamp, Time.at(1358013521.123), "\x00\x00\x01</\xE9\xDC\xE3"],
+            [Types.timeuuid, Uuid.new('a4a70900-24e1-11df-8924-001ff3591711'), "\xA4\xA7\t\x00$\xE1\x11\xDF\x89$\x00\x1F\xF3Y\x17\x11"],
+            [Types.uuid, Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6'), "\xCF\xD6l\xCC\xD8WN\x90\xB1\xE5\xDF\x98\xA3\xD4\f\xD6"],
+            [Types.varchar, 'hello', 'hello'],
+            [Types.varint, 1231312312331283012830129382342342412123, "\x03\x9EV \x15\f\x03\x9DK\x18\xCDI\\$?\a["],
+            [Types.varint, -234234234234, "\xC9v\x8D:\x86"],
+            [Types.list(Types.timestamp), [Time.at(1358013521.123)], "\x00\x01" + "\x00\x08\x00\x00\x01</\xE9\xDC\xE3"],
+            [Types.list(Types.boolean), [true, false, true, true], "\x00\x04" + "\x00\x01\x01" + "\x00\x01\x00"  + "\x00\x01\x01" + "\x00\x01\x01"],
+            [Types.map(Types.uuid, Types.int), {Uuid.new('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6') => 45345, Uuid.new('a4a70900-24e1-11df-8924-001ff3591711') => 98765}, "\x00\x02" + "\x00\x10\xCF\xD6l\xCC\xD8WN\x90\xB1\xE5\xDF\x98\xA3\xD4\f\xD6" + "\x00\x04\x00\x00\xb1\x21" + "\x00\x10\xA4\xA7\t\x00$\xE1\x11\xDF\x89$\x00\x1F\xF3Y\x17\x11" + "\x00\x04\x00\x01\x81\xcd"],
+            [Types.map(Types.ascii, Types.blob), {'hello' => 'world', 'one' => "\x01", 'two' => "\x02"}, "\x00\x03" + "\x00\x05hello" + "\x00\x05world" + "\x00\x03one" + "\x00\x01\x01" + "\x00\x03two" + "\x00\x01\x02"],
+            [Types.set(Types.int), Set.new([13, 3453, 456456, 123, 768678]), "\x00\x05" + "\x00\x04\x00\x00\x00\x0d" + "\x00\x04\x00\x00\x0d\x7d" + "\x00\x04\x00\x06\xf7\x08" + "\x00\x04\x00\x00\x00\x7b" + "\x00\x04\x00\x0b\xba\xa6"],
+            [Types.set(Types.varchar), Set.new(['foo', 'bar', 'baz']), "\x00\x03" + "\x00\x03foo" + "\x00\x03bar" + "\x00\x03baz"],
+            [Types.set(Types.int), [13, 3453, 456456, 123, 768678], "\x00\x05" + "\x00\x04\x00\x00\x00\x0d" + "\x00\x04\x00\x00\x0d\x7d" + "\x00\x04\x00\x06\xf7\x08" + "\x00\x04\x00\x00\x00\x7b" + "\x00\x04\x00\x0b\xba\xa6"],
+            [Types.set(Types.varchar), ['foo', 'bar', 'baz'], "\x00\x03" + "\x00\x03foo" + "\x00\x03bar" + "\x00\x03baz"]
           ]
           specs.each do |type, value, expected_bytes|
             it "encodes #{type} values" do

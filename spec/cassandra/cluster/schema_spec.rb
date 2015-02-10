@@ -2156,7 +2156,7 @@ module Cassandra
 
           it 'correctly parses schema types' do
             table = subject.keyspace('simplex').table('songs')
-            expect(table.column('tags').type).to eq([:set, :varchar])
+            expect(table.column('tags').type).to eq(Types.set(Types.varchar))
             expect(table.to_cql).to eq(<<-CQL.chomp!)
 CREATE TABLE simplex.songs (
   id uuid,
