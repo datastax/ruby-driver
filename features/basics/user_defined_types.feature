@@ -147,11 +147,11 @@ Feature: User-Defined Types
       session.execute(insert, arguments: [0, input])
       session.execute('SELECT * FROM registration').each do |row|
         info = row['info']
-        puts "Info: {street: #{info.location.street}, zipcode: #{info.location.zipcode}}, #{info.time}, #{info.data}"
+        puts "Info: {street: #{info.location.street}, zipcode: #{info.location.zipcode}}, #{info.time.httpdate}, #{info.data}"
       end
       """
     When it is executed
     Then its output should contain:
       """
-      Info: {street: 123 Main St., zipcode: 78723}, 2013-01-12 09:58:41 -0800, [42, "math", 3.140000104904175]
+      Info: {street: 123 Main St., zipcode: 78723}, Sat, 12 Jan 2013 17:58:41 GMT, [42, "math", 3.140000104904175]
       """
