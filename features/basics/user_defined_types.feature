@@ -82,6 +82,7 @@ Feature: User-Defined Types
         data frozen <tuple<int, varchar, float>>
       );
       """
+
   Scenario: Inserting a partially-complete User-Defined Type
     Given the following example:
     """ruby
@@ -100,7 +101,7 @@ Feature: User-Defined Types
     When it is executed
     Then its output should contain:
       """
-      Location: { street: "123 Main St.", zipcode: 78723 }
+      Location: { street: nil, zipcode: 78723 }
       """
 
   Scenario: Nesting a User-Defined Type
@@ -115,7 +116,7 @@ Feature: User-Defined Types
       insert  = session.prepare('INSERT INTO registration (id, info) VALUES (?, ?)')
 
       location = Cassandra::UDT.new(street: '123 Main St.', zipcode: 78723)
-      tuple = [42, 'math', 3.14]
+      tuple = Cassandra::Tuple.new(42, 'math', 3.14)
       input = Cassandra::UDT.new(location: location, time: Time.at(1358013521, 123000), data: tuple)
 
       session.execute(insert, arguments: [0, input])
@@ -127,5 +128,5 @@ Feature: User-Defined Types
     When it is executed
     Then its output should contain:
       """
-      Info: {street: 123 Main St., zipcode: 78723}, Sat, 12 Jan 2013 17:58:41 GMT, [42, "math", 3.140000104904175]
+      Info: {street: 123 Main St., zipcode: 78723}, Sat, 12 Jan 2013 17:58:41 GMT, (42, math, 3.140000104904175)
       """

@@ -230,7 +230,7 @@ Feature: Datatypes
       puts "Name: #{row['name']}"
 
       insert = session.prepare("INSERT INTO user (id, name) VALUES (?, ?)")
-      session.execute(insert, arguments: [2, ['Apache', 'Cassandra']])
+      session.execute(insert, arguments: [2, Cassandra::Tuple.new('Apache', 'Cassandra')])
       row = session.execute("SELECT * FROM user WHERE id=2").first
 
       puts "Name: #{row['name']}"
@@ -248,5 +248,5 @@ Feature: Datatypes
       Name: (Jane, Doe)
       Name: (Agent, Smith)
       Name: (Apache, Cassandra)
-      ArgumentError: argument for "name" must be "tuple<varchar, varchar>", (Jane, Doe, Extra) given
+      ArgumentError: argument for "name" must be tuple<varchar, varchar>, (Jane, Doe, Extra) given
       """
