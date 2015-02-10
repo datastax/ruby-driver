@@ -280,18 +280,18 @@ class DatatypeTest < IntegrationTestCase
       session.execute("CREATE TABLE mytable (a int PRIMARY KEY, b frozen<tuple<ascii, bigint, boolean>>)")
 
       # Test non-prepared statement
-      complete = ['foo', 123, true]
+      complete = Cassandra::Tuple.new('foo', 123, true)
       session.execute("INSERT INTO mytable (a, b) VALUES (0, (?, ?, ?))", arguments: complete)
       result = session.execute("SELECT b FROM mytable WHERE a=0").first
       assert_equal complete, result['b']
 
       # Test partial tuples
-      partial = ['foo', 123]
+      partial = Cassandra::Tuple.new('foo', 123)
       session.execute("INSERT INTO mytable (a, b) VALUES (1, (?, ?))", arguments: partial)
       result = session.execute("SELECT b FROM mytable WHERE a=1").first
       assert_equal partial.push(nil), result['b']
 
-      subpartial = ['foo']
+      subpartial = Cassandra::Tuple.new('foo')
       session.execute("INSERT INTO mytable (a, b) VALUES (2, (?))", arguments: subpartial)
       result = session.execute("SELECT b FROM mytable WHERE a=2").first
       assert_equal subpartial.push(nil).push(nil), result['b']
@@ -299,8 +299,8 @@ class DatatypeTest < IntegrationTestCase
       # Test prepared statement
       insert = session.prepare("INSERT INTO mytable (a, b) VALUES (?, ?)")
       session.execute(insert, arguments: [3, complete])
-      session.execute(insert, arguments: [4, partial[0..1]])
-      session.execute(insert, arguments: [5, [subpartial[0]]])
+      session.execute(insert, arguments: [4, partial])
+      session.execute(insert, arguments: [5, subpartial])
 
       result = session.execute("SELECT b FROM mytable WHERE a=3").first
       assert_equal complete, result['b']

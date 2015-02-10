@@ -59,7 +59,7 @@ class UserDefinedTypeTest < IntegrationTestCase
 
       # Test prepared statement
       insert = session.prepare("INSERT INTO mytable (a, b) VALUES (?, ?)")
-      session.execute(insert, arguments: [1, OpenStruct.new(age: 25, name: 'Jane', gender: 'female')])
+      session.execute(insert, arguments: [1, Cassandra::UDT.new(age: 25, name: 'Jane', gender: 'female')])
 
       user_value = session.execute("SELECT b FROM mytable where a=1").first['b']
       assert_equal 25, user_value.age
@@ -99,28 +99,6 @@ class UserDefinedTypeTest < IntegrationTestCase
     end
   end
 
-  def test_raise_error_on_inserting_simple_statements
-    skip("UDTs are only available in C* after 2.1") if CCM.cassandra_version < '2.1.0'
-
-    begin
-      cluster = Cassandra.cluster
-      session = cluster.connect("simplex")
-
-      session.execute("CREATE TYPE user (age int, name text)")
-      session.execute("CREATE TABLE mytable (a int PRIMARY KEY, b frozen<user>)")
-
-      assert_raises(ArgumentError) do
-        session.execute("INSERT INTO mytable (a, b) VALUES (?, ?)", arguments: [0, OpenStruct.new(age: 30, name: 'John')])
-      end
-
-      assert_raises(Cassandra::Errors::SyntaxError) do
-        session.execute("INSERT INTO mytable (a, b) VALUES (0, #{OpenStruct.new(age: 30, name: 'John')})")
-      end
-    ensure
-      cluster && cluster.close
-    end
-  end
-
   def test_can_insert_partial_udts
     skip("UDTs are only available in C* after 2.1") if CCM.cassandra_version < '2.1.0'
 
@@ -146,8 +124,8 @@ class UserDefinedTypeTest < IntegrationTestCase
 
       # Test prepared statements
       insert = session.prepare("INSERT INTO mytable (a, b) VALUES (?, ?)")
-      session.execute(insert, arguments: [2, OpenStruct.new(age: 35, name: 'James')])
-      session.execute(insert, arguments: [3, OpenStruct.new(name: 'Jess')])
+      session.execute(insert, arguments: [2, Cassandra::UDT.new(age: 35, name: 'James')])
+      session.execute(insert, arguments: [3, Cassandra::UDT.new(name: 'Jess')])
 
       user_value = session.execute("SELECT b FROM mytable where a=2").first['b']
       assert_equal 35, user_value.age
@@ -207,7 +185,7 @@ class UserDefinedTypeTest < IntegrationTestCase
 
       # Insert into table
       insert = session.prepare("INSERT INTO mytable (zz, a) VALUES (?, ?)")
-      session.execute(insert, arguments: [0, OpenStruct.new(input)])
+      session.execute(insert, arguments: [0, Cassandra::UDT.new(input)])
 
       # Verify UDT written correctly
       user_value = session.execute("SELECT a FROM mytable WHERE zz=0").first['a']
@@ -254,9 +232,9 @@ class UserDefinedTypeTest < IntegrationTestCase
                       )")
 
       # Create the input
-      udts = [OpenStruct.new(age: 30, name: 'John')]
+      udts = [Cassandra::UDT.new(age: 30, name: 'John')]
       (1..max_udt_depth).each do |depth|
-        udts.push(OpenStruct.new(value: udts[depth - 1]))
+        udts.push(Cassandra::UDT.new(value: udts[depth - 1]))
       end
 
       # Insert into table
@@ -300,7 +278,7 @@ class UserDefinedTypeTest < IntegrationTestCase
 
       # Insert into table
       insert = session.prepare("INSERT INTO mytable (zz, a) VALUES (?, ?)")
-      session.execute(insert, arguments: [0, OpenStruct.new(input)])
+      session.execute(insert, arguments: [0, Cassandra::UDT.new(input)])
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first['a']
@@ -336,7 +314,7 @@ class UserDefinedTypeTest < IntegrationTestCase
 
       # Insert into table
       insert = session.prepare("INSERT INTO mytable (zz, a) VALUES (?, ?)")
-      session.execute(insert, arguments: [0, OpenStruct.new(input)])
+      session.execute(insert, arguments: [0, Cassandra::UDT.new(input)])
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first['a']
@@ -383,7 +361,7 @@ class UserDefinedTypeTest < IntegrationTestCase
 
       # Insert into table
       insert = session.prepare("INSERT INTO mytable (zz, a) VALUES (?, ?)")
-      session.execute(insert, arguments: [0, OpenStruct.new(input)])
+      session.execute(insert, arguments: [0, Cassandra::UDT.new(input)])
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first['a']
@@ -432,7 +410,7 @@ class UserDefinedTypeTest < IntegrationTestCase
 
       # Insert into table
       insert = session.prepare("INSERT INTO mytable (zz, a) VALUES (?, ?)")
-      session.execute(insert, arguments: [0, OpenStruct.new(input)])
+      session.execute(insert, arguments: [0, Cassandra::UDT.new(input)])
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first['a']
