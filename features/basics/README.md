@@ -24,7 +24,7 @@
       <td><code>varchar</code></td>
     </tr>
     <tr>
-      <td rowspan="4"><code>Numeric</code></td>
+      <td rowspan="4"><code>Integer</code></td>
       <td><code>bigint</code></td>
     </tr>
     <tr>
@@ -68,10 +68,11 @@
       <td><code>timeuuid</code></td>
     </tr>
     <tr>
-      <td rowspan="2"><code>Array</code></td>
+      <td><code>Array</code></td>
       <td><code>list</code></td>
     </tr>
     <tr>
+      <td><code><a href="http://datastax.github.io/ruby-driver/api/tuple/">Cassandra::Tuple</a></code></td>
       <td><code>tuple</code></td>
     </tr>
     <tr>
@@ -83,7 +84,7 @@
       <td><code>map</code></td>
     </tr>
     <tr>
-      <td><code><a href="http://datastax.github.io/ruby-driver/api/user_value/">Cassandra::UserValue</a></code></td>
+      <td><code><a href="http://datastax.github.io/ruby-driver/api/udt/">Cassandra::UDT</a></code></td>
       <td><code>UDT</code> (user-defined type)</td>
     </tr>
   </tbody>

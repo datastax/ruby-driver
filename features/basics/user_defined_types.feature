@@ -21,29 +21,27 @@ Feature: User-Defined Types
     Given the following example:
       """ruby
       require 'cassandra'
-      require 'ostruct'
 
       cluster = Cassandra.cluster
       session = cluster.connect('simplex')
       insert  = session.prepare('INSERT INTO users (id, location) VALUES (?, ?)')
 
-      session.execute(insert, arguments: [0, OpenStruct.new(street: '123 Main St.', zipcode: 78723)])
+      session.execute(insert, arguments: [0, Cassandra::UDT.new(street: '123 Main St.', zipcode: 78723)])
       session.execute('SELECT * FROM users').each do |row|
         location = row['location']
-        puts "Location: #{location.class.name}, #{location.street} #{location.zipcode}"
+        puts "Location: #{location}"
       end
       """
     When it is executed
     Then its output should contain:
       """
-      Location: Cassandra::UserValue, 123 Main St. 78723
+      Location: { street: "123 Main St.", zipcode: 78723 }
       """
 
   Scenario: Using User-Defined Types with raw CQL
     Given the following example:
       """ruby
       require 'cassandra'
-      require 'ostruct'
 
       cluster = Cassandra.cluster
       session = cluster.connect('simplex')
@@ -51,35 +49,13 @@ Feature: User-Defined Types
       session.execute("INSERT INTO users (id, location) VALUES (0, {street: '123 Main St.', zipcode: 78723})")
       session.execute('SELECT * FROM users').each do |row|
         location = row['location']
-        puts "Location: #{location.class.name}, #{location.street} #{location.zipcode}"
+        puts "Location: #{location}"
       end
       """
     When it is executed
     Then its output should contain:
       """
-      Location: Cassandra::UserValue, 123 Main St. 78723
-      """
-
-  Scenario: User-Defined Types are not supported as positional arguments in simple statements
-    Given the following example:
-      """ruby
-      require 'cassandra'
-      require 'ostruct'
-
-      cluster = Cassandra.cluster
-
-      session = cluster.connect('simplex')
-
-      begin
-        session.execute('INSERT INTO users (id, location) VALUES (?, ?)', arguments: [0, OpenStruct.new(street: '123 Main St.', zipcode: 78723)])
-      rescue => e
-        puts "#{e.class.name}: #{e.message}"
-      end
-      """
-    When it is executed
-    Then its output should contain:
-      """
-      ArgumentError: Unable to guess the type of the argument
+      Location: { street: "123 Main St.", zipcode: 78723 }
       """
 
   Scenario: Inspecting User-Defined Types
@@ -110,29 +86,27 @@ Feature: User-Defined Types
     Given the following example:
     """ruby
       require 'cassandra'
-      require 'ostruct'
 
       cluster = Cassandra.cluster
       session = cluster.connect('simplex')
       insert  = session.prepare('INSERT INTO users (id, location) VALUES (?, ?)')
 
-      session.execute(insert, arguments: [0, OpenStruct.new(zipcode: 78723)])
+      session.execute(insert, arguments: [0, Cassandra::UDT.new(zipcode: 78723)])
       session.execute('SELECT * FROM users').each do |row|
         location = row['location']
-        puts "Location: #{location.class.name}, #{location.street} #{location.zipcode}"
+        puts "Location: #{location}"
       end
       """
     When it is executed
     Then its output should contain:
       """
-      Location: Cassandra::UserValue,  78723
+      Location: { street: "123 Main St.", zipcode: 78723 }
       """
 
   Scenario: Nesting a User-Defined Type
     Given the following example:
     """ruby
       require 'cassandra'
-      require 'ostruct'
 
       cluster = Cassandra.cluster
       session = cluster.connect('simplex')
@@ -140,9 +114,9 @@ Feature: User-Defined Types
       session.execute("CREATE TABLE registration (id int PRIMARY KEY, info frozen<check_in>)")
       insert  = session.prepare('INSERT INTO registration (id, info) VALUES (?, ?)')
 
-      location = OpenStruct.new(street: '123 Main St.', zipcode: 78723)
+      location = Cassandra::UDT.new(street: '123 Main St.', zipcode: 78723)
       tuple = [42, 'math', 3.14]
-      input = OpenStruct.new(location: location, time: Time.at(1358013521, 123000), data: tuple)
+      input = Cassandra::UDT.new(location: location, time: Time.at(1358013521, 123000), data: tuple)
 
       session.execute(insert, arguments: [0, input])
       session.execute('SELECT * FROM registration').each do |row|

@@ -216,25 +216,27 @@ Feature: Datatypes
       session = cluster.connect("simplex")
 
       row = session.execute("SELECT * FROM user").first
-      puts "Name: #{row['name'].join(' ')}"
+
+      puts "Name: #{row['name']}"
 
       update = session.prepare("UPDATE user SET name=? WHERE id=0")
-      session.execute(update, arguments: [['Jane', 'Doe']])
+      session.execute(update, arguments: [Cassandra::Tuple.new('Jane', 'Doe')])
 
       row = session.execute("SELECT * FROM user").first
-      puts "Name: #{row['name'].join(' ')}"
+      puts "Name: #{row['name']}"
 
       session.execute("INSERT INTO user (id, name) VALUES (1, (?, ?))", arguments: ['Agent', 'Smith'])
       row = session.execute("SELECT * FROM user WHERE id=1").first
-      puts "Name: #{row['name'].join(' ')}"
+      puts "Name: #{row['name']}"
 
       insert = session.prepare("INSERT INTO user (id, name) VALUES (?, ?)")
       session.execute(insert, arguments: [2, ['Apache', 'Cassandra']])
       row = session.execute("SELECT * FROM user WHERE id=2").first
-      puts "Name: #{row['name'].join(' ')}"
+
+      puts "Name: #{row['name']}"
 
       begin
-        session.execute(update, arguments: [['Jane', 'Doe', 'Extra']])
+        session.execute(update, arguments: [Cassandra::Tuple.new('Jane', 'Doe', 'Extra')])
       rescue => e
         puts "#{e.class.name}: #{e.message}"
       end
@@ -242,9 +244,9 @@ Feature: Datatypes
     When it is executed
     Then its output should contain:
       """
-      Name: John Smith
-      Name: Jane Doe
-      Name: Agent Smith
-      Name: Apache Cassandra
-      ArgumentError: argument for "name" must be "frozen <tuple<varchar, varchar>>", ["Jane", "Doe", "Extra"] given
+      Name: (John, Smith)
+      Name: (Jane, Doe)
+      Name: (Agent, Smith)
+      Name: (Apache, Cassandra)
+      ArgumentError: argument for "name" must be "tuple<varchar, varchar>", (Jane, Doe, Extra) given
       """
