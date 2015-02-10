@@ -510,7 +510,10 @@ end
 
 require 'cassandra/uuid'
 require 'cassandra/time_uuid'
-require 'cassandra/user_value'
+require 'cassandra/tuple'
+require 'cassandra/udt'
+
+require 'cassandra/types'
 
 require 'cassandra/errors'
 require 'cassandra/compression'
@@ -528,7 +531,6 @@ require 'cassandra/result'
 require 'cassandra/statement'
 require 'cassandra/statements'
 
-require 'cassandra/user_type'
 require 'cassandra/column'
 require 'cassandra/table'
 require 'cassandra/keyspace'

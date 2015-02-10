@@ -99,7 +99,7 @@ module Cassandra
       @types.has_key?(name)
     end
 
-    # @return [Cassandra::UserType, nil] a type or nil
+    # @return [Cassandra::Types::UserDefined, nil] a type or nil
     # @param name [String] user-defined type name
     def type(name)
       @types[name]
@@ -107,10 +107,10 @@ module Cassandra
 
     # Yield or enumerate each user-defined type present in this keyspace
     # @overload each_type
-    #   @yieldparam type [Cassandra::UserType] current type
+    #   @yieldparam type [Cassandra::Types::UserDefined] current type
     #   @return [Cassandra::Keyspace] self
     # @overload each_type
-    #   @return [Array<Cassandra::UserType>] a list of user-defined types
+    #   @return [Array<Cassandra::Types::UserDefined>] a list of user-defined types
     def each_type(&block)
       if block_given?
         @types.each_value(&block)

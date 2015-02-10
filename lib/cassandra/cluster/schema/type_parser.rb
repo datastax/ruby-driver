@@ -102,9 +102,9 @@ module Cassandra
 
           case type
           when :set, :list
-            [type, lookup_type(node.children.first)]
+            Cassandra::Types.send(type, lookup_type(node.children.first))
           when :map
-            [type, *node.children.map {|child| lookup_type(child)}]
+            Cassandra::Types.map(*node.children.map(&method(:lookup_type)))
           when :udt
             keyspace = node.children.shift.name
             name     = [node.children.shift.name].pack('H*')
@@ -117,13 +117,11 @@ module Cassandra
               [field_name, lookup_type(child)]
             end
 
-            [:udt, keyspace, name, fields]
+            Cassandra::Types.udt(keyspace, name, fields)
           when :tuple
-            fields = node.children.map(&method(:lookup_type))
-
-            [:tuple, fields]
+            Cassandra::Types.tuple(*node.children.map(&method(:lookup_type)))
           else
-            type
+            Cassandra::Types.send(type)
           end
         end
 

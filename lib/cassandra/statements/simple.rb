@@ -45,7 +45,7 @@ module Cassandra
           params = EMPTY_LIST
         end
 
-        params_types = params.map {|value| guess_type(value)}
+        params_types = params.map {|value| Util.guess_type(value)}
 
         @cql          = cql
         @params       = params
@@ -66,44 +66,6 @@ module Cassandra
       end
 
       alias :== :eql?
-
-      private
-
-      # @private
-      @@type_guesses = {
-        ::String     => :varchar,
-        ::Fixnum     => :bigint,
-        ::Float      => :double,
-        ::Bignum     => :varint,
-        ::BigDecimal => :decimal,
-        ::TrueClass  => :boolean,
-        ::FalseClass => :boolean,
-        ::NilClass   => :bigint,
-        Uuid         => :uuid,
-        TimeUuid     => :uuid,
-        ::IPAddr     => :inet,
-        ::Time       => :timestamp,
-        ::Hash       => :map,
-        ::Array      => :list,
-        ::Set        => :set,
-      }.freeze
-
-      def guess_type(value)
-        type = @@type_guesses[value.class]
-
-        raise ::ArgumentError, "Unable to guess the type of the argument: #{value.inspect}" unless type
-
-        if type == :map
-          pair = value.first
-          [type, guess_type(pair[0]), guess_type(pair[1])]
-        elsif type == :list
-          [type, guess_type(value.first)]
-        elsif type == :set
-          [type, guess_type(value.first)]
-        else
-          type
-        end
-      end
     end
   end
 end

@@ -234,15 +234,15 @@ module Cassandra
       def create_type(type, version)
         keyspace        = type['keyspace_name']
         name            = type['type_name']
-        fields          = ::Hash.new
+        fields          = ::Array.new
 
         type['field_names'].zip(type['field_types']) do |(field_name, field_type)|
           field_type = @type_parser.parse(field_type).results.first.first
 
-          fields[field_name] = UserType::Field.new(field_name, field_type)
+          fields << [field_name, field_type]
         end
 
-        UserType.new(keyspace, name, fields)
+        Types.udt(keyspace, name, fields)
       end
 
       def create_table(table, columns, version)

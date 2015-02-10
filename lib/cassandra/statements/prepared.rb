@@ -71,7 +71,7 @@ module Cassandra
         end
 
         params_types = @params_metadata.each_with_index.map do |(_, _, name, type), i|
-          Util.assert_type(type, args[i]) { "argument for #{name.inspect} must be #{Util.type_to_cql(type).inspect}, #{args[i]} given" }
+          Util.assert_type(type, args[i]) { "argument for #{name.inspect} must be #{type}, #{args[i]} given" }
           type
         end
 
