@@ -64,12 +64,35 @@ module Cassandra
 
       # Returns value of the field.
       #
-      # @param name [String, Integer] name or numeric index of the field
+      # @param field [String, Integer] name or numeric index of the field
       # @return [Object] value of the field
       def [](field)
         case field
         when ::Integer
-          if i < 0 || i >= @fields.size
+          return nil if field < 0 || field >= @fields.size
+          @values[@fields[field][0]]
+        when ::String
+          @values[field]
+        else
+          raise ::ArgumentError, "unrecognized field #{field} in UDT: " \
+            "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}"
+        end
+      end
+
+      # Returns value of the field.
+      #
+      # @param field [String, Integer] name or numeric index of the field to
+      #   lookup
+      #
+      # @raise [IndexError] when numeric index given is out of bounds
+      # @raise [KeyError] when field with a given name is not present
+      # @raise [ArgumentError] when neither a numeric index nor a field name given
+      #
+      # @return [Object] value of the field
+      def fetch(field)
+        case field
+        when ::Integer
+          if field < 0 || field >= @fields.size
             raise ::IndexError,
               "field index #{field} is not present in UDT: " \
               "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}" 
@@ -83,21 +106,26 @@ module Cassandra
           end
           @values[field]
         else
-          raise ::IndexError, "unrecognized field #{field} in UDT: " \
-            "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}" 
+          raise ::ArgumentError, "unrecognized field #{field} in UDT: " \
+            "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}"
         end
       end
 
       # Sets value of the field.
       #
-      # @param name  [String, Integer] name or numeric index of the field
+      # @param field [String, Integer] name or numeric index of the field
       # @param value [Object] new value for the field
+      #
+      # @raise [IndexError] when numeric index given is out of bounds
+      # @raise [KeyError] when field with a given name is not present
+      # @raise [ArgumentError] when neither a numeric index nor a field name
+      #   given
       #
       # @return [Object] value.
       def []=(field, value)
         case field
         when ::Integer
-          if i < 0 || i >= @fields.size
+          if field < 0 || field >= @fields.size
             raise ::IndexError,
               "field index #{field} is not present in UDT: " \
               "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}" 
@@ -113,8 +141,8 @@ module Cassandra
           Util.assert_type(@name_to_type[field], value)
           @values[field] = value
         else
-          raise ::IndexError, "unrecognized field #{field} in UDT: " \
-            "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}" 
+          raise ::ArgumentError, "unrecognized field #{field} in UDT: " \
+            "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}"
         end
       end
 
@@ -168,7 +196,7 @@ module Cassandra
           "values of a user-defined type must be an Array of alternating " \
           "names and values pairs, #{values.inspect} given"
         )
-        @values = values.each_slice(2).map do |name, value|
+        @values = values.each_slice(2).map do |(name, value)|
           [String(name), value]
         end
       end
@@ -186,20 +214,20 @@ module Cassandra
     #   puts address.street
     #   address.street = '123 SomePlace Cir'
     #
-    # @overload method_missing(method)
-    #   @param name [Symbol] name of the field to lookup
+    # @overload method_missing(field)
+    #   @param field [Symbol] name of the field to lookup
     #   @raise [NoMethodError] if the field is not present
     #   @return [Object] value of the field if present
-    # @overload method_missing(method, value)
-    #   @param name  [Symbol] name of the field (suffixed with `=`) to set
+    # @overload method_missing(field, value)
+    #   @param field  [Symbol] name of the field (suffixed with `=`) to set
     #     the value for
     #   @param value [Symbol] new value for the field
     #   @raise [NoMethodError] if the field is not present
     #   @return [Cassandra::UDT] self.
-    def method_missing(method, *args, &block)
+    def method_missing(field, *args, &block)
       return super if block_given? || args.size > 1
 
-      key = method.to_s
+      key = field.to_s
       set = !key.chomp!('=').nil?
 
       return super if set && args.empty?
@@ -216,11 +244,11 @@ module Cassandra
 
     # Returns true if a field with a given name is present
     #
-    # @param method [Symbol] method or name of the field
+    # @param field [Symbol] method or name of the field
     #
     # @return [Boolean] whether a field is present
-    def respond_to?(method)
-      key = method.to_s
+    def respond_to?(field)
+      key = field.to_s
       key.chomp!('=')
 
       return true if @values.any? {|(name, _)| name == key}
@@ -229,43 +257,67 @@ module Cassandra
 
     # Returns value of the field.
     #
-    # @param name [String, Integer] name or numeric index of the field to lookup
+    # @param field [String, Integer] name or numeric index of the field to
+    #   lookup
+    #
+    # @raise [ArgumentError] when neither a numeric index nor a field name given
+    #
+    # @return [Object] value of the field, or nil if the field is not present
+    def [](field)
+      case field
+      when ::Integer
+        return nil if field >= 0 && field < @values.size
+
+        @values[field][1]
+      when ::String
+        index = @values.index {|(n, _)| field == n}
+
+        index && @values[index][1]
+      else
+        raise ::ArgumentError, "Unrecognized field #{field.inspect}"
+      end
+    end
+
+    # Returns value of the field.
+    #
+    # @param field [String, Integer] name or numeric index of the field to
+    #   lookup
     #
     # @raise [IndexError] when numeric index given is out of bounds
     # @raise [KeyError] when field with a given name is not present
     # @raise [ArgumentError] when neither a numeric index nor a field name given
     #
     # @return [Object] value of the field
-    def [](name)
-      case name
+    def fetch(field)
+      case field
       when ::Integer
-        if name >= 0 && name < @values.size
-          raise ::IndexError, "Field index #{name.inspect} is not present"
+        if field >= 0 && field < @values.size
+          raise ::IndexError, "Field index #{field.inspect} is not present"
         end
 
-        @values[name][1]
+        @values[field][1]
       when ::String
-        index = @values.index {|(n, _)| name == n}
+        index = @values.index {|(n, _)| field == n}
 
         unless index
-          raise ::KeyError, "Unsupported field #{name.inspect}"
+          raise ::KeyError, "Unsupported field #{field.inspect}"
         end
 
         @values[index][1]
       else
-        raise ::ArgumentError, "Unrecognized field #{name.inspect}"
+        raise ::ArgumentError, "Unrecognized field #{field.inspect}"
       end
     end
 
     # @param name [String, Integer] name or numeric index of the field to lookup
     #
     # @return [Boolean] whether the field is present in this UDT
-    def has_field?(name)
-      case name
+    def has_field?(field)
+      case field
       when ::Integer
-        return false if name < 0 || name >= @values.size
+        return false if field < 0 || field >= @values.size
       when ::String
-        return false unless @values.index {|(n, _)| name == n}
+        return false unless @values.index {|(n, _)| field == n}
       else
         return false
       end
@@ -277,7 +329,7 @@ module Cassandra
 
     # Sets value of the field.
     #
-    # @param name  [String] name of the field to set
+    # @param field [String] name of the field to set
     # @param value [Object] new value for the field
     #
     # @raise [IndexError] when numeric index given is out of bounds
@@ -285,24 +337,24 @@ module Cassandra
     # @raise [ArgumentError] when neither a numeric index nor a field name given
     #
     # @return [Object] value.
-    def []=(name, value)
-      case name
+    def []=(field, value)
+      case field
       when ::Integer
-        if name < 0 || name >= @values.size
-          raise ::IndexError, "Field index #{name.inspect} is not present"
+        if field < 0 || field >= @values.size
+          raise ::IndexError, "Field index #{field.inspect} is not present"
         end
 
-        @values[name][1] = value
+        @values[field][1] = value
       when ::String
-        index = @values.index {|(n, _)| name == n}
+        index = @values.index {|(n, _)| field == n}
 
         unless index
-          raise ::KeyError, "Unsupported field #{name.inspect}"
+          raise ::KeyError, "Unsupported field #{field.inspect}"
         end
 
         @values[index][1] = value
       else
-        raise ::ArgumentError, "Unrecognized field #{name.inspect}"
+        raise ::ArgumentError, "Unrecognized field #{field.inspect}"
       end
     end
 

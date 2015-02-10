@@ -974,8 +974,8 @@ module Cassandra
       def assert(value, message = nil, &block)
         Util.assert_instance_of(Cassandra::Tuple, value, message, &block)
         Util.assert(value.size <= @members.size, message, &block)
-        value.zip(@members) do |(v, t)|
-          Util.assert_type(t, v, message, &block)
+        @members.each_with_index do |type, i|
+          Util.assert_type(type, value[i], message, &block)
         end
         nil
       end
@@ -1097,8 +1097,8 @@ module Cassandra
       def assert(value, message = nil, &block)
         Util.assert_instance_of(Cassandra::UDT, value, message, &block)
         Util.assert(value.size <= @fields.size, message, &block)
-        value.zip(@fields) do |((_, v), f)|
-          Util.assert_type(f.type, v, message, &block)
+        @fields.each do |field|
+          Util.assert_type(field.type, value[field.name], message, &block)
         end
         nil
       end

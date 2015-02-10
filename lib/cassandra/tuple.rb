@@ -35,6 +35,11 @@ module Cassandra
       end
 
       def [](i)
+        @values[Integer(i)]
+      end
+
+      def fetch(i)
+        i = Integer(i)
         raise ::IndexError, "index #{i} is outside of tuple, size: #{@types.size}" if i < 0 || i >= @types.size
         @values[i]
       end
@@ -73,6 +78,15 @@ module Cassandra
     # @raise [IndexError] when index is outside of tuple bounds
     # @return [Object] value of the tuple at position `i`
     def [](i)
+      @values[Integer(i)]
+    end
+
+    # @param i [Integer] numeric index of the value inside the tuple, must
+    #   be `0 < i < tuple.size`
+    # @raise [IndexError] when index is outside of tuple bounds
+    # @return [Object] value of the tuple at position `i`
+    def fetch(i)
+      i = Integer(i)
       raise ::IndexError, "index #{i} is outside of tuple, size: #{@values.size}" if i < 0 || i >= @values.size
       @values[i]
     end
@@ -83,6 +97,7 @@ module Cassandra
     # @raise [IndexError] when index is outside of tuple bounds
     # @return [Object] value of the tuple at position `i`
     def []=(i, value)
+      i = Integer(i)
       raise ::IndexError, "index #{i} is outside of tuple, size: #{@values.size}" if i < 0 || i >= @values.size
       @values[i] = value
     end

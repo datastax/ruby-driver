@@ -85,8 +85,8 @@ module Cassandra
             raw    = CqlByteBuffer.new
             fields = type.fields
 
-            value.each_with_index do |(n, v), i|
-              write_value_v3(raw, v, fields[i].type)
+            fields.each do |field|
+              write_value_v3(raw, value[field.name], field.type)
             end
 
             buffer.append_bytes(raw)
@@ -98,8 +98,8 @@ module Cassandra
             raw     = CqlByteBuffer.new
             members = type.members
 
-            value.each_with_index do |v, i|
-              write_value_v3(raw, v, members[i])
+            members.each_with_index do |member_type, i|
+              write_value_v3(raw, value[i], member_type)
             end
 
             buffer.append_bytes(raw)
