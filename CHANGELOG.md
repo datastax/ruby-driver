@@ -2,10 +2,11 @@
 
 Features:
 
-* Support for Apache Cassandra native protocol v3
+* Apache Cassandra native protocol v3
 * User-defined types and tuples
 * Schema metadata includes user-defined types
 * Named arguments
+* Public types api for type definition and introspection
 
 Breaking Changes:
 
