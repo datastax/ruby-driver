@@ -21,7 +21,7 @@ module Cassandra
     class SchemaChangeEventResponse < EventResponse
       TYPE = 'SCHEMA_CHANGE'.freeze
 
-      attr_reader :change, :keyspace, :table, :type_name, :target
+      attr_reader :change, :keyspace, :table, :type, :target
 
       def initialize(change, keyspace, name, target = nil)
         @change   = change
@@ -29,7 +29,7 @@ module Cassandra
 
         if target
           @target = target
-          @table = @type_name = name
+          @table = @type = name
         else
           if name.empty?
             @target = Constants::SCHEMA_CHANGE_TARGET_KEYSPACE

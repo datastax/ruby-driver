@@ -726,7 +726,7 @@ Control connection failed and is unlikely to recover.
             tables[change.table] = true
           when Protocol::Constants::SCHEMA_CHANGE_TARGET_UDT
             types = refresh_types[keyspace] ||= ::Hash.new
-            types[change.type_name] = true
+            types[change.type] = true
           end
         end
 
