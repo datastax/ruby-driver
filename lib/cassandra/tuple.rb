@@ -117,8 +117,7 @@ module Cassandra
     end
 
     def eql?(other)
-      other.is_a?(Tuple) &&
-        @values.each_with_index.all? {|(v, i)| v == other[i]}
+      other == @values
     end
     alias :== :eql?
   end
