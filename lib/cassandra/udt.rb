@@ -167,6 +167,12 @@ module Cassandra
       def inspect
         "#<Cassandra::UDT:0x#{self.object_id.to_s(16)} #{to_s}>"
       end
+
+      def eql?(other)
+        (other.is_a?(Strict) && @values.all? {|n, v| v == other[n]}) ||
+        (other.is_a?(UDT) && other == self)
+      end
+      alias :== :eql?
     end
 
     include Enumerable
@@ -383,11 +389,16 @@ module Cassandra
 
     # String representation of the UDT
     def to_s
-      '{ ' + @values.map {|n, v| "#{n}: #{v.inspect}"}.join(', ') + ' }'
+      '{ ' + @values.map {|(n, v)| "#{n}: #{v.inspect}"}.join(', ') + ' }'
     end
 
     def inspect
       "#<Cassandra::UDT:0x#{self.object_id.to_s(16)} #{to_s}>"
     end
+
+    def eql?(other)
+      other.is_a?(UDT) && @values.all? {|(n, v)| v == other[n]}
+    end
+    alias :== :eql?
   end
 end

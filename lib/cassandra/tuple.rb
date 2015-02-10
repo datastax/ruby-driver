@@ -116,5 +116,11 @@ module Cassandra
     def inspect
       "#<Cassandra::Tuple:0x#{self.object_id.to_s(16)} #{to_s}>"
     end
+
+    def eql?(other)
+      other.is_a?(Tuple) &&
+        @values.each_with_index.all? {|(v, i)| v == other[i]}
+    end
+    alias :== :eql?
   end
 end
