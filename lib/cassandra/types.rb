@@ -67,8 +67,6 @@ module Cassandra
         @kind.to_s
       end
 
-      alias :to_cql :to_s
-
       def eql?(other)
         other.is_a?(Simple) && @kind == other.kind
       end
