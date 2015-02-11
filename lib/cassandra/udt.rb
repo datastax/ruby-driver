@@ -180,6 +180,22 @@ module Cassandra
     # Creates a UDT instance
     # @param values [Hash<String, Object>, Array<Array<String, Object>>,
     #                 *Object, *Array<String, Object>] - UDT field values
+    # @example Various ways of creating the same UDT instance
+    #   Cassandra::UDT.new({'street' => '123 Main St.', 'city' => 'Whatever', 'state' => 'XZ', 'zip' => '10020'})
+    #
+    #   Cassandra::UDT.new(street: '123 Main St.', city: 'Whatever', state: 'XZ', zip: '10020')
+    #
+    #   Cassandra::UDT.new('street', '123 Main St.', 'city', 'Whatever', 'state', 'XZ', 'zip', '10020')
+    #
+    #   Cassandra::UDT.new(:street, '123 Main St.', :city, 'Whatever', :state, 'XZ', :zip, '10020')
+    #
+    #   Cassandra::UDT.new(['street', '123 Main St.'], ['city', 'Whatever'], ['state', 'XZ'], ['zip', '10020'])
+    #
+    #   Cassandra::UDT.new([:street, '123 Main St.'], [:city, 'Whatever'], [:state, 'XZ'], [:zip, '10020'])
+    #
+    #   Cassandra::UDT.new([['street', '123 Main St.'], ['city', 'Whatever'], ['state', 'XZ'], ['zip', '10020']])
+    #
+    #   Cassandra::UDT.new([[:street, '123 Main St.'], [:city, 'Whatever'], [:state, 'XZ'], [:zip, '10020']])
     def initialize(*values)
       values = Array(values.first) if values.one?
 
