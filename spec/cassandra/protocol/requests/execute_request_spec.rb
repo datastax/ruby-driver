@@ -87,12 +87,12 @@ module Cassandra
           end
 
           it 'raises an error for unsupported column types' do
-            parameter_types[2] = instance_double("ImaginaryType", name: :imaginary)
+            parameter_types[2] = instance_double("ImaginaryType", kind: :imaginary)
             expect { ExecuteRequest.new(id, parameter_types, ['hello', 42, 'foo'], true, :each_quorum, nil, nil, nil, false).write(CqlByteBuffer.new, 1, encoder) }.to raise_error(Errors::EncodingError)
           end
 
           it 'raises an error for unsupported column collection types' do
-            parameter_types[2] = instance_double("MapType", name: :map, key_type: Types.varchar, value_type: instance_double("ImaginaryType", name: :imaginary))
+            parameter_types[2] = instance_double("MapType", kind: :map, key_type: Types.varchar, value_type: instance_double("ImaginaryType", kind: :imaginary))
             expect { ExecuteRequest.new(id, parameter_types, ['hello', 42, ['foo']], true, :each_quorum, nil, nil, nil, false).write(CqlByteBuffer.new, 1, encoder) }.to raise_error(Errors::EncodingError)
           end
 
