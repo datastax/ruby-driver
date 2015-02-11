@@ -76,7 +76,7 @@ class DatatypeUtils
         else
           {get_sample(datatype) => get_sample(datatype)}
         end
-      when 'Tuple' then [get_sample(datatype)]
+      when 'Tuple' then Cassandra::Tuple.new(get_sample(datatype))
       else raise "Missing handling of non-primitive type: " + complex_type
     end
   end

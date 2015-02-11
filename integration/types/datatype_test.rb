@@ -281,20 +281,21 @@ class DatatypeTest < IntegrationTestCase
 
       # Test non-prepared statement
       complete = Cassandra::Tuple.new('foo', 123, true)
-      session.execute("INSERT INTO mytable (a, b) VALUES (0, (?, ?, ?))", arguments: complete)
+      session.execute("INSERT INTO mytable (a, b) VALUES (0, ?)", arguments: [complete])
       result = session.execute("SELECT b FROM mytable WHERE a=0").first
+      assert_equal complete, complete
       assert_equal complete, result['b']
 
       # Test partial tuples
       partial = Cassandra::Tuple.new('foo', 123)
-      session.execute("INSERT INTO mytable (a, b) VALUES (1, (?, ?))", arguments: partial)
+      session.execute("INSERT INTO mytable (a, b) VALUES (1, ?)", arguments: [partial])
       result = session.execute("SELECT b FROM mytable WHERE a=1").first
-      assert_equal partial.push(nil), result['b']
+      assert_equal Cassandra::Tuple.new(*(partial.to_a << nil)), result['b']
 
       subpartial = Cassandra::Tuple.new('foo')
-      session.execute("INSERT INTO mytable (a, b) VALUES (2, (?))", arguments: subpartial)
+      session.execute("INSERT INTO mytable (a, b) VALUES (2, ?)", arguments: [subpartial])
       result = session.execute("SELECT b FROM mytable WHERE a=2").first
-      assert_equal subpartial.push(nil).push(nil), result['b']
+      assert_equal Cassandra::Tuple.new(*(subpartial.to_a << nil << nil)), result['b']
 
       # Test prepared statement
       insert = session.prepare("INSERT INTO mytable (a, b) VALUES (?, ?)")
@@ -305,9 +306,9 @@ class DatatypeTest < IntegrationTestCase
       result = session.execute("SELECT b FROM mytable WHERE a=3").first
       assert_equal complete, result['b']
       result = session.execute("SELECT b FROM mytable WHERE a=4").first
-      assert_equal partial, result['b']
+      assert_equal Cassandra::Tuple.new(*(partial.to_a << nil)), result['b']
       result = session.execute("SELECT b FROM mytable WHERE a=5").first
-      assert_equal subpartial, result['b']
+      assert_equal Cassandra::Tuple.new(*(subpartial.to_a << nil << nil)), result['b']
     ensure
       cluster && cluster.close
     end
@@ -323,18 +324,14 @@ class DatatypeTest < IntegrationTestCase
       session.execute("CREATE TABLE mytable (a int PRIMARY KEY, b frozen<tuple<ascii, bigint, boolean>>)")
       insert = session.prepare("INSERT INTO mytable (a, b) VALUES (?, ?)")
 
+      # Tuple with extra value
       assert_raises(ArgumentError) do
-        session.execute(insert, arguments: [0, ['foo', 123, true, 'extra']])
+        session.execute(insert, arguments: [0, Cassandra::Tuple.new('foo', 123, true, 'extra')])
       end
 
-      input = ['foo', 123]
-      assert_raises(Cassandra::Errors::InvalidError) do
-        session.execute("INSERT INTO mytable (a, b) VALUES (0, (?, ?, ?))", arguments: input)
-      end
-
-      input = ['foo', 123, true, 'extra']
-      assert_raises(Cassandra::Errors::InvalidError) do
-        session.execute("INSERT INTO mytable (a, b) VALUES (0, (?, ?, ?))", arguments: input)
+      # Mismatched types in tuple
+      assert_raises(ArgumentError) do
+        session.execute(insert, arguments: [0, Cassandra::Tuple.new(true, 123, 'foo')])
       end
     ensure
       cluster && cluster.close
@@ -359,14 +356,14 @@ class DatatypeTest < IntegrationTestCase
 
       # Insert into table
       lengths.zip('a'..'z') do |length, letter|
-        input = (0...length).to_a
-        session.execute("INSERT INTO mytable (zz, #{letter}) VALUES (0, (#{(['?']*length).join(',')}))", arguments: input)
+        input = Cassandra::Tuple.new(*(0...length).to_a)
+        session.execute("INSERT INTO mytable (zz, #{letter}) VALUES (0, ?)", arguments: [input])
         result = session.execute("SELECT #{letter} FROM mytable WHERE zz=0").first
         assert_equal input, result["#{letter}"]
 
-        bigger_input = (0..length).to_a
+        bigger_input = Cassandra::Tuple.new((0..length).to_a)
         assert_raises(Cassandra::Errors::InvalidError) do
-          session.execute("INSERT INTO mytable (zz, #{letter}) VALUES (0, (#{(['?']*length).join(',')}))", arguments: bigger_input)
+          session.execute("INSERT INTO mytable (zz, #{letter}) VALUES (0, ?)", arguments: [bigger_input])
         end
       end
     ensure
@@ -489,7 +486,7 @@ class DatatypeTest < IntegrationTestCase
       DatatypeUtils.collection_types.each do |collection_type|
         DatatypeUtils.primitive_datatypes.each do |datatype|
           unless collection_type == 'Tuple'
-            params.push([DatatypeUtils.get_collection_sample(collection_type, datatype)])
+            params.push(nil)
           end
         end
       end
@@ -548,7 +545,7 @@ class DatatypeTest < IntegrationTestCase
       DatatypeUtils.collection_types.each do |collection_type|
         DatatypeUtils.primitive_datatypes.each do |datatype|
           unless collection_type == 'Tuple'
-            params.push(nil)
+            params.push(Cassandra::Tuple.new(DatatypeUtils.get_collection_sample(collection_type, datatype)))
           end
         end
       end
@@ -592,7 +589,7 @@ class DatatypeTest < IntegrationTestCase
     if depth == 0
       303
     else
-      [nested_tuples_creator_helper(depth - 1)]
+      Cassandra::Tuple.new(nested_tuples_creator_helper(depth - 1))
     end
   end
 
@@ -614,9 +611,15 @@ class DatatypeTest < IntegrationTestCase
 
       # Insert into table
       lengths.zip('a'..'z') do |depth, letter|
-        insert = session.prepare("INSERT INTO mytable (zz, #{letter}) VALUES (0, (?))")
         input = nested_tuples_creator_helper(depth)
-        session.execute(insert, arguments: input)
+
+        choice = rand(2)
+        if choice == 0    # try simple statement
+          session.execute("INSERT INTO mytable (zz, #{letter}) VALUES (0, ?)", arguments: [input])
+        else              # try prepared statement
+          insert = session.prepare("INSERT INTO mytable (zz, #{letter}) VALUES (0, ?)")
+          session.execute(insert, arguments: [input])
+        end
 
         result = session.execute("SELECT #{letter} FROM mytable WHERE zz=0").first
         assert_equal input, result["#{letter}"]
