@@ -22,8 +22,8 @@ env:
     - FAIL_FAST=no
     - COVERAGE=no
   matrix:
-    - CASSANDRA_VERSION=2.1.0
-    - CASSANDRA_VERSION=2.0.10
+    - CASSANDRA_VERSION=2.1.2
+    - CASSANDRA_VERSION=2.0.12
     - CASSANDRA_VERSION=1.2.19
 matrix:
   allow_failures:
