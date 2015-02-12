@@ -23,6 +23,7 @@ group :test do
   gem 'cucumber'
   gem 'aruba'
   gem 'os'
+  gem 'minitest'
 end
 
 group :docs do

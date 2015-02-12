@@ -15,7 +15,7 @@ rvm:
   - 2.1.5
   - 2.2.0
   - jruby
-  - rbx
+  - rbx-2.2.10
 jdk:
   - openjdk7
 env:
