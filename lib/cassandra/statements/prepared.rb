@@ -42,45 +42,36 @@ module Cassandra
         @schema          = schema
       end
 
-      # @!method bind(args)
       # Creates a statement bound with specific arguments
       #
-      # @param args [Array] positional arguments to bind, must contain the same
-      #   number of parameters as the number of positional (`?`) markers in the
-      #   original CQL passed to {Cassandra::Session#prepare}
-      #
-      # @note Positional arguments are only supported on Apache Cassandra 2.1
-      #   and above.
-      #
-      # @overload bind(*args)
-      #   Creates a statement bound with specific arguments using the
-      #   deprecated splat-style way of passing positional arguments.
-      #
-      #   @deprecated Please pass a single {Array} of positional arguments, the
-      #     `*args` style is deprecated.
-      #
-      #   @param args [*Object] **this style of positional arguments is
-      #     deprecated, please pass a single {Array} instead** - positional
-      #     arguments to bind, must contain the same number of parameters as
-      #     the number of positional argument markers (`?`) in the CQL passed
-      #     to {Cassandra::Session#prepare}.
+      # @param args [Array, Hash] (nil) positional or named arguments to bind,
+      #   must contain the same number of parameters as the number of positional
+      #   (`?`) or named (`:name`) markers in the original CQL passed to
+      #   {Cassandra::Session#prepare}
       #
       # @return [Cassandra::Statements::Bound] bound statement
-      def bind(*args)
-        if args.one? && args.first.is_a?(::Array)
-          args = args.first
+      def bind(args = nil)
+        if args
+          Util.assert_instance_of_one_of([::Array, ::Hash], args) { "args must be an Array or a Hash, #{args.inspect} given" }
         else
-          unless args.empty?
-            ::Kernel.warn "[WARNING] Splat style (*args) positional " \
-                          "arguments are deprecated, pass an Array instead " \
-                          "- called from #{caller.first}"
-          end
+          args = EMPTY_LIST
         end
 
-        Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{@params_metadata.size} bind parameters, #{args.size} given" }
+        if args.is_a?(Hash)
+          args = @params_metadata.map do |(_, _, name, type)|
+            unless args.has_key?(name)
+              name = name.to_sym
+              raise ::ArgumentError, "argument :#{name} must be present in #{args.inspect}, but isn't" unless args.has_key?(name)
+            end
+
+            args[name]
+          end
+        else
+          Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{@params_metadata.size} bind parameters, #{args.size} given" }
+        end
 
         params_types = @params_metadata.each_with_index.map do |(_, _, name, type), i|
-          Util.assert_type(type, args[i]) { "argument for #{name.inspect} must be #{type.inspect}, #{args[i]} given" }
+          Util.assert_type(type, args[i]) { "argument for #{name.inspect} must be #{type}, #{args[i]} given" }
           type
         end
 

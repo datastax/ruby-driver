@@ -51,7 +51,7 @@ module Cassandra
         self
       end
 
-      def update_keyspaces(host, keyspaces, tables, columns)
+      def update_keyspaces(host, keyspaces, tables, columns, types)
         columns = columns.each_with_object(deephash { [] }) do |row, index|
           index[row['keyspace_name']] << row
         end
@@ -60,12 +60,16 @@ module Cassandra
           index[row['keyspace_name']] << row
         end
 
+        types = types.each_with_object(deephash { [] }) do |row, index|
+          index[row['keyspace_name']] << row
+        end
+
         current_keyspaces = ::Set.new
 
         keyspaces.each do |row|
           current_keyspaces << keyspace = row['keyspace_name']
 
-          update_keyspace(host, row, tables[keyspace], columns[keyspace])
+          update_keyspace(host, row, tables[keyspace], columns[keyspace], types[keyspace])
         end
 
         @keyspaces.each do |name, keyspace|
@@ -75,7 +79,7 @@ module Cassandra
         self
       end
 
-      def update_keyspace(host, keyspace, tables, columns)
+      def update_keyspace(host, keyspace, tables, columns, types)
         keyspace_name = keyspace['keyspace_name']
 
         columns = columns.each_with_object(deephash { ::Hash.new }) do |row, index|
@@ -87,8 +91,13 @@ module Cassandra
           index[name] = create_table(row, columns[name], host.release_version)
         end
 
+        types = types.each_with_object(Hash.new) do |row, index|
+          name = row['type_name']
+          index[name] = create_type(row, host.release_version)
+        end
+
         replication = Keyspace::Replication.new(keyspace['strategy_class'], ::JSON.load(keyspace['strategy_options']))
-        keyspace = Keyspace.new(keyspace_name, keyspace['durable_writes'], replication, tables)
+        keyspace = Keyspace.new(keyspace_name, keyspace['durable_writes'], replication, tables, types)
 
         return self if keyspace == @keyspaces[keyspace_name]
 
@@ -165,6 +174,43 @@ module Cassandra
         self
       end
 
+      def udpate_type(host, keyspace_name, type)
+        keyspace = @keyspaces[keyspace_name]
+
+        return self unless keyspace
+
+        type     = create_type(type, host.release_version)
+        keyspace = keyspace.update_type(type)
+
+        synchronize do
+          keyspaces = @keyspaces.dup
+          keyspaces[keyspace_name] = keyspace
+          @keyspaces = keyspaces
+        end
+
+        keyspace_changed(keyspace)
+
+        self
+      end
+
+      def delete_type(keyspace_name, type_name)
+        keyspace = @keyspaces[keyspace_name]
+
+        return self unless keyspace
+
+        keyspace = keyspace.delete_type(type_name)
+
+        synchronize do
+          keyspaces = @keyspaces.dup
+          keyspaces[keyspace_name] = keyspace
+          @keyspaces = keyspaces
+        end
+
+        keyspace_changed(keyspace)
+
+        self
+      end
+
       def has_keyspace?(name)
         @keyspaces.include?(name)
       end
@@ -184,6 +230,20 @@ module Cassandra
       alias :keyspaces :each_keyspace
 
       private
+
+      def create_type(type, version)
+        keyspace        = type['keyspace_name']
+        name            = type['type_name']
+        fields          = ::Array.new
+
+        type['field_names'].zip(type['field_types']) do |(field_name, field_type)|
+          field_type = @type_parser.parse(field_type).results.first.first
+
+          fields << [field_name, field_type]
+        end
+
+        Types.udt(keyspace, name, fields)
+      end
 
       def create_table(table, columns, version)
         keyspace        = table['keyspace_name']
@@ -210,7 +270,7 @@ module Cassandra
         options = Table::Options.new(table, compaction_strategy, compression_parameters, is_compact, version)
         columns = create_columns(key_validator, comparator, column_aliases, is_dense, clustering_size, table, columns, version, partition_key, clustering_columns, clustering_order)
 
-        Table.new(keyspace, name, partition_key, clustering_columns, columns, options, clustering_order)
+        Table.new(keyspace, name, partition_key, clustering_columns, columns, options, clustering_order, version)
       end
 
       def find_clustering_size(comparator, columns, aliases, cassandra_version)

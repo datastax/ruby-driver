@@ -172,6 +172,61 @@ class SessionTest < IntegrationTestCase
     cluster && cluster.close
   end
 
+  def test_can_use_named_parameters_with_prepared_statement
+    skip("Named parameters are only available in C* after 2.1") if CCM.cassandra_version < '2.1.0'
+
+    setup_schema
+
+    begin
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)")
+      session.execute(insert, arguments: {:a => 0, :b => 'John', :c => 'Doe', :d => 40})
+
+      select = session.prepare("SELECT * FROM users WHERE user_id=:id")
+      result = session.execute(select, arguments: {:id => 0}).first
+
+      assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
+
+      batch = session.batch do |b|
+        b.add(insert, {:a => 1, :b => 'Jane', :c => 'Doe', :d => 30})
+        b.add(insert, {:a => 2, :b => 'Agent', :c => 'Smith', :d => 20})
+      end
+
+      session.execute(batch)
+
+      results = session.execute("SELECT * FROM users")
+      assert_equal 3, results.size
+    ensure
+      cluster && cluster.close
+    end
+  end
+
+  def test_raise_error_on_invalid_named_parameters
+    skip("Named parameters are only available in C* after 2.1") if CCM.cassandra_version < '2.1.0'
+
+    setup_schema
+
+    begin
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      assert_raises(ArgumentError) do
+        session.execute("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)",
+                        arguments: {:a => 0, :b => 'John', :c => 'Doe', :d => 30})
+      end
+
+      insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)")
+
+      assert_raises(ArgumentError) do
+        session.execute(insert, arguments: {:a => 0, :b => 'John', :c => 'Doe'})
+      end
+    ensure
+      cluster && cluster.close
+    end
+  end
+
   def test_prepare_errors_on_non_existent_table
     setup_schema
 

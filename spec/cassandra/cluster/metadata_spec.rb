@@ -26,7 +26,7 @@ class FakeSchema < Cassandra::Cluster::Schema
 
   def add_keyspace(name, replication_class, replication_options)
     replication = Cassandra::Keyspace::Replication.new(replication_class, replication_options)
-    @keyspaces[name] = Cassandra::Keyspace.new(name, true, replication, {})
+    @keyspaces[name] = Cassandra::Keyspace.new(name, true, replication, {}, {})
     self
   end
 end

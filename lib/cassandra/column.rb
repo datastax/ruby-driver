@@ -37,8 +37,7 @@ module Cassandra
 
     # @return [String] column name
     attr_reader :name
-    # @private
-    # @return [Symbol, Array(Symbol, Symbol)] column type
+    # @return [Cassandra::Type] column type
     attr_reader :type
     # @return [Symbol] column order (`:asc` or `:desc`)
     attr_reader :order
@@ -63,16 +62,9 @@ module Cassandra
       @static
     end
 
-    # @return [String] a cql representation of this column
-    def to_cql
-      cql = "#{@name} #{Util.type_to_cql(@type)}"
-      cql << ' static' if @static
-      cql
-    end
-
     # @return [String] a CLI-friendly column representation
     def inspect
-      "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @name=#{@name}>"
+      "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @name=#{@name} @type=#{@type}>"
     end
 
     # @return [Boolean] whether this column is equal to the other

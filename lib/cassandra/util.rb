@@ -132,76 +132,45 @@ module Cassandra
       io.string
     end
 
-    def type_to_cql(type)
-      case type
-      when Array
-        case type[0]
-        when :list, :set
-          "#{type[0].to_s}<#{type_to_cql(type[1])}>"
-        when :map
-          "#{type[0].to_s}<#{type_to_cql(type[1])}, #{type_to_cql(type[2])}>"
-        else
-          type.to_s
-        end
-      else
-        type.to_s
-      end
-    end
-
     def escape_name(name)
       return name if name[LOWERCASE_REGEXP] == name
       DBL_QUOT + name + DBL_QUOT
     end
 
-    def assert_type(type, value, message = nil, &block)
-      return if value.nil?
-
-      case type
-      when ::Array
-        case type.first
-        when :list
-          assert_instance_of(::Array, value, message, &block)
-          value.each do |v|
-            assert_type(type[1], v)
-          end
-        when :set
-          assert_instance_of(::Set, value, message, &block)
-          value.each do |v|
-            assert_type(type[1], v)
-          end
-        when :map
-          assert_instance_of(::Hash, value, message, &block)
-          value.each do |k, v|
-            assert_type(type[1], k)
-            assert_type(type[2], v)
-          end
-        when :custom
-          assert_responds_to_all([:bytesize, :to_s], value, message, &block)
-        else
-          raise ::RuntimeError, "unsupported complex type #{type.inspect}"
-        end
+    def guess_type(object)
+      case object
+      when ::String      then Types.varchar
+      when ::Fixnum      then Types.bigint
+      when ::Float       then Types.double
+      when ::Bignum      then Types.varint
+      when ::BigDecimal  then Types.decimal
+      when ::TrueClass   then Types.boolean
+      when ::FalseClass  then Types.boolean
+      when ::NilClass    then Types.bigint
+      when Uuid          then Types.uuid
+      when TimeUuid      then Types.timeuuid
+      when ::IPAddr      then Types.inet
+      when ::Time        then Types.timestamp
+      when ::Hash
+        pair = object.first
+        Types.map(guess_type(pair[0]), guess_type(pair[1]))
+      when ::Array       then Types.list(guess_type(object.first))
+      when ::Set         then Types.set(guess_type(object.first))
+      when Tuple::Strict then Types.tuple(*object.types)
+      when Tuple         then Types.tuple(*object.map {|v| guess_type(v)})
+      when UDT::Strict
+        Types.udt(object.keyspace, object.name, object.types)
+      when UDT
+        Types.udt('unknown', 'unknown', object.map {|k, v| [k, guess_type(v)]})
       else
-        case type
-        when :ascii then assert_instance_of(::String, value, message, &block)
-        when :bigint then assert_instance_of(::Numeric, value, message, &block)
-        when :blob then assert_instance_of(::String, value, message, &block)
-        when :boolean then assert_instance_of_one_of([::TrueClass, ::FalseClass], value, message, &block)
-        when :counter then assert_instance_of(::Numeric, value, message, &block)
-        when :decimal then assert_instance_of(::BigDecimal, value, message, &block)
-        when :double then assert_instance_of(::Float, value, message, &block)
-        when :float then assert_instance_of(::Float, value, message, &block)
-        when :inet then assert_instance_of(::IPAddr, value, message, &block)
-        when :int then assert_instance_of(::Numeric, value, message, &block)
-        when :text then assert_instance_of(::String, value, message, &block)
-        when :varchar then assert_instance_of(::String, value, message, &block)
-        when :timestamp then assert_instance_of(::Time, value, message, &block)
-        when :timeuuid then assert_instance_of(TimeUuid, value, message, &block)
-        when :uuid then assert_instance_of(Uuid, value, message, &block)
-        when :varint then assert_instance_of(::Numeric, value, message, &block)
-        else
-          raise ::RuntimeError, "unsupported type #{type.inspect}"
-        end
+        raise ::ArgumentError, "Unable to guess the type of the argument: #{object.inspect}"
       end
+    end
+
+    def assert_type(type, value, message = nil, &block)
+      assert_instance_of(Cassandra::Type, type, message, &block)
+      return if value.nil?
+      type.assert(value, message, &block)
     end
 
     def assert_instance_of(kind, value, message = nil, &block)
@@ -262,6 +231,15 @@ module Cassandra
       unless range.include?(value)
         message   = yield if block_given?
         message ||= "value must be included in #{value.inspect}, #{value.inspect} given"
+
+        raise ::ArgumentError, message
+      end
+    end
+
+    def assert_size(size, value, message = nil, &block)
+      unless value.size == size
+        message   = yield if block_given?
+        message ||= "value #{value.inspect} must have size equal to #{size.inspect}, but doesn't"
 
         raise ::ArgumentError, message
       end

@@ -32,7 +32,7 @@ module Cassandra
       describe '#to_s' do
         it 'returns a string with the description, keyspace and table' do
           response = described_class.new('CREATED', 'ks', 'tbl', nil)
-          response.to_s.should == 'RESULT SCHEMA_CHANGE CREATED "ks" "tbl"'
+          response.to_s.should == 'RESULT SCHEMA_CHANGE CREATED TABLE "ks" "tbl"'
         end
       end
 

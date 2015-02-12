@@ -36,7 +36,7 @@ module Cassandra
           "org.apache.cassandra.db.marshal.FloatType"         => :float,
           "org.apache.cassandra.db.marshal.InetAddressType"   => :inet,
           "org.apache.cassandra.db.marshal.Int32Type"         => :int,
-          "org.apache.cassandra.db.marshal.UTF8Type"          => :text,
+          "org.apache.cassandra.db.marshal.UTF8Type"          => :varchar,
           "org.apache.cassandra.db.marshal.TimestampType"     => :timestamp,
           "org.apache.cassandra.db.marshal.DateType"          => :timestamp,
           "org.apache.cassandra.db.marshal.UUIDType"          => :uuid,
@@ -44,7 +44,9 @@ module Cassandra
           "org.apache.cassandra.db.marshal.TimeUUIDType"      => :timeuuid,
           "org.apache.cassandra.db.marshal.MapType"           => :map,
           "org.apache.cassandra.db.marshal.SetType"           => :set,
-          "org.apache.cassandra.db.marshal.ListType"          => :list
+          "org.apache.cassandra.db.marshal.ListType"          => :list,
+          "org.apache.cassandra.db.marshal.UserType"          => :udt,
+          "org.apache.cassandra.db.marshal.TupleType"         => :tuple
         }.freeze
 
         def parse(string)
@@ -100,11 +102,26 @@ module Cassandra
 
           case type
           when :set, :list
-            [type, lookup_type(node.children.first)]
+            Cassandra::Types.send(type, lookup_type(node.children.first))
           when :map
-            [type, *node.children.map {|child| lookup_type(child)}]
+            Cassandra::Types.map(*node.children.map(&method(:lookup_type)))
+          when :udt
+            keyspace = node.children.shift.name
+            name     = [node.children.shift.name].pack('H*')
+            fields   = node.children.map do |child|
+              field_name, child_name = child.name.split(":")
+
+              child.name = child_name
+              field_name = [field_name].pack('H*').force_encoding(::Encoding::UTF_8)
+
+              [field_name, lookup_type(child)]
+            end
+
+            Cassandra::Types.udt(keyspace, name, fields)
+          when :tuple
+            Cassandra::Types.tuple(*node.children.map(&method(:lookup_type)))
           else
-            type
+            Cassandra::Types.send(type)
           end
         end
 

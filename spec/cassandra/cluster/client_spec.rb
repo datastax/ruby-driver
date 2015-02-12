@@ -35,7 +35,8 @@ module Cassandra
                                  :connections_per_remote_node => 1,
                                  :reconnection_policy => reconnection_policy,
                                  :executor => Executors::SameThread.new,
-                                 :logger => logger
+                                 :logger => logger,
+                                 :protocol_version => 2
                                } }
 
       let(:driver) { Driver.new(driver_settings) }
@@ -94,7 +95,8 @@ module Cassandra
                                        :heartbeat_interval => heartbeat_interval,
                                        :idle_timeout => idle_timeout,
                                        :logger => logger,
-                                       :port => port
+                                       :port => port,
+                                       :protocol_version => 2
                                     } }
           let(:heartbeat_interval)  { 30 }
           let(:idle_timeout)        { 60 }
@@ -737,7 +739,7 @@ module Cassandra
           client.connect.value
 
           expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false).and_return(batch_request)
-          expect(batch_request).to receive(:add_query).once.with('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', [1, 2, 3, 4, 5], [:bigint, :bigint, :bigint, :bigint, :bigint])
+          expect(batch_request).to receive(:add_query).once.with('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', [1, 2, 3, 4, 5], [Cassandra::Types.bigint, Cassandra::Types.bigint, Cassandra::Types.bigint, Cassandra::Types.bigint, Cassandra::Types.bigint])
           expect(batch_request).to receive(:retries=).once.with(0)
           client.batch(batch, Execution::Options.new(:consistency => :one, :trace => false)).get
           expect(sent).to be_truthy
@@ -748,11 +750,11 @@ module Cassandra
           batch = Statements::Batch::Logged.new
           batch_request = double('batch request', :consistency => :one, :retries => 0)
           params_metadata = [
-            ['simplex', 'songs', 'id', :uuid],
-            ['simplex', 'songs', 'title', :varchar],
-            ['simplex', 'songs', 'album', :varchar],
-            ['simplex', 'songs', 'artist', :varchar],
-            ['simplex', 'songs', 'tags', [:set, :varchar]]
+            ['simplex', 'songs', 'id', Cassandra::Types.uuid],
+            ['simplex', 'songs', 'title', Cassandra::Types.varchar],
+            ['simplex', 'songs', 'album', Cassandra::Types.varchar],
+            ['simplex', 'songs', 'artist', Cassandra::Types.varchar],
+            ['simplex', 'songs', 'tags', Cassandra::Types.set(Cassandra::Types.varchar)]
           ]
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
@@ -789,11 +791,11 @@ module Cassandra
           batch = Statements::Batch::Logged.new
           batch_request = double('batch request', :consistency => :one, :retries => 0)
           params_metadata = [
-            ['simplex', 'songs', 'id', :uuid],
-            ['simplex', 'songs', 'title', :varchar],
-            ['simplex', 'songs', 'album', :varchar],
-            ['simplex', 'songs', 'artist', :varchar],
-            ['simplex', 'songs', 'tags', [:set, :varchar]]
+            ['simplex', 'songs', 'id', Cassandra::Types.uuid],
+            ['simplex', 'songs', 'title', Cassandra::Types.varchar],
+            ['simplex', 'songs', 'album', Cassandra::Types.varchar],
+            ['simplex', 'songs', 'artist', Cassandra::Types.varchar],
+            ['simplex', 'songs', 'tags', Cassandra::Types.set(Cassandra::Types.varchar)]
           ]
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|

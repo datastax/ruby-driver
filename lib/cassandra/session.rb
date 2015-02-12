@@ -33,14 +33,13 @@ module Cassandra
       @futures = futures_factory
     end
 
-    # @!method execute_async(statement, options = nil)
     # Executes a given statement and returns a future result
     #
     # @param statement [String, Cassandra::Statements::Simple,
     #   Cassandra::Statements::Bound, Cassandra::Statements::Prepared]
     #   statement to execute
     #
-    # @param options [nil, Hash] a customizable set of options
+    # @param options [Hash] (nil) a customizable set of options
     #
     # @option options [Symbol] :consistency consistency level for the request.
     #   Must be one of {Cassandra::CONSISTENCIES}
@@ -56,29 +55,8 @@ module Cassandra
     # @option options [String] :paging_state (nil) this option is used for
     #   stateless paging, where result paging is resumed some time after the
     #   initial request.
-    # @option options [Array] :arguments (nil) positional arguments for the
-    #   statement.
-    #
-    # @overload execute_async(statement, *args, options = nil)
-    #   Executes a statement using the deprecated splat-style way of passing
-    #   positional arguments/
-    #
-    #   @deprecated This style will soon be removed, use the `:arguments`
-    #     option to provide positional arguments instead.
-    #
-    #   @param statement [String, Cassandra::Statements::Simple,
-    #     Cassandra::Statements::Bound, Cassandra::Statements::Prepared]
-    #     statement to execute
-    #
-    #   @param args [*Object] **this style of positional arguments is
-    #     deprecated, please use the `:arguments` options instead** -
-    #     positional arguments to paramterized query or prepared statement.
-    #
-    #   @param options [nil, Hash] a customizable set of options
-    #
-    #   @note Last argument will be treated as `options` if it is a {Hash}.
-    #     Therefore, make sure to pass empty `options` when executing a
-    #     statement with the last parameter required to be a map datatype.
+    # @option options [Array, Hash] :arguments (nil) positional or named
+    #   arguments for the statement.
     #
     # @see Cassandra.cluster Options that can be specified on the cluster-level
     #   and their default values.
@@ -86,23 +64,14 @@ module Cassandra
     # @note Positional arguments for simple statements are only supported on
     #   starting with Apache Cassandra 2.0 and above.
     #
+    # @note Named arguments for simple statements are not supported, use
+    #   prepared statements instead.
+    #
     # @return [Cassandra::Future<Cassandra::Result>]
     #
     # @see Cassandra::Session#execute A list of errors this future can be
     #   resolved with
-    def execute_async(statement, *args)
-      options = nil
-      options = args.pop if args.last.is_a?(::Hash)
-
-      unless args.empty?
-        ::Kernel.warn "[WARNING] Splat style (*args) positional arguments " \
-                      "are deprecated, use the :arguments option instead, " \
-                      "called from #{caller.first}"
-
-        options ||= {}
-        options[:arguments] = args
-      end
-
+    def execute_async(statement, options = nil)
       if options
         options = @options.override(options)
       else
@@ -134,28 +103,7 @@ module Cassandra
     #   Cassandra::Statements::Bound, Cassandra::Statements::Prepared]
     #   statement to execute
     #
-    # @param options [nil, Hash] a customizable set of options
-    #
-    # @overload execute(statement, *args, options = nil)
-    #   Executes a statement using the deprecated splat-style way of passing
-    #   positional arguments/
-    #
-    #   @deprecated This style will soon be removed, use the `:arguments`
-    #     option to provide positional arguments instead.
-    #
-    #   @param statement [String, Cassandra::Statements::Simple,
-    #     Cassandra::Statements::Bound, Cassandra::Statements::Prepared]
-    #     statement to execute
-    #
-    #   @param args [*Object] **this style of positional arguments is
-    #     deprecated, please use the `:arguments` options instead** -
-    #     positional arguments to paramterized query or prepared statement.
-    #
-    #   @param options [nil, Hash] a customizable set of options
-    #
-    #   @note Last argument will be treated as `options` if it is a {Hash}.
-    #     Therefore, make sure to pass empty `options` when executing a
-    #     statement with the last parameter required to be a map datatype.
+    # @param options [Hash] (nil) a customizable set of options
     #
     # @see Cassandra::Session#execute_async
     # @see Cassandra::Future#get
@@ -166,30 +114,16 @@ module Cassandra
     # @raise [Cassandra::Errors::ValidationError] if Cassandra fails to validate
     # @raise [Cassandra::Errors::TimeoutError] if request has not completed
     #   within the `:timeout` given
-    def execute(statement, *args)
-      options = nil
-      options = args.pop if args.last.is_a?(::Hash)
-
-      unless args.empty?
-        ::Kernel.warn "[WARNING] Splat style (*args) positional arguments " \
-                      "are deprecated, use the :arguments option instead, " \
-                      "called from #{caller.first}"
-
-        options ||= {}
-        options[:arguments] = args
-      end
-
-      if options
-        execute_async(statement, options).get
-      else
-        execute_async(statement).get
-      end
+    def execute(statement, options = nil)
+      execute_async(statement, options).get
     end
 
     # Prepares a given statement and returns a future prepared statement
     #
     # @param statement [String, Cassandra::Statements::Simple] a statement to
     #   prepare
+    #
+    # @param options [Hash] (nil) a customizable set of options
     #
     # @option options [Boolean] :trace (false) whether to enable request tracing
     # @option options [Numeric] :timeout (nil) if specified, it is a number of

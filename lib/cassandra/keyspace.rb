@@ -51,11 +51,12 @@ module Cassandra
     attr_reader :replication
 
     # @private
-    def initialize(name, durable_writes, replication, tables)
+    def initialize(name, durable_writes, replication, tables, types)
       @name           = name
       @durable_writes = durable_writes
       @replication    = replication
       @tables         = tables
+      @types          = types
     end
 
     # @return [Boolean] whether durables writes are enabled for this keyspace
@@ -91,6 +92,35 @@ module Cassandra
     end
     alias :tables :each_table
 
+    # @return [Boolean] whether this keyspace has a user-defined type with the
+    #   given name
+    # @param name [String] user-defined type name
+    def has_type?(name)
+      @types.has_key?(name)
+    end
+
+    # @return [Cassandra::Types::UserDefined, nil] a type or nil
+    # @param name [String] user-defined type name
+    def type(name)
+      @types[name]
+    end
+
+    # Yield or enumerate each user-defined type present in this keyspace
+    # @overload each_type
+    #   @yieldparam type [Cassandra::Types::UserDefined] current type
+    #   @return [Cassandra::Keyspace] self
+    # @overload each_type
+    #   @return [Array<Cassandra::Types::UserDefined>] a list of user-defined types
+    def each_type(&block)
+      if block_given?
+        @types.each_value(&block)
+        self
+      else
+        @types.values
+      end
+    end
+    alias :types :each_type
+
     # @return [String] a cql representation of this table
     def to_cql
       "CREATE KEYSPACE #{Util.escape_name(@name)} WITH REPLICATION = #{@replication.to_cql} AND DURABLE_WRITES = #{@durable_writes};"
@@ -102,7 +132,8 @@ module Cassandra
         @name == other.name &&
         @durable_writes == other.durable_writes &&
         @replication == other.replication &&
-        @tables == other.raw_tables
+        @tables == other.raw_tables &&
+        @types == other.raw_types
     end
     alias :== :eql?
 
@@ -115,14 +146,28 @@ module Cassandra
     def update_table(table)
       tables = @tables.dup
       tables[table.name] = table
-      Keyspace.new(@name, @durable_writes, @replication, tables)
+      Keyspace.new(@name, @durable_writes, @replication, tables, @types)
     end
 
     # @private
     def delete_table(table_name)
       tables = @tables.dup
       tables.delete(table_name)
-      Keyspace.new(@name, @durable_writes, @replication, tables)
+      Keyspace.new(@name, @durable_writes, @replication, tables, @types)
+    end
+
+    # @private
+    def update_type(type)
+      types = @types.dup
+      types[type.name] = type
+      Keyspace.new(@name, @durable_writes, @replication, @tables, types)
+    end
+
+    # @private
+    def delete_type(type_name)
+      types = @types.dup
+      types.delete(type_name)
+      Keyspace.new(@name, @durable_writes, @replication, @tables, types)
     end
 
     # @private
@@ -140,6 +185,11 @@ module Cassandra
     # @private
     def raw_tables
       @tables
+    end
+
+    # @private
+    def raw_types
+      @types
     end
   end
 end

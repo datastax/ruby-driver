@@ -199,6 +199,8 @@ module Cassandra
 
 
       def query(statement, options)
+        return @futures.error(Errors::ClientError.new("Positional arguments are not supported by the current version of Apache Cassandra")) if !statement.params.empty? && @connection_options.protocol_version == 1
+
         request = Protocol::QueryRequest.new(statement.cql, statement.params, statement.params_types, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?)
         timeout = options.timeout
         promise = @futures.promise
@@ -713,7 +715,7 @@ module Cassandra
               when Protocol::RowsResultResponse
                 promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
               when Protocol::SchemaChangeResultResponse
-                @schema.delete_keyspace(r.keyspace) if r.change == 'DROPPED' && r.table.empty?
+                @schema.delete_keyspace(r.keyspace) if r.change == 'DROPPED' && r.target == Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
 
                 @logger.debug('Waiting for schema to propagate to all hosts after a change')
                 wait_for_schema_agreement(connection, @reconnection_policy.schedule).on_complete do |f|

@@ -2129,22 +2129,42 @@ module Cassandra
               }
             ]
           }
+          let(:types) {
+            [
+              {
+                'keyspace_name' => 'simplex',
+                'type_name' => 'address',
+                'field_names' => [
+                  'street',
+                  'city',
+                  'zip_code',
+                  'phones'
+                ],
+                'field_types' => [
+                  'org.apache.cassandra.db.marshal.UTF8Type',
+                  'org.apache.cassandra.db.marshal.UTF8Type',
+                  'org.apache.cassandra.db.marshal.Int32Type',
+                  'org.apache.cassandra.db.marshal.SetType(org.apache.cassandra.db.marshal.UTF8Type)'
+                ]
+              }
+            ]
+          }
 
           before do
-            subject.update_keyspaces(host, keyspaces, tables, columns)
+            subject.update_keyspaces(host, keyspaces, tables, columns, types)
           end
 
           it 'correctly parses schema types' do
             table = subject.keyspace('simplex').table('songs')
-            expect(table.column('tags').type).to eq([:set, :text])
+            expect(table.column('tags').type).to eq(Types.set(Types.varchar))
             expect(table.to_cql).to eq(<<-CQL.chomp!)
 CREATE TABLE simplex.songs (
   id uuid,
-  album text,
-  artist text,
+  album varchar,
+  artist varchar,
   data blob,
-  tags set<text>,
-  title text,
+  tags set<varchar>,
+  title varchar,
   PRIMARY KEY (id)
 )
 WITH bloom_filter_fp_chance = 0.01

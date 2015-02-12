@@ -179,6 +179,59 @@ Feature: Batch statements
       songs contain 3 rows
       """
 
+  @cassandra-version-specific @cassandra-version-2.1
+  Scenario: A prepared statement is executed in a batch with named parameters
+    Given the following example:
+    """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      rows = session.execute("SELECT * FROM songs")
+
+      puts "songs contain #{rows.size} rows"
+
+      insert  = session.prepare("INSERT INTO songs (id, title, album, artist, tags) VALUES (:a, :b, :c, :d, :e)")
+      batch   = session.batch do |b|
+                  b.add(insert,
+                        {:a => Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
+                        :b => 'La Petite Tonkinoise',
+                        :c =>'Bye Bye Blackbird',
+                        :d => 'Joséphine Baker',
+                        :e => Set['jazz', '2013']}
+                  )
+                  b.add(insert,
+                        {:a => Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
+                        :b => 'Die Mösch',
+                        :c => 'In Gold',
+                        :d => 'Willi Ostermann',
+                        :e => Set['kölsch', '1996', 'birds']}
+                  )
+                  b.add(insert,
+                        {:a => Cassandra::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25'),
+                        :b => 'Memo From Turner',
+                        :c => 'Performance',
+                        :d => 'Mick Jager',
+                        :e => Set['soundtrack', '1991']}
+                  )
+                end
+
+      puts "inserting rows in a batch"
+
+      session.execute(batch, consistency: :all)
+      rows = session.execute("SELECT * FROM songs")
+
+      puts "songs contain #{rows.size} rows"
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      songs contain 0 rows
+      inserting rows in a batch
+      songs contain 3 rows
+      """
+
   @cassandra-version-specific @cassandra-version-2.0.9
   Scenario: A cas batch is never applied more than once
     Given the following example:

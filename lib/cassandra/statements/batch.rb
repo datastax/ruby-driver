@@ -55,39 +55,21 @@ module Cassandra
         @statements = []
       end
 
-      # @!method add(statement, args)
       # Adds a statement to this batch.
       #
       # @param statement [String, Cassandra::Statements::Simple,
       #   Cassandra::Statements::Prepared, Cassandra::Statements::Bound]
       #   statement to add.
-      # @param args [Array] positional arguments to bind, must contain
-      #   the same number of parameters as the number of positional (`?`)
-      #   markers in the original CQL passed to {Cassandra::Session#prepare}
+      # @param args [Array, Hash] (nil) positional or named arguments to bind,
+      #   must contain the same number of parameters as the number of positional
+      #   (`?`) or named (`:name`) markers in the CQL passed.
       #
-      # @overload add(statement, *args)
-      #   Adds a statement to this batch using the deprecated splat-style way of
-      #   passing positional arguments
-      #
-      #   @deprecated Please pass a single {Array} of positional arguments, the
-      #     `*args` style is deprecated.
-      #
-      #   @param statement [String, Cassandra::Statements::Simple,
-      #     Cassandra::Statements::Prepared, Cassandra::Statements::Bound]
-      #     statement to add.
-      #   @param args [*Object] **this style of positional arguments is
-      #     deprecated, please pass a single {Array} instead** - arguments to
-      #     paramterized query or prepared statement
+      # @note Named arguments for simple statements are not supported, use
+      #   prepared statements instead.
       #
       # @return [self]
-      def add(statement, *args)
-        if args.one? && args.first.is_a?(::Array)
-          args = args.first
-        elsif !args.empty?
-          ::Kernel.warn "[WARNING] Splat style (*args) positional arguments " \
-                        "are deprecated, pass an Array instead - called " \
-                        "from #{caller.first}"
-        end
+      def add(statement, args = nil)
+        args ||= EMPTY_LIST
 
         case statement
         when String

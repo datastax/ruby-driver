@@ -248,10 +248,16 @@ module Cassandra
         tables    = send_select_request(connection, SELECT_TABLES)
         columns   = send_select_request(connection, SELECT_COLUMNS)
 
-        Ione::Future.all(keyspaces, tables, columns).map do |(keyspaces, tables, columns)|
+        if @connection_options.protocol_version > 2
+          types = send_select_request(connection, SELECT_TYPES)
+        else
+          types = Ione::Future.resolved(EMPTY_LIST)
+        end
+
+        Ione::Future.all(keyspaces, tables, columns, types).map do |(keyspaces, tables, columns, types)|
           host = @registry.host(connection.host)
 
-          @schema.update_keyspaces(host, keyspaces, tables, columns)
+          @schema.update_keyspaces(host, keyspaces, tables, columns, types)
           @metadata.rebuild_token_map
         end
       end
@@ -319,13 +325,19 @@ module Cassandra
         tables    = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = '%s'" % keyspace, EMPTY_LIST, EMPTY_LIST, :one))
         columns   = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = '%s'" % keyspace, EMPTY_LIST, EMPTY_LIST, :one))
 
-        Ione::Future.all(keyspaces, tables, columns).map do |(keyspaces, tables, columns)|
+        if @connection_options.protocol_version > 2
+          types = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_usertypes WHERE keyspace_name = '%s'" % keyspace, EMPTY_LIST, EMPTY_LIST, :one))
+        else
+          types = Ione::Future.resolved(EMPTY_LIST)
+        end
+
+        Ione::Future.all(keyspaces, tables, columns, types).map do |(keyspaces, tables, columns, types)|
           host = @registry.host(connection.host)
 
           if keyspaces.empty?
             @schema.delete_keyspace(keyspace)
           else
-            @schema.update_keyspace(host, keyspaces.first, tables, columns)
+            @schema.update_keyspace(host, keyspaces.first, tables, columns, types)
           end
         end
       end
@@ -380,6 +392,59 @@ module Cassandra
             @schema.delete_table(keyspace, table)
           else
             @schema.udpate_table(host, keyspace, tables.first, columns)
+          end
+        end
+      end
+
+      def refresh_type_async_maybe_retry(keyspace, type)
+        refresh_type_async(keyspace, type).fallback do |e|
+          case e
+          when Errors::HostError
+            refresh_keyspace_async_retry(keyspace, e, @reconnection_policy.schedule)
+          else
+            connection = @connection
+            connection && connection.close(e)
+
+            Ione::Future.failed(e)
+          end
+        end
+      end
+
+      def refresh_type_async_retry(keyspace, type, error, schedule)
+        timeout = schedule.next
+        @logger.info("Failed to refresh type #{keyspace}.#{type} (#{error.class.name}: #{error.message}), retrying in #{timeout}")
+
+        timer = @io_reactor.schedule_timer(timeout)
+        timer.flat_map do
+          refresh_keyspace_async(keyspace).fallback do |e|
+            case e
+            when Errors::HostError
+              refresh_keyspace_async_retry(keyspace, e, schedule)
+            else
+              connection = @connection
+              connection && connection.close(e)
+
+              Ione::Future.failed(e)
+            end
+          end
+        end
+      end
+
+      def refresh_type_async(keyspace, type)
+        connection = @connection
+
+        return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
+
+        params   = [keyspace, type]
+        types    = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_usertypes WHERE keyspace_name = '%s' AND type_name = '%s'" % params, EMPTY_LIST, EMPTY_LIST, :one))
+
+        types.map do |types|
+          host = @registry.host(connection.host)
+
+          if types.empty?
+            @schema.delete_type(keyspace, type)
+          else
+            @schema.udpate_type(host, keyspace, types.first)
           end
         end
       end
@@ -644,19 +709,24 @@ Control connection failed and is unlikely to recover.
       def process_schema_changes(schema_changes)
         refresh_keyspaces = ::Hash.new
         refresh_tables    = ::Hash.new
+        refresh_types     = ::Hash.new
 
         schema_changes.each do |change|
           keyspace = change.keyspace
-          table    = change.table
 
           next if refresh_keyspaces.has_key?(keyspace)
 
-          if table.empty?
+          case change.target
+          when Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
             refresh_tables.delete(keyspace)
+            refresh_types.delete(keyspace)
             refresh_keyspaces[keyspace] = true
-          else
+          when Protocol::Constants::SCHEMA_CHANGE_TARGET_TABLE
             tables = refresh_tables[keyspace] ||= ::Hash.new
-            tables[table] = true
+            tables[change.table] = true
+          when Protocol::Constants::SCHEMA_CHANGE_TARGET_UDT
+            types = refresh_types[keyspace] ||= ::Hash.new
+            types[change.type] = true
           end
         end
 
@@ -669,6 +739,12 @@ Control connection failed and is unlikely to recover.
         refresh_tables.each do |(keyspace, tables)|
           tables.each_key do |table|
             futures << refresh_table_async_maybe_retry(keyspace, table)
+          end
+        end
+
+        refresh_types.each do |(keyspace, types)|
+          types.each_key do |type|
+            futures << refresh_type_async_maybe_retry(keyspace, type)
           end
         end
 

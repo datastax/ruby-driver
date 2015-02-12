@@ -40,9 +40,23 @@ module Cassandra
         @compressor = compressor
         @connection.on_data(&method(:receive_data))
         @connection.on_closed(&method(:socket_closed))
-        @promises = Array.new(128) { nil }
-        @frame_encoder = V1::Encoder.new(@compressor, protocol_version)
-        @frame_decoder = V1::Decoder.new(self, @compressor)
+
+        if protocol_version > 2
+          @streams = Array.new(1024) {|i| i}
+        else
+          @streams = Array.new(128) {|i| i}
+        end
+
+        @promises = Hash.new
+
+        if protocol_version > 2
+          @frame_encoder = V3::Encoder.new(@compressor, protocol_version)
+          @frame_decoder = V3::Decoder.new(self, @compressor)
+        else
+          @frame_encoder = V1::Encoder.new(@compressor, protocol_version)
+          @frame_decoder = V1::Decoder.new(self, @compressor)
+        end
+
         @request_queue_in = []
         @request_queue_out = []
         @event_listeners = []
@@ -211,15 +225,15 @@ module Cassandra
         promise = nil
         @lock.lock
         begin
-          promise = @promises[id]
-          @promises[id] = nil
+          promise = @promises.delete(id)
+          @streams.unshift(id)
         ensure
           @lock.unlock
         end
         if response.is_a?(Protocol::SetKeyspaceResultResponse)
           @keyspace = response.keyspace
         end
-        if response.is_a?(Protocol::SchemaChangeResultResponse) && response.change == 'DROPPED' && response.keyspace == @keyspace && response.table.empty?
+        if response.is_a?(Protocol::SchemaChangeResultResponse) && response.change == 'DROPPED' && response.keyspace == @keyspace && response.target == Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
           @keyspace = nil
         end
         flush_request_queue
@@ -310,10 +324,10 @@ module Cassandra
           @heartbeat = nil
           @terminate = nil
 
-          promises_to_fail = @promises.compact
+          promises_to_fail = @promises.values
           promises_to_fail.concat(@request_queue_in)
           promises_to_fail.concat(@request_queue_out)
-          @promises.fill(nil)
+          @promises.clear
           @request_queue_in.clear
           @request_queue_out.clear
         end
@@ -363,7 +377,7 @@ module Cassandra
       end
 
       def next_stream_id
-        if (stream_id = @promises.index(nil))
+        if (stream_id = @streams.shift)
           stream_id
         else
           nil

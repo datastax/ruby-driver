@@ -32,9 +32,9 @@ module Cassandra
 
       let :metadata do
         [
-          ['ks', 'users', 'user_name', :varchar],
-          ['ks', 'users', 'email', :varchar],
-          ['ks', 'users', 'password', :varchar],
+          ['ks', 'users', 'user_name', Types.varchar],
+          ['ks', 'users', 'email', Types.varchar],
+          ['ks', 'users', 'password', Types.varchar],
         ]
       end
 
