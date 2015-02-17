@@ -242,7 +242,9 @@ module Cassandra
       end
 
       def create_additional_connections(host, count, established_connections, error = nil)
-        @logger.debug("attempt to created #{count} connections to #{host}; already have #{established_connections.size}")
+        @logger.debug("Connector: attempt to create #{count} connections to #{host.ip}; already have #{established_connections.size}")
+        return [] if count <= 0
+
         futures = count.times.map do
           connect(host).recover do |e|
             FailedConnection.new(e, host)
@@ -262,10 +264,10 @@ module Cassandra
 
           if !established_connections.empty?
             connections_left = count - established_connections.size
-            if connections_left == 0
+            if connections_left <= 0
               Ione::Future.resolved(established_connections)
             else
-              @logger.warn("error connecting to #{host}; #{error.inspect}")
+              @logger.warn("Connector: error connecting to #{host.ip}; #{error.inspect}")
               create_additional_connections(host, connections_left, established_connections, error)
             end
           else
