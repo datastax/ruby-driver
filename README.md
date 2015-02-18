@@ -31,13 +31,11 @@ This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [
 
 This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. The current version works with:
 
-* Apache Cassandra versions 1.2, 2.0 and partially 2.1
+* Apache Cassandra versions 1.2, 2.0 and 2.1
 * DataStax Enterprise 3.1, 3.2, 4.0 and 4.5
 * Ruby (MRI) 1.9.3, 2.0 and 2.1
 * JRuby 1.7
 * Rubinius 2.2
-
-__Note__: Apache Cassandra 2.1 support is limited to the Cassandra 2.0 API, e.g. no user-defined types.
 
 __Note__: JRuby 1.6 is not officially supported, although 1.6.8 should work.
 
@@ -93,12 +91,19 @@ __Note__: if you want to use compression you should also install [snappy](http:/
 
 Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API. In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/master/examples/cql-rb-wrapper.rb) to assist you with gradual upgrade.
 
-## What's new in v2.0.1
+## What's new in v2.1.0
 
-Current release lays groundwork for the upcoming support of native protocol v3 and Apache Cassandra 2.1. This release introduces the following major public API changes:
+Features:
 
-* Positional arguments to `Session#execute` must be passed via `:arguments` option key.
-* `Batch#add` and `Prepared#bind` accept an array of arguments instead of variable arguments (`args` instead of `*args`).
+* Apache Cassandra native protocol v3
+* User-defined types and tuples
+* Schema metadata includes user-defined types
+* Named arguments
+* Public types api for type definition and introspection
+
+Breaking Changes:
+
+* Splat style positional arguments support, deprecated in 2.0.0, has been dropped
 
 ## Code examples
 
