@@ -188,7 +188,7 @@ module Cassandra
         else
           cql << ",\n" unless first
         end
-        cql << "  #{column.name} #{type_to_cql(column.type)}"
+        cql << "  #{column.name} #{type_to_cql(column.type, column.frozen?)}"
       end
       cql << ",\n  PRIMARY KEY ("
       if @partition_key.one?
@@ -299,7 +299,7 @@ module Cassandra
 
     private
 
-    def type_to_cql(type)
+    def type_to_cql(type, is_frozen)
       case type.kind
       when :tuple
         "frozen <#{type}>"
@@ -310,7 +310,11 @@ module Cassandra
           "frozen <#{Util.escape_name(type.keyspace)}.#{Util.escape_name(type.name)}>"
         end
       else
-        "#{type}"
+        if is_frozen
+          "frozen <#{type}>"
+        else
+          "#{type}"
+        end
       end
     end
 

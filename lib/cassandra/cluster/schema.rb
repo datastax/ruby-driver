@@ -307,33 +307,33 @@ module Cassandra
         if cassandra_version.start_with?('1')
           key_aliases = ::JSON.load(table['key_aliases'])
 
-          key_validator.results.each_with_index do |(type, order), i|
+          key_validator.results.each_with_index do |(type, order, is_frozen), i|
             key_alias = key_aliases.fetch(i) { i.zero? ? "key" : "key#{i + 1}" }
 
-            partition_key[i] = Column.new(key_alias, type, order)
+            partition_key[i] = Column.new(key_alias, type, order, nil, false, is_frozen)
           end
 
           if comparator.results.size > 1
             clustering_size.times do |i|
               column_alias = column_aliases.fetch(i) { "column#{i + 1}" }
-              type, order  = comparator.results.fetch(i)
+              type, order, is_frozen = comparator.results.fetch(i)
 
-              clustering_columns[i] = Column.new(column_alias, type, order)
+              clustering_columns[i] = Column.new(column_alias, type, order, nil, false, is_frozen)
               clustering_order[i]   = order
             end
           else
             column_alias = column_aliases.first || "column1"
-            type, order  = comparator.results.first
+            type, order, is_frozen = comparator.results.first
 
-            clustering_columns[0] = Column.new(column_alias, type, order)
+            clustering_columns[0] = Column.new(column_alias, type, order, nil, false, is_frozen)
             clustering_order[0]   = order
           end
 
           if is_dense
             value_alias = table['value_alias']
             value_alias = 'value' if value_alias.nil? || value_alias.empty?
-            type, order = @type_parser.parse(table['default_validator']).results.first
-            other_columns << Column.new(value_alias, type, order)
+            type, order, is_frozen = @type_parser.parse(table['default_validator']).results.first
+            other_columns << Column.new(value_alias, type, order, nil, false, is_frozen)
           end
 
           columns.each do |name, row|
@@ -376,7 +376,7 @@ module Cassandra
 
       def create_column(column)
         name        = column['column_name']
-        type, order = @type_parser.parse(column['validator']).results.first
+        type, order, is_frozen = @type_parser.parse(column['validator']).results.first
         is_static   = (column['type'] == 'STATIC')
 
         if column['index_type'].nil?
@@ -388,7 +388,7 @@ module Cassandra
           index   = Column::Index.new(column['index_name'], options['class_name'])
         end
 
-        Column.new(name, type, order, index, is_static)
+        Column.new(name, type, order, index, is_static, is_frozen)
       end
 
       def deephash

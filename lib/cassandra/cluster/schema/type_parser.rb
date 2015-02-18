@@ -87,14 +87,20 @@ module Cassandra
         end
 
         def create_type(node)
-          order = :asc
+          order  = :asc
+          frozen = false
 
           if node.name == "org.apache.cassandra.db.marshal.ReversedType"
             order = :desc
             node  = node.children.first
           end
 
-          [lookup_type(node), order]
+          if node.name == "org.apache.cassandra.db.marshal.FrozenType"
+            frozen = true
+            node   = node.children.first
+          end
+
+          [lookup_type(node), order, frozen]
         end
 
         def lookup_type(node)
