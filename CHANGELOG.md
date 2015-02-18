@@ -12,6 +12,10 @@ Breaking Changes:
 
 * Splat style positional arguments support, deprecated in 2.0.0, has been dropped
 
+Bug Fixes:
+
+* [RUBY-93] Reconnection can overflow the stack
+
 # 2.0.1
 
 Bug Fixes:
