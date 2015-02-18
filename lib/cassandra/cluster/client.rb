@@ -93,10 +93,16 @@ module Cassandra
             connections.flatten!
             raise NO_HOSTS if connections.empty?
 
-            unless connections.any?(&:connected?)
+            failed_connections = connections.reject(&:connected?)
+
+            if failed_connections.size == connections.size
               errors = {}
               connections.each {|c| errors[c.host] = c.error}
               raise Errors::NoHostsAvailable.new(errors)
+            else
+              failed_connections.each do |f|
+                connect_to_host_with_retry(f.host, connecting_hosts[f.host], @reconnection_policy.schedule)
+              end
             end
 
             self
@@ -377,9 +383,24 @@ module Cassandra
         end
 
         @logger.debug("Creating #{size} connections to #{host.ip}")
-        f = @connector.connect_many(host, size)
+        futures = size.times.map do
+          @connector.connect(host).recover do |e|
+            FailedConnection.new(e, host)
+          end
+        end
 
-        f.on_value do |connections|
+        Ione::Future.all(*futures).flat_map do |connections|
+          error = nil
+
+          connections.reject! do |connection|
+            if connection.connected?
+              false
+            else
+              error = connection.error
+              true
+            end
+          end
+
           @logger.debug("Created #{connections.size} connections to #{host.ip}")
 
           pool = nil
@@ -405,16 +426,13 @@ module Cassandra
           else
             connections.each {|c| c.close}
           end
-        end
 
-        f.on_failure do |error|
-          synchronize do
-            @pending_connections[host] -= size
-            @pending_connections.delete(host) unless @pending_connections[host] > 0 || @connections.include?(host)
+          if error
+            Ione::Future.failed(error)
+          else
+            Ione::Future.resolved(connections)
           end
         end
-
-        f
       end
 
       def execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])

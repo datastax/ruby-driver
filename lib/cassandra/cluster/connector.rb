@@ -106,10 +106,6 @@ module Cassandra
         f
       end
 
-      def connect_many(host, count)
-        create_additional_connections(host, count, [])
-      end
-
       private
 
       NO_CONNECTIONS    = Ione::Future.resolved([])
@@ -237,37 +233,6 @@ module Cassandra
             ::Ione::Future.failed(r.to_error(VOID_STATEMENT))
           else
             ::Ione::Future.failed(Errors::InternalError.new("Unexpected response #{r.inspect}"))
-          end
-        end
-      end
-
-      def create_additional_connections(host, count, established_connections, error = nil)
-        futures = count.times.map do
-          connect(host).recover do |e|
-            FailedConnection.new(e, host)
-          end
-        end
-
-        Ione::Future.all(*futures).flat_map do |connections|
-          established_connections.select!(&:connected?)
-
-          connections.each do |connection|
-            if connection.connected?
-              established_connections << connection
-            else
-              error = connection.error
-            end
-          end
-
-          if !established_connections.empty?
-            connections_left = count - established_connections.size
-            if connections_left == 0
-              Ione::Future.resolved(established_connections)
-            else
-              create_additional_connections(host, connections_left, established_connections, error)
-            end
-          else
-            Ione::Future.failed(error)
           end
         end
       end

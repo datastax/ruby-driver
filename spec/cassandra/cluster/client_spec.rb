@@ -145,6 +145,38 @@ module Cassandra
             expect(io_reactor).to have(2).connections
             expect(io_reactor.connections).to_not include(connection)
           end
+
+          it 'fails when cannot fully connect to any hosts' do
+            cluster_registry.add_listener(driver.load_balancing_policy)
+            cluster_registry.host_found(IPAddr.new(hosts.first))
+            io_reactor.enable_node(hosts.first)
+            io_reactor.set_max_connections(hosts.first, 1)
+
+            expect(io_reactor).to have(0).connections
+            expect { client.connect.value }.to raise_error(Cassandra::Errors::NoHostsAvailable)
+            expect(io_reactor).to have(1).connections
+            io_reactor.advance_time(0)
+            expect(io_reactor).to have(0).connections
+          end
+
+          it 'succeeds when can fully connect to at least one host' do
+            cluster_registry.add_listener(driver.load_balancing_policy)
+            cluster_registry.host_found(IPAddr.new(hosts.first))
+            io_reactor.enable_node(hosts.first)
+            cluster_registry.host_found(IPAddr.new(hosts.last))
+            io_reactor.enable_node(hosts.last)
+            io_reactor.set_max_connections(hosts.first, 1)
+
+            expect(io_reactor).to have(0).connections
+            client.connect.value
+            expect(io_reactor).to have(3).connections
+            io_reactor.advance_time(0)
+            expect(io_reactor).to have(3).connections
+
+            io_reactor.unset_max_connections(hosts.first)
+            io_reactor.advance_time(reconnect_interval)
+            expect(io_reactor).to have(4).connections
+          end
         end
       end
 
