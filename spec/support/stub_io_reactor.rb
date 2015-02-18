@@ -368,6 +368,7 @@ class StubIoReactor
     @blocked_nodes = ::Set.new
     @connections   = ::Array.new
     @timers        = ::Array.new
+    @max_conns     = ::Hash.new
   end
 
   def enable_nodes(ips)
@@ -416,20 +417,34 @@ class StubIoReactor
     self
   end
 
+  def set_max_connections(ip, max)
+    @max_conns[ip] = max
+    self
+  end
+
+  def unset_max_connections(ip)
+    @max_conns.delete(ip)
+    self
+  end
+
   def connect(host, port, options)
     if !@enabled_nodes.include?(host)
       Ione::Future.failed(Ione::Io::ConnectionError.new('Node down'))
     elsif @blocked_nodes.include?(host)
       Ione::Future.failed(Ione::Io::ConnectionTimeoutError.new('Node timed out'))
     else
-      @connections << connection = Connection.new(host, port, options[:timeout], options[:ssl])
-      connection.on_closed do |cause|
-        @connections.delete(connection)
-      end
-      handler = connection
-      handler = yield(connection) if block_given?
+      if @max_conns[host] && @connections.count {|c| c.host == host} >= @max_conns[host]
+        Ione::Future.failed(Ione::Io::ConnectionTimeoutError.new('Max connections reached'))
+      else
+        @connections << connection = Connection.new(host, port, options[:timeout], options[:ssl])
+        connection.on_closed do |cause|
+          @connections.delete(connection)
+        end
+        handler = connection
+        handler = yield(connection) if block_given?
 
-      Ione::Future.resolved(handler)
+        Ione::Future.resolved(handler)
+      end
     end
   end
 
