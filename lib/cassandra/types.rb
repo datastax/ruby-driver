@@ -1008,6 +1008,13 @@ module Cassandra
         def to_s
           "#{@name} #{@type}"
         end
+
+        def eql?(other)
+          other.is_a?(Field) &&
+            @name == other.name &&
+            @type == other.type
+        end
+        alias :== :eql?
       end
 
       # @return [String] keyspace where this type is defined
@@ -1047,6 +1054,13 @@ module Cassandra
         end
       end
       alias :fields :each_field
+
+      # @param name [String] field name
+      # @return [Cassandra::UserDefined::Field, nil] a field with this name or
+      #   nil
+      def field(name)
+        @fields.find {|f| f.name == name}
+      end
 
       # @return [Symbol] `:udt`
       # @see Cassandra::Type#kind
