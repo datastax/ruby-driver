@@ -29,6 +29,9 @@ module Cassandra
       # @private
       attr_reader :params_types
 
+      # @private
+      attr_reader :params_names
+
       # @param cql [String] a cql statement
       # @param params [Array] (nil) positional arguments for the query
       #
@@ -39,17 +42,23 @@ module Cassandra
       def initialize(cql, params = nil)
         Util.assert_instance_of(::String, cql) { "cql must be a string, #{cql.inspect} given" }
 
-        if params
-          Util.assert_instance_of(::Array, params) { "params must be an Array, #{params.inspect} given" }
-        else
-          params = EMPTY_LIST
-        end
+        params ||= EMPTY_LIST
 
-        params_types = params.map {|value| Util.guess_type(value)}
+        if params.is_a?(::Hash)
+          params_names = []
+          params = params.each_with_object([]) do |(name, value), params|
+            params_names << name
+            params       << value
+          end
+        else
+          Util.assert_instance_of(::Array, params) { "params must be an Array or a Hash, #{params.inspect} given" }
+          params_names = EMPTY_LIST
+        end
 
         @cql          = cql
         @params       = params
-        @params_types = params_types
+        @params_types = params.map {|value| Util.guess_type(value)}
+        @params_names = params_names
       end
 
       # @return [String] a CLI-friendly simple statement representation

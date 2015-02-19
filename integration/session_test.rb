@@ -203,7 +203,7 @@ class SessionTest < IntegrationTestCase
     end
   end
 
-  def test_raise_error_on_invalid_named_parameters
+  def test_can_use_named_parameters_with_simple_statement
     skip("Named parameters are only available in C* after 2.1") if CCM.cassandra_version < '2.1.0'
 
     setup_schema
@@ -212,10 +212,35 @@ class SessionTest < IntegrationTestCase
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
-      assert_raises(ArgumentError) do
-        session.execute("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)",
-                        arguments: {:a => 0, :b => 'John', :c => 'Doe', :d => 30})
+      session.execute("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)",
+                      arguments: {:a => 0, :b => 'John', :c => 'Doe', :d => 40})
+
+      result = session.execute("SELECT * FROM users WHERE user_id=:id", arguments: {:id => 0}).first
+
+      assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
+
+      batch = session.batch do |b|
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)", {:a => 1, :b => 'Jane', :c => 'Doe', :d => 30})
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)", {:a => 2, :b => 'Agent', :c => 'Smith', :d => 20})
       end
+
+      session.execute(batch)
+
+      results = session.execute("SELECT * FROM users")
+      assert_equal 3, results.size
+    ensure
+      cluster && cluster.close
+    end
+  end
+
+  def test_raise_error_on_invalid_named_parameters
+    skip("Named parameters are only available in C* after 2.1") if CCM.cassandra_version < '2.1.0'
+
+    setup_schema
+
+    begin
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
 
       insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)")
 

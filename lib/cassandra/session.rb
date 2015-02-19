@@ -61,11 +61,11 @@ module Cassandra
     # @see Cassandra.cluster Options that can be specified on the cluster-level
     #   and their default values.
     #
-    # @note Positional arguments for simple statements are only supported on
+    # @note Positional arguments for simple statements are only supported
     #   starting with Apache Cassandra 2.0 and above.
     #
-    # @note Named arguments for simple statements are not supported, use
-    #   prepared statements instead.
+    # @note Named arguments for simple statements are only supported
+    #   starting with Apache Cassandra 2.1 and above.
     #
     # @return [Cassandra::Future<Cassandra::Result>]
     #

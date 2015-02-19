@@ -64,8 +64,11 @@ module Cassandra
       #   must contain the same number of parameters as the number of positional
       #   (`?`) or named (`:name`) markers in the CQL passed.
       #
-      # @note Named arguments for simple statements are not supported, use
-      #   prepared statements instead.
+      # @note Positional arguments for simple statements are only supported
+      #   starting with Apache Cassandra 2.0 and above.
+      #
+      # @note Named arguments for simple statements are only supported
+      #   starting with Apache Cassandra 2.1 and above.
       #
       # @return [self]
       def add(statement, args = nil)

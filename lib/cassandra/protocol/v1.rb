@@ -43,7 +43,7 @@ module Cassandra
           buffer
         end
 
-        def write_parameters(buffer, params, types)
+        def write_parameters(buffer, params, types, names = EMPTY_LIST)
           Coder.write_values_v1(buffer, params, types)
         end
       end
