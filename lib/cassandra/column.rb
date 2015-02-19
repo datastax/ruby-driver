@@ -44,22 +44,25 @@ module Cassandra
     # @private
     # @return [Cassandra::Column::Index, nil] column index
     attr_reader :index
-    # @private
-    # @return [Boolean] whether the column is static
-    attr_reader :static
 
     # @private
-    def initialize(name, type, order, index = nil, is_static = false)
+    def initialize(name, type, order, index = nil, is_static = false, is_frozen = false)
       @name     = name
       @type     = type
       @order    = order
       @index    = index
       @static   = is_static
+      @frozen   = is_frozen
     end
 
     # @return [Boolean] whether the column is static
     def static?
       @static
+    end
+
+    # @return [Boolean] whether the column is frozen
+    def frozen?
+      @frozen
     end
 
     # @return [String] a CLI-friendly column representation
@@ -74,7 +77,8 @@ module Cassandra
         @type == other.type &&
         @order == other.order &&
         @index == other.index &&
-        @static == other.static?
+        @static == other.static? &&
+        @frozen == other.frozen?
     end
     alias :== :eql?
   end
