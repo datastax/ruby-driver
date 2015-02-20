@@ -104,6 +104,10 @@ module Cassandra
         end
 
         def lookup_type(node)
+          if node.name == "org.apache.cassandra.db.marshal.FrozenType"
+            return lookup_type(node.children.first)
+          end
+
           type = @@types[node.name]
 
           case type
