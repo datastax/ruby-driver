@@ -23,11 +23,12 @@ module Cassandra
       HAS_MORE_PAGES_FLAG     = 0x02
       NO_METADATA_FLAG        = 0x04
 
-      def write_values_v3(buffer, values, types)
+      def write_values_v3(buffer, values, types, names = EMPTY_LIST)
         if values && values.size > 0
           buffer.append_short(values.size)
-          values.each_with_index do |value, index|
-            write_value_v3(buffer, value, types[index])
+          values.zip(types, names) do |(value, type, name)|
+            buffer.append_string(name) if name
+            write_value_v3(buffer, value, type)
           end
           buffer
         else

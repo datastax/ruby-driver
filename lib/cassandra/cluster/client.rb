@@ -207,7 +207,7 @@ module Cassandra
       def query(statement, options)
         return @futures.error(Errors::ClientError.new("Positional arguments are not supported by the current version of Apache Cassandra")) if !statement.params.empty? && @connection_options.protocol_version == 1
 
-        request = Protocol::QueryRequest.new(statement.cql, statement.params, statement.params_types, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?)
+        request = Protocol::QueryRequest.new(statement.cql, statement.params, statement.params_types, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?, statement.params_names)
         timeout = options.timeout
         promise = @futures.promise
 
