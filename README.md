@@ -33,7 +33,7 @@ This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Ca
 
 * Apache Cassandra versions 1.2, 2.0 and 2.1
 * DataStax Enterprise 3.1, 3.2, 4.0 and 4.5
-* Ruby (MRI) 1.9.3, 2.0 and 2.1
+* Ruby (MRI) 1.9.3, 2.0, 2.1 and 2.2
 * JRuby 1.7
 * Rubinius 2.2
 
@@ -96,14 +96,18 @@ Some of the new features added to the driver have unfortunately led to changes i
 Features:
 
 * Apache Cassandra native protocol v3
-* User-defined types and tuples
-* Schema metadata includes user-defined types
-* Named arguments
-* Public types api for type definition and introspection
+* [User-defined types](http://datastax.github.io/ruby-driver/features/basics/user_defined_types/) and [tuples](http://datastax.github.io/ruby-driver/features/basics/datatypes/#using-tuples)
+* [Schema metadata includes user-defined types](http://datastax.github.io/ruby-driver/api/keyspace/#type-instance_method)
+* [Named arguments](http://datastax.github.io/ruby-driver/features/basics/prepared_statements/#an-insert-statement-is-prepared-with-named-parameters)
+* [Public types api for type definition and introspection](http://datastax.github.io/ruby-driver/api/types/)
 
 Breaking Changes:
 
 * Splat style positional arguments support, deprecated in 2.0.0, has been dropped
+
+Bug Fixes:
+
+* [[RUBY-93](https://datastax-oss.atlassian.net/browse/RUBY-93)] Reconnection can overflow the stack
 
 ## Code examples
 

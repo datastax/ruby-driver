@@ -18,6 +18,8 @@
 
 module Cassandra
   module Statements
+    # A prepared statement is created by calling {Cassandra::Session#prepare}
+    # or  {Cassandra::Session#prepare_async}.
     class Prepared
       include Statement
 

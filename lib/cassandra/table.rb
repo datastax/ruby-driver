@@ -299,6 +299,7 @@ module Cassandra
 
     private
 
+    # @private
     def type_to_cql(type, is_frozen)
       case type.kind
       when :tuple
@@ -318,6 +319,7 @@ module Cassandra
       end
     end
 
+    # @private
     NULL_BYTE = "\x00".freeze
 
     attr_reader :partition_key, :clustering_columns, :clustering_order

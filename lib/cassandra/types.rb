@@ -1150,6 +1150,7 @@ module Cassandra
 
       private
 
+      # @private
       def type_to_cql(type)
         case type.kind
         when :tuple

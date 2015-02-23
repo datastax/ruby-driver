@@ -38,6 +38,9 @@ module Cassandra
       # @note Positional arguments for simple statements are only supported
       #   starting with Apache Cassandra 2.0 and above.
       #
+      # @note Named arguments for simple statements are only supported
+      #   starting with Apache Cassandra 2.1 and above.
+      #
       # @raise [ArgumentError] if cql statement given is not a String
       def initialize(cql, params = nil)
         Util.assert_instance_of(::String, cql) { "cql must be a string, #{cql.inspect} given" }
