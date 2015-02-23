@@ -1,3 +1,13 @@
+# HEAD
+
+Features:
+
+* Added optional time out to Cassandra::Future#get
+
+Breaking Changes:
+
+* Cassandra::Future#join is now an alias to Cassandra::Future#get and will raise an error if the future is resolved with one.
+
 # 2.1.5
 
 Features:

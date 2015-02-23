@@ -71,7 +71,7 @@ module Cassandra
       describe('#join') do
         it 'blocks until failure' do
           resolved = false
-          thread   = Thread.new { signal.join; resolved = true }
+          thread   = Thread.new { signal.join rescue nil; resolved = true }
           sleep(0.001)
           expect(resolved).to be_falsey
           signal.failure(RuntimeError.new)
@@ -124,6 +124,11 @@ module Cassandra
             signal.success(double('some value'))
             thread.join(1)
             expect(resolved).to be_truthy
+          end
+
+          it 'raises when times out' do
+            expect { signal.get(0) }.to raise_error(Errors::TimeoutError)
+            signal.get(1)
           end
         end
       end

@@ -80,7 +80,7 @@ module Cassandra
 
     describe('#join') do
       it 'delegates to signal' do
-        expect(signal).to receive(:join).once
+        expect(signal).to receive(:get).once
         future.join
       end
     end

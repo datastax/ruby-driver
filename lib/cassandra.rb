@@ -536,6 +536,7 @@ require 'cassandra/protocol'
 require 'cassandra/auth'
 require 'cassandra/null_logger'
 
+require 'cassandra/concurrency'
 require 'cassandra/executors'
 require 'cassandra/future'
 require 'cassandra/cluster'

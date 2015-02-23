@@ -51,9 +51,11 @@ module Cassandra
         @error = error
       end
 
-      def get
+      def get(timeout = nil)
         raise(@error, @error.message, @error.backtrace)
       end
+
+      alias :join :get
 
       def on_success
         raise ::ArgumentError, "no block given" unless block_given?
@@ -81,10 +83,6 @@ module Cassandra
         self
       end
 
-      def join
-        self
-      end
-
       def then
         raise ::ArgumentError, "no block given" unless block_given?
         self
@@ -109,9 +107,11 @@ module Cassandra
         @value = value
       end
 
-      def get
+      def get(timeout = nil)
         @value
       end
+
+      alias :join :get
 
       def on_success
         raise ::ArgumentError, "no block given" unless block_given?
@@ -356,23 +356,23 @@ module Cassandra
     end
 
     # Returns future value or raises future error
-    # @note This method blocks until a future is resolved
-    # @raise [Exception] error used to resolve this future if any
-    # @return [Object] value used to resolve this future if any
-    def get
-      @signal.get
-      
+    #
+    # @note This method blocks until a future is resolved or a times out
+    #
+    # @param timeout [nil, Numeric] a maximum number of seconds to block
+    #   current thread for while waiting for this future to resolve. Will
+    #   wait indefinitely if passed `nil`.
+    #
+    # @raise [Errors::TimeoutError] raised when wait time exceeds the timeout
+    # @raise [Exception] raises when the future has been resolved with an
+    #   error. The original exception will be raised.
+    #
+    # @return [Object] the value that the future has been resolved with
+    def get(timeout = nil)
+      @signal.get(timeout)
     end
 
-    # Block until the future has been resolved
-    # @note This method blocks until a future is resolved
-    # @note This method won't raise any errors or return anything but the
-    #   future itself
-    # @return [self]
-    def join
-      @signal.join
-      self
-    end
+    alias :join :get
   end
 
   # @private
@@ -478,12 +478,9 @@ module Cassandra
         end
       end
 
-      include MonitorMixin
-
       def initialize(executor)
-        mon_initialize
-
-        @cond      = new_cond
+        @lock      = ::Mutex.new
+        @cond      = Concurrency::ConditionVariable.new
         @executor  = executor
         @state     = :pending
         @waiting   = 0
@@ -501,7 +498,7 @@ module Cassandra
 
         listeners = nil
 
-        synchronize do
+        @lock.synchronize do
           return unless @state == :pending
 
           @error = error
@@ -515,7 +512,7 @@ module Cassandra
             listener.failure(error) rescue nil
           end
 
-          synchronize do
+          @lock.synchronize do
             @cond.broadcast if @waiting > 0
           end
         end
@@ -528,7 +525,7 @@ module Cassandra
 
         listeners = nil
 
-        synchronize do
+        @lock.synchronize do
           return unless @state == :pending
 
           @value = value
@@ -542,7 +539,7 @@ module Cassandra
             listener.success(value) rescue nil
           end
 
-          synchronize do
+          @lock.synchronize do
             @cond.broadcast if @waiting > 0
           end
         end
@@ -550,31 +547,48 @@ module Cassandra
         self
       end
 
-      def join
-        return unless @state == :pending
+      # @param timeout [nil, Numeric] a maximum number of seconds to block
+      #   current thread for while waiting for this future to resolve. Will
+      #   wait indefinitely if passed `nil`.
+      #
+      # @raise [Errors::TimeoutError] raised when wait time exceeds the timeout
+      # @raise [Exception] raises when the future has been resolved with an
+      #   error. The original exception will be raised.
+      #
+      # @return [Object] the value that the future has been resolved with
+      def get(timeout = nil)
+        timeout = timeout && Float(timeout)
 
-        synchronize do
-          return unless @state == :pending
+        if @state == :pending
+          @lock.synchronize do
+            if @state == :pending
+              total_wait = 0
+              @waiting += 1
+              while @state == :pending
+                break if timeout && total_wait >= timeout
+                total_wait += @cond.wait(@lock, timeout)
+              end
+              @waiting -= 1
 
-          @waiting += 1
-          @cond.wait while @state == :pending
-          @waiting -= 1
+              if @state == :pending
+                raise Errors::TimeoutError, "Future did not complete within #{timeout.inspect} seconds. Wait time: #{total_wait.inspect}"
+              end
+            end
+          end
         end
 
-        nil
-      end
-
-      def get
-        join if @state == :pending
-
-        raise(@error, @error.message, @error.backtrace) if @state == :broken
+        if @state == :broken
+          raise(@error, @error.message, @error.backtrace)
+        end
 
         @value
       end
 
+      alias :join :get
+
       def add_listener(listener)
         if @state == :pending
-          synchronize do
+          @lock.synchronize do
             if @state == :pending
               @listeners << listener
 
@@ -591,7 +605,7 @@ module Cassandra
 
       def on_success(&block)
         if @state == :pending
-          synchronize do
+          @lock.synchronize do
             if @state == :pending
               @listeners << Listeners::Success.new(&block)
               return self
@@ -606,7 +620,7 @@ module Cassandra
 
       def on_failure(&block)
         if @state == :pending
-          synchronize do
+          @lock.synchronize do
             if @state == :pending
               @listeners << Listeners::Failure.new(&block)
               return self
@@ -621,7 +635,7 @@ module Cassandra
 
       def on_complete(&block)
         if @state == :pending
-          synchronize do
+          @lock.synchronize do
             if @state == :pending
               @listeners << Listeners::Complete.new(&block)
               return self
@@ -636,7 +650,7 @@ module Cassandra
 
       def then(&block)
         if @state == :pending
-          synchronize do
+          @lock.synchronize do
             if @state == :pending
               promise  = Promise.new(@executor)
               listener = Listeners::Then.new(promise, &block)
@@ -659,7 +673,7 @@ module Cassandra
 
       def fallback(&block)
         if @state == :pending
-          synchronize do
+          @lock.synchronize do
             if @state == :pending
               promise  = Promise.new(@executor)
               listener = Listeners::Fallback.new(promise, &block)
