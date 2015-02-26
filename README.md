@@ -91,7 +91,7 @@ __Note__: if you want to use compression you should also install [snappy](http:/
 
 Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API. In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/master/examples/cql-rb-wrapper.rb) to assist you with gradual upgrade.
 
-## What's new in v2.1.0
+## What's new in v2.1.1
 
 Features:
 

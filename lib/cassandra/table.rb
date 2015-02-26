@@ -280,7 +280,7 @@ module Cassandra
           buf    ||= Protocol::CqlByteBuffer.new
           buffer ||= Protocol::CqlByteBuffer.new
 
-          if @protocol_version > 2
+          if @release_version > '2.1'
             Protocol::Coder.write_value_v3(buf, values[column_name], column.type)
           else
             Protocol::Coder.write_value_v1(buf, values[column_name], column.type)
