@@ -2,7 +2,7 @@
 
 Bug Fixes:
 
-[RUBY-98] Use of undefined class variable in `Table#create_partition_key`
+* [RUBY-98] Use of undefined class variable in `Table#create_partition_key`
 
 # 2.1.0
 
