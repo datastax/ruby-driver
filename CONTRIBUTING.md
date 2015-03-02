@@ -11,3 +11,8 @@ If it's not possible to write a test case, for example because the bug only happ
 ##Pull Requests
 
 If you're able to fix a bug yourself, you can [fork the repository](https://help.github.com/articles/fork-a-repo/) and submit a [Pull Request](https://help.github.com/articles/using-pull-requests/) with the fix.
+
+
+## Contribution License Agreement
+
+To protect the community, all contributors are required to [sign the DataStax Contribution License Agreement](http://cla.datastax.com/). The process is completely electronic and should only take a few minutes.
