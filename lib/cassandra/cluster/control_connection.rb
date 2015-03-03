@@ -242,6 +242,8 @@ module Cassandra
       def refresh_schema_async
         connection = @connection
 
+        @logger.info("Refreshing schema")
+
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         keyspaces = send_select_request(connection, SELECT_KEYSPACES)
@@ -259,6 +261,7 @@ module Cassandra
 
           @schema.update_keyspaces(host, keyspaces, tables, columns, types)
           @metadata.rebuild_token_map
+          @logger.info("Schema refreshed")
         end
       end
 

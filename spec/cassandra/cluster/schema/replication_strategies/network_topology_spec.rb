@@ -79,15 +79,15 @@ module Cassandra
 
               it 'maps to hosts from different datacenters and racks' do
                 replication_map = subject.replication_map(token_hosts, token_ring, replication_options)
-                expect(replication_map[token_ring[0]].map do |host|
-                  [host.datacenter, host.rack]
+                expect(replication_map[token_ring[0]].sort_by(&:ip).map do |host|
+                  [host.ip, host.datacenter, host.rack]
                 end).to eq([
-                  ['dc1', 'rack1'],
-                  ['dc2', 'rack1'],
-                  ['dc3', 'rack1'],
-                  ['dc1', 'rack2'],
-                  ['dc2', 'rack2'],
-                  ['dc3', 'rack2'],
+                  ['127.0.0.1',  'dc1', 'rack1'],
+                  ['127.0.0.11', 'dc3', 'rack2'],
+                  ['127.0.0.3',  'dc1', 'rack2'],
+                  ['127.0.0.5',  'dc2', 'rack1'],
+                  ['127.0.0.7',  'dc2', 'rack2'],
+                  ['127.0.0.9',  'dc3', 'rack1'],
                 ])
               end
             end
@@ -102,13 +102,13 @@ module Cassandra
 
               it 'skips those datacenters in replication map' do
                 replication_map = subject.replication_map(token_hosts, token_ring, replication_options)
-                expect(replication_map[token_ring[0]].map do |host|
-                  [host.datacenter, host.rack]
+                expect(replication_map[token_ring[0]].sort_by(&:ip).map do |host|
+                  [host.ip, host.datacenter, host.rack]
                 end).to eq([
-                  ['dc1', 'rack1'],
-                  ['dc2', 'rack1'],
-                  ['dc1', 'rack2'],
-                  ['dc2', 'rack2'],
+                  ['127.0.0.1', 'dc1', 'rack1'],
+                  ['127.0.0.3', 'dc1', 'rack2'],
+                  ['127.0.0.5', 'dc2', 'rack1'],
+                  ['127.0.0.7', 'dc2', 'rack2']
                 ])
               end
             end

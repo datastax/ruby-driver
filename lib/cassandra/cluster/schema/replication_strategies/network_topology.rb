@@ -24,56 +24,68 @@ module Cassandra
         # @private
         class NetworkTopology
           def replication_map(token_hosts, token_ring, replication_options)
-            size  = token_ring.size
-            racks = ::Hash.new
-            token_hosts.each_value do |host|
+            racks                  = ::Hash.new
+            datacenter_token_rings = ::Hash.new
+            size                   = token_ring.size
+
+            token_ring.each_with_index do |token, i|
+              host = token_hosts[token]
+
               racks[host.datacenter] ||= ::Set.new
               racks[host.datacenter].add(host.rack)
+
+              datacenter_token_rings[host.datacenter]  ||= Hash.new
+              datacenter_token_rings[host.datacenter][i] = token
             end
 
             replication_map = ::Hash.new
 
             token_ring.each_with_index do |token, i|
-              all_replicas = ::Hash.new
-              visited = ::Hash.new
-              skipped_datacenter_hosts = ::Hash.new
               replicas = ::Set.new
+              visited  = ::Hash.new
+              skipped  = ::Hash.new
 
-              size.times do |j|
-                break if all_replicas.size == racks.size && !all_replicas.any? {|(datacenter, r)| r.size < Integer(replication_options[datacenter])}
+              replication_options.each do |datacenter, factor|
+                ring   = datacenter_token_rings.fetch(datacenter) { next }
+                factor = [Integer(factor), ring.size].min rescue next
 
-                host       = token_hosts[token_ring[(i + j) % size]]
-                datacenter = host.datacenter
-                next if datacenter.nil?
+                total_racks    = racks[datacenter].size
+                visited_racks  = visited[datacenter] ||= ::Set.new
+                skipped_hosts  = skipped[datacenter] ||= ::Set.new
+                added_replicas = ::Set.new
 
-                factor = replication_options[datacenter]
-                next unless factor
+                j = -1
 
-                factor = Integer(factor) rescue next
+                loop do
+                  break if added_replicas.size >= factor
 
-                replicas_in_datacenter = all_replicas[datacenter] ||= ::Set.new
-                next if replicas_in_datacenter.size >= factor
+                  j += 1
+                  tk = ring[(i + j) % size]
 
-                rack = host.rack
-                visited_racks = visited[datacenter] ||= ::Set.new
+                  next unless tk
 
-                if rack.nil? || visited_racks.size == racks[datacenter].size
-                  replicas << host
-                  replicas_in_datacenter << host
-                else
-                  if visited_racks.include?(rack)
-                    skipped_hosts = skipped_datacenter_hosts[datacenter] ||= ::Set.new
-                    skipped_hosts << host
-                  else
+                  host = token_hosts[tk]
+                  rack = host.rack
+
+                  # unknown rack or seen all racks
+                  if rack.nil? || visited_racks.size == total_racks
                     replicas << host
-                    replicas_in_datacenter << host
-                    visited_racks << rack
+                    added_replicas << host
+                  else
+                    if visited_racks.include?(rack)
+                      skipped_hosts << host
+                    else
+                      replicas << host
+                      visited_racks << rack
+                      added_replicas << host
 
-                    if visited_racks.size == racks[datacenter].size && (skipped_hosts = skipped_datacenter_hosts[datacenter]) && replicas_in_datacenter.size < factor
-                      skipped_hosts.each do |skipped_host|
-                        replicas << skipped_host
-                        replicas_in_datacenter << skipped_host
-                        break if replicas_in_datacenter.size >= factor
+                      if visited_racks.size == total_racks
+                        skipped_hosts.each do |skipped_host|
+                          break if added_replicas.size >= factor
+
+                          replicas << skipped_host
+                          added_replicas << host
+                        end
                       end
                     end
                   end
