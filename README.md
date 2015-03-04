@@ -154,7 +154,7 @@ Please [refer to the usage documentation for more information on common pitfalls
 
 ## Contributing
 
-For contributing read [CONTRIBUTING.md](https://github.com/datastax/ruby-driver/blob/master/README.md)
+For contributing read [CONTRIBUTING.md](https://github.com/datastax/ruby-driver/blob/master/CONTRIBUTING.md)
 
 ## Credits
 
