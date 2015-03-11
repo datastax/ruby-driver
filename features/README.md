@@ -40,7 +40,7 @@ For queries that will be run repeatedly, [you should use Prepared statements](#p
 **If you're using Cassandra 2.0 or later** you no longer have to build CQL strings when you want to insert a value in a query, there's a new feature that lets you bind values with regular statements:
 
 ```ruby
-session.execute("UPDATE users SET age = ? WHERE user_name = ?", 41, 'Sam')
+session.execute("UPDATE users SET age = ? WHERE user_name = ?", arguments: [41, 'Sam'])
 ```
 
 If you find yourself doing this often, it's better to use prepared statements. As a rule of thumb, if your application is sending a request more than once, a prepared statement is almost always the right choice.
@@ -61,7 +61,7 @@ data = [
 
 # execute all statements in background
 futures = data.map do |(age, username)|
-  session.execute_async("UPDATE users SET age = ? WHERE user_name = ?", age, username)
+  session.execute_async("UPDATE users SET age = ? WHERE user_name = ?", arguments: [age, username])
 end
 
 # block until both statements executed
@@ -77,7 +77,7 @@ The driver supports prepared statements. Use `#prepare` to create a statement ob
 ```ruby
 statement = session.prepare('INSERT INTO users (username, email) VALUES (?, ?)')
 
-session.execute(statement, 'avalanche123', 'bulat.shakirzyanov@datastax.com')
+session.execute(statement, arguments: ['avalanche123', 'bulat.shakirzyanov@datastax.com'])
 ```
 
 You should prepare a statement for a given query **only** once and then resue it by calling #execute. Re-preparing the same statement will have a negative impact on the performance and should be avoided.
