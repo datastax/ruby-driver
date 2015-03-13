@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cassandra-driver (2.1.2-java)
+    cassandra-driver (2.1.2)
       ione (~> 1.2)
 
 GEM
