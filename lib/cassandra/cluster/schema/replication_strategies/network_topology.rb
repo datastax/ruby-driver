@@ -56,11 +56,11 @@ module Cassandra
 
                 j = -1
 
-                until ring.empty?
+                loop do
                   break if added_replicas.size >= factor
 
                   j += 1
-                  tk = ring.delete((i + j) % size)
+                  tk = ring[(i + j) % size]
 
                   next unless tk
 
