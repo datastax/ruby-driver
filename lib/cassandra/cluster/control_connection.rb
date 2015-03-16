@@ -677,7 +677,7 @@ Control connection failed and is unlikely to recover.
           register_async
         end
         f = f.flat_map { refresh_hosts_async_maybe_retry }
-        f = f.flat_map { refresh_schema_async_maybe_retry }
+        f = f.flat_map { refresh_schema_async_maybe_retry } if @connection_options.synchronize_schema?
         f = f.fallback do |error|
           @logger.debug("Connection to #{host.ip} failed (#{error.class.name}: #{error.message})")
 
