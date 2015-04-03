@@ -108,7 +108,7 @@ module Cassandra
             return lookup_type(node.children.first)
           end
 
-          type = @@types[node.name]
+          type = @@types.fetch(node.name) { return Cassandra::Types.custom(dump_node(node)) }
 
           case type
           when :set, :list
@@ -158,6 +158,12 @@ module Cassandra
           end
 
           root
+        end
+
+        def dump_node(node)
+          str = node.name
+          str << '(' + node.children.map {|n| dump_node(n)}.join(',') + ')' unless node.children.empty?
+          str
         end
       end
     end

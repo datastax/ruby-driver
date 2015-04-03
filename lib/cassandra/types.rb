@@ -1199,7 +1199,7 @@ module Cassandra
 
       # @return [String] a cassandra representation of this type
       def to_s
-        "custom: #{@name}"
+        "'#{@name}'"
       end
     end
 
