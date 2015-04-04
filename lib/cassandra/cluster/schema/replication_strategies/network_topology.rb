@@ -46,24 +46,21 @@ module Cassandra
               skipped  = ::Hash.new
 
               replication_options.each do |datacenter, factor|
-                ring   = datacenter_token_rings.fetch(datacenter) { next }
+                ring = datacenter_token_rings[datacenter]
+                next unless ring
                 factor = [Integer(factor), ring.size].min rescue next
+
 
                 total_racks    = racks[datacenter].size
                 visited_racks  = visited[datacenter] ||= ::Set.new
                 skipped_hosts  = skipped[datacenter] ||= ::Set.new
                 added_replicas = ::Set.new
 
-                j = -1
-
-                loop do
+                size.times do |j|
                   break if added_replicas.size >= factor
 
-                  j += 1
                   tk = ring[(i + j) % size]
-
                   next unless tk
-
                   host = token_hosts[tk]
                   rack = host.rack
 
