@@ -85,7 +85,7 @@ Feature: User-Defined Types
 
   Scenario: Inserting a partially-complete User-Defined Type
     Given the following example:
-    """ruby
+      """ruby
       require 'cassandra'
 
       cluster = Cassandra.cluster
@@ -106,7 +106,7 @@ Feature: User-Defined Types
 
   Scenario: Nesting a User-Defined Type
     Given the following example:
-    """ruby
+      """ruby
       require 'cassandra'
 
       cluster = Cassandra.cluster
