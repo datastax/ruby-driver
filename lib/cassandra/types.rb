@@ -1201,6 +1201,11 @@ module Cassandra
       def to_s
         "'#{@name}'"
       end
+
+      def eql?(other)
+        other.is_a?(Custom) && @name == other.name
+      end
+      alias :== :eql?
     end
 
     # @return [Cassandra::Types::Varchar] varchar type

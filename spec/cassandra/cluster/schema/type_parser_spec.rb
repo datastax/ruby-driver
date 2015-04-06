@@ -50,6 +50,7 @@ module Cassandra
             ['org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.ReversedType(org.apache.cassandra.db.marshal.UTF8Type),org.apache.cassandra.db.marshal.ColumnToCollectionType(706172616d6574657273:org.apache.cassandra.db.marshal.MapType(org.apache.cassandra.db.marshal.UTF8Type,org.apache.cassandra.db.marshal.UTF8Type)))', [[Types.varchar, :desc, false]], {"parameters"=>Types.map(Types.varchar, Types.varchar)}],
             ['org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.UTF8Type,org.apache.cassandra.db.marshal.ColumnToCollectionType(706172616d6574657273:org.apache.cassandra.db.marshal.ReversedType(org.apache.cassandra.db.marshal.MapType(org.apache.cassandra.db.marshal.UTF8Type,org.apache.cassandra.db.marshal.UTF8Type))))', [[Types.varchar, :asc, false]], {"parameters"=>Types.map(Types.varchar, Types.varchar)}],
             ['org.apache.cassandra.db.marshal.FrozenType(org.apache.cassandra.db.marshal.SetType(org.apache.cassandra.db.marshal.UTF8Type))', [[Types.set(Types.varchar), :asc, true]]],
+            ['org.apache.cassandra.db.marshal.DynamicCompositeType',[[Types.custom('org.apache.cassandra.db.marshal.DynamicCompositeType'), :asc, false]]]
           ].each do |cassandra_type, results, collections|
             it "parses #{cassandra_type.inspect} as results=#{results.inspect} collections=#{collections.inspect}" do
               result = parser.parse(cassandra_type)
