@@ -80,16 +80,22 @@ module Cassandra
 
         token_ring     = tokens.to_a
         token_replicas = ::Hash.new
+        token_maps     = ::Hash.new
 
         @schema.each_keyspace do |keyspace|
           replication = keyspace.replication
-          strategy    = @strategies[replication.klass] || @default_strategy
+          key         = replication_key(replication.klass, replication.options)
 
-          token_replicas[keyspace.name] = strategy.replication_map(
-            token_to_host,
-            token_ring,
-            replication.options
-          )
+          unless token_maps.include?(key)
+            strategy        = @strategies[replication.klass] || @default_strategy
+            token_maps[key] = strategy.replication_map(
+              token_to_host,
+              token_ring,
+              replication.options
+            )
+          end
+
+          token_replicas[keyspace.name] = token_maps[key]
         end
 
         @token_replicas = token_replicas
@@ -99,6 +105,10 @@ module Cassandra
       end
 
       private
+
+      def replication_key(klass, options)
+        (klass + ':' + options.keys.sort.map {|k| "#{k}=#{options[k]}"}.join(',')).hash
+      end
 
       def insertion_point(list, item)
         min = 0
