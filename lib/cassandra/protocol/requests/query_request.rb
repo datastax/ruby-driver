@@ -19,10 +19,10 @@
 module Cassandra
   module Protocol
     class QueryRequest < Request
-      attr_reader :cql, :values, :type_hints, :serial_consistency, :page_size, :paging_state
+      attr_reader :cql, :values, :type_hints, :serial_consistency, :page_size, :paging_state, :timestamp
       attr_accessor :consistency, :retries
 
-      def initialize(cql, values, type_hints, consistency, serial_consistency = nil, page_size = nil, paging_state = nil, trace = false, names = EMPTY_LIST)
+      def initialize(cql, values, type_hints, consistency, serial_consistency = nil, page_size = nil, paging_state = nil, trace = false, names = EMPTY_LIST, timestamp = nil)
         super(7, trace)
         @cql = cql
         @values = values
@@ -32,6 +32,7 @@ module Cassandra
         @page_size = page_size
         @paging_state = paging_state
         @names = names
+        @timestamp = timestamp
       end
 
       def write(buffer, protocol_version, encoder)
@@ -44,7 +45,10 @@ module Cassandra
           flags |= 0x10 if @serial_consistency
           if @values && @values.size > 0
             flags |= 0x01
-            flags |= 0x40 unless @names.empty?
+            if protocol_version > 2
+              flags |= 0x20 if @timestamp
+              flags |= 0x40 unless @names.empty?
+            end
             buffer.append(flags.chr)
             encoder.write_parameters(buffer, @values, @type_hints, @names)
           else
@@ -53,6 +57,9 @@ module Cassandra
           buffer.append_int(@page_size) if @page_size
           buffer.append_bytes(@paging_state) if @paging_state
           buffer.append_consistency(@serial_consistency) if @serial_consistency
+          if protocol_version > 2
+            buffer.append_timestamp(@timestamp) if @timestamp
+          end
         end
         buffer
       end

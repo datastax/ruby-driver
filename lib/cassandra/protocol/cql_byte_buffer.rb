@@ -258,6 +258,10 @@ module Cassandra
         self
       end
 
+      def append_timestamp(timestamp)
+        append_long(timestamp.tv_sec * 1000000 + timestamp.tv_usec)
+      end
+
       def append_long(n)
         top = n >> 32
         bottom = n & 0xffffffff

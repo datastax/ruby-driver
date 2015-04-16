@@ -770,7 +770,8 @@ module Cassandra
 
           client.connect.value
 
-          expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false).and_return(batch_request)
+          expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false, nil, nil).and_return(batch_request)
+          allow(batch_request).to receive(:clear)
           expect(batch_request).to receive(:add_query).once.with('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', [1, 2, 3, 4, 5], [Cassandra::Types.bigint, Cassandra::Types.bigint, Cassandra::Types.bigint, Cassandra::Types.bigint, Cassandra::Types.bigint])
           expect(batch_request).to receive(:retries=).once.with(0)
           client.batch(batch, Execution::Options.new(:consistency => :one, :trace => false)).get
@@ -810,7 +811,8 @@ module Cassandra
 
           batch.add(statement, [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])
 
-          expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false).and_return(batch_request)
+          expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false, nil, nil).and_return(batch_request)
+          allow(batch_request).to receive(:clear)
           expect(batch_request).to receive(:add_prepared).once.with(123, [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']], params_metadata.map(&:last))
           expect(batch_request).to receive(:retries=).once.with(0)
           client.batch(batch, Execution::Options.new(:consistency => :one, :trace => false)).get
@@ -852,7 +854,8 @@ module Cassandra
 
           batch.add(statement, [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])
 
-          expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false).and_return(batch_request)
+          expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false, nil, nil).and_return(batch_request)
+          allow(batch_request).to receive(:clear)
           expect(batch_request).to receive(:add_prepared).once.with(123, [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']], params_metadata.map(&:last))
           expect(batch_request).to receive(:retries=).once.with(0)
 
