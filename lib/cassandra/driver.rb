@@ -145,7 +145,11 @@ module Cassandra
         if f.resolved?
           promise.fulfill(cluster)
         else
-          f.on_failure {|e| promise.break(e)}
+          f.on_failure do |e|
+            cluster.close_async.on_complete do |_, _|
+              promise.break(e)
+            end
+          end
         end
       end
 

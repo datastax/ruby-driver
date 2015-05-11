@@ -507,7 +507,7 @@ module Cassandra
 
     hosts.shuffle!
   rescue => e
-    futures = options.fetch(:futures_factory) { Driver.new.futures_factory }
+    futures = options.fetch(:futures_factory) { return Future::Error.new(e) }
     futures.error(e)
   else
     driver = Driver.new(options)
