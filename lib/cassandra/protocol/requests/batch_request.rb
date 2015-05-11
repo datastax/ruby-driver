@@ -23,14 +23,21 @@ module Cassandra
       UNLOGGED_TYPE = 1
       COUNTER_TYPE = 2
 
-      attr_reader :type
+      attr_reader :type, :timestamp
       attr_accessor :consistency, :retries
 
-      def initialize(type, consistency, trace=false)
+      def initialize(type, consistency, trace=false, serial_consistency = nil, timestamp = nil)
         super(0x0D, trace)
         @type  = type
         @parts = []
         @consistency = consistency
+        @serial_consistency = serial_consistency
+        @timestamp = timestamp
+      end
+
+      def clear
+        @parts.clear
+        nil
       end
 
       def add_query(cql, values, types)
@@ -54,9 +61,13 @@ module Cassandra
         buffer.append_consistency(@consistency)
 
         if protocol_version > 2
-          flags = 0
+          flags  = 0
+          flags |= 0x10 if @serial_consistency
+          flags |= 0x20 if @timestamp
 
           buffer.append(flags.chr)
+          buffer.append_consistency(@serial_consistency) if @serial_consistency
+          buffer.append_timestamp(@timestamp) if @timestamp
         end
 
         buffer

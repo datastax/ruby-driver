@@ -1,3 +1,31 @@
+# 2.1.4
+
+Features:
+
+* [RUBY-70] Add support for client-side timestamps, disabled by default.
+* [RUBY-114] Add support for serial consistency in batch requests.
+
+Bug Fixes:
+
+* [RUBY-103] Don't regenerate schema metadata for the same replication
+  strategies and options
+* [RUBY-102] Allow custom types in schema metadata
+* [RUBY-97] Allow disabling of the initial population of schema metadata
+* [RUBY-95] Speed up generation of large token maps
+
+Breaking Changes:
+
+* Setting `:synchronize_schema` to `true` will no longer perform the initial
+  fetching if schema metadata.
+
+# 2.1.3
+
+Release removing backwards incompatible changes included in 2.1.2
+
+# 2.1.2
+
+Release removing accidental debug code from 2.1.1.
+
 # 2.1.1
 
 Bug Fixes:

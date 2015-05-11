@@ -19,10 +19,10 @@
 module Cassandra
   module Protocol
     class ExecuteRequest < Request
-      attr_reader :metadata, :values, :request_metadata, :serial_consistency, :page_size, :paging_state
+      attr_reader :metadata, :values, :request_metadata, :serial_consistency, :page_size, :paging_state, :timestamp
       attr_accessor :consistency, :retries, :id
 
-      def initialize(id, metadata, values, request_metadata, consistency, serial_consistency=nil, page_size=nil, paging_state=nil, trace=false)
+      def initialize(id, metadata, values, request_metadata, consistency, serial_consistency=nil, page_size=nil, paging_state=nil, trace=false, timestamp = nil)
         raise ArgumentError, "Metadata for #{metadata.size} columns, but #{values.size} values given" if metadata.size != values.size
         raise ArgumentError, %(No such consistency: #{consistency.inspect}) if consistency.nil? || !CONSISTENCIES.include?(consistency)
         raise ArgumentError, %(No such consistency: #{serial_consistency.inspect}) unless serial_consistency.nil? || CONSISTENCIES.include?(serial_consistency)
@@ -36,6 +36,7 @@ module Cassandra
         @serial_consistency = serial_consistency
         @page_size = page_size
         @paging_state = paging_state
+        @timestamp = timestamp
       end
 
       def write(buffer, protocol_version, encoder)
@@ -48,6 +49,9 @@ module Cassandra
           flags |= 0x04 if @page_size
           flags |= 0x08 if @paging_state
           flags |= 0x10 if @serial_consistency
+          if protocol_version > 2
+            flags |= 0x20 if @timestamp
+          end
           buffer.append(flags.chr)
           if @values.size > 0
             encoder.write_parameters(buffer, @values, @metadata)
@@ -55,6 +59,9 @@ module Cassandra
           buffer.append_int(@page_size) if @page_size
           buffer.append_bytes(@paging_state) if @paging_state
           buffer.append_consistency(@serial_consistency) if @serial_consistency
+          if protocol_version > 2
+            buffer.append_timestamp(@timestamp) if @timestamp
+          end
         else
           encoder.write_parameters(buffer, @values, @metadata)
           buffer.append_consistency(@consistency)

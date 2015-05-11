@@ -86,7 +86,8 @@ module Cassandra
         idle_timeout,
         synchronize_schema,
         schema_refresh_delay,
-        schema_refresh_timeout
+        schema_refresh_timeout,
+        client_timestamps
       )
     end
 
@@ -114,6 +115,7 @@ module Cassandra
     let(:schema_refresh_timeout)    { 10 }
     let(:thread_pool_size)          { 4 }
     let(:shuffle_replicas)          { true }
+    let(:client_timestamps)         { false }
 
     let(:connections_per_local_node)  { 2 }
     let(:connections_per_remote_node) { 1 }

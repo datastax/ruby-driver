@@ -122,6 +122,12 @@ module Cassandra
   #   address resolver to use. Must be one of `:none` or
   #   `:ec2_multi_region`.
   #
+  # @option options [Boolean] :client_timestamps (false) whether the driver
+  #   should send timestamps for each execited statement. Enabling this setting
+  #   allows mitigating Cassandra cluster clock skew because the timestamp of
+  #   the client machine will be used. This does not help mitigate application
+  #   cluster clock skew.
+  #
   # @option options [Boolean] :synchronize_schema (true) whether the driver
   #   should automatically keep schema metadata synchronized. When enabled, the
   #   driver updates schema metadata after receiving schema change
@@ -217,7 +223,7 @@ module Cassandra
         :connect_timeout, :futures_factory, :datacenter, :address_resolution,
         :address_resolution_policy, :idle_timeout, :heartbeat_interval, :timeout,
         :synchronize_schema, :schema_refresh_delay, :schema_refresh_timeout,
-        :shuffle_replicas
+        :shuffle_replicas, :client_timestamps
       ].include?(key)
     end
 
@@ -474,6 +480,10 @@ module Cassandra
 
     if options.has_key?(:synchronize_schema)
       options[:synchronize_schema] = !!options[:synchronize_schema]
+    end
+
+    if options.has_key?(:client_timestamps)
+      options[:client_timestamps] = !!options[:client_timestamps]
     end
 
     hosts = []

@@ -207,9 +207,11 @@ module Cassandra
       def query(statement, options)
         return @futures.error(Errors::ClientError.new("Positional arguments are not supported by the current version of Apache Cassandra")) if !statement.params.empty? && @connection_options.protocol_version == 1
 
-        request = Protocol::QueryRequest.new(statement.cql, statement.params, statement.params_types, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?, statement.params_names)
-        timeout = options.timeout
-        promise = @futures.promise
+        timestamp = nil
+        timestamp = Time.now if @connection_options.client_timestamps? && @connection_options.protocol_version > 2
+        request   = Protocol::QueryRequest.new(statement.cql, statement.params, statement.params_types, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?, statement.params_names, timestamp)
+        timeout   = options.timeout
+        promise   = @futures.promise
 
         keyspace = @keyspace
         plan     = @load_balancing_policy.plan(keyspace, statement, options)
@@ -234,9 +236,11 @@ module Cassandra
       end
 
       def execute(statement, options)
+        timestamp       = nil
+        timestamp       = Time.now if @connection_options.client_timestamps? && @connection_options.protocol_version > 2
         timeout         = options.timeout
         result_metadata = statement.result_metadata
-        request         = Protocol::ExecuteRequest.new(nil, statement.params_types, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?)
+        request         = Protocol::ExecuteRequest.new(nil, statement.params_types, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?, timestamp)
         promise         = @futures.promise
 
         keyspace = @keyspace
@@ -250,12 +254,15 @@ module Cassandra
       def batch(statement, options)
         return @futures.error(Errors::ClientError.new("Batch statements are not supported by the current version of Apache Cassandra")) if @connection_options.protocol_version < 2
 
-        timeout  = options.timeout
-        keyspace = @keyspace
-        plan     = @load_balancing_policy.plan(keyspace, statement, options)
-        promise  = @futures.promise
+        timestamp = nil
+        timestamp = Time.now if @connection_options.client_timestamps? && @connection_options.protocol_version > 2
+        timeout   = options.timeout
+        request   = Protocol::BatchRequest.new(BATCH_TYPES[statement.type], options.consistency, options.trace?, options.serial_consistency, timestamp)
+        keyspace  = @keyspace
+        plan      = @load_balancing_policy.plan(keyspace, statement, options)
+        promise   = @futures.promise
 
-        batch_by_plan(promise, keyspace, statement, options, plan, timeout)
+        batch_by_plan(promise, keyspace, statement, options, request, plan, timeout)
 
         promise.future
       end
@@ -509,7 +516,7 @@ module Cassandra
         end
       end
 
-      def batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors = nil, hosts = [])
+      def batch_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
         unless plan.has_next?
           promise.break(Errors::NoHostsAvailable.new(errors))
           return
@@ -522,7 +529,7 @@ module Cassandra
         unless pool
           errors ||= {}
           errors[host] = NOT_CONNECTED
-          return batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
+          return batch_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
         end
 
         connection = pool.random_connection
@@ -531,14 +538,14 @@ module Cassandra
           switch = switch_keyspace(connection, keyspace, timeout)
           switch.on_complete do |s|
             if s.resolved?
-              batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, plan, timeout, errors, hosts)
+              batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, request, options, plan, timeout, errors, hosts)
             else
               s.on_failure do |e|
                 case e
                 when Errors::HostError
                   errors ||= {}
                   errors[host] = e
-                  batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
+                  batch_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
                 else
                   promise.break(e)
                 end
@@ -546,16 +553,16 @@ module Cassandra
             end
           end
         else
-          batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, plan, timeout, errors, hosts)
+          batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, request, options, plan, timeout, errors, hosts)
         end
       rescue => e
         errors ||= {}
         errors[host] = e
-        batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
+        batch_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
       end
 
-      def batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, plan, timeout, errors, hosts)
-        request    = Protocol::BatchRequest.new(BATCH_TYPES[statement.type], options.consistency, options.trace?)
+      def batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, request, options, plan, timeout, errors, hosts)
+        request.clear
         unprepared = Hash.new {|hash, cql| hash[cql] = []}
 
         statement.statements.each do |statement|
@@ -598,7 +605,7 @@ module Cassandra
                 when Errors::HostError
                   errors ||= {}
                   errors[host] = e
-                  batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
+                  batch_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
                 else
                   promise.break(e)
                 end
@@ -711,7 +718,7 @@ module Cassandra
                   when Protocol::ExecuteRequest
                     execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
                   when Protocol::BatchRequest
-                    batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
+                    batch_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
                   end
                 else
                   promise.break(error)
@@ -774,7 +781,7 @@ module Cassandra
               when Protocol::ExecuteRequest
                 execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
               when Protocol::BatchRequest
-                batch_by_plan(promise, keyspace, statement, options, plan, timeout, errors, hosts)
+                batch_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
               else
                 promise.break(e)
               end
