@@ -12,6 +12,7 @@ Bug Fixes:
 * [RUBY-102] Allow custom types in schema metadata
 * [RUBY-97] Allow disabling of the initial population of schema metadata
 * [RUBY-95] Speed up generation of large token maps
+* [RUBY-116] fix thread leak on connection error
 
 Breaking Changes:
 
