@@ -385,7 +385,7 @@ module Cassandra
           index   = Column::Index.new(column['index_name'])
         else
           options = ::JSON.load(column['index_options'])
-          index   = Column::Index.new(column['index_name'], options['class_name'])
+          index   = Column::Index.new(column['index_name'], options && options['class_name'])
         end
 
         Column.new(name, type, order, index, is_static, is_frozen)
