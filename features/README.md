@@ -327,6 +327,10 @@ Read more about CQL3 in the [CQL3 syntax documentation][1] and the [Cassandra qu
 
 ## Troubleshooting
 
+### Cassandra.cluster is taking too long
+
+Upon initial connection, the Ruby driver begins inspecting schema metadata and reconstructing token ranges. This is necessary for token-aware load balancing, but might take an very long time for some schemas/clusters. If you cannot wait for such a long startup time, you can disable schema metadata altogether by passing `synchronize_schema: false` to `Cassandra.cluster`.
+
 ### I get "connection refused" errors
 
 Make sure that the native transport protocol is enabled. If you're running Cassandra 1.2.5 or later the native transport protocol is enabled by default, if you're running an earlier version (but later than 1.2) you must enable it by editing `cassandra.yaml` and setting `start_native_transport` to `true`.
