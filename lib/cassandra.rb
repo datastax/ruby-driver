@@ -535,6 +535,7 @@ require 'cassandra/compression'
 require 'cassandra/protocol'
 require 'cassandra/auth'
 require 'cassandra/null_logger'
+require 'cassandra/slow_queries_logger'
 
 require 'cassandra/executors'
 require 'cassandra/future'
