@@ -173,6 +173,23 @@ module Cassandra
           futures[128].should be_resolved
         end
 
+        it 'notifies the slow query logger' do
+          expect(query_logger).to receive(:start).with(0, request).once
+          protocol_handler.send_request(request)
+        end
+
+        it 'is logged upon completion' do
+          expect(query_logger).to receive(:finish).with(0).once
+          protocol_handler.send_request request
+          connection.data_listener.call([0x81, 0, 0, 2, 0].pack('C4N'))
+        end
+
+        it 'clears the register in slow query logger' do
+          expect(query_logger).to receive(:delete).with(0).once
+          protocol_handler.send_request request
+          connection.data_listener.call([0x81, 0, 0, 2, 0].pack('C4N'))
+        end
+
         context 'when a compressor is specified' do
           let :protocol_handler do
             described_class.new(connection, scheduler, 1, query_logger, compressor)
