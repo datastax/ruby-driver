@@ -54,5 +54,15 @@ module Cassandra
         end.to change { subject.instance_variable_get(:@requests)[req_id] }.from(cql).to nil
       end
     end
+
+    describe 'queries for logger method convenience' do
+      it 'returns a null queries logger if null logger is given' do
+        expect(Cassandra.queries_logger_for NullLogger.new).to be_a NullQueriesLogger
+      end
+
+      it 'returns a slow queries logger otherwise' do
+        expect(Cassandra.queries_logger_for Logger.new(STDOUT)).to be_a SlowQueriesLogger
+      end
+    end
   end
 end
