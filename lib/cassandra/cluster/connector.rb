@@ -114,6 +114,13 @@ module Cassandra
       def do_connect(host)
         @reactor.connect(host.ip.to_s, @connection_options.port, {:timeout => @connection_options.connect_timeout, :ssl => @connection_options.ssl}) do |connection|
           raise Errors::ClientError, 'Not connected, reactor stopped' unless connection
+
+          if @connection_options.nodelay?
+            connection.to_io.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+          else
+            connection.to_io.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 0)
+          end
+
           Protocol::CqlProtocolHandler.new(connection, @reactor, @connection_options.protocol_version, @connection_options.compressor, @connection_options.heartbeat_interval, @connection_options.idle_timeout)
         end.flat_map do |connection|
           f = request_options(connection)

@@ -59,6 +59,9 @@ module Cassandra
   #
   # @option options [Integer] :port (9042) cassandra native protocol port.
   #
+  # @option options [Boolean] :nodelay (false) when set to `true`, disables
+  #   nagle algorithm.
+  #
   # @option options [String] :datacenter (nil) name of current datacenter.
   #   First datacenter found will be assumed current by default. Note that you
   #   can skip this option if you specify only hosts from the local datacenter
@@ -433,6 +436,10 @@ module Cassandra
       consistency = options[:consistency]
 
       Util.assert_one_of(CONSISTENCIES, consistency) { ":consistency must be one of #{CONSISTENCIES.inspect}, #{consistency.inspect} given" }
+    end
+
+    if options.has_key?(:nodelay)
+      options[:nodelay] = !!options[:nodelay]
     end
 
     if options.has_key?(:trace)

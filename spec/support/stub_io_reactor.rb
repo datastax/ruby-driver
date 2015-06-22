@@ -17,6 +17,16 @@
 #++
 
 class StubIoReactor
+  class NullObject
+    def method_missing(method, *args, &block)
+      self
+    end
+
+    def nil?
+      true
+    end
+  end
+
   class Connection
     attr_reader :host
     attr_reader :port
@@ -30,6 +40,7 @@ class StubIoReactor
       @ssl       = ssl
       @blocked   = false
       @connected = true
+      @io        = NullObject.new
 
       @closed_listeners = []
       @incoming = ::Queue.new
@@ -44,6 +55,10 @@ class StubIoReactor
           @data_listener.call(data)
         end
       end
+    end
+
+    def to_io
+      @io
     end
 
     def connected?

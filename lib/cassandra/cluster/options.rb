@@ -25,7 +25,7 @@ module Cassandra
                   :schema_refresh_delay, :schema_refresh_timeout
       attr_accessor :protocol_version
 
-      def initialize(protocol_version, credentials, auth_provider, compressor, port, connect_timeout, ssl, connections_per_local_node, connections_per_remote_node, heartbeat_interval, idle_timeout, synchronize_schema, schema_refresh_delay, schema_refresh_timeout, client_timestamps)
+      def initialize(protocol_version, credentials, auth_provider, compressor, port, connect_timeout, ssl, connections_per_local_node, connections_per_remote_node, heartbeat_interval, idle_timeout, synchronize_schema, schema_refresh_delay, schema_refresh_timeout, client_timestamps, nodelay)
         @protocol_version       = protocol_version
         @credentials            = credentials
         @auth_provider          = auth_provider
@@ -39,6 +39,7 @@ module Cassandra
         @schema_refresh_delay   = schema_refresh_delay
         @schema_refresh_timeout = schema_refresh_timeout
         @client_timestamps      = client_timestamps
+        @nodelay                = nodelay
 
         @connections_per_local_node  = connections_per_local_node
         @connections_per_remote_node = connections_per_remote_node
@@ -50,6 +51,10 @@ module Cassandra
 
       def client_timestamps?
         @client_timestamps
+      end
+
+      def nodelay?
+        @nodelay
       end
 
       def compression
