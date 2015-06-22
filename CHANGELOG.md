@@ -2,6 +2,7 @@
 
 Features:
 
+* [RUBY-119] Use `require 'datastax/cassandra'` to avoid namespace conflicts
 * [RUBY-90] Add support for disabling nagle algorithm (tcp nodelay), enabled by default.
 * [RUBY-70] Add support for client-side timestamps, disabled by default.
 * [RUBY-114] Add support for serial consistency in batch requests.

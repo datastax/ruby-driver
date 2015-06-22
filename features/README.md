@@ -389,6 +389,10 @@ DSE before 3.1 uses a non-standard protocol and is not currently supported.
 
 Port 9160 is the old Thrift interface, the binary protocol runs on 9042. This is also the default port for ruby-driver, so unless you've changed the port in `cassandra.yaml`, don't override the port.
 
+### I get namespace conflicts with another gem
+
+Use `require 'datastax/cassandra'` and `DataStax::Cassandra` to get a namespaced version of the gem and prevent conflicts with other gems that use top level `Cassandra` namespace.
+
 ### Something else is not working
 
 Open an issue and someone will try to help you out. Please include the gem version, Casandra version and Ruby version, and explain as much about what you're doing as you can, preferably the smallest piece of code that reliably triggers the problem. The more information you give, the better the chances you will get help.
