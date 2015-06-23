@@ -22,7 +22,7 @@ Feature: User-Defined Types
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.cluster
+      cluster = Cassandra.cluster(consistency: :all)
       session = cluster.connect('simplex')
       insert  = session.prepare('INSERT INTO users (id, location) VALUES (?, ?)')
 
@@ -43,7 +43,7 @@ Feature: User-Defined Types
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.cluster
+      cluster = Cassandra.cluster(consistency: :all)
       session = cluster.connect('simplex')
 
       session.execute("INSERT INTO users (id, location) VALUES (0, {street: '123 Main St.', zipcode: 78723})")
@@ -88,7 +88,7 @@ Feature: User-Defined Types
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.cluster
+      cluster = Cassandra.cluster(consistency: :all)
       session = cluster.connect('simplex')
       insert  = session.prepare('INSERT INTO users (id, location) VALUES (?, ?)')
 
@@ -109,7 +109,7 @@ Feature: User-Defined Types
       """ruby
       require 'cassandra'
 
-      cluster = Cassandra.cluster
+      cluster = Cassandra.cluster(consistency: :all)
       session = cluster.connect('simplex')
 
       session.execute("CREATE TABLE registration (id int PRIMARY KEY, info frozen<check_in>)")
