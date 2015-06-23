@@ -32,5 +32,13 @@ module DataStax
     class_eval(File.read(path), path, 1)
   end
 
+  previous = nil
+  if defined?(::Cassandra)
+    previous = ::Cassandra
+    Object.send(:remove_const, :Cassandra)
+  end
   include 'cassandra'
+  DataStax::Cassandra::Murmur3 = ::Cassandra::Murmur3
+  Object.send(:remove_const, :Cassandra)
+  ::Cassandra = previous if previous
 end
