@@ -16,12 +16,6 @@
 # limitations under the License.
 #++
 
-begin
-  require 'lz4-ruby'
-rescue LoadError => e
-  raise LoadError, %[LZ4 support requires the "lz4-ruby" gem: #{e.message}], e.backtrace
-end
-
 module Cassandra
   module Compression
     module Compressors
@@ -40,6 +34,14 @@ module Cassandra
         # @param [Integer] min_size (64) Don't compress frames smaller than
         #   this size (see {#compress?}).
         def initialize(min_size=64)
+          unless defined?(::LZ4::Raw)
+            begin
+              require 'lz4-ruby'
+            rescue LoadError => e
+              raise LoadError, %[LZ4 support requires the "lz4-ruby" gem: #{e.message}], e.backtrace
+            end
+          end
+
           @algorithm = 'lz4'.freeze
           @min_size = min_size
         end

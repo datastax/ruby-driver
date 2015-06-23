@@ -64,3 +64,6 @@ module Cassandra
     end
   end
 end
+
+require 'cassandra/compression/compressors/snappy'
+require 'cassandra/compression/compressors/lz4'

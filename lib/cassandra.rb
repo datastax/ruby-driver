@@ -324,10 +324,8 @@ module Cassandra
 
       case compression
       when :snappy
-        require 'cassandra/compression/compressors/snappy'
         options[:compressor] = Compression::Compressors::Snappy.new
       when :lz4
-        require 'cassandra/compression/compressors/lz4'
         options[:compressor] = Compression::Compressors::Lz4.new
       else
         raise ::ArgumentError, ":compression must be either :snappy or :lz4, #{compression.inspect} given"
