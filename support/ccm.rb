@@ -116,7 +116,23 @@ module CCM extend self
 
         @notifier.executing_command(cmd, @pid)
 
-        @stdin.write(encode(args))
+        begin
+          @stdin.write(encode(args))
+        rescue ::Errno::EPIPE
+          output = @stdout.read rescue ''
+          @notifier.command_output(@pid, output) unless output.empty?
+
+          @stdin.close
+          @stdout.close
+          Process.waitpid(@pid)
+
+          @notifier.executed_command(cmd, @pid, $?)
+          @stdin  = nil
+          @stdout = nil
+          @pid    = nil
+
+          raise
+        end
 
         until done
           if IO.select([@stdout], nil, nil, 30)
