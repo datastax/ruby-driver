@@ -26,248 +26,258 @@ class DatatypeTest < IntegrationTestCase
   end
 
   def test_all_primitive_datatypes_initially_nil
-    cluster = Cassandra.cluster
-    session = cluster.connect("simplex")
+    begin
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
 
-    # Create the table
-    alpha_type_list = ["zz int PRIMARY KEY"]
-    DatatypeUtils.primitive_datatypes.zip('a'..'z') do |datatype, letter|
-      alpha_type_list.push("#{letter} #{datatype}")
+      # Create the table
+      alpha_type_list = ["zz int PRIMARY KEY"]
+      DatatypeUtils.primitive_datatypes.zip('a'..'z') do |datatype, letter|
+        alpha_type_list.push("#{letter} #{datatype}")
+      end
+
+      session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
+
+      # Insert into table
+      insert = session.prepare("INSERT INTO mytable (zz)
+              VALUES (?)")
+      session.execute(insert, arguments: [0])
+
+      # Verify results
+      result = session.execute("SELECT * FROM mytable").first
+      result.delete("zz")
+      result.each_value do |actual|
+        assert_nil actual
+      end
+    ensure
+      cluster && cluster.close
     end
-
-    session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
-
-    # Insert into table
-    insert = session.prepare("INSERT INTO mytable (zz)
-            VALUES (?)")
-    session.execute(insert, arguments: [0])
-
-    # Verify results
-    result = session.execute("SELECT * FROM mytable").first
-    result.delete("zz")
-    result.each_value do |actual|
-      assert_nil actual
-    end
-  ensure
-    cluster.close
   end
 
   def test_can_insert_all_primitive_datatypes_nil_values
-    cluster = Cassandra.cluster
-    session = cluster.connect("simplex")
+    begin
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
 
-    # Create the table
-    alpha_type_list = ["zz int PRIMARY KEY"]
-    DatatypeUtils.primitive_datatypes.zip('a'..'z') do |datatype, letter|
-      alpha_type_list.push("#{letter} #{datatype}")
+      # Create the table
+      alpha_type_list = ["zz int PRIMARY KEY"]
+      DatatypeUtils.primitive_datatypes.zip('a'..'z') do |datatype, letter|
+        alpha_type_list.push("#{letter} #{datatype}")
+      end
+
+      session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
+
+      # Create the input
+      params = [0]
+      DatatypeUtils.primitive_datatypes.each do |datatype|
+        params.push(nil)
+      end
+
+      # Insert into table
+      parameters = ["zz"]
+      parameters.push(('a'..'o').to_a)
+      arguments = []
+      16.times { arguments.push('?') }
+
+      insert = session.prepare("INSERT INTO mytable (#{parameters.join(",")})
+              VALUES (#{arguments.join(",")})")
+      session.execute(insert, arguments: params)
+
+      # Verify results
+      result = session.execute("SELECT * FROM mytable").first
+      result.each_value.zip(params) do |actual, expected|
+        assert_equal expected, actual
+      end
+    ensure
+      cluster && cluster.close
     end
-
-    session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
-
-    # Create the input
-    params = [0]
-    DatatypeUtils.primitive_datatypes.each do |datatype|
-      params.push(nil)
-    end
-
-    # Insert into table
-    parameters = ["zz"]
-    parameters.push(('a'..'o').to_a)
-    arguments = []
-    16.times { arguments.push('?') }
-
-    insert = session.prepare("INSERT INTO mytable (#{parameters.join(",")})
-            VALUES (#{arguments.join(",")})")
-    session.execute(insert, arguments: params)
-
-    # Verify results
-    result = session.execute("SELECT * FROM mytable").first
-    result.each_value.zip(params) do |actual, expected|
-      assert_equal expected, actual
-    end
-  ensure
-    cluster.close
   end
 
   def test_can_insert_each_primitive_datatype
-    cluster = Cassandra.cluster
-    session = cluster.connect("simplex")
+    begin
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
 
-    # Create the table
-    alpha_type_list = ["zz int PRIMARY KEY"]
-    DatatypeUtils.primitive_datatypes.zip('a'..'z') do |datatype, letter|
-      alpha_type_list.push("#{letter} #{datatype}")
+      # Create the table
+      alpha_type_list = ["zz int PRIMARY KEY"]
+      DatatypeUtils.primitive_datatypes.zip('a'..'z') do |datatype, letter|
+        alpha_type_list.push("#{letter} #{datatype}")
+      end
+
+      session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
+
+      # Create the input
+      params = [0]
+      DatatypeUtils.primitive_datatypes.each do |datatype|
+        params.push(DatatypeUtils.get_sample(datatype))
+      end
+
+      # Insert into table
+      parameters = ["zz"]
+      parameters.push(('a'..'o').to_a)
+      arguments = []
+      16.times { arguments.push('?') }
+
+      insert = session.prepare("INSERT INTO mytable (#{parameters.join(",")})
+              VALUES (#{arguments.join(",")})")
+      session.execute(insert, arguments: params)
+
+      # Verify results
+      result = session.execute("SELECT * FROM mytable").first
+      result.each_value.zip(params) do |actual, expected|
+        assert_equal expected, actual
+      end
+    ensure
+      cluster.close
     end
 
-    session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
+    def test_all_collection_types_initially_nil
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
 
-    # Create the input
-    params = [0]
-    DatatypeUtils.primitive_datatypes.each do |datatype|
-      params.push(DatatypeUtils.get_sample(datatype))
-    end
-
-    # Insert into table
-    parameters = ["zz"]
-    parameters.push(('a'..'o').to_a)
-    arguments = []
-    16.times { arguments.push('?') }
-
-    insert = session.prepare("INSERT INTO mytable (#{parameters.join(",")})
-            VALUES (#{arguments.join(",")})")
-    session.execute(insert, arguments: params)
-
-    # Verify results
-    result = session.execute("SELECT * FROM mytable").first
-    result.each_value.zip(params) do |actual, expected|
-      assert_equal expected, actual
-    end
-  ensure
-    cluster.close
-  end
-
-  def test_all_collection_types_initially_nil
-    cluster = Cassandra.cluster
-    session = cluster.connect("simplex")
-
-    # Create the table
-    alpha_type_list = ["zz int PRIMARY KEY"]
-    DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
-      DatatypeUtils.primitive_datatypes.zip('a'..'z').each do |datatype, letter2|
-        if collection_type == 'Map'
-          alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<#{datatype}, #{datatype}>")
-        elsif collection_type == 'Tuple'
-        else
-          alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<#{datatype}>")
+      # Create the table
+      alpha_type_list = ["zz int PRIMARY KEY"]
+      DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
+        DatatypeUtils.primitive_datatypes.zip('a'..'z').each do |datatype, letter2|
+          if collection_type == 'Map'
+            alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<#{datatype}, #{datatype}>")
+          elsif collection_type == 'Tuple'
+          else
+            alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<#{datatype}>")
+          end
         end
       end
+
+      session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
+
+      # Insert into table
+      insert = session.prepare("INSERT INTO mytable (zz)
+              VALUES (?)")
+      session.execute(insert, arguments: [0])
+
+      # Verify results
+      result = session.execute("SELECT * FROM mytable").first
+      result.delete("zz")
+      result.each_value do |actual|
+        assert_nil actual
+      end
+    ensure
+      cluster && cluster.close
     end
-
-    session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
-
-    # Insert into table
-    insert = session.prepare("INSERT INTO mytable (zz)
-            VALUES (?)")
-    session.execute(insert, arguments: [0])
-
-    # Verify results
-    result = session.execute("SELECT * FROM mytable").first
-    result.delete("zz")
-    result.each_value do |actual|
-      assert_nil actual
-    end
-  ensure
-    cluster.close
   end
 
   def test_can_insert_all_collection_types_nil_values
-    cluster = Cassandra.cluster
-    session = cluster.connect("simplex")
+    begin
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
 
-    # Create the table
-    alpha_type_list = ["zz int PRIMARY KEY"]
-    DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
-      DatatypeUtils.primitive_datatypes.zip('a'..'z').each do |datatype, letter2|
-        if collection_type == 'Map'
-          alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<#{datatype}, #{datatype}>")
-        elsif collection_type == 'Tuple'
-        else
-          alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<#{datatype}>")
+      # Create the table
+      alpha_type_list = ["zz int PRIMARY KEY"]
+      DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
+        DatatypeUtils.primitive_datatypes.zip('a'..'z').each do |datatype, letter2|
+          if collection_type == 'Map'
+            alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<#{datatype}, #{datatype}>")
+          elsif collection_type == 'Tuple'
+          else
+            alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<#{datatype}>")
+          end
         end
       end
-    end
 
-    session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
+      session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
 
-    # Create the input
-    params = [0]
-    DatatypeUtils.collection_types.each do |collection_type|
-      DatatypeUtils.primitive_datatypes.each do |datatype|
-        unless collection_type == 'Tuple'
-          params.push(nil)
+      # Create the input
+      params = [0]
+      DatatypeUtils.collection_types.each do |collection_type|
+        DatatypeUtils.primitive_datatypes.each do |datatype|
+          unless collection_type == 'Tuple'
+            params.push(nil)
+          end
         end
       end
-    end
 
-    # Insert into table
-    parameters = ["zz"]
-    DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
-      DatatypeUtils.primitive_datatypes.zip('a'..'z').each do |datatype, letter2|
-        unless collection_type == 'Tuple'
-          parameters.push("#{letter1}_#{letter2}")
+      # Insert into table
+      parameters = ["zz"]
+      DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
+        DatatypeUtils.primitive_datatypes.zip('a'..'z').each do |datatype, letter2|
+          unless collection_type == 'Tuple'
+            parameters.push("#{letter1}_#{letter2}")
+          end
         end
       end
+
+      arguments = []
+      46.times { arguments.push('?') }
+
+      insert = session.prepare("INSERT INTO mytable (#{parameters.join(",")})
+              VALUES (#{arguments.join(",")})")
+      session.execute(insert, arguments: params)
+
+      # Verify results
+      result = session.execute("SELECT * FROM mytable").first
+      result.each_value.zip(params) do |actual, expected|
+        assert_equal expected, actual
+      end
+    ensure
+      cluster && cluster.close
     end
-
-    arguments = []
-    46.times { arguments.push('?') }
-
-    insert = session.prepare("INSERT INTO mytable (#{parameters.join(",")})
-            VALUES (#{arguments.join(",")})")
-    session.execute(insert, arguments: params)
-
-    # Verify results
-    result = session.execute("SELECT * FROM mytable").first
-    result.each_value.zip(params) do |actual, expected|
-      assert_equal expected, actual
-    end
-  ensure
-    cluster.close
   end
 
   def test_can_insert_each_collection_type
-    cluster = Cassandra.cluster
-    session = cluster.connect("simplex")
+    begin
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
 
-    # Create the table
-    alpha_type_list = ["zz int PRIMARY KEY"]
-    DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
-      DatatypeUtils.primitive_datatypes.zip('a'..'z').each do |datatype, letter2|
-        if collection_type == 'Map'
-          alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<#{datatype}, #{datatype}>")
-        elsif collection_type == 'Tuple'
-        else
-          alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<#{datatype}>")
+      # Create the table
+      alpha_type_list = ["zz int PRIMARY KEY"]
+      DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
+        DatatypeUtils.primitive_datatypes.zip('a'..'z').each do |datatype, letter2|
+          if collection_type == 'Map'
+            alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<#{datatype}, #{datatype}>")
+          elsif collection_type == 'Tuple'
+          else
+            alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<#{datatype}>")
+          end
         end
       end
-    end
 
-    session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
+      session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
 
-    # Create the input
-    params = [0]
-    DatatypeUtils.collection_types.each do |collection_type|
-      DatatypeUtils.primitive_datatypes.each do |datatype|
-        unless collection_type == 'Tuple'
-          params.push(DatatypeUtils.get_collection_sample(collection_type, datatype))
+      # Create the input
+      params = [0]
+      DatatypeUtils.collection_types.each do |collection_type|
+        DatatypeUtils.primitive_datatypes.each do |datatype|
+          unless collection_type == 'Tuple'
+            params.push(DatatypeUtils.get_collection_sample(collection_type, datatype))
+          end
         end
       end
-    end
 
-    # Insert into table
-    parameters = ["zz"]
-    DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
-      DatatypeUtils.primitive_datatypes.zip('a'..'z').each do |datatype, letter2|
-        unless collection_type == 'Tuple'
-          parameters.push("#{letter1}_#{letter2}")
+      # Insert into table
+      parameters = ["zz"]
+      DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
+        DatatypeUtils.primitive_datatypes.zip('a'..'z').each do |datatype, letter2|
+          unless collection_type == 'Tuple'
+            parameters.push("#{letter1}_#{letter2}")
+          end
         end
       end
+
+      arguments = []
+      46.times { arguments.push('?') }
+
+      insert = session.prepare("INSERT INTO mytable (#{parameters.join(",")})
+              VALUES (#{arguments.join(",")})")
+      session.execute(insert, arguments: params)
+
+      # Verify results
+      result = session.execute("SELECT * FROM mytable").first
+      result.each_value.zip(params) do |actual, expected|
+        assert_equal expected, actual
+      end
+    ensure
+      cluster && cluster.close
     end
-
-    arguments = []
-    46.times { arguments.push('?') }
-
-    insert = session.prepare("INSERT INTO mytable (#{parameters.join(",")})
-            VALUES (#{arguments.join(",")})")
-    session.execute(insert, arguments: params)
-
-    # Verify results
-    result = session.execute("SELECT * FROM mytable").first
-    result.each_value.zip(params) do |actual, expected|
-      assert_equal expected, actual
-    end
-  ensure
-    cluster.close
   end
 
   def test_can_insert_tuple_type
@@ -623,6 +633,97 @@ class DatatypeTest < IntegrationTestCase
 
         result = session.execute("SELECT #{letter} FROM mytable WHERE zz=0").first
         assert_equal input, result["#{letter}"]
+      end
+    ensure
+      cluster && cluster.close
+    end
+  end
+
+  # Test for inserting nested collections
+  #
+  # test_can_insert_nested_collections tests that collection datatypes can be inserted into a Cassandra
+  # cluster. It first creates a table that has a mapping of each collection type to each collection
+  # type (such as List<frozen<List<int>>>). It then generates all data parameters and inserts the values
+  # into Cassandra. Finally, it verifies that all inserted elements match the resulting output.
+  #
+  # @since 2.1.4
+  # @jira_ticket RUBY-94
+  # @expected_result Each nested collection type should be successfully insert into the table
+  #
+  # @test_assumptions A Cassandra cluster with version 2.1.3 or higher.
+  # @test_category data_types:collections
+  #
+  def test_can_insert_nested_collections
+    skip("Nested collections are only available in C* after 2.1.3") if CCM.cassandra_version < '2.1.3'
+
+    begin
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      # Create the table
+      alpha_type_list = ["zz int PRIMARY KEY"]
+      DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
+        DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type2, letter2|
+          if collection_type2 == 'Map'
+            if collection_type == 'Map'
+              alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<frozen<#{collection_type2}<int,int>>,
+                                    frozen<#{collection_type2}<int,int>>>")
+            else
+              alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<frozen<#{collection_type2}<int,int>>>")
+            end
+          elsif collection_type == 'Map'
+            alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<frozen<#{collection_type2}<int>>,
+                                  frozen<#{collection_type2}<int>>>")
+          else
+            alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<frozen<#{collection_type2}<int>>>")
+          end
+        end
+      end
+
+      session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
+
+      # Create the input
+      params = [0]
+      DatatypeUtils.collection_types.each do |collection_type|
+        DatatypeUtils.collection_types.each do |collection_type2|
+          if collection_type == 'Map'
+            params.push({DatatypeUtils.get_collection_sample(collection_type2, 'int') =>
+                             DatatypeUtils.get_collection_sample(collection_type2, 'int')})
+          elsif collection_type == 'List'
+            params.push([DatatypeUtils.get_collection_sample(collection_type2, 'int')])
+          elsif collection_type == 'Set'
+            params.push(Set.new([DatatypeUtils.get_collection_sample(collection_type2, 'int')]))
+          else
+            params.push(Cassandra::Tuple.new(DatatypeUtils.get_collection_sample(collection_type2, 'int')))
+          end
+        end
+      end
+
+      # Insert into table
+      parameters = ["zz"]
+      DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
+        DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type2, letter2|
+          parameters.push("#{letter1}_#{letter2}")
+        end
+      end
+
+      arguments = []
+      (DatatypeUtils.collection_types.size*DatatypeUtils.collection_types.size+1).times { arguments.push('?') }
+
+      insert = session.prepare("INSERT INTO mytable (#{parameters.join(",")})
+              VALUES (#{arguments.join(",")})")
+      session.execute(insert, arguments: params)
+
+      # Verify results
+      result = session.execute("SELECT * FROM mytable").first
+      result.each_value.zip(params) do |actual, expected|
+        if expected.is_a?(Hash) && expected.keys.first.is_a?(Cassandra::Tuple)
+          next # Temporary fix until RUBY-120 is resolved
+        elsif expected.is_a?(Set) && expected.first.is_a?(Cassandra::Tuple)
+          next # Temporary fix until RUBY-120 is resolved
+        else
+          assert_equal expected, actual
+        end
       end
     ensure
       cluster && cluster.close

@@ -250,3 +250,44 @@ Feature: Datatypes
       Name: (Apache, Cassandra)
       ArgumentError: argument for "name" must be tuple<varchar, varchar>, (Jane, Doe, Extra) given
       """
+
+  @cassandra-version-specific @cassandra-version-2.1.3
+  Scenario: Using nested collections
+    Given the following schema:
+    """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      USE simplex;
+      CREATE TABLE airports (
+        id int PRIMARY KEY,
+        flight_destinations Map<int, frozen<Tuple<double, double>>>,
+        flight_numbers List<frozen<Set<int>>>
+      );
+      INSERT INTO airports (id, flight_destinations, flight_numbers)
+      VALUES (
+        0,
+        {747: (37.397357, 42.7357), 458: (122.7423, 2.92547), 638: (105.357423, 20.57925)},
+        [{747, 458} , {638}]
+      )
+      """
+    And the following example:
+    """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      row = session.execute("SELECT * FROM airports").first
+
+      puts "Flight_numbers: #{row['flight_numbers'].inspect}"
+      row['flight_destinations'].each_pair do | key, value |
+        puts "Flight: #{key} to destination: #{value}"
+      end
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      Flight_numbers: [#<Set: {458, 747}>, #<Set: {638}>]
+      Flight: 458 to destination: (122.7423, 2.92547)
+      Flight: 638 to destination: (105.357423, 20.57925)
+      Flight: 747 to destination: (37.397357, 42.7357)
+      """
