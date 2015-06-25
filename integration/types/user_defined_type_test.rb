@@ -425,4 +425,169 @@ class UserDefinedTypeTest < IntegrationTestCase
     end
   end
 
+  # Test for inserting udts inside collections
+  #
+  # test_can_insert_collection_datatypes_udts tests that UDTs can be inserted into collection datatypes.
+  # It first creates a simple UDT. It then creates a table that has a mapping of each collection type to
+  # the created udt (such as List<frozen<udt>>). It then generates all data parameters and inserts the values
+  # into Cassandra. Finally, it verifies that all inserted elements match the resulting output.
+  #
+  # @since 2.1.4
+  # @jira_ticket RUBY-94
+  # @expected_result Collection type with nested udts should be successfully inserted into the table
+  #
+  # @test_assumptions A Cassandra cluster with version 2.1.3 or higher.
+  # @test_category data_types:udt
+  #
+  def test_can_insert_collection_datatypes_udts
+    skip("Nested collections are only available in C* after 2.1.3") if CCM.cassandra_version < '2.1.3'
+
+    begin
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      # Create the type
+      session.execute("CREATE TYPE udt (age int, name text)")
+
+      # Create the table
+      alpha_type_list = ["zz int PRIMARY KEY"]
+      DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
+        if collection_type == 'Map'
+          alpha_type_list.push("#{letter1} #{collection_type}<frozen<udt>, frozen<udt>>")
+        else
+          alpha_type_list.push("#{letter1} #{collection_type}<frozen<udt>>")
+        end
+      end
+
+      session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
+
+      # Create the input
+      udt_input = Cassandra::UDT.new(age: 42, name: "John")
+
+      params = [0]
+      DatatypeUtils.collection_types.each do |collection_type|
+        if collection_type == 'Map'
+          params.push({udt_input => udt_input})
+        elsif collection_type == 'List'
+          params.push([udt_input])
+        elsif collection_type == 'Set'
+          params.push(Set.new([udt_input]))
+        else
+          params.push(Cassandra::Tuple.new(udt_input))
+        end
+      end
+
+      # Insert into table
+      parameters = ["zz"]
+      DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
+        parameters.push("#{letter1}")
+      end
+
+      arguments = []
+      (DatatypeUtils.collection_types.size+1).times { arguments.push('?') }
+
+      insert = session.prepare("INSERT INTO mytable (#{parameters.join(",")})
+              VALUES (#{arguments.join(",")})")
+      session.execute(insert, arguments: params)
+
+      # Verify results
+      result = session.execute("SELECT * FROM mytable").first
+      result.each_value.zip(params) do |actual, expected|
+        if expected.is_a?(Hash) && expected.keys.first.is_a?(Cassandra::UDT)
+          next # Temporary fix until RUBY-120 is resolved
+        elsif expected.is_a?(Set) && expected.first.is_a?(Cassandra::UDT)
+          next # Temporary fix until RUBY-120 is resolved
+        else
+          assert_equal expected, actual
+        end
+      end
+    ensure
+      cluster && cluster.close
+    end
+  end
+
+  # Test for inserting nested collections inside udts
+  #
+  # test_can_insert_udt_nested_collection_datatypes tests that nested collection datatypes can be inserted into
+  # UDTs. It first creates a UDT that has a mapping of each collection type to each collection
+  # type (such as List<frozen<List<int>>>). It then generates all data parameters and inserts the values
+  # into Cassandra. Finally, it verifies that all inserted elements match the resulting output.
+  #
+  # @since 2.1.4
+  # @jira_ticket RUBY-94
+  # @expected_result UDTs with nested collection types should be successfully inserted into the table
+  #
+  # @test_assumptions A Cassandra cluster with version 2.1.3 or higher.
+  # @test_category data_types:udt
+  #
+  def test_can_insert_udt_nested_collection_datatypes
+    skip("Nested collections are only available in C* after 2.1.3") if CCM.cassandra_version < '2.1.3'
+
+    begin
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      # Create the UDT and table
+      alpha_type_list = []
+      DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
+        DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type2, letter2|
+          if collection_type2 == 'Map'
+            if collection_type == 'Map'
+              alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<frozen<#{collection_type2}<int,int>>,
+                                    frozen<#{collection_type2}<int,int>>>")
+            else
+              alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<frozen<#{collection_type2}<int,int>>>")
+            end
+          elsif collection_type == 'Map'
+            alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<frozen<#{collection_type2}<int>>,
+                                  frozen<#{collection_type2}<int>>>")
+          else
+            alpha_type_list.push("#{letter1}_#{letter2} #{collection_type}<frozen<#{collection_type2}<int>>>")
+          end
+        end
+      end
+
+      session.execute("CREATE TYPE nesteddatatypes (#{alpha_type_list.join(",")})")
+      session.execute("CREATE TABLE mytable (zz int PRIMARY KEY, a frozen<nesteddatatypes>)")
+
+      # Create the input
+      input = Hash.new
+      DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
+        DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type2, letter2|
+          if collection_type == 'Map'
+            input["#{letter1}_#{letter2}"] = {DatatypeUtils.get_collection_sample(collection_type2, 'int') =>
+                                              DatatypeUtils.get_collection_sample(collection_type2, 'int')}
+          elsif collection_type == 'List'
+            input["#{letter1}_#{letter2}"] = [DatatypeUtils.get_collection_sample(collection_type2, 'int')]
+          elsif collection_type == 'Set'
+            input["#{letter1}_#{letter2}"] = Set.new([DatatypeUtils.get_collection_sample(collection_type2, 'int')])
+          else
+            input["#{letter1}_#{letter2}"] = Cassandra::Tuple.new(DatatypeUtils.get_collection_sample(collection_type2, 'int'))
+          end
+        end
+      end
+
+      # Insert into table
+      insert = session.prepare("INSERT INTO mytable (zz, a) VALUES (?, ?)")
+      session.execute(insert, arguments: [0, Cassandra::UDT.new(input)])
+
+      # Verify results
+      result = session.execute("SELECT * FROM mytable").first['a']
+
+      DatatypeUtils.collection_types.zip('a'..'z').each do |collection_type, letter1|
+        DatatypeUtils.primitive_datatypes.zip('a'..'z').each do |datatype, letter2|
+          if input["#{letter1}_#{letter2}"].is_a?(Hash) && input["#{letter1}_#{letter2}"].keys.first.is_a?(Cassandra::Tuple)
+            next # Temporary fix until RUBY-120 is resolved
+          elsif input["#{letter1}_#{letter2}"].is_a?(Set) && input["#{letter1}_#{letter2}"].first.is_a?(Cassandra::Tuple)
+            next # Temporary fix until RUBY-120 is resolved
+          else
+            assert_equal input["#{letter1}_#{letter2}"], result["#{letter1}_#{letter2}"]
+          end
+        end
+      end
+    ensure
+      cluster && cluster.close
+    end
+  end
+
 end
