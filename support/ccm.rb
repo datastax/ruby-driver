@@ -671,7 +671,7 @@ module CCM extend self
   end
 
   def cassandra_version
-    ENV['CASSANDRA_VERSION'] || '2.1.3'
+    ENV['CASSANDRA_VERSION'] || '2.1.7'
   end
 
   def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
