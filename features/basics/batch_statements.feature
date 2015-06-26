@@ -13,8 +13,7 @@ Feature: Batch statements
         title text,
         album text,
         artist text,
-        tags set<text>,
-        data blob
+        tags set<text>
       );
       CREATE TABLE cas_batch (k text, v int, PRIMARY KEY (k, v));
       """
@@ -286,4 +285,78 @@ Feature: Batch statements
     Then its output should contain:
       """
       Cassandra::Errors::ClientError: Batch statements are not supported by the current version of Apache Cassandra
+      """
+
+  @cassandra-version-specific @cassandra-version-2.1
+  Scenario: A batch write is executed with serial_consistency set
+    Given the following example:
+    """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      rows = session.execute("SELECT * FROM songs")
+      puts "songs contain #{rows.size} rows"
+
+      batch   = session.batch do |b|
+                  b.add("INSERT INTO songs (id, title, album, artist, tags)
+                         VALUES (
+                            756716f7-2e54-4715-9f00-91dcbea6cf50,
+                            'La Petite Tonkinoise',
+                            'Bye Bye Blackbird',
+                            'Joséphine Baker',
+                            {'jazz', '2013'}
+                         )")
+                end
+
+      puts "inserting rows in a batch"
+      session.execute(batch, consistency: :all)
+      row = session.execute("SELECT * FROM songs").first
+      puts "song name: #{row['title']}"
+
+      batch = session.batch do |b|
+                b.add("UPDATE songs SET
+                          title  = 'Die Mösch',
+                          album  = 'In Gold',
+                          artist = 'Willi Ostermann',
+                          tags   = {'kölsch', '1996', 'birds'}
+                        WHERE id = 756716f7-2e54-4715-9f00-91dcbea6cf50
+                        IF title = 'La Petite Tonkinoise'
+                      ")
+               end
+
+      puts "updating rows in a batch"
+      session.execute(batch, consistency: :all, serial_consistency: :serial)
+      row = session.execute("SELECT * FROM songs").first
+      puts "song name: #{row['title']}"
+
+      update = session.prepare("UPDATE songs SET
+                                  title  = 'Memo From Turner',
+                                  album  = 'Performance',
+                                  artist = 'Mick Jager',
+                                  tags   = {'soundtrack', '1991'}
+                                WHERE id = ?
+                                IF title = 'Die Mösch'
+                                ")
+
+      batch = session.batch do |b|
+                b.add(update, [Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50')])
+              end
+
+      puts "updating rows in a batch"
+      session.execute(batch, consistency: :all, serial_consistency: :local_serial)
+      row = session.execute("SELECT * FROM songs").first
+      puts "song name: #{row['title']}"
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      songs contain 0 rows
+      inserting rows in a batch
+      song name: La Petite Tonkinoise
+      updating rows in a batch
+      song name: Die Mösch
+      updating rows in a batch
+      song name: Memo From Turner
       """
