@@ -126,7 +126,7 @@ module Cassandra
   #   `:ec2_multi_region`.
   #
   # @option options [Boolean] :client_timestamps (false) whether the driver
-  #   should send timestamps for each execited statement. Enabling this setting
+  #   should send timestamps for each executed statement. Enabling this setting
   #   allows mitigating Cassandra cluster clock skew because the timestamp of
   #   the client machine will be used. This does not help mitigate application
   #   cluster clock skew.
