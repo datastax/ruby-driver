@@ -458,4 +458,34 @@ class SessionTest < IntegrationTestCase
   ensure
     cluster && cluster.close
   end
+
+  # Test for verifying schema synchronization can be disabled
+  #
+  # test_can_disable_synchronize_schema tests that schema synchronization can be disabled by passing in synchronize_schema
+  # = false when the cluster is created, preventing schema metadata population at cluster initialization. This test first
+  # creates a cluster object with synchronize_schema = false. It then verifies that the cluster does not have any schema
+  # metadata by querying for an existing keyspace, "simplex". It proceeds to manually synchronize the schema by calling
+  # cluster.refresh_schema. Finally, it verifies schema metadata has been updated by checking that the cluster has metadata
+  # regarding the keyspace "simplex".
+  #
+  # @since 2.1.4
+  # @jira_ticket RUBY-97
+  # @expected_result Schema metadata should be initially nil, and then populated after calling cluster.refresh_schema
+  #
+  # @test_category metadata
+  #
+  def test_can_disable_synchronize_schema
+    setup_schema
+
+    begin
+      cluster = Cassandra.cluster(synchronize_schema: false)
+      refute cluster.has_keyspace?("simplex"), "Expected cluster metadata to not include keyspace 'simplex'"
+
+      cluster.refresh_schema
+      assert cluster.has_keyspace?("simplex"), "Expected cluster metadata to include keyspace 'simplex'"
+    ensure
+      cluster && cluster.close
+    end
+  end
+
 end
