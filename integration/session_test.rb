@@ -458,4 +458,117 @@ class SessionTest < IntegrationTestCase
   ensure
     cluster && cluster.close
   end
+
+  def curr_time_in_micro(time)
+    time.tv_sec * 1000000 + time.tv_usec
+  end
+
+  # Test for executing queries with client-side timestamps
+  #
+  # test_client_side_timestamps_with_cql_future tests client-side timestamps can be enabled and used with any simple,
+  # prepared or batch query. It first inserts a row into Cassandra with a future timestamp using "USING TIMESTAMP"
+  # CQL. It then attempts to do an insert using a simple statement and verifies that the insert did not get accepted
+  # by Cassandra by checking the timestamp for that row. It then repeats this process for prepared and batch statements.
+  #
+  # @since 2.1.4
+  # @jira_ticket RUBY-70
+  # @expected_result Each query with client-side timestamp should fail, as the server timestamp is newer
+  #
+  # @test_assumptions A Cassandra cluster with version 2.1.0 or higher.
+  # @test_category queries:timestamp
+  #
+  def test_client_side_timestamps_with_cql_future
+    skip("Client-side timestamps are only available in C* after 2.1") if CCM.cassandra_version < '2.1.0'
+
+    setup_schema
+    begin
+      cluster = Cassandra.cluster(client_timestamps: true)
+      session = cluster.connect("simplex")
+
+      # Insert from the future
+      timestamp = curr_time_in_micro(Time.now + 1000)
+      session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40) USING TIMESTAMP #{timestamp}")
+      result = session.execute("SELECT writetime(first) FROM users WHERE user_id = 0").first
+      assert_equal timestamp, result["writetime(first)"]
+
+      # Current client-side timestamp won't update the future row
+      # Simple statements
+      session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'Mary', 'Holler', 22)")
+      result = session.execute("SELECT writetime(first) FROM users WHERE user_id = 0").first
+      assert_equal timestamp, result["writetime(first)"]
+
+      # Prepared statements
+      insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
+      session.execute(insert, arguments: [0, 'Jane', 'Smith', 30])
+      result = session.execute("SELECT writetime(first) FROM users WHERE user_id = 0").first
+      assert_equal timestamp, result["writetime(first)"]
+
+      # Batch statements
+      batch = session.batch do |b|
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (0, 'Apache', 'Cassandra', 6)")
+        b.add(insert, [0, 'Ruby', 'Driver', 2])
+      end
+
+      session.execute(batch)
+      result = session.execute("SELECT writetime(first) FROM users WHERE user_id = 0").first
+      assert_equal timestamp, result["writetime(first)"]
+    ensure
+      cluster && cluster.close
+    end
+  end
+
+  # Test for executing queries with past client-side timestamps
+  #
+  # test_client_side_timestamps_with_past_timestamp tests client-side timestamps can be enabled and used with any simple,
+  # prepared or batch query. It first inserts a row into Cassandra with the current timestamp. It then changes the current
+  # system time to be 1 minute slow, emulating queries with past timestamps. It attempts to do an insert using a simple
+  # statement and verifies that the insert did not get accepted by Cassandra by checking the value for that row is still
+  # the original value. It then repeats this process for prepared and batch statements.
+  #
+  # @since 2.1.4
+  # @jira_ticket RUBY-70
+  # @expected_result Each query with client-side timestamp should fail, as the server timestamp is newer
+  #
+  # @test_assumptions A Cassandra cluster with version 2.1.0 or higher.
+  # @test_category queries:timestamp
+  #
+  def test_client_side_timestamps_with_past_timestamp
+    skip("Client-side timestamps are only available in C* after 2.1") if CCM.cassandra_version < '2.1.0'
+
+    setup_schema
+    begin
+      cluster = Cassandra.cluster(client_timestamps: true)
+      session = cluster.connect("simplex")
+
+      # Insert in the present
+      session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)")
+
+      # Set current time to the past
+      Delorean.time_travel_to "1 minute ago" do
+        # Old client-side timestamp won't update the row
+        # Simple statements
+        session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'Mary', 'Holler', 22)")
+        result = session.execute("SELECT * FROM users WHERE user_id = 0").first
+        assert_equal "John", result["first"]
+
+        # Prepared statements
+        insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
+        session.execute(insert, arguments: [0, 'Jane', 'Smith', 30])
+        result = session.execute("SELECT * FROM users WHERE user_id = 0").first
+        assert_equal "John", result["first"]
+
+        # Batch statements
+        batch = session.batch do |b|
+          b.add(insert, [0, 'Ruby', 'Driver', 2])
+        end
+
+        session.execute(batch)
+        result = session.execute("SELECT * FROM users WHERE user_id = 0").first
+        assert_equal "John", result["first"]
+      end
+    ensure
+      cluster && cluster.close
+    end
+  end
+
 end
