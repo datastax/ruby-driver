@@ -43,10 +43,12 @@ module Cassandra
           flags |= 0x04 if @page_size
           flags |= 0x08 if @paging_state
           flags |= 0x10 if @serial_consistency
+          if protocol_version > 2
+            flags |= 0x20 if @timestamp
+          end
           if @values && @values.size > 0
             flags |= 0x01
             if protocol_version > 2
-              flags |= 0x20 if @timestamp
               flags |= 0x40 unless @names.empty?
             end
             buffer.append(flags.chr)
