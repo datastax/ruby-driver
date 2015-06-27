@@ -20,6 +20,7 @@ require File.dirname(__FILE__) + '/../support/ccm.rb'
 require 'minitest/unit'
 require 'minitest/autorun'
 require 'cassandra'
+require 'delorean'
 
 class IntegrationTestCase < MiniTest::Unit::TestCase
   @@ccm_cluster = nil

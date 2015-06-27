@@ -24,6 +24,7 @@ group :test do
   gem 'aruba'
   gem 'os'
   gem 'minitest'
+  gem 'delorean'
 end
 
 group :docs do
