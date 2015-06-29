@@ -80,7 +80,7 @@ statement = session.prepare('INSERT INTO users (username, email) VALUES (?, ?)')
 session.execute(statement, arguments: ['avalanche123', 'bulat.shakirzyanov@datastax.com'])
 ```
 
-You should prepare a statement for a given query **only** once and then resue it by calling #execute. Re-preparing the same statement will have a negative impact on the performance and should be avoided.
+You should prepare a statement for a given query **only** once and then reuse it by calling #execute. Re-preparing the same statement will have a negative impact on performance and should be avoided.
 
 A prepared statement can be run many times, but the CQL parsing will only be done once on each node. Use prepared statements for queries you run over and over again.
 
@@ -90,7 +90,7 @@ For each query, statements are prepared lazily - each call to `#execute` selects
 
 ### Changing keyspaces
 
-You can specify a keyspace to change to immediately after connection by passing the keyspace option to [`Cql::Cluster#connect`](http://datastax.github.io/ruby-driver/api/cluster/#connect-instance_method), you can also use the [`Session#execute`](http://datastax.github.io/ruby-driver/api/session/#execute-instance_method) method to change keyspace of an existing session:
+You can specify a keyspace to change to immediately after connecting by passing the keyspace option to [`Cql::Cluster#connect`](http://datastax.github.io/ruby-driver/api/cluster/#connect-instance_method). You can also use the [`Session#execute`](http://datastax.github.io/ruby-driver/api/session/#execute-instance_method) method to change the keyspace of an existing session:
 
 ```ruby
 session.execute('USE measurements')
