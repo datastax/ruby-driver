@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="A pure Ruby client for Apache Cassandra">
+    <meta name="author" content="DataStax">
+
+    <title>Ruby Driver for Apache Cassandra - Asynchronous IO</title>
+
+    <link rel="icon" href="../../../favicon.ico">
+    <link rel="apple-touch-icon" href="../../../favicon.png">
+    <link href="../../../css/style.css" rel="stylesheet">
+    <link href="../../../css/pygments.css" rel="stylesheet">
+    <link href="../../../css/hotkeys.css" rel="stylesheet">
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body ng-app="docs">
+    <div class="navbar">
+      <div class="container-fluid">
+        <div class="row row-offcanvas row-offcanvas-left">
+          <div class="col-sm-3 text-center">
+            <a class="ds-home" href="../../"><img alt="Brand" src="../../../img/logo.png"></a>
+            <ul class="list-inline ds-sites" role="nav">
+              <li><a href="https://academy.datastax.com/" class="navbar-link">DataStax Academy</a></li>
+              <li><a href="http://www.datastax.com/dev/blog" class="navbar-link">Tech Blog</a></li>
+              <li><a href="http://www.datastax.com/what-we-offer/products-services/support" class="navbar-link">Support</a></li>
+            </ul>
+          </div>
+          <div class="col-md-5">
+            <p class="lead pubtitle">Ruby Driver for Apache Cassandra</p>
+            
+            <div class="text-info">
+              <span class="text-warning">Attention:</span> Viewing documentation for version
+              <div class="btn-group">
+                <button id="current-version" class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  3.0
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="current-version">
+                
+                  <li><a href="../../../features/asynchronous_io/">3.2</a></li>
+                
+                  <li><a href="../../../3.1/features/asynchronous_io/">3.1</a></li>
+                
+                  <li class="disabled"><a href="./">3.0</a></li>
+                
+                  <li><a href="../../../2.1/features/asynchronous_io/">2.1</a></li>
+                
+                  <li><a href="../../../2.0/features/asynchronous_io/">2.0</a></li>
+                
+                  <li><a href="../../../1.2/features/asynchronous_io/">1.2</a></li>
+                
+                  <li><a href="../../../1.1/features/asynchronous_io/">1.1</a></li>
+                
+                  <li><a href="../../../1.0/features/asynchronous_io/">1.0</a></li>
+                
+                </ul>
+              </div>
+              <span class="red">
+              
+              (Earlier version)
+              
+              </span>
+            </div>
+            
+          </div>
+          <div class="col-md-4">
+            <form id="search" class="form-search dropdown visible-lg-inline-block" ng-controller="search" ng-class="{open: hasResults}" role="search" ng-submit="submit()" data-spy="affix" data-offset-top="130">
+              <div class="form-group has-feedback">
+                <input type="search" class="form-control input-sm mousetrap" placeholder="Search..." ng-model="q" ng-change="search('3.0')" ng-disabled="!searchReady" disabled data-hotkey="{down: moveDown, up: moveUp, esc: reset}" data-search>
+              </div>
+              <ul class="dropdown-menu search-results" role="menu">
+                <li ng-repeat="result in results" ng-class="{'bg-warning': $index == current}"><a ng-href="{{basePath}}{{result.path}}"><span ng-bind-html="summary(result)"></span></a></li>
+              </ul>
+            </form>
+            <a href="http://www.datastax.com/download" class="btn btn-primary btn-sm">Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid" id="content">
+      <div class="row">
+        <div class="col-md-3">
+          <div id="navigation" class="side-nav" role="tablist" aria-multiselectable="true">
+            <h3><a href="../../">Contents</a></h3>
+            <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li class="active">
+    <a href="../">
+      Usage <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../basics/">
+      Basics <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="./" class="current">
+      Asynchronous IO <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="executing_queries/">
+      Executing queries asynchronously <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="preparing_statements/">
+      Preparing statements asynchronously <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../security/">
+      Security <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../debugging/">
+      Debugging <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../load_balancing/">
+      Load Balancing <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../retry_policies/">
+      Retry Policies <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../state_listeners/">
+      State Listeners <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../address_resolution/">
+      Address resolution <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../error_handling/">
+      Error Handling <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../reconnection/">
+      Reconnection <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../../api/">
+      API docs <small>index</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+          </div>
+        </div>
+        <div class="col-md-9 content">
+          <div class="crumbs-wrapper">
+            <nav id="crumbs" data-spy="affix" data-offset-top="130">
+              <ol class="breadcrumb">
+                
+                
+                
+                <li><a href="../../">Home</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../">Usage</a></li>
+                
+                
+                
+                
+                
+                <li class="active">Asynchronous IO</li>
+                
+                
+                
+              </ol>
+            </nav>
+          </div>
+          
+
+<h1 id="asynchronous-io" class="target">Asynchronous IO<a class="anchor" href="#asynchronous-io" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h1>
+
+<p><a href="https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v4.spec#L141">Cassandra’s native binary protocol supports request pipelining</a>. Essentially, this lets a single connection to be used for several simultaneous and independent request/response exchanges. Additionally, Ruby Driver doesn’t use any blocking apis internally and runs all requests in the background reactor thread.</p>
+<img src="data:image/png;base64,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%0AkCEynDZv3ky/wVzGPrdwwcQe+ZXgxcXFDQ0N6vHWrVtl48cff7yjo4Oug1kg%0AZK1FfHz8tGnTsrKyEhMTg4KC1N9ClqhKTk4ODQ0dNWpUeHh4SUmJ2ri9vX3V%0AqlU/7bRx48aVK1fKvtrv4l66dKkUjx49qorz5s2TYllZmSoaarOxsVFeWqPR%0AeHt7h4SEqK+w/fTTT6WovpNRGqmoqOj5fyFvWzZ2cXFpbW3lmIKQxSCivq12%0A8uTJdnZ2/v7+eXl5Url8+XKplNPw1atXu7m5DRs2TM0ZY2Ji1C+JSzRLLKrb%0AFbXf8SVpKMXMzExV1Pu2WkNtLl68WOrnzJmzfft2aV+CWColqSVwpX769Olx%0AcXE9fzmjdtorsc4BBSGLwRiyAQEB169fVzVVVVVDOtXW1kpxyZIlssGOHTuk%0A6ODgII8PHz6sZqbBwcG9DFlDbcpjiVF5vGnTpr5eLtDau3ev/ISQafgjsxgg%0AZAcEC1+PDFndP1908OBBqZGZ5iud1IxSppOFhYXyQILyzp07aku9b6vtIWQN%0AtSlP7dy5U82IJ02alJ6err5svPchK4n/2GOPTZw48ZtvvuFowozGPrdwWVfI%0ApqWlaWv2798vNU5OTvHx8Qnfy8jIkDBV1z21Odj7kDXUptqyoKBgypQpKmrn%0Az5/f+5CVZu3t7WfPnt3U1MShhHmNfULWekO2vLxc5Z12RUspKSlR9aWlpVK8%0AefOml5eXbsjOnDlTijIz/a7zourQoUO1IWuoTV2SzrKBra2t+hP36hruihUr%0ADG2fn5/v4OAwbty4e/fucRxByNLRZhOyIioqSir9/PzWrVuXlZUl51wpKSky%0AgQ0ICJB6Hx8fSUB/f//hw4frhuw777wjRUm9119//cknn3R1ddVd+Oq2ze86%0Ar89u2bJFNtu9e7ds4OzsrKalR44ckaJMh2W62u3FVhXx48ePX6Tj/v37HFMQ%0AsnT0YA/Zu3fvxsbGytm9mn56enqq0/YzZ86MHj1aatzd3dPT0/UuF8h0derU%0Aqeq+q4KCAr27Cwy1qdFoXFxcpEampREREbm5uWp7yXQJTZXUBw4c6PrOJY67%0A/vFmeRWOKQhZY2Ph64fp6OiorKysq6vTq7x27Zq6LKsXskrPS/yG2qyurm5u%0Abu66vcxMb9y4wbGA5Y19buHCo3UbsgAIWfSPqKio0NDQY8eO0RUAIQsAhCwA%0AELJmh4UvwDqx8GUk3MIFWCdu4aKjARCyhCwAxj4hS8gCIGRNg4UvwDqx8AUA%0AVoqQBQBCFgAIWQCAJYcsC1+AdWLhy0i4hQuwTtzCRUcDIGQJWQCMfUKWkAVA%0AyJoGC1+AdWLhCwCsFCELAIQsABCyAABLDlkWvgDrxMKXkXALF2CduIWLjgZA%0AyBKyABj7hCwhC4CQNY1eXvxuamqKjo7mcwlYDBa+BpGTJ08GBgYy5wVAyPaz%0AtrY2+XHn6Oho04ljD4CQ7TcXLlwICwuz0cGxB0DI9o/U1FR3d3eb/8WxB0DI%0A9k3Xi981NTWRkZE23eHYAxaDhS8j0YvOnJwcDw8PGwP4XAIWg1u4TNPR6enp%0AXa8SADBHMpYJ2cH40+zq1auzZ89mJgswkyVkB7CjN2zYoL1zi5AFCFlC9gfq%0A4eL3uXPn1O8gELKA5WHha1BoaWlZtmwZIQuAkB1Aubm5vr6+hCwAQnagNDU1%0ALVy4kGMPgJAFAEJ20OA7vmANLl++vGvXrpiYmAULFrz//vuVlZX0CQtfRsKV%0AVliDuXPn2tvbz5o1a8aMGUOGDJGP/ebNm628T7iFi44G+k1xcXFDQ4N6vHXr%0AVvnYP/744x0dHYQsIUvIwnji4+OnTZuWlZWVmJgYFBSUn58vlZJEycnJoaGh%0Ao0aNCg8PLykpURs3NjbKZhqNxtvbOyQkJCUlRa+RpKSkCRMmSDuyu+6rfPzx%0Ax88++6zsNWnSpJUrV967d09vxw8//FBebvr06fJYu5ehlzP09nog/y/52Lu4%0AuLS2thKyhCwhC6OeU8vnYfLkyXZ2dv7+/nl5eVK5fPlyqZSz7NWrV7u5uQ0b%0ANkxNCRcvXiz1c+bM2b59e0xMjDZJtY1IGkoj6g7rTz75RD2bkJAgxZEjR0pr%0AwcHB8liC9eHDh9odpejq6jp+/Hj1q/faHDT0cobeXg+io6Nll3nz5nG5gJA1%0ABha+oBeyAQEB169fVzVVVVVDOtXW1kpxyZIlssGOHTvkscw05fGmTZu6bWTW%0ArFkyRZX0XLhwoQpBeUqatbe3l+Lx48el+ODBA8lTKe7Zs0e749ixY2/fvi1F%0ALy8vKaqgN/RyPbw9Q/bu3Ss/QmR+fevWLSs/3Cx8AaYJ2dTUVG3NwYMHpUam%0Ah690kvN0KcbFxclTO3fuVLNUOetPT09vb2/XbSQtLU0VJfKk6OPjI48PHTok%0Aj52cnCRe1bPPP/+81MTGxmp3lImqekrmwlLMyclRxW5froe3163Dhw8/9thj%0AEydO/OabbzjcgxkhC0sOWW0+iv3796tYjI+PT/heRkaGeragoGDKlCkq++bP%0An99tI7t27ZLi008/LY9lR3k8YsQI7YrTggULpObNN9/suqNeyHb7cj2/PT2y%0AscyjZ8+e3dTUxLEmZIFBEbLl5eUq1AoLCw3tlZmZKRvY2tpWV1d3bUSdwsuM%0A9bvOb41TrZWVlaln1a9rq9nrI0O268v15u0p+fn5Dg4O48aN066zgZAFTB+y%0AIioqSir9/PzWrVuXlZW1du1atbIv6blly5ZTp07t3r1bNnB2dlYzRNWITF1l%0ARpmUlCT1UszOzlatyQxUimFhYUeOHFELUKNHj9bd0VDIGno5Q29Pj7rCO378%0A+EU67t+/z0EnZAccC1/oOWTv3r0bGxsrp+Rqzujp6blmzRqp12g0Li4uUiMz%0AxIiIiNzcXN1GXn75ZTVLdXR0lKjVttbQ0PDaa68NHTpUnrKzs3vuuecuXrzY%0A7avrhayhlzP09vSorNcj+1rz4Wbhy0i4hQu90dHRUVlZWVdXp1cp5+zNzc3d%0AJrXaRbvGpautre3KlSt9PXPv9uV6eHsw37FPyAJ9mw6DsU/IAv1DTt5DQ0Mz%0AMzPpCsY+IUvIAoQsITvAWPgCrBMLXwBgpQhZACBkAYCQBQBYcsiy8AVYJxa+%0AjIRbuADrxC1cdDQAQpaQBcDYJ2QJWQCErGmw8AVYJxa+AMBKEbIAQMgCACEL%0AALDkkGXhC7BOLHwZCbdwAdaJW7joaACELCELgLFPyBKyAAhZ02DhC7BOLHwB%0AgJUiZAGAkAUAQhYAYMkhy8IXYJ1Y+DISbuECrBO3cNHRAAhZQhYAY5+QJWQB%0AELKmwcIXYJ1Y+AIAK0XIAgAhCwCELADAkkOWhS/AOrHwZSTcwgVYJ27hoqMB%0AELKELADGPiFLyAIgZE2DhS/AYrz66qv19fUWMPa5hQvAIJ2cjhkzJj8/39z/%0AI4QsgEEaskpCQkJLSwshCwADErIiJCTkwoULhCwADEjICkdHx23bthGyJsbC%0AF2CpIatoNJrq6mrzGvvcwgXAbEJWuLq6fvbZZ2Y09q0oZN3d3W0AmDkJ2dTU%0AVEKWmSyA/p/JhoWFdbsCRsgSsgB+VMja29uvXbvW0L1chKyRsPAFWGTIBgYG%0A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%0AIQsA5un/AMYxjLEDgOifAAAAAElFTkSuQmCC%0A" alt="Text Diagram" class="img-rounded img-thumbnail center-block ditaa">
+<p>For consistency of API, all asynchronous methods end with <code>_async</code> (e.g. <a href="http://datastax.github.io/ruby-driver/api/cassandra/session/#execute_async-instance_method">Session#execute_async</a>) and return a <a href="http://datastax.github.io/ruby-driver/api/cassandra/future/">Future</a> object.</p>
+
+<p>Methods like <a href="http://datastax.github.io/ruby-driver/api/cassandra/session/#prepare-instance_method">Session#prepare</a>, <a href="http://datastax.github.io/ruby-driver/api/cassandra/session/#execute-instance_method">Session#execute</a> and <a href="http://datastax.github.io/ruby-driver/api/cassandra/session/#close-instance_method">Session#close</a> are thin wrappers around <a href="http://datastax.github.io/ruby-driver/api/cassandra/session/#prepare_async-instance_method">Session#prepare_async</a>, <a href="http://datastax.github.io/ruby-driver/api/cassandra/session/#execute_async-instance_method">Session#execute_async</a> and <a href="http://datastax.github.io/ruby-driver/api/cassandra/session/#close_async-instance_method">Session#close_async</a> accordingly. These wrapper methods simply call their asynchronous counter part and block waiting for resulting future to be resolved.</p>
+
+<p>A <a href="http://datastax.github.io/ruby-driver/api/cassandra/future/"><code>Cassandra::Future</code></a> can be used to:</p>
+
+<ul>
+<li>block application thread until execution has completed</li>
+<li>register a listener to be notified when a result is available.</li>
+</ul>
+
+<p>When describing different asynchronous method results, we will use a <code>Cassandra::Future&lt;Type&gt;</code> notation to signal the type of the result of the future. For example, <code>Cassandra::Future&lt;Cassandra::Result&gt;</code> is a future that returns an instance of <a href="http://datastax.github.io/ruby-driver/api/cassandra/result/"><code>Cassandra::Result</code></a> when calling its <code>#get</code> method.</p>
+
+<h3 id="example-getting-a-result" class="target">Example: getting a result<a class="anchor" href="#example-getting-a-result" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3>
+<pre class="highlight"><code class="ruby"><span class="n">future</span> <span class="o">=</span> <span class="n">session</span><span class="p">.</span><span class="nf">execute_async</span><span class="p">(</span><span class="n">statement</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">future</span><span class="p">.</span><span class="nf">get</span> <span class="c1"># will block and raise error or return result</span>
+</code></pre>
+<p>Whenever a Future is resolved using its <a href="http://datastax.github.io/ruby-driver/api/cassandra/future/#get-instance_method"><code>Cassandra::Future#get</code></a> method, it will block until it has a value. Once a value is available, it will be returned. In case of an error, an exception will be raised.</p>
+
+<h3 id="example-registering-a-listener" class="target">Example: registering a listener<a class="anchor" href="#example-registering-a-listener" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3>
+<pre class="highlight"><code class="ruby"><span class="n">future</span> <span class="o">=</span> <span class="n">session</span><span class="p">.</span><span class="nf">execute_async</span><span class="p">(</span><span class="n">statement</span><span class="p">)</span>
+
+<span class="c1"># register success listener</span>
+<span class="n">future</span><span class="p">.</span><span class="nf">on_success</span> <span class="k">do</span> <span class="o">|</span><span class="n">rows</span><span class="o">|</span>
+  <span class="n">rows</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">row</span><span class="o">|</span>
+    <span class="nb">puts</span> <span class="s2">"</span><span class="si">#{</span><span class="n">row</span><span class="p">[</span><span class="s2">"artist"</span><span class="p">]</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">row</span><span class="p">[</span><span class="s2">"title"</span><span class="p">]</span><span class="si">}</span><span class="s2"> / </span><span class="si">#{</span><span class="n">row</span><span class="p">[</span><span class="s2">"album"</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre>
+
+
+        </div>
+      </div>
+    </div>
+
+    
+    <footer class="container text-muted">
+      <ul class="list-inline">
+      
+        
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/">Code</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="http://docs.datastax.com/en/developer/ruby-driver/">Docs</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://datastax-oss.atlassian.net/browse/RUBY/">Issues</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user">Mailing List</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="irc://irc.freenode.net/datastax-drivers">IRC Channel</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/releases">Releases</a>
+        </li>
+      
+      </ul>
+    </footer>
+    
+
+    <script src="../../../js/jquery.js"></script>
+    <script src="../../../js/bootstrap.js"></script>
+    <script src="../../../js/angular.js"></script>
+    <script src="../../../js/mousetrap.js"></script>
+    <script src="../../../js/hotkeys.js"></script>
+    <script src="../../../js/ZeroClipboard.js"></script>
+    <script src="../../../js/lunr.js"></script>
+    <script src="../../../js/app.js"></script>
+  </body>
+</html>

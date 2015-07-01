@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="A pure Ruby client for Apache Cassandra">
+    <meta name="author" content="DataStax">
+
+    <title>Ruby Driver for Apache Cassandra - Cassandra</title>
+
+    <link rel="icon" href="../../../favicon.ico">
+    <link rel="apple-touch-icon" href="../../../favicon.png">
+    <link href="../../../css/style.css" rel="stylesheet">
+    <link href="../../../css/pygments.css" rel="stylesheet">
+    <link href="../../../css/hotkeys.css" rel="stylesheet">
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body ng-app="docs">
+    <div class="navbar">
+      <div class="container-fluid">
+        <div class="row row-offcanvas row-offcanvas-left">
+          <div class="col-sm-3 text-center">
+            <a class="ds-home" href="../../"><img alt="Brand" src="../../../img/logo.png"></a>
+            <ul class="list-inline ds-sites" role="nav">
+              <li><a href="https://academy.datastax.com/" class="navbar-link">DataStax Academy</a></li>
+              <li><a href="http://www.datastax.com/dev/blog" class="navbar-link">Tech Blog</a></li>
+              <li><a href="http://www.datastax.com/what-we-offer/products-services/support" class="navbar-link">Support</a></li>
+            </ul>
+          </div>
+          <div class="col-md-5">
+            <p class="lead pubtitle">Ruby Driver for Apache Cassandra</p>
+            
+            <div class="text-info">
+              <span class="text-warning">Attention:</span> Viewing documentation for version
+              <div class="btn-group">
+                <button id="current-version" class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  1.2
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="current-version">
+                
+                  <li><a href="../../../api/cassandra/">3.2</a></li>
+                
+                  <li><a href="../../../3.1/api/cassandra/">3.1</a></li>
+                
+                  <li><a href="../../../3.0/api/cassandra/">3.0</a></li>
+                
+                  <li><a href="../../../2.1/api/cassandra/">2.1</a></li>
+                
+                  <li><a href="../../../2.0/api/cassandra/">2.0</a></li>
+                
+                  <li class="disabled"><a href="./">1.2</a></li>
+                
+                  <li><a href="../../../1.1/api/cassandra/">1.1</a></li>
+                
+                  <li><a href="../../../1.0/api/cassandra/">1.0</a></li>
+                
+                </ul>
+              </div>
+              <span class="red">
+              
+              (Earlier version)
+              
+              </span>
+            </div>
+            
+          </div>
+          <div class="col-md-4">
+            <form id="search" class="form-search dropdown visible-lg-inline-block" ng-controller="search" ng-class="{open: hasResults}" role="search" ng-submit="submit()" data-spy="affix" data-offset-top="130">
+              <div class="form-group has-feedback">
+                <input type="search" class="form-control input-sm mousetrap" placeholder="Search..." ng-model="q" ng-change="search('1.2')" ng-disabled="!searchReady" disabled data-hotkey="{down: moveDown, up: moveUp, esc: reset}" data-search>
+              </div>
+              <ul class="dropdown-menu search-results" role="menu">
+                <li ng-repeat="result in results" ng-class="{'bg-warning': $index == current}"><a ng-href="{{basePath}}{{result.path}}"><span ng-bind-html="summary(result)"></span></a></li>
+              </ul>
+            </form>
+            <a href="http://www.datastax.com/download" class="btn btn-primary btn-sm">Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid" id="content">
+      <div class="row">
+        <div class="col-md-3">
+          <div id="navigation" class="side-nav" role="tablist" aria-multiselectable="true">
+            <h3><a href="../../">Contents</a></h3>
+            <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../../features/">
+      Usage <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="../">
+      API docs <small>index</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li class="active">
+    <a href="./" class="current">
+      Cassandra <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="address_resolution/">
+      AddressResolution <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="auth/">
+      Auth <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="compression/">
+      Compression <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="error/">
+      Error <small>module</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="errors/">
+      Errors <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="execution/">
+      Execution <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="load_balancing/">
+      LoadBalancing <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="reconnection/">
+      Reconnection <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="retry/">
+      Retry <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="statement/">
+      Statement <small>module</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="statements/">
+      Statements <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="cluster/">
+      Cluster <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="column/">
+      Column <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="future/">
+      Future <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="host/">
+      Host <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="keyspace/">
+      Keyspace <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="listener/">
+      Listener <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="result/">
+      Result <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="session/">
+      Session <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="table/">
+      Table <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="time_uuid/">
+      TimeUuid <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="uuid/">
+      Uuid <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+</ul>
+
+  </li>
+  
+</ul>
+
+          </div>
+        </div>
+        <div class="col-md-9 content">
+          <div class="crumbs-wrapper">
+            <nav id="crumbs" data-spy="affix" data-offset-top="130">
+              <ol class="breadcrumb">
+                
+                
+                
+                <li><a href="../../">Home</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../">API docs</a></li>
+                
+                
+                
+                
+                
+                <li class="active">Cassandra</li>
+                
+                
+                
+              </ol>
+            </nav>
+          </div>
+          
+
+<div class="page-header">
+  <h1 id="module-cassandra" class="target">
+    
+    <small>module</small> Cassandra
+    
+  <a class="anchor" href="#module-cassandra" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h1>
+</div>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+
+
+
+
+
+
+
+<h2 id="modules" class="target">Modules<a class="anchor" href="#modules" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="child-modules">
+  <ul class="list-inline">
+    
+    <li><code><a href="address_resolution/" title="Cassandra::AddressResolution (module)">AddressResolution</a></code></li>
+    
+    <li><code><a href="auth/" title="Cassandra::Auth (module)">Auth</a></code></li>
+    
+    <li><code><a href="compression/" title="Cassandra::Compression (module)">Compression</a></code></li>
+    
+    <li><code><a href="error/" title="Cassandra::Error (module)">Error</a></code></li>
+    
+    <li><code><a href="errors/" title="Cassandra::Errors (module)">Errors</a></code></li>
+    
+    <li><code><a href="execution/" title="Cassandra::Execution (module)">Execution</a></code></li>
+    
+    <li><code><a href="load_balancing/" title="Cassandra::LoadBalancing (module)">LoadBalancing</a></code></li>
+    
+    <li><code><a href="reconnection/" title="Cassandra::Reconnection (module)">Reconnection</a></code></li>
+    
+    <li><code><a href="retry/" title="Cassandra::Retry (module)">Retry</a></code></li>
+    
+    <li><code><a href="statement/" title="Cassandra::Statement (module)">Statement</a></code></li>
+    
+    <li><code><a href="statements/" title="Cassandra::Statements (module)">Statements</a></code></li>
+    
+  </ul>
+</div>
+
+
+<h2 id="classes" class="target">Classes<a class="anchor" href="#classes" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="child-classes">
+  <ul class="list-inline">
+    
+    <li><code><a href="cluster/" title="Cassandra::Cluster (class)">Cluster</a></code></li>
+    
+    <li><code><a href="column/" title="Cassandra::Column (class)">Column</a></code></li>
+    
+    <li><code><a href="future/" title="Cassandra::Future (class)">Future</a></code></li>
+    
+    <li><code><a href="host/" title="Cassandra::Host (class)">Host</a></code></li>
+    
+    <li><code><a href="keyspace/" title="Cassandra::Keyspace (class)">Keyspace</a></code></li>
+    
+    <li><code><a href="listener/" title="Cassandra::Listener (class)">Listener</a></code></li>
+    
+    <li><code><a href="result/" title="Cassandra::Result (class)">Result</a></code></li>
+    
+    <li><code><a href="session/" title="Cassandra::Session (class)">Session</a></code></li>
+    
+    <li><code><a href="table/" title="Cassandra::Table (class)">Table</a></code></li>
+    
+    <li><code><a href="time_uuid/" title="Cassandra::TimeUuid (class)">TimeUuid</a></code></li>
+    
+    <li><code><a href="uuid/" title="Cassandra::Uuid (class)">Uuid</a></code></li>
+    
+  </ul>
+</div>
+
+<h2 id="constants" class="target">Constants<a class="anchor" href="#constants" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="module-constants">
+
+  <div class="panel panel-default member-definition">
+    <div class="panel-heading constant-header">
+      <h3 id="consistencies-constant" class="target">
+<var>CONSISTENCIES</var><a class="anchor" href="#consistencies-constant" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3>
+    </div>
+    <div class="panel-body constant-body">
+      <p>A list of all supported request consistencies</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><a href="https://docs.datastax.com/en/archived/cassandra/2.0/cassandra/dml/dml_config_consistency_c.html" target="_parent" title="Consistency levels in Apache Cassandra 2.0">Consistency levels in Apache Cassandra 2.0</a></li>
+      
+        <li><a href="https://docs.datastax.com/en/archived/cassandra/1.2/cassandra/dml/dml_config_consistency_c.html" target="_parent" title="Consistency levels in Apache Cassandra 1.2">Consistency levels in Apache Cassandra 1.2</a></li>
+      
+        <li><code><a href="session/#execute_async-instance_method" title="Cassandra::Session#execute_async (method)">Session#execute_async</a></code></li>
+      
+    </ul>
+  </dd>
+
+
+</dl>
+      <pre class="highlight"><code class="ruby"><span class="p">[</span> <span class="ss">:any</span><span class="p">,</span> <span class="ss">:one</span><span class="p">,</span> <span class="ss">:two</span><span class="p">,</span> <span class="ss">:three</span><span class="p">,</span> <span class="ss">:quorum</span><span class="p">,</span> <span class="ss">:all</span><span class="p">,</span> <span class="ss">:local_quorum</span><span class="p">,</span>
+<span class="ss">:each_quorum</span><span class="p">,</span> <span class="ss">:serial</span><span class="p">,</span> <span class="ss">:local_serial</span><span class="p">,</span> <span class="ss">:local_one</span> <span class="p">].</span><span class="nf">freeze</span></code></pre>
+    </div>
+  </div>
+
+  <div class="panel panel-default member-definition">
+    <div class="panel-heading constant-header">
+      <h3 id="serial_consistencies-constant" class="target">
+<var>SERIAL_CONSISTENCIES</var><a class="anchor" href="#serial_consistencies-constant" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3>
+    </div>
+    <div class="panel-body constant-body">
+      <p>A list of all supported serial consistencies</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code><a href="session/#execute_async-instance_method" title="Cassandra::Session#execute_async (method)">Session#execute_async</a></code></li>
+      
+    </ul>
+  </dd>
+
+
+</dl>
+      <pre class="highlight"><code class="ruby"><span class="p">[</span><span class="ss">:serial</span><span class="p">,</span> <span class="ss">:local_serial</span><span class="p">].</span><span class="nf">freeze</span></code></pre>
+    </div>
+  </div>
+
+  <div class="panel panel-default member-definition">
+    <div class="panel-heading constant-header">
+      <h3 id="write_types-constant" class="target">
+<var>WRITE_TYPES</var><a class="anchor" href="#write_types-constant" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3>
+    </div>
+    <div class="panel-body constant-body">
+      <p>A list of all possible write types that a
+<code><a href="errors/write_timeout_error/" title="Cassandra::Errors::WriteTimeoutError (class)">Errors::WriteTimeoutError</a></code> can have.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><a href="https://github.com/apache/cassandra/blob/cassandra-2.2/doc/native_protocol_v1.spec#L591-L603" target="_parent" title="Description of possible types of writes in Apache Cassandra native protocol spec v1">Description of possible types of writes in Apache Cassandra native protocol spec v1</a></li>
+      
+    </ul>
+  </dd>
+
+
+</dl>
+      <pre class="highlight"><code class="ruby"><span class="p">[</span><span class="ss">:simple</span><span class="p">,</span> <span class="ss">:batch</span><span class="p">,</span> <span class="ss">:unlogged_batch</span><span class="p">,</span> <span class="ss">:counter</span><span class="p">,</span> <span class="ss">:batch_log</span><span class="p">].</span><span class="nf">freeze</span></code></pre>
+    </div>
+  </div>
+
+  <div class="panel panel-default member-definition">
+    <div class="panel-heading constant-header">
+      <h3 id="version-constant" class="target">
+<var>VERSION</var><a class="anchor" href="#version-constant" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3>
+    </div>
+    <div class="panel-body constant-body">
+      
+      <pre class="highlight"><code class="ruby"><span class="s1">'1.2.0'</span><span class="p">.</span><span class="nf">freeze</span></code></pre>
+    </div>
+  </div>
+
+</div>
+<h2 id="methods" class="target">Methods<a class="anchor" href="#methods" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="module-methods">
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <em>self.</em><span class="path"><h3 id="cluster-class_method" class="target">
+<strong>cluster</strong><a class="anchor" href="#cluster-class_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>options</var> = {}<big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Creates a <code><a href="cluster/" title="Cassandra::Cluster (class)">Cluster instance</a></code>.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">Examples:</dt>
+<dd class="tag-content">
+  <dl class="examples">
+  
+    
+    <dt class="example-title">Connecting to localhost
+</dt>
+    
+    <dd class="example-code"><pre class="highlight"><code class="ruby"><span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span></code></pre></dd>
+  
+    
+    <dt class="example-title">Configuring <code><a href="cluster/" title="Cassandra::Cluster (class)">Cluster</a></code>
+</dt>
+    
+    <dd class="example-code"><pre class="highlight"><code class="ruby"><span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span><span class="p">(</span>
+            <span class="ss">username: </span><span class="n">username</span><span class="p">,</span>
+            <span class="ss">password: </span><span class="n">password</span><span class="p">,</span>
+            <span class="ss">hosts: </span><span class="p">[</span><span class="s1">'10.0.1.1'</span><span class="p">,</span> <span class="s1">'10.0.1.2'</span><span class="p">,</span> <span class="s1">'10.0.1.3'</span><span class="p">]</span>
+          <span class="p">)</span></code></pre></dd>
+  
+  </dl>
+</dd>
+
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>options</var></td>
+        
+        
+        <td class="type"><code>Hash</code></td>
+        
+        <td class="details">
+          
+            <em class="default">(defaults to: <code>{}</code>)</em>
+          
+          
+          a customizable set of options
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+  
+    
+    
+    <dt class="tag-title">Keys for <var>options</var>:</dt>
+    <dd class="tag-content">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th class="name">Key</th>
+            <th class="type">Type</th>
+            <th class="details">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+        
+        <tr>
+          <td class="name"><var>:hosts</var></td>
+          <td class="type">
+<code>Array</code>&lt;<code>String</code>, <code>IPAddr</code>&gt;</td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>['127.0.0.1']</code>
+              
+            </span>
+            
+              a list of
+initial addresses. Note that the entire list of cluster members will be
+discovered automatically once a connection to any hosts from the original
+list is successful.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:port</var></td>
+          <td class="type"><code>Integer</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>9042</code>
+              
+            </span>
+            
+              cassandra native protocol port.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:datacenter</var></td>
+          <td class="type"><code>String</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>nil</code>
+              
+            </span>
+            
+              name of current datacenter.
+First datacenter found will be assumed current by default. Note that you
+can skip this option if you specify only hosts from the local datacenter
+in <code>:hosts</code> option.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:shuffle_replicas</var></td>
+          <td class="type"><code>Boolean</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>true</code>
+              
+            </span>
+            
+              whether replicas list
+found by the default Token-Aware Load Balancing Policy should be
+shuffled. See <code><a href="load_balancing/policies/token_aware/#initialize-instance_method" title="Cassandra::LoadBalancing::Policies::TokenAware#initialize (method)">Token-Aware Load Balancing Policy</a></code>.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:connect_timeout</var></td>
+          <td class="type"><code>Numeric</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>10</code>
+              
+            </span>
+            
+              connection timeout in
+seconds. Setting value to <code>nil</code> will reset it to 5 seconds.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:timeout</var></td>
+          <td class="type"><code>Numeric</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>10</code>
+              
+            </span>
+            
+              request execution timeout in
+seconds. Setting value to <code>nil</code> will remove request timeout.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:heartbeat_interval</var></td>
+          <td class="type"><code>Numeric</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>30</code>
+              
+            </span>
+            
+              how often should a
+heartbeat be sent to determine if a connection is alive. Several things to
+note about this option. Only one heartbeat request will ever be
+outstanding on a given connection. Each heatbeat will be sent in at least
+<code>:heartbeat_interval</code> seconds after the last request has been sent on a
+given connection. Setting value to <code>nil</code> will remove connection timeout.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:idle_timeout</var></td>
+          <td class="type"><code>Numeric</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>60</code>
+              
+            </span>
+            
+              period of inactivity after
+which a connection is considered dead. Note that this value should be at
+least a few times larger than <code>:heartbeat_interval</code>. Setting value to
+<code>nil</code> will remove automatic connection termination.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:username</var></td>
+          <td class="type"><code>String</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>none</code>
+              
+            </span>
+            
+              username to use for
+authentication to cassandra. Note that you must also specify <code>:password</code>.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:password</var></td>
+          <td class="type"><code>String</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>none</code>
+              
+            </span>
+            
+              password to use for
+authentication to cassandra. Note that you must also specify <code>:username</code>.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:ssl</var></td>
+          <td class="type">(<code>Boolean</code> or <code>OpenSSL::SSL::SSLContext</code>)</td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>false</code>
+              
+            </span>
+            
+              enable
+default ssl authentication if <code>true</code> (not recommended). Also accepts an
+initialized <code>OpenSSL::SSL::SSLContext</code>. Note that this option should be
+ignored if <code>:server_cert</code>, <code>:client_cert</code>, <code>:private_key</code> or
+<code>:passphrase</code> are given.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:server_cert</var></td>
+          <td class="type"><code>String</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>none</code>
+              
+            </span>
+            
+              path to server certificate or
+certificate authority file.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:client_cert</var></td>
+          <td class="type"><code>String</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>none</code>
+              
+            </span>
+            
+              path to client certificate
+file. Note that this option is only required when encryption is
+configured to require client authentication.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:private_key</var></td>
+          <td class="type"><code>String</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>none</code>
+              
+            </span>
+            
+              path to client private key.
+Note that this option is only required when encryption is configured to
+require client authentication.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:passphrase</var></td>
+          <td class="type"><code>String</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>none</code>
+              
+            </span>
+            
+              passphrase for private key.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:compression</var></td>
+          <td class="type"><code>Symbol</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>none</code>
+              
+            </span>
+            
+              compression to use. Must be
+either <code>:snappy</code> or <code>:lz4</code>. Also note, that in order for compression to
+work, you must install &#8216;snappy&#8217; or &#8216;lz4-ruby&#8217; gems.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:load_balancing_policy</var></td>
+          <td class="type"><code><a href="load_balancing/policy/" title="Cassandra::LoadBalancing::Policy (class)">LoadBalancing::Policy</a></code></td>
+          <td class="details">
+            <span class="default">
+              
+            </span>
+            
+              default: token aware data center aware round robin.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:address_resolution</var></td>
+          <td class="type"><code>Symbol</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>:none</code>
+              
+            </span>
+            
+              a pre-configured
+address resolver to use. Must be one of <code>:none</code> or
+<code>:ec2_multi_region</code>.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:synchronize_schema</var></td>
+          <td class="type"><code>Boolean</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>true</code>
+              
+            </span>
+            
+              whether the driver
+should automatically keep schema metadata synchronized. When enabled, the
+driver updates schema metadata after receiving schema change
+notifications from Cassandra. Setting this setting to <code>false</code> disables
+automatic schema updates. Schema metadata is used by the driver to
+determine cluster partitioners as well as to find partition keys and
+replicas of prepared statements, this information makes token aware load
+balancing possible. One can still <code><a href="cluster/#refresh_schema-instance_method" title="Cassandra::Cluster#refresh_schema (method)">refresh schema manually</a></code>.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:schema_refresh_delay</var></td>
+          <td class="type"><code>Numeric</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>1</code>
+              
+            </span>
+            
+              the driver will wait
+for <code>:schema_refresh_delay</code> before fetching metadata after receiving a
+schema change event. This timer is restarted every time a new schema
+change event is received. Finally, when the timer expires or a maximum
+wait time of <code>:schema_refresh_timeout</code> has been reached, a schema refresh
+attempt will be made and the timeout is reset.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:schema_refresh_timeout</var></td>
+          <td class="type"><code>Numeric</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>10</code>
+              
+            </span>
+            
+              the maximum delay
+before automatically refreshing schema. Such delay can occur whenever
+multiple schema change events are continuously arriving within
+<code>:schema_refresh_delay</code> interval.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:reconnection_policy</var></td>
+          <td class="type"><code><a href="reconnection/policy/" title="Cassandra::Reconnection::Policy (class)">Reconnection::Policy</a></code></td>
+          <td class="details">
+            <span class="default">
+              
+            </span>
+            
+              default: <code><a href="reconnection/policies/exponential/" title="Cassandra::Reconnection::Policies::Exponential (class)">Exponential</a></code>.
+Note that the default policy is configured with <code>(0.5, 30, 2)</code>.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:retry_policy</var></td>
+          <td class="type"><code><a href="retry/policy/" title="Cassandra::Retry::Policy (module)">Retry::Policy</a></code></td>
+          <td class="details">
+            <span class="default">
+              
+            </span>
+            
+              default:
+<code><a href="retry/policies/default/" title="Cassandra::Retry::Policies::Default (class)">Default Retry Policy</a></code>.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:logger</var></td>
+          <td class="type"><code>Logger</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>none</code>
+              
+            </span>
+            
+              logger. a <code>Logger</code> instance from the
+standard library or any object responding to standard log methods
+(<code>#debug</code>, <code>#info</code>, <code>#warn</code>, <code>#error</code> and <code>#fatal</code>).
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:listeners</var></td>
+          <td class="type">
+<code>Enumerable</code>&lt;<code><a href="listener/" title="Cassandra::Listener (class)">Listener</a></code>&gt;</td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>none</code>
+              
+            </span>
+            
+              initial listeners. A list of initial cluster state listeners. Note that a
+<code>:load_balancing</code> policy is automatically registered with the cluster.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:consistency</var></td>
+          <td class="type"><code>Symbol</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>:one</code>
+              
+            </span>
+            
+              default consistency to use for
+all requests. Must be one of <code><a href="#consistencies-constant" title="Cassandra::CONSISTENCIES (constant)">CONSISTENCIES</a></code>.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:trace</var></td>
+          <td class="type"><code>Boolean</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>false</code>
+              
+            </span>
+            
+              whether or not to trace all
+requests by default.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:page_size</var></td>
+          <td class="type"><code>Integer</code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>10000</code>
+              
+            </span>
+            
+              default page size for all
+select queries. Set this value to <code>nil</code> to disable paging.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:credentials</var></td>
+          <td class="type">
+<code>Hash</code>{<code>String</code> =&gt; <code>String</code>}</td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>none</code>
+              
+            </span>
+            
+              a hash of credentials - to be used with <a href="https://github.com/apache/cassandra/blob/cassandra-2.2/doc/native_protocol_v1.spec#L238-L250">credentials authentication in cassandra 1.2</a>. Note that if you specified <code>:username</code> and <code>:password</code> options, those credentials are configured automatically.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:auth_provider</var></td>
+          <td class="type"><code><a href="auth/provider/" title="Cassandra::Auth::Provider (class)">Auth::Provider</a></code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>none</code>
+              
+            </span>
+            
+              a custom auth provider to be used with <a href="https://github.com/apache/cassandra/blob/cassandra-2.2/doc/native_protocol_v2.spec#L257-L273">SASL authentication in cassandra 2.0</a>. Note that if you have specified <code>:username</code> and <code>:password</code>, then a <code><a href="auth/providers/password/" title="Cassandra::Auth::Providers::Password (class)">Password Provider</a></code> will be used automatically.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:compressor</var></td>
+          <td class="type"><code><a href="compression/compressor/" title="Cassandra::Compression::Compressor (class)">Compression::Compressor</a></code></td>
+          <td class="details">
+            <span class="default">
+              
+                default:
+                <code>none</code>
+              
+            </span>
+            
+              a
+custom compressor. Note that if you have specified <code>:compression</code>, an
+appropriate compressor will be provided automatically.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:address_resolution_policy</var></td>
+          <td class="type"><code><a href="address_resolution/policy/" title="Cassandra::AddressResolution::Policy (class)">AddressResolution::Policy</a></code></td>
+          <td class="details">
+            <span class="default">
+              
+            </span>
+            
+              default:
+<code><a href="address_resolution/policies/none/" title="Cassandra::AddressResolution::Policies::None (class)">No Resolution Policy</a></code> a custom address resolution
+policy. Note that if you have specified <code>:address_resolution</code>, an
+appropriate address resolution policy will be provided automatically.
+
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="name"><var>:futures_factory</var></td>
+          <td class="type">
+<code>Object</code>&lt;<code>#all</code>, <code>#error</code>, <code>#value</code>, <code>#promise</code>&gt;</td>
+          <td class="details">
+            <span class="default">
+              
+            </span>
+            
+              default: <code><a href="future/" title="Cassandra::Future (class)">Future</a></code> a futures factory to assist with integration
+into existing futures library. Note that promises returned by this object
+must conform to <code>Promise</code> api, which is not yet public. Things
+may change, use at your own risk.
+
+            
+          </td>
+        </tr>
+        
+        </tbody>
+      </table>
+    </dd>
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="cluster/" title="Cassandra::Cluster (class)">Cluster</a></code></td>
+        
+        <td class="details">
+          
+          
+          a cluster instance
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <em>self.</em><span class="path"><h3 id="cluster_async-class_method" class="target">
+<strong>cluster_async</strong><a class="anchor" href="#cluster_async-class_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>options</var> = {}<big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Creates a <code><a href="cluster/" title="Cassandra::Cluster (class)">Cluster instance</a></code>.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type">
+<code><a href="future/" title="Cassandra::Future (class)">Future</a></code>&lt;<code><a href="cluster/" title="Cassandra::Cluster (class)">Cluster</a></code>&gt;</td>
+        
+        <td class="details">
+          
+          
+          a future resolving to the
+cluster instance.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code><a href="#cluster-class_method" title="Cassandra.cluster (method)">cluster</a></code></li>
+      
+    </ul>
+  </dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+</div>
+
+
+        </div>
+      </div>
+    </div>
+
+    
+    <footer class="container text-muted">
+      <ul class="list-inline">
+      
+        
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/">Code</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="http://docs.datastax.com/en/developer/ruby-driver/">Docs</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://datastax-oss.atlassian.net/browse/RUBY/">Issues</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user">Mailing List</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="irc://irc.freenode.net/datastax-drivers">IRC Channel</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/releases">Releases</a>
+        </li>
+      
+      </ul>
+    </footer>
+    
+
+    <script src="../../../js/jquery.js"></script>
+    <script src="../../../js/bootstrap.js"></script>
+    <script src="../../../js/angular.js"></script>
+    <script src="../../../js/mousetrap.js"></script>
+    <script src="../../../js/hotkeys.js"></script>
+    <script src="../../../js/ZeroClipboard.js"></script>
+    <script src="../../../js/lunr.js"></script>
+    <script src="../../../js/app.js"></script>
+  </body>
+</html>

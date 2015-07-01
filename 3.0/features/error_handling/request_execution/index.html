@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="A pure Ruby client for Apache Cassandra">
+    <meta name="author" content="DataStax">
+
+    <title>Ruby Driver for Apache Cassandra - Request Execution Errors</title>
+
+    <link rel="icon" href="../../../../favicon.ico">
+    <link rel="apple-touch-icon" href="../../../../favicon.png">
+    <link href="../../../../css/style.css" rel="stylesheet">
+    <link href="../../../../css/pygments.css" rel="stylesheet">
+    <link href="../../../../css/hotkeys.css" rel="stylesheet">
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body ng-app="docs">
+    <div class="navbar">
+      <div class="container-fluid">
+        <div class="row row-offcanvas row-offcanvas-left">
+          <div class="col-sm-3 text-center">
+            <a class="ds-home" href="../../../"><img alt="Brand" src="../../../../img/logo.png"></a>
+            <ul class="list-inline ds-sites" role="nav">
+              <li><a href="https://academy.datastax.com/" class="navbar-link">DataStax Academy</a></li>
+              <li><a href="http://www.datastax.com/dev/blog" class="navbar-link">Tech Blog</a></li>
+              <li><a href="http://www.datastax.com/what-we-offer/products-services/support" class="navbar-link">Support</a></li>
+            </ul>
+          </div>
+          <div class="col-md-5">
+            <p class="lead pubtitle">Ruby Driver for Apache Cassandra</p>
+            
+            <div class="text-info">
+              <span class="text-warning">Attention:</span> Viewing documentation for version
+              <div class="btn-group">
+                <button id="current-version" class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  3.0
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="current-version">
+                
+                  <li><a href="../../../../features/error_handling/request_execution/">3.2</a></li>
+                
+                  <li><a href="../../../../3.1/features/error_handling/request_execution/">3.1</a></li>
+                
+                  <li class="disabled"><a href="./">3.0</a></li>
+                
+                  <li><a href="../../../../2.1/features/error_handling/request_execution/">2.1</a></li>
+                
+                  <li><a href="../../../../2.0/features/error_handling/request_execution/">2.0</a></li>
+                
+                  <li><a href="../../../../1.2/features/error_handling/request_execution/">1.2</a></li>
+                
+                  <li><a href="../../../../1.1/features/error_handling/request_execution/">1.1</a></li>
+                
+                  <li><a href="../../../../1.0/features/error_handling/request_execution/">1.0</a></li>
+                
+                </ul>
+              </div>
+              <span class="red">
+              
+              (Earlier version)
+              
+              </span>
+            </div>
+            
+          </div>
+          <div class="col-md-4">
+            <form id="search" class="form-search dropdown visible-lg-inline-block" ng-controller="search" ng-class="{open: hasResults}" role="search" ng-submit="submit()" data-spy="affix" data-offset-top="130">
+              <div class="form-group has-feedback">
+                <input type="search" class="form-control input-sm mousetrap" placeholder="Search..." ng-model="q" ng-change="search('3.0')" ng-disabled="!searchReady" disabled data-hotkey="{down: moveDown, up: moveUp, esc: reset}" data-search>
+              </div>
+              <ul class="dropdown-menu search-results" role="menu">
+                <li ng-repeat="result in results" ng-class="{'bg-warning': $index == current}"><a ng-href="{{basePath}}{{result.path}}"><span ng-bind-html="summary(result)"></span></a></li>
+              </ul>
+            </form>
+            <a href="http://www.datastax.com/download" class="btn btn-primary btn-sm">Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid" id="content">
+      <div class="row">
+        <div class="col-md-3">
+          <div id="navigation" class="side-nav" role="tablist" aria-multiselectable="true">
+            <h3><a href="../../../">Contents</a></h3>
+            <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li class="active">
+    <a href="../../">
+      Usage <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../../basics/">
+      Basics <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../asynchronous_io/">
+      Asynchronous IO <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../security/">
+      Security <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../debugging/">
+      Debugging <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../load_balancing/">
+      Load Balancing <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../retry_policies/">
+      Retry Policies <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../state_listeners/">
+      State Listeners <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../address_resolution/">
+      Address resolution <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="../">
+      Error Handling <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li class="active">
+    <a href="./" class="current">
+      Request Execution Errors <small>feature</small>
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../connection_heartbeat/">
+      Connection Heartbeat <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../../reconnection/">
+      Reconnection <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../../../api/">
+      API docs <small>index</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+          </div>
+        </div>
+        <div class="col-md-9 content">
+          <div class="crumbs-wrapper">
+            <nav id="crumbs" data-spy="affix" data-offset-top="130">
+              <ol class="breadcrumb">
+                
+                
+                
+                <li><a href="../../../">Home</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../../">Usage</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../">Error Handling</a></li>
+                
+                
+                
+                
+                
+                <li class="active">Request Execution Errors</li>
+                
+                
+                
+              </ol>
+            </nav>
+          </div>
+          
+<div class="feature-section">
+<h1 id="request-execution-errors" class="target">Request Execution Errors<a class="anchor" href="#request-execution-errors" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h1>
+<p>The Ruby driver will error out and provide error messages for various errors.
+<a href="../">Check out the request execution diagram in Error Handling guide</a>
+and come back here for real-world examples of error handling.</p>
+<h2 id="background" class="target">Background<a class="anchor" href="#background" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>a running cassandra cluster</dd>
+</dl>
+<h2 id="executing-a-statement-with-invalid-syntax" class="target">Executing a statement with invalid syntax<a class="anchor" href="#executing-a-statement-with-invalid-syntax" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span> <span class="k">BIGINT</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span> <span class="n">first</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">last</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">age</span> <span class="k">BIGINT</span><span class="p">);</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span><span class="s2">"simplex"</span><span class="p">)</span>
+
+<span class="k">begin</span>
+  <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="s2">"INSERT INTO users (user_id, first, last, age)"</span><span class="p">)</span>
+<span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+  <span class="nb">puts</span> <span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::SyntaxError
+</code></pre>
+</dd>
+</dl>
+<h2 id="connecting-to-non-existent-keyspace" class="target">Connecting to non-existent keyspace<a class="anchor" href="#connecting-to-non-existent-keyspace" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+
+<span class="k">begin</span>
+  <span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span><span class="s2">"badkeyspace"</span><span class="p">)</span>
+<span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+  <span class="nb">puts</span> <span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::InvalidError
+</code></pre>
+</dd>
+</dl>
+<h2 id="modifying-system-keyspace" class="target">Modifying system keyspace<a class="anchor" href="#modifying-system-keyspace" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span><span class="s2">"system"</span><span class="p">)</span>
+
+<span class="k">begin</span>
+  <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="s2">"CREATE TABLE users (user_id INT PRIMARY KEY)"</span><span class="p">)</span>
+<span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+  <span class="nb">puts</span> <span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::UnauthorizedError
+</code></pre>
+</dd>
+</dl>
+<h2 id="dropping-non-existent-keyspace" class="target">Dropping non-existent keyspace<a class="anchor" href="#dropping-non-existent-keyspace" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span>
+
+<span class="k">begin</span>
+  <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="s2">"DROP KEYSPACE badkeyspace"</span><span class="p">)</span>
+<span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+  <span class="nb">puts</span> <span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::ConfigurationError
+</code></pre>
+</dd>
+</dl>
+<h2 id="creating-keyspace-that-already-exists" class="target">Creating keyspace that already exists<a class="anchor" href="#creating-keyspace-that-already-exists" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span>
+
+<span class="k">begin</span>
+  <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="s2">"CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}"</span><span class="p">)</span>
+<span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+  <span class="nb">puts</span> <span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::AlreadyExistsError
+</code></pre>
+</dd>
+</dl>
+<h2 id="connecting-with-invalid-authentication-credentials" class="target">Connecting with invalid authentication credentials<a class="anchor" href="#connecting-with-invalid-authentication-credentials" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>a running cassandra cluster with authentication enabled</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="k">begin</span>
+  <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span><span class="p">(</span>
+    <span class="ss">username: </span><span class="s1">'invalidname'</span><span class="p">,</span>
+    <span class="ss">password: </span><span class="s1">'badpassword'</span>
+  <span class="p">)</span>
+<span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+  <span class="nb">puts</span> <span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::AuthenticationError
+</code></pre>
+</dd>
+</dl>
+<h2 id="connecting-to-unreachable-cluster" class="target">Connecting to unreachable cluster<a class="anchor" href="#connecting-to-unreachable-cluster" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>node 1 is unreachable</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="k">begin</span>
+  <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span><span class="p">(</span><span class="ss">connect_timeout: </span><span class="mi">1</span><span class="p">)</span>
+<span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+  <span class="nb">puts</span> <span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::NoHostsAvailable: All attempted hosts failed
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::TimeoutError: Timed out
+</code></pre>
+</dd>
+</dl>
+<h2 id="executing-a-statement-when-all-hosts-are-down" class="target">Executing a statement when all hosts are down<a class="anchor" href="#executing-a-statement-when-all-hosts-are-down" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">1</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span> <span class="k">BIGINT</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span> <span class="n">first</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">last</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">age</span> <span class="k">BIGINT</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span> <span class="k">VALUES</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">'John'</span><span class="p">,</span> <span class="s1">'Doe'</span><span class="p">,</span> <span class="mi">40</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span> <span class="k">VALUES</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">'Mary'</span><span class="p">,</span> <span class="s1">'Doe'</span><span class="p">,</span> <span class="mi">35</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span> <span class="k">VALUES</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s1">'Agent'</span><span class="p">,</span> <span class="s1">'Smith'</span><span class="p">,</span> <span class="mi">32</span><span class="p">);</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span><span class="p">(</span><span class="ss">retry_policy: </span><span class="no">Cassandra</span><span class="o">::</span><span class="no">Retry</span><span class="o">::</span><span class="no">Policies</span><span class="o">::</span><span class="no">Fallthrough</span><span class="p">.</span><span class="nf">new</span><span class="p">)</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span><span class="s2">"simplex"</span><span class="p">)</span>
+
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"=== START ==="</span><span class="p">)</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+<span class="k">until</span> <span class="p">(</span><span class="n">input</span> <span class="o">=</span> <span class="vg">$stdin</span><span class="p">.</span><span class="nf">gets</span><span class="p">).</span><span class="nf">nil?</span> <span class="c1"># block until closed</span>
+  <span class="n">query</span> <span class="o">=</span> <span class="n">input</span><span class="p">.</span><span class="nf">chomp</span>
+  <span class="k">begin</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="ss">consistency: :all</span><span class="p">,</span> <span class="ss">timeout: </span><span class="mi">2</span><span class="p">)</span>
+    <span class="nb">puts</span> <span class="n">results</span><span class="p">.</span><span class="nf">inspect</span>
+    <span class="n">execution_info</span> <span class="o">=</span> <span class="n">results</span><span class="p">.</span><span class="nf">execution_info</span>
+    <span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"Query </span><span class="si">#{</span><span class="n">query</span><span class="p">.</span><span class="nf">inspect</span><span class="si">}</span><span class="s2"> fulfilled by </span><span class="si">#{</span><span class="n">execution_info</span><span class="p">.</span><span class="nf">hosts</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+  <span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+    <span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+  <span class="k">end</span>
+  <span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+<span class="k">end</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"=== STOP ==="</span><span class="p">)</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is running interactively</dd>
+<dt>And </dt>
+<dd>I wait for its output to contain &#8220;START&#8221;</dd>
+<dt>And </dt>
+<dd>all nodes are down</dd>
+<dt>And </dt>
+<dd>I type &#8220;SELECT * FROM simplex.users&#8221;</dd>
+<dt>And </dt>
+<dd>I close the stdin stream</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::NoHostsAvailable: All hosts down
+</code></pre>
+</dd>
+</dl>
+<h2 id="executing-a-statement-when-can-t-achieve-desired-consistency" class="target">Executing a statement when can&#8217;t achieve desired consistency<a class="anchor" href="#executing-a-statement-when-can-t-achieve-desired-consistency" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span> <span class="k">BIGINT</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span> <span class="n">first</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">last</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">age</span> <span class="k">BIGINT</span><span class="p">);</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span><span class="s2">"simplex"</span><span class="p">)</span>
+
+<span class="n">query</span> <span class="o">=</span> <span class="s2">"INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)"</span>
+<span class="k">begin</span>
+  <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="ss">consistency: :all</span><span class="p">)</span>
+<span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+  <span class="nb">puts</span> <span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>node 3 stops</dd>
+<dt>And </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::UnavailableError
+</code></pre>
+</dd>
+</dl>
+<h2 id="executing-a-select-statement-when-replica-times-out" class="target">Executing a SELECT statement when replica times out<a class="anchor" href="#executing-a-select-statement-when-replica-times-out" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">1</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span> <span class="k">BIGINT</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span> <span class="n">first</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">last</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">age</span> <span class="k">BIGINT</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span> <span class="k">VALUES</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">'John'</span><span class="p">,</span> <span class="s1">'Doe'</span><span class="p">,</span> <span class="mi">40</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span> <span class="k">VALUES</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">'Mary'</span><span class="p">,</span> <span class="s1">'Doe'</span><span class="p">,</span> <span class="mi">35</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span> <span class="k">VALUES</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s1">'Agent'</span><span class="p">,</span> <span class="s1">'Smith'</span><span class="p">,</span> <span class="mi">32</span><span class="p">);</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span><span class="p">(</span><span class="ss">retry_policy: </span><span class="no">Cassandra</span><span class="o">::</span><span class="no">Retry</span><span class="o">::</span><span class="no">Policies</span><span class="o">::</span><span class="no">Fallthrough</span><span class="p">.</span><span class="nf">new</span><span class="p">)</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span><span class="s2">"simplex"</span><span class="p">)</span>
+
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"=== START ==="</span><span class="p">)</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+<span class="k">until</span> <span class="p">(</span><span class="n">input</span> <span class="o">=</span> <span class="vg">$stdin</span><span class="p">.</span><span class="nf">gets</span><span class="p">).</span><span class="nf">nil?</span> <span class="c1"># block until closed</span>
+  <span class="n">query</span> <span class="o">=</span> <span class="n">input</span><span class="p">.</span><span class="nf">chomp</span>
+  <span class="k">begin</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="ss">consistency: :all</span><span class="p">,</span> <span class="ss">timeout: </span><span class="mi">2</span><span class="p">,</span> <span class="ss">idempotent: </span><span class="kp">true</span><span class="p">)</span>
+    <span class="nb">puts</span> <span class="n">results</span><span class="p">.</span><span class="nf">inspect</span>
+    <span class="n">execution_info</span> <span class="o">=</span> <span class="n">results</span><span class="p">.</span><span class="nf">execution_info</span>
+    <span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"Query </span><span class="si">#{</span><span class="n">query</span><span class="p">.</span><span class="nf">inspect</span><span class="si">}</span><span class="s2"> fulfilled by </span><span class="si">#{</span><span class="n">execution_info</span><span class="p">.</span><span class="nf">hosts</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+  <span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+    <span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+  <span class="k">end</span>
+  <span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+<span class="k">end</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"=== STOP ==="</span><span class="p">)</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is running interactively</dd>
+<dt>And </dt>
+<dd>I wait for its output to contain &#8220;START&#8221;</dd>
+<dt>And </dt>
+<dd>node 3 is unreachable</dd>
+<dt>And </dt>
+<dd>I type &#8220;SELECT * FROM simplex.users&#8221;</dd>
+<dt>And </dt>
+<dd>I close the stdin stream</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::ReadTimeoutError
+</code></pre>
+</dd>
+</dl>
+<h2 id="executing-an-update-statement-when-replica-times-out" class="target">Executing an UPDATE statement when replica times out<a class="anchor" href="#executing-an-update-statement-when-replica-times-out" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">1</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span> <span class="k">BIGINT</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span> <span class="n">first</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">last</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">age</span> <span class="k">BIGINT</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span> <span class="k">VALUES</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">'John'</span><span class="p">,</span> <span class="s1">'Doe'</span><span class="p">,</span> <span class="mi">40</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span> <span class="k">VALUES</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">'Mary'</span><span class="p">,</span> <span class="s1">'Doe'</span><span class="p">,</span> <span class="mi">35</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span> <span class="k">VALUES</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s1">'Agent'</span><span class="p">,</span> <span class="s1">'Smith'</span><span class="p">,</span> <span class="mi">32</span><span class="p">);</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span><span class="p">(</span><span class="ss">retry_policy: </span><span class="no">Cassandra</span><span class="o">::</span><span class="no">Retry</span><span class="o">::</span><span class="no">Policies</span><span class="o">::</span><span class="no">Fallthrough</span><span class="p">.</span><span class="nf">new</span><span class="p">)</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span><span class="s2">"simplex"</span><span class="p">)</span>
+
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"=== START ==="</span><span class="p">)</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+<span class="k">until</span> <span class="p">(</span><span class="n">input</span> <span class="o">=</span> <span class="vg">$stdin</span><span class="p">.</span><span class="nf">gets</span><span class="p">).</span><span class="nf">nil?</span> <span class="c1"># block until closed</span>
+  <span class="n">query</span> <span class="o">=</span> <span class="n">input</span><span class="p">.</span><span class="nf">chomp</span>
+  <span class="k">begin</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="ss">consistency: :all</span><span class="p">,</span> <span class="ss">timeout: </span><span class="mi">2</span><span class="p">,</span> <span class="ss">idempotent: </span><span class="kp">true</span><span class="p">)</span>
+    <span class="nb">puts</span> <span class="n">results</span><span class="p">.</span><span class="nf">inspect</span>
+    <span class="n">execution_info</span> <span class="o">=</span> <span class="n">results</span><span class="p">.</span><span class="nf">execution_info</span>
+    <span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"Query </span><span class="si">#{</span><span class="n">query</span><span class="p">.</span><span class="nf">inspect</span><span class="si">}</span><span class="s2"> fulfilled by </span><span class="si">#{</span><span class="n">execution_info</span><span class="p">.</span><span class="nf">hosts</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+  <span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+    <span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+  <span class="k">end</span>
+  <span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+<span class="k">end</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"=== STOP ==="</span><span class="p">)</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is running interactively</dd>
+<dt>And </dt>
+<dd>I wait for its output to contain &#8220;START&#8221;</dd>
+<dt>And </dt>
+<dd>node 3 is unreachable</dd>
+<dt>And </dt>
+<dd>I type &#8220;UPDATE simplex.users SET age=41 WHERE user_id=0&#8221;</dd>
+<dt>And </dt>
+<dd>I close the stdin stream</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::WriteTimeoutError
+</code></pre>
+</dd>
+</dl>
+<h2 id="truncating-a-table-when-replica-times-out" class="target">Truncating a table when replica times out<a class="anchor" href="#truncating-a-table-when-replica-times-out" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">1</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span> <span class="k">BIGINT</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span> <span class="n">first</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">last</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">age</span> <span class="k">BIGINT</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span> <span class="k">VALUES</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">'John'</span><span class="p">,</span> <span class="s1">'Doe'</span><span class="p">,</span> <span class="mi">40</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span> <span class="k">VALUES</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">'Mary'</span><span class="p">,</span> <span class="s1">'Doe'</span><span class="p">,</span> <span class="mi">35</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span> <span class="k">VALUES</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s1">'Agent'</span><span class="p">,</span> <span class="s1">'Smith'</span><span class="p">,</span> <span class="mi">32</span><span class="p">);</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span><span class="p">(</span><span class="ss">retry_policy: </span><span class="no">Cassandra</span><span class="o">::</span><span class="no">Retry</span><span class="o">::</span><span class="no">Policies</span><span class="o">::</span><span class="no">Fallthrough</span><span class="p">.</span><span class="nf">new</span><span class="p">)</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span><span class="s2">"simplex"</span><span class="p">)</span>
+
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"=== START ==="</span><span class="p">)</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+<span class="k">until</span> <span class="p">(</span><span class="n">input</span> <span class="o">=</span> <span class="vg">$stdin</span><span class="p">.</span><span class="nf">gets</span><span class="p">).</span><span class="nf">nil?</span> <span class="c1"># block until closed</span>
+  <span class="n">query</span> <span class="o">=</span> <span class="n">input</span><span class="p">.</span><span class="nf">chomp</span>
+  <span class="k">begin</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="ss">consistency: :all</span><span class="p">,</span> <span class="ss">timeout: </span><span class="mi">2</span><span class="p">,</span> <span class="ss">idempotent: </span><span class="kp">true</span><span class="p">)</span>
+    <span class="nb">puts</span> <span class="n">results</span><span class="p">.</span><span class="nf">inspect</span>
+    <span class="n">execution_info</span> <span class="o">=</span> <span class="n">results</span><span class="p">.</span><span class="nf">execution_info</span>
+    <span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"Query </span><span class="si">#{</span><span class="n">query</span><span class="p">.</span><span class="nf">inspect</span><span class="si">}</span><span class="s2"> fulfilled by </span><span class="si">#{</span><span class="n">execution_info</span><span class="p">.</span><span class="nf">hosts</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+  <span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+    <span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+  <span class="k">end</span>
+  <span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+<span class="k">end</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"=== STOP ==="</span><span class="p">)</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is running interactively</dd>
+<dt>And </dt>
+<dd>I wait for its output to contain &#8220;START&#8221;</dd>
+<dt>And </dt>
+<dd>node 3 is unreachable</dd>
+<dt>And </dt>
+<dd>I type &#8220;TRUNCATE simplex.users&#8221;</dd>
+<dt>And </dt>
+<dd>I close the stdin stream</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::TruncateError
+</code></pre>
+</dd>
+</dl>
+<h2 id="executing-a-statement-when-all-nodes-time-out" class="target">Executing a statement when all nodes time out<a class="anchor" href="#executing-a-statement-when-all-nodes-time-out" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">1</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span> <span class="k">BIGINT</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span> <span class="n">first</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">last</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">age</span> <span class="k">BIGINT</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span> <span class="k">VALUES</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">'John'</span><span class="p">,</span> <span class="s1">'Doe'</span><span class="p">,</span> <span class="mi">40</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span> <span class="k">VALUES</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">'Mary'</span><span class="p">,</span> <span class="s1">'Doe'</span><span class="p">,</span> <span class="mi">35</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">age</span><span class="p">)</span> <span class="k">VALUES</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s1">'Agent'</span><span class="p">,</span> <span class="s1">'Smith'</span><span class="p">,</span> <span class="mi">32</span><span class="p">);</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span><span class="p">(</span><span class="ss">retry_policy: </span><span class="no">Cassandra</span><span class="o">::</span><span class="no">Retry</span><span class="o">::</span><span class="no">Policies</span><span class="o">::</span><span class="no">Fallthrough</span><span class="p">.</span><span class="nf">new</span><span class="p">)</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span><span class="s2">"simplex"</span><span class="p">)</span>
+
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"=== START ==="</span><span class="p">)</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+<span class="k">until</span> <span class="p">(</span><span class="n">input</span> <span class="o">=</span> <span class="vg">$stdin</span><span class="p">.</span><span class="nf">gets</span><span class="p">).</span><span class="nf">nil?</span> <span class="c1"># block until closed</span>
+  <span class="n">query</span> <span class="o">=</span> <span class="n">input</span><span class="p">.</span><span class="nf">chomp</span>
+  <span class="k">begin</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="ss">consistency: :all</span><span class="p">,</span> <span class="ss">timeout: </span><span class="mi">2</span><span class="p">,</span> <span class="ss">idempotent: </span><span class="kp">true</span><span class="p">)</span>
+    <span class="nb">puts</span> <span class="n">results</span><span class="p">.</span><span class="nf">inspect</span>
+    <span class="n">execution_info</span> <span class="o">=</span> <span class="n">results</span><span class="p">.</span><span class="nf">execution_info</span>
+    <span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"Query </span><span class="si">#{</span><span class="n">query</span><span class="p">.</span><span class="nf">inspect</span><span class="si">}</span><span class="s2"> fulfilled by </span><span class="si">#{</span><span class="n">execution_info</span><span class="p">.</span><span class="nf">hosts</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+  <span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+    <span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+  <span class="k">end</span>
+  <span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+<span class="k">end</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"=== STOP ==="</span><span class="p">)</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is running interactively</dd>
+<dt>And </dt>
+<dd>I wait for its output to contain &#8220;START&#8221;</dd>
+<dt>And </dt>
+<dd>all nodes are unreachable</dd>
+<dt>And </dt>
+<dd>I type &#8220;SELECT * FROM simplex.users WHERE user_id=0&#8221;</dd>
+<dt>And </dt>
+<dd>I close the stdin stream</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::NoHostsAvailable: All attempted hosts failed
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>its output should contain:<pre><code>127.0.0.1 (Cassandra::Errors::TimeoutError: Timed out)
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>its output should contain:<pre><code>127.0.0.2 (Cassandra::Errors::TimeoutError: Timed out)
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>its output should contain:<pre><code>127.0.0.3 (Cassandra::Errors::TimeoutError: Timed out)
+</code></pre>
+</dd>
+</dl>
+<h2 id="binding-a-future-resolution-with-a-timeout" class="target">Binding a future resolution with a timeout<a class="anchor" href="#binding-a-future-resolution-with-a-timeout" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">1</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span> <span class="k">BIGINT</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span> <span class="n">first</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">last</span> <span class="k">VARCHAR</span><span class="p">,</span> <span class="n">age</span> <span class="k">BIGINT</span><span class="p">);</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span><span class="s2">"simplex"</span><span class="p">)</span>
+
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"=== START ==="</span><span class="p">)</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+<span class="k">until</span> <span class="p">(</span><span class="n">input</span> <span class="o">=</span> <span class="vg">$stdin</span><span class="p">.</span><span class="nf">gets</span><span class="p">).</span><span class="nf">nil?</span> <span class="c1"># block until closed</span>
+  <span class="n">query</span> <span class="o">=</span> <span class="n">input</span><span class="p">.</span><span class="nf">chomp</span>
+  <span class="k">begin</span>
+    <span class="n">future</span> <span class="o">=</span> <span class="n">session</span><span class="p">.</span><span class="nf">execute_async</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+    <span class="n">future</span><span class="p">.</span><span class="nf">get</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+  <span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+    <span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+  <span class="k">end</span>
+  <span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+<span class="k">end</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">puts</span><span class="p">(</span><span class="s2">"=== STOP ==="</span><span class="p">)</span>
+<span class="vg">$stdout</span><span class="p">.</span><span class="nf">flush</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is running interactively</dd>
+<dt>And </dt>
+<dd>I wait for its output to contain &#8220;START&#8221;</dd>
+<dt>And </dt>
+<dd>all nodes are unreachable</dd>
+<dt>And </dt>
+<dd>I type &#8220;SELECT * FROM simplex.users&#8221;</dd>
+<dt>And </dt>
+<dd>I close the stdin stream</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::TimeoutError: Future did not complete within 2.0 seconds. Wait time: 2.0
+</code></pre>
+</dd>
+</dl>
+<div class="pull-right"><span class="label label-primary">since cassadra v2.2</span></div>
+<h2 id="executing-an-insert-during-a-write-failure" class="target">Executing an INSERT during a WriteFailure<a class="anchor" href="#executing-an-insert-during-a-write-failure" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test</span> <span class="p">(</span><span class="n">k</span> <span class="k">int</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span> <span class="n">v</span> <span class="k">int</span><span class="p">);</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span><span class="s2">"simplex"</span><span class="p">)</span>
+
+<span class="k">begin</span>
+  <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="s2">"INSERT INTO simplex.test (k, v) VALUES (1, 0)"</span><span class="p">,</span> <span class="ss">consistency: :all</span><span class="p">)</span>
+<span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+  <span class="nb">puts</span> <span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>node 1 is failing writes on keyspace &#8220;simplex&#8221;</dd>
+<dt>And </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::WriteError
+</code></pre>
+</dd>
+</dl>
+<div class="pull-right"><span class="label label-primary">since cassadra v2.2</span></div>
+<h2 id="executing-an-insert-during-a-read-failure" class="target">Executing an INSERT during a ReadFailure<a class="anchor" href="#executing-an-insert-during-a-read-failure" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test</span> <span class="p">(</span><span class="n">k</span> <span class="k">int</span><span class="p">,</span> <span class="n">v0</span> <span class="k">int</span><span class="p">,</span> <span class="n">v1</span> <span class="k">int</span><span class="p">,</span> <span class="k">PRIMARY</span> <span class="k">KEY</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v0</span><span class="p">));</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span><span class="s2">"simplex"</span><span class="p">)</span>
+
+<span class="n">insert</span> <span class="o">=</span> <span class="n">session</span><span class="p">.</span><span class="nf">prepare</span><span class="p">(</span><span class="s2">"INSERT INTO simplex.test (k, v0, v1) VALUES (1, ?, 1)"</span><span class="p">)</span>
+<span class="p">(</span><span class="mi">0</span><span class="o">..</span><span class="mi">3000</span><span class="p">).</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">num</span><span class="o">|</span>
+  <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="n">insert</span><span class="p">,</span> <span class="ss">arguments: </span><span class="p">[</span><span class="n">num</span><span class="p">])</span>
+<span class="k">end</span>
+
+<span class="n">delete</span> <span class="o">=</span> <span class="n">session</span><span class="p">.</span><span class="nf">prepare</span><span class="p">(</span><span class="s2">"DELETE v1 FROM simplex.test WHERE k = 1 AND v0 =?"</span><span class="p">)</span>
+<span class="p">(</span><span class="mi">0</span><span class="o">..</span><span class="mi">2001</span><span class="p">).</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">num</span><span class="o">|</span>
+  <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="n">delete</span><span class="p">,</span> <span class="ss">arguments: </span><span class="p">[</span><span class="n">num</span><span class="p">])</span>
+<span class="k">end</span>
+
+<span class="k">begin</span>
+  <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="s2">"SELECT * FROM simplex.test WHERE k = 1"</span><span class="p">)</span>
+<span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+  <span class="nb">puts</span> <span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>tombstone thresholds are changed</dd>
+<dt>And </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::ReadError
+</code></pre>
+</dd>
+</dl>
+<div class="pull-right"><span class="label label-primary">since cassadra v2.2</span></div>
+<h2 id="executing-a-select-during-a-function-failure" class="target">Executing a SELECT during a FunctionFailure<a class="anchor" href="#executing-a-select-during-a-function-failure" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="n">d</span> <span class="p">(</span><span class="n">k</span> <span class="k">int</span> <span class="k">PRIMARY</span> <span class="k">KEY</span> <span class="p">,</span> <span class="n">d</span> <span class="k">double</span><span class="p">);</span>
+<span class="k">CREATE</span> <span class="n">FUNCTION</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_failure</span><span class="p">(</span><span class="n">d</span> <span class="k">double</span><span class="p">)</span>
+                <span class="n">RETURNS</span> <span class="k">NULL</span> <span class="k">ON</span> <span class="k">NULL</span> <span class="n">INPUT</span>
+                <span class="n">RETURNS</span> <span class="k">double</span>
+                <span class="n">LANGUAGE</span> <span class="n">java</span> <span class="k">AS</span> <span class="s1">'throw new RuntimeException("failure");'</span><span class="p">;</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span><span class="s2">"simplex"</span><span class="p">)</span>
+
+<span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="s2">"INSERT INTO simplex.d (k, d) VALUES (0, 5.12)"</span><span class="p">)</span>
+
+<span class="k">begin</span>
+  <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="s2">"SELECT test_failure(d) FROM simplex.d WHERE k = 0"</span><span class="p">)</span>
+<span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+  <span class="nb">puts</span> <span class="s2">"</span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">class</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Cassandra::Errors::FunctionCallError: execution of 'simplex.test_failure[double]' failed: java.lang.RuntimeException: failure
+</code></pre>
+</dd>
+</dl>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <footer class="container text-muted">
+      <ul class="list-inline">
+      
+        
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/">Code</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="http://docs.datastax.com/en/developer/ruby-driver/">Docs</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://datastax-oss.atlassian.net/browse/RUBY/">Issues</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user">Mailing List</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="irc://irc.freenode.net/datastax-drivers">IRC Channel</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/releases">Releases</a>
+        </li>
+      
+      </ul>
+    </footer>
+    
+
+    <script src="../../../../js/jquery.js"></script>
+    <script src="../../../../js/bootstrap.js"></script>
+    <script src="../../../../js/angular.js"></script>
+    <script src="../../../../js/mousetrap.js"></script>
+    <script src="../../../../js/hotkeys.js"></script>
+    <script src="../../../../js/ZeroClipboard.js"></script>
+    <script src="../../../../js/lunr.js"></script>
+    <script src="../../../../js/app.js"></script>
+  </body>
+</html>

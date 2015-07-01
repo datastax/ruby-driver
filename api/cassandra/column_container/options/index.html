@@ -1,0 +1,1800 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="A pure Ruby client for Apache Cassandra">
+    <meta name="author" content="DataStax">
+
+    <title>Ruby Driver for Apache Cassandra - Options</title>
+
+    <link rel="icon" href="../../../../favicon.ico">
+    <link rel="apple-touch-icon" href="../../../../favicon.png">
+    <link href="../../../../css/style.css" rel="stylesheet">
+    <link href="../../../../css/pygments.css" rel="stylesheet">
+    <link href="../../../../css/hotkeys.css" rel="stylesheet">
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body ng-app="docs">
+    <div class="navbar">
+      <div class="container-fluid">
+        <div class="row row-offcanvas row-offcanvas-left">
+          <div class="col-sm-3 text-center">
+            <a class="ds-home" href="../../../../"><img alt="Brand" src="../../../../img/logo.png"></a>
+            <ul class="list-inline ds-sites" role="nav">
+              <li><a href="https://academy.datastax.com/" class="navbar-link">DataStax Academy</a></li>
+              <li><a href="http://www.datastax.com/dev/blog" class="navbar-link">Tech Blog</a></li>
+              <li><a href="http://www.datastax.com/what-we-offer/products-services/support" class="navbar-link">Support</a></li>
+            </ul>
+          </div>
+          <div class="col-md-5">
+            <p class="lead pubtitle">Ruby Driver for Apache Cassandra</p>
+            
+            <div class="text-info">
+              <span class="text-warning">Attention:</span> Viewing documentation for version
+              <div class="btn-group">
+                <button id="current-version" class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  3.2
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="current-version">
+                
+                  <li class="disabled"><a href="./">3.2</a></li>
+                
+                  <li><a href="../../../../3.1/api/cassandra/column_container/options/">3.1</a></li>
+                
+                  <li><a href="../../../../3.0/api/cassandra/column_container/options/">3.0</a></li>
+                
+                  <li><a href="../../../../2.1/">2.1</a></li>
+                
+                  <li><a href="../../../../2.0/">2.0</a></li>
+                
+                  <li><a href="../../../../1.2/">1.2</a></li>
+                
+                  <li><a href="../../../../1.1/">1.1</a></li>
+                
+                  <li><a href="../../../../1.0/">1.0</a></li>
+                
+                </ul>
+              </div>
+              <span class="red">
+              
+              (Latest version)
+              
+              </span>
+            </div>
+            
+          </div>
+          <div class="col-md-4">
+            <form id="search" class="form-search dropdown visible-lg-inline-block" ng-controller="search" ng-class="{open: hasResults}" role="search" ng-submit="submit()" data-spy="affix" data-offset-top="130">
+              <div class="form-group has-feedback">
+                <input type="search" class="form-control input-sm mousetrap" placeholder="Search..." ng-model="q" ng-change="search('3.2')" ng-disabled="!searchReady" disabled data-hotkey="{down: moveDown, up: moveUp, esc: reset}" data-search>
+              </div>
+              <ul class="dropdown-menu search-results" role="menu">
+                <li ng-repeat="result in results" ng-class="{'bg-warning': $index == current}"><a ng-href="{{basePath}}{{result.path}}"><span ng-bind-html="summary(result)"></span></a></li>
+              </ul>
+            </form>
+            <a href="http://www.datastax.com/download" class="btn btn-primary btn-sm">Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid" id="content">
+      <div class="row">
+        <div class="col-md-3">
+          <div id="navigation" class="side-nav" role="tablist" aria-multiselectable="true">
+            <h3><a href="../../../../">Contents</a></h3>
+            <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../../../../features/">
+      Usage <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="../../../">
+      API docs <small>index</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li class="active">
+    <a href="../../">
+      Cassandra <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../../address_resolution/">
+      AddressResolution <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../attr_boolean/">
+      AttrBoolean <small>module</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../auth/">
+      Auth <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../compression/">
+      Compression <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../custom_data/">
+      CustomData <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../error/">
+      Error <small>module</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../errors/">
+      Errors <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../execution/">
+      Execution <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../load_balancing/">
+      LoadBalancing <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../reconnection/">
+      Reconnection <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../retry/">
+      Retry <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../statement/">
+      Statement <small>module</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../statements/">
+      Statements <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../timestamp_generator/">
+      TimestampGenerator <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../types/">
+      Types <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../aggregate/">
+      Aggregate <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../argument/">
+      Argument <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../cluster/">
+      Cluster <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../column/">
+      Column <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="../">
+      ColumnContainer <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../compaction/">
+      Compaction <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="./" class="current">
+      Options <small>class</small>
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+</ul>
+
+  </li>
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../../function/">
+      Function <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../future/">
+      Future <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../host/">
+      Host <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../index/">
+      Index <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../keyspace/">
+      Keyspace <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../listener/">
+      Listener <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../logger/">
+      Logger <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../materialized_view/">
+      MaterializedView <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../result/">
+      Result <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../session/">
+      Session <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../table/">
+      Table <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../time/">
+      Time <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../time_uuid/">
+      TimeUuid <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../trigger/">
+      Trigger <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../tuple/">
+      Tuple <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../type/">
+      Type <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../udt/">
+      UDT <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../uuid/">
+      Uuid <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+</ul>
+
+  </li>
+  
+</ul>
+
+          </div>
+        </div>
+        <div class="col-md-9 content">
+          <div class="crumbs-wrapper">
+            <nav id="crumbs" data-spy="affix" data-offset-top="130">
+              <ol class="breadcrumb">
+                
+                
+                
+                <li><a href="../../../../">Home</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../../../">API docs</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../../">Cassandra</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../">ColumnContainer</a></li>
+                
+                
+                
+                
+                
+                <li class="active">Options</li>
+                
+                
+                
+              </ol>
+            </nav>
+          </div>
+          
+
+<div class="page-header">
+  <h1 id="class-cassandra-column-container-options" class="target">
+    
+    <small>class</small> Cassandra::ColumnContainer::Options
+    
+  <a class="anchor" href="#class-cassandra-column-container-options" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h1>
+</div>
+<p>Encapsulates all of the configuration options of a column-container.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+
+
+<h2 id="inherits" class="target">Inherits<a class="anchor" href="#inherits" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="superclass"><code>Object</code></div>
+
+
+
+
+<h2 id="methods" class="target">Methods<a class="anchor" href="#methods" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="module-methods">
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="comment-instance_method" class="target">
+<strong>comment</strong><a class="anchor" href="#comment-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns the comment attribute of this column-container.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+          
+          the comment attribute of this column-container.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="read_repair_chance-instance_method" class="target">
+<strong>read_repair_chance</strong><a class="anchor" href="#read_repair_chance-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns the chance with which a read repair is triggered for this column-container.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../../types/float/" title="Cassandra::Types::Float (class)">Float</a></code></td>
+        
+        <td class="details">
+          
+          
+          the chance with which a read repair is triggered for this column-container.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="local_read_repair_chance-instance_method" class="target">
+<strong>local_read_repair_chance</strong><a class="anchor" href="#local_read_repair_chance-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns the cluster local read repair chance for this column-container.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../../types/float/" title="Cassandra::Types::Float (class)">Float</a></code></td>
+        
+        <td class="details">
+          
+          
+          the cluster local read repair chance for this column-container.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="gc_grace_seconds-instance_method" class="target">
+<strong>gc_grace_seconds</strong><a class="anchor" href="#gc_grace_seconds-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns the tombstone garbage collection grace time in seconds for this column-container.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>Integer</code></td>
+        
+        <td class="details">
+          
+          
+          the tombstone garbage collection grace time in seconds for this column-container.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="caching-instance_method" class="target">
+<strong>caching</strong><a class="anchor" href="#caching-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns the caching options for this column-container.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>Hash</code></td>
+        
+        <td class="details">
+          
+          
+          the caching options for this column-container.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="bloom_filter_fp_chance-instance_method" class="target">
+<strong>bloom_filter_fp_chance</strong><a class="anchor" href="#bloom_filter_fp_chance-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns the false positive chance for the Bloom filter of this column-container.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../../types/float/" title="Cassandra::Types::Float (class)">Float</a></code></td>
+        
+        <td class="details">
+          
+          
+          the false positive chance for the Bloom filter of this column-container.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="memtable_flush_period_in_ms-instance_method" class="target">
+<strong>memtable_flush_period_in_ms</strong><a class="anchor" href="#memtable_flush_period_in_ms-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns how often (in milliseconds) to flush the memtable of this column-container.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>Integer</code></td>
+        
+        <td class="details">
+          
+          
+          how often (in milliseconds) to flush the memtable of this column-container.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="default_time_to_live-instance_method" class="target">
+<strong>default_time_to_live</strong><a class="anchor" href="#default_time_to_live-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns the default TTL for this column-container.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>Integer</code></td>
+        
+        <td class="details">
+          
+          
+          the default TTL for this column-container.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="speculative_retry-instance_method" class="target">
+<strong>speculative_retry</strong><a class="anchor" href="#speculative_retry-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Return the speculative retry setting of this column-container, which determines how much
+response delay the coordinator node will tolerate from the chosen replica before
+retrying the request on other replicas. This setting can be expressed as a fixed
+delay in ms (e.g. 10ms) or as a percentile indicating &#8220;when the response time has
+exceeded the Nth percentile of read response times for this object&#8221; (e.g. 99percentile).</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+          
+          the speculative retry setting of this column-container.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="index_interval-instance_method" class="target">
+<strong>index_interval</strong><a class="anchor" href="#index_interval-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Return the index interval of this column-container; Cassandra will hold <code>1/index_interval</code> of row keys in
+memory.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>Integer</code></td>
+        
+        <td class="details">
+          
+          
+          the index interval of this column-container. May be nil, indicating a default value of 128.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="compression-instance_method" class="target">
+<strong>compression</strong><a class="anchor" href="#compression-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns compression settings</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>Hash</code></td>
+        
+        <td class="details">
+          
+          
+          compression settings
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="crc_check_chance-instance_method" class="target">
+<strong>crc_check_chance</strong><a class="anchor" href="#crc_check_chance-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>When compression is enabled, this option defines the probability
+with which checksums for compressed blocks are checked during reads.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../../types/float/" title="Cassandra::Types::Float (class)">Float</a></code></td>
+        
+        <td class="details">
+          
+          
+          the probability of checking checksums on compressed blocks.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="extensions-instance_method" class="target">
+<strong>extensions</strong><a class="anchor" href="#extensions-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns the extension options of this column-container.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>Hash</code></td>
+        
+        <td class="details">
+          
+          
+          the extension options of this column-container.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="compaction_strategy-instance_method" class="target">
+<strong>compaction_strategy</strong><a class="anchor" href="#compaction_strategy-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns the compaction strategy of this column-container.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../compaction/" title="Cassandra::ColumnContainer::Compaction (class)">ColumnContainer::Compaction</a></code></td>
+        
+        <td class="details">
+          
+          
+          the compaction strategy of this column-container.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="cdc-instance_method" class="target">
+<strong>cdc</strong><a class="anchor" href="#cdc-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns whether or not change data capture is enabled on this table.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"></td>
+        
+        <td class="details">
+          
+          
+          whether or not change data capture is enabled on this table.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="replicate_on_write?-instance_method" class="target">
+<strong>replicate_on_write?</strong><a class="anchor" href="#replicate_on_write?-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Return whether to replicate counter updates to other replicas. It is <em>strongly</em> recommended
+that this setting be <code>true</code>. Otherwise, counter updates are only written to one replica
+and fault tolerance is sacrificed.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../../types/boolean/" title="Cassandra::Types::Boolean (class)">Boolean</a></code></td>
+        
+        <td class="details">
+          
+          
+          whether to replicate counter updates to other replicas.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="populate_io_cache_on_flush?-instance_method" class="target">
+<strong>populate_io_cache_on_flush?</strong><a class="anchor" href="#populate_io_cache_on_flush?-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns whether to populate the I/O cache on flush of this
+column-container. May be nil, indicating a default value of <code>false</code>.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../../types/boolean/" title="Cassandra::Types::Boolean (class)">Boolean</a></code></td>
+        
+        <td class="details">
+          
+          
+          whether to populate the I/O cache on flush of this
+column-container. May be nil, indicating a default value of <code>false</code>.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="compact_storage?-instance_method" class="target">
+<strong>compact_storage?</strong><a class="anchor" href="#compact_storage?-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns whether this column-container uses compact storage.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../../types/boolean/" title="Cassandra::Types::Boolean (class)">Boolean</a></code></td>
+        
+        <td class="details">
+          
+          
+          whether this column-container uses compact storage.
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+</div>
+
+
+        </div>
+      </div>
+    </div>
+
+    
+    <footer class="container text-muted">
+      <ul class="list-inline">
+      
+        
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/">Code</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="http://docs.datastax.com/en/developer/ruby-driver/">Docs</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://datastax-oss.atlassian.net/browse/RUBY/">Issues</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user">Mailing List</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="irc://irc.freenode.net/datastax-drivers">IRC Channel</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/releases">Releases</a>
+        </li>
+      
+      </ul>
+    </footer>
+    
+
+    <script src="../../../../js/jquery.js"></script>
+    <script src="../../../../js/bootstrap.js"></script>
+    <script src="../../../../js/angular.js"></script>
+    <script src="../../../../js/mousetrap.js"></script>
+    <script src="../../../../js/hotkeys.js"></script>
+    <script src="../../../../js/ZeroClipboard.js"></script>
+    <script src="../../../../js/lunr.js"></script>
+    <script src="../../../../js/app.js"></script>
+  </body>
+</html>

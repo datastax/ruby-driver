@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="A pure Ruby client for Apache Cassandra">
+    <meta name="author" content="DataStax">
+
+    <title>Ruby Driver for Apache Cassandra - Table</title>
+
+    <link rel="icon" href="../../../../favicon.ico">
+    <link rel="apple-touch-icon" href="../../../../favicon.png">
+    <link href="../../../../css/style.css" rel="stylesheet">
+    <link href="../../../../css/pygments.css" rel="stylesheet">
+    <link href="../../../../css/hotkeys.css" rel="stylesheet">
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body ng-app="docs">
+    <div class="navbar">
+      <div class="container-fluid">
+        <div class="row row-offcanvas row-offcanvas-left">
+          <div class="col-sm-3 text-center">
+            <a class="ds-home" href="../../../"><img alt="Brand" src="../../../../img/logo.png"></a>
+            <ul class="list-inline ds-sites" role="nav">
+              <li><a href="https://academy.datastax.com/" class="navbar-link">DataStax Academy</a></li>
+              <li><a href="http://www.datastax.com/dev/blog" class="navbar-link">Tech Blog</a></li>
+              <li><a href="http://www.datastax.com/what-we-offer/products-services/support" class="navbar-link">Support</a></li>
+            </ul>
+          </div>
+          <div class="col-md-5">
+            <p class="lead pubtitle">Ruby Driver for Apache Cassandra</p>
+            
+            <div class="text-info">
+              <span class="text-warning">Attention:</span> Viewing documentation for version
+              <div class="btn-group">
+                <button id="current-version" class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  1.1
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="current-version">
+                
+                  <li><a href="../../../../api/cassandra/table/">3.2</a></li>
+                
+                  <li><a href="../../../../3.1/api/cassandra/table/">3.1</a></li>
+                
+                  <li><a href="../../../../3.0/api/cassandra/table/">3.0</a></li>
+                
+                  <li><a href="../../../../2.1/api/cassandra/table/">2.1</a></li>
+                
+                  <li><a href="../../../../2.0/api/cassandra/table/">2.0</a></li>
+                
+                  <li><a href="../../../../1.2/api/cassandra/table/">1.2</a></li>
+                
+                  <li class="disabled"><a href="./">1.1</a></li>
+                
+                  <li><a href="../../../../1.0/api/cassandra/table/">1.0</a></li>
+                
+                </ul>
+              </div>
+              <span class="red">
+              
+              (Earlier version)
+              
+              </span>
+            </div>
+            
+          </div>
+          <div class="col-md-4">
+            <form id="search" class="form-search dropdown visible-lg-inline-block" ng-controller="search" ng-class="{open: hasResults}" role="search" ng-submit="submit()" data-spy="affix" data-offset-top="130">
+              <div class="form-group has-feedback">
+                <input type="search" class="form-control input-sm mousetrap" placeholder="Search..." ng-model="q" ng-change="search('1.1')" ng-disabled="!searchReady" disabled data-hotkey="{down: moveDown, up: moveUp, esc: reset}" data-search>
+              </div>
+              <ul class="dropdown-menu search-results" role="menu">
+                <li ng-repeat="result in results" ng-class="{'bg-warning': $index == current}"><a ng-href="{{basePath}}{{result.path}}"><span ng-bind-html="summary(result)"></span></a></li>
+              </ul>
+            </form>
+            <a href="http://www.datastax.com/download" class="btn btn-primary btn-sm">Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid" id="content">
+      <div class="row">
+        <div class="col-md-3">
+          <div id="navigation" class="side-nav" role="tablist" aria-multiselectable="true">
+            <h3><a href="../../../">Contents</a></h3>
+            <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../../../features/">
+      Usage <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="../../">
+      API docs <small>index</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li class="active">
+    <a href="../">
+      Cassandra <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../address_resolution/">
+      AddressResolution <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../auth/">
+      Auth <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../compression/">
+      Compression <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../error/">
+      Error <small>module</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../errors/">
+      Errors <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../execution/">
+      Execution <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../load_balancing/">
+      LoadBalancing <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../reconnection/">
+      Reconnection <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../retry/">
+      Retry <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../statement/">
+      Statement <small>module</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../statements/">
+      Statements <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../cluster/">
+      Cluster <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../column/">
+      Column <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../future/">
+      Future <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../host/">
+      Host <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../keyspace/">
+      Keyspace <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../listener/">
+      Listener <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../result/">
+      Result <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../session/">
+      Session <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="./" class="current">
+      Table <small>class</small>
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../time_uuid/">
+      TimeUuid <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../uuid/">
+      Uuid <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+</ul>
+
+  </li>
+  
+</ul>
+
+          </div>
+        </div>
+        <div class="col-md-9 content">
+          <div class="crumbs-wrapper">
+            <nav id="crumbs" data-spy="affix" data-offset-top="130">
+              <ol class="breadcrumb">
+                
+                
+                
+                <li><a href="../../../">Home</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../../">API docs</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../">Cassandra</a></li>
+                
+                
+                
+                
+                
+                <li class="active">Table</li>
+                
+                
+                
+              </ol>
+            </nav>
+          </div>
+          
+
+<div class="page-header">
+  <h1 id="class-cassandra-table" class="target">
+    
+    <small>class</small> Cassandra::Table
+    
+  <a class="anchor" href="#class-cassandra-table" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h1>
+</div>
+<p>Represents a cassandra table</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code><a href="../keyspace/#each_table-instance_method" title="Cassandra::Keyspace#each_table (method)">Keyspace#each_table</a></code></li>
+      
+        <li><code><a href="../keyspace/#table-instance_method" title="Cassandra::Keyspace#table (method)">Keyspace#table</a></code></li>
+      
+    </ul>
+  </dd>
+
+
+</dl>
+
+<h2 id="inherits" class="target">Inherits<a class="anchor" href="#inherits" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="superclass"><code>Object</code></div>
+
+
+
+
+<h2 id="constants" class="target">Constants<a class="anchor" href="#constants" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="module-constants">
+
+  <div class="panel panel-default member-definition">
+    <div class="panel-heading constant-header">
+      <h3 id="null_byte-constant" class="target">
+<var>NULL_BYTE</var><a class="anchor" href="#null_byte-constant" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3>
+    </div>
+    <div class="panel-body constant-body">
+      
+      <pre class="highlight"><code class="ruby"><span class="s2">"</span><span class="se">\x00</span><span class="s2">"</span><span class="p">.</span><span class="nf">freeze</span></code></pre>
+    </div>
+  </div>
+
+  <div class="panel panel-default member-definition">
+    <div class="panel-heading constant-header">
+      <h3 id="type_converter-constant" class="target">
+<var>TYPE_CONVERTER</var><a class="anchor" href="#type_converter-constant" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3>
+    </div>
+    <div class="panel-body constant-body">
+      
+      <pre class="highlight"><code class="ruby"><span class="no">Protocol</span><span class="o">::</span><span class="no">TypeConverter</span><span class="p">.</span><span class="nf">new</span></code></pre>
+    </div>
+  </div>
+
+</div>
+<h2 id="methods" class="target">Methods<a class="anchor" href="#methods" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="module-methods">
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="name-instance_method" class="target">
+<strong>name</strong><a class="anchor" href="#name-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns table name</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+          
+          table name
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="has_column?-instance_method" class="target">
+<strong>has_column?</strong><a class="anchor" href="#has_column?-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>name</var><big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns whether this table has a given column</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>name</var></td>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+          
+          column name
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>Boolean</code></td>
+        
+        <td class="details">
+          
+          
+          whether this table has a given column
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="column-instance_method" class="target">
+<strong>column</strong><a class="anchor" href="#column-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>name</var><big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns a column or nil</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>name</var></td>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+          
+          column name
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type">(<code><a href="../column/" title="Cassandra::Column (class)">Column</a></code> or <code>nil</code>)</td>
+        
+        <td class="details">
+          
+          
+          a column or nil
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="each_column-instance_method" class="target">
+<strong>each_column</strong><a class="anchor" href="#each_column-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>&amp;block</var><big>)</big> 
+    
+  
+  
+  
+    <span class="aliases">aliased as:
+      <span class="names">
+      
+      <span id="columns-instance_method"><strong>columns</strong></span>
+      
+      </span>
+    </span>
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Yield or enumerate each column defined in this table</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+  <dt class="tag-title">Overloads:</dt>
+  <dd class="tag-content">
+    
+      
+      <div class="panel panel-default">
+        <div class="panel-heading overload-header">
+          <span class="path"><strong>each_column</strong></span> {|column| &#8230; }
+        </div>
+        <div class="panel-body overload-body">
+          <p>Returns self</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Yield Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>column</var></td>
+        
+        
+        <td class="type"><code><a href="../column/" title="Cassandra::Column (class)">Column</a></code></td>
+        
+        <td class="details">
+          
+          
+          current column
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="./" title="Cassandra::Table (class)">Table</a></code></td>
+        
+        <td class="details">
+          
+          
+          self
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+        </div>
+      </div>
+    
+      
+      <div class="panel panel-default">
+        <div class="panel-heading overload-header">
+          <span class="path"><strong>each_column</strong></span> 
+        </div>
+        <div class="panel-body overload-body">
+          <p>Returns a list of columns</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type">
+<code>Array</code>&lt;<code><a href="../column/" title="Cassandra::Column (class)">Column</a></code>&gt;</td>
+        
+        <td class="details">
+          
+          
+          a list of columns
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+        </div>
+      </div>
+    
+  </dd>
+
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="to_cql-instance_method" class="target">
+<strong>to_cql</strong><a class="anchor" href="#to_cql-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns a cql representation of this table</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+          
+          a cql representation of this table
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="inspect-instance_method" class="target">
+<strong>inspect</strong><a class="anchor" href="#inspect-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns a CLI-friendly table representation</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+          
+          a CLI-friendly table representation
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="eql?-instance_method" class="target">
+<strong>eql?</strong><a class="anchor" href="#eql?-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>other</var><big>)</big> 
+    
+  
+  
+  
+    <span class="aliases">aliased as:
+      <span class="names">
+      
+      <span id="==-instance_method"><strong>==</strong></span>
+      
+      </span>
+    </span>
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns whether this table is equal to the other</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>Boolean</code></td>
+        
+        <td class="details">
+          
+          
+          whether this table is equal to the other
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="partition_key-instance_method" class="target">
+<strong>partition_key</strong><a class="anchor" href="#partition_key-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns the value of attribute partition_key</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="clustering_columns-instance_method" class="target">
+<strong>clustering_columns</strong><a class="anchor" href="#clustering_columns-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns the value of attribute clustering_columns</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="clustering_order-instance_method" class="target">
+<strong>clustering_order</strong><a class="anchor" href="#clustering_order-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns the value of attribute clustering_order</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+
+  </div>
+</div>
+
+  
+</div>
+
+
+        </div>
+      </div>
+    </div>
+
+    
+    <footer class="container text-muted">
+      <ul class="list-inline">
+      
+        
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/">Code</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="http://docs.datastax.com/en/developer/ruby-driver/">Docs</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://datastax-oss.atlassian.net/browse/RUBY/">Issues</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user">Mailing List</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="irc://irc.freenode.net/datastax-drivers">IRC Channel</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/releases">Releases</a>
+        </li>
+      
+      </ul>
+    </footer>
+    
+
+    <script src="../../../../js/jquery.js"></script>
+    <script src="../../../../js/bootstrap.js"></script>
+    <script src="../../../../js/angular.js"></script>
+    <script src="../../../../js/mousetrap.js"></script>
+    <script src="../../../../js/hotkeys.js"></script>
+    <script src="../../../../js/ZeroClipboard.js"></script>
+    <script src="../../../../js/lunr.js"></script>
+    <script src="../../../../js/app.js"></script>
+  </body>
+</html>

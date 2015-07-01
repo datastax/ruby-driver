@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="A pure Ruby client for Apache Cassandra">
+    <meta name="author" content="DataStax">
+
+    <title>Ruby Driver for Apache Cassandra - Schema Metadata</title>
+
+    <link rel="icon" href="../../../favicon.ico">
+    <link rel="apple-touch-icon" href="../../../favicon.png">
+    <link href="../../../css/style.css" rel="stylesheet">
+    <link href="../../../css/pygments.css" rel="stylesheet">
+    <link href="../../../css/hotkeys.css" rel="stylesheet">
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body ng-app="docs">
+    <div class="navbar">
+      <div class="container-fluid">
+        <div class="row row-offcanvas row-offcanvas-left">
+          <div class="col-sm-3 text-center">
+            <a class="ds-home" href="../../../"><img alt="Brand" src="../../../img/logo.png"></a>
+            <ul class="list-inline ds-sites" role="nav">
+              <li><a href="https://academy.datastax.com/" class="navbar-link">DataStax Academy</a></li>
+              <li><a href="http://www.datastax.com/dev/blog" class="navbar-link">Tech Blog</a></li>
+              <li><a href="http://www.datastax.com/what-we-offer/products-services/support" class="navbar-link">Support</a></li>
+            </ul>
+          </div>
+          <div class="col-md-5">
+            <p class="lead pubtitle">Ruby Driver for Apache Cassandra</p>
+            
+            <div class="text-info">
+              <span class="text-warning">Attention:</span> Viewing documentation for version
+              <div class="btn-group">
+                <button id="current-version" class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  3.2
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="current-version">
+                
+                  <li class="disabled"><a href="./">3.2</a></li>
+                
+                  <li><a href="../../../3.1/features/basics/schema_metadata/">3.1</a></li>
+                
+                  <li><a href="../../../3.0/features/basics/schema_metadata/">3.0</a></li>
+                
+                  <li><a href="../../../2.1/">2.1</a></li>
+                
+                  <li><a href="../../../2.0/">2.0</a></li>
+                
+                  <li><a href="../../../1.2/">1.2</a></li>
+                
+                  <li><a href="../../../1.1/">1.1</a></li>
+                
+                  <li><a href="../../../1.0/">1.0</a></li>
+                
+                </ul>
+              </div>
+              <span class="red">
+              
+              (Latest version)
+              
+              </span>
+            </div>
+            
+          </div>
+          <div class="col-md-4">
+            <form id="search" class="form-search dropdown visible-lg-inline-block" ng-controller="search" ng-class="{open: hasResults}" role="search" ng-submit="submit()" data-spy="affix" data-offset-top="130">
+              <div class="form-group has-feedback">
+                <input type="search" class="form-control input-sm mousetrap" placeholder="Search..." ng-model="q" ng-change="search('3.2')" ng-disabled="!searchReady" disabled data-hotkey="{down: moveDown, up: moveUp, esc: reset}" data-search>
+              </div>
+              <ul class="dropdown-menu search-results" role="menu">
+                <li ng-repeat="result in results" ng-class="{'bg-warning': $index == current}"><a ng-href="{{basePath}}{{result.path}}"><span ng-bind-html="summary(result)"></span></a></li>
+              </ul>
+            </form>
+            <a href="http://www.datastax.com/download" class="btn btn-primary btn-sm">Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid" id="content">
+      <div class="row">
+        <div class="col-md-3">
+          <div id="navigation" class="side-nav" role="tablist" aria-multiselectable="true">
+            <h3><a href="../../../">Contents</a></h3>
+            <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li class="active">
+    <a href="../../">
+      Usage <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li class="active">
+    <a href="../">
+      Basics <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../datatypes/">
+      Datatypes <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../prepared_statements/">
+      Prepared statements <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../result_paging/">
+      Result paging <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../batch_statements/">
+      Batch statements <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../client_side_timestamps/">
+      Client-side Timestamps <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../custom_payloads/">
+      Custom payloads <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../execution_profiles/">
+      Execution profiles <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../namespace_conflicts/">
+      Namespace conflicts <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="./" class="current">
+      Schema Metadata <small>feature</small>
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../user_defined_types/">
+      User-Defined Types <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../../asynchronous_io/">
+      Asynchronous IO <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../security/">
+      Security <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../debugging/">
+      Debugging <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../load_balancing/">
+      Load Balancing <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../retry_policies/">
+      Retry Policies <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../state_listeners/">
+      State Listeners <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../address_resolution/">
+      Address resolution <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../error_handling/">
+      Error Handling <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../reconnection/">
+      Reconnection <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../../../api/">
+      API docs <small>index</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+          </div>
+        </div>
+        <div class="col-md-9 content">
+          <div class="crumbs-wrapper">
+            <nav id="crumbs" data-spy="affix" data-offset-top="130">
+              <ol class="breadcrumb">
+                
+                
+                
+                <li><a href="../../../">Home</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../../">Usage</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../">Basics</a></li>
+                
+                
+                
+                
+                
+                <li class="active">Schema Metadata</li>
+                
+                
+                
+              </ol>
+            </nav>
+          </div>
+          
+<div class="feature-section">
+<h1 id="schema-metadata" class="target">Schema Metadata<a class="anchor" href="#schema-metadata" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h1>
+<p>Ruby Driver allows inspecting schema metadata</p>
+<h2 id="background" class="target">Background<a class="anchor" href="#background" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>a running cassandra cluster</dd>
+</dl>
+<h2 id="getting-keyspace-metadata" class="target">Getting keyspace metadata<a class="anchor" href="#getting-keyspace-metadata" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+
+<span class="n">ks_meta</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">keyspace</span><span class="p">(</span><span class="s1">'simplex'</span><span class="p">)</span>
+<span class="nb">puts</span> <span class="s2">"Name: </span><span class="si">#{</span><span class="n">ks_meta</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Replication class: </span><span class="si">#{</span><span class="n">ks_meta</span><span class="p">.</span><span class="nf">replication</span><span class="p">.</span><span class="nf">klass</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Replication factor: </span><span class="si">#{</span><span class="n">ks_meta</span><span class="p">.</span><span class="nf">replication</span><span class="p">.</span><span class="nf">options</span><span class="p">[</span><span class="s1">'replication_factor'</span><span class="p">].</span><span class="nf">to_i</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Durable writes?: </span><span class="si">#{</span><span class="n">ks_meta</span><span class="p">.</span><span class="nf">durable_writes?</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"# tables: </span><span class="si">#{</span><span class="n">ks_meta</span><span class="p">.</span><span class="nf">tables</span><span class="p">.</span><span class="nf">size</span><span class="si">}</span><span class="s2">"</span>
+
+<span class="nb">puts</span> <span class="s2">""</span>
+<span class="nb">puts</span> <span class="n">ks_meta</span><span class="p">.</span><span class="nf">to_cql</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre class="highlight"><code class="cql"><span class="n">Name</span><span class="p">:</span> <span class="n">simplex</span>
+<span class="n">Replication</span> <span class="n">class</span><span class="p">:</span> <span class="n">SimpleStrategy</span>
+<span class="n">Replication</span> <span class="n">factor</span><span class="p">:</span> <span class="mi">3</span>
+<span class="n">Durable</span> <span class="n">writes</span><span class="o">?</span><span class="p">:</span> <span class="k">true</span>
+<span class="o">#</span> <span class="n">tables</span><span class="p">:</span> <span class="mi">0</span>
+
+<span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="s1">'3'</span><span class="p">}</span> <span class="k">AND</span> <span class="n">durable_writes</span> <span class="o">=</span> <span class="k">true</span><span class="p">;</span>
+</code></pre>
+</dd>
+</dl>
+<h2 id="getting-table-metadata" class="target">Getting table metadata<a class="anchor" href="#getting-table-metadata" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">user_id</span> <span class="k">bigint</span><span class="p">,</span> <span class="n">first</span> <span class="k">text</span><span class="p">,</span> <span class="n">last</span> <span class="k">text</span><span class="p">,</span> <span class="n">age</span> <span class="k">int</span><span class="p">,</span> <span class="k">PRIMARY</span> <span class="k">KEY</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">last</span><span class="p">))</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+
+<span class="n">table_meta</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">keyspace</span><span class="p">(</span><span class="s1">'simplex'</span><span class="p">).</span><span class="nf">table</span><span class="p">(</span><span class="s1">'users'</span><span class="p">)</span>
+<span class="nb">puts</span> <span class="s2">"Name: </span><span class="si">#{</span><span class="n">table_meta</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Keyspace: </span><span class="si">#{</span><span class="n">table_meta</span><span class="p">.</span><span class="nf">keyspace</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Partition key: </span><span class="si">#{</span><span class="n">table_meta</span><span class="p">.</span><span class="nf">partition_key</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Clustering column: </span><span class="si">#{</span><span class="n">table_meta</span><span class="p">.</span><span class="nf">clustering_columns</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Clustering order: </span><span class="si">#{</span><span class="n">table_meta</span><span class="p">.</span><span class="nf">clustering_order</span><span class="p">.</span><span class="nf">first</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Num columns: </span><span class="si">#{</span><span class="n">table_meta</span><span class="p">.</span><span class="nf">columns</span><span class="p">.</span><span class="nf">size</span><span class="si">}</span><span class="s2">"</span>
+
+<span class="nb">puts</span> <span class="s2">""</span>
+<span class="nb">puts</span> <span class="n">table_meta</span><span class="p">.</span><span class="nf">to_cql</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre class="highlight"><code class="cql"><span class="n">Name</span><span class="p">:</span> <span class="k">users</span>
+<span class="k">Keyspace</span><span class="p">:</span> <span class="n">simplex</span>
+<span class="n">Partition</span> <span class="k">key</span><span class="p">:</span> <span class="n">user_id</span>
+<span class="k">Clustering</span> <span class="n">column</span><span class="p">:</span> <span class="n">last</span>
+<span class="k">Clustering</span> <span class="k">order</span><span class="p">:</span> <span class="k">asc</span>
+<span class="n">Num</span> <span class="n">columns</span><span class="p">:</span> <span class="mi">4</span>
+
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="nv">"users"</span> <span class="p">(</span>
+  <span class="n">user_id</span> <span class="k">bigint</span><span class="p">,</span>
+  <span class="n">last</span> <span class="k">text</span><span class="p">,</span>
+  <span class="n">age</span> <span class="k">int</span><span class="p">,</span>
+  <span class="n">first</span> <span class="k">text</span><span class="p">,</span>
+  <span class="k">PRIMARY</span> <span class="k">KEY</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">last</span><span class="p">)</span>
+<span class="p">)</span>
+</code></pre>
+</dd>
+</dl>
+<h2 id="getting-trigger-metadata" class="target">Getting trigger metadata<a class="anchor" href="#getting-trigger-metadata" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="p">(</span><span class="n">a</span> <span class="k">text</span> <span class="k">primary</span> <span class="k">key</span><span class="p">,</span> <span class="n">b</span> <span class="k">text</span><span class="p">);</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="n">audit</span> <span class="p">(</span><span class="k">key</span> <span class="k">timeuuid</span><span class="p">,</span> <span class="n">keyspace_name</span> <span class="k">text</span><span class="p">,</span> <span class="n">table_name</span> <span class="k">text</span><span class="p">,</span> <span class="n">primary_key</span> <span class="k">text</span><span class="p">,</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">(</span><span class="k">key</span><span class="p">));</span>
+<span class="k">CREATE</span> <span class="k">TRIGGER</span> <span class="n">trigger1</span> <span class="k">ON</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="k">USING</span> <span class="s1">'org.apache.cassandra.triggers.AuditTrigger'</span><span class="p">;</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+
+<span class="c1"># AuditTrigger is available in cassandra/conf/triggers. See cassandra/examples/triggers in Cassandra</span>
+<span class="n">trigger</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">keyspace</span><span class="p">(</span><span class="s1">'simplex'</span><span class="p">).</span><span class="nf">table</span><span class="p">(</span><span class="s1">'test_table'</span><span class="p">).</span><span class="nf">trigger</span><span class="p">(</span><span class="s1">'trigger1'</span><span class="p">)</span>
+<span class="nb">puts</span> <span class="n">trigger</span><span class="p">.</span><span class="nf">to_cql</span>
+
+<span class="nb">puts</span> <span class="s2">""</span>
+<span class="nb">puts</span> <span class="s2">"Name: </span><span class="si">#{</span><span class="n">trigger</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Table name: </span><span class="si">#{</span><span class="n">trigger</span><span class="p">.</span><span class="nf">table</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Class: </span><span class="si">#{</span><span class="n">trigger</span><span class="p">.</span><span class="nf">options</span><span class="p">[</span><span class="s1">'class'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">TRIGGER</span> <span class="nv">"trigger1"</span> <span class="k">ON</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="k">USING</span> <span class="s1">'org.apache.cassandra.triggers.AuditTrigger'</span><span class="p">;</span>
+
+<span class="n">Name</span><span class="p">:</span> <span class="n">trigger1</span>
+<span class="k">Table</span> <span class="n">name</span><span class="p">:</span> <span class="n">test_table</span>
+<span class="n">Class</span><span class="p">:</span> <span class="n">org</span><span class="p">.</span><span class="n">apache</span><span class="p">.</span><span class="n">cassandra</span><span class="p">.</span><span class="n">triggers</span><span class="p">.</span><span class="n">AuditTrigger</span>
+</code></pre>
+</dd>
+</dl>
+<h2 id="getting-index-metadata" class="target">Getting index metadata<a class="anchor" href="#getting-index-metadata" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="p">(</span><span class="n">a</span> <span class="k">int</span> <span class="k">primary</span> <span class="k">key</span><span class="p">,</span> <span class="n">b</span> <span class="k">int</span><span class="p">);</span>
+<span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">ind1</span> <span class="k">ON</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="p">(</span><span class="n">b</span><span class="p">);</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+
+<span class="n">index</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">keyspace</span><span class="p">(</span><span class="s1">'simplex'</span><span class="p">).</span><span class="nf">table</span><span class="p">(</span><span class="s1">'test_table'</span><span class="p">).</span><span class="nf">index</span><span class="p">(</span><span class="s1">'ind1'</span><span class="p">)</span>
+<span class="nb">puts</span> <span class="n">index</span><span class="p">.</span><span class="nf">to_cql</span>
+
+<span class="nb">puts</span> <span class="s2">""</span>
+<span class="nb">puts</span> <span class="s2">"Name: </span><span class="si">#{</span><span class="n">index</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Table name: </span><span class="si">#{</span><span class="n">index</span><span class="p">.</span><span class="nf">table</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Kind: </span><span class="si">#{</span><span class="n">index</span><span class="p">.</span><span class="nf">kind</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Target: </span><span class="si">#{</span><span class="n">index</span><span class="p">.</span><span class="nf">target</span><span class="si">}</span><span class="s2">"</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">INDEX</span> <span class="nv">"ind1"</span> <span class="k">ON</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="p">(</span><span class="n">b</span><span class="p">);</span>
+
+<span class="n">Name</span><span class="p">:</span> <span class="n">ind1</span>
+<span class="k">Table</span> <span class="n">name</span><span class="p">:</span> <span class="n">test_table</span>
+<span class="n">Kind</span><span class="p">:</span> <span class="n">composites</span>
+<span class="n">Target</span><span class="p">:</span> <span class="n">b</span>
+</code></pre>
+</dd>
+</dl>
+<div class="pull-right"><span class="label label-primary">since cassadra v3.0</span></div>
+<h2 id="getting-index-metadata-on-full-collections" class="target">Getting index metadata on full collections<a class="anchor" href="#getting-index-metadata-on-full-collections" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="p">(</span><span class="n">a</span> <span class="k">int</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span> <span class="n">b</span> <span class="n">frozen</span><span class="o">&lt;</span><span class="k">map</span><span class="o">&lt;</span><span class="k">text</span><span class="p">,</span> <span class="k">text</span><span class="o">&gt;&gt;</span><span class="p">);</span>
+<span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">ind1</span> <span class="k">ON</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="p">(</span><span class="n">full</span><span class="p">(</span><span class="n">b</span><span class="p">));</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+
+<span class="n">index</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">keyspace</span><span class="p">(</span><span class="s1">'simplex'</span><span class="p">).</span><span class="nf">table</span><span class="p">(</span><span class="s1">'test_table'</span><span class="p">).</span><span class="nf">index</span><span class="p">(</span><span class="s1">'ind1'</span><span class="p">)</span>
+<span class="nb">puts</span> <span class="n">index</span><span class="p">.</span><span class="nf">to_cql</span>
+
+<span class="nb">puts</span> <span class="s2">""</span>
+<span class="nb">puts</span> <span class="s2">"Name: </span><span class="si">#{</span><span class="n">index</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Table name: </span><span class="si">#{</span><span class="n">index</span><span class="p">.</span><span class="nf">table</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Kind: </span><span class="si">#{</span><span class="n">index</span><span class="p">.</span><span class="nf">kind</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Target: </span><span class="si">#{</span><span class="n">index</span><span class="p">.</span><span class="nf">target</span><span class="si">}</span><span class="s2">"</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">INDEX</span> <span class="nv">"ind1"</span> <span class="k">ON</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="p">(</span><span class="n">full</span><span class="p">(</span><span class="n">b</span><span class="p">));</span>
+
+<span class="n">Name</span><span class="p">:</span> <span class="n">ind1</span>
+<span class="k">Table</span> <span class="n">name</span><span class="p">:</span> <span class="n">test_table</span>
+<span class="n">Kind</span><span class="p">:</span> <span class="n">composites</span>
+<span class="n">Target</span><span class="p">:</span> <span class="n">full</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+</code></pre>
+</dd>
+</dl>
+<div class="pull-right"><span class="label label-primary">since cassadra v3.0</span></div>
+<h2 id="getting-multiple-index-metadata-on-same-column" class="target">Getting multiple index metadata on same column<a class="anchor" href="#getting-multiple-index-metadata-on-same-column" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="p">(</span><span class="n">a</span> <span class="k">int</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span> <span class="n">b</span> <span class="k">map</span><span class="o">&lt;</span><span class="k">text</span><span class="p">,</span> <span class="k">text</span><span class="o">&gt;</span><span class="p">);</span>
+<span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">ind1</span> <span class="k">ON</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="p">(</span><span class="n">keys</span><span class="p">(</span><span class="n">b</span><span class="p">));</span>
+<span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">ind2</span> <span class="k">ON</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="p">(</span><span class="k">values</span><span class="p">(</span><span class="n">b</span><span class="p">));</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+
+<span class="n">index</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">keyspace</span><span class="p">(</span><span class="s1">'simplex'</span><span class="p">).</span><span class="nf">table</span><span class="p">(</span><span class="s1">'test_table'</span><span class="p">).</span><span class="nf">index</span><span class="p">(</span><span class="s1">'ind1'</span><span class="p">)</span>
+<span class="nb">puts</span> <span class="n">index</span><span class="p">.</span><span class="nf">to_cql</span>
+
+<span class="nb">puts</span> <span class="s2">""</span>
+<span class="nb">puts</span> <span class="s2">"Name: </span><span class="si">#{</span><span class="n">index</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Target: </span><span class="si">#{</span><span class="n">index</span><span class="p">.</span><span class="nf">target</span><span class="si">}</span><span class="s2">"</span>
+
+<span class="nb">puts</span> <span class="s2">""</span>
+<span class="n">index</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">keyspace</span><span class="p">(</span><span class="s1">'simplex'</span><span class="p">).</span><span class="nf">table</span><span class="p">(</span><span class="s1">'test_table'</span><span class="p">).</span><span class="nf">index</span><span class="p">(</span><span class="s1">'ind2'</span><span class="p">)</span>
+<span class="nb">puts</span> <span class="n">index</span><span class="p">.</span><span class="nf">to_cql</span>
+
+<span class="nb">puts</span> <span class="s2">""</span>
+<span class="nb">puts</span> <span class="s2">"Name: </span><span class="si">#{</span><span class="n">index</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Target: </span><span class="si">#{</span><span class="n">index</span><span class="p">.</span><span class="nf">target</span><span class="si">}</span><span class="s2">"</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">INDEX</span> <span class="nv">"ind1"</span> <span class="k">ON</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="p">(</span><span class="n">keys</span><span class="p">(</span><span class="n">b</span><span class="p">));</span>
+
+<span class="n">Name</span><span class="p">:</span> <span class="n">ind1</span>
+<span class="n">Target</span><span class="p">:</span> <span class="n">keys</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+<span class="k">CREATE</span> <span class="k">INDEX</span> <span class="nv">"ind2"</span> <span class="k">ON</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="p">(</span><span class="k">values</span><span class="p">(</span><span class="n">b</span><span class="p">));</span>
+
+<span class="n">Name</span><span class="p">:</span> <span class="n">ind2</span>
+<span class="n">Target</span><span class="p">:</span> <span class="k">values</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+</code></pre>
+</dd>
+</dl>
+<div class="pull-right"><span class="label label-primary">since cassadra v2.1</span></div>
+<h2 id="getting-user-defined-type-metadata" class="target">Getting user-defined type metadata<a class="anchor" href="#getting-user-defined-type-metadata" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TYPE</span> <span class="n">simplex</span><span class="p">.</span><span class="n">address</span> <span class="p">(</span><span class="n">street</span> <span class="k">text</span><span class="p">,</span> <span class="n">zipcode</span> <span class="k">int</span><span class="p">);</span>
+<span class="k">CREATE</span> <span class="k">TYPE</span> <span class="n">simplex</span><span class="p">.</span><span class="n">check_in</span> <span class="p">(</span>
+  <span class="n">location</span> <span class="n">frozen</span> <span class="o">&lt;</span><span class="n">address</span><span class="o">&gt;</span><span class="p">,</span>
+  <span class="n">time</span> <span class="k">timestamp</span><span class="p">,</span>
+  <span class="n">data</span> <span class="n">frozen</span> <span class="o">&lt;</span><span class="n">tuple</span><span class="o">&lt;</span><span class="k">int</span><span class="p">,</span> <span class="k">text</span><span class="p">,</span> <span class="k">float</span><span class="o">&gt;&gt;</span>
+<span class="p">);</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="k">users</span> <span class="p">(</span><span class="n">id</span> <span class="k">int</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span> <span class="n">location</span> <span class="n">frozen</span><span class="o">&lt;</span><span class="n">address</span><span class="o">&gt;</span><span class="p">);</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+
+<span class="n">cluster</span><span class="p">.</span><span class="nf">keyspace</span><span class="p">(</span><span class="s1">'simplex'</span><span class="p">).</span><span class="nf">each_type</span> <span class="k">do</span> <span class="o">|</span><span class="n">type</span><span class="o">|</span>
+  <span class="nb">puts</span> <span class="n">type</span><span class="p">.</span><span class="nf">to_cql</span>
+<span class="k">end</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">TYPE</span> <span class="n">simplex</span><span class="p">.</span><span class="n">address</span> <span class="p">(</span>
+  <span class="n">street</span> <span class="k">text</span><span class="p">,</span>
+  <span class="n">zipcode</span> <span class="k">int</span>
+<span class="p">);</span>
+<span class="k">CREATE</span> <span class="k">TYPE</span> <span class="n">simplex</span><span class="p">.</span><span class="n">check_in</span> <span class="p">(</span>
+  <span class="n">location</span> <span class="n">frozen</span> <span class="o">&lt;</span><span class="n">address</span><span class="o">&gt;</span><span class="p">,</span>
+  <span class="n">time</span> <span class="k">timestamp</span><span class="p">,</span>
+  <span class="n">data</span> <span class="n">frozen</span> <span class="o">&lt;</span><span class="n">tuple</span><span class="o">&lt;</span><span class="k">int</span><span class="p">,</span> <span class="k">text</span><span class="p">,</span> <span class="k">float</span><span class="o">&gt;&gt;</span>
+<span class="p">);</span>
+</code></pre>
+</dd>
+</dl>
+<div class="pull-right"><span class="label label-primary">since cassadra v2.2</span></div>
+<h2 id="getting-user-defined-functions-and-metadata" class="target">Getting user-defined functions and metadata<a class="anchor" href="#getting-user-defined-functions-and-metadata" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="n">OR</span> <span class="n">REPLACE</span> <span class="n">FUNCTION</span> <span class="n">simplex</span><span class="p">.</span><span class="n">fLog</span><span class="p">(</span><span class="n">input</span> <span class="k">double</span><span class="p">)</span>
+  <span class="n">CALLED</span> <span class="k">ON</span> <span class="k">NULL</span> <span class="n">INPUT</span>
+  <span class="n">RETURNS</span> <span class="k">double</span>
+  <span class="n">LANGUAGE</span> <span class="n">java</span>
+  <span class="k">AS</span> <span class="s1">'return Double.valueOf(Math.log(input.doubleValue()));'</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+<span class="kp">include</span> <span class="no">Cassandra</span><span class="o">::</span><span class="no">Types</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+
+<span class="nb">puts</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">keyspace</span><span class="p">(</span><span class="s1">'simplex'</span><span class="p">).</span><span class="nf">function</span><span class="p">(</span><span class="s1">'fLog'</span><span class="p">,</span> <span class="n">double</span><span class="p">).</span><span class="nf">to_cql</span>
+
+<span class="n">function</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">keyspace</span><span class="p">(</span><span class="s1">'simplex'</span><span class="p">).</span><span class="nf">function</span><span class="p">(</span><span class="s1">'fLog'</span><span class="p">,</span> <span class="n">double</span><span class="p">)</span>
+<span class="nb">puts</span> <span class="s2">""</span>
+<span class="nb">puts</span> <span class="s2">"Name: </span><span class="si">#{</span><span class="n">function</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Language: </span><span class="si">#{</span><span class="n">function</span><span class="p">.</span><span class="nf">language</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Return type: </span><span class="si">#{</span><span class="n">function</span><span class="p">.</span><span class="nf">type</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Called on null?: </span><span class="si">#{</span><span class="n">function</span><span class="p">.</span><span class="nf">called_on_null?</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Argument 'input'?: </span><span class="si">#{</span><span class="n">function</span><span class="p">.</span><span class="nf">has_argument?</span><span class="p">(</span><span class="s2">"input"</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+<span class="n">function</span><span class="p">.</span><span class="nf">each_argument</span> <span class="p">{</span> <span class="o">|</span><span class="n">arg</span><span class="o">|</span> <span class="nb">puts</span> <span class="s2">"Argument type: </span><span class="si">#{</span><span class="n">arg</span><span class="p">.</span><span class="nf">type</span><span class="si">}</span><span class="s2">"</span> <span class="p">}</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="n">FUNCTION</span> <span class="n">simplex</span><span class="p">.</span><span class="n">flog</span><span class="p">(</span><span class="n">input</span> <span class="k">double</span><span class="p">)</span>
+  <span class="n">CALLED</span> <span class="k">ON</span> <span class="k">NULL</span> <span class="n">INPUT</span>
+  <span class="n">RETURNS</span> <span class="k">double</span>
+  <span class="n">LANGUAGE</span> <span class="n">java</span>
+  <span class="k">AS</span> <span class="err">$$</span><span class="n">return</span> <span class="k">Double</span><span class="p">.</span><span class="n">valueOf</span><span class="p">(</span><span class="n">Math</span><span class="p">.</span><span class="n">log</span><span class="p">(</span><span class="n">input</span><span class="p">.</span><span class="n">doubleValue</span><span class="p">()));</span><span class="err">$$</span><span class="p">;</span>
+
+<span class="n">Name</span><span class="p">:</span> <span class="n">flog</span>
+<span class="n">Language</span><span class="p">:</span> <span class="n">java</span>
+<span class="n">Return</span> <span class="k">type</span><span class="p">:</span> <span class="k">double</span>
+<span class="n">Called</span> <span class="k">on</span> <span class="k">null</span><span class="o">?</span><span class="p">:</span> <span class="k">true</span>
+<span class="n">Argument</span> <span class="s1">'input'</span><span class="o">?</span><span class="p">:</span> <span class="k">true</span>
+<span class="n">Argument</span> <span class="k">type</span><span class="p">:</span> <span class="k">double</span>
+</code></pre>
+</dd>
+</dl>
+<div class="pull-right"><span class="label label-primary">since cassadra v2.2</span></div>
+<h2 id="getting-user-defined-aggregates-and-metadata" class="target">Getting user-defined aggregates and metadata<a class="anchor" href="#getting-user-defined-aggregates-and-metadata" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="n">OR</span> <span class="n">REPLACE</span> <span class="n">FUNCTION</span> <span class="n">simplex</span><span class="p">.</span><span class="n">avgState</span><span class="p">(</span><span class="n">state</span> <span class="n">tuple</span><span class="o">&lt;</span><span class="k">int</span><span class="p">,</span> <span class="k">bigint</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">val</span> <span class="k">int</span><span class="p">)</span>
+  <span class="n">CALLED</span> <span class="k">ON</span> <span class="k">NULL</span> <span class="n">INPUT</span>
+  <span class="n">RETURNS</span> <span class="n">tuple</span><span class="o">&lt;</span><span class="k">int</span><span class="p">,</span> <span class="k">bigint</span><span class="o">&gt;</span>
+  <span class="n">LANGUAGE</span> <span class="n">java</span>
+  <span class="k">AS</span> <span class="s1">'if (val !=null) { state.setInt(0, state.getInt(0)+1); state.setLong(1, state.getLong(1)+val.intValue()); } return state;'</span><span class="p">;</span>
+<span class="k">CREATE</span> <span class="n">OR</span> <span class="n">REPLACE</span> <span class="n">FUNCTION</span> <span class="n">simplex</span><span class="p">.</span><span class="n">avgFinal</span><span class="p">(</span><span class="n">state</span> <span class="n">tuple</span><span class="o">&lt;</span><span class="k">int</span><span class="p">,</span> <span class="k">bigint</span><span class="o">&gt;</span><span class="p">)</span>
+  <span class="n">CALLED</span> <span class="k">ON</span> <span class="k">NULL</span> <span class="n">INPUT</span>
+  <span class="n">RETURNS</span> <span class="k">double</span>
+  <span class="n">LANGUAGE</span> <span class="n">java</span>
+  <span class="k">AS</span> <span class="s1">'double r = 0; if (state.getInt(0) == 0) return null; r = state.getLong(1); r/= state.getInt(0); return Double.valueOf(r);'</span><span class="p">;</span>
+<span class="k">CREATE</span> <span class="n">OR</span> <span class="n">REPLACE</span> <span class="n">AGGREGATE</span> <span class="n">simplex</span><span class="p">.</span><span class="n">average</span><span class="p">(</span><span class="k">int</span><span class="p">)</span>
+  <span class="n">SFUNC</span> <span class="n">avgState</span>
+  <span class="n">STYPE</span> <span class="n">tuple</span><span class="o">&lt;</span><span class="k">int</span><span class="p">,</span> <span class="k">bigint</span><span class="o">&gt;</span>
+  <span class="n">FINALFUNC</span> <span class="n">avgFinal</span>
+  <span class="n">INITCOND</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+<span class="kp">include</span> <span class="no">Cassandra</span><span class="o">::</span><span class="no">Types</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+
+<span class="n">aggregate</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">keyspace</span><span class="p">(</span><span class="s1">'simplex'</span><span class="p">).</span><span class="nf">aggregate</span><span class="p">(</span><span class="s1">'average'</span><span class="p">,</span> <span class="n">int</span><span class="p">)</span>
+<span class="nb">puts</span> <span class="n">aggregate</span><span class="p">.</span><span class="nf">to_cql</span>
+<span class="nb">puts</span> <span class="s2">""</span>
+<span class="nb">puts</span> <span class="s2">"Name: </span><span class="si">#{</span><span class="n">aggregate</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Return type: </span><span class="si">#{</span><span class="n">aggregate</span><span class="p">.</span><span class="nf">type</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Argument type: </span><span class="si">#{</span><span class="n">aggregate</span><span class="p">.</span><span class="nf">argument_types</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="nf">kind</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"State type: </span><span class="si">#{</span><span class="n">aggregate</span><span class="p">.</span><span class="nf">state_type</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Initial condition: </span><span class="si">#{</span><span class="n">aggregate</span><span class="p">.</span><span class="nf">initial_state</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"State function: </span><span class="si">#{</span><span class="n">aggregate</span><span class="p">.</span><span class="nf">state_function</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Final function: </span><span class="si">#{</span><span class="n">aggregate</span><span class="p">.</span><span class="nf">final_function</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="n">AGGREGATE</span> <span class="n">simplex</span><span class="p">.</span><span class="n">average</span><span class="p">(</span><span class="k">int</span><span class="p">)</span>
+  <span class="n">SFUNC</span> <span class="n">avgstate</span>
+  <span class="n">STYPE</span> <span class="n">tuple</span><span class="o">&lt;</span><span class="k">int</span><span class="p">,</span> <span class="k">bigint</span><span class="o">&gt;</span>
+  <span class="n">FINALFUNC</span> <span class="n">avgfinal</span>
+  <span class="n">INITCOND</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+<span class="n">Name</span><span class="p">:</span> <span class="n">average</span>
+<span class="n">Return</span> <span class="k">type</span><span class="p">:</span> <span class="k">double</span>
+<span class="n">Argument</span> <span class="k">type</span><span class="p">:</span> <span class="k">int</span>
+<span class="n">State</span> <span class="k">type</span><span class="p">:</span> <span class="n">tuple</span><span class="o">&lt;</span><span class="k">int</span><span class="p">,</span> <span class="k">bigint</span><span class="o">&gt;</span>
+<span class="n">Initial</span> <span class="n">condition</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">State</span> <span class="n">function</span><span class="p">:</span> <span class="n">avgstate</span>
+<span class="n">Final</span> <span class="n">function</span><span class="p">:</span> <span class="n">avgfinal</span>
+</code></pre>
+</dd>
+</dl>
+<div class="pull-right"><span class="label label-primary">since cassadra v3.0</span></div>
+<h2 id="getting-materialized-view-metadata" class="target">Getting materialized view metadata<a class="anchor" href="#getting-materialized-view-metadata" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following schema:<pre class="highlight"><code class="cql"><span class="k">CREATE</span> <span class="k">KEYSPACE</span> <span class="n">simplex</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SimpleStrategy'</span><span class="p">,</span> <span class="s1">'replication_factor'</span><span class="p">:</span> <span class="mi">3</span><span class="p">};</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="p">(</span><span class="n">f1</span> <span class="k">int</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span> <span class="n">f2</span> <span class="k">int</span><span class="p">,</span> <span class="n">f3</span> <span class="k">int</span><span class="p">)</span> <span class="p">;</span>
+<span class="k">CREATE</span> <span class="n">MATERIALIZED</span> <span class="n">VIEW</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_view</span> <span class="k">AS</span>
+ <span class="k">SELECT</span> <span class="n">f1</span><span class="p">,</span> <span class="n">f2</span> <span class="k">FROM</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span> <span class="k">WHERE</span> <span class="n">f2</span> <span class="n">IS</span> <span class="k">NOT</span> <span class="k">NULL</span>
+ <span class="k">PRIMARY</span> <span class="k">KEY</span> <span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">);</span>
+</code></pre>
+</dd>
+<dt>And </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span>
+
+<span class="n">mv_meta</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">keyspace</span><span class="p">(</span><span class="s1">'simplex'</span><span class="p">).</span><span class="nf">materialized_view</span><span class="p">(</span><span class="s1">'test_view'</span><span class="p">)</span>
+<span class="nb">puts</span> <span class="s2">"Name: </span><span class="si">#{</span><span class="n">mv_meta</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Base table: </span><span class="si">#{</span><span class="n">mv_meta</span><span class="p">.</span><span class="nf">base_table</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Keyspace: </span><span class="si">#{</span><span class="n">mv_meta</span><span class="p">.</span><span class="nf">keyspace</span><span class="p">.</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Partition key: </span><span class="si">#{</span><span class="n">mv_meta</span><span class="p">.</span><span class="nf">partition_key</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Clustering column: </span><span class="si">#{</span><span class="n">mv_meta</span><span class="p">.</span><span class="nf">clustering_columns</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="nf">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Num columns: </span><span class="si">#{</span><span class="n">mv_meta</span><span class="p">.</span><span class="nf">columns</span><span class="p">.</span><span class="nf">size</span><span class="si">}</span><span class="s2">"</span>
+
+<span class="nb">puts</span> <span class="s2">""</span>
+<span class="nb">puts</span> <span class="n">mv_meta</span><span class="p">.</span><span class="nf">to_cql</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre class="highlight"><code class="cql"><span class="n">Name</span><span class="p">:</span> <span class="n">test_view</span>
+<span class="n">Base</span> <span class="k">table</span><span class="p">:</span> <span class="n">test_table</span>
+<span class="k">Keyspace</span><span class="p">:</span> <span class="n">simplex</span>
+<span class="n">Partition</span> <span class="k">key</span><span class="p">:</span> <span class="n">f1</span>
+<span class="k">Clustering</span> <span class="n">column</span><span class="p">:</span> <span class="n">f2</span>
+<span class="n">Num</span> <span class="n">columns</span><span class="p">:</span> <span class="mi">2</span>
+
+<span class="k">CREATE</span> <span class="n">MATERIALIZED</span> <span class="n">VIEW</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_view</span> <span class="k">AS</span>
+<span class="k">SELECT</span> <span class="nv">"f1"</span><span class="p">,</span> <span class="nv">"f2"</span>
+<span class="k">FROM</span> <span class="n">simplex</span><span class="p">.</span><span class="n">test_table</span>
+<span class="k">WHERE</span> <span class="n">f2</span> <span class="n">IS</span> <span class="k">NOT</span> <span class="k">NULL</span>
+<span class="k">PRIMARY</span> <span class="k">KEY</span> <span class="p">((</span><span class="nv">"f1"</span><span class="p">),</span> <span class="nv">"f2"</span><span class="p">)</span>
+<span class="k">WITH</span> <span class="n">bloom_filter_fp_chance</span> <span class="o">=</span> <span class="mi">0</span><span class="p">.</span><span class="mi">01</span>
+ <span class="k">AND</span> <span class="n">caching</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'keys'</span><span class="p">:</span> <span class="s1">'ALL'</span><span class="p">,</span> <span class="s1">'rows_per_partition'</span><span class="p">:</span> <span class="s1">'NONE'</span><span class="p">}</span>
+ <span class="k">AND</span> <span class="n">comment</span> <span class="o">=</span> <span class="s1">''</span>
+ <span class="k">AND</span> <span class="n">compaction</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'class'</span><span class="p">:</span> <span class="s1">'SizeTieredCompactionStrategy'</span><span class="p">,</span> <span class="s1">'max_threshold'</span><span class="p">:</span> <span class="s1">'32'</span><span class="p">,</span> <span class="s1">'min_threshold'</span><span class="p">:</span> <span class="s1">'4'</span><span class="p">}</span>
+ <span class="k">AND</span> <span class="n">compression</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'chunk_length_in_kb'</span><span class="p">:</span> <span class="s1">'64'</span><span class="p">,</span> <span class="s1">'class'</span><span class="p">:</span> <span class="s1">'LZ4Compressor'</span><span class="p">}</span>
+ <span class="k">AND</span> <span class="n">crc_check_chance</span> <span class="o">=</span> <span class="mi">1</span><span class="p">.</span><span class="mi">0</span>
+ <span class="k">AND</span> <span class="n">dclocal_read_repair_chance</span> <span class="o">=</span> <span class="mi">0</span><span class="p">.</span><span class="mi">1</span>
+ <span class="k">AND</span> <span class="n">default_time_to_live</span> <span class="o">=</span> <span class="mi">0</span>
+ <span class="k">AND</span> <span class="n">gc_grace_seconds</span> <span class="o">=</span> <span class="mi">864000</span>
+ <span class="k">AND</span> <span class="n">max_index_interval</span> <span class="o">=</span> <span class="mi">2048</span>
+ <span class="k">AND</span> <span class="n">memtable_flush_period_in_ms</span> <span class="o">=</span> <span class="mi">0</span>
+ <span class="k">AND</span> <span class="n">min_index_interval</span> <span class="o">=</span> <span class="mi">128</span>
+ <span class="k">AND</span> <span class="n">read_repair_chance</span> <span class="o">=</span> <span class="mi">0</span><span class="p">.</span><span class="mi">0</span>
+ <span class="k">AND</span> <span class="n">speculative_retry</span> <span class="o">=</span> <span class="s1">'99PERCENTILE'</span><span class="p">;</span>
+</code></pre>
+</dd>
+</dl>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <footer class="container text-muted">
+      <ul class="list-inline">
+      
+        
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/">Code</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="http://docs.datastax.com/en/developer/ruby-driver/">Docs</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://datastax-oss.atlassian.net/browse/RUBY/">Issues</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user">Mailing List</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="irc://irc.freenode.net/datastax-drivers">IRC Channel</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/releases">Releases</a>
+        </li>
+      
+      </ul>
+    </footer>
+    
+
+    <script src="../../../js/jquery.js"></script>
+    <script src="../../../js/bootstrap.js"></script>
+    <script src="../../../js/angular.js"></script>
+    <script src="../../../js/mousetrap.js"></script>
+    <script src="../../../js/hotkeys.js"></script>
+    <script src="../../../js/ZeroClipboard.js"></script>
+    <script src="../../../js/lunr.js"></script>
+    <script src="../../../js/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="A pure Ruby client for Apache Cassandra">
+    <meta name="author" content="DataStax">
+
+    <title>Ruby Driver for Apache Cassandra - Double</title>
+
+    <link rel="icon" href="../../../../../favicon.ico">
+    <link rel="apple-touch-icon" href="../../../../../favicon.png">
+    <link href="../../../../../css/style.css" rel="stylesheet">
+    <link href="../../../../../css/pygments.css" rel="stylesheet">
+    <link href="../../../../../css/hotkeys.css" rel="stylesheet">
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body ng-app="docs">
+    <div class="navbar">
+      <div class="container-fluid">
+        <div class="row row-offcanvas row-offcanvas-left">
+          <div class="col-sm-3 text-center">
+            <a class="ds-home" href="../../../../"><img alt="Brand" src="../../../../../img/logo.png"></a>
+            <ul class="list-inline ds-sites" role="nav">
+              <li><a href="https://academy.datastax.com/" class="navbar-link">DataStax Academy</a></li>
+              <li><a href="http://www.datastax.com/dev/blog" class="navbar-link">Tech Blog</a></li>
+              <li><a href="http://www.datastax.com/what-we-offer/products-services/support" class="navbar-link">Support</a></li>
+            </ul>
+          </div>
+          <div class="col-md-5">
+            <p class="lead pubtitle">Ruby Driver for Apache Cassandra</p>
+            
+            <div class="text-info">
+              <span class="text-warning">Attention:</span> Viewing documentation for version
+              <div class="btn-group">
+                <button id="current-version" class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  3.1
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="current-version">
+                
+                  <li><a href="../../../../../api/cassandra/types/double/">3.2</a></li>
+                
+                  <li class="disabled"><a href="./">3.1</a></li>
+                
+                  <li><a href="../../../../../3.0/api/cassandra/types/double/">3.0</a></li>
+                
+                  <li><a href="../../../../../2.1/api/cassandra/types/double/">2.1</a></li>
+                
+                  <li><a href="../../../../../2.0/">2.0</a></li>
+                
+                  <li><a href="../../../../../1.2/">1.2</a></li>
+                
+                  <li><a href="../../../../../1.1/">1.1</a></li>
+                
+                  <li><a href="../../../../../1.0/">1.0</a></li>
+                
+                </ul>
+              </div>
+              <span class="red">
+              
+              (Earlier version)
+              
+              </span>
+            </div>
+            
+          </div>
+          <div class="col-md-4">
+            <form id="search" class="form-search dropdown visible-lg-inline-block" ng-controller="search" ng-class="{open: hasResults}" role="search" ng-submit="submit()" data-spy="affix" data-offset-top="130">
+              <div class="form-group has-feedback">
+                <input type="search" class="form-control input-sm mousetrap" placeholder="Search..." ng-model="q" ng-change="search('3.1')" ng-disabled="!searchReady" disabled data-hotkey="{down: moveDown, up: moveUp, esc: reset}" data-search>
+              </div>
+              <ul class="dropdown-menu search-results" role="menu">
+                <li ng-repeat="result in results" ng-class="{'bg-warning': $index == current}"><a ng-href="{{basePath}}{{result.path}}"><span ng-bind-html="summary(result)"></span></a></li>
+              </ul>
+            </form>
+            <a href="http://www.datastax.com/download" class="btn btn-primary btn-sm">Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid" id="content">
+      <div class="row">
+        <div class="col-md-3">
+          <div id="navigation" class="side-nav" role="tablist" aria-multiselectable="true">
+            <h3><a href="../../../../">Contents</a></h3>
+            <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../../../../features/">
+      Usage <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="../../../">
+      API docs <small>index</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li class="active">
+    <a href="../../">
+      Cassandra <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../../address_resolution/">
+      AddressResolution <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../attr_boolean/">
+      AttrBoolean <small>module</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../auth/">
+      Auth <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../compression/">
+      Compression <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../custom_data/">
+      CustomData <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../error/">
+      Error <small>module</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../errors/">
+      Errors <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../execution/">
+      Execution <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../load_balancing/">
+      LoadBalancing <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../reconnection/">
+      Reconnection <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../retry/">
+      Retry <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../statement/">
+      Statement <small>module</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../statements/">
+      Statements <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../timestamp_generator/">
+      TimestampGenerator <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="../">
+      Types <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../ascii/">
+      Ascii <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../bigint/">
+      Bigint <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../blob/">
+      Blob <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../boolean/">
+      Boolean <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../counter/">
+      Counter <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../custom/">
+      Custom <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../date/">
+      Date <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../decimal/">
+      Decimal <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="./" class="current">
+      Double <small>class</small>
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../float/">
+      Float <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../inet/">
+      Inet <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../int/">
+      Int <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../list/">
+      List <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../map/">
+      Map <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../set/">
+      Set <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../smallint/">
+      Smallint <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../text/">
+      Text <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../time/">
+      Time <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../timestamp/">
+      Timestamp <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../timeuuid/">
+      Timeuuid <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../tinyint/">
+      Tinyint <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../tuple/">
+      Tuple <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../user_defined/">
+      UserDefined <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../uuid/">
+      Uuid <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../varint/">
+      Varint <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../../aggregate/">
+      Aggregate <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../argument/">
+      Argument <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../cluster/">
+      Cluster <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../column/">
+      Column <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../column_container/">
+      ColumnContainer <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../function/">
+      Function <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../future/">
+      Future <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../host/">
+      Host <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../index/">
+      Index <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../keyspace/">
+      Keyspace <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../listener/">
+      Listener <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../logger/">
+      Logger <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../materialized_view/">
+      MaterializedView <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../result/">
+      Result <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../session/">
+      Session <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../table/">
+      Table <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../time/">
+      Time <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../time_uuid/">
+      TimeUuid <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../trigger/">
+      Trigger <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../tuple/">
+      Tuple <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../type/">
+      Type <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../udt/">
+      UDT <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../uuid/">
+      Uuid <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+</ul>
+
+  </li>
+  
+</ul>
+
+          </div>
+        </div>
+        <div class="col-md-9 content">
+          <div class="crumbs-wrapper">
+            <nav id="crumbs" data-spy="affix" data-offset-top="130">
+              <ol class="breadcrumb">
+                
+                
+                
+                <li><a href="../../../../">Home</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../../../">API docs</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../../">Cassandra</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../">Types</a></li>
+                
+                
+                
+                
+                
+                <li class="active">Double</li>
+                
+                
+                
+              </ol>
+            </nav>
+          </div>
+          
+
+<div class="page-header">
+  <h1 id="class-cassandra-types-double" class="target">
+    
+    <small>class</small> Cassandra::Types::Double
+    
+  <a class="anchor" href="#class-cassandra-types-double" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h1>
+</div>
+
+
+<h2 id="inherits" class="target">Inherits<a class="anchor" href="#inherits" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="superclass"><code><a href="../../type/" title="Cassandra::Type (class)">Type</a></code></div>
+
+
+
+
+<h2 id="methods" class="target">Methods<a class="anchor" href="#methods" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="module-methods">
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="kind-instance_method" class="target">
+<strong>kind</strong><a class="anchor" href="#kind-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns <code>:double</code></p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>Symbol</code></td>
+        
+        <td class="details">
+          
+          
+          <code>:double</code>
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code><a href="../../type/#kind-instance_method" title="Cassandra::Type#kind (method)">Type#kind</a></code></li>
+      
+    </ul>
+  </dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="new-instance_method" class="target">
+<strong>new</strong><a class="anchor" href="#new-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>value</var><big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Coerces the value to Float</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>value</var></td>
+        
+        
+        <td class="type"><code>Object</code></td>
+        
+        <td class="details">
+          
+          
+          original value
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../float/" title="Cassandra::Types::Float (class)">Float</a></code></td>
+        
+        <td class="details">
+          
+          
+          value
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code><a href="../../type/#new-instance_method" title="Cassandra::Type#new (method)">Type#new</a></code></li>
+      
+    </ul>
+  </dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="assert-instance_method" class="target">
+<strong>assert</strong><a class="anchor" href="#assert-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>value</var>, <var>message</var> = nil, <var>&amp;block</var><big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Asserts that a given value is a Float</p>
+
+<dl class="dl-horizontal notes">
+<dt><span class="label label-default">Void</span></dt>
+<dd>Return value of this method is ignored.</dd>
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>value</var></td>
+        
+        
+        <td class="type"><code>Object</code></td>
+        
+        <td class="details">
+          
+          
+          value to be validated
+
+          
+        </td>
+      </tr>
+    
+      <tr>
+        
+        <td class="name"><var>message</var></td>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+            <em class="default">(defaults to: <code>nil</code>)</em>
+          
+          
+          error message to use when assertion
+fails
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Yield Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+          
+          error message to use when assertion fails
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+<dt class="tag-title">
+  Raises:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>ArgumentError</code></td>
+        
+        <td class="details">
+          
+          
+          if the value is not a Float
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code><a href="../../type/#assert-instance_method" title="Cassandra::Type#assert (method)">Type#assert</a></code></li>
+      
+    </ul>
+  </dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="to_s-instance_method" class="target">
+<strong>to_s</strong><a class="anchor" href="#to_s-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns <code>"double"</code></p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+          
+          <code>"double"</code>
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code><a href="../../type/#to_s-instance_method" title="Cassandra::Type#to_s (method)">Type#to_s</a></code></li>
+      
+    </ul>
+  </dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+</div>
+
+
+        </div>
+      </div>
+    </div>
+
+    
+    <footer class="container text-muted">
+      <ul class="list-inline">
+      
+        
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/">Code</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="http://docs.datastax.com/en/developer/ruby-driver/">Docs</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://datastax-oss.atlassian.net/browse/RUBY/">Issues</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user">Mailing List</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="irc://irc.freenode.net/datastax-drivers">IRC Channel</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/releases">Releases</a>
+        </li>
+      
+      </ul>
+    </footer>
+    
+
+    <script src="../../../../../js/jquery.js"></script>
+    <script src="../../../../../js/bootstrap.js"></script>
+    <script src="../../../../../js/angular.js"></script>
+    <script src="../../../../../js/mousetrap.js"></script>
+    <script src="../../../../../js/hotkeys.js"></script>
+    <script src="../../../../../js/ZeroClipboard.js"></script>
+    <script src="../../../../../js/lunr.js"></script>
+    <script src="../../../../../js/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="A pure Ruby client for Apache Cassandra">
+    <meta name="author" content="DataStax">
+
+    <title>Ruby Driver for Apache Cassandra - Home</title>
+
+    <link rel="icon" href="../favicon.ico">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <link href="../css/style.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/hotkeys.css" rel="stylesheet">
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body ng-app="docs">
+    <div class="navbar">
+      <div class="container-fluid">
+        <div class="row row-offcanvas row-offcanvas-left">
+          <div class="col-sm-3 text-center">
+            <a class="ds-home" href="./"><img alt="Brand" src="../img/logo.png"></a>
+            <ul class="list-inline ds-sites" role="nav">
+              <li><a href="https://academy.datastax.com/" class="navbar-link">DataStax Academy</a></li>
+              <li><a href="http://www.datastax.com/dev/blog" class="navbar-link">Tech Blog</a></li>
+              <li><a href="http://www.datastax.com/what-we-offer/products-services/support" class="navbar-link">Support</a></li>
+            </ul>
+          </div>
+          <div class="col-md-5">
+            <p class="lead pubtitle">Ruby Driver for Apache Cassandra</p>
+            
+            <div class="text-info">
+              <span class="text-warning">Attention:</span> Viewing documentation for version
+              <div class="btn-group">
+                <button id="current-version" class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  2.1
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="current-version">
+                
+                  <li><a href="../">3.2</a></li>
+                
+                  <li><a href="../3.1/">3.1</a></li>
+                
+                  <li><a href="../3.0/">3.0</a></li>
+                
+                  <li class="disabled"><a href="./">2.1</a></li>
+                
+                  <li><a href="../2.0/">2.0</a></li>
+                
+                  <li><a href="../1.2/">1.2</a></li>
+                
+                  <li><a href="../1.1/">1.1</a></li>
+                
+                  <li><a href="../1.0/">1.0</a></li>
+                
+                </ul>
+              </div>
+              <span class="red">
+              
+              (Earlier version)
+              
+              </span>
+            </div>
+            
+          </div>
+          <div class="col-md-4">
+            <form id="search" class="form-search dropdown visible-lg-inline-block" ng-controller="search" ng-class="{open: hasResults}" role="search" ng-submit="submit()" data-spy="affix" data-offset-top="130">
+              <div class="form-group has-feedback">
+                <input type="search" class="form-control input-sm mousetrap" placeholder="Search..." ng-model="q" ng-change="search('2.1')" ng-disabled="!searchReady" disabled data-hotkey="{down: moveDown, up: moveUp, esc: reset}" data-search>
+              </div>
+              <ul class="dropdown-menu search-results" role="menu">
+                <li ng-repeat="result in results" ng-class="{'bg-warning': $index == current}"><a ng-href="{{basePath}}{{result.path}}"><span ng-bind-html="summary(result)"></span></a></li>
+              </ul>
+            </form>
+            <a href="http://www.datastax.com/download" class="btn btn-primary btn-sm">Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid" id="content">
+      <div class="row">
+        <div class="col-md-3">
+          <div id="navigation" class="side-nav" role="tablist" aria-multiselectable="true">
+            <h3><a href="./">Contents</a></h3>
+            <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="features/">
+      Usage <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="api/">
+      API docs <small>index</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+          </div>
+        </div>
+        <div class="col-md-9 content">
+          <div class="crumbs-wrapper">
+            <nav id="crumbs" data-spy="affix" data-offset-top="130">
+              <ol class="breadcrumb">
+                
+                
+                
+                <li class="active">Home</li>
+                
+                
+                
+              </ol>
+            </nav>
+          </div>
+          
+
+<h1 id="datastax-ruby-driver-for-apache-cassandra" class="target">Datastax Ruby Driver for Apache Cassandra<a class="anchor" href="#datastax-ruby-driver-for-apache-cassandra" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h1>
+
+<p><em>If you’re reading this on GitHub, please note that this is the readme for the development version and that some
+features described here might not yet have been released. You can view the documentation for the latest released
+version <a href="http://docs.datastax.com/en/developer/ruby-driver/latest">here</a>.</em></p>
+
+<p><a href="https://travis-ci.org/datastax/ruby-driver"><img src="https://travis-ci.org/datastax/ruby-driver.svg?branch=master" alt="Build Status"></a></p>
+
+<p>A Ruby client driver for Apache Cassandra. This driver works exclusively with
+the Cassandra Query Language version 3 (CQL3) and Cassandra’s native protocol.</p>
+
+<ul>
+<li>Code: <a href="https://github.com/datastax/ruby-driver">https://github.com/datastax/ruby-driver</a>
+</li>
+<li>Docs: <a href="http://docs.datastax.com/en/developer/ruby-driver">http://docs.datastax.com/en/developer/ruby-driver</a>
+</li>
+<li>Jira: <a href="https://datastax-oss.atlassian.net/browse/RUBY">https://datastax-oss.atlassian.net/browse/RUBY</a>
+</li>
+<li>Mailing List: <a href="https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user">https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user</a>
+</li>
+<li>IRC: #datastax-drivers on <a href="http://freenode.net">irc.freenode.net</a>
+</li>
+<li>Twitter: Follow the latest news about DataStax Drivers - <a href="http://twitter.com/stamhankar999">@stamhankar999</a>, <a href="http://twitter.com/avalanche123">@avalanche123</a>, <a href="https://twitter.com/al3xandru">@al3xandru</a>
+</li>
+</ul>
+
+<p>This driver is based on <a href="https://github.com/iconara/cql-rb">the cql-rb gem</a> by <a href="https://github.com/iconara">Theo Hultberg</a> and we added support for:</p>
+
+<ul>
+<li><a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/asynchronous_io/">Asynchronous execution</a></li>
+<li>One-off, <a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/basics/prepared_statements/">prepared</a> and <a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/basics/batch_statements/">batch statements</a>
+</li>
+<li>Automatic peer discovery and cluster metadata with <a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/state_listeners/">support for change notifications</a>
+</li>
+<li>Various <a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/load_balancing/">load-balancing</a>, <a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/retry_policies/">retry</a> and <a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/reconnection/">reconnection</a> policies with <a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/load_balancing/implementing_a_policy/">ability to write your own</a>
+</li>
+<li><a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/security/ssl_encryption/">SSL encryption</a></li>
+<li><a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/error_handling/">Flexible and robust error handling</a></li>
+<li><a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/debugging/">Per-request execution information and tracing</a></li>
+<li><a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/address_resolution/">Configurable address resolution</a></li>
+</ul>
+
+<p><a href="https://speakerdeck.com/avalanche123/ruby-driver-explained">Check out the slides from Ruby Driver Explained</a> for a detailed overview of the Ruby Driver architecture.</p>
+
+<h2 id="compatibility" class="target">Compatibility<a class="anchor" href="#compatibility" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+
+<p>This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra’s native protocol. The current version works with:</p>
+
+<ul>
+<li>Apache Cassandra versions 1.2, 2.0 and 2.1</li>
+<li>DataStax Enterprise 3.1-4.8</li>
+<li>Ruby (MRI) 2.2, 2.3</li>
+<li>JRuby 1.7</li>
+</ul>
+
+<p><strong>Note</strong>: JRuby 1.6 is not officially supported, although 1.6.8 should work. Rubinius is not supported.
+MRI 1.9.3, 2.0, 2.1, and JRuby 9k are not officially supported, but they should work.</p>
+
+<h2 id="quick-start" class="target">Quick start<a class="anchor" href="#quick-start" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span> <span class="c1"># connects to localhost by default</span>
+
+<span class="n">cluster</span><span class="p">.</span><span class="nf">each_host</span> <span class="k">do</span> <span class="o">|</span><span class="n">host</span><span class="o">|</span> <span class="c1"># automatically discovers all peers</span>
+  <span class="nb">puts</span> <span class="s2">"Host </span><span class="si">#{</span><span class="n">host</span><span class="p">.</span><span class="nf">ip</span><span class="si">}</span><span class="s2">: id=</span><span class="si">#{</span><span class="n">host</span><span class="p">.</span><span class="nf">id</span><span class="si">}</span><span class="s2"> datacenter=</span><span class="si">#{</span><span class="n">host</span><span class="p">.</span><span class="nf">datacenter</span><span class="si">}</span><span class="s2"> rack=</span><span class="si">#{</span><span class="n">host</span><span class="p">.</span><span class="nf">rack</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+
+<span class="n">keyspace</span> <span class="o">=</span> <span class="s1">'system'</span>
+<span class="n">session</span>  <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span><span class="n">keyspace</span><span class="p">)</span> <span class="c1"># create session, optionally scoped to a keyspace, to execute queries</span>
+
+<span class="n">future</span> <span class="o">=</span> <span class="n">session</span><span class="p">.</span><span class="nf">execute_async</span><span class="p">(</span><span class="s1">'SELECT keyspace_name, columnfamily_name FROM schema_columnfamilies'</span><span class="p">)</span> <span class="c1"># fully asynchronous api</span>
+<span class="n">future</span><span class="p">.</span><span class="nf">on_success</span> <span class="k">do</span> <span class="o">|</span><span class="n">rows</span><span class="o">|</span>
+  <span class="n">rows</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">row</span><span class="o">|</span>
+    <span class="nb">puts</span> <span class="s2">"The keyspace </span><span class="si">#{</span><span class="n">row</span><span class="p">[</span><span class="s1">'keyspace_name'</span><span class="p">]</span><span class="si">}</span><span class="s2"> has a table called </span><span class="si">#{</span><span class="n">row</span><span class="p">[</span><span class="s1">'columnfamily_name'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+<span class="n">future</span><span class="p">.</span><span class="nf">join</span>
+</code></pre>
+<p><strong>Note</strong>: The host you specify is just a seed node, the driver will automatically discover all peers in the cluster.</p>
+
+<p>Read more:</p>
+
+<ul>
+<li><a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/api/cassandra/#cluster-class_method"><code>Cassandra.cluster</code> options</a></li>
+<li><a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/api/cassandra/session/#execute_async-instance_method"><code>Session#execute_async</code> options</a></li>
+<li><a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features">Usage documentation</a></li>
+</ul>
+
+<h2 id="installation" class="target">Installation<a class="anchor" href="#installation" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+
+<p>Install via rubygems</p>
+<pre class="highlight"><code class="bash">gem <span class="nb">install </span>cassandra-driver
+</code></pre>
+<p>Install via Gemfile</p>
+<pre class="highlight"><code class="ruby"><span class="n">gem</span> <span class="s1">'cassandra-driver'</span>
+</code></pre>
+<p><strong>Note</strong>: if you want to use compression you should also install <a href="http://rubygems.org/gems/snappy">snappy</a> or <a href="http://rubygems.org/gems/lz4-ruby">lz4-ruby</a>. <a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/#compression">Read more about compression.</a></p>
+
+<h2 id="upgrading-from-cql-rb" class="target">Upgrading from cql-rb<a class="anchor" href="#upgrading-from-cql-rb" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+
+<p>Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API.
+In the examples directory, you can find <a href="https://github.com/datastax/ruby-driver/blob/v2.1.7/examples/cql-rb-wrapper.rb">an example of how to wrap the ruby driver to achieve almost complete
+interface parity with cql-rb</a>
+to assist you with gradual upgrade.</p>
+
+<h2 id="what-s-new-in-v2-1" class="target">What’s new in v2.1<a class="anchor" href="#what-s-new-in-v2-1" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+
+<p>See the <a href="https://github.com/datastax/ruby-driver/blob/master/CHANGELOG.md">changelog</a> for details on patch releases.</p>
+
+<p>Features:</p>
+
+<ul>
+<li>Apache Cassandra native protocol v3</li>
+<li>
+<a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/basics/user_defined_types/">User-defined types</a> and <a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/basics/datatypes/#using-tuples">tuples</a>
+</li>
+<li><a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/api/cassandra/keyspace/#type-instance_method">Schema metadata includes user-defined types</a></li>
+<li><a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/basics/prepared_statements/#an-insert-statement-is-prepared-with-named-parameters">Named arguments</a></li>
+<li><a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/api/cassandra/types/">Public types api for type definition and introspection</a></li>
+<li>Add support for disabling nagle algorithm (tcp nodelay), enabled by default.</li>
+<li>Add support for client-side timestamps, disabled by default.</li>
+<li>Add support for serial consistency in batch requests.</li>
+<li>Add support for <code>type_hints</code> to override type-guessing for non-prepared statements.</li>
+</ul>
+
+<p>Breaking Changes:</p>
+
+<ul>
+<li>Splat style positional arguments support, deprecated in 2.0.0, has been dropped</li>
+<li>Setting <code>:synchronize_schema</code> to <code>true</code> will no longer perform the initial
+fetching if schema metadata.</li>
+</ul>
+
+<p>Bug Fixes:</p>
+
+<ul>
+<li>[<a href="https://datastax-oss.atlassian.net/browse/RUBY-93">RUBY-93</a>] Reconnection can overflow the stack</li>
+<li>[<a href="https://datastax-oss.atlassian.net/browse/RUBY-95">RUBY-95</a>] Speed up generation of large token maps</li>
+<li>[<a href="https://datastax-oss.atlassian.net/browse/RUBY-97">RUBY-97</a>] Allow disabling of the initial population of schema metadata</li>
+<li>[<a href="https://datastax-oss.atlassian.net/browse/RUBY-98">RUBY-98</a>] Use of undefined class variable in <code>Table#create_partition_key</code>
+</li>
+<li>[<a href="https://datastax-oss.atlassian.net/browse/RUBY-102">RUBY-102</a>] Allow custom types in schema metadata</li>
+<li>[<a href="https://datastax-oss.atlassian.net/browse/RUBY-103">RUBY-103</a>] Don’t regenerate schema metadata for the same replication strategies and options</li>
+<li>[<a href="https://datastax-oss.atlassian.net/browse/RUBY-116">RUBY-116</a>] fix thread leak on connection error</li>
+<li>[<a href="https://datastax-oss.atlassian.net/browse/RUBY-119">RUBY-119</a>] Use <code>require 'datastax/cassandra'</code> to avoid namespace conflicts</li>
+<li>[<a href="https://datastax-oss.atlassian.net/browse/RUBY-128">RUBY-128</a>] Fix decoding of large values in maps, sets and lists.</li>
+<li>[<a href="https://datastax-oss.atlassian.net/browse/RUBY-202">RUBY-202</a>] Allow password authenticator to be used for LDAP authentication.</li>
+<li>[<a href="https://datastax-oss.atlassian.net/browse/RUBY-255">RUBY-255</a>] ControlConnection.peer_ip ignores peers that are missing critical information in system.peers.</li>
+</ul>
+
+<h2 id="code-examples" class="target">Code examples<a class="anchor" href="#code-examples" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+
+<p>The DataStax Ruby Driver uses the awesome <a href="http://cukes.info/">Cucumber Framework</a> for both end-to-end, or acceptance, testing and constructing documentation. All of the features supported by the driver have appropriate acceptance tests with easy-to-copy code examples in the <code>features/</code> directory.</p>
+
+<h2 id="running-tests" class="target">Running tests<a class="anchor" href="#running-tests" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+
+<p>If you don’t feel like reading through the following instructions on how to run ruby-driver tests, feel free to <a href="https://github.com/datastax/ruby-driver/blob/master/.travis.yml">check out .travis.yml for the entire build code</a>.</p>
+
+<ul>
+<li>Check out the driver codebase and install test dependencies:</li>
+</ul>
+<pre class="highlight"><code class="bash">git clone https://github.com/datastax/ruby-driver.git
+<span class="nb">cd </span>ruby-driver
+bundle <span class="nb">install</span> <span class="nt">--without</span> docs
+</code></pre>
+<ul>
+<li><p><a href="http://www.datastax.com/dev/blog/ccm-a-development-tool-for-creating-local-cassandra-clusters">Install ccm</a></p></li>
+<li><p>Run tests:</p></li>
+</ul>
+<pre class="highlight"><code class="bash">bundle <span class="nb">exec </span>cucumber <span class="c"># runs end-to-end tests (or bundle exec rake cucumber)</span>
+bundle <span class="nb">exec </span>rspec <span class="c"># runs unit tests (or bundle exec rake rspec)</span>
+bundle <span class="nb">exec </span>rake integration <span class="c"># run integration tests</span>
+bundle <span class="nb">exec </span>rake <span class="nb">test</span> <span class="c"># run both as well as integration tests</span>
+</code></pre>
+<h2 id="changelog-versioning" class="target">Changelog &amp; versioning<a class="anchor" href="#changelog-versioning" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+
+<p>Check out the <a href="https://github.com/datastax/ruby-driver/releases">releases on GitHub</a> and <a href="https://github.com/datastax/ruby-driver/blob/master/CHANGELOG.md">changelog</a>. Version numbering follows the <a href="http://semver.org/">semantic versioning</a> scheme.</p>
+
+<p>Private and experimental APIs, defined as whatever is not in the <a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/api">public API documentation</a>, i.e. classes and methods marked as <code>@private</code>, will change without warning. If you’ve been recommended to try an experimental API by the maintainers, please let them know if you depend on that API. Experimental APIs will eventually become public, and knowing how they are used helps in determining their maturity.</p>
+
+<p>Prereleases will be stable, in the sense that they will have finished and properly tested features only, but may introduce APIs that will change before the final release. Please use the prereleases and report bugs, but don’t deploy them to production without consulting the maintainers, or doing extensive testing yourself. If you do deploy to production please let the maintainers know as this helps determining the maturity of the release.</p>
+
+<h2 id="known-bugs-limitations" class="target">Known bugs &amp; limitations<a class="anchor" href="#known-bugs-limitations" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+
+<ul>
+<li>Because the driver reactor is using <code>IO.select</code>, the maximum number of tcp connections allowed is 1024.</li>
+<li>Because the driver uses <code>IO#write_nonblock</code>, Windows is not supported.</li>
+</ul>
+
+<p>Please <a href="http://docs.datastax.com/en/developer/ruby-driver/2.1/features/">refer to the usage documentation for more information on common pitfalls</a></p>
+
+<h2 id="contributing" class="target">Contributing<a class="anchor" href="#contributing" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+
+<p>For contributing read <a href="https://github.com/datastax/ruby-driver/blob/master/CONTRIBUTING.md">CONTRIBUTING.md</a></p>
+
+<h2 id="credits" class="target">Credits<a class="anchor" href="#credits" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+
+<p>This driver is based on the original work of <a href="https://github.com/iconara">Theo Hultberg</a> on <a href="https://github.com/iconara/cql-rb/">cql-rb</a> and adds a series of advanced features that are common across all other DataStax drivers for Apache Cassandra.</p>
+
+<p>The development effort to provide an up to date, high performance, fully featured Ruby Driver for Apache Cassandra will continue on this project, while <a href="https://github.com/iconara/cql-rb/">cql-rb</a> has been discontinued.</p>
+
+<h2 id="copyright" class="target">Copyright<a class="anchor" href="#copyright" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+
+<p>Copyright 2013-2016 DataStax, Inc.</p>
+
+<p>Licensed under the Apache License, Version 2.0 (the “License”); you may not use this file except in compliance with the License. You may obtain a copy of the License at</p>
+
+<p><a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></p>
+
+<p>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.</p>
+
+
+        </div>
+      </div>
+    </div>
+
+    
+    <footer class="container text-muted">
+      <ul class="list-inline">
+      
+        
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/">Code</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="http://docs.datastax.com/en/developer/ruby-driver/">Docs</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://datastax-oss.atlassian.net/browse/RUBY/">Issues</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user">Mailing List</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="irc://irc.freenode.net/datastax-drivers">IRC Channel</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/releases">Releases</a>
+        </li>
+      
+      </ul>
+    </footer>
+    
+
+    <script src="../js/jquery.js"></script>
+    <script src="../js/bootstrap.js"></script>
+    <script src="../js/angular.js"></script>
+    <script src="../js/mousetrap.js"></script>
+    <script src="../js/hotkeys.js"></script>
+    <script src="../js/ZeroClipboard.js"></script>
+    <script src="../js/lunr.js"></script>
+    <script src="../js/app.js"></script>
+  </body>
+</html>

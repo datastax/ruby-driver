@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="A pure Ruby client for Apache Cassandra">
+    <meta name="author" content="DataStax">
+
+    <title>Ruby Driver for Apache Cassandra - Generator</title>
+
+    <link rel="icon" href="../../../../../favicon.ico">
+    <link rel="apple-touch-icon" href="../../../../../favicon.png">
+    <link href="../../../../../css/style.css" rel="stylesheet">
+    <link href="../../../../../css/pygments.css" rel="stylesheet">
+    <link href="../../../../../css/hotkeys.css" rel="stylesheet">
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body ng-app="docs">
+    <div class="navbar">
+      <div class="container-fluid">
+        <div class="row row-offcanvas row-offcanvas-left">
+          <div class="col-sm-3 text-center">
+            <a class="ds-home" href="../../../../"><img alt="Brand" src="../../../../../img/logo.png"></a>
+            <ul class="list-inline ds-sites" role="nav">
+              <li><a href="https://academy.datastax.com/" class="navbar-link">DataStax Academy</a></li>
+              <li><a href="http://www.datastax.com/dev/blog" class="navbar-link">Tech Blog</a></li>
+              <li><a href="http://www.datastax.com/what-we-offer/products-services/support" class="navbar-link">Support</a></li>
+            </ul>
+          </div>
+          <div class="col-md-5">
+            <p class="lead pubtitle">Ruby Driver for Apache Cassandra</p>
+            
+            <div class="text-info">
+              <span class="text-warning">Attention:</span> Viewing documentation for version
+              <div class="btn-group">
+                <button id="current-version" class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  3.1
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="current-version">
+                
+                  <li><a href="../../../../../api/cassandra/uuid/generator/">3.2</a></li>
+                
+                  <li class="disabled"><a href="./">3.1</a></li>
+                
+                  <li><a href="../../../../../3.0/api/cassandra/uuid/generator/">3.0</a></li>
+                
+                  <li><a href="../../../../../2.1/api/cassandra/uuid/generator/">2.1</a></li>
+                
+                  <li><a href="../../../../../2.0/api/cassandra/uuid/generator/">2.0</a></li>
+                
+                  <li><a href="../../../../../1.2/api/cassandra/uuid/generator/">1.2</a></li>
+                
+                  <li><a href="../../../../../1.1/api/cassandra/uuid/generator/">1.1</a></li>
+                
+                  <li><a href="../../../../../1.0/api/cassandra/uuid/generator/">1.0</a></li>
+                
+                </ul>
+              </div>
+              <span class="red">
+              
+              (Earlier version)
+              
+              </span>
+            </div>
+            
+          </div>
+          <div class="col-md-4">
+            <form id="search" class="form-search dropdown visible-lg-inline-block" ng-controller="search" ng-class="{open: hasResults}" role="search" ng-submit="submit()" data-spy="affix" data-offset-top="130">
+              <div class="form-group has-feedback">
+                <input type="search" class="form-control input-sm mousetrap" placeholder="Search..." ng-model="q" ng-change="search('3.1')" ng-disabled="!searchReady" disabled data-hotkey="{down: moveDown, up: moveUp, esc: reset}" data-search>
+              </div>
+              <ul class="dropdown-menu search-results" role="menu">
+                <li ng-repeat="result in results" ng-class="{'bg-warning': $index == current}"><a ng-href="{{basePath}}{{result.path}}"><span ng-bind-html="summary(result)"></span></a></li>
+              </ul>
+            </form>
+            <a href="http://www.datastax.com/download" class="btn btn-primary btn-sm">Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid" id="content">
+      <div class="row">
+        <div class="col-md-3">
+          <div id="navigation" class="side-nav" role="tablist" aria-multiselectable="true">
+            <h3><a href="../../../../">Contents</a></h3>
+            <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../../../../features/">
+      Usage <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="../../../">
+      API docs <small>index</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li class="active">
+    <a href="../../">
+      Cassandra <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../../address_resolution/">
+      AddressResolution <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../attr_boolean/">
+      AttrBoolean <small>module</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../auth/">
+      Auth <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../compression/">
+      Compression <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../custom_data/">
+      CustomData <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../error/">
+      Error <small>module</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../errors/">
+      Errors <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../execution/">
+      Execution <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../load_balancing/">
+      LoadBalancing <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../reconnection/">
+      Reconnection <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../retry/">
+      Retry <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../statement/">
+      Statement <small>module</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../statements/">
+      Statements <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../timestamp_generator/">
+      TimestampGenerator <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../types/">
+      Types <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../aggregate/">
+      Aggregate <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../argument/">
+      Argument <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../cluster/">
+      Cluster <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../column/">
+      Column <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../column_container/">
+      ColumnContainer <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../function/">
+      Function <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../future/">
+      Future <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../host/">
+      Host <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../index/">
+      Index <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../keyspace/">
+      Keyspace <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../listener/">
+      Listener <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../logger/">
+      Logger <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../materialized_view/">
+      MaterializedView <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../result/">
+      Result <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../session/">
+      Session <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../table/">
+      Table <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../time/">
+      Time <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../time_uuid/">
+      TimeUuid <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../trigger/">
+      Trigger <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../tuple/">
+      Tuple <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../type/">
+      Type <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../udt/">
+      UDT <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="../">
+      Uuid <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li class="active">
+    <a href="./" class="current">
+      Generator <small>class</small>
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+</ul>
+
+  </li>
+  
+</ul>
+
+  </li>
+  
+</ul>
+
+  </li>
+  
+</ul>
+
+  </li>
+  
+</ul>
+
+          </div>
+        </div>
+        <div class="col-md-9 content">
+          <div class="crumbs-wrapper">
+            <nav id="crumbs" data-spy="affix" data-offset-top="130">
+              <ol class="breadcrumb">
+                
+                
+                
+                <li><a href="../../../../">Home</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../../../">API docs</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../../">Cassandra</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../">Uuid</a></li>
+                
+                
+                
+                
+                
+                <li class="active">Generator</li>
+                
+                
+                
+              </ol>
+            </nav>
+          </div>
+          
+
+<div class="page-header">
+  <h1 id="class-cassandra-uuid-generator" class="target">
+    
+    <small>class</small> Cassandra::Uuid::Generator
+    
+  <a class="anchor" href="#class-cassandra-uuid-generator" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h1>
+</div>
+<p>A UUID generator.</p>
+
+<p>This class can be used to genereate Apache Cassandra timeuuid and uuid
+values.</p>
+
+<dl class="dl-horizontal notes">
+
+<dt><span class="label label-primary">Note</span></dt>
+<dd>Instances of this class are absolutely not threadsafe. You should
+never share instances between threads.
+</dd>
+
+
+</dl>
+<dl class="tags">
+  
+
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code><a href="#now-instance_method" title="Cassandra::Uuid::Generator#now (method)">Generating a sequence time UUIDs with reasonable uniqueness guarantees.</a></code></li>
+      
+        <li><code><a href="#at-instance_method" title="Cassandra::Uuid::Generator#at (method)">Generating a time UUID for a given time object or unix timestamp.</a></code></li>
+      
+        <li><code><a href="#uuid-instance_method" title="Cassandra::Uuid::Generator#uuid (method)">Generating completely random v4 UUIDs.</a></code></li>
+      
+    </ul>
+  </dd>
+
+
+</dl>
+
+<h2 id="inherits" class="target">Inherits<a class="anchor" href="#inherits" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="superclass"><code>Object</code></div>
+
+
+
+
+<h2 id="methods" class="target">Methods<a class="anchor" href="#methods" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="module-methods">
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <em>self.</em><span class="path"><h3 id="initialize-instance_method" class="target">
+<strong>new</strong><a class="anchor" href="#initialize-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>node_id</var> = (::SecureRandom.random_number(2**47) | 0x010000000000), <var>clock_id</var> = ::SecureRandom.random_number(65536), <var>clock</var> = ::Time<big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Create a new UUID generator.</p>
+
+<p>The clock ID and node ID components are set to random numbers when the
+generator is created. These are used for generation of time UUIDs only.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>node_id</var></td>
+        
+        
+        <td class="type"><code>Integer</code></td>
+        
+        <td class="details">
+          
+            <em class="default">(defaults to: <code>(::SecureRandom.random_number(2**47) | 0x010000000000)</code>)</em>
+          
+          
+          an alternate node ID
+
+          
+        </td>
+      </tr>
+    
+      <tr>
+        
+        <td class="name"><var>clock_id</var></td>
+        
+        
+        <td class="type"><code>Integer</code></td>
+        
+        <td class="details">
+          
+            <em class="default">(defaults to: <code>::SecureRandom.random_number(65536)</code>)</em>
+          
+          
+          an alternate clock ID
+
+          
+        </td>
+      </tr>
+    
+      <tr>
+        
+        <td class="name"><var>clock</var></td>
+        
+        
+        <td class="type">
+<code>Object</code>&lt;<code><a href="#now-instance_method" title="Cassandra::Uuid::Generator#now (method)">#now</a></code>&gt;</td>
+        
+        <td class="details">
+          
+            <em class="default">(defaults to: <code>::Time</code>)</em>
+          
+          
+          used to generate timeuuid from current time
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Raises:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>ArgumentError</code></td>
+        
+        <td class="details">
+          
+          
+          if clock doesn&#8217;t respond to <code>now</code>
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="now-instance_method" class="target">
+<strong>now</strong><a class="anchor" href="#now-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns a new UUID with a time component that is the current time.</p>
+
+<p>If two calls to <code><a href="#now-instance_method" title="Cassandra::Uuid::Generator#now (method)">#now</a></code> happen within the time afforded by the system
+clock resolution a counter is incremented and added to the time
+component.</p>
+
+<p>If the clock moves backwards the clock ID is reset to a new random
+number.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">Examples:</dt>
+<dd class="tag-content">
+  <dl class="examples">
+  
+    
+    <dt class="example-title">Creating a sequential TimeUuids for the current time
+</dt>
+    
+    <dd class="example-code"><pre class="highlight"><code class="ruby"><span class="n">generator</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="o">::</span><span class="no">Uuid</span><span class="o">::</span><span class="no">Generator</span><span class="p">.</span><span class="nf">new</span>
+<span class="n">timeuuids</span> <span class="o">=</span> <span class="mi">5</span><span class="p">.</span><span class="nf">times</span><span class="p">.</span><span class="nf">map</span> <span class="p">{</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span> <span class="p">}</span>
+
+<span class="nb">puts</span> <span class="n">timeuuids</span><span class="p">.</span><span class="nf">zip</span><span class="p">(</span><span class="n">timeuuids</span><span class="p">.</span><span class="nf">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:to_time</span><span class="p">)).</span><span class="nf">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:inspect</span><span class="p">)</span>
+
+<span class="c1"># Outputs:</span>
+<span class="c1"># [8614b7d0-5646-11e4-8e54-6761d3995ef3, 2014-10-17 21:42:42 UTC]</span>
+<span class="c1"># [8614b91a-5646-11e4-8e54-6761d3995ef3, 2014-10-17 21:42:42 UTC]</span>
+<span class="c1"># [8614b960-5646-11e4-8e54-6761d3995ef3, 2014-10-17 21:42:42 UTC]</span>
+<span class="c1"># [8614b99c-5646-11e4-8e54-6761d3995ef3, 2014-10-17 21:42:42 UTC]</span>
+<span class="c1"># [8614b9ce-5646-11e4-8e54-6761d3995ef3, 2014-10-17 21:42:42 UTC]</span></code></pre></dd>
+  
+  </dl>
+</dd>
+
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../../time_uuid/" title="Cassandra::TimeUuid (class)">TimeUuid</a></code></td>
+        
+        <td class="details">
+          
+          
+          a new UUID
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code>Time.now</code></li>
+      
+    </ul>
+  </dd>
+
+<dt class="tag-title">Specifications:</dt>
+<dd class="tag-content">
+  <dl class="specs">
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Generator#now</code> returns a UUID generated from the current time
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">x</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span>
+<span class="n">x</span><span class="p">.</span><span class="nf">to_time</span><span class="p">.</span><span class="nf">to_i</span><span class="p">.</span><span class="nf">should</span> <span class="o">==</span> <span class="mi">1370771820</span>
+<span class="n">x</span><span class="p">.</span><span class="nf">to_time</span><span class="p">.</span><span class="nf">usec</span><span class="p">.</span><span class="nf">should</span> <span class="o">==</span> <span class="mi">329394</span></code></pre></dd>
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Generator#now</code> returns unique IDs even when called within a time shorter than the clock resolution
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">x1</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span>
+<span class="n">x2</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span>
+<span class="n">clock</span><span class="p">.</span><span class="nf">stub</span><span class="p">(</span><span class="ss">:usec</span><span class="p">).</span><span class="nf">and_return</span><span class="p">(</span><span class="mi">329394</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">x3</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span>
+<span class="n">x1</span><span class="p">.</span><span class="nf">should_not</span> <span class="o">==</span> <span class="n">x2</span>
+<span class="n">x2</span><span class="p">.</span><span class="nf">should_not</span> <span class="o">==</span> <span class="n">x3</span></code></pre></dd>
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Generator#now</code> creates a pseudo random clock ID
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">str</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span><span class="p">.</span><span class="nf">to_s</span><span class="p">.</span><span class="nf">split</span><span class="p">(</span><span class="s1">'-'</span><span class="p">)[</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">str</span><span class="p">.</span><span class="nf">should_not</span> <span class="o">===</span> <span class="s1">'0000'</span></code></pre></dd>
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Generator#now</code> uses the clock ID for all generated UUIDs
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">str1</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span><span class="p">.</span><span class="nf">to_s</span><span class="p">.</span><span class="nf">split</span><span class="p">(</span><span class="s1">'-'</span><span class="p">)[</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">str2</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span><span class="p">.</span><span class="nf">to_s</span><span class="p">.</span><span class="nf">split</span><span class="p">(</span><span class="s1">'-'</span><span class="p">)[</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">str3</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span><span class="p">.</span><span class="nf">to_s</span><span class="p">.</span><span class="nf">split</span><span class="p">(</span><span class="s1">'-'</span><span class="p">)[</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">str1</span><span class="p">.</span><span class="nf">should</span> <span class="o">==</span> <span class="n">str2</span>
+<span class="n">str2</span><span class="p">.</span><span class="nf">should</span> <span class="o">==</span> <span class="n">str3</span></code></pre></dd>
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Generator#now</code> creates a new clock ID when the clock has moved backwards
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">str1</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span><span class="p">.</span><span class="nf">to_s</span><span class="p">.</span><span class="nf">split</span><span class="p">(</span><span class="s1">'-'</span><span class="p">)[</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">clock</span><span class="p">.</span><span class="nf">stub</span><span class="p">(</span><span class="ss">:to_i</span><span class="p">).</span><span class="nf">and_return</span><span class="p">(</span><span class="mi">1370771820</span> <span class="o">-</span> <span class="mi">5</span><span class="p">)</span>
+<span class="n">str2</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span><span class="p">.</span><span class="nf">to_s</span><span class="p">.</span><span class="nf">split</span><span class="p">(</span><span class="s1">'-'</span><span class="p">)[</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">str1</span><span class="p">.</span><span class="nf">should_not</span> <span class="o">==</span> <span class="n">str2</span></code></pre></dd>
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Generator#now</code> creates a pseudo random node ID
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">str</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span><span class="p">.</span><span class="nf">to_s</span><span class="p">.</span><span class="nf">split</span><span class="p">(</span><span class="s1">'-'</span><span class="p">)[</span><span class="mi">4</span><span class="p">]</span>
+<span class="n">str</span><span class="p">.</span><span class="nf">should_not</span> <span class="o">==</span> <span class="s1">'000000000000'</span></code></pre></dd>
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Generator#now</code> uses the node ID for all generated UUIDs
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">str1</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span><span class="p">.</span><span class="nf">to_s</span><span class="p">.</span><span class="nf">split</span><span class="p">(</span><span class="s1">'-'</span><span class="p">)[</span><span class="mi">4</span><span class="p">]</span>
+<span class="n">str2</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span><span class="p">.</span><span class="nf">to_s</span><span class="p">.</span><span class="nf">split</span><span class="p">(</span><span class="s1">'-'</span><span class="p">)[</span><span class="mi">4</span><span class="p">]</span>
+<span class="n">str3</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span><span class="p">.</span><span class="nf">to_s</span><span class="p">.</span><span class="nf">split</span><span class="p">(</span><span class="s1">'-'</span><span class="p">)[</span><span class="mi">4</span><span class="p">]</span>
+<span class="n">str1</span><span class="p">.</span><span class="nf">should</span> <span class="o">==</span> <span class="n">str2</span>
+<span class="n">str2</span><span class="p">.</span><span class="nf">should</span> <span class="o">==</span> <span class="n">str3</span></code></pre></dd>
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Generator#now</code> sets the multicast bit of the node ID (so that it does not conflict with valid MAC addresses)
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">x</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">now</span><span class="p">.</span><span class="nf">value</span> <span class="o">&amp;</span> <span class="mh">0x010000000000</span>
+<span class="n">x</span><span class="p">.</span><span class="nf">should</span> <span class="o">==</span> <span class="mh">0x010000000000</span></code></pre></dd>
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Generator#now</code> generates a version 1, variant 1 UUID
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">x</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">at</span><span class="p">(</span><span class="n">clock</span><span class="p">)</span>
+<span class="p">(</span><span class="n">x</span><span class="p">.</span><span class="nf">value</span> <span class="o">&amp;</span> <span class="mh">0x10008000000000000000</span><span class="p">).</span><span class="nf">should</span> <span class="o">==</span> <span class="mh">0x10008000000000000000</span></code></pre></dd>
+  
+  </dl>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="at-instance_method" class="target">
+<strong>at</strong><a class="anchor" href="#at-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>*args</var><big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns a new UUID with a time component based on the specified Time.
+A piece of jitter is added to ensure that multiple calls with the same
+time do not generate the same UUID (if you want determinism you can set
+the second parameter to zero).</p>
+
+<dl class="dl-horizontal notes">
+
+<dt><span class="label label-primary">Note</span></dt>
+<dd>the <code>jitter</code> argument accepted by all variants of this method is
+required to add randomness to generated <code><a href="../../time_uuid/" title="Cassandra::TimeUuid (class)">TimeUuid</a></code> and
+might affect the order of generated timestamps. You should set
+<code>jitter</code> to 0 when the source time(stamp)s are unique.
+</dd>
+
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">Examples:</dt>
+<dd class="tag-content">
+  <dl class="examples">
+  
+    
+    <dt class="example-title">Creating a TimeUuid from a Time instance
+</dt>
+    
+    <dd class="example-code"><pre class="highlight"><code class="ruby"><span class="n">generator</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="o">::</span><span class="no">Uuid</span><span class="o">::</span><span class="no">Generator</span><span class="p">.</span><span class="nf">new</span>
+<span class="n">timeuuid</span>  <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">at</span><span class="p">(</span><span class="no">Time</span><span class="p">.</span><span class="nf">at</span><span class="p">(</span><span class="mi">1413582460</span><span class="p">))</span>
+
+<span class="nb">puts</span> <span class="n">timeuuid</span><span class="p">.</span><span class="nf">to_time</span>
+
+<span class="c1"># Outputs:</span>
+<span class="c1"># 2014-10-17 21:47:40 UTC</span></code></pre></dd>
+  
+    
+    <dt class="example-title">Creating a TimeUuid from a timestamp
+</dt>
+    
+    <dd class="example-code"><pre class="highlight"><code class="ruby"><span class="n">generator</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="o">::</span><span class="no">Uuid</span><span class="o">::</span><span class="no">Generator</span><span class="p">.</span><span class="nf">new</span>
+<span class="n">timeuuid</span>  <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">at</span><span class="p">(</span><span class="mi">1413582423</span><span class="p">)</span>
+
+<span class="nb">puts</span> <span class="n">timeuuid</span><span class="p">.</span><span class="nf">to_time</span>
+
+<span class="c1"># Outputs:</span>
+<span class="c1"># 2014-10-17 21:47:03 UTC</span></code></pre></dd>
+  
+    
+    <dt class="example-title">Avoid jitter in generated TimeUuid
+</dt>
+    
+    <dd class="example-code"><pre class="highlight"><code class="ruby"><span class="n">timestamp</span> <span class="o">=</span> <span class="mi">1413582418</span>
+<span class="n">generator</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="o">::</span><span class="no">Uuid</span><span class="o">::</span><span class="no">Generator</span><span class="p">.</span><span class="nf">new</span>
+<span class="n">timeuuid</span>  <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">at</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+<span class="nb">puts</span> <span class="n">timeuuid</span><span class="p">.</span><span class="nf">to_time</span><span class="p">.</span><span class="nf">to_i</span>
+
+<span class="c1"># Outputs:</span>
+<span class="c1"># 1413582418</span></code></pre></dd>
+  
+  </dl>
+</dd>
+
+
+  <dt class="tag-title">Overloads:</dt>
+  <dd class="tag-content">
+    
+      
+      <div class="panel panel-default">
+        <div class="panel-heading overload-header">
+          <span class="path"><strong>at</strong></span>(time, jitter = SecureRandom.random_number(65536)) 
+        </div>
+        <div class="panel-body overload-body">
+          <p>Returns a new UUID</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>time</var></td>
+        
+        
+        <td class="type"><code><a href="../../time/" title="Cassandra::Time (class)">Time</a></code></td>
+        
+        <td class="details">
+          
+          
+          a Time instance
+
+          
+        </td>
+      </tr>
+    
+      <tr>
+        
+        <td class="name"><var>jitter</var></td>
+        
+        
+        <td class="type"><code>Integer</code></td>
+        
+        <td class="details">
+          
+            <em class="default">(defaults to: <code>SecureRandom.random_number(65536)</code>)</em>
+          
+          
+          a number of microseconds to add to the time
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../../time_uuid/" title="Cassandra::TimeUuid (class)">TimeUuid</a></code></td>
+        
+        <td class="details">
+          
+          
+          a new UUID
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+        </div>
+      </div>
+    
+      
+      <div class="panel panel-default">
+        <div class="panel-heading overload-header">
+          <span class="path"><strong>at</strong></span>(seconds_with_frac, jitter = SecureRandom.random_number(65536)) 
+        </div>
+        <div class="panel-body overload-body">
+          <p>Returns a new UUID</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>seconds_with_frac</var></td>
+        
+        
+        <td class="type"><code>Numeric</code></td>
+        
+        <td class="details">
+          
+          
+          can be <code>Integer</code>, <code><a href="../../types/float/" title="Cassandra::Types::Float (class)">Types::Float</a></code>,
+<code>Rational</code>, or other <code>Numeric</code>
+
+          
+        </td>
+      </tr>
+    
+      <tr>
+        
+        <td class="name"><var>jitter</var></td>
+        
+        
+        <td class="type"><code>Integer</code></td>
+        
+        <td class="details">
+          
+            <em class="default">(defaults to: <code>SecureRandom.random_number(65536)</code>)</em>
+          
+          
+          a number of microseconds to add to the time
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../../time_uuid/" title="Cassandra::TimeUuid (class)">TimeUuid</a></code></td>
+        
+        <td class="details">
+          
+          
+          a new UUID
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+        </div>
+      </div>
+    
+      
+      <div class="panel panel-default">
+        <div class="panel-heading overload-header">
+          <span class="path"><strong>at</strong></span>(seconds, microseconds_with_frac, jitter = SecureRandom.random_number(65536)) 
+        </div>
+        <div class="panel-body overload-body">
+          <p>Returns a new UUID</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>seconds</var></td>
+        
+        
+        <td class="type"><code>Integer</code></td>
+        
+        <td class="details">
+          
+          
+        </td>
+      </tr>
+    
+      <tr>
+        
+        <td class="name"><var>microseconds_with_frac</var></td>
+        
+        
+        <td class="type"><code>Numeric</code></td>
+        
+        <td class="details">
+          
+          
+          can be <code>Integer</code>, <code><a href="../../types/float/" title="Cassandra::Types::Float (class)">Types::Float</a></code>,
+<code>Rational</code>, or other <code>Numeric</code>
+
+          
+        </td>
+      </tr>
+    
+      <tr>
+        
+        <td class="name"><var>jitter</var></td>
+        
+        
+        <td class="type"><code>Integer</code></td>
+        
+        <td class="details">
+          
+            <em class="default">(defaults to: <code>SecureRandom.random_number(65536)</code>)</em>
+          
+          
+          a number of microseconds to add to the time
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../../time_uuid/" title="Cassandra::TimeUuid (class)">TimeUuid</a></code></td>
+        
+        <td class="details">
+          
+          
+          a new UUID
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+        </div>
+      </div>
+    
+  </dd>
+
+<dt class="tag-title">
+  Raises:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>ArgumentError</code></td>
+        
+        <td class="details">
+          
+          
+          when given no arguments or more than 3 arguments
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code>Time.at</code></li>
+      
+    </ul>
+  </dd>
+
+<dt class="tag-title">Specifications:</dt>
+<dd class="tag-content">
+  <dl class="specs">
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Generator#at</code> returns a UUID for the specified time with a bit of random jitter
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">x</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">at</span><span class="p">(</span><span class="n">clock</span><span class="p">)</span>
+<span class="n">x</span><span class="p">.</span><span class="nf">to_time</span><span class="p">.</span><span class="nf">to_i</span><span class="p">.</span><span class="nf">should</span> <span class="o">==</span> <span class="mi">1370771820</span>
+<span class="n">x</span><span class="p">.</span><span class="nf">to_time</span><span class="p">.</span><span class="nf">usec</span><span class="p">.</span><span class="nf">should</span> <span class="n">be</span> <span class="o">&gt;</span> <span class="mi">329394</span></code></pre></dd>
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Generator#at</code> returns a UUID for the specified time with an offset
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">x</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">at</span><span class="p">(</span><span class="n">clock</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+<span class="n">x</span><span class="p">.</span><span class="nf">to_time</span><span class="p">.</span><span class="nf">to_i</span><span class="p">.</span><span class="nf">should</span> <span class="o">==</span> <span class="mi">1370771820</span>
+<span class="n">x</span><span class="p">.</span><span class="nf">to_time</span><span class="p">.</span><span class="nf">usec</span><span class="p">.</span><span class="nf">should</span> <span class="o">==</span> <span class="mi">329394</span> <span class="o">+</span> <span class="mi">8</span></code></pre></dd>
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Generator#at</code> returns a UUID for the specified timestamp with a bit of random jitter
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">x</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">at</span><span class="p">(</span><span class="mi">1370771820</span><span class="p">,</span> <span class="mi">329394</span><span class="p">)</span>
+<span class="n">x</span><span class="p">.</span><span class="nf">to_time</span><span class="p">.</span><span class="nf">to_i</span><span class="p">.</span><span class="nf">should</span> <span class="o">==</span> <span class="mi">1370771820</span>
+<span class="n">x</span><span class="p">.</span><span class="nf">to_time</span><span class="p">.</span><span class="nf">usec</span><span class="p">.</span><span class="nf">should</span> <span class="n">be</span> <span class="o">&gt;</span> <span class="mi">329394</span></code></pre></dd>
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Generator#at</code> returns a UUID for the specified timestamp with an offset
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">x</span> <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">at</span><span class="p">(</span><span class="mi">1370771820</span><span class="p">,</span> <span class="mi">329394</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+<span class="n">x</span><span class="p">.</span><span class="nf">to_time</span><span class="p">.</span><span class="nf">to_i</span><span class="p">.</span><span class="nf">should</span> <span class="o">==</span> <span class="mi">1370771820</span>
+<span class="n">x</span><span class="p">.</span><span class="nf">to_time</span><span class="p">.</span><span class="nf">usec</span><span class="p">.</span><span class="nf">should</span> <span class="o">==</span> <span class="mi">329394</span> <span class="o">+</span> <span class="mi">8</span></code></pre></dd>
+  
+  </dl>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="uuid-instance_method" class="target">
+<strong>uuid</strong><a class="anchor" href="#uuid-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns a completely random version 4 UUID.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">Examples:</dt>
+<dd class="tag-content">
+  <dl class="examples">
+  
+    
+    <dt class="example-title">Generating a random Uuid
+</dt>
+    
+    <dd class="example-code"><pre class="highlight"><code class="ruby"><span class="n">generator</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="o">::</span><span class="no">Uuid</span><span class="o">::</span><span class="no">Generator</span><span class="p">.</span><span class="nf">new</span>
+<span class="n">uuid</span>      <span class="o">=</span> <span class="n">generator</span><span class="p">.</span><span class="nf">uuid</span>
+
+<span class="nb">puts</span> <span class="n">uuid</span>
+
+<span class="c1"># Outputs:</span>
+<span class="c1"># 664dedae-e162-4bc0-9066-b9f1968252aa</span></code></pre></dd>
+  
+  </dl>
+</dd>
+
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../" title="Cassandra::Uuid (class)">Uuid</a></code></td>
+        
+        <td class="details">
+          
+          
+          a new UUID
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code>SecureRandom.uuid</code></li>
+      
+    </ul>
+  </dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+</div>
+
+
+        </div>
+      </div>
+    </div>
+
+    
+    <footer class="container text-muted">
+      <ul class="list-inline">
+      
+        
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/">Code</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="http://docs.datastax.com/en/developer/ruby-driver/">Docs</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://datastax-oss.atlassian.net/browse/RUBY/">Issues</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user">Mailing List</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="irc://irc.freenode.net/datastax-drivers">IRC Channel</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/releases">Releases</a>
+        </li>
+      
+      </ul>
+    </footer>
+    
+
+    <script src="../../../../../js/jquery.js"></script>
+    <script src="../../../../../js/bootstrap.js"></script>
+    <script src="../../../../../js/angular.js"></script>
+    <script src="../../../../../js/mousetrap.js"></script>
+    <script src="../../../../../js/hotkeys.js"></script>
+    <script src="../../../../../js/ZeroClipboard.js"></script>
+    <script src="../../../../../js/lunr.js"></script>
+    <script src="../../../../../js/app.js"></script>
+  </body>
+</html>

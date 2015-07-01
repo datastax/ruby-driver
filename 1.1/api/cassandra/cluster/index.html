@@ -1,0 +1,2434 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="A pure Ruby client for Apache Cassandra">
+    <meta name="author" content="DataStax">
+
+    <title>Ruby Driver for Apache Cassandra - Cluster</title>
+
+    <link rel="icon" href="../../../../favicon.ico">
+    <link rel="apple-touch-icon" href="../../../../favicon.png">
+    <link href="../../../../css/style.css" rel="stylesheet">
+    <link href="../../../../css/pygments.css" rel="stylesheet">
+    <link href="../../../../css/hotkeys.css" rel="stylesheet">
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body ng-app="docs">
+    <div class="navbar">
+      <div class="container-fluid">
+        <div class="row row-offcanvas row-offcanvas-left">
+          <div class="col-sm-3 text-center">
+            <a class="ds-home" href="../../../"><img alt="Brand" src="../../../../img/logo.png"></a>
+            <ul class="list-inline ds-sites" role="nav">
+              <li><a href="https://academy.datastax.com/" class="navbar-link">DataStax Academy</a></li>
+              <li><a href="http://www.datastax.com/dev/blog" class="navbar-link">Tech Blog</a></li>
+              <li><a href="http://www.datastax.com/what-we-offer/products-services/support" class="navbar-link">Support</a></li>
+            </ul>
+          </div>
+          <div class="col-md-5">
+            <p class="lead pubtitle">Ruby Driver for Apache Cassandra</p>
+            
+            <div class="text-info">
+              <span class="text-warning">Attention:</span> Viewing documentation for version
+              <div class="btn-group">
+                <button id="current-version" class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  1.1
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="current-version">
+                
+                  <li><a href="../../../../api/cassandra/cluster/">3.2</a></li>
+                
+                  <li><a href="../../../../3.1/api/cassandra/cluster/">3.1</a></li>
+                
+                  <li><a href="../../../../3.0/api/cassandra/cluster/">3.0</a></li>
+                
+                  <li><a href="../../../../2.1/api/cassandra/cluster/">2.1</a></li>
+                
+                  <li><a href="../../../../2.0/api/cassandra/cluster/">2.0</a></li>
+                
+                  <li><a href="../../../../1.2/api/cassandra/cluster/">1.2</a></li>
+                
+                  <li class="disabled"><a href="./">1.1</a></li>
+                
+                  <li><a href="../../../../1.0/api/cassandra/cluster/">1.0</a></li>
+                
+                </ul>
+              </div>
+              <span class="red">
+              
+              (Earlier version)
+              
+              </span>
+            </div>
+            
+          </div>
+          <div class="col-md-4">
+            <form id="search" class="form-search dropdown visible-lg-inline-block" ng-controller="search" ng-class="{open: hasResults}" role="search" ng-submit="submit()" data-spy="affix" data-offset-top="130">
+              <div class="form-group has-feedback">
+                <input type="search" class="form-control input-sm mousetrap" placeholder="Search..." ng-model="q" ng-change="search('1.1')" ng-disabled="!searchReady" disabled data-hotkey="{down: moveDown, up: moveUp, esc: reset}" data-search>
+              </div>
+              <ul class="dropdown-menu search-results" role="menu">
+                <li ng-repeat="result in results" ng-class="{'bg-warning': $index == current}"><a ng-href="{{basePath}}{{result.path}}"><span ng-bind-html="summary(result)"></span></a></li>
+              </ul>
+            </form>
+            <a href="http://www.datastax.com/download" class="btn btn-primary btn-sm">Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid" id="content">
+      <div class="row">
+        <div class="col-md-3">
+          <div id="navigation" class="side-nav" role="tablist" aria-multiselectable="true">
+            <h3><a href="../../../">Contents</a></h3>
+            <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../../../features/">
+      Usage <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="../../">
+      API docs <small>index</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li class="active">
+    <a href="../">
+      Cassandra <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../address_resolution/">
+      AddressResolution <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../auth/">
+      Auth <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../compression/">
+      Compression <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../error/">
+      Error <small>module</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../errors/">
+      Errors <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../execution/">
+      Execution <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../load_balancing/">
+      LoadBalancing <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../reconnection/">
+      Reconnection <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../retry/">
+      Retry <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../statement/">
+      Statement <small>module</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../statements/">
+      Statements <small>module</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="./" class="current">
+      Cluster <small>class</small>
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../column/">
+      Column <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../future/">
+      Future <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../host/">
+      Host <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../keyspace/">
+      Keyspace <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../listener/">
+      Listener <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../result/">
+      Result <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../session/">
+      Session <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../table/">
+      Table <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../time_uuid/">
+      TimeUuid <small>class</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../uuid/">
+      Uuid <small>class</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+</ul>
+
+  </li>
+  
+</ul>
+
+          </div>
+        </div>
+        <div class="col-md-9 content">
+          <div class="crumbs-wrapper">
+            <nav id="crumbs" data-spy="affix" data-offset-top="130">
+              <ol class="breadcrumb">
+                
+                
+                
+                <li><a href="../../../">Home</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../../">API docs</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../">Cassandra</a></li>
+                
+                
+                
+                
+                
+                <li class="active">Cluster</li>
+                
+                
+                
+              </ol>
+            </nav>
+          </div>
+          
+
+<div class="page-header">
+  <h1 id="class-cassandra-cluster" class="target">
+    
+    <small>class</small> Cassandra::Cluster
+    
+  <a class="anchor" href="#class-cassandra-cluster" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h1>
+</div>
+<p>Cluster represents a cassandra cluster. It serves as a <code><a href="../session/" title="Cassandra::Session (class)">session factory</a></code> factory and a collection of metadata.</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code><a href="#connect-instance_method" title="Cassandra::Cluster#connect (method)">Creating a new session</a></code></li>
+      
+        <li><code><a href="#each_host-instance_method" title="Cassandra::Cluster#each_host (method)">Getting all peers in the cluster</a></code></li>
+      
+        <li><code><a href="#each_keyspace-instance_method" title="Cassandra::Cluster#each_keyspace (method)">Getting all existing keyspaces</a></code></li>
+      
+    </ul>
+  </dd>
+
+
+</dl>
+
+<h2 id="inherits" class="target">Inherits<a class="anchor" href="#inherits" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="superclass"><code>Object</code></div>
+
+
+<h2 id="extends" class="target">Extends<a class="anchor" href="#extends" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="extends">
+  <ul class="list-inline">
+    
+    <li><code>Forwardable</code></li>
+    
+  </ul>
+</div>
+
+
+
+<h2 id="methods" class="target">Methods<a class="anchor" href="#methods" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<div class="module-methods">
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="name-instance_method" class="target">
+<strong>name</strong><a class="anchor" href="#name-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Return cluster&#8217;s name</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+          
+          cluster&#8217;s name
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="find_replicas-instance_method" class="target">
+<strong>find_replicas</strong><a class="anchor" href="#find_replicas-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>keyspace</var>, <var>statement</var><big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Return replicas for a given statement and keyspace</p>
+
+<dl class="dl-horizontal notes">
+
+<dt><span class="label label-primary">Note</span></dt>
+<dd>an empty list is returned when statement/keyspace information is
+not enough to determine replica list.
+</dd>
+
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>keyspace</var></td>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+          
+          keyspace name
+
+          
+        </td>
+      </tr>
+    
+      <tr>
+        
+        <td class="name"><var>statement</var></td>
+        
+        
+        <td class="type"><code><a href="../statement/" title="Cassandra::Statement (module)">Statement</a></code></td>
+        
+        <td class="details">
+          
+          
+          statement for which to find
+replicas
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type">
+<code>Array</code>&lt;<code><a href="../host/" title="Cassandra::Host (class)">Host</a></code>&gt;</td>
+        
+        <td class="details">
+          
+          
+          a list of replicas
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="register-instance_method" class="target">
+<strong>register</strong><a class="anchor" href="#register-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>listener</var><big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Register a cluster state listener. State listener will start receiving
+notifications about topology and schema changes</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>listener</var></td>
+        
+        
+        <td class="type"><code><a href="../listener/" title="Cassandra::Listener (class)">Listener</a></code></td>
+        
+        <td class="details">
+          
+          
+          cluster state listener
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>self</code></td>
+        
+        <td class="details">
+          
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="unregister-instance_method" class="target">
+<strong>unregister</strong><a class="anchor" href="#unregister-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>listener</var><big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Unregister a cluster state listener. State listener will stop receiving
+notifications about topology and schema changes</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>listener</var></td>
+        
+        
+        <td class="type"><code><a href="../listener/" title="Cassandra::Listener (class)">Listener</a></code></td>
+        
+        <td class="details">
+          
+          
+          cluster state listener
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>self</code></td>
+        
+        <td class="details">
+          
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="each_host-instance_method" class="target">
+<strong>each_host</strong><a class="anchor" href="#each_host-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>&amp;block</var><big>)</big> 
+    
+  
+  
+  
+    <span class="aliases">aliased as:
+      <span class="names">
+      
+      <span id="hosts-instance_method"><strong>hosts</strong></span>
+      
+      </span>
+    </span>
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Yield or enumerate each member of this cluster</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+  <dt class="tag-title">Overloads:</dt>
+  <dd class="tag-content">
+    
+      
+      <div class="panel panel-default">
+        <div class="panel-heading overload-header">
+          <span class="path"><strong>each_host</strong></span> {|host| &#8230; }
+        </div>
+        <div class="panel-body overload-body">
+          <p>Returns self</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Yield Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>host</var></td>
+        
+        
+        <td class="type"><code><a href="../host/" title="Cassandra::Host (class)">Host</a></code></td>
+        
+        <td class="details">
+          
+          
+          current host
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="./" title="Cassandra::Cluster (class)">Cluster</a></code></td>
+        
+        <td class="details">
+          
+          
+          self
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+        </div>
+      </div>
+    
+      
+      <div class="panel panel-default">
+        <div class="panel-heading overload-header">
+          <span class="path"><strong>each_host</strong></span> 
+        </div>
+        <div class="panel-body overload-body">
+          <p>Returns a list of hosts</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type">
+<code>Array</code>&lt;<code><a href="../host/" title="Cassandra::Host (class)">Host</a></code>&gt;</td>
+        
+        <td class="details">
+          
+          
+          a list of hosts
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+        </div>
+      </div>
+    
+  </dd>
+
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="host-instance_method" class="target">
+<strong>host</strong><a class="anchor" href="#host-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>address</var><big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Find a host by its address</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>address</var></td>
+        
+        
+        <td class="type">(<code>IPAddr</code> or <code>String</code>)</td>
+        
+        <td class="details">
+          
+          
+          ip address
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type">(<code><a href="../host/" title="Cassandra::Host (class)">Host</a></code> or <code>nil</code>)</td>
+        
+        <td class="details">
+          
+          
+          host or nil
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="has_host?-instance_method" class="target">
+<strong>has_host?</strong><a class="anchor" href="#has_host?-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>address</var><big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Determine if a host by a given address exists</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>address</var></td>
+        
+        
+        <td class="type">(<code>IPAddr</code> or <code>String</code>)</td>
+        
+        <td class="details">
+          
+          
+          ip address
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>Boolean</code></td>
+        
+        <td class="details">
+          
+          
+          true or false
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="each_keyspace-instance_method" class="target">
+<strong>each_keyspace</strong><a class="anchor" href="#each_keyspace-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>&amp;block</var><big>)</big> 
+    
+  
+  
+  
+    <span class="aliases">aliased as:
+      <span class="names">
+      
+      <span id="keyspaces-instance_method"><strong>keyspaces</strong></span>
+      
+      </span>
+    </span>
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Yield or enumerate each keyspace defined in this cluster</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+  <dt class="tag-title">Overloads:</dt>
+  <dd class="tag-content">
+    
+      
+      <div class="panel panel-default">
+        <div class="panel-heading overload-header">
+          <span class="path"><strong>each_keyspace</strong></span> {|keyspace| &#8230; }
+        </div>
+        <div class="panel-body overload-body">
+          <p>Returns self</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Yield Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>keyspace</var></td>
+        
+        
+        <td class="type"><code><a href="../keyspace/" title="Cassandra::Keyspace (class)">Keyspace</a></code></td>
+        
+        <td class="details">
+          
+          
+          current keyspace
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="./" title="Cassandra::Cluster (class)">Cluster</a></code></td>
+        
+        <td class="details">
+          
+          
+          self
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+        </div>
+      </div>
+    
+      
+      <div class="panel panel-default">
+        <div class="panel-heading overload-header">
+          <span class="path"><strong>each_keyspace</strong></span> 
+        </div>
+        <div class="panel-body overload-body">
+          <p>Returns a list of keyspaces</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type">
+<code>Array</code>&lt;<code><a href="../keyspace/" title="Cassandra::Keyspace (class)">Keyspace</a></code>&gt;</td>
+        
+        <td class="details">
+          
+          
+          a list of keyspaces
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+        </div>
+      </div>
+    
+  </dd>
+
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="keyspace-instance_method" class="target">
+<strong>keyspace</strong><a class="anchor" href="#keyspace-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>name</var><big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Find a keyspace by name</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>name</var></td>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+          
+          keyspace name
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type">(<code><a href="../keyspace/" title="Cassandra::Keyspace (class)">Keyspace</a></code> or <code>nil</code>)</td>
+        
+        <td class="details">
+          
+          
+          keyspace or nil
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="has_keyspace?-instance_method" class="target">
+<strong>has_keyspace?</strong><a class="anchor" href="#has_keyspace?-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>name</var><big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Determine if a keyspace by a given name exists</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>name</var></td>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+          
+          keyspace name
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>Boolean</code></td>
+        
+        <td class="details">
+          
+          
+          true or false
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="refresh_schema_async-instance_method" class="target">
+<strong>refresh_schema_async</strong><a class="anchor" href="#refresh_schema_async-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Trigger an asynchronous schema metadata refresh</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type">
+<code><a href="../future/" title="Cassandra::Future (class)">Future</a></code>&lt;<code>nil</code>&gt;</td>
+        
+        <td class="details">
+          
+          
+          a future that will be fulfilled when
+schema metadata has been refreshed
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="refresh_schema-instance_method" class="target">
+<strong>refresh_schema</strong><a class="anchor" href="#refresh_schema-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Synchronously refresh schema metadata</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>nil</code></td>
+        
+        <td class="details">
+          
+          
+          nothing
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+<dt class="tag-title">
+  Raises:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../errors/client_error/" title="Cassandra::Errors::ClientError (class)">Errors::ClientError</a></code></td>
+        
+        <td class="details">
+          
+          
+          when cluster is disconnected
+
+          
+        </td>
+      </tr>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../error/" title="Cassandra::Error (module)">Error</a></code></td>
+        
+        <td class="details">
+          
+          
+          other unexpected errors
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code><a href="#refresh_schema_async-instance_method" title="Cassandra::Cluster#refresh_schema_async (method)">#refresh_schema_async</a></code></li>
+      
+    </ul>
+  </dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="connect_async-instance_method" class="target">
+<strong>connect_async</strong><a class="anchor" href="#connect_async-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>keyspace</var> = nil<big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Asynchronously create a new session, optionally scoped to a keyspace</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>keyspace</var></td>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+            <em class="default">(defaults to: <code>nil</code>)</em>
+          
+          
+          optional keyspace to scope session to
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type">
+<code><a href="../future/" title="Cassandra::Future (class)">Future</a></code>&lt;<code><a href="../session/" title="Cassandra::Session (class)">Session</a></code>&gt;</td>
+        
+        <td class="details">
+          
+          
+          a future new session that
+can prepare and execute statements
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code><a href="#connect-instance_method" title="Cassandra::Cluster#connect (method)">A list of possible exceptions that this future can be resolved with</a></code></li>
+      
+    </ul>
+  </dd>
+
+<dt class="tag-title">Specifications:</dt>
+<dd class="tag-content">
+  <dl class="specs">
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Cluster#connect_async</code> registers a new session listener
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">cluster</span><span class="p">.</span><span class="nf">connect_async</span><span class="p">.</span><span class="nf">get</span>
+<span class="n">expect</span><span class="p">(</span><span class="n">cluster_registry</span><span class="p">).</span><span class="nf">to</span> <span class="n">have</span><span class="p">(</span><span class="mi">1</span><span class="p">).</span><span class="nf">listeners</span></code></pre></dd>
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Cluster#connect_async</code> removes session listener on close
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">cluster</span><span class="p">.</span><span class="nf">connect_async</span>
+<span class="n">cluster_registry</span><span class="p">.</span><span class="nf">listeners</span><span class="p">.</span><span class="nf">first</span><span class="p">.</span><span class="nf">close</span>
+<span class="n">expect</span><span class="p">(</span><span class="n">cluster_registry</span><span class="p">).</span><span class="nf">to</span> <span class="n">have</span><span class="p">(</span><span class="mi">0</span><span class="p">).</span><span class="nf">listeners</span></code></pre></dd>
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Cluster#connect_async</code> uses given keyspace
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">future</span> <span class="o">=</span> <span class="no">Future</span><span class="o">::</span><span class="no">Value</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="kp">nil</span><span class="p">)</span>
+<span class="no">Session</span><span class="p">.</span><span class="nf">stub</span><span class="p">(</span><span class="ss">:new</span><span class="p">)</span> <span class="p">{</span> <span class="n">session</span> <span class="p">}</span>
+<span class="n">expect</span><span class="p">(</span><span class="n">session</span><span class="p">).</span><span class="nf">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:execute_async</span><span class="p">).</span><span class="nf">once</span><span class="p">.</span><span class="nf">with</span><span class="p">(</span><span class="s1">'USE foo'</span><span class="p">).</span><span class="nf">and_return</span><span class="p">(</span><span class="n">future</span><span class="p">)</span>
+<span class="n">cluster</span><span class="p">.</span><span class="nf">connect_async</span><span class="p">(</span><span class="s1">'foo'</span><span class="p">).</span><span class="nf">get</span></code></pre></dd>
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Cluster#connect_async</code> quotes given keyspace name
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">future</span> <span class="o">=</span> <span class="no">Future</span><span class="o">::</span><span class="no">Value</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="kp">nil</span><span class="p">)</span>
+<span class="no">Session</span><span class="p">.</span><span class="nf">stub</span><span class="p">(</span><span class="ss">:new</span><span class="p">)</span> <span class="p">{</span> <span class="n">session</span> <span class="p">}</span>
+<span class="n">expect</span><span class="p">(</span><span class="n">session</span><span class="p">).</span><span class="nf">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:execute_async</span><span class="p">).</span><span class="nf">once</span><span class="p">.</span><span class="nf">with</span><span class="p">(</span><span class="s1">'USE "FooBar"'</span><span class="p">).</span><span class="nf">and_return</span><span class="p">(</span><span class="n">future</span><span class="p">)</span>
+<span class="n">cluster</span><span class="p">.</span><span class="nf">connect_async</span><span class="p">(</span><span class="s1">'FooBar'</span><span class="p">).</span><span class="nf">get</span></code></pre></dd>
+  
+  </dl>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="connect-instance_method" class="target">
+<strong>connect</strong><a class="anchor" href="#connect-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span><big>(</big><var>keyspace</var> = nil<big>)</big> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Synchronously create a new session, optionally scoped to a keyspace</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+<dt class="tag-title">
+  Parameters:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        <th class="name">Name</th>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        <td class="name"><var>keyspace</var></td>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+            <em class="default">(defaults to: <code>nil</code>)</em>
+          
+          
+          optional keyspace to scope the session to
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../session/" title="Cassandra::Session (class)">Session</a></code></td>
+        
+        <td class="details">
+          
+          
+          a new session that can prepare and execute
+statements
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+<dt class="tag-title">
+  Raises:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>ArgumentError</code></td>
+        
+        <td class="details">
+          
+          
+          if keyspace is not a String
+
+          
+        </td>
+      </tr>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../errors/no_hosts_available/" title="Cassandra::Errors::NoHostsAvailable (class)">Errors::NoHostsAvailable</a></code></td>
+        
+        <td class="details">
+          
+          
+          when all hosts failed
+
+          
+        </td>
+      </tr>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../errors/authentication_error/" title="Cassandra::Errors::AuthenticationError (class)">Errors::AuthenticationError</a></code></td>
+        
+        <td class="details">
+          
+          
+          when authentication fails
+
+          
+        </td>
+      </tr>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../errors/protocol_error/" title="Cassandra::Errors::ProtocolError (class)">Errors::ProtocolError</a></code></td>
+        
+        <td class="details">
+          
+          
+          when protocol negotiation fails
+
+          
+        </td>
+      </tr>
+    
+      <tr>
+        
+        
+        <td class="type"><code><a href="../error/" title="Cassandra::Error (module)">Error</a></code></td>
+        
+        <td class="details">
+          
+          
+          other unexpected errors
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code><a href="#connect_async-instance_method" title="Cassandra::Cluster#connect_async (method)">#connect_async</a></code></li>
+      
+    </ul>
+  </dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="close_async-instance_method" class="target">
+<strong>close_async</strong><a class="anchor" href="#close_async-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Asynchronously closes all sessions managed by this cluster</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type">
+<code><a href="../future/" title="Cassandra::Future (class)">Future</a></code>&lt;<code><a href="./" title="Cassandra::Cluster (class)">Cluster</a></code>&gt;</td>
+        
+        <td class="details">
+          
+          
+          a future that resolves to
+self once closed
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+<dt class="tag-title">Specifications:</dt>
+<dd class="tag-content">
+  <dl class="specs">
+  
+    
+    
+    
+    <dt class="spec-title">
+<code>Cluster#close_async</code> closes control connection
+</dt>
+    
+    
+    
+    <dd class="spec-code"><pre class="highlight"><code class="ruby"><span class="n">expect</span><span class="p">(</span><span class="n">control_connection</span><span class="p">).</span><span class="nf">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:close_async</span><span class="p">).</span><span class="nf">once</span><span class="p">.</span><span class="nf">and_return</span><span class="p">(</span><span class="no">Ione</span><span class="o">::</span><span class="no">Future</span><span class="p">.</span><span class="nf">resolved</span><span class="p">)</span>
+<span class="n">expect</span><span class="p">(</span><span class="n">cluster</span><span class="p">.</span><span class="nf">close_async</span><span class="p">).</span><span class="nf">to</span> <span class="n">eq</span><span class="p">(</span><span class="n">promise</span><span class="p">)</span>
+<span class="n">expect</span><span class="p">(</span><span class="n">promise</span><span class="p">).</span><span class="nf">to</span> <span class="n">have_received</span><span class="p">(</span><span class="ss">:fulfill</span><span class="p">).</span><span class="nf">once</span><span class="p">.</span><span class="nf">with</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span></code></pre></dd>
+  
+  </dl>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="close-instance_method" class="target">
+<strong>close</strong><a class="anchor" href="#close-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Synchronously closes all sessions managed by this cluster</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>self</code></td>
+        
+        <td class="details">
+          
+          
+          this cluster
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+  <dt class="tag-title">See Also:</dt>
+  <dd class="tag-content">
+    <ul class="see">
+      
+        <li><code><a href="#close_async-instance_method" title="Cassandra::Cluster#close_async (method)">#close_async</a></code></li>
+      
+    </ul>
+  </dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+    <div class="panel panel-default member-definition">
+  <div class="panel-heading method-header">
+  
+    
+      <span class="path"><h3 id="inspect-instance_method" class="target">
+<strong>inspect</strong><a class="anchor" href="#inspect-instance_method" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3></span> 
+    
+  
+  
+  
+  </div>
+  <div class="panel-body method-body">
+    <p>Returns a CLI-friendly cluster representation</p>
+
+<dl class="dl-horizontal notes">
+
+</dl>
+<dl class="tags">
+  
+
+<dt class="tag-title">
+  Returns:
+</dt>
+<dd class="tag-content">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        
+        
+        <th class="type">Type</th>
+        
+        <th class="details">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      <tr>
+        
+        
+        <td class="type"><code>String</code></td>
+        
+        <td class="details">
+          
+          
+          a CLI-friendly cluster representation
+
+          
+        </td>
+      </tr>
+    
+    </tbody>
+  </table>
+</dd>
+
+
+</dl>
+  </div>
+</div>
+
+  
+</div>
+
+
+        </div>
+      </div>
+    </div>
+
+    
+    <footer class="container text-muted">
+      <ul class="list-inline">
+      
+        
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/">Code</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="http://docs.datastax.com/en/developer/ruby-driver/">Docs</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://datastax-oss.atlassian.net/browse/RUBY/">Issues</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user">Mailing List</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="irc://irc.freenode.net/datastax-drivers">IRC Channel</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/releases">Releases</a>
+        </li>
+      
+      </ul>
+    </footer>
+    
+
+    <script src="../../../../js/jquery.js"></script>
+    <script src="../../../../js/bootstrap.js"></script>
+    <script src="../../../../js/angular.js"></script>
+    <script src="../../../../js/mousetrap.js"></script>
+    <script src="../../../../js/hotkeys.js"></script>
+    <script src="../../../../js/ZeroClipboard.js"></script>
+    <script src="../../../../js/lunr.js"></script>
+    <script src="../../../../js/app.js"></script>
+  </body>
+</html>

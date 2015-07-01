@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="A pure Ruby client for Apache Cassandra">
+    <meta name="author" content="DataStax">
+
+    <title>Ruby Driver for Apache Cassandra - Execution profiles</title>
+
+    <link rel="icon" href="../../../../favicon.ico">
+    <link rel="apple-touch-icon" href="../../../../favicon.png">
+    <link href="../../../../css/style.css" rel="stylesheet">
+    <link href="../../../../css/pygments.css" rel="stylesheet">
+    <link href="../../../../css/hotkeys.css" rel="stylesheet">
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body ng-app="docs">
+    <div class="navbar">
+      <div class="container-fluid">
+        <div class="row row-offcanvas row-offcanvas-left">
+          <div class="col-sm-3 text-center">
+            <a class="ds-home" href="../../../"><img alt="Brand" src="../../../../img/logo.png"></a>
+            <ul class="list-inline ds-sites" role="nav">
+              <li><a href="https://academy.datastax.com/" class="navbar-link">DataStax Academy</a></li>
+              <li><a href="http://www.datastax.com/dev/blog" class="navbar-link">Tech Blog</a></li>
+              <li><a href="http://www.datastax.com/what-we-offer/products-services/support" class="navbar-link">Support</a></li>
+            </ul>
+          </div>
+          <div class="col-md-5">
+            <p class="lead pubtitle">Ruby Driver for Apache Cassandra</p>
+            
+            <div class="text-info">
+              <span class="text-warning">Attention:</span> Viewing documentation for version
+              <div class="btn-group">
+                <button id="current-version" class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  3.1
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="current-version">
+                
+                  <li><a href="../../../../features/basics/execution_profiles/">3.2</a></li>
+                
+                  <li class="disabled"><a href="./">3.1</a></li>
+                
+                  <li><a href="../../../../3.0/">3.0</a></li>
+                
+                  <li><a href="../../../../2.1/">2.1</a></li>
+                
+                  <li><a href="../../../../2.0/">2.0</a></li>
+                
+                  <li><a href="../../../../1.2/">1.2</a></li>
+                
+                  <li><a href="../../../../1.1/">1.1</a></li>
+                
+                  <li><a href="../../../../1.0/">1.0</a></li>
+                
+                </ul>
+              </div>
+              <span class="red">
+              
+              (Earlier version)
+              
+              </span>
+            </div>
+            
+          </div>
+          <div class="col-md-4">
+            <form id="search" class="form-search dropdown visible-lg-inline-block" ng-controller="search" ng-class="{open: hasResults}" role="search" ng-submit="submit()" data-spy="affix" data-offset-top="130">
+              <div class="form-group has-feedback">
+                <input type="search" class="form-control input-sm mousetrap" placeholder="Search..." ng-model="q" ng-change="search('3.1')" ng-disabled="!searchReady" disabled data-hotkey="{down: moveDown, up: moveUp, esc: reset}" data-search>
+              </div>
+              <ul class="dropdown-menu search-results" role="menu">
+                <li ng-repeat="result in results" ng-class="{'bg-warning': $index == current}"><a ng-href="{{basePath}}{{result.path}}"><span ng-bind-html="summary(result)"></span></a></li>
+              </ul>
+            </form>
+            <a href="http://www.datastax.com/download" class="btn btn-primary btn-sm">Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid" id="content">
+      <div class="row">
+        <div class="col-md-3">
+          <div id="navigation" class="side-nav" role="tablist" aria-multiselectable="true">
+            <h3><a href="../../../">Contents</a></h3>
+            <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li class="active">
+    <a href="../../">
+      Usage <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li class="active">
+    <a href="../">
+      Basics <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../datatypes/">
+      Datatypes <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../prepared_statements/">
+      Prepared statements <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../result_paging/">
+      Result paging <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../batch_statements/">
+      Batch statements <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../client_side_timestamps/">
+      Client-side Timestamps <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../custom_payloads/">
+      Custom payloads <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="./" class="current">
+      Execution profiles <small>feature</small>
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../namespace_conflicts/">
+      Namespace conflicts <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../schema_metadata/">
+      Schema Metadata <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../user_defined_types/">
+      User-Defined Types <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../../asynchronous_io/">
+      Asynchronous IO <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../security/">
+      Security <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../debugging/">
+      Debugging <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../load_balancing/">
+      Load Balancing <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../retry_policies/">
+      Retry Policies <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../state_listeners/">
+      State Listeners <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../address_resolution/">
+      Address resolution <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../error_handling/">
+      Error Handling <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../../reconnection/">
+      Reconnection <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../../../api/">
+      API docs <small>index</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+          </div>
+        </div>
+        <div class="col-md-9 content">
+          <div class="crumbs-wrapper">
+            <nav id="crumbs" data-spy="affix" data-offset-top="130">
+              <ol class="breadcrumb">
+                
+                
+                
+                <li><a href="../../../">Home</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../../">Usage</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../">Basics</a></li>
+                
+                
+                
+                
+                
+                <li class="active">Execution profiles</li>
+                
+                
+                
+              </ol>
+            </nav>
+          </div>
+          
+<div class="feature-section">
+<h1 id="execution-profiles" class="target">Execution profiles<a class="anchor" href="#execution-profiles" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h1>
+<p>Execution profiles allow a user to group various execution options into a ‘profile’. A user defines profiles when
+initializing the cluster object. A user can then execute statements with different profiles by specifying the profile
+name in calls to <code>Session.execute*</code>.</p>
+
+<p>Profile names should be strings or symbols. In this release, a profile encapsulates load-balancing policy,
+retry-policy, consistency-level, and timeout primitive options. Execution profiles are immutable once created.</p>
+
+<p>If a user specifies simple options to <code>Cassandra.cluster</code>, the options mentioned above are stored in a default
+execution profile named <code>:default</code>. This execution profile is used by default by <code>Session.execute*</code> methods.
+User-defined execution profiles fall back to the same system defaults that past versions of the driver fell back to
+for unspecified options:</p>
+
+<ul>
+<li>load_balancing_policy: <code>LoadBalancing::Policies::TokenAware.new(LoadBalancing::Policies::DCAwareRoundRobin.new, true)</code>
+</li>
+<li>retry-policy: <code>Retry::Policies::Default.new</code>
+</li>
+<li>consistency: <code>:local_one</code>
+</li>
+<li>timeout: <code>12</code>
+</li>
+</ul>
+
+<p>In particular, note that user-defined execution profiles do not fall back to options specified in a (possibly
+user-defined) <code>:default</code> profile.</p>
+
+<p>If you declare execution profiles, it is illegal to also include the primitive options mentioned above:</p>
+<pre class="highlight"><code class="ruby"><span class="nb">puts</span> <span class="s2">"This is bad"</span>
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span><span class="p">(</span><span class="ss">timeout: </span><span class="mi">7</span><span class="p">,</span> <span class="ss">execution_profiles: </span><span class="p">{</span>
+    <span class="ss">my_profile: </span><span class="no">Cassandra</span><span class="o">::</span><span class="no">Execution</span><span class="o">::</span><span class="no">Profile</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="p">})</span>
+</code></pre>
+<p>To change default execution profile attributes and also declare other execution profiles, you must explicitly declare
+the :default profile when initializing the cluster:</p>
+<pre class="highlight"><code class="ruby"><span class="nb">puts</span> <span class="s2">"This is legal"</span>
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span><span class="p">(</span><span class="ss">execution_profiles: </span><span class="p">{</span>
+    <span class="ss">default: </span><span class="no">Cassandra</span><span class="o">::</span><span class="no">Execution</span><span class="o">::</span><span class="no">Profile</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="ss">timeout: </span><span class="mi">7</span><span class="p">)</span>
+    <span class="ss">my_profile: </span><span class="no">Cassandra</span><span class="o">::</span><span class="no">Execution</span><span class="o">::</span><span class="no">Profile</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="p">})</span>
+</code></pre>
+<p>Unspecified attributes fall back to the system defaults mentioned above.</p>
+
+<p>Finally, options specified to <code>Session.execute*</code> methods override options specified in the desired execution profile.</p>
+<h2 id="background" class="target">Background<a class="anchor" href="#background" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>a running cassandra cluster</dd>
+</dl>
+<h2 id="creating-and-inspecting-execution-profiles" class="target">Creating and inspecting execution profiles<a class="anchor" href="#creating-and-inspecting-execution-profiles" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">profile_1</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="o">::</span><span class="no">Execution</span><span class="o">::</span><span class="no">Profile</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="ss">load_balancing_policy: </span><span class="no">Cassandra</span><span class="o">::</span><span class="no">LoadBalancing</span><span class="o">::</span><span class="no">Policies</span><span class="o">::</span><span class="no">RoundRobin</span><span class="p">.</span><span class="nf">new</span><span class="p">,</span>
+                                              <span class="ss">retry_policy: </span><span class="no">Cassandra</span><span class="o">::</span><span class="no">Retry</span><span class="o">::</span><span class="no">Policies</span><span class="o">::</span><span class="no">DowngradingConsistency</span><span class="p">.</span><span class="nf">new</span><span class="p">,</span>
+                                              <span class="ss">consistency: :all</span><span class="p">,</span>
+                                              <span class="ss">timeout: </span><span class="mi">32</span>
+<span class="p">)</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span><span class="p">(</span><span class="ss">execution_profiles: </span><span class="p">{</span><span class="s1">'my_profile'</span> <span class="o">=&gt;</span> <span class="n">profile_1</span><span class="p">})</span>
+<span class="nb">puts</span> <span class="s2">"There are </span><span class="si">#{</span><span class="n">cluster</span><span class="p">.</span><span class="nf">execution_profiles</span><span class="p">.</span><span class="nf">size</span><span class="si">}</span><span class="s2"> execution profiles in the cluster:"</span>
+<span class="nb">puts</span> <span class="s2">""</span>
+
+<span class="n">cluster</span><span class="p">.</span><span class="nf">execution_profiles</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="nb">name</span><span class="p">,</span> <span class="n">profile</span><span class="o">|</span>
+  <span class="nb">puts</span> <span class="s2">"Name: </span><span class="si">#{</span><span class="nb">name</span><span class="si">}</span><span class="s2">"</span>
+  <span class="nb">puts</span> <span class="s2">"Load_balancing_policy: </span><span class="si">#{</span><span class="n">profile</span><span class="p">.</span><span class="nf">load_balancing_policy</span><span class="p">.</span><span class="nf">class</span><span class="si">}</span><span class="s2">"</span>
+  <span class="nb">puts</span> <span class="s2">"Retry policy: </span><span class="si">#{</span><span class="n">profile</span><span class="p">.</span><span class="nf">retry_policy</span><span class="p">.</span><span class="nf">class</span><span class="si">}</span><span class="s2">"</span>
+  <span class="nb">puts</span> <span class="s2">"Consistency: </span><span class="si">#{</span><span class="n">profile</span><span class="p">.</span><span class="nf">consistency</span><span class="si">}</span><span class="s2">"</span>
+  <span class="nb">puts</span> <span class="s2">"Timeout: </span><span class="si">#{</span><span class="n">profile</span><span class="p">.</span><span class="nf">timeout</span><span class="si">}</span><span class="s2">"</span>
+  <span class="nb">puts</span> <span class="s2">""</span>
+<span class="k">end</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>There are 2 execution profiles in the cluster:
+
+Name: my_profile
+Load_balancing_policy: Cassandra::LoadBalancing::Policies::RoundRobin
+Retry policy: Cassandra::Retry::Policies::DowngradingConsistency
+Consistency: all
+Timeout: 32
+
+Name: default
+Load_balancing_policy: Cassandra::LoadBalancing::Policies::TokenAware
+Retry policy: Cassandra::Retry::Policies::Default
+Consistency: local_one
+Timeout: 12
+</code></pre>
+</dd>
+</dl>
+<h2 id="configure-different-load-balancing-policies-with-profiles" class="target">Configure different load balancing policies with profiles<a class="anchor" href="#configure-different-load-balancing-policies-with-profiles" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+<dl class="steps">
+<dt>Given </dt>
+<dd>the following example:<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="kp">include</span> <span class="no">Cassandra</span><span class="o">::</span><span class="no">LoadBalancing</span><span class="o">::</span><span class="no">Policies</span>
+<span class="n">profiles</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="ss">p1: </span><span class="no">Cassandra</span><span class="o">::</span><span class="no">Execution</span><span class="o">::</span><span class="no">Profile</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="ss">load_balancing_policy: </span><span class="no">WhiteList</span><span class="p">.</span><span class="nf">new</span><span class="p">([</span><span class="s1">'127.0.0.1'</span><span class="p">],</span> <span class="no">RoundRobin</span><span class="p">.</span><span class="nf">new</span><span class="p">)),</span>
+    <span class="ss">p2: </span><span class="no">Cassandra</span><span class="o">::</span><span class="no">Execution</span><span class="o">::</span><span class="no">Profile</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="ss">load_balancing_policy: </span><span class="no">WhiteList</span><span class="p">.</span><span class="nf">new</span><span class="p">([</span><span class="s1">'127.0.0.2'</span><span class="p">],</span> <span class="no">RoundRobin</span><span class="p">.</span><span class="nf">new</span><span class="p">))</span>
+<span class="p">}</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span><span class="p">(</span><span class="ss">execution_profiles: </span><span class="n">profiles</span><span class="p">)</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">.</span><span class="nf">connect</span>
+
+<span class="nb">puts</span> <span class="s2">"Running with default profile"</span>
+
+<span class="c1"># By default, the driver uses a token-aware, round-robin load balancing policy.</span>
+<span class="n">ip_list</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="mi">3</span><span class="p">.</span><span class="nf">times</span> <span class="k">do</span>
+  <span class="n">rs</span> <span class="o">=</span> <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="s1">'select rpc_address from system.local'</span><span class="p">)</span>
+  <span class="n">ip_list</span> <span class="o">&lt;&lt;</span> <span class="n">rs</span><span class="p">.</span><span class="nf">first</span><span class="p">[</span><span class="s1">'rpc_address'</span><span class="p">].</span><span class="nf">to_s</span>
+<span class="k">end</span>
+<span class="nb">puts</span> <span class="n">ip_list</span><span class="p">.</span><span class="nf">sort</span><span class="p">.</span><span class="nf">join</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># p2 and p3 set up load-balancing policies that will match only one node.</span>
+<span class="nb">puts</span> <span class="s2">"Running with profile p1"</span>
+<span class="mi">3</span><span class="p">.</span><span class="nf">times</span> <span class="k">do</span>
+  <span class="n">rs</span> <span class="o">=</span> <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="s1">'select rpc_address from system.local'</span><span class="p">,</span> <span class="ss">execution_profile: :p1</span><span class="p">)</span>
+  <span class="nb">puts</span> <span class="n">rs</span><span class="p">.</span><span class="nf">first</span><span class="p">[</span><span class="s1">'rpc_address'</span><span class="p">]</span>
+<span class="k">end</span>
+
+<span class="nb">puts</span> <span class="s2">"Running with profile p2"</span>
+<span class="mi">3</span><span class="p">.</span><span class="nf">times</span> <span class="k">do</span>
+  <span class="n">rs</span> <span class="o">=</span> <span class="n">session</span><span class="p">.</span><span class="nf">execute</span><span class="p">(</span><span class="s1">'select rpc_address from system.local'</span><span class="p">,</span> <span class="ss">execution_profile: :p2</span><span class="p">)</span>
+  <span class="nb">puts</span> <span class="n">rs</span><span class="p">.</span><span class="nf">first</span><span class="p">[</span><span class="s1">'rpc_address'</span><span class="p">]</span>
+<span class="k">end</span>
+</code></pre>
+</dd>
+<dt>When </dt>
+<dd>it is executed</dd>
+<dt>Then </dt>
+<dd>its output should contain:<pre><code>Running with default profile
+127.0.0.1
+127.0.0.2
+127.0.0.3
+Running with profile p1
+127.0.0.1
+127.0.0.1
+127.0.0.1
+Running with profile p2
+127.0.0.2
+127.0.0.2
+127.0.0.2
+</code></pre>
+</dd>
+</dl>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <footer class="container text-muted">
+      <ul class="list-inline">
+      
+        
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/">Code</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="http://docs.datastax.com/en/developer/ruby-driver/">Docs</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://datastax-oss.atlassian.net/browse/RUBY/">Issues</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user">Mailing List</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="irc://irc.freenode.net/datastax-drivers">IRC Channel</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/releases">Releases</a>
+        </li>
+      
+      </ul>
+    </footer>
+    
+
+    <script src="../../../../js/jquery.js"></script>
+    <script src="../../../../js/bootstrap.js"></script>
+    <script src="../../../../js/angular.js"></script>
+    <script src="../../../../js/mousetrap.js"></script>
+    <script src="../../../../js/hotkeys.js"></script>
+    <script src="../../../../js/ZeroClipboard.js"></script>
+    <script src="../../../../js/lunr.js"></script>
+    <script src="../../../../js/app.js"></script>
+  </body>
+</html>

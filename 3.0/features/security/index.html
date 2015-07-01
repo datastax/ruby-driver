@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="A pure Ruby client for Apache Cassandra">
+    <meta name="author" content="DataStax">
+
+    <title>Ruby Driver for Apache Cassandra - Security</title>
+
+    <link rel="icon" href="../../../favicon.ico">
+    <link rel="apple-touch-icon" href="../../../favicon.png">
+    <link href="../../../css/style.css" rel="stylesheet">
+    <link href="../../../css/pygments.css" rel="stylesheet">
+    <link href="../../../css/hotkeys.css" rel="stylesheet">
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body ng-app="docs">
+    <div class="navbar">
+      <div class="container-fluid">
+        <div class="row row-offcanvas row-offcanvas-left">
+          <div class="col-sm-3 text-center">
+            <a class="ds-home" href="../../"><img alt="Brand" src="../../../img/logo.png"></a>
+            <ul class="list-inline ds-sites" role="nav">
+              <li><a href="https://academy.datastax.com/" class="navbar-link">DataStax Academy</a></li>
+              <li><a href="http://www.datastax.com/dev/blog" class="navbar-link">Tech Blog</a></li>
+              <li><a href="http://www.datastax.com/what-we-offer/products-services/support" class="navbar-link">Support</a></li>
+            </ul>
+          </div>
+          <div class="col-md-5">
+            <p class="lead pubtitle">Ruby Driver for Apache Cassandra</p>
+            
+            <div class="text-info">
+              <span class="text-warning">Attention:</span> Viewing documentation for version
+              <div class="btn-group">
+                <button id="current-version" class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  3.0
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="current-version">
+                
+                  <li><a href="../../../features/security/">3.2</a></li>
+                
+                  <li><a href="../../../3.1/features/security/">3.1</a></li>
+                
+                  <li class="disabled"><a href="./">3.0</a></li>
+                
+                  <li><a href="../../../2.1/features/security/">2.1</a></li>
+                
+                  <li><a href="../../../2.0/features/security/">2.0</a></li>
+                
+                  <li><a href="../../../1.2/features/security/">1.2</a></li>
+                
+                  <li><a href="../../../1.1/features/security/">1.1</a></li>
+                
+                  <li><a href="../../../1.0/features/security/">1.0</a></li>
+                
+                </ul>
+              </div>
+              <span class="red">
+              
+              (Earlier version)
+              
+              </span>
+            </div>
+            
+          </div>
+          <div class="col-md-4">
+            <form id="search" class="form-search dropdown visible-lg-inline-block" ng-controller="search" ng-class="{open: hasResults}" role="search" ng-submit="submit()" data-spy="affix" data-offset-top="130">
+              <div class="form-group has-feedback">
+                <input type="search" class="form-control input-sm mousetrap" placeholder="Search..." ng-model="q" ng-change="search('3.0')" ng-disabled="!searchReady" disabled data-hotkey="{down: moveDown, up: moveUp, esc: reset}" data-search>
+              </div>
+              <ul class="dropdown-menu search-results" role="menu">
+                <li ng-repeat="result in results" ng-class="{'bg-warning': $index == current}"><a ng-href="{{basePath}}{{result.path}}"><span ng-bind-html="summary(result)"></span></a></li>
+              </ul>
+            </form>
+            <a href="http://www.datastax.com/download" class="btn btn-primary btn-sm">Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid" id="content">
+      <div class="row">
+        <div class="col-md-3">
+          <div id="navigation" class="side-nav" role="tablist" aria-multiselectable="true">
+            <h3><a href="../../">Contents</a></h3>
+            <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li class="active">
+    <a href="../">
+      Usage <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="../basics/">
+      Basics <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../asynchronous_io/">
+      Asynchronous IO <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li class="active">
+    <a href="./" class="current">
+      Security <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-minus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    <ul class="nav nav-pills nav-stacked">
+  
+  
+  <li>
+    <a href="standard_authentication/">
+      Standard authentication <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="ssl_encryption/">
+      SSL encryption <small>feature</small>
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../debugging/">
+      Debugging <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../load_balancing/">
+      Load Balancing <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../retry_policies/">
+      Retry Policies <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../state_listeners/">
+      State Listeners <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../address_resolution/">
+      Address resolution <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../error_handling/">
+      Error Handling <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+  
+  <li>
+    <a href="../reconnection/">
+      Reconnection <small>page</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+  </li>
+  
+  
+  <li>
+    <a href="../../api/">
+      API docs <small>index</small>
+      
+      
+      <span class="glyphicon glyphicon-plus-sign pull-right" aria-hidden="true"></span>
+      
+      
+    </a>
+    
+  </li>
+  
+</ul>
+
+          </div>
+        </div>
+        <div class="col-md-9 content">
+          <div class="crumbs-wrapper">
+            <nav id="crumbs" data-spy="affix" data-offset-top="130">
+              <ol class="breadcrumb">
+                
+                
+                
+                <li><a href="../../">Home</a></li>
+                
+                
+                
+                
+                
+                <li><a href="../">Usage</a></li>
+                
+                
+                
+                
+                
+                <li class="active">Security</li>
+                
+                
+                
+              </ol>
+            </nav>
+          </div>
+          
+
+<h1 id="security" class="target">Security<a class="anchor" href="#security" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h1>
+
+<h2 id="authentication" class="target">Authentication<a class="anchor" href="#authentication" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+
+<p>Out of the box, Ruby driver supports <a href="https://docs.datastax.com/en/archived/cassandra/2.0/cassandra/security/security_config_native_authenticate_t.html">Cassandra’s internal authentication mechanism</a>. It is also possible to provide a custom authenticator implementation, refer to <a href="http://datastax.github.io/ruby-driver/api/cassandra/auth/provider/"><code>Cassandra::Auth::Provider</code></a> for more information.</p>
+
+<h2 id="ssl-encryption" class="target">SSL encryption<a class="anchor" href="#ssl-encryption" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h2>
+
+<p><a href="https://docs.datastax.com/en/archived/cassandra/1.2/cassandra/security/secureSSLClientToNode_t.html">Apache Cassandra supports client to node encryption</a> and even <a href="https://docs.datastax.com/en/archived/cassandra/1.2/cassandra/configuration/configCassandra_yaml_r.html?scroll=reference_ds_qfg_n1r_1k__client_encryption_options_unique_1">trusted clients</a> (starting with 1.2.3)</p>
+
+<h3 id="setting-up-ssl-encryption-for-apache-cassandra" class="target">Setting up SSL encryption for Apache Cassandra<a class="anchor" href="#setting-up-ssl-encryption-for-apache-cassandra" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h3>
+
+<p>Setting up SSL encryption for Apache Cassandra may seem borderline impossible for someone unfamiliar with the process. I know, I’ve been there. Let me guide you through it.</p>
+
+<h4 id="installing-java-cryptography-extension" class="target">Installing Java Cryptography Extension<a class="anchor" href="#installing-java-cryptography-extension" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h4>
+
+<p>Before we begin, we have to install Java Cryptography Extension (JCE). Feel free to skip this step if you already have it. Without JCE, cassandra processes will fail to start after enabling encryption.</p>
+
+<ol>
+<li><a href="http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html">Download JCE from Oracle</a></li>
+<li>Extract files from the downloaded archive.</li>
+<li>Copy <code>local_policy.jar</code> and <code>US_export_policy.jar</code> to <code>$JAVA_HOME/jre/lib/security</code>
+</li>
+</ol>
+
+<p>Below are some tips for finding <code>$JAVA_HOME</code> if you don’t know how to.</p>
+
+<h5 id="mac-os-x" class="target">Mac OS X<a class="anchor" href="#mac-os-x" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h5>
+<pre class="highlight"><code class="bash"><span class="nv">JAVA_HOME</span><span class="o">=</span><span class="k">$(</span>/usr/libexec/java_home<span class="k">)</span>
+</code></pre>
+<h5 id="ubuntu" class="target">Ubuntu<a class="anchor" href="#ubuntu" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h5>
+<pre class="highlight"><code class="bash"><span class="nv">JAVA_HOME</span><span class="o">=</span><span class="k">$(</span><span class="nb">readlink</span> <span class="nt">-f</span> /usr/bin/javac | <span class="nb">sed</span> <span class="s2">"s:/bin/javac::"</span><span class="k">)</span>
+</code></pre>
+<h4 id="setting-up-cassandra-keystore" class="target">Setting up cassandra keystore<a class="anchor" href="#setting-up-cassandra-keystore" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h4>
+
+<p>First, we’re going to have to create a server certificate. It is recommended to use a different certificate for every node that we want to secure communication with using SSL encryption:</p>
+<pre class="highlight"><code class="bash"><span class="nv">node_alias</span><span class="o">=</span>node1
+<span class="nv">store_pass</span><span class="o">=</span><span class="s2">"some very long and secure password"</span>
+
+keytool <span class="nt">-genkeypair</span> <span class="nt">-noprompt</span> <span class="se">\</span>
+  <span class="nt">-keyalg</span> RSA <span class="se">\</span>
+  <span class="nt">-validity</span> 36500 <span class="se">\</span>
+  <span class="nt">-alias</span> <span class="s2">"</span><span class="nv">$node_alias</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">-keystore</span> <span class="s2">"</span><span class="nv">$node_alias</span><span class="s2">/conf/.keystore"</span> <span class="se">\</span>
+  <span class="nt">-storepass</span> <span class="s2">"</span><span class="nv">$store_pass</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">-dname</span> <span class="s2">"CN=Cassandra Server, OU=Ruby Driver Tests, O=DataStax Inc., L=Santa Clara, ST=California, C=US"</span>
+</code></pre>
+<p>Once we’ve run the script above for all nodes in our cluster, we can configure our Apache Cassandra servers to use their respective <code>.keystore</code>s. For this, we’ll have to modify <code>cassandra.yaml</code> to include the following:</p>
+<pre class="highlight"><code class="yaml"><span class="na">client_encryption_options</span><span class="pi">:</span>
+  <span class="na">enabled</span><span class="pi">:</span> <span class="no">true</span>
+  <span class="na">keystore</span><span class="pi">:</span> <span class="s">conf/.keystore</span>
+  <span class="na">keystore_password</span><span class="pi">:</span> <span class="s2">"</span><span class="s">some</span><span class="nv"> </span><span class="s">very</span><span class="nv"> </span><span class="s">long</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">secure</span><span class="nv"> </span><span class="s">password"</span>
+</code></pre>
+<p><strong>Note</strong>: The values of <code>keystore</code> and <code>keystore_password</code> above must be the same as the values of <code>-keystore</code> and <code>storepass</code> options from the previous shell script.</p>
+
+<p>Now you can restart your cassandra processes.</p>
+
+<p>At this point you already have SSL enabled and can even connect to the servers using DataStax Ruby Driver:</p>
+<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span><span class="p">(</span><span class="ss">ssl: </span><span class="kp">true</span><span class="p">)</span>
+</code></pre>
+<p>This however is like having no security at all since the driver won’t be able to verify the identity of the server.</p>
+
+<h4 id="extracting-server-certificate-for-peer-verification" class="target">Extracting server certificate for peer verification<a class="anchor" href="#extracting-server-certificate-for-peer-verification" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h4>
+
+<p>There are several ways to have client verify server’s identity. I’m going to extract a PEM certificate of the server, which is suitable for use with the OpenSSL library that the Ruby Driver uses, and give it to the client for verification.</p>
+
+<p>Let’s extract a PEM certificate out of our server’s keystore:</p>
+<pre class="highlight"><code class="bash"><span class="c"># values same as above</span>
+<span class="nv">node_alias</span><span class="o">=</span>node1
+<span class="nv">store_pass</span><span class="o">=</span><span class="s2">"some very long and secure password"</span>
+
+keytool <span class="nt">-exportcert</span> <span class="nt">-noprompt</span> <span class="se">\</span>
+  <span class="nt">-rfc</span> <span class="se">\</span>
+  <span class="nt">-alias</span> <span class="s2">"</span><span class="nv">$node_alias</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">-keystore</span> <span class="s2">"</span><span class="nv">$node_alias</span><span class="s2">/conf/.keystore"</span> <span class="se">\</span>
+  <span class="nt">-storepass</span> <span class="s2">"</span><span class="nv">$store_pass</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">-file</span> <span class="s2">"</span><span class="nv">$node_alias</span><span class="s2">"</span>.pem
+
+<span class="nb">chmod </span>400 <span class="s2">"</span><span class="nv">$node_alias</span><span class="s2">"</span>.pem
+</code></pre>
+<p><strong>Note</strong>: The values of <code>-alias</code>, <code>-keystore</code> and <code>-storepass</code> options must be the same as in the script used to generate the keystore file.</p>
+
+<p>This process has to be repeated for each unique keystore that we created in the very first section of this guide.</p>
+
+<p>Once we have all PEM certificates exported we must bundle them for the client to use:</p>
+<pre><code>cat node1.pem node2.pem node3.pem &gt; server.pem
+</code></pre>
+<p><strong>Note</strong>: You can skip this step if you aleady have only one pem certificate.</p>
+
+<p>Finally, having our combined PEM certificate, we can give it to the client to verify our server’s identity:</p>
+<pre class="highlight"><code class="ruby"><span class="nb">require</span> <span class="s1">'cassandra'</span>
+
+<span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span><span class="p">(</span><span class="ss">server_cert: </span><span class="s1">'/path/to/server.pem'</span><span class="p">)</span>
+</code></pre>
+<p>This is better, as our client can now verify the identity of the server. And, combined with Standard Authentication, this provides enough security to be useful. However, we can do better still.</p>
+
+<h4 id="enabling-ssl-authentication-and-trusted-clients" class="target">Enabling SSL Authentication and trusted clients<a class="anchor" href="#enabling-ssl-authentication-and-trusted-clients" aria-hidden="true"><span class="glyphicon glyphicon-link"></span></a>
+</h4>
+
+<p>If you’ve gotten this far, you are really serious about security, well done. The great thing is so is Apache Cassandra. Here we’ll learn how to enable SSL authentication for your Apache Cassandra setup.</p>
+
+<p>Enabling SSL authentication means explicitly adding certificates of all clients and peers to a list of trusted certificates of each Apache Cassandra server.</p>
+
+<p>To start, we must make sure all of our server nodes can talk to each other using SSL authentication. For that, we’ll use the following ruby script:</p>
+<pre class="highlight"><code class="ruby"><span class="n">servers</span> <span class="o">=</span> <span class="p">[</span>
+  <span class="p">{</span>
+    <span class="ss">:alias</span>           <span class="o">=&gt;</span> <span class="s1">'node1'</span><span class="p">,</span>
+    <span class="ss">:keystore</span>        <span class="o">=&gt;</span> <span class="s1">'node1/conf/.keystore'</span><span class="p">,</span>
+    <span class="ss">:kestore_pass</span>    <span class="o">=&gt;</span> <span class="s2">"some very long and secure password"</span><span class="p">,</span>
+    <span class="ss">:truststore</span>      <span class="o">=&gt;</span> <span class="s1">'node1/conf/.truststore'</span><span class="p">,</span>
+    <span class="ss">:truststore_pass</span> <span class="o">=&gt;</span> <span class="s2">"another very long and secure password"</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+    <span class="ss">:alias</span>           <span class="o">=&gt;</span> <span class="s1">'node2'</span><span class="p">,</span>
+    <span class="ss">:keystore</span>        <span class="o">=&gt;</span> <span class="s1">'node2/conf/.keystore'</span><span class="p">,</span>
+    <span class="ss">:kestore_pass</span>    <span class="o">=&gt;</span> <span class="s2">"some very long and secure password"</span><span class="p">,</span>
+    <span class="ss">:truststore</span>      <span class="o">=&gt;</span> <span class="s1">'node2/conf/.truststore'</span><span class="p">,</span>
+    <span class="ss">:truststore_pass</span> <span class="o">=&gt;</span> <span class="s2">"another very long and secure password"</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+    <span class="ss">:alias</span>           <span class="o">=&gt;</span> <span class="s1">'node3'</span><span class="p">,</span>
+    <span class="ss">:keystore</span>        <span class="o">=&gt;</span> <span class="s1">'node3/conf/.keystore'</span><span class="p">,</span>
+    <span class="ss">:kestore_pass</span>    <span class="o">=&gt;</span> <span class="s2">"some very long and secure password"</span><span class="p">,</span>
+    <span class="ss">:truststore</span>      <span class="o">=&gt;</span> <span class="s1">'node3/conf/.truststore'</span><span class="p">,</span>
+    <span class="ss">:truststore_pass</span> <span class="o">=&gt;</span> <span class="s2">"another very long and secure password"</span>
+  <span class="p">},</span>
+<span class="p">]</span>
+
+<span class="c1"># we'll iterate over each server and add all other server certificates it its truststore</span>
+<span class="n">servers</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">server</span><span class="o">|</span>
+  <span class="n">truststore</span> <span class="o">=</span> <span class="n">server</span><span class="p">[</span><span class="ss">:truststore</span><span class="p">]</span>
+  <span class="n">storepass</span>  <span class="o">=</span> <span class="n">server</span><span class="p">[</span><span class="ss">:truststore_pass</span><span class="p">]</span>
+
+  <span class="n">servers</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">peer</span><span class="o">|</span>
+    <span class="k">next</span> <span class="k">if</span> <span class="n">peer</span> <span class="o">==</span> <span class="n">server</span> <span class="c1"># skip self</span>
+
+    <span class="n">peer_alias</span>     <span class="o">=</span> <span class="n">peer</span><span class="p">[</span><span class="ss">:alias</span><span class="p">]</span>
+    <span class="n">peer_keystore</span>  <span class="o">=</span> <span class="n">peer</span><span class="p">[</span><span class="ss">:keystore</span><span class="p">]</span>
+    <span class="n">peer_storepass</span> <span class="o">=</span> <span class="n">peer</span><span class="p">[</span><span class="ss">:keystore_pass</span><span class="p">]</span>
+
+    <span class="c1"># export .der certificate from this peer's keystore if we haven't already</span>
+    <span class="k">unless</span> <span class="no">File</span><span class="p">.</span><span class="nf">exists?</span><span class="p">(</span><span class="s2">"</span><span class="si">#{</span><span class="n">peer_alias</span><span class="si">}</span><span class="s2">.crt"</span><span class="p">)</span>
+      <span class="nb">system</span><span class="p">(</span><span class="s2">"keytool -exportcert -rfc -alias </span><span class="se">\"</span><span class="si">#{</span><span class="n">peer_alias</span><span class="si">}</span><span class="se">\"</span><span class="s2"> -keystore </span><span class="se">\"</span><span class="si">#{</span><span class="n">peer_keystore</span><span class="si">}</span><span class="se">\"</span><span class="s2"> -storepass </span><span class="se">\"</span><span class="si">#{</span><span class="n">peer_storepass</span><span class="si">}</span><span class="se">\"</span><span class="s2"> -file </span><span class="se">\"</span><span class="si">#{</span><span class="n">peer_alias</span><span class="si">}</span><span class="s2">.crt</span><span class="se">\"</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">end</span>
+
+    <span class="c1"># now we can import extracted peer's DER certificate into server's truststore</span>
+    <span class="nb">system</span><span class="p">(</span><span class="s2">"keytool -import -noprompt -alias </span><span class="se">\"</span><span class="si">#{</span><span class="n">peer_alias</span><span class="si">}</span><span class="se">\"</span><span class="s2"> -keystore </span><span class="se">\"</span><span class="si">#{</span><span class="n">truststore</span><span class="si">}</span><span class="se">\"</span><span class="s2"> -storepass </span><span class="se">\"</span><span class="si">#{</span><span class="n">storepass</span><span class="si">}</span><span class="se">\"</span><span class="s2"> -file </span><span class="se">\"</span><span class="si">#{</span><span class="n">peer_alias</span><span class="si">}</span><span class="s2">.crt</span><span class="se">\"</span><span class="s2">"</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre>
+<p>Make sure that all the data in the above script is correct - paths to keystores and truststores as well as passwords and aliases. Save this file to <code>generate_truststores.rb</code> and run it with:</p>
+<pre class="highlight"><code class="bash">ruby generate_truststores.rb
+</code></pre>
+<p>This ensures all our servers are trusting each other. But we’re not done yet, it is now time to create a certificate for our client and add it to the servers’ truststores.</p>
+
+<p>First, let’s create a new keystore for the Ruby Driver (make sure to change the data in the example):</p>
+<pre class="highlight"><code class="bash"><span class="nv">cnode_alias</span><span class="o">=</span>driver
+<span class="nv">cstore_pass</span><span class="o">=</span><span class="s2">"some very long and secure password"</span>
+
+keytool <span class="nt">-genkeypair</span> <span class="nt">-noprompt</span> <span class="se">\</span>
+  <span class="nt">-keyalg</span> RSA <span class="se">\</span>
+  <span class="nt">-validity</span> 36500 <span class="se">\</span>
+  <span class="nt">-alias</span> <span class="s2">"</span><span class="nv">$cnode_alias</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">-keystore</span> <span class="s2">"</span><span class="nv">$cnode_alias</span><span class="s2">.keystore"</span> <span class="se">\</span>
+  <span class="nt">-storepass</span> <span class="s2">"</span><span class="nv">$cstore_pass</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">-dname</span> <span class="s2">"CN=Ruby Driver, OU=Ruby Driver Tests, O=DataStax Inc., L=Santa Clara, ST=California, C=US"</span>
+</code></pre>
+<p>Check that a file called <code>driver.keystore</code> (or whatever the value of <code>-keystore</code> option was) exists. Let’s export its certificate:</p>
+<pre class="highlight"><code class="bash"><span class="c"># values same as above</span>
+<span class="nv">cnode_alias</span><span class="o">=</span>driver
+<span class="nv">cstore_pass</span><span class="o">=</span><span class="s2">"some very long and secure password"</span>
+
+keytool <span class="nt">-exportcert</span> <span class="nt">-noprompt</span> <span class="se">\</span>
+  <span class="nt">-alias</span> <span class="s2">"</span><span class="nv">$cnode_alias</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">-keystore</span> <span class="s2">"</span><span class="nv">$cnode_alias</span><span class="s2">.keystore"</span> <span class="se">\</span>
+  <span class="nt">-storepass</span> <span class="s2">"</span><span class="nv">$cstore_pass</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">-file</span> <span class="s2">"</span><span class="nv">$cnode_alias</span><span class="s2">.crt"</span>
+</code></pre>
+<p>Time to add our driver DER certificate to the truststores of our servers:</p>
+<pre class="highlight"><code class="ruby"><span class="n">servers</span> <span class="o">=</span> <span class="p">[</span>
+  <span class="p">{</span>
+    <span class="ss">:alias</span>           <span class="o">=&gt;</span> <span class="s1">'node1'</span><span class="p">,</span>
+    <span class="ss">:keystore</span>        <span class="o">=&gt;</span> <span class="s1">'node1/conf/.keystore'</span><span class="p">,</span>
+    <span class="ss">:kestore_pass</span>    <span class="o">=&gt;</span> <span class="s2">"some very long and secure password"</span><span class="p">,</span>
+    <span class="ss">:truststore</span>      <span class="o">=&gt;</span> <span class="s1">'node1/conf/.truststore'</span><span class="p">,</span>
+    <span class="ss">:truststore_pass</span> <span class="o">=&gt;</span> <span class="s2">"another very long and secure password"</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+    <span class="ss">:alias</span>           <span class="o">=&gt;</span> <span class="s1">'node2'</span><span class="p">,</span>
+    <span class="ss">:keystore</span>        <span class="o">=&gt;</span> <span class="s1">'node2/conf/.keystore'</span><span class="p">,</span>
+    <span class="ss">:kestore_pass</span>    <span class="o">=&gt;</span> <span class="s2">"some very long and secure password"</span><span class="p">,</span>
+    <span class="ss">:truststore</span>      <span class="o">=&gt;</span> <span class="s1">'node2/conf/.truststore'</span><span class="p">,</span>
+    <span class="ss">:truststore_pass</span> <span class="o">=&gt;</span> <span class="s2">"another very long and secure password"</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+    <span class="ss">:alias</span>           <span class="o">=&gt;</span> <span class="s1">'node3'</span><span class="p">,</span>
+    <span class="ss">:keystore</span>        <span class="o">=&gt;</span> <span class="s1">'node3/conf/.keystore'</span><span class="p">,</span>
+    <span class="ss">:kestore_pass</span>    <span class="o">=&gt;</span> <span class="s2">"some very long and secure password"</span><span class="p">,</span>
+    <span class="ss">:truststore</span>      <span class="o">=&gt;</span> <span class="s1">'node3/conf/.truststore'</span><span class="p">,</span>
+    <span class="ss">:truststore_pass</span> <span class="o">=&gt;</span> <span class="s2">"another very long and secure password"</span>
+  <span class="p">},</span>
+<span class="p">]</span>
+
+<span class="n">driver_cert</span>  <span class="o">=</span> <span class="s2">"driver.der"</span>
+
+<span class="n">servers</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">server</span><span class="o">|</span>
+  <span class="n">truststore</span> <span class="o">=</span> <span class="n">server</span><span class="p">[</span><span class="ss">:truststore</span><span class="p">]</span>
+  <span class="n">storepass</span>  <span class="o">=</span> <span class="n">server</span><span class="p">[</span><span class="ss">:truststore_pass</span><span class="p">]</span>
+  <span class="k">alias</span>      <span class="o">=</span> <span class="n">server</span><span class="p">[</span><span class="ss">:alias</span><span class="p">]</span>
+
+  <span class="nb">system</span><span class="p">(</span><span class="s2">"keytool -import -noprompt -alias </span><span class="se">\"</span><span class="si">#{</span><span class="k">alias</span><span class="si">}</span><span class="se">\"</span><span class="s2"> -keystore </span><span class="se">\"</span><span class="si">#{</span><span class="n">truststore</span><span class="si">}</span><span class="se">\"</span><span class="s2"> -storepass </span><span class="se">\"</span><span class="si">#{</span><span class="n">storepass</span><span class="si">}</span><span class="se">\"</span><span class="s2"> -file </span><span class="se">\"</span><span class="si">#{</span><span class="n">driver_cert</span><span class="si">}</span><span class="se">\"</span><span class="s2">"</span><span class="p">)</span>
+<span class="k">end</span>
+</code></pre>
+<p>Save the above script as <code>add_to_truststores.rb</code> and run it with:</p>
+<pre class="highlight"><code class="bash">ruby add_to_truststores.rb
+</code></pre>
+<p>At this point, we’ve added the driver’s identity to the truststores of all members of Apache Cassandra cluster. Now let’s extract a PEM certificate to use with the driver:</p>
+<pre class="highlight"><code class="bash"><span class="nv">cnode_alias</span><span class="o">=</span>driver
+<span class="nv">cstore_pass</span><span class="o">=</span><span class="s2">"some very long and secure password"</span>
+
+keytool <span class="nt">-exportcert</span> <span class="nt">-noprompt</span> <span class="se">\</span>
+  <span class="nt">-rfc</span> <span class="se">\</span>
+  <span class="nt">-alias</span> <span class="s2">"</span><span class="nv">$cnode_alias</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">-keystore</span> <span class="s2">"</span><span class="nv">$cnode_alias</span><span class="s2">.keystore"</span> <span class="se">\</span>
+  <span class="nt">-storepass</span> <span class="s2">"</span><span class="nv">$cstore_pass</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">-file</span> <span class="s2">"</span><span class="nv">$cnode_alias</span><span class="s2">.pem"</span>
+
+<span class="nb">chmod </span>400 <span class="s2">"</span><span class="nv">$cnode_alias</span><span class="s2">.pem"</span>
+</code></pre>
+<p>At this point we have our client PEM key, or a public key. To communicate securely, we’ll also need its private key, it will be used to encrypt all communication. We’ll covert our java keystore to a format that openssl understands (pkcs12) and use it to extract a private key.</p>
+<pre class="highlight"><code class="bash"><span class="nv">cnode_alias</span><span class="o">=</span>driver
+<span class="nv">cstore_pass</span><span class="o">=</span><span class="s2">"some very long and secure password"</span>
+<span class="nv">cpassphrase</span><span class="o">=</span><span class="s2">"some secure passphrase for the private key"</span>
+
+keytool <span class="nt">-importkeystore</span> <span class="nt">-noprompt</span> <span class="se">\</span>
+  <span class="nt">-srcalias</span> certificatekey <span class="se">\</span>
+  <span class="nt">-deststoretype</span> PKCS12 <span class="se">\</span>
+  <span class="nt">-srcalias</span> <span class="s2">"</span><span class="nv">$cnode_alias</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">-srckeystore</span> <span class="s2">"</span><span class="nv">$cnode_alias</span><span class="s2">.keystore"</span> <span class="se">\</span>
+  <span class="nt">-srcstorepass</span> <span class="s2">"</span><span class="nv">$cstore_pass</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">-storepass</span> <span class="s2">"</span><span class="nv">$cstore_pass</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">-destkeystore</span> <span class="s2">"</span><span class="nv">$cnode_alias</span><span class="s2">-keystore.p12"</span>
+
+openssl pkcs12 <span class="nt">-nomacver</span> <span class="nt">-nocerts</span> <span class="se">\</span>
+  <span class="nt">-in</span> <span class="s2">"</span><span class="nv">$cnode_alias</span><span class="s2">-keystore.p12"</span> <span class="se">\</span>
+  <span class="nt">-password</span> pass:<span class="s2">"</span><span class="nv">$cstore_pass</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">-passout</span> pass:<span class="s2">"</span><span class="nv">$cpassphrase</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">-out</span> <span class="s2">"</span><span class="nv">$cnode_alias</span><span class="s2">.key"</span>
+
+<span class="nb">chmod </span>400 <span class="s2">"</span><span class="nv">$cnode_alias</span><span class="s2">.key"</span>
+</code></pre>
+<p>With all of this ready, let’s enable SSL authentication. For that, we should add the following to <code>cassandra.yaml</code> on each server:</p>
+<pre class="highlight"><code class="yaml"><span class="na">client_encryption_options</span><span class="pi">:</span>
+  <span class="na">enabled</span><span class="pi">:</span> <span class="no">true</span>
+  <span class="na">keystore</span><span class="pi">:</span> <span class="s">conf/.keystore</span>
+  <span class="na">keystore_password</span><span class="pi">:</span> <span class="s2">"</span><span class="s">some</span><span class="nv"> </span><span class="s">very</span><span class="nv"> </span><span class="s">long</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">secure</span><span class="nv"> </span><span class="s">password"</span>
+  <span class="na">require_client_auth</span><span class="pi">:</span> <span class="no">true</span>
+  <span class="na">truststore</span><span class="pi">:</span> <span class="s">conf/.truststore</span>
+  <span class="na">truststore_password</span><span class="pi">:</span> <span class="s2">"</span><span class="s">another</span><span class="nv"> </span><span class="s">very</span><span class="nv"> </span><span class="s">long</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">secure</span><span class="nv"> </span><span class="s">password"</span>
+</code></pre>
+<p>Make sure to update <code>cassandra.yaml</code> on each server with correct data from previous steps.</p>
+
+<p>Finally, we can use our client certificate and key to connect to our Apache Cassandra cluster:</p>
+<pre class="highlight"><code class="ruby"><span class="n">cluster</span> <span class="o">=</span> <span class="no">Cassandra</span><span class="p">.</span><span class="nf">cluster</span><span class="p">(</span>
+  <span class="ss">server_cert:  </span><span class="s1">'/path/to/server.pem'</span><span class="p">,</span>
+  <span class="ss">client_cert:  </span><span class="s1">'/path/to/driver.pem'</span><span class="p">,</span>
+  <span class="ss">private_key:  </span><span class="s1">'/path/to/driver.key'</span><span class="p">,</span>
+  <span class="ss">passphrase:   </span><span class="s1">'the passphrase you picked for the key'</span>
+<span class="p">)</span>
+</code></pre>
+<p>This concludes our overview of SSL encryption with Apache Cassandra. You can <a href="https://docs.datastax.com/en/archived/cassandra/2.0/cassandra/security/secureSslEncryptionTOC.html">find additional information in cassandra documentation</a>.</p>
+
+
+        </div>
+      </div>
+    </div>
+
+    
+    <footer class="container text-muted">
+      <ul class="list-inline">
+      
+        
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/">Code</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="http://docs.datastax.com/en/developer/ruby-driver/">Docs</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://datastax-oss.atlassian.net/browse/RUBY/">Issues</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user">Mailing List</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="irc://irc.freenode.net/datastax-drivers">IRC Channel</a>
+        </li>
+      
+        <li>·</li>
+        <li>
+          <a href="https://github.com/datastax/ruby-driver/releases">Releases</a>
+        </li>
+      
+      </ul>
+    </footer>
+    
+
+    <script src="../../../js/jquery.js"></script>
+    <script src="../../../js/bootstrap.js"></script>
+    <script src="../../../js/angular.js"></script>
+    <script src="../../../js/mousetrap.js"></script>
+    <script src="../../../js/hotkeys.js"></script>
+    <script src="../../../js/ZeroClipboard.js"></script>
+    <script src="../../../js/lunr.js"></script>
+    <script src="../../../js/app.js"></script>
+  </body>
+</html>
