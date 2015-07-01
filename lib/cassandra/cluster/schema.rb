@@ -134,7 +134,7 @@ module Cassandra
         self
       end
 
-      def udpate_table(host, keyspace_name, table, columns)
+      def update_table(host, keyspace_name, table, columns)
         keyspace = @keyspaces[keyspace_name]
 
         return self unless keyspace
@@ -174,7 +174,7 @@ module Cassandra
         self
       end
 
-      def udpate_type(host, keyspace_name, type)
+      def update_type(host, keyspace_name, type)
         keyspace = @keyspaces[keyspace_name]
 
         return self unless keyspace
