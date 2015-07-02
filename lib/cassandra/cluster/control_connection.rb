@@ -394,7 +394,7 @@ module Cassandra
           if tables.empty?
             @schema.delete_table(keyspace, table)
           else
-            @schema.udpate_table(host, keyspace, tables.first, columns)
+            @schema.update_table(host, keyspace, tables.first, columns)
           end
         end
       end
@@ -447,7 +447,7 @@ module Cassandra
           if types.empty?
             @schema.delete_type(keyspace, type)
           else
-            @schema.udpate_type(host, keyspace, types.first)
+            @schema.update_type(host, keyspace, types.first)
           end
         end
       end
