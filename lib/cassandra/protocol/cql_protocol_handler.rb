@@ -34,7 +34,7 @@ module Cassandra
       # @return [String] the current keyspace for the underlying connection
       attr_reader :keyspace
 
-      def initialize(connection, scheduler, protocol_version, compressor=nil, heartbeat_interval = 30, idle_timeout = 60)
+      def initialize(connection, scheduler, protocol_version, logger, compressor=nil, heartbeat_interval = 30, idle_timeout = 60)
         @connection = connection
         @scheduler = scheduler
         @compressor = compressor
@@ -68,6 +68,8 @@ module Cassandra
         @terminate = nil
         @heartbeat_interval = heartbeat_interval
         @idle_timeout = idle_timeout
+
+        @slow_queries_logger = logger
       end
 
       # Returns the hostname of the underlying connection
@@ -162,6 +164,7 @@ module Cassandra
         begin
           if (id = next_stream_id)
             @promises[id] = promise
+            @slow_queries_logger.start(id, request)
           end
         ensure
           @lock.unlock
@@ -223,10 +226,12 @@ module Cassandra
 
       def complete_request(id, response)
         promise = nil
+        @slow_queries_logger.finish(id)
         @lock.lock
         begin
           promise = @promises.delete(id)
           @streams.unshift(id)
+          @slow_queries_logger.delete(id)
         ensure
           @lock.unlock
         end
