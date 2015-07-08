@@ -17,5 +17,3 @@ build:
     without: development docs
   - script: |
       bundle exec rake test
-release:
-  gemspec: cassandra-driver.gemspec
