@@ -60,9 +60,6 @@ module Cassandra
           plan = @load_balancing_policy.plan(nil, VOID_STATEMENT, VOID_OPTIONS)
           connect_to_first_available(plan)
         end
-        f.on_failure do |e|
-          close_async
-        end
         f
       end
 

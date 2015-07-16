@@ -148,9 +148,8 @@ module Cassandra
           promise.fulfill(cluster)
         else
           f.on_failure do |e|
-            cluster.close_async.on_complete do |_, _|
-              promise.break(e)
-            end
+            cluster.close_async
+            promise.break(e)
           end
         end
       end
