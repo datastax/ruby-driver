@@ -1,5 +1,4 @@
 language: ruby
-sudo: false
 script: bundle exec rake $TEST_SUITE
 bundler_args: --without development docs
 addons:
@@ -7,6 +6,7 @@ addons:
     packages:
     - python-pip
 before_install:
+  - sudo apt-get install python-pip
   - pip install --user virtualenv
   - virtualenv venv
   - source venv/bin/activate
