@@ -4,7 +4,7 @@ ruby:
   - 2.1
   - 2.2
   - jruby
-  #- rbx-2.2.10
+  - rbx-2.2.10
 os:
   - ubuntu/trusty64
 env:
