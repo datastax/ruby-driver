@@ -25,6 +25,18 @@ class DatatypeTest < IntegrationTestCase
     @@ccm_cluster.setup_schema("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
   end
 
+  # Test for assuring unassigned primitive datatypes are nil
+  #
+  # test_all_primitive_datatypes_initially_nil creates a table with each datatype. It
+  # then inserts an "empty" row with only the primary key. Finally, it verifies with a read
+  # that each cell (each datatype) in the row is initialized to nil.
+  #
+  # @since 1.0.0
+  # @expected_result Each datatype should be initialized nil.
+  #
+  # @test_assumptions "primitive_datatypes" list of primitive datatypes.
+  # @test_category data_types:primitive
+  #
   def test_all_primitive_datatypes_initially_nil
     begin
       cluster = Cassandra.cluster

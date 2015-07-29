@@ -31,6 +31,20 @@ class RoundRobinTest < IntegrationTestCase
     CQL
   end
 
+  # Test for basic round robin load balancing policy
+  #
+  # test_round_robin_used_explicitly tests the round robin policy by explicitly using it
+  # during the cluster connection. 4 queries are made, and each query should go to a different
+  # node in the Cassandra cluster.
+  #
+  # @return [String] List of hosts used in the query execution.
+  #
+  # @since 1.0.0
+  # @expected_result Each of the 4 queries should be routed to a different node in the cluster.
+  #
+  # @test_assumptions Existing Cassandra cluster with keyspace 'simplex' and table 'users'.
+  # @test_category load_balancing:round_robin
+  #
   def test_round_robin_used_explicitly
     setup_schema
     policy  = Cassandra::LoadBalancing::Policies::RoundRobin.new

@@ -28,6 +28,15 @@ class SessionTest < IntegrationTestCase
     CQL
   end
 
+  # Test for assuring initial keyspace is nil
+  #
+  # test_session_keyspace_is_initially_nil connects to a Cassandra cluster without specifiying
+  # an initial keyspace to connect with. The resulting session object shouldn't have a keyspace.
+  #
+  # @since 1.0.0
+  # @expected_result The resulting session object shouldn't have an associated keyspace.
+  # @test_category session:basic
+  #
   def test_session_keyspace_is_initially_nil
     cluster = Cassandra.cluster
     session = cluster.connect()
