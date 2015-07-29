@@ -1,4 +1,13 @@
 --no-private
 --markup markdown
+--type-tag expected_errors:"Expected Errors"
+--tag jira_ticket:"JIRA Ticket"
+--type-tag expected_result:"Expected Result"
+--tag test_assumptions:"Test Assumptions"
+--tag test_category:"Test Category"
+
 lib/**/*.rb
+integration/**/*.rb
 -- README
+
+load_plugins: true
