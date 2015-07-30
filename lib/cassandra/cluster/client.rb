@@ -95,7 +95,7 @@ module Cassandra
 
             unless connections.any?(&:connected?)
               errors = {}
-              connections.each {|c| errors[c.host] = c.error}
+              connections.each {|c| errors[c.host] = c.error unless c.error.nil?}
               raise Errors::NoHostsAvailable.new(errors)
             end
 

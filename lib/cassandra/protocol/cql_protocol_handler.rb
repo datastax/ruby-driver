@@ -33,7 +33,7 @@ module Cassandra
     #
     class CqlProtocolHandler
       # @return [String] the current keyspace for the underlying connection
-      attr_reader :keyspace
+      attr_reader :keyspace, :error
 
       def initialize(connection, scheduler, protocol_version, compressor=nil, heartbeat_interval = 30, idle_timeout = 60)
         @connection = connection
@@ -57,6 +57,7 @@ module Cassandra
         @terminate = nil
         @heartbeat_interval = heartbeat_interval
         @idle_timeout = idle_timeout
+        @error = nil
       end
 
       # Returns the hostname of the underlying connection
@@ -319,6 +320,7 @@ module Cassandra
 
           cause = e
         end
+        @error = cause
 
         request_failure_cause = cause || Errors::IOError.new('Connection closed')
         promises_to_fail = nil
