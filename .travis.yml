@@ -1,9 +1,13 @@
 language: ruby
 script: bundle exec rake $TEST_SUITE
 bundler_args: --without development docs
+addons:
+  apt:
+    packages:
+    - python-pip
 before_install:
-  - sudo apt-get install -y python-pip
-  - sudo pip install virtualenv
+  - sudo apt-get install python-pip
+  - pip install --user virtualenv
   - virtualenv venv
   - source venv/bin/activate
   - cd support/ccm

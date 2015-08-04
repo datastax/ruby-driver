@@ -29,6 +29,23 @@ class AuthenticationTest < IntegrationTestCase
     super
   end
 
+  # Test for basic successful authentication
+  #
+  # test_can_authenticate_to_cluster tests basic username and password authentication to a Cassandra
+  # cluster. It inputs a valid username and password combination and verifies that a cluster object
+  # is created.
+  #
+  # @param username [String] The username for cluster authentication.
+  # @param password [String] The password for cluster authentication.
+  # @return [Cassandra::Cluster] The authenticated Cassandra cluster
+  #
+  # @since 1.0.0
+  # @jira_ticket RUBY-22
+  # @expected_result Username and password should successfully authenticate to the Cassandra cluster.
+  # 
+  # @test_assumptions Authentication-enabled Cassandra cluster.
+  # @test_category authentication
+  #
   def test_can_authenticate_to_cluster
     cluster = Cassandra.cluster(
                 username: @@username,
@@ -40,6 +57,26 @@ class AuthenticationTest < IntegrationTestCase
     cluster.close
   end
 
+  # Test for basic unsuccessful authentication
+  #
+  # test_raise_error_on_invalid_auth tests basic username and password authentication to a Cassandra
+  # cluster. It first inputs an empty username and passwords and verifies that an ArugmentError is
+  # raised. It then inputs an invalid username and password combination and verifies that an
+  # AuthenticationError is raised.
+  #
+  # @param username [String] The username for cluster authentication.
+  # @param password [String] The password for cluster authentication.
+  #
+  # @expected_errors [ArgumentError] When an empty username and password is provided.
+  # @expected_errors [Cassandra::Errors::AuthenticationError] When an invalid username and password is provided.
+  #
+  # @since 1.0.0
+  # @jira_ticket RUBY-22
+  # @expected_result Username and password should not successfully authenticate to the Cassandra cluster.
+  #
+  # @test_assumptions Authentication-enabled Cassandra cluster.
+  # @test_category authentication
+  #
   def test_raise_error_on_invalid_auth
     assert_raises(ArgumentError) do
       cluster = Cassandra.cluster(
