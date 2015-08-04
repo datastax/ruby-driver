@@ -51,7 +51,7 @@ Feature: Prepared statements
       ]
 
       songs.each do |song|
-        session.execute(insert, arguments: [song[:id], song[:title], song[:artist], song[:album]])
+        session.execute(insert, arguments: [song[:id], song[:title], song[:artist], song[:album]], consistency: :all)
       end
 
       session.execute("SELECT * FROM playlists").each do |row|
@@ -120,7 +120,7 @@ Feature: Prepared statements
       ]
 
       songs.each do |song|
-        session.execute(insert, arguments: {:a => song[:id], :b => song[:title], :c => song[:artist], :d => song[:album]})
+        session.execute(insert, arguments: {:a => song[:id], :b => song[:title], :c => song[:artist], :d => song[:album]}, consistency: :all)
       end
 
       session.execute("SELECT * FROM playlists").each do |row|

@@ -215,22 +215,22 @@ Feature: Datatypes
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
-      row = session.execute("SELECT * FROM user").first
+      row = session.execute("SELECT * FROM user", consistency: :all).first
 
       puts "Name: #{row['name']}"
 
       update = session.prepare("UPDATE user SET name=? WHERE id=0")
-      session.execute(update, arguments: [Cassandra::Tuple.new('Jane', 'Doe')])
+      session.execute(update, arguments: [Cassandra::Tuple.new('Jane', 'Doe')], consistency: :all)
 
       row = session.execute("SELECT * FROM user").first
       puts "Name: #{row['name']}"
 
-      session.execute("INSERT INTO user (id, name) VALUES (1, (?, ?))", arguments: ['Agent', 'Smith'])
+      session.execute("INSERT INTO user (id, name) VALUES (1, (?, ?))", arguments: ['Agent', 'Smith'], consistency: :all)
       row = session.execute("SELECT * FROM user WHERE id=1").first
       puts "Name: #{row['name']}"
 
       insert = session.prepare("INSERT INTO user (id, name) VALUES (?, ?)")
-      session.execute(insert, arguments: [2, Cassandra::Tuple.new('Apache', 'Cassandra')])
+      session.execute(insert, arguments: [2, Cassandra::Tuple.new('Apache', 'Cassandra')], consistency: :all)
       row = session.execute("SELECT * FROM user WHERE id=2").first
 
       puts "Name: #{row['name']}"
