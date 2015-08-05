@@ -59,7 +59,7 @@ class TokenAwareTest < IntegrationTestCase
     cluster = Cassandra.cluster(load_balancing_policy: policy)
     session = cluster.connect("simplex")
 
-    select = session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?")
+    select = Retry.with_attempts(5) { session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?") }
     
     result  = session.execute(select, arguments: [0])
     assert_equal 1, result.execution_info.hosts.size
@@ -90,8 +90,8 @@ class TokenAwareTest < IntegrationTestCase
     policy = Cassandra::LoadBalancing::Policies::TokenAware.new(base_policy)
     cluster = Cassandra.cluster(:consistency => :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
-    
-    select = session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?")
+
+    select = Retry.with_attempts(5) { session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?") }
 
     result  = session.execute(select, arguments: [2])
     assert_equal 1, result.execution_info.hosts.size
@@ -121,7 +121,7 @@ class TokenAwareTest < IntegrationTestCase
     cluster = Cassandra.cluster(:consistency => :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
 
-    select = session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?")
+    select = Retry.with_attempts(5) { session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?") }
 
     result  = session.execute(select, arguments: [2])
     assert_equal 1, result.execution_info.hosts.size
@@ -138,7 +138,7 @@ class TokenAwareTest < IntegrationTestCase
     cluster = Cassandra.cluster(load_balancing_policy: policy)
     session = cluster.connect("simplex")
     
-    select = session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?")
+    select = Retry.with_attempts(5) { session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?") }
 
     result  = session.execute(select, arguments: [0])
     assert_equal 2945182322382062539, result.first['token(user_id)']
@@ -167,7 +167,7 @@ class TokenAwareTest < IntegrationTestCase
     cluster = Cassandra.cluster(load_balancing_policy: policy)
     session = cluster.connect("simplex")
     
-    select = session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?")
+    select = Retry.with_attempts(5) { session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?") }
 
     result  = session.execute(select, arguments: [2])
     assert_equal 1, result.execution_info.hosts.size

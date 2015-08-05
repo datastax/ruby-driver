@@ -20,6 +20,7 @@ ENV['CASSANDRA_HOST'] ||= '127.0.0.1'
 
 require 'bundler/setup'
 
+require File.dirname(__FILE__) + '/../support/retry.rb'
 require File.dirname(__FILE__) + '/../support/ccm.rb'
 
 require 'rspec/wait'

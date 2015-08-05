@@ -66,12 +66,12 @@ class SerialConsistencyTest < IntegrationTestCase
       assert_equal({"user_id"=>0, "age"=>41, "first"=>"Joss", "last"=>"Fillion"}, result)
 
       # Prepared statement
-      update = session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'")
+      update = Retry.with_attempts(5) { session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
       result = session.execute(update, arguments: [0], serial_consistency: :serial, consistency: :all)
       assert_equal :serial, result.execution_info.options.serial_consistency
 
-      select = session.prepare("SELECT * FROM users WHERE user_id = ?")
-      result  = session.execute(select, arguments: [0]).first
+      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM users WHERE user_id = ?") }
+      result = session.execute(select, arguments: [0]).first
       assert_equal({"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}, result)
     ensure
       cluster && cluster.close
@@ -109,12 +109,12 @@ class SerialConsistencyTest < IntegrationTestCase
       assert_equal({"user_id"=>0, "age"=>41, "first"=>"Joss", "last"=>"Fillion"}, result)
 
       # Prepared statement
-      update = session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'")
+      update = Retry.with_attempts(5) { session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
       result = session.execute(update, arguments: [0], serial_consistency: :local_serial, consistency: :all)
       assert_equal :local_serial, result.execution_info.options.serial_consistency
 
-      select = session.prepare("SELECT * FROM users WHERE user_id = ?")
-      result  = session.execute(select, arguments: [0]).first
+      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM users WHERE user_id = ?") }
+      result = session.execute(select, arguments: [0]).first
       assert_equal({"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}, result)
     ensure
       cluster && cluster.close
@@ -158,7 +158,7 @@ class SerialConsistencyTest < IntegrationTestCase
       end
 
       # Prepared statement
-      update = session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'")
+      update = Retry.with_attempts(5) { session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
       assert_raises(Cassandra::Errors::UnavailableError) do
         session.execute(update, arguments: [0], consistency: :local_one, serial_consistency: :local_serial)
       end
@@ -203,7 +203,7 @@ class SerialConsistencyTest < IntegrationTestCase
       assert_equal({"user_id"=>0, "age"=>41, "first"=>"Joss", "last"=>"Fillion"}, result)
 
       # Prepared statements
-      update = session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'")
+      update = Retry.with_attempts(5) { session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
       prepared_batch = session.batch do |b|
         b.add(update, [0])
       end
@@ -211,8 +211,8 @@ class SerialConsistencyTest < IntegrationTestCase
       assert_equal :serial, result.execution_info.options.serial_consistency
 
       sleep(1)
-      select = session.prepare("SELECT * FROM users WHERE user_id = ?")
-      result  = session.execute(select, arguments: [0]).first
+      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM users WHERE user_id = ?") }
+      result = session.execute(select, arguments: [0]).first
       assert_equal({"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}, result)
 
       ## local_serial serial_consistency
@@ -276,7 +276,7 @@ class SerialConsistencyTest < IntegrationTestCase
       end
 
       # Prepared statement
-      update =  session.prepare("UPDATE users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = ? IF first = 'John'")
+      update = Retry.with_attempts(5) { session.prepare("UPDATE users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = ? IF first = 'John'") }
       prepared_batch = session.batch do |b|
         b.add(update, [0])
       end

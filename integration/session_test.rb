@@ -145,8 +145,8 @@ class SessionTest < IntegrationTestCase
     cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
-    insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
-    select = session.prepare("SELECT * FROM users")
+    insert = Retry.with_attempts(5) { session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)") }
+    select = Retry.with_attempts(5) { session.prepare("SELECT * FROM users") }
     refute_nil insert
     refute_nil select
 
@@ -163,7 +163,7 @@ class SessionTest < IntegrationTestCase
     cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
-    insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
+    insert = Retry.with_attempts(5) { session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)") }
     refute_nil insert
 
     assert_raises(ArgumentError) do
@@ -190,10 +190,10 @@ class SessionTest < IntegrationTestCase
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
-      insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)")
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)") }
       session.execute(insert, arguments: {:a => 0, :b => 'John', :c => 'Doe', :d => 40})
 
-      select = session.prepare("SELECT * FROM users WHERE user_id=:id")
+      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM users WHERE user_id=:id") }
       result = session.execute(select, arguments: {:id => 0}).first
 
       assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
@@ -251,7 +251,7 @@ class SessionTest < IntegrationTestCase
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
-      insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)")
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)") }
 
       assert_raises(ArgumentError) do
         session.execute(insert, arguments: {:a => 0, :b => 'John', :c => 'Doe'})
@@ -333,7 +333,7 @@ class SessionTest < IntegrationTestCase
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
     
-      insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)") }
       refute_nil insert
 
       batch = session.batch do |b|
@@ -359,7 +359,7 @@ class SessionTest < IntegrationTestCase
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
-      insert = session.prepare("INSERT INTO test (k, v) VALUES (?, ?)")
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO test (k, v) VALUES (?, ?)") }
       ("a".."z").each_with_index do |letter, number|
         session.execute(insert, arguments: [letter, number])
       end
@@ -421,12 +421,12 @@ class SessionTest < IntegrationTestCase
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
-      insert = session.prepare("INSERT INTO test (k, v) VALUES (?, ?)")
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO test (k, v) VALUES (?, ?)") }
       ("a".."z").each_with_index do |letter, number|
         session.execute(insert, arguments: [letter, number])
       end
 
-      select = session.prepare("SELECT * FROM test")
+      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM test") }
       future = session.execute_async(select, page_size: 5)
       count = 0
 
@@ -536,7 +536,7 @@ class SessionTest < IntegrationTestCase
       assert_equal timestamp, result["writetime(first)"]
 
       # Prepared statements
-      insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)") }
       session.execute(insert, arguments: [0, 'Jane', 'Smith', 30])
       result = session.execute("SELECT writetime(first) FROM users WHERE user_id = 0").first
       assert_equal timestamp, result["writetime(first)"]
@@ -590,7 +590,7 @@ class SessionTest < IntegrationTestCase
         assert_equal "John", result["first"]
 
         # Prepared statements
-        insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
+        insert = Retry.with_attempts(5) { session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)") }
         session.execute(insert, arguments: [0, 'Jane', 'Smith', 30])
         result = session.execute("SELECT * FROM users WHERE user_id = 0").first
         assert_equal "John", result["first"]

@@ -404,21 +404,7 @@ module CCM extend self
         options[:passphrase] = @passphrase
       end
 
-      attempts = 1
-
-      begin
-        @cluster = Cassandra.cluster(options)
-      rescue => e
-        if attempts >= 10
-          raise e
-        else
-          wait = attempts * 0.4
-          puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
-          attempts += 1
-          sleep(wait)
-          retry
-        end
-      end
+      Retry.with_attempts(10, Cassandra::Error) { @cluster = Cassandra.cluster(options) }
 
       until @cluster.hosts.all?(&:up?)
         puts "not all hosts are up yet, retrying in 1s..."
@@ -624,19 +610,7 @@ module CCM extend self
       cql.strip!
       cql.chomp!(";")
       cql.split(";\n").each do |statement|
-        attempts = 1
-
-        begin
-          @session.execute(statement)
-        rescue Cassandra::Errors::WriteTimeoutError, Cassandra::Errors::ReadTimeoutError
-          raise e if attempts >= 5
-
-          wait = attempts * 0.4
-          puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
-          sleep(wait)
-          attempt += 1
-          retry
-        end
+        Retry.with_attempts(5) { @session.execute(statement) }
       end
 
       @session.execute("USE system")
