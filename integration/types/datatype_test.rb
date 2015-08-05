@@ -52,7 +52,7 @@ class DatatypeTest < IntegrationTestCase
 
       # Insert into table
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO mytable (zz) VALUES (?)") }
-      session.execute(insert, arguments: [0])
+      Retry.with_attempts(5) { session.execute(insert, arguments: [0]) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first
@@ -91,7 +91,7 @@ class DatatypeTest < IntegrationTestCase
       16.times { arguments.push('?') }
 
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO mytable (#{parameters.join(",")}) VALUES (#{arguments.join(",")})") }
-      session.execute(insert, arguments: params)
+      Retry.with_attempts(5) { session.execute(insert, arguments: params) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first
@@ -129,7 +129,7 @@ class DatatypeTest < IntegrationTestCase
       16.times { arguments.push('?') }
 
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO mytable (#{parameters.join(",")}) VALUES (#{arguments.join(",")})") }
-      session.execute(insert, arguments: params)
+      Retry.with_attempts(5) { session.execute(insert, arguments: params) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first
@@ -161,7 +161,7 @@ class DatatypeTest < IntegrationTestCase
 
       # Insert into table
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO mytable (zz) VALUES (?)") }
-      session.execute(insert, arguments: [0])
+      Retry.with_attempts(5) { session.execute(insert, arguments: [0]) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first
@@ -218,7 +218,7 @@ class DatatypeTest < IntegrationTestCase
       46.times { arguments.push('?') }
 
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO mytable (#{parameters.join(",")}) VALUES (#{arguments.join(",")})") }
-      session.execute(insert, arguments: params)
+      Retry.with_attempts(5) { session.execute(insert, arguments: params) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first
@@ -274,7 +274,7 @@ class DatatypeTest < IntegrationTestCase
       46.times { arguments.push('?') }
 
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO mytable (#{parameters.join(",")}) VALUES (#{arguments.join(",")})") }
-      session.execute(insert, arguments: params)
+      Retry.with_attempts(5) { session.execute(insert, arguments: params) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first
@@ -315,9 +315,9 @@ class DatatypeTest < IntegrationTestCase
 
       # Test prepared statement
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO mytable (a, b) VALUES (?, ?)") }
-      session.execute(insert, arguments: [3, complete])
-      session.execute(insert, arguments: [4, partial])
-      session.execute(insert, arguments: [5, subpartial])
+      Retry.with_attempts(5) { session.execute(insert, arguments: [3, complete]) }
+      Retry.with_attempts(5) { session.execute(insert, arguments: [4, partial]) }
+      Retry.with_attempts(5) { session.execute(insert, arguments: [5, subpartial]) }
 
       result = session.execute("SELECT b FROM mytable WHERE a=3").first
       assert_equal complete, result['b']
@@ -418,7 +418,7 @@ class DatatypeTest < IntegrationTestCase
       (DatatypeUtils.primitive_datatypes.size+1).times { arguments.push('?') }
 
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO mytable (#{parameters.join(",")}) VALUES (#{arguments.join(",")})") }
-      session.execute(insert, arguments: params)
+      Retry.with_attempts(5) { session.execute(insert, arguments: params) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first
@@ -461,7 +461,7 @@ class DatatypeTest < IntegrationTestCase
       (DatatypeUtils.primitive_datatypes.size+1).times { arguments.push('?') }
 
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO mytable (#{parameters.join(",")}) VALUES (#{arguments.join(",")})") }
-      session.execute(insert, arguments: params)
+      Retry.with_attempts(5) { session.execute(insert, arguments: params) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first
@@ -519,7 +519,7 @@ class DatatypeTest < IntegrationTestCase
       ((DatatypeUtils.collection_types.size-1)*DatatypeUtils.primitive_datatypes.size+1).times { arguments.push('?') }
 
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO mytable (#{parameters.join(",")}) VALUES (#{arguments.join(",")})") }
-      session.execute(insert, arguments: params)
+      Retry.with_attempts(5) { session.execute(insert, arguments: params) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first
@@ -577,7 +577,7 @@ class DatatypeTest < IntegrationTestCase
       ((DatatypeUtils.collection_types.size-1)*DatatypeUtils.primitive_datatypes.size+1).times { arguments.push('?') }
 
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO mytable (#{parameters.join(",")}) VALUES (#{arguments.join(",")})") }
-      session.execute(insert, arguments: params)
+      Retry.with_attempts(5) { session.execute(insert, arguments: params) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first
@@ -630,7 +630,7 @@ class DatatypeTest < IntegrationTestCase
           session.execute("INSERT INTO mytable (zz, #{letter}) VALUES (0, ?)", arguments: [input])
         else              # try prepared statement
           insert = Retry.with_attempts(5) { session.prepare("INSERT INTO mytable (zz, #{letter}) VALUES (0, ?)") }
-          session.execute(insert, arguments: [input])
+          Retry.with_attempts(5) { session.execute(insert, arguments: [input]) }
         end
 
         result = session.execute("SELECT #{letter} FROM mytable WHERE zz=0").first
@@ -713,7 +713,7 @@ class DatatypeTest < IntegrationTestCase
       (DatatypeUtils.collection_types.size*DatatypeUtils.collection_types.size+1).times { arguments.push('?') }
 
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO mytable (#{parameters.join(",")}) VALUES (#{arguments.join(",")})") }
-      session.execute(insert, arguments: params)
+      Retry.with_attempts(5) { session.execute(insert, arguments: params) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first

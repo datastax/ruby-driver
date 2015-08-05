@@ -150,8 +150,8 @@ class SessionTest < IntegrationTestCase
     refute_nil insert
     refute_nil select
 
-    session.execute(insert, arguments: [0, 'John', 'Doe', 40])
-    result = session.execute(select).first
+    Retry.with_attempts(5) { session.execute(insert, arguments: [0, 'John', 'Doe', 40]) }
+    result = Retry.with_attempts(5) { session.execute(select).first }
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
   ensure
     cluster && cluster.close
@@ -191,10 +191,10 @@ class SessionTest < IntegrationTestCase
       session = cluster.connect("simplex")
 
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)") }
-      session.execute(insert, arguments: {:a => 0, :b => 'John', :c => 'Doe', :d => 40})
+      Retry.with_attempts(5) { session.execute(insert, arguments: {:a => 0, :b => 'John', :c => 'Doe', :d => 40}) }
 
       select = Retry.with_attempts(5) { session.prepare("SELECT * FROM users WHERE user_id=:id") }
-      result = session.execute(select, arguments: {:id => 0}).first
+      result = Retry.with_attempts(5) { session.execute(select, arguments: {:id => 0}).first }
 
       assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
 
@@ -203,7 +203,7 @@ class SessionTest < IntegrationTestCase
         b.add(insert, {:a => 2, :b => 'Agent', :c => 'Smith', :d => 20})
       end
 
-      session.execute(batch)
+      Retry.with_attempts(5) { session.execute(batch) }
 
       results = session.execute("SELECT * FROM users")
       assert_equal 3, results.size
@@ -342,7 +342,7 @@ class SessionTest < IntegrationTestCase
         b.add(insert, [8, 'Mick', 'Jager', 71])
       end
 
-      session.execute(batch)
+      Retry.with_attempts(5) { session.execute(batch) }
       results = session.execute("SELECT * FROM users")
       assert_equal 3, results.size
     ensure
@@ -361,7 +361,7 @@ class SessionTest < IntegrationTestCase
 
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO test (k, v) VALUES (?, ?)") }
       ("a".."z").each_with_index do |letter, number|
-        session.execute(insert, arguments: [letter, number])
+        Retry.with_attempts(5) { session.execute(insert, arguments: [letter, number]) }
       end
 
       # Small page_size
@@ -423,7 +423,7 @@ class SessionTest < IntegrationTestCase
 
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO test (k, v) VALUES (?, ?)") }
       ("a".."z").each_with_index do |letter, number|
-        session.execute(insert, arguments: [letter, number])
+        Retry.with_attempts(5) { session.execute(insert, arguments: [letter, number]) }
       end
 
       select = Retry.with_attempts(5) { session.prepare("SELECT * FROM test") }
@@ -537,7 +537,7 @@ class SessionTest < IntegrationTestCase
 
       # Prepared statements
       insert = Retry.with_attempts(5) { session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)") }
-      session.execute(insert, arguments: [0, 'Jane', 'Smith', 30])
+      Retry.with_attempts(5) { session.execute(insert, arguments: [0, 'Jane', 'Smith', 30]) }
       result = session.execute("SELECT writetime(first) FROM users WHERE user_id = 0").first
       assert_equal timestamp, result["writetime(first)"]
 
@@ -547,7 +547,7 @@ class SessionTest < IntegrationTestCase
         b.add(insert, [0, 'Ruby', 'Driver', 2])
       end
 
-      session.execute(batch)
+      Retry.with_attempts(5) { session.execute(batch) }
       result = session.execute("SELECT writetime(first) FROM users WHERE user_id = 0").first
       assert_equal timestamp, result["writetime(first)"]
     ensure
@@ -591,7 +591,7 @@ class SessionTest < IntegrationTestCase
 
         # Prepared statements
         insert = Retry.with_attempts(5) { session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)") }
-        session.execute(insert, arguments: [0, 'Jane', 'Smith', 30])
+        Retry.with_attempts(5) { session.execute(insert, arguments: [0, 'Jane', 'Smith', 30]) }
         result = session.execute("SELECT * FROM users WHERE user_id = 0").first
         assert_equal "John", result["first"]
 
@@ -600,7 +600,7 @@ class SessionTest < IntegrationTestCase
           b.add(insert, [0, 'Ruby', 'Driver', 2])
         end
 
-        session.execute(batch)
+        Retry.with_attempts(5) { session.execute(batch) }
         result = session.execute("SELECT * FROM users WHERE user_id = 0").first
         assert_equal "John", result["first"]
       end

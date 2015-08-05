@@ -61,22 +61,22 @@ class TokenAwareTest < IntegrationTestCase
 
     select = Retry.with_attempts(5) { session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?") }
     
-    result  = session.execute(select, arguments: [0])
+    result  = Retry.with_attempts(5) { session.execute(select, arguments: [0]) }
     assert_equal 1, result.execution_info.hosts.size
     assert_equal 2945182322382062539, result.first['token(user_id)']
     assert_equal "127.0.0.1", result.execution_info.hosts.last.ip.to_s
 
-    result  = session.execute(select, arguments: [1])
+    result  = Retry.with_attempts(5) { session.execute(select, arguments: [1]) }
     assert_equal 1, result.execution_info.hosts.size
     assert_equal 6292367497774912474, result.first['token(user_id)']
     assert_equal "127.0.0.1", result.execution_info.hosts.last.ip.to_s
 
-    result  = session.execute(select, arguments: [2])
+    result  = Retry.with_attempts(5) { session.execute(select, arguments: [2]) }
     assert_equal 1, result.execution_info.hosts.size
     assert_equal -8218881827949364593, result.first['token(user_id)']
     assert_equal "127.0.0.2", result.execution_info.hosts.last.ip.to_s
 
-    result  = session.execute(select, arguments: [3])
+    result  = Retry.with_attempts(5) { session.execute(select, arguments: [3]) }
     assert_equal 1, result.execution_info.hosts.size
     assert_equal -8048510690352527683, result.first['token(user_id)']
     assert_equal "127.0.0.2", result.execution_info.hosts.last.ip.to_s
@@ -93,19 +93,19 @@ class TokenAwareTest < IntegrationTestCase
 
     select = Retry.with_attempts(5) { session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?") }
 
-    result  = session.execute(select, arguments: [2])
+    result  = Retry.with_attempts(5) { session.execute(select, arguments: [2]) }
     assert_equal 1, result.execution_info.hosts.size
     assert_equal "127.0.0.2", result.execution_info.hosts.last.ip.to_s
 
     @@ccm_cluster.stop_node("node2")
 
-    result  = session.execute(select, arguments: [2])
+    result  = Retry.with_attempts(5) { session.execute(select, arguments: [2]) }
     assert_equal 1, result.execution_info.hosts.size
     assert_equal "127.0.0.1", result.execution_info.hosts.last.ip.to_s
 
     @@ccm_cluster.stop_node("node1")
 
-    result  = session.execute(select, arguments: [2])
+    result  = Retry.with_attempts(5) { session.execute(select, arguments: [2]) }
     assert_equal 1, result.execution_info.hosts.size
     assert ["127.0.0.3", "127.0.0.4"].include?(result.execution_info.hosts.last.ip.to_s)
 
@@ -123,7 +123,7 @@ class TokenAwareTest < IntegrationTestCase
 
     select = Retry.with_attempts(5) { session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?") }
 
-    result  = session.execute(select, arguments: [2])
+    result = Retry.with_attempts(5) { session.execute(select, arguments: [2]) }
     assert_equal 1, result.execution_info.hosts.size
     assert_equal "127.0.0.1", result.execution_info.hosts.last.ip.to_s
 
@@ -140,19 +140,19 @@ class TokenAwareTest < IntegrationTestCase
     
     select = Retry.with_attempts(5) { session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?") }
 
-    result  = session.execute(select, arguments: [0])
+    result = Retry.with_attempts(5) { session.execute(select, arguments: [0]) }
     assert_equal 2945182322382062539, result.first['token(user_id)']
     assert_equal "127.0.0.3", result.execution_info.hosts.last.ip.to_s
 
-    result  = session.execute(select, arguments: [1])
+    result = Retry.with_attempts(5) { session.execute(select, arguments: [1]) }
     assert_equal 6292367497774912474, result.first['token(user_id)']
     assert_equal "127.0.0.3", result.execution_info.hosts.last.ip.to_s
 
-    result  = session.execute(select, arguments: [2])
+    result = Retry.with_attempts(5) { session.execute(select, arguments: [2]) }
     assert_equal -8218881827949364593, result.first['token(user_id)']
     assert_equal "127.0.0.4", result.execution_info.hosts.last.ip.to_s
 
-    result  = session.execute(select, arguments: [3])
+    result = Retry.with_attempts(5) { session.execute(select, arguments: [3]) }
     assert_equal -8048510690352527683, result.first['token(user_id)']
     assert_equal "127.0.0.4", result.execution_info.hosts.last.ip.to_s
 
@@ -169,23 +169,23 @@ class TokenAwareTest < IntegrationTestCase
     
     select = Retry.with_attempts(5) { session.prepare("SELECT token(user_id) FROM users WHERE user_id = ?") }
 
-    result  = session.execute(select, arguments: [2])
+    result = Retry.with_attempts(5) { session.execute(select, arguments: [2]) }
     assert_equal 1, result.execution_info.hosts.size
     assert_equal "127.0.0.4", result.execution_info.hosts.last.ip.to_s
 
     @@ccm_cluster.stop_node("node4")
 
-    result  = session.execute(select, arguments: [2])
+    result = Retry.with_attempts(5) { session.execute(select, arguments: [2]) }
     assert_equal 1, result.execution_info.hosts.size
     assert_equal "127.0.0.3", result.execution_info.hosts.last.ip.to_s
 
     @@ccm_cluster.stop_node("node3")
 
-    result  = session.execute(select, arguments: [2], consistency: :one)
+    result = Retry.with_attempts(5) { session.execute(select, arguments: [2], consistency: :one) }
     assert_equal 1, result.execution_info.hosts.size
     assert_equal "127.0.0.2", result.execution_info.hosts.last.ip.to_s
 
-    result  = session.execute(select, arguments: [2], consistency: :one)
+    result = Retry.with_attempts(5) { session.execute(select, arguments: [2], consistency: :one) }
     assert_equal 1, result.execution_info.hosts.size
     assert_equal "127.0.0.1", result.execution_info.hosts.last.ip.to_s
 

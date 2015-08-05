@@ -1,5 +1,6 @@
 module Retry extend self
-  def with_attempts(attempts, errors = [Cassandra::Errors::ValidationError, Cassandra::Errors::ExecutionError])
+  def with_attempts(attempts, *errors)
+    errors = [Cassandra::Errors::ValidationError, Cassandra::Errors::ExecutionError] if errors.empty?
     total ||= attempts + 1
     return yield
   rescue *errors => e
