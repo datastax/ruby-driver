@@ -785,10 +785,10 @@ module CCM extend self
     ccm.exec('create', '-v', 'binary:' + version, '-b', name)
 
     config = [
-      '--rt', '1000',
-      'read_request_timeout_in_ms: 1000',
-      'write_request_timeout_in_ms: 1000',
-      'request_timeout_in_ms: 1000',
+      '--rt', '3000',
+      'read_request_timeout_in_ms: 2000',
+      'write_request_timeout_in_ms: 2000',
+      'request_timeout_in_ms: 2000',
       'phi_convict_threshold: 16',
       'hinted_handoff_enabled: false',
       'dynamic_snitch_update_interval_in_ms: 1000'
