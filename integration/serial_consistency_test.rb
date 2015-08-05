@@ -66,11 +66,11 @@ class SerialConsistencyTest < IntegrationTestCase
       assert_equal({"user_id"=>0, "age"=>41, "first"=>"Joss", "last"=>"Fillion"}, result)
 
       # Prepared statement
-      update = Retry.with_attempts(5) { session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
+      update = Retry.with_attempts(5) { session.prepare("UPDATE simplex.users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
       result = Retry.with_attempts(5) { session.execute(update, arguments: [0], serial_consistency: :serial, consistency: :all) }
       assert_equal :serial, result.execution_info.options.serial_consistency
 
-      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM users WHERE user_id = ?") }
+      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM simplex.users WHERE user_id = ?") }
       result = Retry.with_attempts(5) { session.execute(select, arguments: [0]).first }
       assert_equal({"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}, result)
     ensure
@@ -109,11 +109,11 @@ class SerialConsistencyTest < IntegrationTestCase
       assert_equal({"user_id"=>0, "age"=>41, "first"=>"Joss", "last"=>"Fillion"}, result)
 
       # Prepared statement
-      update = Retry.with_attempts(5) { session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
+      update = Retry.with_attempts(5) { session.prepare("UPDATE simplex.users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
       result = Retry.with_attempts(5) { session.execute(update, arguments: [0], serial_consistency: :local_serial, consistency: :all) }
       assert_equal :local_serial, result.execution_info.options.serial_consistency
 
-      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM users WHERE user_id = ?") }
+      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM simplex.users WHERE user_id = ?") }
       result = Retry.with_attempts(5) { session.execute(select, arguments: [0]).first }
       assert_equal({"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}, result)
     ensure
@@ -158,7 +158,7 @@ class SerialConsistencyTest < IntegrationTestCase
       end
 
       # Prepared statement
-      update = Retry.with_attempts(5) { session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
+      update = Retry.with_attempts(5) { session.prepare("UPDATE simplex.users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
       assert_raises(Cassandra::Errors::UnavailableError) do
         Retry.with_attempts(5, Cassandra::Errors::InvalidError) { session.execute(update, arguments: [0], consistency: :local_one, serial_consistency: :local_serial) }
       end
@@ -203,7 +203,7 @@ class SerialConsistencyTest < IntegrationTestCase
       assert_equal({"user_id"=>0, "age"=>41, "first"=>"Joss", "last"=>"Fillion"}, result)
 
       # Prepared statements
-      update = Retry.with_attempts(5) { session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
+      update = Retry.with_attempts(5) { session.prepare("UPDATE simplex.users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
       prepared_batch = session.batch do |b|
         b.add(update, [0])
       end
@@ -211,7 +211,7 @@ class SerialConsistencyTest < IntegrationTestCase
       assert_equal :serial, result.execution_info.options.serial_consistency
 
       sleep(1)
-      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM users WHERE user_id = ?") }
+      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM simplex.users WHERE user_id = ?") }
       result = Retry.with_attempts(5) { session.execute(select, arguments: [0]).first }
       assert_equal({"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}, result)
 
@@ -276,7 +276,7 @@ class SerialConsistencyTest < IntegrationTestCase
       end
 
       # Prepared statement
-      update = Retry.with_attempts(5) { session.prepare("UPDATE users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = ? IF first = 'John'") }
+      update = Retry.with_attempts(5) { session.prepare("UPDATE simplex.users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = ? IF first = 'John'") }
       prepared_batch = session.batch do |b|
         b.add(update, [0])
       end
