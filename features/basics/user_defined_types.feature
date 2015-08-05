@@ -7,14 +7,13 @@ Feature: User-Defined Types
     Given a running cassandra cluster with schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TYPE address (street text, zipcode int);
-      CREATE TYPE check_in (
+      CREATE TYPE simplex.address (street text, zipcode int);
+      CREATE TYPE simplex.check_in (
         location frozen <address>,
         time timestamp,
         data frozen <tuple<int, text, float>>
       );
-      CREATE TABLE users (id int PRIMARY KEY, location frozen<address>);
+      CREATE TABLE simplex.users (id int PRIMARY KEY, location frozen<address>);
       """
 
   Scenario: Using User-Defined Types with prepared statements

@@ -15,15 +15,14 @@ Feature: Datatypes
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE mytable (
+      CREATE TABLE simplex.mytable (
         a int PRIMARY KEY,
         b ascii,
         c blob,
         d text,
         e varchar,
       );
-      INSERT INTO mytable (a, b, c, d, e)
+      INSERT INTO simplex.mytable (a, b, c, d, e)
       VALUES (
         0,
         'ascii',
@@ -59,8 +58,7 @@ Feature: Datatypes
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE mytable (
+      CREATE TABLE simplex.mytable (
         a int PRIMARY KEY,
         b bigint,
         c decimal,
@@ -69,7 +67,7 @@ Feature: Datatypes
         f int,
         g varint
       );
-      INSERT INTO mytable (a, b, c, d, e, f, g)
+      INSERT INTO simplex.mytable (a, b, c, d, e, f, g)
       VALUES (
         0,
         765438000,
@@ -111,8 +109,7 @@ Feature: Datatypes
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE mytable (
+      CREATE TABLE simplex.mytable (
         a int PRIMARY KEY,
         b boolean,
         c inet,
@@ -120,7 +117,7 @@ Feature: Datatypes
         e timeuuid,
         f uuid
       );
-      INSERT INTO mytable (a, b, c, d, e, f)
+      INSERT INTO simplex.mytable (a, b, c, d, e, f)
       VALUES (
         0,
         true,
@@ -159,14 +156,13 @@ Feature: Datatypes
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE user (
+      CREATE TABLE simplex.user (
         id int PRIMARY KEY,
         logins List<timestamp>,
         locations Map<timestamp, double>,
         ip_addresses Set<inet>
       );
-      INSERT INTO user (id, logins, locations, ip_addresses)
+      INSERT INTO simplex.user (id, logins, locations, ip_addresses)
       VALUES (
         0,
         ['2014-09-11 10:09:08+0000', '2014-09-12 10:09:00+0000'],
@@ -200,12 +196,11 @@ Feature: Datatypes
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE user (
+      CREATE TABLE simplex.user (
         id int PRIMARY KEY,
         name frozen <tuple<varchar, varchar>>
       );
-      INSERT INTO user (id, name)
+      INSERT INTO simplex.user (id, name)
       VALUES (0, ('John', 'Smith'))
       """
     And the following example:
@@ -256,13 +251,12 @@ Feature: Datatypes
     Given the following schema:
     """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE airports (
+      CREATE TABLE simplex.airports (
         id int PRIMARY KEY,
         flight_destinations Map<int, frozen<Tuple<double, double>>>,
         flight_numbers List<frozen<Set<int>>>
       );
-      INSERT INTO airports (id, flight_destinations, flight_numbers)
+      INSERT INTO simplex.airports (id, flight_destinations, flight_numbers)
       VALUES (
         0,
         {747: (37.397357, 42.7357), 458: (122.7423, 2.92547), 638: (105.357423, 20.57925)},

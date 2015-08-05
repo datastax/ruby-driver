@@ -11,8 +11,7 @@ Feature: Client-side Timestamps
     Given a running cassandra cluster with schema:
     """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE users (
+      CREATE TABLE simplex.users (
         user_id BIGINT PRIMARY KEY,
         first VARCHAR,
         last VARCHAR,

@@ -15,21 +15,20 @@ Feature: Result paging
     Given a running cassandra cluster with schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE test (k text, v int, PRIMARY KEY (k, v));
-      INSERT INTO test (k, v) VALUES ('a', 0);
-      INSERT INTO test (k, v) VALUES ('b', 1);
-      INSERT INTO test (k, v) VALUES ('c', 2);
-      INSERT INTO test (k, v) VALUES ('d', 3);
-      INSERT INTO test (k, v) VALUES ('e', 4);
-      INSERT INTO test (k, v) VALUES ('f', 5);
-      INSERT INTO test (k, v) VALUES ('g', 6);
-      INSERT INTO test (k, v) VALUES ('h', 7);
-      INSERT INTO test (k, v) VALUES ('i', 8);
-      INSERT INTO test (k, v) VALUES ('j', 9);
-      INSERT INTO test (k, v) VALUES ('k', 10);
-      INSERT INTO test (k, v) VALUES ('l', 11);
-      INSERT INTO test (k, v) VALUES ('m', 12);
+      CREATE TABLE simplex.test (k text, v int, PRIMARY KEY (k, v));
+      INSERT INTO simplex.test (k, v) VALUES ('a', 0);
+      INSERT INTO simplex.test (k, v) VALUES ('b', 1);
+      INSERT INTO simplex.test (k, v) VALUES ('c', 2);
+      INSERT INTO simplex.test (k, v) VALUES ('d', 3);
+      INSERT INTO simplex.test (k, v) VALUES ('e', 4);
+      INSERT INTO simplex.test (k, v) VALUES ('f', 5);
+      INSERT INTO simplex.test (k, v) VALUES ('g', 6);
+      INSERT INTO simplex.test (k, v) VALUES ('h', 7);
+      INSERT INTO simplex.test (k, v) VALUES ('i', 8);
+      INSERT INTO simplex.test (k, v) VALUES ('j', 9);
+      INSERT INTO simplex.test (k, v) VALUES ('k', 10);
+      INSERT INTO simplex.test (k, v) VALUES ('l', 11);
+      INSERT INTO simplex.test (k, v) VALUES ('m', 12);
       """
 
   @cassandra-version-specific @cassandra-version-2.0

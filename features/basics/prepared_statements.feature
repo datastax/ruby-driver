@@ -8,8 +8,7 @@ Feature: Prepared statements
     Given a running cassandra cluster with schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE playlists (
+      CREATE TABLE simplex.playlists (
         id uuid,
         title text,
         album text,
@@ -77,8 +76,7 @@ Feature: Prepared statements
     Given a running cassandra cluster with schema:
     """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE playlists (
+      CREATE TABLE simplex.playlists (
         id uuid,
         title text,
         album text,
@@ -146,8 +144,7 @@ Feature: Prepared statements
     Given a running cassandra cluster with schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE playlists (
+      CREATE TABLE simplex.playlists (
         id uuid,
         title text,
         album text,
