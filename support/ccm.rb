@@ -624,7 +624,19 @@ module CCM extend self
       cql.strip!
       cql.chomp!(";")
       cql.split(";\n").each do |statement|
-        @session.execute(statement)
+        attempts = 1
+
+        begin
+          @session.execute(statement)
+        rescue Cassandra::Errors::WriteTimeoutError, Cassandra::Errors::ReadTimeoutError
+          raise e if attempts >= 5
+
+          wait = attempts * 0.4
+          puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
+          sleep(wait)
+          attempt += 1
+          retry
+        end
       end
 
       @session.execute("USE system")
@@ -639,6 +651,7 @@ module CCM extend self
 
         @session.execute("DROP KEYSPACE #{row['keyspace_name']}")
       end
+
       nil
     end
 
