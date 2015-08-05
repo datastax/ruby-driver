@@ -426,7 +426,7 @@ module CCM extend self
       end
 
       puts "creating session"
-      @session = @cluster.connect
+      @session = @cluster.connect(consistency: :all)
 
       until @cluster.hosts.all?(&:up?)
         puts "not all hosts are up yet, retrying in 1s..."
