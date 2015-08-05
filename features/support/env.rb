@@ -2,7 +2,7 @@
 
 require 'bundler/setup'
 
-require File.dirname(__FILE__) + '/../support/retry.rb'
+require File.dirname(__FILE__) + '/../../support/retry.rb'
 require File.dirname(__FILE__) + '/../../support/ccm.rb'
 
 unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
