@@ -59,7 +59,7 @@ class SerialConsistencyTest < IntegrationTestCase
 
       # Simple statement
       result = session.execute("UPDATE users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = 0 IF first = 'John'",
-                              serial_consistency: :serial)
+                              serial_consistency: :serial, consistency: :all)
       assert_equal :serial, result.execution_info.options.serial_consistency
 
       result  = session.execute("SELECT * FROM users WHERE user_id = 0").first
@@ -67,7 +67,7 @@ class SerialConsistencyTest < IntegrationTestCase
 
       # Prepared statement
       update = session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'")
-      result = session.execute(update, arguments: [0], serial_consistency: :serial)
+      result = session.execute(update, arguments: [0], serial_consistency: :serial, consistency: :all)
       assert_equal :serial, result.execution_info.options.serial_consistency
 
       select = session.prepare("SELECT * FROM users WHERE user_id = ?")
@@ -102,7 +102,7 @@ class SerialConsistencyTest < IntegrationTestCase
 
       # Simple statement
       result = session.execute("UPDATE users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = 0 IF first = 'John'",
-                               serial_consistency: :local_serial)
+                               serial_consistency: :local_serial, consistency: :all)
       assert_equal :local_serial, result.execution_info.options.serial_consistency
 
       result  = session.execute("SELECT * FROM users WHERE user_id = 0").first
@@ -110,7 +110,7 @@ class SerialConsistencyTest < IntegrationTestCase
 
       # Prepared statement
       update = session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'")
-      result = session.execute(update, arguments: [0], serial_consistency: :local_serial)
+      result = session.execute(update, arguments: [0], serial_consistency: :local_serial, consistency: :all)
       assert_equal :local_serial, result.execution_info.options.serial_consistency
 
       select = session.prepare("SELECT * FROM users WHERE user_id = ?")
@@ -195,7 +195,7 @@ class SerialConsistencyTest < IntegrationTestCase
       simple_batch = session.batch do |b|
         b.add("UPDATE users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = 0 IF first = 'John'")
       end
-      result = session.execute(simple_batch, serial_consistency: :serial)
+      result = session.execute(simple_batch, serial_consistency: :serial, consistency: :all)
       assert_equal :serial, result.execution_info.options.serial_consistency
 
       sleep(1) # sleep is needed here for batch to propagate across the schema
@@ -207,7 +207,7 @@ class SerialConsistencyTest < IntegrationTestCase
       prepared_batch = session.batch do |b|
         b.add(update, [0])
       end
-      result = session.execute(prepared_batch, serial_consistency: :serial)
+      result = session.execute(prepared_batch, serial_consistency: :serial, consistency: :all)
       assert_equal :serial, result.execution_info.options.serial_consistency
 
       sleep(1)
@@ -217,7 +217,7 @@ class SerialConsistencyTest < IntegrationTestCase
 
       ## local_serial serial_consistency
       # Simple statements
-      result = session.execute(simple_batch, serial_consistency: :local_serial)
+      result = session.execute(simple_batch, serial_consistency: :local_serial, consistency: :all)
       assert_equal :local_serial, result.execution_info.options.serial_consistency
 
       sleep(1)
@@ -225,7 +225,7 @@ class SerialConsistencyTest < IntegrationTestCase
       assert_equal({"user_id"=>0, "age"=>41, "first"=>"Joss", "last"=>"Fillion"}, result)
 
       # Prepared statements
-      result = session.execute(prepared_batch, serial_consistency: :local_serial)
+      result = session.execute(prepared_batch, serial_consistency: :local_serial, consistency: :all)
       assert_equal :local_serial, result.execution_info.options.serial_consistency
 
       sleep(1)
