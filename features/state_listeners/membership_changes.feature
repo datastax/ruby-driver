@@ -51,7 +51,6 @@ Feature: membership change detection
   Scenario: some existing hosts are terminated
     When node 3 stops
     And node 2 stops
-    And I wait for its output to contain "Host 127.0.0.3 is down"
     And I close the stdin stream
     Then its output should contain:
       """
@@ -65,7 +64,6 @@ Feature: membership change detection
   Scenario: a new host joins and then leaves the cluster
     When node 4 joins
     And node 4 leaves
-    And I wait for its output to contain "Host 127.0.0.4 is lost"
     And I close the stdin stream
     Then its output should contain:
       """
