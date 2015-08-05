@@ -381,7 +381,7 @@ module CCM extend self
 
       nodes.each(&:up!)
 
-      options = {:logger => logger, :consistency => :one}
+      options = {:logger => logger, :consistency => :all}
 
       if @username && @password
         options[:username] = @username
@@ -426,7 +426,7 @@ module CCM extend self
       end
 
       puts "creating session"
-      @session = @cluster.connect(consistency: :all)
+      @session = @cluster.connect
 
       until @cluster.hosts.all?(&:up?)
         puts "not all hosts are up yet, retrying in 1s..."
