@@ -57,6 +57,9 @@ module Cassandra
     #   initial request.
     # @option options [Array, Hash] :arguments (nil) positional or named
     #   arguments for the statement.
+    # @option options [Array, Hash] :type_hints (nil) override Util.guess_type to
+    #   determine the CQL type for an argument; nil elements will fall-back
+    #   to Util.guess_type.
     #
     # @see Cassandra.cluster Options that can be specified on the cluster-level
     #   and their default values.
@@ -80,7 +83,7 @@ module Cassandra
 
       case statement
       when ::String
-        @client.query(Statements::Simple.new(statement, options.arguments), options)
+        @client.query(Statements::Simple.new(statement, options.arguments, options.type_hints), options)
       when Statements::Simple
         @client.query(statement, options)
       when Statements::Prepared

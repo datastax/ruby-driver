@@ -34,7 +34,7 @@ module Cassandra
             promise   = double('promise')
             statement = double('simple statement')
 
-            expect(Statements::Simple).to receive(:new).once.with(cql, EMPTY_LIST).and_return(statement)
+            expect(Statements::Simple).to receive(:new).once.with(cql, EMPTY_LIST, EMPTY_LIST).and_return(statement)
             expect(client).to receive(:query).once.with(statement, session_options).and_return(promise)
             expect(session.execute_async(cql)).to eq(promise)
           end
@@ -47,9 +47,22 @@ module Cassandra
             promise   = double('promise')
             statement = double('simple statement')
 
-            expect(Statements::Simple).to receive(:new).once.with(cql, [1]).and_return(statement)
+            expect(Statements::Simple).to receive(:new).once.with(cql, [1], []).and_return(statement)
             expect(client).to receive(:query).once.with(statement, session_options.override(arguments: [1])).and_return(promise)
             expect(session.execute_async(cql, arguments: [1])).to eq(promise)
+          end
+        end
+
+        context 'with arguments and type_hints' do
+          let(:cql) { 'SELECT * FROM songs WHERE id = ?' }
+
+          it 'sends query with a simple statement with parameters and type hints' do
+            promise   = double('promise')
+            statement = double('simple statement')
+
+            expect(Statements::Simple).to receive(:new).once.with(cql, [1], [:int]).and_return(statement)
+            expect(client).to receive(:query).once.with(statement, session_options.override(arguments: [1], type_hints: [:int])).and_return(promise)
+            expect(session.execute_async(cql, arguments: [1], type_hints: [:int])).to eq(promise)
           end
         end
 
@@ -61,7 +74,7 @@ module Cassandra
             promise   = double('promise')
             statement = double('simple statement')
 
-            expect(Statements::Simple).to receive(:new).once.with(cql, EMPTY_LIST).and_return(statement)
+            expect(Statements::Simple).to receive(:new).once.with(cql, EMPTY_LIST, EMPTY_LIST).and_return(statement)
             expect(client).to receive(:query).once.with(statement, session_options.override(options)).and_return(promise)
             expect(session.execute_async(cql, options)).to eq(promise)
           end

@@ -32,6 +32,8 @@ module Cassandra
       attr_reader :timeout
       # @return [Array] positional arguments for the statement
       attr_reader :arguments
+      # @return [Array] type hints for positional arguments for the statement
+      attr_reader :type_hints
 
       # @return [String] paging state
       #
@@ -56,6 +58,7 @@ module Cassandra
         serial_consistency = options[:serial_consistency]
         paging_state       = options[:paging_state]
         arguments          = options[:arguments]
+        type_hints         = options[:type_hints]
 
         Util.assert_one_of(CONSISTENCIES, consistency) { ":consistency must be one of #{CONSISTENCIES.inspect}, #{consistency.inspect} given" }
 
@@ -85,6 +88,12 @@ module Cassandra
           Util.assert_instance_of_one_of([::Array, ::Hash], arguments) { ":arguments must be an Array or a Hash, #{arguments.inspect} given" }
         end
 
+        if type_hints.nil?
+          type_hints = EMPTY_LIST
+        else
+          Util.assert_instance_of_one_of([::Array, ::Hash], type_hints) { ":type_hints must be an Array or a Hash, #{type_hints.inspect} given" }
+        end
+
         @consistency        = consistency
         @page_size          = page_size
         @trace              = !!trace
@@ -92,6 +101,7 @@ module Cassandra
         @serial_consistency = serial_consistency
         @paging_state       = paging_state
         @arguments          = arguments
+        @type_hints         = type_hints
       end
 
       # @return [Boolean] whether request tracing was enabled
@@ -107,7 +117,8 @@ module Cassandra
           other.timeout == @timeout &&
           other.serial_consistency == @serial_consistency &&
           other.paging_state == @paging_state &&
-          other.arguments == @arguments
+          other.arguments == @arguments &&
+          other.type_hints == @type_hints
       end
       alias :== :eql?
 
@@ -130,7 +141,8 @@ module Cassandra
           :trace              => @trace,
           :timeout            => @timeout,
           :serial_consistency => @serial_consistency,
-          :arguments          => @arguments || EMPTY_LIST
+          :arguments          => @arguments || EMPTY_LIST,
+          :type_hints         => @type_hints || EMPTY_LIST
         }
       end
     end

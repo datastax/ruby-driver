@@ -33,7 +33,10 @@ module Cassandra
       attr_reader :params_names
 
       # @param cql [String] a cql statement
-      # @param params [Array] (nil) positional arguments for the query
+      # @param params [Array, Hash] (nil) positional or named arguments
+      #   for the query
+      # @param type_hints [Array, Hash] (nil) positional or named types
+      #   to override type guessing for the query
       #
       # @note Positional arguments for simple statements are only supported
       #   starting with Apache Cassandra 2.0 and above.
@@ -42,10 +45,11 @@ module Cassandra
       #   starting with Apache Cassandra 2.1 and above.
       #
       # @raise [ArgumentError] if cql statement given is not a String
-      def initialize(cql, params = nil)
+      def initialize(cql, params = nil, type_hints = nil)
         Util.assert_instance_of(::String, cql) { "cql must be a string, #{cql.inspect} given" }
 
         params ||= EMPTY_LIST
+
 
         if params.is_a?(::Hash)
           params_names = []
@@ -53,14 +57,25 @@ module Cassandra
             params_names << name
             params       << value
           end
+          if type_hints && !type_hints.empty?
+            Util.assert_instance_of(::Hash, type_hints) { "type_hints must be a Hash when using named params" }
+          end
         else
           Util.assert_instance_of(::Array, params) { "params must be an Array or a Hash, #{params.inspect} given" }
           params_names = EMPTY_LIST
         end
 
+        type_hints ||= EMPTY_LIST
+
+        if type_hints.is_a?(::Hash)
+          type_hints = params_names.map {|name| type_hints[name] }
+        else
+          Util.assert_instance_of(::Array, type_hints) { "type_hints must be an Array or a Hash, #{type_hints.inspect} given" }
+        end
+
         @cql          = cql
         @params       = params
-        @params_types = params.map {|value| Util.guess_type(value)}
+        @params_types = params.each_with_index.map {|value, index| (!type_hints.empty? && type_hints[index] && type_hints[index].is_a?(Type)) ? type_hints[index] : Util.guess_type(value)}
         @params_names = params_names
       end
 

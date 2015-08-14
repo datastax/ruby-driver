@@ -1,3 +1,9 @@
+# HEAD
+
+Features:
+
+* Add support for `type_hints` to override type-guessing for non-prepared statements.
+
 # 2.1.4
 
 Features:
