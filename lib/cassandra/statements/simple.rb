@@ -75,7 +75,7 @@ module Cassandra
 
         @cql          = cql
         @params       = params
-        @params_types = params.each_with_index.map {|value, index| (!type_hints.empty? && type_hints[index]) ? Types::Simple.new(type_hints[index]) : Util.guess_type(value)}
+        @params_types = params.each_with_index.map {|value, index| (!type_hints.empty? && type_hints[index] && type_hints[index].is_a?(Type)) ? type_hints[index] : Util.guess_type(value)}
         @params_names = params_names
       end
 
