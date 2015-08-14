@@ -63,6 +63,8 @@ module Cassandra
       # @param args [Array, Hash] (nil) positional or named arguments to bind,
       #   must contain the same number of parameters as the number of positional
       #   (`?`) or named (`:name`) markers in the CQL passed.
+      # @param type_hints [Array, Hash] (nil) specified CQL types for positional
+      #   or named arguments to override type guessing.
       #
       # @note Positional arguments for simple statements are only supported
       #   starting with Apache Cassandra 2.0 and above.
@@ -71,12 +73,13 @@ module Cassandra
       #   starting with Apache Cassandra 2.1 and above.
       #
       # @return [self]
-      def add(statement, args = nil)
+      def add(statement, args = nil, type_hints = nil)
         args ||= EMPTY_LIST
+        type_hints ||= EMPTY_LIST
 
         case statement
         when String
-          @statements << Simple.new(statement, args)
+          @statements << Simple.new(statement, args, type_hints)
         when Prepared
           @statements << statement.bind(args)
         when Bound, Simple

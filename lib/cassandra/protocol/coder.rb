@@ -433,7 +433,7 @@ module Cassandra
         when 0x0020 then Types.list(read_type_v1(buffer))
         when 0x0021 then Types.map(read_type_v1(buffer), read_type_v1(buffer))
         when 0x0022 then Types.set(read_type_v1(buffer))
-        else 
+        else
           raise Errors::DecodingError, %(Unsupported column type: #{kind})
         end
       end
