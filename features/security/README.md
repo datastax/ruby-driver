@@ -188,7 +188,7 @@ cnode_alias=driver
 cstore_pass="some very long and secure password"
 
 keytool -genkeypair -noprompt \
-  -keyalg RSA
+  -keyalg RSA \
   -validity 36500 \
   -alias "$cnode_alias" \
   -keystore "$cnode_alias.keystore" \
