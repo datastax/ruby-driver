@@ -1,0 +1,47 @@
+---
+- - vital
+  - devices
+  - deviceid
+  - &3 !ruby/object:Cassandra::Types::Simple
+    kind: :uuid
+- - vital
+  - devices
+  - created
+  - &2 !ruby/object:Cassandra::Types::Simple
+    kind: :timestamp
+- - vital
+  - devices
+  - enable
+  - &1 !ruby/object:Cassandra::Types::Simple
+    kind: :varchar
+- - vital
+  - devices
+  - lastaction
+  - *1
+- - vital
+  - devices
+  - modified
+  - *2
+- - vital
+  - devices
+  - policyid
+  - *3
+- - vital
+  - devices
+  - results
+  - !ruby/object:Cassandra::Types::Map
+    key_type: *3
+    value_type: *1
+- - vital
+  - devices
+  - risk
+  - !ruby/object:Cassandra::Types::Simple
+    kind: :int
+- - vital
+  - devices
+  - sso
+  - *1
+- - vital
+  - devices
+  - validuntil
+  - *2
