@@ -17,7 +17,7 @@
 #++
 
 require 'spec_helper'
-
+require 'yaml'
 
 module Cassandra
   module Protocol
@@ -33,6 +33,15 @@ module Cassandra
           original_int = (original.to_r.to_f * 1000).to_i
 
           expect(decoded_int).to eq(original_int)
+        end
+      end
+
+      describe('RUBY-128') do
+        it 'reads very large short strings and string' do
+          column_specs = YAML::load(File.open(File.dirname(__FILE__) + "/cols.yml"))
+          buffer       = YAML::load(File.open(File.dirname(__FILE__) + "/buffer.yml"))
+
+          Coder.read_values_v1(buffer, column_specs)
         end
       end
     end

@@ -139,9 +139,7 @@ module Cassandra
       end
 
       def read_short_bytes
-        size = read_unsigned_short
-        return nil if size & 0x8000 == 0x8000
-        read(size)
+        read(read_unsigned_short)
       rescue RangeError => e
         raise Errors::DecodingError, "Not enough bytes available to decode a short bytes: #{e.message}", e.backtrace
       end
