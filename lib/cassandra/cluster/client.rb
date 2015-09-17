@@ -97,7 +97,7 @@ module Cassandra
 
             if failed_connections.size == connections.size
               errors = {}
-              connections.each {|c| errors[c.host] = c.error}
+              connections.each {|c| errors[c.host] = c.error unless c.error.nil?}
               raise Errors::NoHostsAvailable.new(errors)
             else
               failed_connections.each do |f|
