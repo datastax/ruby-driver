@@ -376,13 +376,8 @@ module Cassandra
         end
 
         it 'decodes an empty byte array' do
-          buffer = described_class.new("\x00\x00\x00\x00")
+          buffer = described_class.new("\x00\x00")
           buffer.read_short_bytes.should be_empty
-        end
-
-        it 'decodes null' do
-          buffer = described_class.new("\x80\x00")
-          buffer.read_short_bytes.should be_nil
         end
 
         it 'consumes the bytes' do
