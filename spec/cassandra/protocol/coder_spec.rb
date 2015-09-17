@@ -38,8 +38,8 @@ module Cassandra
 
       describe('RUBY-128') do
         it 'reads very large short strings and string' do
-          column_specs = ::YAML::load(File.open("cols.yml")) 
-          buffer       = ::YAML::load(File.open("buffer.yml")) 
+          column_specs = YAML::load(File.open(File.dirname(__FILE__) + "/cols.yml"))
+          buffer       = YAML::load(File.open(File.dirname(__FILE__) + "/buffer.yml"))
 
           Coder.read_values_v1(buffer, column_specs)
         end
