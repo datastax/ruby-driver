@@ -59,7 +59,7 @@ module Cassandra
     #   subclasses of this class, but need to implement the same methods. This
     #   class exists only for documentation purposes.
     #
-    # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L257-L273 Cassandra native protocol v2 SASL authentication
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v2.spec#L257-L273 Cassandra native protocol v2 SASL authentication
     # @see Cassandra::Auth::Provider#create_authenticator
     class Authenticator
       # @!method initial_response

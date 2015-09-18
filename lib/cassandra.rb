@@ -47,7 +47,7 @@ module Cassandra
   # A list of all possible write types that a
   # {Cassandra::Errors::WriteTimeoutError} can have.
   #
-  # @see https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L591-L603 Description of possible types of writes in Apache Cassandra native protocol spec v1
+  # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v2.spec#L872-L887 Description of possible types of writes in Apache Cassandra native protocol spec v1
   WRITE_TYPES = [:simple, :batch, :unlogged_batch, :counter, :batch_log].freeze
 
   # Creates a {Cassandra::Cluster Cluster instance}.
@@ -176,9 +176,9 @@ module Cassandra
   # @option options [Integer] :page_size (10000) default page size for all
   #   select queries. Set this value to `nil` to disable paging.
   #
-  # @option options [Hash{String => String}] :credentials (none) a hash of credentials - to be used with [credentials authentication in cassandra 1.2](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v1.spec#L238-L250). Note that if you specified `:username` and `:password` options, those credentials are configured automatically.
+  # @option options [Hash{String => String}] :credentials (none) a hash of credentials - to be used with [credentials authentication in cassandra 1.2](https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L238-L250). Note that if you specified `:username` and `:password` options, those credentials are configured automatically.
   #
-  # @option options [Cassandra::Auth::Provider] :auth_provider (none) a custom auth provider to be used with [SASL authentication in cassandra 2.0](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L257-L273). Note that if you have specified `:username` and `:password`, then a {Cassandra::Auth::Providers::Password Password Provider} will be used automatically.
+  # @option options [Cassandra::Auth::Provider] :auth_provider (none) a custom auth provider to be used with [SASL authentication in cassandra 2.0](https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v2.spec#L257-L273). Note that if you have specified `:username` and `:password`, then a {Cassandra::Auth::Providers::Password Password Provider} will be used automatically.
   #
   # @option options [Cassandra::Compression::Compressor] :compressor (none) a
   #   custom compressor. Note that if you have specified `:compression`, an
