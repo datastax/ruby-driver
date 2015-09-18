@@ -1,8 +1,12 @@
-# HEAD
+# 2.1.5
 
 Features:
 
 * Add support for `type_hints` to override type-guessing for non-prepared statements.
+
+Bug Fixes:
+
+* [RUBY-128] Fix decoding of large values in maps, sets and lists.
 
 # 2.1.4
 
