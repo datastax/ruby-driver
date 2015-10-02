@@ -565,8 +565,12 @@ module Cassandra
               total_wait = 0
               @waiting += 1
               while @state == :pending
-                break if timeout && total_wait >= timeout
-                total_wait += @cond.wait(@lock, timeout)
+                if timeout
+                  break if total_wait >= timeout
+                  total_wait += @cond.wait(@lock, timeout - total_wait)
+                else
+                  @cond.wait(@lock)
+                end
               end
               @waiting -= 1
 
