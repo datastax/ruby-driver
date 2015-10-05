@@ -49,6 +49,8 @@ if __name__ == "__main__":
             except:
                 pass
 
+    sys.stdout.write('\x00');
+
     while True:
         size = unpack('H', sys.stdin.read(2))[0]
         args = yaml.safe_load(sys.stdin.read(size))

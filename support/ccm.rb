@@ -105,11 +105,10 @@ module CCM extend self
         @env         = env
         @notifier    = notifier
         @python_path = Cliver.detect!('python', '~> 2.7', detector: /(?<=Python )[0-9][.0-9a-z]+/)
+        start
       end
 
       def exec(*args)
-        start_ccm_helper
-
         cmd = args.dup.unshift('ccm').join(' ')
         out = ''
         done = false
@@ -122,14 +121,8 @@ module CCM extend self
           output = @stdout.read rescue ''
           @notifier.command_output(@pid, output) unless output.empty?
 
-          @stdin.close
-          @stdout.close
-          Process.waitpid(@pid)
-
-          @notifier.executed_command(cmd, @pid, $?)
-          @stdin  = nil
-          @stdout = nil
-          @pid    = nil
+          stop
+          start
 
           raise
         end
@@ -146,14 +139,8 @@ module CCM extend self
               @notifier.command_output(@pid, chunk) unless chunk.empty?
             rescue IO::WaitReadable
             rescue EOFError
-              @stdin.close
-              @stdout.close
-              Process.waitpid(@pid)
-
-              @notifier.executed_command(cmd, @pid, $?)
-              @stdin  = nil
-              @stdout = nil
-              @pid    = nil
+              stop
+              start
 
               raise "#{cmd} failed"
             end
@@ -167,7 +154,7 @@ module CCM extend self
 
       private
 
-      def start_ccm_helper
+      def start
         return if @stdin && @stdout && @pid
 
         in_r, @stdin = IO.pipe
@@ -184,8 +171,21 @@ module CCM extend self
           }
         )
 
+        @stdout.read(1)
+
         in_r.close
         out_w.close
+      end
+
+      def stop
+        @stdin.close
+        @stdout.close
+        Process.waitpid(@pid)
+
+        @notifier.executed_command(cmd, @pid, $?)
+        @stdin  = nil
+        @stdout = nil
+        @pid    = nil
       end
 
       def encode(args)
@@ -328,18 +328,21 @@ module CCM extend self
       @datacenters = datacenters
       @keyspaces   = keyspaces
 
-      @nodes = (1..nodes_count).map do |i|
-        Node.new("node#{i}", 'DOWN', self)
+      @nodes = []
+
+      (1..nodes_count).each do |i|
+        @nodes << Node.new("node#{i}", 'DOWN', self)
       end if nodes_count
+
       @blocked = ::Set.new
     end
 
     def running?
-      nodes.any?(&:up?)
+      @nodes.any?(&:up?)
     end
 
     def stop
-      return if nodes.all?(&:down?)
+      return if @nodes.all?(&:down?)
 
       if @cluster
         @cluster.close
@@ -347,39 +350,18 @@ module CCM extend self
       end
 
       @ccm.exec('stop')
-      nodes.each(&:down!)
+      refresh_status
 
       nil
     end
 
     def start
-      return if @cluster && nodes.all?(&:up?) && @cluster.hosts.select(&:up?).count == nodes.size
-
       if @cluster
+        return if @nodes.all?(&:up?) && @cluster.hosts.select(&:up?).count == @nodes.size
+
         @cluster.close
         @cluster = @session = nil
       end
-
-      attempts = 1
-
-      begin
-        @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
-      rescue => e
-        @ccm.exec('stop') rescue nil
-        %x{pkill -9 -f .ccm}
-
-        if attempts >= 10
-          raise e
-        else
-          wait = attempts * 0.4
-          puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
-          attempts += 1
-          sleep(wait)
-          retry
-        end
-      end
-
-      nodes.each(&:up!)
 
       options = {:logger => logger, :consistency => :one}
 
@@ -404,34 +386,48 @@ module CCM extend self
         options[:passphrase] = @passphrase
       end
 
-      attempts = 1
+      until @nodes.all?(&:up?) && @cluster && @cluster.hosts.select(&:up?).count == @nodes.size
+        attempts = 1
 
-      begin
-        @cluster = Cassandra.cluster(options)
-      rescue => e
-        if attempts >= 10
-          raise e
-        else
+        begin
+          @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
+          refresh_status
+        rescue => e
+          @ccm.exec('stop') rescue nil
+
+          raise e if attempts >= 20
+
           wait = attempts * 0.4
           puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
           attempts += 1
           sleep(wait)
           retry
         end
-      end
 
-      until @cluster.hosts.all?(&:up?)
-        puts "not all hosts are up yet, retrying in 1s..."
-        sleep(1)
+        attempts = 1
+
+        begin
+          @cluster = Cassandra.cluster(options)
+        rescue => e
+          refresh_status
+          next unless @nodes.all?(&:up?)
+          raise e if attempts >= 20
+
+          wait = attempts * 0.4
+          puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
+          attempts += 1
+          sleep(wait)
+          retry
+        end
+
+        until @cluster.hosts.all?(&:up?)
+          puts "not all hosts are up yet, retrying in 1s..."
+          sleep(1)
+        end
       end
 
       puts "creating session"
       @session = @cluster.connect
-
-      until @cluster.hosts.all?(&:up?)
-        puts "not all hosts are up yet, retrying in 1s..."
-        sleep(1)
-      end
 
       nil
     end
@@ -442,7 +438,7 @@ module CCM extend self
     end
 
     def start_node(name)
-      node = nodes.find {|n| n.name == name}
+      node = @nodes.find {|n| n.name == name}
       return if node.nil? || node.up?
 
       attempts = 1
@@ -452,7 +448,7 @@ module CCM extend self
       rescue => e
         @ccm.exec(node.name, 'stop') rescue nil
 
-        if attempts >= 10
+        if attempts >= 20
           raise e
         else
           wait = attempts * 0.4
@@ -475,7 +471,7 @@ module CCM extend self
     end
 
     def stop_node(name)
-      node = nodes.find {|n| n.name == name}
+      node = @nodes.find {|n| n.name == name}
       return if node.nil? || node.down?
       @ccm.exec(node.name, 'stop')
       node.down!
@@ -484,18 +480,18 @@ module CCM extend self
     end
 
     def remove_node(name)
-      node = nodes.find {|n| n.name == name}
+      node = @nodes.find {|n| n.name == name}
       return if node.nil?
       @ccm.exec(node.name, 'stop')
       @ccm.exec(node.name, 'remove')
       node.down!
-      nodes.delete(node)
+      @nodes.delete(node)
 
       nil
     end
 
     def decommission_node(name)
-      node = nodes.find {|n| n.name == name}
+      node = @nodes.find {|n| n.name == name}
       return if node.nil?
       @ccm.exec(node.name, 'decommission')
 
@@ -503,18 +499,18 @@ module CCM extend self
     end
 
     def add_node(name)
-      return if nodes.any? {|n| n.name == name}
+      return if @nodes.any? {|n| n.name == name}
 
       i = name.sub('node', '')
 
       @ccm.exec('add', '-b', "-t 127.0.0.#{i}:9160", "-l 127.0.0.#{i}:7000", "--binary-itf=127.0.0.#{i}:9042", name)
-      nodes << Node.new(name, 'DOWN', self)
+      @nodes << Node.new(name, 'DOWN', self)
 
       nil
     end
 
     def block_node(name)
-      node = nodes.find {|n| n.name == name}
+      node = @nodes.find {|n| n.name == name}
       return if node.nil?
       return if @blocked.include?(name)
 
@@ -525,14 +521,14 @@ module CCM extend self
     end
 
     def block_nodes
-      nodes.each do |node|
+      @nodes.each do |node|
         block_node(node.name)
       end
     end
 
     def unblock_nodes
       @blocked.each do |name|
-        node = nodes.find {|n| n.name == name}
+        node = @nodes.find {|n| n.name == name}
         return if node.nil?
 
         @ccm.exec(node.name, 'resume')
@@ -549,7 +545,7 @@ module CCM extend self
     end
 
     def nodes_count
-      nodes.size
+      @nodes.size
     end
 
     def enable_authentication
@@ -644,18 +640,30 @@ module CCM extend self
 
     private
 
-    def nodes
-      @nodes ||= begin
-        nodes = []
-        @ccm.exec('status').each_line do |line|
-          line.strip!
-          next if line.start_with?('Cluster: ')
-          name, status = line.split(": ")
-          next if status.nil?
-          nodes << Node.new(name, status, self)
+    def refresh_status
+      seen = ::Set.new
+      @ccm.exec('status').each_line do |line|
+        line.strip!
+        next if line.start_with?('Cluster: ')
+        name, status = line.split(": ")
+        next if status.nil?
+        node = @nodes.find {|n| n.name == name}
+
+        if node
+          if status == 'UP'
+            node.up!
+          else
+            node.down!
+          end
+        else
+          @nodes << node = Node.new(name, status, self)
         end
-        nodes
+
+        seen << node
       end
+
+      @nodes.select! {|n| seen.include?(n)}
+      nil
     end
 
     def logger
@@ -709,16 +717,12 @@ module CCM extend self
 
   def ccm
     @ccm ||= begin
-      Runner.new(
-        ccm_script,
-        {
-          'HOME'              => ccm_home,
-          'CCM_MAX_HEAP_SIZE' => '64M',
-          'CCM_HEAP_NEWSIZE'  => '16M',
-          'MALLOC_ARENA_MAX'  => '1'
-        },
-        PrintingNotifier.new($stderr)
-      )
+      Runner.new(ccm_script, {
+                 'HOME'              => ccm_home,
+                 'CCM_MAX_HEAP_SIZE' => '64M',
+                 'CCM_HEAP_NEWSIZE'  => '16M',
+                 'MALLOC_ARENA_MAX'  => '1'},
+                 PrintingNotifier.new($stderr))
     end
   end
 
