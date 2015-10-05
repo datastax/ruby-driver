@@ -480,7 +480,7 @@ module Cassandra
 
       def initialize(executor)
         @lock      = ::Mutex.new
-        @cond      = Concurrency::ConditionVariable.new
+        @cond      = ::ConditionVariable.new
         @executor  = executor
         @state     = :pending
         @waiting   = 0
@@ -567,7 +567,9 @@ module Cassandra
               while @state == :pending
                 if timeout
                   break if total_wait >= timeout
-                  total_wait += @cond.wait(@lock, timeout - total_wait)
+                  start = ::Time.now
+                  @cond.wait(@lock, timeout - total_wait)
+                  total_wait += (::Time.now - start)
                 else
                   @cond.wait(@lock)
                 end
