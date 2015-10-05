@@ -478,9 +478,12 @@ module Cassandra
         end
       end
 
+      include MonitorMixin
+
       def initialize(executor)
-        @lock      = ::Mutex.new
-        @cond      = ::ConditionVariable.new
+        mon_initialize
+
+        @cond      = new_cond
         @executor  = executor
         @state     = :pending
         @waiting   = 0
@@ -498,7 +501,7 @@ module Cassandra
 
         listeners = nil
 
-        @lock.synchronize do
+        synchronize do
           return unless @state == :pending
 
           @error = error
@@ -512,7 +515,7 @@ module Cassandra
             listener.failure(error) rescue nil
           end
 
-          @lock.synchronize do
+          synchronize do
             @cond.broadcast if @waiting > 0
           end
         end
@@ -525,7 +528,7 @@ module Cassandra
 
         listeners = nil
 
-        @lock.synchronize do
+        synchronize do
           return unless @state == :pending
 
           @value = value
@@ -539,7 +542,7 @@ module Cassandra
             listener.success(value) rescue nil
           end
 
-          @lock.synchronize do
+          synchronize do
             @cond.broadcast if @waiting > 0
           end
         end
@@ -568,16 +571,16 @@ module Cassandra
         end
 
         if @state == :pending
-          @lock.synchronize do
+          synchronize do
             if @state == :pending
               @waiting += 1
               while @state == :pending
                 if deadline
-                  @cond.wait(@lock, deadline - now)
+                  @cond.wait(deadline - now)
                   now = ::Time.now
                   break if now >= deadline
                 else
-                  @cond.wait(@lock)
+                  @cond.wait
                 end
               end
               @waiting -= 1
@@ -601,7 +604,7 @@ module Cassandra
 
       def add_listener(listener)
         if @state == :pending
-          @lock.synchronize do
+          synchronize do
             if @state == :pending
               @listeners << listener
 
@@ -618,7 +621,7 @@ module Cassandra
 
       def on_success(&block)
         if @state == :pending
-          @lock.synchronize do
+          synchronize do
             if @state == :pending
               @listeners << Listeners::Success.new(&block)
               return self
@@ -633,7 +636,7 @@ module Cassandra
 
       def on_failure(&block)
         if @state == :pending
-          @lock.synchronize do
+          synchronize do
             if @state == :pending
               @listeners << Listeners::Failure.new(&block)
               return self
@@ -648,7 +651,7 @@ module Cassandra
 
       def on_complete(&block)
         if @state == :pending
-          @lock.synchronize do
+          synchronize do
             if @state == :pending
               @listeners << Listeners::Complete.new(&block)
               return self
@@ -663,7 +666,7 @@ module Cassandra
 
       def then(&block)
         if @state == :pending
-          @lock.synchronize do
+          synchronize do
             if @state == :pending
               promise  = Promise.new(@executor)
               listener = Listeners::Then.new(promise, &block)
@@ -686,7 +689,7 @@ module Cassandra
 
       def fallback(&block)
         if @state == :pending
-          @lock.synchronize do
+          synchronize do
             if @state == :pending
               promise  = Promise.new(@executor)
               listener = Listeners::Fallback.new(promise, &block)
