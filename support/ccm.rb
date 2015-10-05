@@ -639,7 +639,7 @@ module CCM extend self
         @session.execute("SELECT keyspace_name FROM system.schema_keyspaces").each do |row|
           next if row['keyspace_name'].start_with?('system')
 
-          @session.execute("DROP KEYSPACE #{row['keyspace_name']}")
+          Retry.with_attempts(5) { @session.execute("DROP KEYSPACE #{row['keyspace_name']}") }
         end
       rescue Cassandra::Errors::ServerError => e
         puts "#{e.class.name}: #{e.message}, retrying..."
