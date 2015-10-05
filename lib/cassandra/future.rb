@@ -551,6 +551,7 @@ module Cassandra
       #   current thread for while waiting for this future to resolve. Will
       #   wait indefinitely if passed `nil`.
       #
+      # @raise [ArgumentError] raised when a negative timeout is given
       # @raise [Errors::TimeoutError] raised when wait time exceeds the timeout
       # @raise [Exception] raises when the future has been resolved with an
       #   error. The original exception will be raised.
@@ -559,17 +560,22 @@ module Cassandra
       def get(timeout = nil)
         timeout = timeout && Float(timeout)
 
+        if timeout
+          raise ::ArgumentError, "timeout cannot be negative, #{timeout.inspect} given" if timeout < 0
+
+          now      = ::Time.now
+          deadline = now + timeout
+        end
+
         if @state == :pending
           @lock.synchronize do
             if @state == :pending
-              total_wait = 0
               @waiting += 1
               while @state == :pending
-                if timeout
-                  break if total_wait >= timeout
-                  start = ::Time.now
-                  @cond.wait(@lock, timeout - total_wait)
-                  total_wait += (::Time.now - start)
+                if deadline
+                  @cond.wait(@lock, deadline - now)
+                  now = ::Time.now
+                  break if now >= deadline
                 else
                   @cond.wait(@lock)
                 end
@@ -577,6 +583,7 @@ module Cassandra
               @waiting -= 1
 
               if @state == :pending
+                total_wait = deadline - now
                 raise Errors::TimeoutError, "Future did not complete within #{timeout.inspect} seconds. Wait time: #{total_wait.inspect}"
               end
             end
