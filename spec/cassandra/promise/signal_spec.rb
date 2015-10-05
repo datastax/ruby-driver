@@ -123,11 +123,11 @@ module Cassandra
           it 'raises when times out' do
             value    = double('some value')
             resolved = false
-            Thread.new { sleep(2); signal.success(value); resolved = true }
+            Thread.new { sleep(0.02); signal.success(value); resolved = true }
             expect(resolved).to be_falsey
-            expect { signal.get(1) }.to raise_error(Errors::TimeoutError)
+            expect { signal.get(0) }.to raise_error(Errors::TimeoutError)
             expect(resolved).to be_falsey
-            expect(signal.get(1)).to eq(value)
+            expect(signal.get(0.03)).to eq(value)
           end
         end
       end
