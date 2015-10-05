@@ -584,12 +584,12 @@ module Cassandra
                 end
               end
               @waiting -= 1
-
-              if @state == :pending
-                total_wait = deadline - now
-                raise Errors::TimeoutError, "Future did not complete within #{timeout.inspect} seconds. Wait time: #{total_wait.inspect}"
-              end
             end
+          end
+
+          if @state == :pending
+            total_wait = deadline - now
+            raise Errors::TimeoutError, "Future did not complete within #{timeout.inspect} seconds. Wait time: #{total_wait.inspect}"
           end
         end
 
