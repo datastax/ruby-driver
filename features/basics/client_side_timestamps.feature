@@ -11,8 +11,7 @@ Feature: Client-side Timestamps
     Given a running cassandra cluster with schema:
     """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE users (
+      CREATE TABLE simplex.users (
         user_id BIGINT PRIMARY KEY,
         first VARCHAR,
         last VARCHAR,
@@ -28,18 +27,18 @@ Feature: Client-side Timestamps
       session = cluster.connect("simplex")
 
       # Insert in the present
-      session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)")
+      session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)", consistency: :all)
 
       # Set current time to the past, old client-side timestamp won't update the row
       Delorean.time_travel_to "1 minute ago" do
         # Simple statements
-        session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'Mary', 'Holler', 22)")
+        session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'Mary', 'Holler', 22)", consistency: :all)
         row = session.execute("SELECT * FROM users WHERE user_id = 0").first
         puts "#{row["first"]} #{row["last"]} / #{row["age"]}"
 
         # Prepared statements
         insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
-        session.execute(insert, arguments: [0, 'Jane', 'Smith', 30])
+        session.execute(insert, arguments: [0, 'Jane', 'Smith', 30], consistency: :all)
         row = session.execute("SELECT * FROM users WHERE user_id = 0").first
         puts "#{row["first"]} #{row["last"]} / #{row["age"]}"
 
@@ -47,7 +46,7 @@ Feature: Client-side Timestamps
         batch = session.batch do |b|
           b.add(insert, [0, 'Ruby', 'Driver', 2])
         end
-        session.execute(batch)
+        session.execute(batch, consistency: :all)
         row = session.execute("SELECT * FROM users WHERE user_id = 0").first
         puts "#{row["first"]} #{row["last"]} / #{row["age"]}"
       end

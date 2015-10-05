@@ -11,8 +11,7 @@ Feature: Request Execution Errors
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
       """
     And the following example:
       """ruby
@@ -165,11 +164,10 @@ Feature: Request Execution Errors
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-      USE simplex;
-      CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
-      INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
-      INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
-      INSERT INTO users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
       """
     And the following example:
       """ruby
@@ -209,8 +207,7 @@ Feature: Request Execution Errors
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
       """
     And the following example:
       """ruby
@@ -238,11 +235,10 @@ Feature: Request Execution Errors
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-      USE simplex;
-      CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
-      INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
-      INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
-      INSERT INTO users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
       """
     And the following example:
       """ruby
@@ -283,11 +279,10 @@ Feature: Request Execution Errors
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-      USE simplex;
-      CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
-      INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
-      INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
-      INSERT INTO users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
       """
     And the following example:
       """ruby
@@ -328,11 +323,10 @@ Feature: Request Execution Errors
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-      USE simplex;
-      CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
-      INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
-      INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
-      INSERT INTO users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
       """
     And the following example:
       """ruby
@@ -373,11 +367,10 @@ Feature: Request Execution Errors
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-      USE simplex;
-      CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
-      INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
-      INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
-      INSERT INTO users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
       """
     And the following example:
       """ruby

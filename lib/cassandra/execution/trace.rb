@@ -117,7 +117,16 @@ module Cassandra
         synchronize do
           return if @loaded
 
-          data = @client.query(Statements::Simple.new(SELECT_SESSION % @id), VOID_OPTIONS).get.first
+          attempt = 1
+          data    = @client.query(Statements::Simple.new(SELECT_SESSION % @id), VOID_OPTIONS).get.first
+
+          while data.nil? && attempt <= 5
+            sleep(attempt * 0.4)
+            data = @client.query(Statements::Simple.new(SELECT_SESSION % @id), VOID_OPTIONS).get.first
+            break if data
+            attempt += 1
+          end
+
           raise ::RuntimeError, "unable to load trace #{@id}" if data.nil?
 
           @coordinator = data['coordinator']

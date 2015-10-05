@@ -8,8 +8,7 @@ Feature: Fallthrough Retry Policy
     Given a running cassandra cluster with schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE songs (
+      CREATE TABLE simplex.songs (
         id uuid PRIMARY KEY,
         title text,
         album text,

@@ -620,7 +620,7 @@ module CCM extend self
       cql.strip!
       cql.chomp!(";")
       cql.split(";\n").each do |statement|
-        @session.execute(statement)
+        Retry.with_attempts(5) { @session.execute(statement) }
       end
 
       @session.execute("USE system")
@@ -635,6 +635,7 @@ module CCM extend self
 
         @session.execute("DROP KEYSPACE #{row['keyspace_name']}")
       end
+
       nil
     end
 
@@ -719,8 +720,8 @@ module CCM extend self
     @ccm ||= begin
       Runner.new(ccm_script, {
                  'HOME'              => ccm_home,
-                 'CCM_MAX_HEAP_SIZE' => '64M',
-                 'CCM_HEAP_NEWSIZE'  => '16M',
+                 'CCM_MAX_HEAP_SIZE' => '256M',
+                 'CCM_HEAP_NEWSIZE'  => '64M',
                  'MALLOC_ARENA_MAX'  => '1'},
                  PrintingNotifier.new($stderr))
     end

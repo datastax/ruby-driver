@@ -7,15 +7,14 @@ Feature: Batch statements
     Given a running cassandra cluster with schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE songs (
+      CREATE TABLE simplex.songs (
         id uuid PRIMARY KEY,
         title text,
         album text,
         artist text,
         tags set<text>
       );
-      CREATE TABLE cas_batch (k text, v int, PRIMARY KEY (k, v));
+      CREATE TABLE simplex.cas_batch (k text, v int, PRIMARY KEY (k, v));
       """
 
   @cassandra-version-specific @cassandra-version-2.0

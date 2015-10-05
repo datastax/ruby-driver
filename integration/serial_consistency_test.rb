@@ -59,19 +59,19 @@ class SerialConsistencyTest < IntegrationTestCase
 
       # Simple statement
       result = session.execute("UPDATE users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = 0 IF first = 'John'",
-                              serial_consistency: :serial)
+                              serial_consistency: :serial, consistency: :all)
       assert_equal :serial, result.execution_info.options.serial_consistency
 
       result  = session.execute("SELECT * FROM users WHERE user_id = 0").first
       assert_equal({"user_id"=>0, "age"=>41, "first"=>"Joss", "last"=>"Fillion"}, result)
 
       # Prepared statement
-      update = session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'")
-      result = session.execute(update, arguments: [0], serial_consistency: :serial)
+      update = Retry.with_attempts(5) { session.prepare("UPDATE simplex.users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
+      result = Retry.with_attempts(5) { session.execute(update, arguments: [0], serial_consistency: :serial, consistency: :all) }
       assert_equal :serial, result.execution_info.options.serial_consistency
 
-      select = session.prepare("SELECT * FROM users WHERE user_id = ?")
-      result  = session.execute(select, arguments: [0]).first
+      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM simplex.users WHERE user_id = ?") }
+      result = Retry.with_attempts(5) { session.execute(select, arguments: [0]).first }
       assert_equal({"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}, result)
     ensure
       cluster && cluster.close
@@ -102,19 +102,19 @@ class SerialConsistencyTest < IntegrationTestCase
 
       # Simple statement
       result = session.execute("UPDATE users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = 0 IF first = 'John'",
-                               serial_consistency: :local_serial)
+                               serial_consistency: :local_serial, consistency: :all)
       assert_equal :local_serial, result.execution_info.options.serial_consistency
 
       result  = session.execute("SELECT * FROM users WHERE user_id = 0").first
       assert_equal({"user_id"=>0, "age"=>41, "first"=>"Joss", "last"=>"Fillion"}, result)
 
       # Prepared statement
-      update = session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'")
-      result = session.execute(update, arguments: [0], serial_consistency: :local_serial)
+      update = Retry.with_attempts(5) { session.prepare("UPDATE simplex.users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
+      result = Retry.with_attempts(5) { session.execute(update, arguments: [0], serial_consistency: :local_serial, consistency: :all) }
       assert_equal :local_serial, result.execution_info.options.serial_consistency
 
-      select = session.prepare("SELECT * FROM users WHERE user_id = ?")
-      result  = session.execute(select, arguments: [0]).first
+      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM simplex.users WHERE user_id = ?") }
+      result = Retry.with_attempts(5) { session.execute(select, arguments: [0]).first }
       assert_equal({"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}, result)
     ensure
       cluster && cluster.close
@@ -158,9 +158,9 @@ class SerialConsistencyTest < IntegrationTestCase
       end
 
       # Prepared statement
-      update = session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'")
+      update = Retry.with_attempts(5) { session.prepare("UPDATE simplex.users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
       assert_raises(Cassandra::Errors::UnavailableError) do
-        session.execute(update, arguments: [0], consistency: :local_one, serial_consistency: :local_serial)
+        Retry.with_attempts(5, Cassandra::Errors::InvalidError) { session.execute(update, arguments: [0], consistency: :local_one, serial_consistency: :local_serial) }
       end
     ensure
       cluster && cluster.close
@@ -195,7 +195,7 @@ class SerialConsistencyTest < IntegrationTestCase
       simple_batch = session.batch do |b|
         b.add("UPDATE users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = 0 IF first = 'John'")
       end
-      result = session.execute(simple_batch, serial_consistency: :serial)
+      result = session.execute(simple_batch, serial_consistency: :serial, consistency: :all)
       assert_equal :serial, result.execution_info.options.serial_consistency
 
       sleep(1) # sleep is needed here for batch to propagate across the schema
@@ -203,21 +203,21 @@ class SerialConsistencyTest < IntegrationTestCase
       assert_equal({"user_id"=>0, "age"=>41, "first"=>"Joss", "last"=>"Fillion"}, result)
 
       # Prepared statements
-      update = session.prepare("UPDATE users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'")
+      update = Retry.with_attempts(5) { session.prepare("UPDATE simplex.users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
       prepared_batch = session.batch do |b|
         b.add(update, [0])
       end
-      result = session.execute(prepared_batch, serial_consistency: :serial)
+      result = Retry.with_attempts(5) { session.execute(prepared_batch, serial_consistency: :serial, consistency: :all) }
       assert_equal :serial, result.execution_info.options.serial_consistency
 
       sleep(1)
-      select = session.prepare("SELECT * FROM users WHERE user_id = ?")
-      result  = session.execute(select, arguments: [0]).first
+      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM simplex.users WHERE user_id = ?") }
+      result = Retry.with_attempts(5) { session.execute(select, arguments: [0]).first }
       assert_equal({"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}, result)
 
       ## local_serial serial_consistency
       # Simple statements
-      result = session.execute(simple_batch, serial_consistency: :local_serial)
+      result = session.execute(simple_batch, serial_consistency: :local_serial, consistency: :all)
       assert_equal :local_serial, result.execution_info.options.serial_consistency
 
       sleep(1)
@@ -225,7 +225,7 @@ class SerialConsistencyTest < IntegrationTestCase
       assert_equal({"user_id"=>0, "age"=>41, "first"=>"Joss", "last"=>"Fillion"}, result)
 
       # Prepared statements
-      result = session.execute(prepared_batch, serial_consistency: :local_serial)
+      result = session.execute(prepared_batch, serial_consistency: :local_serial, consistency: :all)
       assert_equal :local_serial, result.execution_info.options.serial_consistency
 
       sleep(1)
@@ -276,12 +276,12 @@ class SerialConsistencyTest < IntegrationTestCase
       end
 
       # Prepared statement
-      update =  session.prepare("UPDATE users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = ? IF first = 'John'")
+      update = Retry.with_attempts(5) { session.prepare("UPDATE simplex.users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = ? IF first = 'John'") }
       prepared_batch = session.batch do |b|
         b.add(update, [0])
       end
       assert_raises(Cassandra::Errors::UnavailableError) do
-        session.execute(prepared_batch, consistency: :local_one, serial_consistency: :local_serial)
+        Retry.with_attempts(5, Cassandra::Errors::InvalidError) { session.execute(prepared_batch, consistency: :local_one, serial_consistency: :local_serial) }
       end
     ensure
       cluster && cluster.close

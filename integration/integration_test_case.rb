@@ -17,6 +17,7 @@
 #++
 
 require File.dirname(__FILE__) + '/../support/ccm.rb'
+require File.dirname(__FILE__) + '/../support/retry.rb'
 require 'minitest/unit'
 require 'minitest/autorun'
 require 'cassandra'
