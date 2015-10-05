@@ -444,32 +444,48 @@ module CCM extend self
 
     def start_node(name)
       node = @nodes.find {|n| n.name == name}
-      return if node.nil? || node.up?
+      raise "unknown node #{name.inspect}" unless node
 
-      attempts = 1
+      i  = name.sub('node', '')
+      ip = "127.0.0.#{i}"
 
-      begin
-        @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto')
-      rescue => e
-        @ccm.exec(node.name, 'stop') rescue nil
+      until node.up?
+        attempts = 1
 
-        if attempts >= 20
-          raise e
-        else
-          wait = attempts * 0.4
-          puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
-          attempts += 1
-          sleep(wait)
-          retry
+        begin
+          @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto')
+        rescue => e
+          @ccm.exec(node.name, 'stop') rescue nil
+
+          if attempts >= 20
+            raise e
+          else
+            wait = attempts * 0.4
+            puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
+            attempts += 1
+            sleep(wait)
+            retry
+          end
         end
-      end
 
-      node.up!
+        if @cluster
+          attempts = 1
 
-      if @cluster
-        i  = name.sub('node', '')
-        ip = "127.0.0.#{i}"
-        sleep(1) until @cluster.has_host?(ip) && @cluster.host(ip).up?
+          until @cluster.has_host?(ip) && @cluster.host(ip).up?
+            refresh_status
+
+            break if node.down?
+
+            if attempts >= 20
+              raise "Driver did not detect #{node.name.inspect} to be up"
+            end
+
+            wait = attempts * 0.4
+            puts "did not receive node up event, retrying in #{wait}s..."
+            attempts += 1
+            sleep(wait)
+          end
+        end
       end
 
       nil
