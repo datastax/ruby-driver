@@ -49,7 +49,7 @@ if __name__ == "__main__":
             except:
                 pass
 
-    sys.stdout.write('\x00');
+    sys.stderr.write('\x00');
 
     while True:
         size = unpack('H', sys.stdin.read(2))[0]
@@ -75,4 +75,4 @@ if __name__ == "__main__":
         cmd.validate(parser, options, args)
 
         cmd.run()
-        sys.stdout.write('=== DONE ===')
+        sys.stderr.write('\x01')

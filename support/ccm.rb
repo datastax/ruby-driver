@@ -131,12 +131,16 @@ module CCM extend self
           if IO.select([@stdout], nil, nil, 30)
             begin
               chunk = @stdout.read_nonblock(4096)
-              if chunk.end_with?('=== DONE ===')
-                chunk.sub!('=== DONE ===', '')
+
+              if chunk.end_with?("\x01")
+                chunk.chomp!("\x01")
                 done = true
               end
-              out << chunk
-              @notifier.command_output(@pid, chunk) unless chunk.empty?
+
+              unless chunk.empty?
+                out << chunk
+                @notifier.command_output(@pid, chunk)
+              end
             rescue IO::WaitReadable
             rescue EOFError
               stop
@@ -160,6 +164,7 @@ module CCM extend self
         in_r, @stdin = IO.pipe
         @stdout, out_w = IO.pipe
 
+        out_w.sync  = true
         @stdin.sync = true
 
         @pid = Process.spawn(
