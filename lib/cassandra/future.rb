@@ -508,15 +508,13 @@ module Cassandra
           @state = :broken
 
           listeners, @listeners = @listeners, nil
+
+          @cond.broadcast if @waiting > 0
         end
 
         @executor.execute do
           listeners.each do |listener|
             listener.failure(error) rescue nil
-          end
-
-          synchronize do
-            @cond.broadcast if @waiting > 0
           end
         end
 
@@ -535,15 +533,13 @@ module Cassandra
           @state = :fulfilled
 
           listeners, @listeners = @listeners, nil
+
+          @cond.broadcast if @waiting > 0
         end
 
         @executor.execute do
           listeners.each do |listener|
             listener.success(value) rescue nil
-          end
-
-          synchronize do
-            @cond.broadcast if @waiting > 0
           end
         end
 
