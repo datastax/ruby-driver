@@ -71,16 +71,19 @@ module Cassandra
       describe('#join') do
         it 'blocks until failure' do
           resolved = false
-          Thread.new { signal.failure(RuntimeError.new); resolved = true }
-          expect(resolved).to be_falsey
-          signal.join rescue nil
+          signal
+          Thread.new { resolved = true; signal.failure(ScriptError.new) }
+          begin
+            signal.join(1)
+          rescue ScriptError
+          end
           expect(resolved).to be_truthy
         end
 
         it 'blocks until success' do
           resolved = false
-          Thread.new { signal.success(double('some value')); resolved = true }
-          expect(resolved).to be_falsey
+          signal
+          Thread.new { resolved = true; signal.success(double('some value')) }
           signal.join
           expect(resolved).to be_truthy
         end
@@ -114,8 +117,8 @@ module Cassandra
         context 'when it is not resolved' do
           it 'blocks until resolved' do
             resolved = false
-            Thread.new { signal.success(double('some value')); resolved = true }
-            expect(resolved).to be_falsey
+            signal
+            Thread.new { resolved = true; signal.success(double('some value')); }
             signal.join
             expect(resolved).to be_truthy
           end
@@ -123,11 +126,11 @@ module Cassandra
           it 'raises when times out' do
             value    = double('some value')
             resolved = false
-            Thread.new { sleep(0.02); signal.success(value); resolved = true }
-            expect(resolved).to be_falsey
+            signal
+            Thread.new { resolved = true; sleep(0.02); signal.success(value) }
             expect { signal.get(0) }.to raise_error(Errors::TimeoutError)
-            expect(resolved).to be_falsey
             expect(signal.get(0.03)).to eq(value)
+            expect(resolved).to be_truthy
           end
         end
       end
@@ -356,9 +359,9 @@ module Cassandra
         context 'when it is not resolved' do
           it 'returns a future that resolves later' do
             resolved = false
-            Thread.new { signal.success(nil); resolved = true }
-            expect(resolved).to be_falsey
-            expect(signal.then {|v| 'some value'}.get).to eq('some value')
+            signal
+            Thread.new { resolved = true; signal.success(nil) }
+            expect(signal.then {|v| 'some value'}.get(1)).to eq('some value')
             expect(resolved).to be_truthy
           end
         end
@@ -403,9 +406,10 @@ module Cassandra
         context 'when it is not resolved' do
           it 'returns a future that resolves later' do
             resolved = false
-            Thread.new { signal.failure(RuntimeError.new); resolved = true }
-            expect(resolved).to be_falsey
+            signal
+            Thread.new { resolved = true; signal.failure(ScriptError.new) }
             expect(signal.fallback {|e| 'some value'}.get).to eq('some value')
+            expect(resolved).to be_truthy
           end
         end
       end
