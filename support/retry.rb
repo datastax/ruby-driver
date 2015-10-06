@@ -5,7 +5,7 @@ module Retry extend self
     return yield
   rescue *errors => e
     raise e if (attempts -= 1).zero?
-    wait = (total - attempts) * 1.4
+    wait = (total - attempts) * 2
     puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
     sleep(wait)
     retry
