@@ -402,7 +402,7 @@ module CCM extend self
 
           raise e if attempts >= 20
 
-          wait = attempts * 0.4
+          wait = attempts * 1.4
           puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
           attempts += 1
           sleep(wait)
@@ -418,7 +418,7 @@ module CCM extend self
           next unless @nodes.all?(&:up?)
           raise e if attempts >= 20
 
-          wait = attempts * 0.4
+          wait = attempts * 1.4
           puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
           attempts += 1
           sleep(wait)
@@ -461,7 +461,7 @@ module CCM extend self
           if attempts >= 20
             raise e
           else
-            wait = attempts * 0.4
+            wait = attempts * 1.4
             puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
             attempts += 1
             sleep(wait)
@@ -483,7 +483,7 @@ module CCM extend self
               break
             end
 
-            wait = attempts * 0.4
+            wait = attempts * 1.4
             puts "did not receive node up event for #{node.name.inspect}, retrying in #{wait}s..."
             attempts += 1
             sleep(wait)
