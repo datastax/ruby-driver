@@ -644,7 +644,12 @@ module CCM extend self
       cql.strip!
       cql.chomp!(";")
       cql.split(";\n").each do |statement|
-        Retry.with_attempts(5) { @session.execute(statement) }
+        Retry.with_attempts(5) do
+          begin
+            @session.execute(statement)
+          rescue Cassandra::Errors::AlreadyExistsError
+          end
+        end
       end
 
       @session.execute("USE system")
