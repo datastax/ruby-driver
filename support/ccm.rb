@@ -478,11 +478,13 @@ module CCM extend self
             break if node.down?
 
             if attempts >= 20
-              raise "Driver did not detect #{node.name.inspect} to be up"
+              @ccm.exec(node.name, 'stop')
+              refresh_status
+              break
             end
 
             wait = attempts * 0.4
-            puts "did not receive node up event, retrying in #{wait}s..."
+            puts "did not receive node up event for #{node.name.inspect}, retrying in #{wait}s..."
             attempts += 1
             sleep(wait)
           end
