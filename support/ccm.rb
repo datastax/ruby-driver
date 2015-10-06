@@ -658,9 +658,13 @@ module CCM extend self
 
           Retry.with_attempts(5) { @session.execute("DROP KEYSPACE #{row['keyspace_name']}") }
         end
-      rescue Cassandra::Errors::ServerError => e
-        puts "#{e.class.name}: #{e.message}, retrying..."
-        retry
+      rescue Cassandra::Errors::NoHostsAvailable => e
+        if e.errors.first.last.is_a?(Cassandra::Errors::ServerError)
+          puts "#{e.class.name}: #{e.message}, retrying..."
+          retry
+        end
+
+        raise
       end
 
       nil
