@@ -204,7 +204,7 @@ module CCM extend self
   if OS.linux?
     class Firewall
       def block(ip)
-        puts "Blocking #{ip}..."
+        $stderr.puts "Blocking #{ip}..."
         success = system('sudo', 'iptables', '-A', 'INPUT', '-d', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
         raise "failed to block #{ip}" unless success
         success = system('sudo', 'iptables', '-A', 'OUTPUT', '-s', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
@@ -214,7 +214,7 @@ module CCM extend self
       end
 
       def unblock(ip)
-        puts "Unblocking #{ip}..."
+        $stderr.puts "Unblocking #{ip}..."
         success = system('sudo', 'iptables', '-D', 'INPUT', '-d', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
         raise "failed to unblock #{ip}" unless success
         success = system('sudo', 'iptables', '-D', 'OUTPUT', '-s', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
@@ -232,7 +232,7 @@ module CCM extend self
       def block(ip)
         prepare unless @ready
 
-        puts "Blocking #{ip}..."
+        $stderr.puts "Blocking #{ip}..."
         success = system('sudo', 'pfctl', '-t', '_ruby_driver_test_blocklist_', '-T', 'add', "#{ip}/32", err: '/dev/null')
         raise "failed to block #{ip}" unless success
 
@@ -242,7 +242,7 @@ module CCM extend self
       def unblock(ip)
         prepare unless @ready
 
-        puts "Unblocking #{ip}..."
+        $stderr.puts "Unblocking #{ip}..."
         success = system('sudo', 'pfctl', '-t', '_ruby_driver_test_blocklist_', '-T', 'delete', "#{ip}/32", err: '/dev/null')
         raise "failed to unblock #{ip}" unless success
 
@@ -252,14 +252,14 @@ module CCM extend self
       private
 
       def prepare
-        puts "Checking if '_ruby_driver_test_blocklist_' table is present in pf.conf"
+        $stderr.puts "Checking if '_ruby_driver_test_blocklist_' table is present in pf.conf"
         if `sudo pfctl -s rules 2>/dev/null | grep 'block drop proto tcp from any to <_ruby_driver_test_blocklist_> port = 9042'`.chomp.empty?
-          puts "Ruby driver tests need to modify pf.conf to be able to simulate network partitions"
+          $stderr.puts "Ruby driver tests need to modify pf.conf to be able to simulate network partitions"
           success = system('sudo bash -c "echo \'block drop proto tcp from any to <_ruby_driver_test_blocklist_> port {9042, 7000, 7001}\' >> /etc/pf.conf"')
           abort "Unable to add rule to block _ruby_driver_test_blocklist_ table to /etc/pf.conf" unless success
           success = system('sudo bash -c "echo \'block drop proto tcp from <_ruby_driver_test_blocklist_> to any port {9042, 7000, 7001}\' >> /etc/pf.conf"')
           abort "Unable to add rule to block _ruby_driver_test_blocklist_ table to /etc/pf.conf" unless success
-          puts "Starting PF firewall"
+          $stderr.puts "Starting PF firewall"
           system('sudo pfctl -ef /etc/pf.conf 2>/dev/null')
         end
 
@@ -403,7 +403,7 @@ module CCM extend self
           raise e if attempts >= 20
 
           wait = attempts * 1.4
-          puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
+          $stderr.puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
           attempts += 1
           sleep(wait)
           retry
@@ -419,19 +419,19 @@ module CCM extend self
           raise e if attempts >= 20
 
           wait = attempts * 1.4
-          puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
+          $stderr.puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
           attempts += 1
           sleep(wait)
           retry
         end
 
         until @cluster.hosts.all?(&:up?)
-          puts "not all hosts are up yet, retrying in 1s..."
+          $stderr.puts "not all hosts are up yet, retrying in 1s..."
           sleep(1)
         end
       end
 
-      puts "creating session"
+      $stderr.puts "creating session"
       @session = @cluster.connect
 
       nil
@@ -462,7 +462,7 @@ module CCM extend self
             raise e
           else
             wait = attempts * 1.4
-            puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
+            $stderr.puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
             attempts += 1
             sleep(wait)
             retry
@@ -484,7 +484,7 @@ module CCM extend self
             end
 
             wait = attempts * 1.4
-            puts "did not receive node up event for #{node.name.inspect}, retrying in #{wait}s..."
+            $stderr.puts "did not receive node up event for #{node.name.inspect}, retrying in #{wait}s..."
             attempts += 1
             sleep(wait)
           end
@@ -667,7 +667,7 @@ module CCM extend self
         end
       rescue Cassandra::Errors::NoHostsAvailable => e
         if e.errors.first.last.is_a?(Cassandra::Errors::ServerError)
-          puts "#{e.class.name}: #{e.message}, retrying..."
+          $stderr.puts "#{e.class.name}: #{e.message}, retrying..."
           retry
         end
 
