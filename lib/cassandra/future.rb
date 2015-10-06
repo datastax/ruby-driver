@@ -562,8 +562,9 @@ module Cassandra
         if timeout
           raise ::ArgumentError, "timeout cannot be negative, #{timeout.inspect} given" if timeout < 0
 
-          now      = ::Time.now
-          deadline = now + timeout
+          start    = ::Time.now
+          now      = start
+          deadline = start + timeout
         end
 
         if @state == :pending
@@ -584,7 +585,7 @@ module Cassandra
           end
 
           if @state == :pending
-            total_wait = deadline - now
+            total_wait = deadline - start
             raise Errors::TimeoutError, "Future did not complete within #{timeout.inspect} seconds. Wait time: #{total_wait.inspect}"
           end
         end
