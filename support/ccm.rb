@@ -454,6 +454,7 @@ module CCM extend self
 
         begin
           @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto')
+          refresh_status
         rescue => e
           @ccm.exec(node.name, 'stop') rescue nil
 
