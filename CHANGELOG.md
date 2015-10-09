@@ -7,6 +7,7 @@ Features:
 Breaking Changes:
 
 * Cassandra::Future#join is now an alias to Cassandra::Future#get and will raise an error if the future is resolved with one.
+* Default consistency level has been changed from `:one` to `:local_quorum`
 
 # 2.1.5
 
