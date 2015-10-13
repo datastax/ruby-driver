@@ -90,7 +90,7 @@ class TokenAwareTest < IntegrationTestCase
     setup_schema
     base_policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new('dc1')
     policy = Cassandra::LoadBalancing::Policies::TokenAware.new(base_policy)
-    cluster = Cassandra.cluster(:consistency => :one, load_balancing_policy: policy)
+    cluster = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
 
     Retry.with_attempts(5, Cassandra::Errors::InvalidError) do
@@ -122,7 +122,7 @@ class TokenAwareTest < IntegrationTestCase
     round_robin = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new('dc1')
     whitelist = Cassandra::LoadBalancing::Policies::WhiteList.new(allowed_ips, round_robin)
     policy = Cassandra::LoadBalancing::Policies::TokenAware.new(whitelist)
-    cluster = Cassandra.cluster(:consistency => :one, load_balancing_policy: policy)
+    cluster = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
 
     Retry.with_attempts(5, Cassandra::Errors::InvalidError) do
@@ -172,7 +172,7 @@ class TokenAwareTest < IntegrationTestCase
     datacenter = "dc2"
     base_policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
     policy = Cassandra::LoadBalancing::Policies::TokenAware.new(base_policy)
-    cluster = Cassandra.cluster(load_balancing_policy: policy)
+    cluster = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
     
     Retry.with_attempts(5, Cassandra::Errors::InvalidError) do

@@ -48,7 +48,7 @@ class RoundRobinTest < IntegrationTestCase
   def test_round_robin_used_explicitly
     setup_schema
     policy  = Cassandra::LoadBalancing::Policies::RoundRobin.new
-    cluster = Cassandra.cluster(load_balancing_policy: policy)
+    cluster = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
 
     hosts_used = []
@@ -66,7 +66,7 @@ class RoundRobinTest < IntegrationTestCase
     allowed_ips = ["127.0.0.1", "127.0.0.3"]
     round_robin = Cassandra::LoadBalancing::Policies::RoundRobin.new
     whitelist = Cassandra::LoadBalancing::Policies::WhiteList.new(allowed_ips, round_robin)
-    cluster = Cassandra.cluster(load_balancing_policy: whitelist)
+    cluster = Cassandra.cluster(load_balancing_policy: whitelist, consistency: :one)
     session = cluster.connect("simplex")
 
     hosts_used = []
@@ -83,7 +83,7 @@ class RoundRobinTest < IntegrationTestCase
   def test_round_robin_ignores_datacenters
     setup_schema
     policy = Cassandra::LoadBalancing::Policies::RoundRobin.new
-    cluster = Cassandra.cluster(load_balancing_policy: policy)
+    cluster = Cassandra.cluster(load_balancing_policy: policy, consistency: :one)
     session = cluster.connect("simplex")
 
     hosts_used = []
@@ -101,7 +101,7 @@ class RoundRobinTest < IntegrationTestCase
     setup_schema
     datacenter = "dc1"
     policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
-    cluster = Cassandra.cluster(load_balancing_policy: policy)
+    cluster = Cassandra.cluster(load_balancing_policy: policy, consistency: :one)
     session = cluster.connect("simplex")
 
     hosts_used = []
