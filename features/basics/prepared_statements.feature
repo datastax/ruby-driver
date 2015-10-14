@@ -206,3 +206,51 @@ Feature: Prepared statements
       selected 2 row(s)
       selected 3 row(s)
       """
+
+  @cassandra-version-specific @cassandra-version-3.0
+  Scenario: Unbound arguments are ignored
+    Given a running cassandra cluster with schema:
+    """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      CREATE TABLE simplex.playlists (
+        id uuid PRIMARY KEY,
+        title text,
+        album text,
+        artist text,
+        song_id uuid
+      );
+      """
+    And the following example:
+    """ruby
+      require 'cassandra'
+      require 'logger'
+
+      logger  = Logger.new('log.log')
+      cluster = Cassandra.cluster(logger: logger)
+      session = cluster.connect("simplex")
+      logger.info("preparing a statement")
+      insert  = session.prepare("INSERT INTO playlists (id, song_id, title, " \
+                                "artist, album) VALUES (" \
+                                "62c36092-82a1-3a00-93d1-46196ee77204, " \
+                                ":id, :title, :artist, :album)"
+                )
+
+      logger.info("executing 1/2")
+      session.execute(insert, arguments: { title: 'La Petite Tonkinoise',
+                                           album: 'Bye Bye Blackbird' })
+      logger.info("executing 2/2")
+      session.execute(insert, arguments: { artist: 'Joséphine Baker' })
+
+      logger.info("selecting results")
+      playlist = session.execute("SELECT * FROM playlists WHERE id = " \
+                                 "62c36092-82a1-3a00-93d1-46196ee77204",
+                                 consistency: :all)
+                        .first
+
+      puts("#{playlist["artist"]}: #{playlist["title"]} / #{playlist["album"]}")
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      Joséphine Baker: La Petite Tonkinoise / Bye Bye Blackbird
+      """
