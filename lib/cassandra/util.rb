@@ -282,7 +282,7 @@ module Cassandra
     # @private
     COMMA = ', '.freeze
     # @private
-    COLON = ' : '.freeze
+    COLON = ': '.freeze
     # @private
     QUOT = ?'.freeze
     # @private

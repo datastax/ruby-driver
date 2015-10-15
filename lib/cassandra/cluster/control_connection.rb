@@ -22,7 +22,10 @@ module Cassandra
     class ControlConnection
       include MonitorMixin
 
-      def initialize(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, connector, connection_options)
+      def initialize(logger, io_reactor, cluster_registry, cluster_schema,
+                     cluster_metadata, load_balancing_policy,
+                     reconnection_policy, address_resolution_policy, connector,
+                     connection_options, schema_fetcher)
         @logger                = logger
         @io_reactor            = io_reactor
         @registry              = cluster_registry
@@ -33,6 +36,7 @@ module Cassandra
         @address_resolver      = address_resolution_policy
         @connector             = connector
         @connection_options    = connection_options
+        @schema_fetcher        = schema_fetcher
         @refreshing_statuses   = ::Hash.new(false)
         @status                = :closed
         @refreshing_hosts      = false
@@ -151,10 +155,6 @@ module Cassandra
 
       SELECT_LOCAL     = Protocol::QueryRequest.new('SELECT rack, data_center, host_id, release_version, tokens, partitioner FROM system.local', EMPTY_LIST, EMPTY_LIST, :one)
       SELECT_PEERS     = Protocol::QueryRequest.new('SELECT peer, rack, data_center, host_id, rpc_address, release_version, tokens FROM system.peers', EMPTY_LIST, EMPTY_LIST, :one)
-      SELECT_KEYSPACES = Protocol::QueryRequest.new('SELECT * FROM system.schema_keyspaces', EMPTY_LIST, EMPTY_LIST, :one)
-      SELECT_TABLES    = Protocol::QueryRequest.new('SELECT * FROM system.schema_columnfamilies', EMPTY_LIST, EMPTY_LIST, :one)
-      SELECT_COLUMNS   = Protocol::QueryRequest.new('SELECT * FROM system.schema_columns', EMPTY_LIST, EMPTY_LIST, :one)
-      SELECT_TYPES     = Protocol::QueryRequest.new('SELECT * FROM system.schema_usertypes', EMPTY_LIST, EMPTY_LIST, :one)
 
       def reconnect_async(schedule)
         timeout = schedule.next
@@ -243,20 +243,8 @@ module Cassandra
 
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
-        keyspaces = send_select_request(connection, SELECT_KEYSPACES)
-        tables    = send_select_request(connection, SELECT_TABLES)
-        columns   = send_select_request(connection, SELECT_COLUMNS)
-
-        if @connection_options.protocol_version > 2
-          types = send_select_request(connection, SELECT_TYPES)
-        else
-          types = Ione::Future.resolved(EMPTY_LIST)
-        end
-
-        Ione::Future.all(keyspaces, tables, columns, types).map do |(keyspaces, tables, columns, types)|
-          host = @registry.host(connection.host)
-
-          @schema.update_keyspaces(host, keyspaces, tables, columns, types)
+        @schema_fetcher.fetch(connection).map do |keyspaces|
+          @schema.replace(keyspaces)
           @metadata.rebuild_token_map
           @logger.info("Schema refreshed")
         end
@@ -316,29 +304,21 @@ module Cassandra
         end
       end
 
-      def refresh_keyspace_async(keyspace)
+      def refresh_keyspace_async(keyspace_name)
         connection = @connection
 
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
-        keyspaces = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '%s'" % keyspace, EMPTY_LIST, EMPTY_LIST, :one))
-        tables    = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = '%s'" % keyspace, EMPTY_LIST, EMPTY_LIST, :one))
-        columns   = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = '%s'" % keyspace, EMPTY_LIST, EMPTY_LIST, :one))
+        @logger.info("Refreshing keyspace \"#{keyspace_name}\"")
 
-        if @connection_options.protocol_version > 2
-          types = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_usertypes WHERE keyspace_name = '%s'" % keyspace, EMPTY_LIST, EMPTY_LIST, :one))
-        else
-          types = Ione::Future.resolved(EMPTY_LIST)
-        end
-
-        Ione::Future.all(keyspaces, tables, columns, types).map do |(keyspaces, tables, columns, types)|
-          host = @registry.host(connection.host)
-
-          if keyspaces.empty?
-            @schema.delete_keyspace(keyspace)
+        @schema_fetcher.fetch_keyspace(connection, keyspace_name).map do |keyspace|
+          if keyspace
+            @schema.replace_keyspace(keyspace)
           else
-            @schema.update_keyspace(host, keyspaces.first, tables, columns, types)
+            @schema.delete_keyspace(keyspace_name)
           end
+
+          @logger.info("Refreshed keyspace \"#{keyspace_name}\"")
         end
       end
 
@@ -376,23 +356,21 @@ module Cassandra
         end
       end
 
-      def refresh_table_async(keyspace, table)
+      def refresh_table_async(keyspace_name, table_name)
         connection = @connection
 
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
-        params   = [keyspace, table]
-        tables   = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = '%s' AND columnfamily_name = '%s'" % params, EMPTY_LIST, EMPTY_LIST, :one))
-        columns  = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_columns WHERE keyspace_name = '%s' AND columnfamily_name = '%s'" % params, EMPTY_LIST, EMPTY_LIST, :one))
+        @logger.info("Refreshing table \"#{keyspace_name}.#{table_name}\"")
 
-        Ione::Future.all(tables, columns).map do |(tables, columns)|
-          host = @registry.host(connection.host)
-
-          if tables.empty?
-            @schema.delete_table(keyspace, table)
+        @schema_fetcher.fetch_table(connection, keyspace_name, table_name).map do |table|
+          if table
+            @schema.replace_table(table)
           else
-            @schema.update_table(host, keyspace, tables.first, columns)
+            @schema.delete_table(keyspace_name, table_name)
           end
+
+          @logger.info("Refreshed table \"#{keyspace_name}.#{table_name}\"")
         end
       end
 
@@ -430,22 +408,21 @@ module Cassandra
         end
       end
 
-      def refresh_type_async(keyspace, type)
+      def refresh_type_async(keyspace_name, type_name)
         connection = @connection
 
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
-        params   = [keyspace, type]
-        types    = send_select_request(connection, Protocol::QueryRequest.new("SELECT * FROM system.schema_usertypes WHERE keyspace_name = '%s' AND type_name = '%s'" % params, EMPTY_LIST, EMPTY_LIST, :one))
+        @logger.info("Refreshing user-defined type \"#{keyspace_name}.#{type_name}\"")
 
-        types.map do |types|
-          host = @registry.host(connection.host)
-
-          if types.empty?
-            @schema.delete_type(keyspace, type)
+        @schema_fetcher.fetch_type(connection, keyspace_name, type_name).map do |type|
+          if type
+            @schema.replace_type(type)
           else
-            @schema.update_type(host, keyspace, types.first)
+            @schema.delete_type(keyspace_name, type_name)
           end
+
+          @logger.info("Refreshed user-defined type \"#{keyspace_name}.#{type_name}\"")
         end
       end
 

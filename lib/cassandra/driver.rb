@@ -26,7 +26,7 @@ module Cassandra
 
     let(:io_reactor)       { Ione::Io::IoReactor.new }
     let(:cluster_registry) { Cluster::Registry.new(logger) }
-    let(:cluster_schema)   { Cluster::Schema.new(schema_type_parser) }
+    let(:cluster_schema)   { Cluster::Schema.new }
     let(:cluster_metadata) { Cluster::Metadata.new(
                                cluster_registry,
                                cluster_schema,
@@ -58,7 +58,9 @@ module Cassandra
 
     let(:connector) { Cluster::Connector.new(logger, io_reactor, cluster_registry, connection_options, execution_options) }
 
-    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, connector, connection_options) }
+    let(:schema_fetcher) { create_schema_fetcher_picker }
+
+    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, connector, connection_options, schema_fetcher) }
 
     let(:cluster) { Cluster.new(logger, io_reactor, executor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, address_resolution_policy, connector, futures_factory) }
 
@@ -155,6 +157,19 @@ module Cassandra
       end
 
       promise.future
+    end
+
+    private
+
+    def create_schema_fetcher_picker
+      picker = Cluster::Schema::Fetchers::MultiVersion.new(cluster_registry)
+
+      picker.when('1.2') { Cluster::Schema::Fetchers::V1_2_x.new(schema_type_parser) }
+      picker.when('2.0') { Cluster::Schema::Fetchers::V2_0_x.new(schema_type_parser) }
+      picker.when('2.1') { Cluster::Schema::Fetchers::V2_1_x.new(schema_type_parser) }
+      picker.when('3.0') { Cluster::Schema::Fetchers::V3_0_x.new() }
+
+      picker
     end
   end
 end
