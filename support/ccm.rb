@@ -187,7 +187,6 @@ module CCM extend self
         @stdout.close
         Process.waitpid(@pid)
 
-        @notifier.executed_command(cmd, @pid, $?)
         @stdin  = nil
         @stdout = nil
         @pid    = nil
@@ -368,7 +367,7 @@ module CCM extend self
         @cluster = @session = nil
       end
 
-      options = {:logger => logger, :consistency => :one}
+      options = {:logger => logger, :consistency => :one, :synchronize_schema => false}
 
       if @username && @password
         options[:username] = @username
@@ -677,8 +676,6 @@ module CCM extend self
       nil
     end
 
-    private
-
     def refresh_status
       seen = ::Set.new
       @ccm.exec('status').each_line do |line|
@@ -705,6 +702,14 @@ module CCM extend self
       nil
     end
 
+    def execute(statement)
+      node = @nodes.find(&:up?)
+      raise "no nodes running" unless node
+      @ccm.exec(node.name, 'cqlsh', '-v', '-x', statement)
+    end
+
+    private
+
     def logger
       @logger ||= begin
         logger = Logger.new($stderr)
@@ -724,7 +729,7 @@ module CCM extend self
   def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
     cluster_name = 'ruby-driver-cassandra-%s-test-cluster' % cassandra_version
 
-    if @current_cluster
+    if @current_cluster && @current_cluster.name == cluster_name
       unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
         @current_cluster.stop
         remove_cluster(@current_cluster.name)
@@ -871,7 +876,12 @@ module CCM extend self
         current = name.start_with?('*')
         name.sub!('*', '')
         cluster = Cluster.new(name, ccm, firewall)
-        @current_cluster = cluster if current
+
+        if current
+          @current_cluster = cluster
+          @current_cluster.refresh_status
+        end
+
         cluster
       end
     end
@@ -889,7 +899,15 @@ module CCM extend self
     nil
   end
 
-  def self.stop_and_remove
+  def self.stop_and_reset
     @current_cluster.stop
+    @current_cluster = nil
   end
+end
+
+if __FILE__ == $0
+  require 'bundler/setup'
+  require 'cassandra'
+
+  CCM.setup_cluster(1, 3)
 end
