@@ -191,10 +191,10 @@ module Cassandra
       # @return [Cassandra::Result]
       def each(&block)
         if block_given?
-          NO_ROWS.each(&block)
+          EMPTY_LIST.each(&block)
           self
         else
-          NO_ROWS.each
+          EMPTY_LIST.each
         end
       end
       alias :rows :each
@@ -231,10 +231,6 @@ module Cassandra
       def inspect
         "#<Cassandra::Result:0x#{self.object_id.to_s(16)} @rows=[] @last_page=true>"
       end
-
-      private
-
-      NO_ROWS = [].freeze
     end
   end
 end
