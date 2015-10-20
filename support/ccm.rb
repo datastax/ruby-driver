@@ -713,7 +713,7 @@ module CCM extend self
     def logger
       @logger ||= begin
         logger = Logger.new($stderr)
-        logger.level = Logger::INFO
+        logger.level = Logger::DEBUG
         logger.formatter = proc { |severity, time, progname, message|
           "Cluster:0x#{object_id.to_s(16)} | #{time.strftime("%T,%L")} - [#{severity}] #{message}\n"
         }
