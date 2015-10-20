@@ -569,7 +569,7 @@ module Cassandra
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
-                Protocol::PreparedResultResponse.new(123, [], [], nil)
+                Protocol::PreparedResultResponse.new(123, [], [], nil, nil)
               end
             end
           end
@@ -590,7 +590,7 @@ module Cassandra
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
-                Protocol::PreparedResultResponse.new(123, [], [], nil)
+                Protocol::PreparedResultResponse.new(123, [], [], nil, nil)
               when Cassandra::Protocol::ExecuteRequest
                 sent = true
                 Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
@@ -614,7 +614,7 @@ module Cassandra
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
                 count += 1
-                Protocol::PreparedResultResponse.new('123', [], [], nil)
+                Protocol::PreparedResultResponse.new('123', [], [], nil, nil)
               when Cassandra::Protocol::ExecuteRequest
                 Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
               end
@@ -642,7 +642,7 @@ module Cassandra
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
                 count += 1
-                Protocol::PreparedResultResponse.new('123', [], [], nil)
+                Protocol::PreparedResultResponse.new('123', [], [], nil, nil)
               when Cassandra::Protocol::ExecuteRequest
                 if error
                   error = false
@@ -675,7 +675,7 @@ module Cassandra
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
-                Protocol::PreparedResultResponse.new('123', [], [], nil)
+                Protocol::PreparedResultResponse.new('123', [], [], nil, nil)
               when Cassandra::Protocol::ExecuteRequest
                 attempts << connection.host
                 if count == 0
@@ -705,7 +705,7 @@ module Cassandra
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
-                Protocol::PreparedResultResponse.new(123, [], [], nil)
+                Protocol::PreparedResultResponse.new(123, [], [], nil, nil)
               when Cassandra::Protocol::ExecuteRequest
                 Protocol::ErrorResponse.new(0x2200, 'blargh')
               end
@@ -730,7 +730,7 @@ module Cassandra
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
-                Protocol::PreparedResultResponse.new(123, [], [], nil)
+                Protocol::PreparedResultResponse.new(123, [], [], nil, nil)
               when Cassandra::Protocol::ExecuteRequest
                 raise Cassandra::Errors::ClientError.new
               end
@@ -797,7 +797,7 @@ module Cassandra
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
-                Protocol::PreparedResultResponse.new(123, params_metadata, [], nil)
+                Protocol::PreparedResultResponse.new(123, params_metadata, [], nil, nil)
               when batch_request
                 sent = true
                 Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
@@ -840,7 +840,7 @@ module Cassandra
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
                 count += 1
-                Protocol::PreparedResultResponse.new(123, params_metadata, [], nil)
+                Protocol::PreparedResultResponse.new(123, params_metadata, [], nil, nil)
               when batch_request
                 sent = true
                 Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
