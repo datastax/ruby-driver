@@ -95,9 +95,9 @@ module Cassandra
         end
 
         if old_keyspace
-          keyspace_created(keyspace)
-        else
           keyspace_changed(keyspace)
+        else
+          keyspace_created(keyspace)
         end
 
         self
