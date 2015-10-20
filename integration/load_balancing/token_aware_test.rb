@@ -35,7 +35,6 @@ class TokenAwareTest < IntegrationTestCase
     CQL
   end
 
-
   def test_token_aware_datacenter_aware_is_used_by_default
     setup_schema
     cluster = Cassandra.cluster
@@ -174,7 +173,7 @@ class TokenAwareTest < IntegrationTestCase
     policy = Cassandra::LoadBalancing::Policies::TokenAware.new(base_policy)
     cluster = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
-    
+
     Retry.with_attempts(5, Cassandra::Errors::InvalidError) do
       select = Retry.with_attempts(5) { session.prepare("SELECT token(user_id) FROM simplex.users WHERE user_id = ?") }
 
