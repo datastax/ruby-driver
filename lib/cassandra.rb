@@ -521,6 +521,10 @@ module Cassandra
 
   # @private
   EMPTY_LIST = [].freeze
+  # @private
+  NOT_SET = ::Object.new
+  # @private
+  NULL_BYTE = "\x00".freeze
 end
 
 require 'cassandra/uuid'

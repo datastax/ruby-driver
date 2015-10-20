@@ -733,7 +733,11 @@ module Cassandra
                   @preparing_statements[host].delete(cql)
                 end
 
-                promise.fulfill(Statements::Prepared.new(cql, r.metadata, r.result_metadata, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures, @schema))
+                metadata = r.metadata
+                pk_idx   = r.pk_idx
+                pk_idx ||= @schema.get_pk_idx(metadata)
+
+                promise.fulfill(Statements::Prepared.new(cql, metadata, r.result_metadata, pk_idx, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @connection_options))
               when Protocol::RawRowsResultResponse
                 r.materialize(statement.result_metadata)
                 promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))

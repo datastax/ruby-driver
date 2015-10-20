@@ -142,6 +142,8 @@ module Cassandra
     attr_reader :name
     # @private
     attr_reader :options
+    # @private
+    attr_reader :partition_key
 
     # @private
     def initialize(keyspace, name, partition_key, clustering_columns, columns, options, clustering_order)
@@ -263,53 +265,6 @@ module Cassandra
     end
     alias :== :eql?
 
-    # @private
-    def create_partition_key(values)
-      partition_key = @partition_key
-      return nil if partition_key.size > values.size
-
-      if partition_key.one?
-        column      = partition_key.first
-        column_name = column.name
-        return nil unless values.has_key?(column_name)
-
-        buffer = Protocol::CqlByteBuffer.new
-
-        if @release_version > '2.1'
-          Protocol::Coder.write_value_v3(buffer, values[column_name], column.type)
-        else
-          Protocol::Coder.write_value_v1(buffer, values[column_name], column.type)
-        end
-
-        buffer.discard(4)
-      else
-        buf    = nil
-        buffer = nil
-
-        partition_key.each do |column|
-          column_name = column.name
-          return nil unless values.has_key?(column_name)
-
-          buf    ||= Protocol::CqlByteBuffer.new
-          buffer ||= Protocol::CqlByteBuffer.new
-
-          if @release_version > '2.1'
-            Protocol::Coder.write_value_v3(buf, values[column_name], column.type)
-          else
-            Protocol::Coder.write_value_v1(buf, values[column_name], column.type)
-          end
-
-          buf.discard(4) # discard size
-
-          size = buf.length
-          buffer.append_short(size)
-          buffer << buf.read(size) << NULL_BYTE
-        end
-      end
-
-      buffer.to_str
-    end
-
     private
 
     # @private
@@ -332,11 +287,8 @@ module Cassandra
       end
     end
 
-    # @private
-    NULL_BYTE = "\x00".freeze
-
-    attr_reader :partition_key, :clustering_columns, :clustering_order
-    protected :partition_key, :clustering_columns, :clustering_order
+    attr_reader :clustering_columns, :clustering_order
+    protected :clustering_columns, :clustering_order
 
     protected
 

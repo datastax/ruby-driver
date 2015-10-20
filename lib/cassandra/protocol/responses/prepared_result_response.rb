@@ -19,11 +19,14 @@
 module Cassandra
   module Protocol
     class PreparedResultResponse < ResultResponse
-      attr_reader :id, :metadata, :result_metadata
+      attr_reader :id, :metadata, :result_metadata, :pk_idx
 
-      def initialize(id, metadata, result_metadata, trace_id)
+      def initialize(id, metadata, result_metadata, pk_idx, trace_id)
         super(trace_id)
-        @id, @metadata, @result_metadata = id, metadata, result_metadata
+        @id              = id
+        @metadata        = metadata
+        @result_metadata = result_metadata
+        @pk_idx          = pk_idx
       end
 
       def eql?(other)

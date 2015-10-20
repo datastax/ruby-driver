@@ -29,9 +29,25 @@ module Cassandra
         mon_initialize
       end
 
-      def create_partition_key(keyspace, table, values)
-        keyspace = @keyspaces[keyspace]
-        keyspace && keyspace.create_partition_key(table, values)
+      def get_pk_idx(metadata)
+        return EMPTY_LIST unless metadata
+
+        keyspace_name, table_name, _ = metadata.first
+        return EMPTY_LIST unless keyspace_name && table_name
+
+        keyspace = @keyspaces[keyspace_name]
+        return EMPTY_LIST unless keyspace
+
+        table = keyspace.table(table_name)
+        return EMPTY_LIST unless keyspace
+        partition_key = table.partition_key
+        return EMPTY_LIST unless partition_key && partition_key.size <= metadata.size
+
+        partition_key.map do |column|
+          i = metadata.index {|(_, _, name, _)| name == column.name}
+          return EMPTY_LIST if i.nil?
+          i
+        end
       end
 
       def add_listener(listener)

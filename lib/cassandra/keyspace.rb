@@ -171,12 +171,6 @@ module Cassandra
     end
 
     # @private
-    def create_partition_key(table, values)
-      table = @tables[table]
-      table && table.create_partition_key(values)
-    end
-
-    # @private
     attr_reader :durable_writes
     protected :durable_writes
 

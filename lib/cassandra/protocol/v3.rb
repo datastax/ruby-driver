@@ -232,7 +232,7 @@ module Cassandra
               result_metadata = nil
               result_metadata = Coder.read_metadata_v3(buffer).first if protocol_version > 1
 
-              PreparedResultResponse.new(id, params_metadata, result_metadata, trace_id)
+              PreparedResultResponse.new(id, params_metadata, result_metadata, nil, trace_id)
             when 0x0005 # SchemaChange
               change   = buffer.read_string
               target   = buffer.read_string
