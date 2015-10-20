@@ -39,7 +39,8 @@ module Cassandra
         return EMPTY_LIST unless keyspace
 
         table = keyspace.table(table_name)
-        return EMPTY_LIST unless keyspace
+        return EMPTY_LIST unless table
+
         partition_key = table.partition_key
         return EMPTY_LIST unless partition_key && partition_key.size <= metadata.size
 

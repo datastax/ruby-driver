@@ -21,6 +21,8 @@ module Cassandra
     class Schema
       module Fetcher
         FUTURE_EMPTY_LIST = Ione::Future.resolved(EMPTY_LIST)
+        REPLICATION_PACKAGE_PREFIX = 'org.apache.cassandra.locator.'.freeze
+        COMPRESSION_PACKAGE_PREFIX = 'org.apache.cassandra.io.compress.'.freeze
 
         def fetch(connection)
           Ione::Future.all(select_keyspaces(connection),
@@ -210,7 +212,7 @@ module Cassandra
 
           def create_replication(keyspace_data)
             klass = keyspace_data['strategy_class']
-            klass.slice!('org.apache.cassandra.locator.')
+            klass.slice!(REPLICATION_PACKAGE_PREFIX)
             options = ::JSON.load(keyspace_data['strategy_options'])
             Keyspace::Replication.new(klass, options)
           end
@@ -385,7 +387,7 @@ module Cassandra
 
           def create_table_options(table_data, compaction_strategy, is_compact)
             compression_parameters = ::JSON.load(table_data['compression_parameters'])
-            compression_parameters['sstable_compression'].slice!('org.apache.cassandra.io.compress.') if compression_parameters['sstable_compression']
+            compression_parameters['sstable_compression'].slice!(COMPRESSION_PACKAGE_PREFIX) if compression_parameters['sstable_compression']
             Table::Options.new(
               table_data['comment'],
               table_data['read_repair_chance'],
@@ -508,7 +510,7 @@ module Cassandra
 
           def create_table_options(table_data, compaction_strategy, is_compact)
             compression_parameters = ::JSON.load(table_data['compression_parameters'])
-            compression_parameters['sstable_compression'].slice!('org.apache.cassandra.io.compress.') if compression_parameters['sstable_compression']
+            compression_parameters['sstable_compression'].slice!(COMPRESSION_PACKAGE_PREFIX) if compression_parameters['sstable_compression']
             Table::Options.new(
               table_data['comment'],
               table_data['read_repair_chance'],
@@ -556,7 +558,7 @@ module Cassandra
 
           def create_table_options(table_data, compaction_strategy, is_compact)
             compression_parameters = ::JSON.load(table_data['compression_parameters'])
-            compression_parameters['sstable_compression'].slice!('org.apache.cassandra.io.compress.') if compression_parameters['sstable_compression']
+            compression_parameters['sstable_compression'].slice!(COMPRESSION_PACKAGE_PREFIX) if compression_parameters['sstable_compression']
             Table::Options.new(
               table_data['comment'],
               table_data['read_repair_chance'],

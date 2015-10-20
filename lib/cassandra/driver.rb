@@ -36,8 +36,8 @@ module Cassandra
                                  'org.apache.cassandra.dht.RandomPartitioner'      => random_partitioner
                                }.freeze,
                                {
-                                 'org.apache.cassandra.locator.SimpleStrategy'          => simple_replication_strategy,
-                                 'org.apache.cassandra.locator.NetworkTopologyStrategy' => network_topology_replication_strategy
+                                 'SimpleStrategy'          => simple_replication_strategy,
+                                 'NetworkTopologyStrategy' => network_topology_replication_strategy
                                }.freeze,
                                no_replication_strategy
                               )

@@ -64,7 +64,7 @@ module Cassandra
           let(:keyspace) { 'simplex' }
 
           before do
-            schema.add_keyspace(keyspace, 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor' => 3)
+            schema.add_keyspace(keyspace, 'SimpleStrategy', 'replication_factor' => 3)
 
             hosts.each do |address, data|
               registry.host_found(address, data)
