@@ -702,7 +702,7 @@ module CCM extend self
       nil
     end
 
-    def execute(statement)
+    def execute_cqlsh(statement)
       node = @nodes.find(&:up?)
       raise "no nodes running" unless node
       @ccm.exec(node.name, 'cqlsh', '-v', '-x', statement)
