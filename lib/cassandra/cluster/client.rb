@@ -514,6 +514,8 @@ module Cassandra
             end
           end
         end
+      rescue => e
+        promise.break(e)
       end
 
       def batch_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors = nil, hosts = [])
@@ -792,6 +794,8 @@ module Cassandra
             end
           end
         end
+      rescue => e
+        promise.break(e)
       end
 
       def wait_for_schema_agreement(connection, schedule)
