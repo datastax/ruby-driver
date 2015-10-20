@@ -542,13 +542,13 @@ module Cassandra
             send_select_request(connection, SELECT_TYPES)
           end
 
-          def select_keyspace_types(keyspace_name)
+          def select_keyspace_types(connection, keyspace_name)
             params = [keyspace_name]
             hints  = [Types.varchar]
             send_select_request(connection, SELECT_KEYSPACE_TYPES, params, hints)
           end
 
-          def select_type(keyspace_name, type_name)
+          def select_type(connection, keyspace_name, type_name)
             params = [keyspace_name, type_name]
             hints  = [Types.varchar, Types.varchar]
             send_select_request(connection, SELECT_TYPE, params, hints)
@@ -579,15 +579,15 @@ module Cassandra
           end
         end
 
-        class V3_0_x
-          SELECT_KEYSPACES  = "SELECT * FROM system_schema.keyspaces";
-          SELECT_TABLES     = "SELECT * FROM system_schema.tables";
-          SELECT_COLUMNS    = "SELECT * FROM system_schema.columns";
-          SELECT_TYPES      = "SELECT * FROM system_schema.types";
-          SELECT_FUNCTIONS  = "SELECT * FROM system_schema.functions";
-          SELECT_AGGREGATES = "SELECT * FROM system_schema.aggregates";
-          SELECT_INDEXES    = "SELECT * FROM system_schema.indexes";
-          SELECT_VIEWS      = "SELECT * FROM system_schema.views";
+        class V2_2_x
+          SELECT_KEYSPACES  = "SELECT * FROM system_schema.keyspaces".freeze;
+          SELECT_TABLES     = "SELECT * FROM system_schema.tables".freeze;
+          SELECT_COLUMNS    = "SELECT * FROM system_schema.columns".freeze;
+          SELECT_TYPES      = "SELECT * FROM system_schema.types".freeze;
+          SELECT_FUNCTIONS  = "SELECT * FROM system_schema.functions".freeze;
+          SELECT_AGGREGATES = "SELECT * FROM system_schema.aggregates".freeze;
+          SELECT_INDEXES    = "SELECT * FROM system_schema.indexes".freeze;
+          SELECT_VIEWS      = "SELECT * FROM system_schema.views".freeze;
 
           include Fetcher
 
@@ -596,45 +596,48 @@ module Cassandra
 
           private
 
-          def select_keyspaces
+          def select_keyspaces(connection)
             FUTURE_EMPTY_LIST
           end
 
-          def select_tables
+          def select_tables(connection)
             FUTURE_EMPTY_LIST
           end
 
-          def select_columns
+          def select_columns(connection)
             FUTURE_EMPTY_LIST
           end
 
-          def select_types
+          def select_types(connection)
             FUTURE_EMPTY_LIST
           end
 
-          def select_keyspace(keyspace_name)
+          def select_keyspace(connection, keyspace_name)
             FUTURE_EMPTY_LIST
           end
 
-          def select_keyspace_tables(keyspace_name)
+          def select_keyspace_tables(connection, keyspace_name)
             FUTURE_EMPTY_LIST
           end
 
-          def select_keyspace_columns(keyspace_name)
+          def select_keyspace_columns(connection, keyspace_name)
             FUTURE_EMPTY_LIST
           end
 
-          def select_keyspace_types(keyspace_name)
+          def select_keyspace_types(connection, keyspace_name)
             FUTURE_EMPTY_LIST
           end
 
-          def select_table(keyspace_name, table_name)
+          def select_table(connection, keyspace_name, table_name)
             FUTURE_EMPTY_LIST
           end
 
-          def select_table_columns(keyspace_name, table_name)
+          def select_table_columns(connection, keyspace_name, table_name)
             FUTURE_EMPTY_LIST
           end
+        end
+
+        class V3_0_x < V2_2_x
         end
 
         class MultiVersion
