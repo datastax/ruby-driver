@@ -10,9 +10,9 @@ os:
 env:
   CASSANDRA_VERSION:
     - 1.2.19
-    - 2.0.17
-    - 2.1.11
-    - 2.2.3
+    - 2.0.16
+    - 2.1.9
+    - 2.2.1
 build:
   - type: bundler
     without: development docs
