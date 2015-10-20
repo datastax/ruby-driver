@@ -581,7 +581,10 @@ module Cassandra
           end
         end
 
-        class V2_2_x
+        class V2_2_x < V2_1_x
+        end
+
+        class V3_0_x
           SELECT_KEYSPACES  = "SELECT * FROM system_schema.keyspaces".freeze;
           SELECT_TABLES     = "SELECT * FROM system_schema.tables".freeze;
           SELECT_COLUMNS    = "SELECT * FROM system_schema.columns".freeze;
@@ -637,9 +640,6 @@ module Cassandra
           def select_table_columns(connection, keyspace_name, table_name)
             FUTURE_EMPTY_LIST
           end
-        end
-
-        class V3_0_x < V2_2_x
         end
 
         class MultiVersion
