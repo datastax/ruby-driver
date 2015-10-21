@@ -191,7 +191,7 @@ module Cassandra
           end
 
           def select_keyspace(connection, keyspace_name)
-            send_select_request(connection, SELECT_KEYSPACE_KEYSPACES % keyspace_name)
+            send_select_request(connection, SELECT_KEYSPACE % keyspace_name)
           end
 
           def select_keyspace_tables(connection, keyspace_name)
