@@ -590,7 +590,7 @@ module Cassandra
         if ip == connection.host
           request = SELECT_LOCAL
         else
-          request = Protocol::QueryRequest.new("SELECT rack, data_center, host_id, rpc_address, release_version, tokens FROM system.peers WHERE peer = '%s'" % address, EMPTY_LIST, EMPTY_LIST, :one)
+          request = Protocol::QueryRequest.new("SELECT rack, data_center, host_id, rpc_address, release_version, tokens FROM system.peers WHERE peer = '%s'" % ip, EMPTY_LIST, EMPTY_LIST, :one)
         end
 
         send_select_request(connection, request).map do |rows|
@@ -603,6 +603,8 @@ module Cassandra
 
           self
         end
+      rescue => e
+        @logger.error("Refreshing host metadata failed (#{e.class.name}: #{e.message})")
       end
 
       def connect_to_first_available(plan, errors = nil)
