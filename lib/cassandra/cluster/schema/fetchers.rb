@@ -236,20 +236,20 @@ module Cassandra
           end
 
           def create_type(type_data)
-            keyspace = type_data['keyspace_name']
-            name     = type_data['type_name']
-            fields   = ::Array.new
+            keyspace_name = type_data['keyspace_name']
+            type_name     = type_data['type_name']
+            type_fields   = ::Array.new
 
             field_names = type_data['field_names']
             field_types = type_data['field_types']
 
-            field_names.zip(field_types) do |(name, fqcn)|
-              type = @type_parser.parse(fqcn).results.first.first
+            field_names.zip(field_types) do |(field_name, fqcn)|
+              field_type = @type_parser.parse(fqcn).results.first.first
 
-              fields << [name, type]
+              type_fields << [field_name, field_type]
             end
 
-            Types.udt(keyspace, name, fields)
+            Types.udt(keyspace_name, type_name, type_fields)
           end
 
           def create_table(table_data, rows_columns)
