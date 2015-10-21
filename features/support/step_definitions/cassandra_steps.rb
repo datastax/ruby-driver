@@ -41,7 +41,7 @@ When(/^I execute the following cql:$/) do |cql|
 end
 
 Given(/^the following example:$/) do |code|
-  step 'a file named "example.rb" with:', prepend_encoding(code)
+  step 'a file named "example.rb" with:', prepare_code_fragment(code)
 end
 
 When(/^it is executed$/) do
@@ -115,9 +115,30 @@ When(/^I wait for (\d+) seconds$/) do |interval|
   sleep(interval.to_i)
 end
 
-def prepend_encoding(code)
+def prepare_code_fragment(code)
   <<-CODE
 # encoding: utf-8
+
+require 'stringio'
+require 'logger'
+
+require 'bundler/setup'
+require 'cassandra'
+
+debug_log = StringIO.new
+
+Cassandra::Driver.instance_eval do
+  let(:logger) do
+    logger = Logger.new(debug_log)
+    logger.level = Logger::DEBUG
+    logger
+  end
+end
+
+at_exit do
+  $stderr.puts("\n\n\n=== LOG CONTENTS: ===\n\n")
+  $stderr.write(debug_log.string)
+end
 
 #{code}
   CODE
