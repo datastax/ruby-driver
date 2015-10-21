@@ -44,9 +44,11 @@ end
 
 Before do
   @aruba_timeout_seconds = 60
+  @announce_stdout = true
+  @announce_stderr = true
 end
 
-After do |s| 
+After do |s|
   # Tell Cucumber to quit after this scenario is done - if it failed.
   Cucumber.wants_to_quit = true if s.failed? and ENV["FAIL_FAST"] == 'Y'
 end

@@ -131,12 +131,13 @@ Cassandra::Driver.instance_eval do
   let(:logger) do
     logger = Logger.new(debug_log)
     logger.level = Logger::DEBUG
+    logger.formatter = proc { |s, t, _, m| "\#{t.strftime("%T,%L")} | [\#{s}] \#{m}\\n" }
     logger
   end
 end
 
 at_exit do
-  $stderr.puts("\n\n\n=== LOG CONTENTS: ===\n\n")
+  $stderr.puts("\n\n--\nDriver logs:\n\n")
   $stderr.write(debug_log.string)
 end
 
