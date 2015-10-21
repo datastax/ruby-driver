@@ -33,12 +33,15 @@ module DataStax
   end
 
   previous = nil
+  murmur3  = nil
   if defined?(::Cassandra)
     previous = ::Cassandra
+    murmur3  = ::Cassandra::Murmur3
     Object.send(:remove_const, :Cassandra)
   end
   include 'cassandra'
-  DataStax::Cassandra::Murmur3 = ::Cassandra::Murmur3
-  Object.send(:remove_const, :Cassandra)
+  murmur3 ||= ::Cassandra::Murmur3
+  DataStax::Cassandra::Murmur3 = murmur3
+  Object.send(:remove_const, :Cassandra) if defined?(::Cassandra)
   ::Cassandra = previous if previous
 end
