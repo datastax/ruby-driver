@@ -474,6 +474,8 @@ module Cassandra
 
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
+        @logger.info("Refreshing all host metadata")
+
         local = send_select_request(connection, SELECT_LOCAL)
         peers = send_select_request(connection, SELECT_PEERS)
 
@@ -500,6 +502,8 @@ module Cassandra
           @registry.each_host do |host|
             @registry.host_lost(host.ip) unless ips.include?(host.ip)
           end
+
+          @logger.info("Refreshed all host metadata")
 
           nil
         end
@@ -581,6 +585,8 @@ module Cassandra
 
         ip = address.to_s
 
+        @logger.info("Refreshing host metadata: #{ip}")
+
         if ip == connection.host
           request = SELECT_LOCAL
         else
@@ -588,7 +594,10 @@ module Cassandra
         end
 
         send_select_request(connection, request).map do |rows|
-          unless rows.empty?
+          if rows.empty?
+            raise Errors::InternalError, "Unable to find host metadata: #{ip}"
+          else
+            @logger.info("Refreshed host metadata: #{ip}")
             @registry.host_found(address, rows.first)
           end
 
