@@ -59,26 +59,26 @@ class TokenAwareTest < IntegrationTestCase
     session = cluster.connect("simplex")
 
     Retry.with_attempts(5, Cassandra::Errors::InvalidError) do
-      select = Retry.with_attempts(5) { session.prepare("SELECT token(user_id) FROM simplex.users WHERE user_id = ?") }
+      select = Retry.with_attempts(5) { session.prepare("SELECT token(user_id) as tk FROM simplex.users WHERE user_id = ?") }
     
       result  = Retry.with_attempts(5) { session.execute(select, arguments: [0]) }
       assert_equal 1, result.execution_info.hosts.size
-      assert_equal 2945182322382062539, result.first['token(user_id)']
+      assert_equal 2945182322382062539, result.first['tk']
       assert_equal "127.0.0.1", result.execution_info.hosts.last.ip.to_s
 
       result  = Retry.with_attempts(5) { session.execute(select, arguments: [1]) }
       assert_equal 1, result.execution_info.hosts.size
-      assert_equal 6292367497774912474, result.first['token(user_id)']
+      assert_equal 6292367497774912474, result.first['tk']
       assert_equal "127.0.0.1", result.execution_info.hosts.last.ip.to_s
 
       result  = Retry.with_attempts(5) { session.execute(select, arguments: [2]) }
       assert_equal 1, result.execution_info.hosts.size
-      assert_equal -8218881827949364593, result.first['token(user_id)']
+      assert_equal -8218881827949364593, result.first['tk']
       assert_equal "127.0.0.2", result.execution_info.hosts.last.ip.to_s
 
       result  = Retry.with_attempts(5) { session.execute(select, arguments: [3]) }
       assert_equal 1, result.execution_info.hosts.size
-      assert_equal -8048510690352527683, result.first['token(user_id)']
+      assert_equal -8048510690352527683, result.first['tk']
       assert_equal "127.0.0.2", result.execution_info.hosts.last.ip.to_s
     end
 
@@ -144,22 +144,22 @@ class TokenAwareTest < IntegrationTestCase
     session = cluster.connect("simplex")
     
     Retry.with_attempts(5, Cassandra::Errors::InvalidError) do
-      select = Retry.with_attempts(5) { session.prepare("SELECT token(user_id) FROM simplex.users WHERE user_id = ?") }
+      select = Retry.with_attempts(5) { session.prepare("SELECT token(user_id) as tk FROM simplex.users WHERE user_id = ?") }
 
       result = Retry.with_attempts(5) { session.execute(select, arguments: [0]) }
-      assert_equal 2945182322382062539, result.first['token(user_id)']
+      assert_equal 2945182322382062539, result.first['tk']
       assert_equal "127.0.0.3", result.execution_info.hosts.last.ip.to_s
 
       result = Retry.with_attempts(5) { session.execute(select, arguments: [1]) }
-      assert_equal 6292367497774912474, result.first['token(user_id)']
+      assert_equal 6292367497774912474, result.first['tk']
       assert_equal "127.0.0.3", result.execution_info.hosts.last.ip.to_s
 
       result = Retry.with_attempts(5) { session.execute(select, arguments: [2]) }
-      assert_equal -8218881827949364593, result.first['token(user_id)']
+      assert_equal -8218881827949364593, result.first['tk']
       assert_equal "127.0.0.4", result.execution_info.hosts.last.ip.to_s
 
       result = Retry.with_attempts(5) { session.execute(select, arguments: [3]) }
-      assert_equal -8048510690352527683, result.first['token(user_id)']
+      assert_equal -8048510690352527683, result.first['tk']
       assert_equal "127.0.0.4", result.execution_info.hosts.last.ip.to_s
     end
 
