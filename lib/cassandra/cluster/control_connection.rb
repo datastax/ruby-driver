@@ -593,7 +593,11 @@ module Cassandra
           request = Protocol::QueryRequest.new("SELECT rack, data_center, host_id, rpc_address, release_version, tokens FROM system.peers WHERE peer = '%s'" % ip, EMPTY_LIST, EMPTY_LIST, :one)
         end
 
+        @logger.debug("Host metadata for: #{ip} - request: #{request.inspect}")
+
         send_select_request(connection, request).map do |rows|
+          @logger.debug("Host metadata for: #{ip} - #{rows.to_a.inspect}")
+
           if rows.empty?
             raise Errors::InternalError, "Unable to find host metadata: #{ip}"
           else
