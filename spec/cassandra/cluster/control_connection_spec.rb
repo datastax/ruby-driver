@@ -542,6 +542,54 @@ module Cassandra
                   connections.first.trigger_event(event)
                 end
               end
+
+              context 'and host not found in system tables' do
+                let(:address)               { additional_nodes[3] }
+                let(:reconnect_interval)    { 5 }
+                let(:reconnection_schedule) { double('reconnection schedule', :next => reconnect_interval) }
+
+                before do
+                  attempts = 0
+                  handle_request do |request|
+                    case request
+                    when Protocol::QueryRequest
+                      case request.cql
+                      when /FROM system\.peers WHERE peer = '?(\S+)'/
+                        if attempts >= 1
+                          ip   = $1
+                          rows = [
+                            {
+                              'rack'            => racks[ip],
+                              'data_center'     => data_centers[ip],
+                              'host_id'         => host_ids[ip],
+                              'release_version' => release_versions[ip]
+                            }
+                          ]
+                          Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
+                        else
+                          attempts += 1
+                          Protocol::RowsResultResponse.new([], peer_metadata, nil, nil)
+                        end
+                      end
+                    end
+                  end
+
+                  reconnection_policy.stub(:schedule) { reconnection_schedule }
+                  cluster_registry.stub(:has_host?) { false }
+                end
+
+                it 'tries again' do
+                  connections.first.trigger_event(event)
+                  ip = address.to_s
+                  expect(cluster_registry).to receive(:host_found).once.with(address, {
+                    'rack'            => racks[ip],
+                    'data_center'     => data_centers[ip],
+                    'host_id'         => host_ids[ip],
+                    'release_version' => release_versions[ip]
+                  })
+                  io_reactor.advance_time(reconnect_interval)
+                end
+              end
             end
 
             context 'with REMOVED_NODE' do

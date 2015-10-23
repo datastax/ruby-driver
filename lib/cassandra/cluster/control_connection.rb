@@ -536,16 +536,16 @@ module Cassandra
         end
       end
 
-      def refresh_host_async_maybe_retry(host)
+      def refresh_host_async_maybe_retry(address)
         synchronize do
-          return Ione::Future.resolved if @refreshing_hosts || @refreshing_host[host]
-          @refreshing_host[host] = true
+          return Ione::Future.resolved if @refreshing_hosts || @refreshing_host[address]
+          @refreshing_host[address] = true
         end
 
-        refresh_host_async(host).fallback do |e|
+        refresh_host_async(address).fallback do |e|
           case e
           when Errors::HostError
-            refresh_host_async_retry(host, e, @reconnection_policy.schedule)
+            refresh_host_async_retry(address, e, @reconnection_policy.schedule)
           else
             connection = @connection
             connection && connection.close(e)
@@ -554,21 +554,21 @@ module Cassandra
           end
         end.map do
           synchronize do
-            @refreshing_host.delete(host)
+            @refreshing_host.delete(address)
           end
         end
       end
 
-      def refresh_host_async_retry(host, error, schedule)
+      def refresh_host_async_retry(address, error, schedule)
         timeout = schedule.next
-        @logger.info("Failed to refresh host #{host.ip.to_s} (#{error.class.name}: #{error.message}), retrying in #{timeout}")
+        @logger.info("Failed to refresh host #{address.to_s} (#{error.class.name}: #{error.message}), retrying in #{timeout}")
 
         timer = @io_reactor.schedule_timer(timeout)
         timer.flat_map do
-          refresh_host_async(host).fallback do |e|
+          refresh_host_async(address).fallback do |e|
             case e
             when Errors::HostError
-              refresh_host_async_retry(host, e, schedule)
+              refresh_host_async_retry(address, e, schedule)
             else
               connection = @connection
               connection && connection.close(e)
@@ -593,11 +593,7 @@ module Cassandra
           request = Protocol::QueryRequest.new("SELECT rack, data_center, host_id, rpc_address, release_version, tokens FROM system.peers WHERE peer = '%s'" % ip, EMPTY_LIST, EMPTY_LIST, :one)
         end
 
-        @logger.debug("Host metadata for: #{ip} - request: #{request.inspect}")
-
         send_select_request(connection, request).map do |rows|
-          @logger.debug("Host metadata for: #{ip} - #{rows.to_a.inspect}")
-
           if rows.empty?
             raise Errors::InternalError, "Unable to find host metadata: #{ip}"
           else
