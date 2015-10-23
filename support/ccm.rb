@@ -164,6 +164,13 @@ module CCM extend self
         in_r, @stdin = IO.pipe
         @stdout, out_w = IO.pipe
 
+        if in_r.respond_to?(:set_encoding)
+          in_r.set_encoding('binary')
+          @stdin.set_encoding('binary')
+          @stdout.set_encoding('binary')
+          out_w.set_encoding('binary')
+        end
+
         out_w.sync  = true
         @stdin.sync = true
 
