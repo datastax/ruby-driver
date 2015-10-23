@@ -60,8 +60,21 @@ Then(/^its output should match:$/) do |output|
   step 'the output should match:', output
 end
 
-Given(/^I wait for its output to contain "(.*?)"$/) do |output|
-  step "I wait for output to contain \"#{output}\""
+Given(/^I wait for its output to contain "(.*?)"$/) do |expected|
+  Timeout.timeout(aruba.config.exit_timeout) do
+    loop do
+      begin
+        expected = unescape_text(expected)
+        expected = extract_text(expected) if !aruba.config.keep_ansi || aruba.config.remove_ansi_escape_sequences
+
+        expect(last_command_started.output).to match(Regexp.new(expected))
+      rescue RSpec::Expectations::ExpectationNotMetError => e
+        retry
+      end
+
+      break
+    end
+  end
 end
 
 When(/^node (\d+) starts$/) do |i|
