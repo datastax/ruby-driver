@@ -42,10 +42,13 @@ AfterConfiguration do |configuration|
   klass.send(:define_method, :feature_files) { features_files }
 end
 
+Aruba.configure do |config|
+  config.exit_timeout = 60
+end
+
 Before do
-  @aruba_timeout_seconds = 60
-  @announce_stdout = true
-  @announce_stderr = true
+  announcer.activate(:stdout)
+  announcer.activate(:stderr)
 end
 
 After do |s|
