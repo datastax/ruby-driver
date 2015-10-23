@@ -26,6 +26,14 @@ require 'cassandra'
 require 'cassandra/compression/compressors/snappy'
 require 'cassandra/compression/compressors/lz4'
 
+if RUBY_ENGINE == 'rbx'
+  class Aruba::ArubaPath
+    def to_str
+      to_s
+    end
+  end
+end
+
 AfterConfiguration do |configuration|
   slow_features = ['features/load_balancing/default_policy.feature', 'features/load_balancing/datacenter_aware.feature', 'features/load_balancing/round_robin.feature', 'features/load_balancing/token_aware.feature']
 
