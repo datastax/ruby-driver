@@ -21,7 +21,7 @@ group :test do
   gem 'cucumber'
   gem 'aruba'
   gem 'os'
-  gem 'minitest'
+  gem 'minitest', '< 5.0.0'
   gem 'delorean'
 end
 
