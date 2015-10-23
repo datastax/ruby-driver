@@ -367,7 +367,7 @@ module CCM extend self
         @cluster = @session = nil
       end
 
-      options = {:logger => logger, :consistency => :one, :synchronize_schema => false}
+      options = {:logger => logger, :consistency => :all, :synchronize_schema => false}
 
       if @username && @password
         options[:username] = @username
