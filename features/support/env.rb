@@ -5,6 +5,10 @@ require 'bundler/setup'
 require File.dirname(__FILE__) + '/../../support/retry.rb'
 require File.dirname(__FILE__) + '/../../support/ccm.rb'
 
+if RUBY_ENGINE == 'jruby'
+  ENV['JRUBY_OPTS'] ||= '-Xcli.debug=true --debug'
+end
+
 unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
   require 'simplecov'
 
