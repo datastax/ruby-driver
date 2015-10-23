@@ -138,9 +138,10 @@ module Cassandra
             when Protocol::RowsResultResponse
               r.rows
             when Protocol::ErrorResponse
-              raise r.to_error(VOID_STATEMENT)
+              e = r.to_error(VOID_STATEMENT)
+              raise e.class, e.message, caller
             else
-              raise Errors::InternalError, "Unexpected response #{r.inspect}"
+              raise Errors::InternalError, "Unexpected response #{r.inspect}", caller
             end
           end
         end
