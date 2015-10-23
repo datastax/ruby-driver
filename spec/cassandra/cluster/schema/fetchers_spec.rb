@@ -25,7 +25,8 @@ module Cassandra
         [
          ['1.2.19', V1_2_x],
          ['2.0.16', V2_0_x],
-         ['2.1.9',  V2_1_x]
+         ['2.1.9',  V2_1_x],
+         ['2.2.1',  V2_2_x]
         ].each do |(version, klass)|
           data = JSON.load(File.read(File.dirname(__FILE__) + '/fetchers/' + version + '-data.json'))
 

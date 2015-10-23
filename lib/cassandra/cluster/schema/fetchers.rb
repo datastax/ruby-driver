@@ -253,7 +253,7 @@ module Cassandra
           end
 
           def create_table(table_data, rows_columns)
-            keyspace        = table_data['keyspace_name']
+            keyspace_name   = table_data['keyspace_name']
             table_name      = table_data['columnfamily_name']
             key_validator   = @type_parser.parse(table_data['key_validator'])
             comparator      = @type_parser.parse(table_data['comparator'])
@@ -290,28 +290,7 @@ module Cassandra
             clustering_order   = []
 
             compaction_strategy = create_compaction_strategy(table_data)
-
-            options = create_table_options(table_data, compaction_strategy, is_compact)
-            columns = create_columns(key_validator, comparator, column_aliases,
-                                     has_value, clustering_size, table_data,
-                                     rows_columns, partition_key,
-                                     clustering_columns, clustering_order)
-
-            Table.new(keyspace, table_name, partition_key, clustering_columns,
-                      columns, options, clustering_order)
-          end
-
-          def create_compaction_strategy(table_data)
-            klass = table_data['compaction_strategy_class']
-            klass.slice!('org.apache.cassandra.db.compaction.')
-            options = ::JSON.load(table_data['compaction_strategy_options'])
-            Table::Compaction.new(klass, options)
-          end
-
-          def create_columns(key_validator, comparator, column_aliases,
-                             has_value, clustering_size, table_data,
-                             rows_columns, partition_key, clustering_columns,
-                             clustering_order)
+            table_options = create_table_options(table_data, compaction_strategy, is_compact)
             table_columns = {}
             other_columns = []
 
@@ -357,7 +336,8 @@ module Cassandra
               table_columns[column.name] = column
             end
 
-            table_columns
+            Table.new(keyspace_name, table_name, partition_key, clustering_columns,
+                      table_columns, table_options, clustering_order)
           end
 
           def create_column(column_data)
@@ -377,12 +357,11 @@ module Cassandra
             Column.new(name, type, order, index, is_static, is_frozen)
           end
 
-          def find_clustering_size(comparator, columns, aliases)
-            if comparator.collections
-              (!comparator.collections.empty? || aliases.size == size - 1 && comparator.results.last.first == Cassandra::Types.varchar) ? size - 1 : size
-            else
-              (!aliases.empty? || columns.empty?) ? 1 : 0
-            end
+          def create_compaction_strategy(table_data)
+            klass = table_data['compaction_strategy_class']
+            klass.slice!('org.apache.cassandra.db.compaction.')
+            options = ::JSON.load(table_data['compaction_strategy_options'])
+            Table::Compaction.new(klass, options)
           end
 
           def create_table_options(table_data, compaction_strategy, is_compact)
@@ -419,6 +398,61 @@ module Cassandra
 
           private
 
+          def create_table(table_data, rows_columns)
+            keyspace_name   = table_data['keyspace_name']
+            table_name      = table_data['columnfamily_name']
+            key_validator   = @type_parser.parse(table_data['key_validator'])
+            comparator      = @type_parser.parse(table_data['comparator'])
+            table_columns   = {}
+            other_columns   = []
+            clustering_size = 0
+
+            partition_key      = []
+            clustering_columns = []
+            clustering_order   = []
+
+            rows_columns.each do |row|
+              next if row['column_name'].empty?
+
+              column = create_column(row)
+              type   = row['type'].to_s
+              index  = row['component_index'] || 0
+
+              case type.upcase
+              when 'PARTITION_KEY'
+                partition_key[index] = column
+              when 'CLUSTERING_KEY'
+                clustering_columns[index] = column
+                clustering_order[index]   = column.order
+
+                if clustering_size.zero? || index == clustering_size
+                  clustering_size = index + 1
+                end
+              else
+                other_columns << column
+              end
+            end
+
+            partition_key.each do |column|
+              table_columns[column.name] = column
+            end
+
+            clustering_columns.each do |column|
+              table_columns[column.name] = column
+            end
+
+            other_columns.each do |column|
+              table_columns[column.name] = column
+            end
+
+            compaction_strategy = create_compaction_strategy(table_data)
+            is_compact    = (clustering_size != comparator.results.size - 1) || !comparator.collections
+            table_options = create_table_options(table_data, compaction_strategy, is_compact)
+
+            Table.new(keyspace_name, table_name, partition_key, clustering_columns,
+                      table_columns, table_options, clustering_order)
+          end
+
           def select_keyspace(connection, keyspace_name)
             params = [keyspace_name]
             hints  = [Types.varchar]
@@ -447,65 +481,6 @@ module Cassandra
             params         = [keyspace_name, table_name]
             hints          = [Types.varchar, Types.varchar]
             send_select_request(connection, SELECT_TABLE_COLUMNS, params, hints)
-          end
-
-          def create_columns(key_validator, comparator, column_aliases,
-                             is_dense, clustering_size, table_data,
-                             rows_columns, partition_key, clustering_columns,
-                             clustering_order)
-            # TODO
-            table_columns = {}
-            other_columns = []
-
-            rows_columns.each do |row|
-              next if row['column_name'].empty?
-
-              column = create_column(row)
-              type   = row['type'].to_s
-              index  = row['component_index'] || 0
-
-              case type.upcase
-              when 'PARTITION_KEY'
-                partition_key[index] = column
-              when 'CLUSTERING_KEY'
-                clustering_columns[index] = column
-                clustering_order[index]   = column.order
-              else
-                other_columns << column
-              end
-            end
-
-            partition_key.each do |column|
-              table_columns[column.name] = column
-            end
-
-            clustering_columns.each do |column|
-              table_columns[column.name] = column
-            end
-
-            other_columns.each do |column|
-              table_columns[column.name] = column
-            end
-
-            table_columns
-          end
-
-          def find_clustering_size(comparator, columns, aliases)
-            max_index = nil
-
-            columns.each do |cl|
-              if cl['type'].to_s.upcase == 'CLUSTERING_KEY'
-                index = cl['component_index'] || 0
-
-                if max_index.nil? || index > max_index
-                  max_index = index
-                end
-              end
-            end
-
-            return 0 if max_index.nil?
-
-            max_index + 1
           end
 
           def create_table_options(table_data, compaction_strategy, is_compact)
