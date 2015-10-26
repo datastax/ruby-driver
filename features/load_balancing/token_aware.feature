@@ -99,7 +99,7 @@ Feature: Token-aware Load Balancing Policy
       policy    = Cassandra::LoadBalancing::Policies::TokenAware.new(policy)
       cluster   = Cassandra.cluster(load_balancing_policy: policy)
       session   = cluster.connect('simplex')
-      statement = session.prepare("SELECT token(id) as tk FROM songs WHERE id = ?")
+      statement = session.prepare("SELECT token(id) FROM songs WHERE id = ?")
 
       [
         Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
@@ -109,7 +109,7 @@ Feature: Token-aware Load Balancing Policy
         result  = session.execute(statement, arguments: [uuid])
         replica = result.execution_info.hosts.first
         total   = result.execution_info.hosts.size
-        puts "uuid=#{uuid} token=#{result.first['tk']} replica=#{replica.ip} total=#{total}"
+        puts "uuid=#{uuid} token=#{result.first.values.first} replica=#{replica.ip} total=#{total}"
       end
       """
     When it is executed
@@ -129,7 +129,7 @@ Feature: Token-aware Load Balancing Policy
       policy    = Cassandra::LoadBalancing::Policies::TokenAware.new(policy)
       cluster   = Cassandra.cluster(load_balancing_policy: policy)
       session   = cluster.connect('simplex')
-      statement = session.prepare("SELECT token(id) as tk FROM songs WHERE id = ?")
+      statement = session.prepare("SELECT token(id) FROM songs WHERE id = ?")
 
       [
         Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
@@ -138,7 +138,7 @@ Feature: Token-aware Load Balancing Policy
         result  = session.execute(statement, arguments: [uuid], consistency: :one)
         replica = result.execution_info.hosts.first
         total   = result.execution_info.hosts.size
-        puts "uuid=#{uuid} token=#{result.first['tk']} replica=#{replica.ip} total=#{total}"
+        puts "uuid=#{uuid} token=#{result.first.values.first} replica=#{replica.ip} total=#{total}"
       end
       """
     And node 2 is stopped
@@ -158,7 +158,7 @@ Feature: Token-aware Load Balancing Policy
       policy    = Cassandra::LoadBalancing::Policies::TokenAware.new(policy)
       cluster   = Cassandra.cluster(load_balancing_policy: policy)
       session   = cluster.connect('simplex')
-      statement = session.prepare("SELECT token(id, title) as tk FROM playlists WHERE id = ? AND title = ?")
+      statement = session.prepare("SELECT token(id, title) FROM playlists WHERE id = ? AND title = ?")
 
       [
         [Cassandra::Uuid.new('2cc9ccb7-6221-4ccb-8387-f22b6a1b354d'), 'La Petite Tonkinoise'],
@@ -169,7 +169,7 @@ Feature: Token-aware Load Balancing Policy
         result  = session.execute(statement, arguments: arguments)
         replica = result.execution_info.hosts.first
         total   = result.execution_info.hosts.size
-        puts "uuid=#{arguments[0]} title=#{arguments[0]} token=#{result.first['tk']} replica=#{replica.ip} total=#{total}"
+        puts "uuid=#{arguments[0]} title=#{arguments[0]} token=#{result.first.values.first} replica=#{replica.ip} total=#{total}"
       end
       """
     When it is executed
