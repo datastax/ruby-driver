@@ -51,12 +51,14 @@ module Cassandra
     attr_reader :replication
 
     # @private
-    def initialize(name, durable_writes, replication, tables, types)
+    def initialize(name, durable_writes, replication, tables, types, functions, aggregates)
       @name           = name
       @durable_writes = durable_writes
       @replication    = replication
       @tables         = tables
       @types          = types
+      @functions      = functions
+      @aggregates     = aggregates
     end
 
     # @return [Boolean] whether durables writes are enabled for this keyspace
@@ -121,6 +123,63 @@ module Cassandra
     end
     alias :types :each_type
 
+    # @return [Boolean] whether this keyspace has a function with the given name
+    # @param name [String] function name
+    def has_function?(name)
+      @functions.has_key?(name.downcase)
+    end
+
+    # @return [Cassandra::Function, nil] a function or nil
+    # @param name [String] function name
+    def function(name)
+      @functions[name.downcase]
+    end
+
+    # Yield or enumerate each function defined in this keyspace
+    # @overload each_function
+    #   @yieldparam function [Cassandra::Function] current function
+    #   @return [Cassandra::Keyspace] self
+    # @overload each_function
+    #   @return [Array<Cassandra::Function>] a list of functions
+    def each_function(&block)
+      if block_given?
+        @functions.each_value(&block)
+        self
+      else
+        @functions.values
+      end
+    end
+    alias :functions :each_function
+
+    # @return [Boolean] whether this keyspace has an aggregate with the given
+    #                   name
+    # @param name [String] aggregate name
+    def has_aggregate?(name)
+      @aggregates.has_key?(name.downcase)
+    end
+
+    # @return [Cassandra::Aggregate, nil] an aggregate or nil
+    # @param name [String] aggregate name
+    def aggregate(name)
+      @aggregates[name.downcase]
+    end
+
+    # Yield or enumerate each aggregate defined in this keyspace
+    # @overload each_aggregate
+    #   @yieldparam aggregate [Cassandra::Aggregate] current aggregate
+    #   @return [Cassandra::Keyspace] self
+    # @overload each_aggregate
+    #   @return [Array<Cassandra::aggregate>] a list of aggregates
+    def each_aggregate(&block)
+      if block_given?
+        @aggregates.each_value(&block)
+        self
+      else
+        @aggregates.values
+      end
+    end
+    alias :aggregates :each_aggregate
+
     # @return [String] a cql representation of this table
     def to_cql
       "CREATE KEYSPACE #{Util.escape_name(@name)} WITH replication = #{@replication.to_cql} AND durable_writes = #{@durable_writes};"
@@ -133,7 +192,9 @@ module Cassandra
         @durable_writes == other.durable_writes &&
         @replication == other.replication &&
         @tables == other.raw_tables &&
-        @types == other.raw_types
+        @types == other.raw_types &&
+        @functions == other.raw_functions &&
+        @aggregates == other.raw_aggregates
     end
     alias :== :eql?
 
@@ -184,6 +245,16 @@ module Cassandra
     # @private
     def raw_types
       @types
+    end
+
+    # @private
+    def raw_functions
+      @functions
+    end
+
+    # @private
+    def raw_aggregates
+      @aggregates
     end
   end
 end

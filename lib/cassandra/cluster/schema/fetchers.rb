@@ -28,13 +28,17 @@ module Cassandra
           Ione::Future.all(select_keyspaces(connection),
                            select_tables(connection),
                            select_columns(connection),
-                           select_types(connection))
+                           select_types(connection),
+                           select_functions(connection),
+                           select_aggregates(connection))
                       .map do |(rows_keyspaces, rows_tables, rows_columns,
-                                rows_types)|
+                                rows_types, rows_functions, rows_aggregates)|
 
-                        lookup_tables  = map_rows_by(rows_tables, 'keyspace_name')
-                        lookup_columns = map_rows_by(rows_columns, 'keyspace_name')
-                        lookup_types   = map_rows_by(rows_types, 'keyspace_name')
+                        lookup_tables     = map_rows_by(rows_tables, 'keyspace_name')
+                        lookup_columns    = map_rows_by(rows_columns, 'keyspace_name')
+                        lookup_types      = map_rows_by(rows_types, 'keyspace_name')
+                        lookup_functions  = map_rows_by(rows_functions, 'keyspace_name')
+                        lookup_aggregates = map_rows_by(rows_aggregates, 'keyspace_name')
 
                         rows_keyspaces.map do |keyspace_data|
                           name = keyspace_data['keyspace_name']
@@ -42,7 +46,9 @@ module Cassandra
                           create_keyspace(keyspace_data,
                                           lookup_tables[name],
                                           lookup_columns[name],
-                                          lookup_types[name])
+                                          lookup_types[name],
+                                          lookup_functions[name],
+                                          lookup_aggregates[name])
                         end
                       end
         end
@@ -51,16 +57,20 @@ module Cassandra
           Ione::Future.all(select_keyspace(connection, keyspace_name),
                            select_keyspace_tables(connection, keyspace_name),
                            select_keyspace_columns(connection, keyspace_name),
-                           select_keyspace_types(connection, keyspace_name))
+                           select_keyspace_types(connection, keyspace_name),
+                           select_keyspace_functions(connection, keyspace_name),
+                           select_keyspace_aggregates(connection, keyspace_name))
                       .map do |(rows_keyspaces, rows_tables, rows_columns,
-                                rows_types)|
+                                rows_types, rows_functions, rows_aggregates)|
                         if rows_keyspaces.empty?
                           nil
                         else
                           create_keyspace(rows_keyspaces.first,
                                           rows_tables,
                                           rows_columns,
-                                          rows_types)
+                                          rows_types,
+                                          rows_functions,
+                                          rows_aggregates)
                         end
                       end
         end
@@ -88,7 +98,25 @@ module Cassandra
           end
         end
 
-        private
+        def fetch_function(connection, keyspace_name, function_name)
+          select_function(connection, keyspace_name, function_name).map do |rows_functions|
+            if rows_functions.empty?
+              nil
+            else
+              create_function(rows_functions.first)
+            end
+          end
+        end
+
+        def fetch_aggregate(connection, keyspace_name, aggregate_name)
+          select_function(connection, keyspace_name, aggregate_name).map do |rows_aggregates|
+            if rows_aggregates.empty?
+              nil
+            else
+              create_aggregate(rows_aggregates.first, @schema.keyspace(keyspace_name).send(:raw_functions))
+            end
+          end
+        end
 
         private
 
@@ -108,6 +136,14 @@ module Cassandra
           FUTURE_EMPTY_LIST
         end
 
+        def select_functions(connection)
+          FUTURE_EMPTY_LIST
+        end
+
+        def select_aggregates(connection)
+          FUTURE_EMPTY_LIST
+        end
+
         def select_keyspace(connection, keyspace_name)
           FUTURE_EMPTY_LIST
         end
@@ -124,11 +160,31 @@ module Cassandra
           FUTURE_EMPTY_LIST
         end
 
+        def select_keyspace_functions(connection, keyspace_name)
+          FUTURE_EMPTY_LIST
+        end
+
+        def select_keyspace_aggregates(connection, keyspace_name)
+          FUTURE_EMPTY_LIST
+        end
+
         def select_table(connection, keyspace_name, table_name)
           FUTURE_EMPTY_LIST
         end
 
         def select_table_columns(connection, keyspace_name, table_name)
+          FUTURE_EMPTY_LIST
+        end
+
+        def select_type(connection, keyspace_name, type_name)
+          FUTURE_EMPTY_LIST
+        end
+
+        def select_function(connection, keyspace_name, function_name)
+          FUTURE_EMPTY_LIST
+        end
+
+        def select_aggregate(connection, keyspace_name, aggregate_name)
           FUTURE_EMPTY_LIST
         end
 
@@ -173,8 +229,9 @@ module Cassandra
 
           include Fetcher
 
-          def initialize(type_parser)
+          def initialize(type_parser, schema)
             @type_parser = type_parser
+            @schema      = schema
           end
 
           private
@@ -219,12 +276,18 @@ module Cassandra
           end
 
           def create_keyspace(keyspace_data, rows_tables, rows_columns,
-                              rows_types)
-            keyspace_name  = keyspace_data['keyspace_name']
-            replication    = create_replication(keyspace_data)
+                              rows_types, rows_functions, rows_aggregates)
+            keyspace_name = keyspace_data['keyspace_name']
+            replication   = create_replication(keyspace_data)
             types = rows_types.each_with_object({}) do |row, types|
                       types[row['type_name']] = create_type(row)
                     end
+            functions = rows_functions.each_with_object({}) do |row, functions|
+                          functions[row['function_name']] = create_function(row)
+                        end
+            aggregates = rows_aggregates.each_with_object({}) do |row, aggregates|
+                           aggregates[row['aggregate_name']] = create_aggregate(row, functions)
+                         end
 
             lookup_columns = map_rows_by(rows_columns, 'columnfamily_name')
             tables = rows_tables.each_with_object({}) do |row, tables|
@@ -233,24 +296,7 @@ module Cassandra
             end
 
             Keyspace.new(keyspace_name, keyspace_data['durable_writes'],
-                         replication, tables, types)
-          end
-
-          def create_type(type_data)
-            keyspace_name = type_data['keyspace_name']
-            type_name     = type_data['type_name']
-            type_fields   = ::Array.new
-
-            field_names = type_data['field_names']
-            field_types = type_data['field_types']
-
-            field_names.zip(field_types) do |(field_name, fqcn)|
-              field_type = @type_parser.parse(fqcn).results.first.first
-
-              type_fields << [field_name, field_type]
-            end
-
-            Types.udt(keyspace_name, type_name, type_fields)
+                         replication, tables, types, functions, aggregates)
           end
 
           def create_table(table_data, rows_columns)
@@ -512,9 +558,26 @@ module Cassandra
         class V2_1_x < V2_0_x
           SELECT_TYPES          = 'SELECT * FROM system.schema_usertypes'.freeze
           SELECT_KEYSPACE_TYPES = 'SELECT * FROM system.schema_usertypes WHERE keyspace_name = ?'.freeze
-          SELECT_TYPE_TYPE      = 'SELECT * FROM system.schema_usertypes WHERE keyspace_name = ? AND type_name = ?'.freeze
+          SELECT_TYPE           = 'SELECT * FROM system.schema_usertypes WHERE keyspace_name = ? AND type_name = ?'.freeze
 
           private
+
+          def create_type(type_data)
+            keyspace_name = type_data['keyspace_name']
+            type_name     = type_data['type_name']
+            type_fields   = ::Array.new
+
+            field_names = type_data['field_names']
+            field_types = type_data['field_types']
+
+            field_names.zip(field_types) do |(field_name, fqcn)|
+              field_type = @type_parser.parse(fqcn).results.first.first
+
+              type_fields << [field_name, field_type]
+            end
+
+            Types.udt(keyspace_name, type_name, type_fields)
+          end
 
           def select_types(connection)
             send_select_request(connection, SELECT_TYPES)
@@ -558,6 +621,77 @@ module Cassandra
         end
 
         class V2_2_x < V2_1_x
+          SELECT_FUNCTIONS           = 'SELECT * FROM system.schema_functions'.freeze
+          SELECT_AGGREGATES          = 'SELECT * FROM system.schema_aggregates'.freeze
+          SELECT_KEYSPACE_FUNCTIONS  = 'SELECT * FROM system.schema_functions WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_AGGREGATES = 'SELECT * FROM system.schema_aggregates WHERE keyspace_name = ?'.freeze
+          SELECT_FUNCTION            = 'SELECT * FROM system.schema_functions WHERE keyspace_name = ? AND function_name = ?'.freeze
+          SELECT_AGGREGATE           = 'SELECT * FROM system.schema_aggregates WHERE keyspace_name = ? AND aggregate_name = ?'.freeze
+
+          private
+
+          def create_function(function_data)
+            keyspace_name  = function_data['keyspace_name']
+            function_name  = function_data['function_name']
+            function_lang  = function_data['language']
+            function_type  = @type_parser.parse(function_data['return_type']).results.first.first
+            function_body  = function_data['body']
+            called_on_null = function_data['called_on_null_input']
+
+            arguments = ::Hash.new
+
+            function_data['argument_names'].zip(function_data['argument_types']) do |argument_name, fqcn|
+              argument_type = @type_parser.parse(fqcn).results.first.first
+              arguments[argument_name] = Argument.new(argument_name, argument_type)
+            end
+
+            Function.new(keyspace_name, function_name, function_lang, function_type, arguments, function_body, called_on_null)
+          end
+
+          def create_aggregate(aggregate_data, functions)
+            keyspace_name  = aggregate_data['keyspace_name']
+            aggregate_name = aggregate_data['aggregate_name']
+            aggregate_type = @type_parser.parse(aggregate_data['return_type']).results.first.first
+            argument_types = aggregate_data['argument_types'].map {|fqcn| @type_parser.parse(fqcn).results.first.first}.freeze
+            state_type     = @type_parser.parse(aggregate_data['state_type']).results.first.first
+            initial_state  = Protocol::Coder.read_value_v3(Protocol::CqlByteBuffer.new.append_bytes(aggregate_data['initcond']), state_type)
+            state_function = functions[aggregate_data['state_func']]
+            final_function = functions[aggregate_data['final_func']]
+
+            Aggregate.new(keyspace_name, aggregate_name, aggregate_type, argument_types, state_type, initial_state, state_function, final_function)
+          end
+
+          def select_functions(connection)
+            send_select_request(connection, SELECT_FUNCTIONS)
+          end
+
+          def select_aggregates(connection)
+            send_select_request(connection, SELECT_AGGREGATES)
+          end
+
+          def select_keyspace_functions(connection, keyspace_name)
+            params = [keyspace_name]
+            hints  = [Types.varchar]
+            send_select_request(connection, SELECT_KEYSPACE_FUNCTIONS, params, hints)
+          end
+
+          def select_keyspace_aggregates(connection, keyspace_name)
+            params = [keyspace_name]
+            hints  = [Types.varchar]
+            send_select_request(connection, SELECT_KEYSPACE_AGGREGATES, params, hints)
+          end
+
+          def select_function(connection, keyspace_name, function_name)
+            params = [keyspace_name, function_name]
+            hints  = [Types.varchar, Types.varchar]
+            send_select_request(connection, SELECT_FUNCTION, params, hints)
+          end
+
+          def select_aggregate(connection, keyspace_name, aggregate_name)
+            params = [keyspace_name, aggregate_name]
+            hints  = [Types.varchar, Types.varchar]
+            send_select_request(connection, SELECT_AGGREGATE, params, hints)
+          end
         end
 
         class V3_0_x

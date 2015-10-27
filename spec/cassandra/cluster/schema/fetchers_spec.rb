@@ -33,7 +33,8 @@ module Cassandra
           describe(klass) do
             let(:connection) { double('cql protocol handler') }
             let(:schema_type_parser) { TypeParser.new }
-            subject { klass.new(schema_type_parser) }
+            let(:cluster_schema)     { double('schema') }
+            subject { klass.new(schema_type_parser, cluster_schema) }
 
             describe('#fetch') do
               before do

@@ -164,10 +164,10 @@ module Cassandra
     def create_schema_fetcher_picker
       picker = Cluster::Schema::Fetchers::MultiVersion.new(cluster_registry)
 
-      picker.when('1.2') { Cluster::Schema::Fetchers::V1_2_x.new(schema_type_parser) }
-      picker.when('2.0') { Cluster::Schema::Fetchers::V2_0_x.new(schema_type_parser) }
-      picker.when('2.1') { Cluster::Schema::Fetchers::V2_1_x.new(schema_type_parser) }
-      picker.when('2.2') { Cluster::Schema::Fetchers::V2_2_x.new(schema_type_parser) }
+      picker.when('1.2') { Cluster::Schema::Fetchers::V1_2_x.new(schema_type_parser, cluster_schema) }
+      picker.when('2.0') { Cluster::Schema::Fetchers::V2_0_x.new(schema_type_parser, cluster_schema) }
+      picker.when('2.1') { Cluster::Schema::Fetchers::V2_1_x.new(schema_type_parser, cluster_schema) }
+      picker.when('2.2') { Cluster::Schema::Fetchers::V2_2_x.new(schema_type_parser, cluster_schema) }
       picker.when('3.0') { Cluster::Schema::Fetchers::V3_0_x.new() }
 
       picker
