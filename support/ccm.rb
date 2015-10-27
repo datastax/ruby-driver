@@ -774,7 +774,6 @@ module CCM extend self
   def ccm
     @ccm ||= begin
       Runner.new(ccm_script, {
-                 'HOME'              => ccm_home,
                  'CCM_MAX_HEAP_SIZE' => '256M',
                  'CCM_HEAP_NEWSIZE'  => '64M',
                  'MALLOC_ARENA_MAX'  => '1'},
@@ -861,6 +860,10 @@ module CCM extend self
 
     if cassandra_version < '2.1'
       config << 'in_memory_compaction_limit_in_mb: 1'
+    end
+
+    if cassandra_version > '2.2'
+      config << 'enable_user_defined_functions: true'
     end
 
     config << 'key_cache_size_in_mb: 0'
