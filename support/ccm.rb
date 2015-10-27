@@ -669,7 +669,12 @@ module CCM extend self
         @session.execute("SELECT keyspace_name FROM system.schema_keyspaces").each do |row|
           next if row['keyspace_name'].start_with?('system')
 
-          Retry.with_attempts(5) { @session.execute("DROP KEYSPACE #{row['keyspace_name']}") }
+          Retry.with_attempts(5) do
+            begin
+              @session.execute("DROP KEYSPACE #{row['keyspace_name']}")
+            rescue Cassandra::Errors::ConfigurationError
+            end
+          end
         end
       rescue Cassandra::Errors::NoHostsAvailable => e
         if e.errors.first.last.is_a?(Cassandra::Errors::ServerError)
