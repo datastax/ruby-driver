@@ -44,10 +44,10 @@ module Cassandra
                     if data.include?(r.cql)
                       Ione::Future.resolved(Protocol::RowsResultResponse.new(data[r.cql], nil, nil, nil))
                     else
-                      raise "unsupported cql: #{request.cql}"
+                      raise "unsupported cql: #{r.cql}"
                     end
                   else
-                    raise "unexpected request: #{request.inspect}"
+                    raise "unexpected request: #{r.inspect}"
                   end
                 end
               end

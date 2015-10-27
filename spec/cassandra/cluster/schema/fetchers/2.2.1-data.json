@@ -2861,5 +2861,11 @@
   ],
   "SELECT * FROM system.schema_usertypes": [
 
+  ],
+  "SELECT * FROM system.schema_functions": [
+
+  ],
+  "SELECT * FROM system.schema_aggregates": [
+
   ]
 }
