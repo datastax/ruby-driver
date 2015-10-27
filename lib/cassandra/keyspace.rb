@@ -207,28 +207,28 @@ module Cassandra
     def update_table(table)
       tables = @tables.dup
       tables[table.name] = table
-      Keyspace.new(@name, @durable_writes, @replication, tables, @types)
+      Keyspace.new(@name, @durable_writes, @replication, tables, @types, @functions, @aggregates)
     end
 
     # @private
     def delete_table(table_name)
       tables = @tables.dup
       tables.delete(table_name)
-      Keyspace.new(@name, @durable_writes, @replication, tables, @types)
+      Keyspace.new(@name, @durable_writes, @replication, tables, @types, @functions, @aggregates)
     end
 
     # @private
     def update_type(type)
       types = @types.dup
       types[type.name] = type
-      Keyspace.new(@name, @durable_writes, @replication, @tables, types)
+      Keyspace.new(@name, @durable_writes, @replication, @tables, types, @functions, @aggregates)
     end
 
     # @private
     def delete_type(type_name)
       types = @types.dup
       types.delete(type_name)
-      Keyspace.new(@name, @durable_writes, @replication, @tables, types)
+      Keyspace.new(@name, @durable_writes, @replication, @tables, types, @functions, @aggregates)
     end
 
     # @private
