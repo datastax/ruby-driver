@@ -4,19 +4,23 @@ cassandra_version_tags = ''
 
 if cassandra_version >= '3.0'
   cassandra_version_tags += ',@cassandra-version-3.0'
-elsif cassandra_version > '2.1'
-  cassandra_version_tags += ',@cassandra-version-2.0,@cassandra-version-2.1'
-
-  if cassandra_version >= '2.1.3'
-    cassandra_version_tags += ',@cassandra-version-2.1.3'
-  end
-elsif cassandra_version > '2.0'
+end
+if cassandra_version > '2.2'
+  cassandra_version_tags += ',@cassandra-version-2.2'
+end
+if cassandra_version > '2.1'
+  cassandra_version_tags += ',@cassandra-version-2.1'
+end
+if cassandra_version >= '2.1.3'
+  cassandra_version_tags += ',@cassandra-version-2.1.3'
+end
+if cassandra_version > '2.0'
   cassandra_version_tags += ',@cassandra-version-2.0'
-
-  if cassandra_version >= '2.0.9'
-    cassandra_version_tags += ',@cassandra-version-2.0.9'
-  end
-elsif cassandra_version.start_with?('1.2')
+end
+if cassandra_version >= '2.0.9'
+  cassandra_version_tags += ',@cassandra-version-2.0.9'
+end
+if cassandra_version.start_with?('1.2')
   cassandra_version_tags += ',@cassandra-version-1.2'
 end
 %>
