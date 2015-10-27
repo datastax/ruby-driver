@@ -638,10 +638,34 @@ module CCM extend self
     end
 
     def setup_schema(schema)
-      clear
-      execute(schema)
+      start
+      Retry.with_attempts(5) do
+        if @cluster.hosts.sample.release_version >= '3.0'
+          rows = @session.execute("SELECT keyspace_name FROM system_schema.keyspaces")
+        else
+          rows = @session.execute("SELECT keyspace_name FROM system.schema_keyspaces")
+        end
 
-      nil
+        rows.each do |row|
+          next if row['keyspace_name'].start_with?('system')
+          @session.execute("DROP KEYSPACE #{row['keyspace_name']}")
+        end
+
+        schema.strip!
+        schema.chomp!(";")
+        schema.split(";\n").each do |statement|
+          @session.execute(statement)
+        end
+
+        @session.execute("USE system")
+      end
+    rescue Cassandra::Errors::NoHostsAvailable => e
+      if e.errors.first.last.is_a?(Cassandra::Errors::ServerError)
+        $stderr.puts "#{e.class.name}: #{e.message}, retrying..."
+        retry
+      end
+
+      raise
     end
 
     def execute(cql)
@@ -659,31 +683,6 @@ module CCM extend self
       end
 
       @session.execute("USE system")
-
-      nil
-    end
-
-    def clear
-      start
-      begin
-        @session.execute("SELECT keyspace_name FROM system.schema_keyspaces").each do |row|
-          next if row['keyspace_name'].start_with?('system')
-
-          Retry.with_attempts(5) do
-            begin
-              @session.execute("DROP KEYSPACE #{row['keyspace_name']}")
-            rescue Cassandra::Errors::ConfigurationError
-            end
-          end
-        end
-      rescue Cassandra::Errors::NoHostsAvailable => e
-        if e.errors.first.last.is_a?(Cassandra::Errors::ServerError)
-          $stderr.puts "#{e.class.name}: #{e.message}, retrying..."
-          retry
-        end
-
-        raise
-      end
 
       nil
     end
