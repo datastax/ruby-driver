@@ -140,13 +140,11 @@ require 'cassandra'
 
 debug_log = StringIO.new
 
-Cassandra::Driver.instance_eval do
-  let(:logger) do
-    logger = Logger.new(debug_log)
-    logger.level = Logger::DEBUG
-    logger.formatter = proc { |s, t, _, m| "\#{t.strftime("%T,%L")} | [\#{s}] \#{m}\\n" }
-    logger
-  end
+Cassandra::Driver.let(:logger) do
+  logger = Logger.new(debug_log)
+  logger.level = Logger::DEBUG
+  logger.formatter = proc { |s, t, _, m| "\#{t.strftime("%T,%L")} | [\#{s}] \#{m}\\n" }
+  logger
 end
 
 at_exit do
