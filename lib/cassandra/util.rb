@@ -99,6 +99,7 @@ module Cassandra
       when ::Numeric then encode_number(object, io)
       when ::IPAddr  then encode_inet(object, io)
       when Uuid      then encode_uuid(object, io)
+      when Tuple     then encode_tuple(object, io)
       when nil       then io.print(NULL_STR)
       when false     then io.print(FALSE_STR)
       when true      then io.print(TRUE_STR)
@@ -130,6 +131,22 @@ module Cassandra
       io.print(inet)
       io.putc(QUOT)
       io.string
+    end
+
+    def encode_tuple(tuple, io = StringIO.new)
+      first = true
+
+      io.putc(PRN_OPN)
+      tuple.each do |object|
+        if first
+          first = false
+        else
+          io.print(COMMA)
+        end
+
+        encode_object(object, io)
+      end
+      io.putc(PRN_CLS)
     end
 
     def escape_name(name)
@@ -289,5 +306,9 @@ module Cassandra
     ESC_QUOT = "''".freeze
     # @private
     DBL_QUOT = ?".freeze
+    # @private
+    PRN_OPN = '('.freeze
+    # @private
+    PRN_CLS = ')'.freeze
   end
 end
