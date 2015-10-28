@@ -168,7 +168,7 @@ module Cassandra
       picker.when('2.0') { Cluster::Schema::Fetchers::V2_0_x.new(schema_type_parser, cluster_schema) }
       picker.when('2.1') { Cluster::Schema::Fetchers::V2_1_x.new(schema_type_parser, cluster_schema) }
       picker.when('2.2') { Cluster::Schema::Fetchers::V2_2_x.new(schema_type_parser, cluster_schema) }
-      picker.when('3.0') { Cluster::Schema::Fetchers::V3_0_x.new() }
+      picker.when('3.0') { Cluster::Schema::Fetchers::V3_0_x.new(schema_type_parser, cluster_schema) }
 
       picker
     end

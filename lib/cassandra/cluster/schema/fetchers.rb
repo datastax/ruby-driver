@@ -448,7 +448,6 @@ module Cassandra
           def create_table(table_data, rows_columns)
             keyspace_name   = table_data['keyspace_name']
             table_name      = table_data['columnfamily_name']
-            key_validator   = @type_parser.parse(table_data['key_validator'])
             comparator      = @type_parser.parse(table_data['comparator'])
             table_columns   = {}
             other_columns   = []
@@ -694,61 +693,243 @@ module Cassandra
           end
         end
 
-        class V3_0_x
-          SELECT_KEYSPACES  = "SELECT * FROM system_schema.keyspaces".freeze;
-          SELECT_TABLES     = "SELECT * FROM system_schema.tables".freeze;
-          SELECT_COLUMNS    = "SELECT * FROM system_schema.columns".freeze;
-          SELECT_TYPES      = "SELECT * FROM system_schema.types".freeze;
-          SELECT_FUNCTIONS  = "SELECT * FROM system_schema.functions".freeze;
-          SELECT_AGGREGATES = "SELECT * FROM system_schema.aggregates".freeze;
-          SELECT_INDEXES    = "SELECT * FROM system_schema.indexes".freeze;
-          SELECT_VIEWS      = "SELECT * FROM system_schema.views".freeze;
+        class V3_0_x < V2_2_x
+          SELECT_KEYSPACES  = "SELECT * FROM system_schema.keyspaces".freeze
+          SELECT_TABLES     = "SELECT * FROM system_schema.tables".freeze
+          SELECT_COLUMNS    = "SELECT * FROM system_schema.columns".freeze
+          SELECT_TYPES      = "SELECT * FROM system_schema.types".freeze
+          SELECT_FUNCTIONS  = "SELECT * FROM system_schema.functions".freeze
+          SELECT_AGGREGATES = "SELECT * FROM system_schema.aggregates".freeze
+          SELECT_INDEXES    = "SELECT * FROM system_schema.indexes".freeze
+          SELECT_VIEWS      = "SELECT * FROM system_schema.materialized_views".freeze
 
-          include Fetcher
+          SELECT_KEYSPACE            = 'SELECT * FROM system_schema.keyspaces WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_TABLES     = 'SELECT * FROM system_schema.tables WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_COLUMNS    = 'SELECT * FROM system_schema.columns WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_TYPES      = "SELECT * FROM system_schema.types WHERE keyspace_name = ?".freeze
+          SELECT_KEYSPACE_FUNCTIONS  = 'SELECT * FROM system_schema.functions WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_AGGREGATES = 'SELECT * FROM system_schema.aggregates WHERE keyspace_name = ?'.freeze
 
-          def initialize
-          end
+          SELECT_TABLE         = 'SELECT * FROM system_schema.tables WHERE keyspace_name = ? AND table_name = ?'.freeze
+          SELECT_TABLE_COLUMNS = 'SELECT * FROM system_schema.columns WHERE keyspace_name = ? AND table_name = ?'.freeze
+
+          SELECT_TYPE = 'SELECT * FROM system.schema_usertypes WHERE keyspace_name = ? AND type_name = ?'.freeze
+
+          SELECT_FUNCTION = 'SELECT * FROM system.schema_functions WHERE keyspace_name = ? AND function_name = ?'.freeze
+
+          SELECT_AGGREGATE = 'SELECT * FROM system.schema_aggregates WHERE keyspace_name = ? AND aggregate_name = ?'.freeze
 
           private
 
           def select_keyspaces(connection)
-            FUTURE_EMPTY_LIST
+            send_select_request(connection, SELECT_KEYSPACES)
           end
 
           def select_tables(connection)
-            FUTURE_EMPTY_LIST
+            send_select_request(connection, SELECT_TABLES)
           end
 
           def select_columns(connection)
-            FUTURE_EMPTY_LIST
+            send_select_request(connection, SELECT_COLUMNS)
           end
 
           def select_types(connection)
-            FUTURE_EMPTY_LIST
+            send_select_request(connection, SELECT_TYPES)
+          end
+
+          def select_functions(connection)
+            send_select_request(connection, SELECT_FUNCTIONS)
+          end
+
+          def select_aggregates(connection)
+            send_select_request(connection, SELECT_AGGREGATES)
           end
 
           def select_keyspace(connection, keyspace_name)
-            FUTURE_EMPTY_LIST
+            params = [keyspace_name]
+            hints  = [Types.varchar]
+            send_select_request(connection, SELECT_KEYSPACE, params, hints)
           end
 
           def select_keyspace_tables(connection, keyspace_name)
-            FUTURE_EMPTY_LIST
+            params = [keyspace_name]
+            hints  = [Types.varchar]
+            send_select_request(connection, SELECT_KEYSPACE_TABLES, params, hints)
           end
 
           def select_keyspace_columns(connection, keyspace_name)
-            FUTURE_EMPTY_LIST
+            params = [keyspace_name]
+            hints  = [Types.varchar]
+            send_select_request(connection, SELECT_KEYSPACE_COLUMNS, params, hints)
           end
 
           def select_keyspace_types(connection, keyspace_name)
-            FUTURE_EMPTY_LIST
+            params = [keyspace_name]
+            hints  = [Types.varchar]
+            send_select_request(connection, SELECT_KEYSPACE_TYPES, params, hints)
+          end
+
+          def select_keyspace_functions(connection, keyspace_name)
+            params = [keyspace_name]
+            hints  = [Types.varchar]
+            send_select_request(connection, SELECT_KEYSPACE_FUNCTIONS, params, hints)
+          end
+
+          def select_keyspace_aggregates(connection, keyspace_name)
+            params = [keyspace_name]
+            hints  = [Types.varchar]
+            send_select_request(connection, SELECT_KEYSPACE_AGGREGATES, params, hints)
           end
 
           def select_table(connection, keyspace_name, table_name)
-            FUTURE_EMPTY_LIST
+            params         = [keyspace_name, table_name]
+            hints          = [Types.varchar, Types.varchar]
+            send_select_request(connection, SELECT_TABLE, params, hints)
           end
 
           def select_table_columns(connection, keyspace_name, table_name)
-            FUTURE_EMPTY_LIST
+            params         = [keyspace_name, table_name]
+            hints          = [Types.varchar, Types.varchar]
+            send_select_request(connection, SELECT_TABLE_COLUMNS, params, hints)
+          end
+
+          def select_type(connection, keyspace_name, type_name)
+            params = [keyspace_name, type_name]
+            hints  = [Types.varchar, Types.varchar]
+            send_select_request(connection, SELECT_TYPE, params, hints)
+          end
+
+          def select_function(connection, keyspace_name, function_name)
+            params = [keyspace_name, function_name]
+            hints  = [Types.varchar, Types.varchar]
+            send_select_request(connection, SELECT_FUNCTION, params, hints)
+          end
+
+          def select_aggregate(connection, keyspace_name, aggregate_name)
+            params = [keyspace_name, aggregate_name]
+            hints  = [Types.varchar, Types.varchar]
+            send_select_request(connection, SELECT_AGGREGATE, params, hints)
+          end
+
+          def create_keyspace(keyspace_data, rows_tables, rows_columns,
+                              rows_types, rows_functions, rows_aggregates)
+            keyspace_name = keyspace_data['keyspace_name']
+            replication   = create_replication(keyspace_data)
+            types = rows_types.each_with_object({}) do |row, types|
+                      types[row['type_name']] = create_type(row)
+                    end
+            functions = rows_functions.each_with_object({}) do |row, functions|
+                          functions[row['function_name']] = create_function(row)
+                        end
+            aggregates = rows_aggregates.each_with_object({}) do |row, aggregates|
+                           aggregates[row['aggregate_name']] = create_aggregate(row, functions)
+                         end
+
+            lookup_columns = map_rows_by(rows_columns, 'table_name')
+            tables = rows_tables.each_with_object({}) do |row, tables|
+              table_name = row['table_name']
+              tables[table_name] = create_table(row, lookup_columns[table_name])
+            end
+
+            Keyspace.new(keyspace_name, keyspace_data['durable_writes'],
+                         replication, tables, types, functions, aggregates)
+          end
+
+          def create_replication(keyspace_data)
+            options = keyspace_data['replication']
+            klass   = options.delete('class')
+            klass.slice!(REPLICATION_PACKAGE_PREFIX)
+            Keyspace::Replication.new(klass, options)
+          end
+
+          def create_compaction_strategy(table_data)
+            options = table_data['compaction']
+            klass   = options.delete('class')
+            klass.slice!('org.apache.cassandra.db.compaction.')
+            Table::Compaction.new(klass, options)
+          end
+
+          def create_table_options(table_data, compaction_strategy, is_compact)
+            compression = table_data['compression']
+            compression['class'].slice!(COMPRESSION_PACKAGE_PREFIX) if compression['class']
+
+            Table::Options.new(
+              table_data['comment'],
+              table_data['read_repair_chance'],
+              table_data['dclocal_read_repair_chance'],
+              table_data['gc_grace_seconds'],
+              table_data['caching'],
+              table_data['bloom_filter_fp_chance'],
+              nil,
+              table_data['memtable_flush_period_in_ms'],
+              table_data['default_time_to_live'],
+              table_data['speculative_retry'],
+              nil,
+              nil,
+              table_data['min_index_interval'],
+              table_data['max_index_interval'],
+              compaction_strategy,
+              compression,
+              is_compact
+            )
+          end
+
+          def create_table(table_data, rows_columns)
+            keyspace_name   = table_data['keyspace_name']
+            table_name      = table_data['table_name']
+            table_flags     = table_data['flags']
+            table_columns   = {}
+            other_columns   = []
+            clustering_size = 0
+
+            is_dense    = table_flags.include?('dense')
+            is_super    = table_flags.include?('super')
+            is_compound = table_flags.include?('compound')
+            is_compact  = is_super || is_dense || !is_compound;
+
+            partition_key      = []
+            clustering_columns = []
+            clustering_order   = []
+
+            rows_columns.each do |row|
+              next if row['column_name'].empty?
+
+              column = create_column(row)
+              type   = row['type'].to_s
+              index  = row['component_index'] || 0
+
+              case type.upcase
+              when 'PARTITION_KEY'
+                partition_key[index] = column
+              when 'CLUSTERING'
+                clustering_columns[index] = column
+                clustering_order[index]   = column.order
+
+                if clustering_size.zero? || index == clustering_size
+                  clustering_size = index + 1
+                end
+              else
+                other_columns << column
+              end
+            end
+
+            partition_key.each do |column|
+              table_columns[column.name] = column
+            end
+
+            clustering_columns.each do |column|
+              table_columns[column.name] = column
+            end
+
+            other_columns.each do |column|
+              table_columns[column.name] = column
+            end
+
+            compaction_strategy = create_compaction_strategy(table_data)
+            table_options = create_table_options(table_data, compaction_strategy, is_compact)
+
+            Table.new(keyspace_name, table_name, partition_key, clustering_columns,
+                      table_columns, table_options, clustering_order)
           end
         end
 

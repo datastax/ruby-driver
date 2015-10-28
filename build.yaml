@@ -13,6 +13,7 @@ env:
     - 2.0.16
     - 2.1.9
     - 2.2.1
+    - 3.0.0-beta2
 build:
   - type: bundler
     without: development docs

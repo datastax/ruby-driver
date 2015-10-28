@@ -71,22 +71,22 @@ module Cassandra
         options = []
 
         options << 'COMPACT STORAGE' if @compact_storage
-        options << "bloom_filter_fp_chance = #{@bloom_filter_fp_chance}" unless @bloom_filter_fp_chance.nil?
-        options << "caching = '#{@caching}'" unless @caching.nil?
-        options << "comment = '#{@comment}'" unless @comment.nil?
+        options << "bloom_filter_fp_chance = #{Util.encode_object(@bloom_filter_fp_chance)}" unless @bloom_filter_fp_chance.nil?
+        options << "caching = #{Util.encode_object(@caching)}" unless @caching.nil?
+        options << "comment = #{Util.encode_object(@comment)}" unless @comment.nil?
         options << "compaction = #{@compaction_strategy.to_cql}" unless @compaction_strategy.nil?
-        options << "compression = #{Util.encode_hash(@compression_parameters)}" unless @compression_parameters.nil?
-        options << "dclocal_read_repair_chance = #{@local_read_repair_chance}" unless @local_read_repair_chance.nil?
-        options << "default_time_to_live = #{@default_time_to_live}" unless @default_time_to_live.nil?
-        options << "gc_grace_seconds = #{@gc_grace_seconds}" unless @gc_grace_seconds.nil?
-        options << "index_interval = #{@index_interval}" unless @index_interval.nil?
-        options << "max_index_interval = #{@max_index_interval}" unless @max_index_interval.nil?
-        options << "memtable_flush_period_in_ms = #{@memtable_flush_period_in_ms}" unless @memtable_flush_period_in_ms.nil?
-        options << "min_index_interval = #{@min_index_interval}" unless @min_index_interval.nil?
+        options << "compression = #{Util.encode_object(@compression_parameters)}" unless @compression_parameters.nil?
+        options << "dclocal_read_repair_chance = #{Util.encode_object(@local_read_repair_chance)}" unless @local_read_repair_chance.nil?
+        options << "default_time_to_live = #{Util.encode_object(@default_time_to_live)}" unless @default_time_to_live.nil?
+        options << "gc_grace_seconds = #{Util.encode_object(@gc_grace_seconds)}" unless @gc_grace_seconds.nil?
+        options << "index_interval = #{Util.encode_object(@index_interval)}" unless @index_interval.nil?
+        options << "max_index_interval = #{Util.encode_object(@max_index_interval)}" unless @max_index_interval.nil?
+        options << "memtable_flush_period_in_ms = #{Util.encode_object(@memtable_flush_period_in_ms)}" unless @memtable_flush_period_in_ms.nil?
+        options << "min_index_interval = #{Util.encode_object(@min_index_interval)}" unless @min_index_interval.nil?
         options << "populate_io_cache_on_flush = '#{@populate_io_cache_on_flush}'" unless @populate_io_cache_on_flush.nil?
-        options << "read_repair_chance = #{@read_repair_chance}" unless @read_repair_chance.nil?
+        options << "read_repair_chance = #{Util.encode_object(@read_repair_chance)}" unless @read_repair_chance.nil?
         options << "replicate_on_write = '#{@replicate_on_write}'" unless @replicate_on_write.nil?
-        options << "speculative_retry = '#{@speculative_retry}'" unless @speculative_retry.nil?
+        options << "speculative_retry = #{Util.encode_object(@speculative_retry)}" unless @speculative_retry.nil?
 
         options.join("\nAND ")
       end
