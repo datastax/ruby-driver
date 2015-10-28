@@ -643,9 +643,9 @@ module CCM extend self
       schema.strip!
       schema.chomp!(";")
       statements = schema.split(";\n")
-      start
 
       Retry.with_attempts(5) do
+        start
         @session.execute("USE system")
 
         if @cluster.hosts.sample.release_version >= '3.0'
