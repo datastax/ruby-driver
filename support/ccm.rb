@@ -20,10 +20,58 @@ require 'fileutils'
 require 'logger'
 require 'cliver'
 require 'os'
+require 'cassandra'
 
 # Cassandra Cluster Manager integration for
 # driving a cassandra cluster from tests.
 module CCM extend self
+  class SameOrderLoadBalancingPolicy < Cassandra::LoadBalancing::Policy
+    class Plan
+      def initialize(hosts)
+        @hosts = hosts
+      end
+
+      def has_next?
+        !@hosts.empty?
+      end
+
+      def next
+        @hosts.shift
+      end
+    end
+
+    include MonitorMixin
+
+    def initialize
+      @hosts = ::Array.new
+
+      mon_initialize
+    end
+
+    def host_up(host)
+      synchronize { @hosts = @hosts.dup.push(host) }
+
+      self
+    end
+
+    def host_down(host)
+      synchronize do
+        @hosts = @hosts.dup
+        @hosts.delete(host)
+      end
+
+      self
+    end
+
+    def distance(host)
+      @hosts.include?(host) ? :local : :ignore
+    end
+
+    def plan(keyspace, statement, options)
+      Plan.new(@hosts.dup)
+    end
+  end
+
   class PrintingNotifier
     def initialize(out)
       @out = out
@@ -397,7 +445,7 @@ module CCM extend self
         options[:passphrase] = @passphrase
       end
 
-      options[:load_balancing_policy] = Cassandra::LoadBalancing::Policies::WhiteList.new(['127.0.0.1'], Cassandra::LoadBalancing::Policies::RoundRobin.new)
+      options[:load_balancing_policy] = SameOrderLoadBalancingPolicy.new
 
       until @nodes.all?(&:up?) && @cluster && @cluster.hosts.select(&:up?).count == @nodes.size
         attempts = 1
