@@ -397,6 +397,8 @@ module CCM extend self
         options[:passphrase] = @passphrase
       end
 
+      options[:load_balancing_policy] = Cassandra::LoadBalancing::Policies::WhiteList.new(['127.0.0.1'], Cassandra::LoadBalancing::Policies::RoundRobin.new)
+
       until @nodes.all?(&:up?) && @cluster && @cluster.hosts.select(&:up?).count == @nodes.size
         attempts = 1
 
