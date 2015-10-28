@@ -1002,6 +1002,10 @@ module Cassandra
             end
 
             version = host.release_version
+            unless version
+              raise Errors::ClientError, "unable to determine release " \
+                                         "version for host: #{host.inspect}"
+            end
 
             @fetchers[version] ||= begin
               current = @versions.find {|v| v.matches?(version)}
