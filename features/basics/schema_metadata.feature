@@ -5,6 +5,7 @@ Feature: Schema Metadata
   Background:
     Given a running cassandra cluster
 
+  @cassandra-version-specific @cassandra-version-less-3.0
   Scenario: Getting table metadata
     Given the following example:
       """ruby
@@ -20,6 +21,27 @@ Feature: Schema Metadata
       CREATE TABLE system."IndexInfo" (
         table_name varchar,
         index_name varchar,
+        PRIMARY KEY (table_name, index_name)
+      )
+      """
+
+  @cassandra-version-specific @cassandra-version-3.0
+  Scenario: Getting table metadata on 3.0
+    Given the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+
+      puts cluster.keyspace('system').table("IndexInfo").to_cql
+      """
+    When it is executed
+    Then its output should contain:
+      """cql
+      CREATE TABLE system."IndexInfo" (
+        table_name varchar,
+        index_name varchar,
+        value 'org.apache.cassandra.db.marshal.EmptyType',
         PRIMARY KEY (table_name, index_name)
       )
       """
