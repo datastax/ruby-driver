@@ -654,7 +654,10 @@ module CCM extend self
         schema.strip!
         schema.chomp!(";")
         schema.split(";\n").each do |statement|
-          @session.execute(statement)
+          begin
+            @session.execute(statement)
+          rescue Cassandra::Errors::AlreadyExistsError
+          end
         end
 
         @session.execute("USE system")
