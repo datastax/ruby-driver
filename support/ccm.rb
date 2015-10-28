@@ -916,7 +916,7 @@ module CCM extend self
     nil
   end
 
-  def self.stop_and_reset
+  def stop_and_reset
     @current_cluster.stop
     @current_cluster = nil
   end
