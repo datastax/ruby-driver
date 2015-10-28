@@ -640,8 +640,14 @@ module CCM extend self
     end
 
     def setup_schema(schema)
+      schema.strip!
+      schema.chomp!(";")
+      statements = schema.split(";\n")
       start
+
       Retry.with_attempts(5) do
+        @session.execute("USE system")
+
         if @cluster.hosts.sample.release_version >= '3.0'
           rows = @session.execute("SELECT keyspace_name FROM system_schema.keyspaces")
         else
@@ -653,9 +659,7 @@ module CCM extend self
           @session.execute("DROP KEYSPACE #{row['keyspace_name']}")
         end
 
-        schema.strip!
-        schema.chomp!(";")
-        schema.split(";\n").each do |statement|
+        statements.each do |statement|
           @session.execute(statement)
         end
 
