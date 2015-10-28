@@ -708,7 +708,10 @@ module CCM extend self
         end
 
         statements.each do |statement|
-          @session.execute(statement)
+          begin
+            @session.execute(statement)
+          rescue Cassandra::Errors::AlreadyExistsError
+          end
         end
 
         @session.execute("USE system")
