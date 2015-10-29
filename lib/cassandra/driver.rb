@@ -95,7 +95,7 @@ module Cassandra
     end
 
     let(:port)                      { 9042 }
-    let(:protocol_version)          { 3 }
+    let(:protocol_version)          { 4 }
     let(:connect_timeout)           { 10 }
     let(:ssl)                       { false }
     let(:logger)                    { NullLogger.new  }

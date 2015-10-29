@@ -28,7 +28,9 @@ module Cassandra
       def materialize(metadata)
         @metadata = metadata
 
-        if @protocol_version == 3
+        if @protocol_version == 4
+          @rows = Coder.read_values_v4(@raw_rows, @metadata)
+        elsif @protocol_version == 3
           @rows = Coder.read_values_v3(@raw_rows, @metadata)
         else
           @rows = Coder.read_values_v1(@raw_rows, @metadata)

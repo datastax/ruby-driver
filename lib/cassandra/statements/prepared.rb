@@ -90,7 +90,9 @@ module Cassandra
 
         keyspace_name, _ = @params_metadata.first
 
-        Bound.new(@cql, param_types, @result_metadata, params, keyspace_name, create_partition_key(params))
+        partition_key = create_partition_key(params)
+
+        Bound.new(@cql, param_types, @result_metadata, params, keyspace_name, partition_key)
       end
 
       # @return [Cassandra::Execution::Info] execution info for PREPARE request

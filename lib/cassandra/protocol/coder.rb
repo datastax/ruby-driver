@@ -23,12 +23,12 @@ module Cassandra
       HAS_MORE_PAGES_FLAG     = 0x02
       NO_METADATA_FLAG        = 0x04
 
-      def write_values_v3(buffer, values, types, names = EMPTY_LIST)
+      def write_values_v4(buffer, values, types, names = EMPTY_LIST)
         if values && values.size > 0
           buffer.append_short(values.size)
           values.zip(types, names) do |(value, type, name)|
             buffer.append_string(name) if name
-            write_value_v3(buffer, value, type)
+            write_value_v4(buffer, value, type)
           end
           buffer
         else
@@ -36,7 +36,17 @@ module Cassandra
         end
       end
 
-      def write_value_v3(buffer, value, type)
+      def write_value_v4(buffer, value, type)
+        if value.nil?
+          buffer.append_int(-1)
+          return
+        end
+
+        if NOT_SET == value
+          buffer.append_int(-2)
+          return
+        end
+
         case type.kind
         when :ascii            then write_ascii(buffer, value)
         when :bigint, :counter then write_bigint(buffer, value)
@@ -51,62 +61,121 @@ module Cassandra
         when :uuid, :timeuuid  then write_uuid(buffer, value)
         when :varchar          then write_varchar(buffer, value)
         when :varint           then write_varint(buffer, value)
-        when :list, :set
-          if value
-            raw        = CqlByteBuffer.new
-            value_type = type.value_type
+        when :list, :set       then write_list_v3(buffer, value, type.value_type)
+        when :map              then write_map_v3(buffer, value, type.key_type, type.value_type)
+        when :udt              then write_udt_v3(buffer, value, type.fields)
+        when :tuple            then write_tuple_v3(buffer, value, type.members)
+        else
+          raise Errors::EncodingError, %(Unsupported value type: #{type})
+        end
+      end
 
-            raw.append_int(value.size)
-            value.each do |element|
-              write_value_v3(raw, element, value_type)
-            end
+      def read_prepared_metadata_v4(buffer)
+        flags         = buffer.read_int
+        columns_count = buffer.read_int
+        pk_count      = buffer.read_int
+        pk_specs      = ::Array.new(pk_count) {|i| buffer.read_short}
 
-            buffer.append_bytes(raw)
-          else
-            buffer.append_int(-1)
+        if flags & GLOBAL_TABLES_SPEC_FLAG == GLOBAL_TABLES_SPEC_FLAG
+          keyspace_name = buffer.read_string
+          table_name    = buffer.read_string
+
+          column_specs = ::Array.new(columns_count) do |i|
+            [keyspace_name, table_name, buffer.read_string, read_type_v3(buffer)]
           end
-        when :map
-          if value
-            raw        = CqlByteBuffer.new
-            key_type   = type.key_type
-            value_type = type.value_type
-
-            raw.append_int(value.size)
-            value.each do |key, value|
-              write_value_v3(raw, key, key_type)
-              write_value_v3(raw, value, value_type)
-            end
-
-            buffer.append_bytes(raw)
-          else
-            buffer.append_int(-1)
+        else
+          column_specs = ::Array.new(columns_count) do |i|
+            [buffer.read_string, buffer.read_string, buffer.read_string, read_type_v3(buffer)]
           end
-        when :udt
-          if value
-            raw    = CqlByteBuffer.new
-            fields = type.fields
+        end
 
-            fields.each do |field|
-              write_value_v3(raw, value[field.name], field.type)
-            end
+        [pk_specs, column_specs]
+      end
 
-            buffer.append_bytes(raw)
-          else
-            buffer.append_int(-1)
+      def read_values_v4(buffer, column_metadata)
+        read_values_v3(buffer, column_metadata)
+      end
+
+      def write_values_v3(buffer, values, types, names = EMPTY_LIST)
+        if values && values.size > 0
+          buffer.append_short(values.size)
+          values.zip(types, names) do |(value, type, name)|
+            buffer.append_string(name) if name
+            write_value_v3(buffer, value, type)
           end
-        when :tuple
-          if value
-            raw     = CqlByteBuffer.new
-            members = type.members
+          buffer
+        else
+          buffer.append_short(0)
+        end
+      end
 
-            members.each_with_index do |member_type, i|
-              write_value_v3(raw, value[i], member_type)
-            end
+      def write_list_v3(buffer, list, type)
+        raw = CqlByteBuffer.new
 
-            buffer.append_bytes(raw)
-          else
-            buffer.append_int(-1)
-          end
+        raw.append_int(list.size)
+        list.each do |element|
+          write_value_v3(raw, element, type)
+        end
+
+        buffer.append_bytes(raw)
+      end
+
+      def write_map_v3(buffer, map, key_type, value_type)
+        raw = CqlByteBuffer.new
+
+        raw.append_int(map.size)
+        map.each do |key, value|
+          write_value_v3(raw, key, key_type)
+          write_value_v3(raw, value, value_type)
+        end
+
+        buffer.append_bytes(raw)
+      end
+
+      def write_udt_v3(buffer, value, fields)
+        raw = CqlByteBuffer.new
+
+        fields.each do |field|
+          write_value_v3(raw, value[field.name], field.type)
+        end
+
+        buffer.append_bytes(raw)
+      end
+
+      def write_tuple_v3(buffer, value, members)
+        raw = CqlByteBuffer.new
+
+        members.each_with_index do |type, i|
+          write_value_v3(raw, value[i], type)
+        end
+
+        buffer.append_bytes(raw)
+      end
+
+      def write_value_v3(buffer, value, type)
+        if value.nil?
+          buffer.append_int(-1)
+          return
+        end
+
+        case type.kind
+        when :ascii            then write_ascii(buffer, value)
+        when :bigint, :counter then write_bigint(buffer, value)
+        when :blob             then write_blob(buffer, value)
+        when :boolean          then write_boolean(buffer, value)
+        when :decimal          then write_decimal(buffer, value)
+        when :double           then write_double(buffer, value)
+        when :float            then write_float(buffer, value)
+        when :int              then write_int(buffer, value)
+        when :inet             then write_inet(buffer, value)
+        when :timestamp        then write_timestamp(buffer, value)
+        when :uuid, :timeuuid  then write_uuid(buffer, value)
+        when :varchar          then write_varchar(buffer, value)
+        when :varint           then write_varint(buffer, value)
+        when :list, :set       then write_list_v3(buffer, value, type.value_type)
+        when :map              then write_map_v3(buffer, value, type.key_type, type.value_type)
+        when :udt              then write_udt_v3(buffer, value, type.fields)
+        when :tuple            then write_tuple_v3(buffer, value, type.members)
         else
           raise Errors::EncodingError, %(Unsupported value type: #{type})
         end
@@ -270,7 +339,35 @@ module Cassandra
         end
       end
 
+      def write_list_v1(buffer, list, type)
+        raw = CqlByteBuffer.new
+
+        raw.append_short(list.size)
+        list.each do |element|
+          write_short_value(raw, element, type)
+        end
+
+        buffer.append_bytes(raw)
+      end
+
+      def write_map_v1(buffer, map, key_type, value_type)
+        raw = CqlByteBuffer.new
+
+        raw.append_short(map.size)
+        map.each do |key, value|
+          write_short_value(raw, key, key_type)
+          write_short_value(raw, value, value_type)
+        end
+
+        buffer.append_bytes(raw)
+      end
+
       def write_value_v1(buffer, value, type)
+        if value.nil?
+          buffer.append_int(-1)
+          return
+        end
+
         case type.kind
         when :ascii            then write_ascii(buffer, value)
         when :bigint, :counter then write_bigint(buffer, value)
@@ -285,36 +382,8 @@ module Cassandra
         when :timestamp        then write_timestamp(buffer, value)
         when :timeuuid, :uuid  then write_uuid(buffer, value)
         when :varint           then write_varint(buffer, value)
-        when :list, :set
-          if value
-            raw        = CqlByteBuffer.new
-            value_type = type.value_type
-
-            raw.append_short(value.size)
-            value.each do |element|
-              write_short_value(raw, element, value_type)
-            end
-
-            buffer.append_bytes(raw)
-          else
-            buffer.append_int(-1)
-          end
-        when :map
-          if value
-            raw        = CqlByteBuffer.new
-            key_type   = type.key_type
-            value_type = type.value_type
-
-            raw.append_short(value.size)
-            value.each do |key, value|
-              write_short_value(raw, key, key_type)
-              write_short_value(raw, value, value_type)
-            end
-
-            buffer.append_bytes(raw)
-          else
-            buffer.append_int(-1)
-          end
+        when :list, :set       then write_list_v1(buffer, value, type.value_type)
+        when :map              then write_map_v1(buffer, value, type.key_type, type.value_type)
         else
           raise Errors::EncodingError, %(Unsupported value type: #{type})
         end
@@ -500,98 +569,66 @@ module Cassandra
       end
 
       def write_ascii(buffer, value)
-        buffer.append_bytes(value && value.encode(::Encoding::ASCII))
+        buffer.append_bytes(value.encode(::Encoding::ASCII))
       end
 
       def write_bigint(buffer, value)
-        if value
-          buffer.append_int(8)
-          buffer.append_long(value)
-        else
-          buffer.append_int(-1)
-        end
+        buffer.append_int(8)
+        buffer.append_long(value)
       end
 
       alias :write_counter :write_bigint
 
       def write_blob(buffer, value)
-        buffer.append_bytes(value && value.encode(::Encoding::BINARY))
+        buffer.append_bytes(value.encode(::Encoding::BINARY))
       end
 
       def write_boolean(buffer, value)
-        if !value.nil?
-          buffer.append_int(1)
-          buffer.append(value ? Constants::TRUE_BYTE : Constants::FALSE_BYTE)
-        else
-          buffer.append_int(-1)
-        end
+        buffer.append_int(1)
+        buffer.append(value ? Constants::TRUE_BYTE : Constants::FALSE_BYTE)
       end
 
       def write_decimal(buffer, value)
-        buffer.append_bytes(value && CqlByteBuffer.new.append_decimal(value))
+        buffer.append_bytes(CqlByteBuffer.new.append_decimal(value))
       end
 
       def write_double(buffer, value)
-        if value
-          buffer.append_int(8)
-          buffer.append_double(value)
-        else
-          buffer.append_int(-1)
-        end
+        buffer.append_int(8)
+        buffer.append_double(value)
       end
 
       def write_float(buffer, value)
-        if value
-          buffer.append_int(4)
-          buffer.append_float(value)
-        else
-          buffer.append_int(-1)
-        end
+        buffer.append_int(4)
+        buffer.append_float(value)
       end
 
       def write_int(buffer, value)
-        if value
-          buffer.append_int(4)
-          buffer.append_int(value)
-        else
-          buffer.append_int(-1)
-        end
+        buffer.append_int(4)
+        buffer.append_int(value)
       end
 
       def write_inet(buffer, value)
-        if value
-          buffer.append_int(value.ipv6? ? 16 : 4)
-          buffer.append(value.hton)
-        else
-          buffer.append_int(-1)
-        end
+        buffer.append_int(value.ipv6? ? 16 : 4)
+        buffer.append(value.hton)
       end
 
       def write_timestamp(buffer, value)
-        if value
-          ms = (value.to_r.to_f * 1000).to_i
-          buffer.append_int(8)
-          buffer.append_long(ms)
-        else
-          buffer.append_int(-1)
-        end
+        ms = (value.to_r.to_f * 1000).to_i
+        buffer.append_int(8)
+        buffer.append_long(ms)
       end
 
       def write_varchar(buffer, value)
-        buffer.append_bytes(value && value.encode(::Encoding::UTF_8))
+        buffer.append_bytes(value.encode(::Encoding::UTF_8))
       end
 
       def write_uuid(buffer, value)
-        if value
-          buffer.append_int(16)
-          buffer.append_uuid(value)
-        else
-          buffer.append_int(-1)
-        end
+        buffer.append_int(16)
+        buffer.append_uuid(value)
       end
 
       def write_varint(buffer, value)
-        buffer.append_bytes(value && CqlByteBuffer.new.append_varint(value))
+        buffer.append_bytes(CqlByteBuffer.new.append_varint(value))
       end
 
       def read_short_size(buffer)

@@ -36,9 +36,11 @@ module Cassandra
       PROTOCOL_VERSION = "\x01".freeze
       COMPRESSION_OFF = "\x00".freeze
 
-      SCHEMA_CHANGE_TARGET_KEYSPACE = 'KEYSPACE'.freeze
-      SCHEMA_CHANGE_TARGET_TABLE    = 'TABLE'.freeze
-      SCHEMA_CHANGE_TARGET_UDT      = 'TYPE'.freeze
+      SCHEMA_CHANGE_TARGET_KEYSPACE  = 'KEYSPACE'.freeze
+      SCHEMA_CHANGE_TARGET_TABLE     = 'TABLE'.freeze
+      SCHEMA_CHANGE_TARGET_UDT       = 'TYPE'.freeze
+      SCHEMA_CHANGE_TARGET_FUNCTION  = 'FUNCTION'.freeze
+      SCHEMA_CHANGE_TARGET_AGGREGATE = 'AGGREGATE'.freeze
     end
   end
 end
@@ -81,4 +83,5 @@ require 'cassandra/protocol/requests/execute_request'
 require 'cassandra/protocol/cql_protocol_handler'
 require 'cassandra/protocol/v1'
 require 'cassandra/protocol/v3'
+require 'cassandra/protocol/v4'
 require 'cassandra/protocol/coder'

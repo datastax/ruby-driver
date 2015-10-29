@@ -250,15 +250,17 @@ module Cassandra
             event_type = buffer.read_string
             case event_type
             when 'SCHEMA_CHANGE'
-              change   = buffer.read_string
-              target   = buffer.read_string
-              keyspace = buffer.read_string
+              change    = buffer.read_string
+              target    = buffer.read_string
+              keyspace  = buffer.read_string
+              name      = nil
+              arguments = EMPTY_LIST
 
-              if target == 'KEYSPACE'
-                SchemaChangeEventResponse.new(change, keyspace, nil, target)
-              else
-                SchemaChangeEventResponse.new(change, keyspace, buffer.read_string, target)
+              unless target == Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
+                name = buffer.read_string
               end
+
+              SchemaChangeEventResponse.new(change, keyspace, name, target, arguments)
             when 'STATUS_CHANGE'
               StatusChangeEventResponse.new(buffer.read_string, *buffer.read_inet)
             when 'TOPOLOGY_CHANGE'

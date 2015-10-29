@@ -248,6 +248,7 @@ class SessionTest < IntegrationTestCase
 
   def test_raise_error_on_invalid_named_parameters
     skip("Named parameters are only available in C* after 2.1") if CCM.cassandra_version < '2.1.0'
+    skip("Missing named parameters are ignored in C* after 2.2") if CCM.cassandra_version >= '2.2.0'
 
     setup_schema
 

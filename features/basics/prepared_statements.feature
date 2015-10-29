@@ -207,7 +207,7 @@ Feature: Prepared statements
       selected 3 row(s)
       """
 
-  @todo @cassandra-version-specific @cassandra-version-3.0
+  @cassandra-version-specific @cassandra-version-3.0
   Scenario: Unbound arguments are ignored
     Given a running cassandra cluster with schema:
     """cql
