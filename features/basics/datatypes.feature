@@ -285,3 +285,44 @@ Feature: Datatypes
       Flight: 638 to destination: (105.357423, 20.57925)
       Flight: 747 to destination: (37.397357, 42.7357)
       """
+
+  @cassandra-version-specific @cassandra-version-2.2
+  Scenario: Using time, date, smallint and tinyint
+    Given the following schema:
+    """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      CREATE TABLE simplex.checks (
+        id int PRIMARY KEY,
+        date date,
+        time time,
+        attempt tinyint,
+        value   smallint
+      );
+      INSERT INTO simplex.checks (id, date, time, attempt, value)
+      VALUES (0, '2015-05-03', '16:42:23.553', 1, 452);
+      INSERT INTO simplex.checks (id, date, time, attempt, value)
+      VALUES (1, '2015-05-03', '16:42:33.555', 1, 458);
+      INSERT INTO simplex.checks (id, date, time, attempt, value)
+      VALUES (2, '2015-05-03', '16:42:53.554', 4, 150);
+      INSERT INTO simplex.checks (id, date, time, attempt, value)
+      VALUES (3, '2015-05-03', '16:43:03.557', 2, 225);
+      """
+    And the following example:
+    """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      session.execute("SELECT * FROM checks").each do |row|
+        puts "Value on #{row['date']} at #{row['time']} was #{row['value']}, attempted #{row['attempt']} times"
+      end
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      Value on 2015-05-03 at 16:42:33.555 was 458, attempted 1 times
+      Value on 2015-05-03 at 16:42:23.553 was 452, attempted 1 times
+      Value on 2015-05-03 at 16:42:53.554 was 150, attempted 4 times
+      Value on 2015-05-03 at 16:43:03.557 was 225, attempted 2 times
+      """

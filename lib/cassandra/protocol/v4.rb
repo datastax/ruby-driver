@@ -215,21 +215,21 @@ module Cassandra
               VoidResultResponse.new(trace_id)
             when 0x0002 # Rows
               original_buffer_length = buffer.length
-              column_specs, paging_state = Coder.read_metadata_v3(buffer)
+              column_specs, paging_state = Coder.read_metadata_v4(buffer)
 
               if column_specs.nil?
                 consumed_bytes  = original_buffer_length - buffer.length
                 remaining_bytes = CqlByteBuffer.new(buffer.read(size - consumed_bytes - 4))
                 RawRowsResultResponse.new(protocol_version, remaining_bytes, paging_state, trace_id)
               else
-                RowsResultResponse.new(Coder.read_values_v3(buffer, column_specs), column_specs, paging_state, trace_id)
+                RowsResultResponse.new(Coder.read_values_v4(buffer, column_specs), column_specs, paging_state, trace_id)
               end
             when 0x0003 # SetKeyspace
               SetKeyspaceResultResponse.new(buffer.read_string, trace_id)
             when 0x0004 # Prepared
               id = buffer.read_short_bytes
               pk_idx, params_metadata = Coder.read_prepared_metadata_v4(buffer)
-              result_metadata = Coder.read_metadata_v3(buffer).first
+              result_metadata = Coder.read_metadata_v4(buffer).first
 
               PreparedResultResponse.new(id, params_metadata, result_metadata, pk_idx, trace_id)
             when 0x0005 # SchemaChange

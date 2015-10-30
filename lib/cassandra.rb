@@ -31,6 +31,7 @@ require 'resolv'
 require 'openssl'
 require 'securerandom'
 require 'time'
+require 'date'
 
 module Cassandra
   # A list of all supported request consistencies
@@ -525,12 +526,23 @@ module Cassandra
   NOT_SET = ::Object.new
   # @private
   NULL_BYTE = "\x00".freeze
+
+  # @private
+  # ensures that:
+  # ::Date.jd(DATE_OFFSET, ::Date::GREGORIAN)
+  # => -5877641-06-23
+  # ::Date.jd(DATE_OFFSET + 2 ** 31, ::Date::GREGORIAN)
+  # => 1970-1-1
+  # ::Date.jd(DATE_OFFSET + 2 ** 32, ::Date::GREGORIAN)
+  # => 5881580-07-12
+  DATE_OFFSET = (::Time.at(0).to_date.jd + 1 - 2 ** 31)
 end
 
 require 'cassandra/uuid'
 require 'cassandra/time_uuid'
 require 'cassandra/tuple'
 require 'cassandra/udt'
+require 'cassandra/time'
 
 require 'cassandra/types'
 

@@ -188,6 +188,22 @@ module Cassandra
         map
       end
 
+      def read_smallint
+        n = read_short
+        return n if n <= 0x7fff
+        n - 0xffff - 1
+      rescue RangeError => e
+        raise Errors::DecodingError, "Not enough bytes available to decode a smallint: #{e.message}", e.backtrace
+      end
+
+      def read_tinyint
+        n = read_byte
+        return n if n <= 0x7f
+        n - 0xff - 1
+      rescue RangeError => e
+        raise Errors::DecodingError, "Not enough bytes available to decode a tinyint: #{e.message}", e.backtrace
+      end
+
       def append_int(n)
         append([n].pack(Formats::INT_FORMAT))
       end
