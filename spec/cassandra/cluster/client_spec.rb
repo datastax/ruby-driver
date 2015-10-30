@@ -105,7 +105,7 @@ module Cassandra
 
           it 'sets host to down when all its connections are idle' do
             cluster_registry.add_listener(driver.load_balancing_policy)
-            cluster_registry.host_found(IPAddr.new(hosts.first))
+            cluster_registry.host_found(::IPAddr.new(hosts.first))
             io_reactor.enable_node(hosts.first)
 
             client.connect.value
@@ -119,7 +119,7 @@ module Cassandra
             expect(cluster_registry.host(hosts.first)).to be_down
 
             io_reactor.unblock_node(hosts.first)
-            cluster_registry.host_up(IPAddr.new(hosts.first))
+            cluster_registry.host_up(::IPAddr.new(hosts.first))
             io_reactor.advance_time(reconnect_interval)
             sleep(2)
 
@@ -129,7 +129,7 @@ module Cassandra
 
           it 'automatically replaces hanged connections' do
             cluster_registry.add_listener(driver.load_balancing_policy)
-            cluster_registry.host_found(IPAddr.new(hosts.first))
+            cluster_registry.host_found(::IPAddr.new(hosts.first))
             io_reactor.enable_node(hosts.first)
 
             client.connect.value
@@ -148,7 +148,7 @@ module Cassandra
 
           it 'fails when cannot fully connect to any hosts' do
             cluster_registry.add_listener(driver.load_balancing_policy)
-            cluster_registry.host_found(IPAddr.new(hosts.first))
+            cluster_registry.host_found(::IPAddr.new(hosts.first))
             io_reactor.enable_node(hosts.first)
             io_reactor.set_max_connections(hosts.first, 1)
 
@@ -161,9 +161,9 @@ module Cassandra
 
           it 'succeeds when can fully connect to at least one host' do
             cluster_registry.add_listener(driver.load_balancing_policy)
-            cluster_registry.host_found(IPAddr.new(hosts.first))
+            cluster_registry.host_found(::IPAddr.new(hosts.first))
             io_reactor.enable_node(hosts.first)
-            cluster_registry.host_found(IPAddr.new(hosts.last))
+            cluster_registry.host_found(::IPAddr.new(hosts.last))
             io_reactor.enable_node(hosts.last)
             io_reactor.set_max_connections(hosts.first, 1)
 

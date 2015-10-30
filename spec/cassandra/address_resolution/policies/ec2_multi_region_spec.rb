@@ -26,8 +26,8 @@ module Cassandra
         subject { EC2MultiRegion.new(resolver) }
 
         describe('#resolve') do
-          let(:address)      { IPAddr.new('23.21.218.233') }
-          let(:revesed_name) { Resolv::DNS::Name.create('233.218.21.23.in-addr.arpa') }
+          let(:address)      { ::IPAddr.new('23.21.218.233') }
+          let(:revesed_name) { ::Resolv::DNS::Name.create('233.218.21.23.in-addr.arpa') }
           let(:hostname)     { 'ec2-23-21-218-233.compute-1.amazonaws.com' }
           let(:resolved_ip)  { '10.10.24.1' }
 

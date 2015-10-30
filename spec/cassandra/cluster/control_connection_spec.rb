@@ -107,23 +107,23 @@ module Cassandra
       end
 
       let :data_centers do
-        Hash.new('dc1')
+        ::Hash.new('dc1')
       end
 
       let :racks do
-        Hash.new('rack1')
+        ::Hash.new('rack1')
       end
 
       let :release_versions do
-        Hash.new('2.0.7-SNAPSHOT')
+        ::Hash.new('2.0.7-SNAPSHOT')
       end
 
       let :host_ids do
-        Hash.new {|hash, ip| hash[ip] = uuid_generator.uuid}
+        ::Hash.new {|hash, ip| hash[ip] = uuid_generator.uuid}
       end
 
       let :additional_nodes do
-        Array.new(5) { IPAddr.new("127.0.#{rand(255)}.#{rand(255)}") }
+        ::Array.new(5) { ::IPAddr.new("127.0.#{rand(255)}.#{rand(255)}") }
       end
 
       let :bind_all_rpc_addresses do
@@ -189,7 +189,7 @@ module Cassandra
                     'rack'            => racks[ip],
                     'data_center'     => data_centers[ip],
                     'host_id'         => host_ids[ip],
-                    'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
+                    'rpc_address'     => bind_all_rpc_addresses ? ::IPAddr.new('0.0.0.0') : ip,
                     'release_version' => release_versions[ip]
                   }
                 end
@@ -308,7 +308,7 @@ module Cassandra
                       'rack'            => racks[ip],
                       'data_center'     => data_centers[ip],
                       'host_id'         => host_ids[ip],
-                      'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
+                      'rpc_address'     => bind_all_rpc_addresses ? ::IPAddr.new('0.0.0.0') : ip,
                       'release_version' => release_versions[ip]
                     }
                   end
@@ -415,7 +415,7 @@ module Cassandra
               end
 
               let :address do
-                IPAddr.new('127.0.0.1')
+                ::IPAddr.new('127.0.0.1')
               end
 
               it 'logs when it receives an UP event' do

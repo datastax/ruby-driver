@@ -529,7 +529,7 @@ class SessionTest < IntegrationTestCase
       session = cluster.connect("simplex")
 
       # Insert from the future
-      timestamp = curr_time_in_micro(Time.now + 1000)
+      timestamp = curr_time_in_micro(::Time.now + 1000)
       session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40) USING TIMESTAMP #{timestamp}")
       result = session.execute("SELECT writetime(first) FROM users WHERE user_id = 0").first
       assert_equal timestamp, result["writetime(first)"]

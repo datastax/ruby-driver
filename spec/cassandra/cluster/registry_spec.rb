@@ -35,18 +35,18 @@ module Cassandra
         context('when host is unknown') do
           it 'notifies listeners' do
             expect(listener).to receive(:host_found).once do |host|
-              expect(host.ip).to eq(IPAddr.new('127.0.0.1'))
+              expect(host.ip).to eq(::IPAddr.new('127.0.0.1'))
               expect(host.tokens).to eq([])
               expect(host).to be_up
             end
 
             expect(listener).to receive(:host_up).once do |host|
-              expect(host.ip).to eq(IPAddr.new('127.0.0.1'))
+              expect(host.ip).to eq(::IPAddr.new('127.0.0.1'))
               expect(host.tokens).to eq([])
               expect(host).to be_up
             end
 
-            subject.host_found(IPAddr.new('127.0.0.1'), {})
+            subject.host_found(::IPAddr.new('127.0.0.1'), {})
           end
         end
       end

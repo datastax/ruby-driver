@@ -34,7 +34,7 @@ module Cassandra
               'duration'    => nil,
               'parameters'  => {'page_size' => '50000', 'query' => 'SELECT * FROM songs'},
               'request'     => 'Execute CQL3 query',
-              'started_at'  => Time.now
+              'started_at'  => ::Time.now
             }
           end
           let(:rows) { [data] }

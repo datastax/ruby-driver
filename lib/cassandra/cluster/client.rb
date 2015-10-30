@@ -208,7 +208,7 @@ module Cassandra
         return @futures.error(Errors::ClientError.new("Positional arguments are not supported by the current version of Apache Cassandra")) if !statement.params.empty? && @connection_options.protocol_version == 1
 
         timestamp = nil
-        timestamp = Time.now if @connection_options.client_timestamps? && @connection_options.protocol_version > 2
+        timestamp = ::Time.now if @connection_options.client_timestamps? && @connection_options.protocol_version > 2
         request   = Protocol::QueryRequest.new(statement.cql, statement.params, statement.params_types, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?, statement.params_names, timestamp)
         timeout   = options.timeout
         promise   = @futures.promise
@@ -237,7 +237,7 @@ module Cassandra
 
       def execute(statement, options)
         timestamp       = nil
-        timestamp       = Time.now if @connection_options.client_timestamps? && @connection_options.protocol_version > 2
+        timestamp       = ::Time.now if @connection_options.client_timestamps? && @connection_options.protocol_version > 2
         timeout         = options.timeout
         result_metadata = statement.result_metadata
         request         = Protocol::ExecuteRequest.new(nil, statement.params_types, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?, timestamp)
@@ -255,7 +255,7 @@ module Cassandra
         return @futures.error(Errors::ClientError.new("Batch statements are not supported by the current version of Apache Cassandra")) if @connection_options.protocol_version < 2
 
         timestamp = nil
-        timestamp = Time.now if @connection_options.client_timestamps? && @connection_options.protocol_version > 2
+        timestamp = ::Time.now if @connection_options.client_timestamps? && @connection_options.protocol_version > 2
         timeout   = options.timeout
         request   = Protocol::BatchRequest.new(BATCH_TYPES[statement.type], options.consistency, options.trace?, options.serial_consistency, timestamp)
         keyspace  = @keyspace

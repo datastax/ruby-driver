@@ -31,7 +31,7 @@ module Cassandra
       seconds = t/10_000_000
       microseconds = (t - seconds * 10_000_000)/10.0
 
-      Time.at(seconds, microseconds).utc
+      ::Time.at(seconds, microseconds).utc
     end
 
     # Returns the date component from this UUID as Date.
