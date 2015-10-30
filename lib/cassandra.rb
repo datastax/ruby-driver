@@ -535,7 +535,7 @@ module Cassandra
   # => 1970-1-1
   # ::Date.jd(DATE_OFFSET + 2 ** 32, ::Date::GREGORIAN)
   # => 5881580-07-12
-  DATE_OFFSET = (::Time.at(0).to_date.jd + 1 - 2 ** 31)
+  DATE_OFFSET = (::Time.utc(1970, 1, 1).to_date.jd - 2 ** 31)
 end
 
 require 'cassandra/uuid'
