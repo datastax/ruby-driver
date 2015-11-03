@@ -467,8 +467,7 @@ module Cassandra
               prepare_and_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               s.on_failure do |e|
-                case e
-                when Errors::HostError
+                if e.is_a?(Errors::HostError) || (e.is_a?(Errors::TimeoutError) && statement.idempotent?)
                   errors ||= {}
                   errors[host] = e
                   execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
@@ -502,8 +501,7 @@ module Cassandra
               do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               prepare.on_failure do |e|
-                case e
-                when Errors::HostError
+                if e.is_a?(Errors::HostError) || (e.is_a?(Errors::TimeoutError) && statement.idempotent?)
                   errors ||= {}
                   errors[host] = e
                   execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
@@ -543,8 +541,7 @@ module Cassandra
               batch_and_send_request_by_plan(host, connection, promise, keyspace, statement, request, options, plan, timeout, errors, hosts)
             else
               s.on_failure do |e|
-                case e
-                when Errors::HostError
+                if e.is_a?(Errors::HostError) || (e.is_a?(Errors::TimeoutError) && statement.idempotent?)
                   errors ||= {}
                   errors[host] = e
                   batch_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
@@ -603,8 +600,7 @@ module Cassandra
               do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               f.on_failure do |e|
-                case e
-                when Errors::HostError
+                if e.is_a?(Errors::HostError) || (e.is_a?(Errors::TimeoutError) && statement.idempotent?)
                   errors ||= {}
                   errors[host] = e
                   batch_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
@@ -642,8 +638,7 @@ module Cassandra
               do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
             else
               s.on_failure do |e|
-                case e
-                when Errors::HostError
+                if e.is_a?(Errors::HostError) || (e.is_a?(Errors::TimeoutError) && statement.idempotent?)
                   errors ||= {}
                   errors[host] = e
                   send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
@@ -695,8 +690,7 @@ module Cassandra
                     do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
                   else
                     prepare.on_failure do |e|
-                      case e
-                      when Errors::HostError
+                      if e.is_a?(Errors::HostError) || (e.is_a?(Errors::TimeoutError) && statement.idempotent?)
                         errors ||= {}
                         errors[host] = e
                         execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
@@ -709,8 +703,7 @@ module Cassandra
               when Protocol::ErrorResponse
                 error = r.to_error(statement)
 
-                case error
-                when Errors::HostError
+                if error.is_a?(Errors::HostError) || (error.is_a?(Errors::TimeoutError) && statement.idempotent?)
                   errors ||= {}
                   errors[host] = error
 

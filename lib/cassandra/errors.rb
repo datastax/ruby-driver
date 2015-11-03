@@ -70,7 +70,7 @@ module Cassandra
 
     # Raised when a timeout has occured.
     class TimeoutError < ::Timeout::Error
-      include Error, HostError
+      include Error
     end
 
     # Mixed into all request execution errors.

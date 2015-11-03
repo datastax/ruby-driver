@@ -298,7 +298,7 @@ module Cassandra
 
         refresh_hosts_async.fallback do |e|
           case e
-          when Errors::HostError
+          when Errors::HostError, Errors::TimeoutError
             refresh_hosts_async_retry(e, @reconnection_policy.schedule)
           else
             connection = @connection
@@ -321,7 +321,7 @@ module Cassandra
         timer.flat_map do
           refresh_hosts_async.fallback do |e|
             case e
-            when Errors::HostError
+            when Errors::HostError, Errors::TimeoutError
               refresh_hosts_async_retry(e, schedule)
             else
               connection = @connection
@@ -408,7 +408,7 @@ module Cassandra
 
         refresh_host_async(address).fallback do |e|
           case e
-          when Errors::HostError
+          when Errors::HostError, Errors::TimeoutError
             refresh_host_async_retry(address, e, @reconnection_policy.schedule)
           else
             connection = @connection
@@ -431,7 +431,7 @@ module Cassandra
         timer.flat_map do
           refresh_host_async(address).fallback do |e|
             case e
-            when Errors::HostError
+            when Errors::HostError, Errors::TimeoutError
               refresh_host_async_retry(address, e, schedule)
             else
               connection = @connection
@@ -531,7 +531,7 @@ Control connection failed and is unlikely to recover.
           @logger.debug("Connection to #{host.ip} failed (#{error.class.name}: #{error.message})")
 
           case error
-          when Errors::HostError
+          when Errors::HostError, Errors::TimeoutError
             errors ||= {}
             errors[host] = error
             connect_to_first_available(plan, errors)
@@ -626,7 +626,7 @@ Control connection failed and is unlikely to recover.
       def refresh_maybe_retry(what, *args)
         send(:"refresh_#{what}_async", *args).fallback do |e|
           case e
-          when Errors::HostError
+          when Errors::HostError, Errors::TimeoutError
             refresh_retry(what, e, @reconnection_policy.schedule, *args)
           else
             connection = @connection
@@ -645,7 +645,7 @@ Control connection failed and is unlikely to recover.
         timer.flat_map do
           send(:"refresh_#{what}_async", *args).fallback do |e|
             case e
-            when Errors::HostError
+            when Errors::HostError, Errors::TimeoutError
               refresh_retry(what, e, schedule, *args)
             else
               connection = @connection
