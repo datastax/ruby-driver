@@ -201,7 +201,12 @@ module Cassandra
               when 'UP'
                 address = event.address
 
-                refresh_host_async_maybe_retry(address) if @registry.has_host?(address)
+                if @registry.has_host?(address)
+                  @registry.host_up(address)
+                else
+                  refresh_host_async_maybe_retry(address)
+                  refresh_maybe_retry(:schema)
+                end
               when 'DOWN'
                 @registry.host_down(event.address)
               when 'NEW_NODE'

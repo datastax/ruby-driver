@@ -436,12 +436,7 @@ module Cassandra
 
                 it 'notifies registry' do
                   ip = address.to_s
-                  expect(cluster_registry).to receive(:host_found).once.with(address, {
-                    'rack'            => racks[ip],
-                    'data_center'     => data_centers[ip],
-                    'host_id'         => host_ids[ip],
-                    'release_version' => release_versions[ip]
-                  })
+                  expect(cluster_registry).to receive(:host_up).once.with(address)
                   connections.first.trigger_event(event)
                 end
               end
@@ -455,8 +450,14 @@ module Cassandra
                   additional_nodes[3]
                 end
 
-                it 'does nothing' do
-                  expect(cluster_registry).to_not receive(:host_found)
+                it 'refreshes metadata and notifies registry' do
+                  ip = address.to_s
+                  expect(cluster_registry).to receive(:host_found).once.with(address, {
+                    'rack'            => racks[ip],
+                    'data_center'     => data_centers[ip],
+                    'host_id'         => host_ids[ip],
+                    'release_version' => release_versions[ip]
+                  })
 
                   connections.first.trigger_event(event)
                 end
