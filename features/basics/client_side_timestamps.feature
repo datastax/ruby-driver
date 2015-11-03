@@ -44,7 +44,7 @@ Feature: Client-side Timestamps
 
         # Batch statements
         batch = session.batch do |b|
-          b.add(insert, [0, 'Ruby', 'Driver', 2])
+          b.add(insert, arguments: [0, 'Ruby', 'Driver', 2])
         end
         session.execute(batch, consistency: :all)
         row = session.execute("SELECT * FROM users WHERE user_id = 0").first

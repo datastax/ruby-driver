@@ -103,7 +103,7 @@ module Cassandra
         @paging_state       = paging_state
         @arguments          = arguments
         @type_hints         = type_hints
-        @idempotent         = idempotent
+        @idempotent         = !!idempotent
       end
 
       # @return [Boolean] whether request tracing was enabled

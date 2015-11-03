@@ -209,7 +209,7 @@ class SerialConsistencyTest < IntegrationTestCase
       # Prepared statements
       update = Retry.with_attempts(5) { session.prepare("UPDATE simplex.users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
       prepared_batch = session.batch do |b|
-        b.add(update, [0])
+        b.add(update, arguments: [0])
       end
       result = Retry.with_attempts(5) { session.execute(prepared_batch, serial_consistency: :serial, consistency: :all) }
       assert_equal :serial, result.execution_info.options.serial_consistency
@@ -284,7 +284,7 @@ class SerialConsistencyTest < IntegrationTestCase
       # Prepared statement
       update = Retry.with_attempts(5) { session.prepare("UPDATE simplex.users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = ? IF first = 'John'") }
       prepared_batch = session.batch do |b|
-        b.add(update, [0])
+        b.add(update, arguments: [0])
       end
       begin
         Retry.with_attempts(5, Cassandra::Errors::InvalidError) { session.execute(prepared_batch, consistency: :local_one, serial_consistency: :local_serial) }

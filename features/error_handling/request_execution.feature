@@ -252,7 +252,7 @@ Feature: Request Execution Errors
       until (input = $stdin.gets).nil? # block until closed
         query = input.chomp
         begin
-          results = session.execute(query, consistency: :all, timeout: 2)
+          results = session.execute(query, consistency: :all, timeout: 2, idempotent: true)
           puts results.inspect
           execution_info = results.execution_info
           $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")
@@ -296,7 +296,7 @@ Feature: Request Execution Errors
       until (input = $stdin.gets).nil? # block until closed
         query = input.chomp
         begin
-          results = session.execute(query, consistency: :all, timeout: 2)
+          results = session.execute(query, consistency: :all, timeout: 2, idempotent: true)
           puts results.inspect
           execution_info = results.execution_info
           $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")
@@ -340,7 +340,7 @@ Feature: Request Execution Errors
       until (input = $stdin.gets).nil? # block until closed
         query = input.chomp
         begin
-          results = session.execute(query, consistency: :all, timeout: 2)
+          results = session.execute(query, consistency: :all, timeout: 2, idempotent: true)
           puts results.inspect
           execution_info = results.execution_info
           $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")
@@ -384,7 +384,7 @@ Feature: Request Execution Errors
       until (input = $stdin.gets).nil? # block until closed
         query = input.chomp
         begin
-          results = session.execute(query, consistency: :all, timeout: 2)
+          results = session.execute(query, consistency: :all, timeout: 2, idempotent: true)
           puts results.inspect
           execution_info = results.execution_info
           $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")

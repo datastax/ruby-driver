@@ -203,8 +203,8 @@ class SessionTest < IntegrationTestCase
       assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
 
       batch = session.batch do |b|
-        b.add(insert, {:a => 1, :b => 'Jane', :c => 'Doe', :d => 30})
-        b.add(insert, {:a => 2, :b => 'Agent', :c => 'Smith', :d => 20})
+        b.add(insert, arguments: {:a => 1, :b => 'Jane', :c => 'Doe', :d => 30})
+        b.add(insert, arguments: {:a => 2, :b => 'Agent', :c => 'Smith', :d => 20})
       end
 
       Retry.with_attempts(5) { session.execute(batch) }
@@ -233,8 +233,8 @@ class SessionTest < IntegrationTestCase
       assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
 
       batch = session.batch do |b|
-        b.add("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)", {:a => 1, :b => 'Jane', :c => 'Doe', :d => 30})
-        b.add("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)", {:a => 2, :b => 'Agent', :c => 'Smith', :d => 20})
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)", arguments: {:a => 1, :b => 'Jane', :c => 'Doe', :d => 30})
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)", arguments: {:a => 2, :b => 'Agent', :c => 'Smith', :d => 20})
       end
 
       session.execute(batch)
@@ -316,9 +316,9 @@ class SessionTest < IntegrationTestCase
       session = cluster.connect("simplex")
 
       batch = session.batch do |b|
-        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", [3, 'Apache', 'Cassandra', 8])
-        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", [4, 'DataStax', 'Ruby-Driver', 1])
-        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", [5, 'Cassandra', 'Community', 8])
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", arguments: [3, 'Apache', 'Cassandra', 8])
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", arguments: [4, 'DataStax', 'Ruby-Driver', 1])
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", arguments: [5, 'Cassandra', 'Community', 8])
       end
 
       session.execute(batch)
@@ -342,9 +342,9 @@ class SessionTest < IntegrationTestCase
       refute_nil insert
 
       batch = session.batch do |b|
-        b.add(insert, [6, 'Joséphine', 'Baker', 108])
-        b.add(insert, [7, 'Stefan', 'Löfven', 57])
-        b.add(insert, [8, 'Mick', 'Jager', 71])
+        b.add(insert, arguments: [6, 'Joséphine', 'Baker', 108])
+        b.add(insert, arguments: [7, 'Stefan', 'Löfven', 57])
+        b.add(insert, arguments: [8, 'Mick', 'Jager', 71])
       end
 
       Retry.with_attempts(5) { session.execute(batch) }
@@ -549,7 +549,7 @@ class SessionTest < IntegrationTestCase
       # Batch statements
       batch = session.batch do |b|
         b.add("INSERT INTO users (user_id, first, last, age) VALUES (0, 'Apache', 'Cassandra', 6)")
-        b.add(insert, [0, 'Ruby', 'Driver', 2])
+        b.add(insert, arguments: [0, 'Ruby', 'Driver', 2])
       end
 
       Retry.with_attempts(5) { session.execute(batch) }
@@ -602,7 +602,7 @@ class SessionTest < IntegrationTestCase
 
         # Batch statements
         batch = session.batch do |b|
-          b.add(insert, [0, 'Ruby', 'Driver', 2])
+          b.add(insert, arguments: [0, 'Ruby', 'Driver', 2])
         end
 
         Retry.with_attempts(5) { session.execute(batch) }

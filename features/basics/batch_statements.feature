@@ -87,25 +87,28 @@ Feature: Batch statements
 
       batch   = session.batch do |b|
                   b.add("INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)",
-                        [Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
-                        'La Petite Tonkinoise',
-                        'Bye Bye Blackbird',
-                        'Joséphine Baker',
-                        Set['jazz', '2013']]
+                        arguments: [ Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
+                                     'La Petite Tonkinoise',
+                                     'Bye Bye Blackbird',
+                                     'Joséphine Baker',
+                                     Set['jazz', '2013']
+                                   ]
                   )
                   b.add("INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)",
-                        [Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
-                        'Die Mösch',
-                        'In Gold',
-                        'Willi Ostermann',
-                        Set['kölsch', '1996', 'birds']]
+                        arguments: [ Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
+                                     'Die Mösch',
+                                     'In Gold',
+                                     'Willi Ostermann',
+                                     Set['kölsch', '1996', 'birds']
+                                   ]
                   )
                   b.add("INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)",
-                        [Cassandra::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25'),
-                        'Memo From Turner',
-                        'Performance',
-                        'Mick Jager',
-                        Set['soundtrack', '1991']]
+                        arguments: [ Cassandra::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25'),
+                                     'Memo From Turner',
+                                     'Performance',
+                                     'Mick Jager',
+                                     Set['soundtrack', '1991']
+                                   ]
                   )
                 end
 
@@ -140,25 +143,28 @@ Feature: Batch statements
       insert  = session.prepare("INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)")
       batch   = session.batch do |b|
                   b.add(insert,
-                        [Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
-                        'La Petite Tonkinoise',
-                        'Bye Bye Blackbird',
-                        'Joséphine Baker',
-                        Set['jazz', '2013']]
+                        arguments: [ Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
+                                     'La Petite Tonkinoise',
+                                     'Bye Bye Blackbird',
+                                     'Joséphine Baker',
+                                     Set['jazz', '2013']
+                                   ]
                   )
                   b.add(insert,
-                        [Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
-                        'Die Mösch',
-                        'In Gold',
-                        'Willi Ostermann',
-                        Set['kölsch', '1996', 'birds']]
+                        arguments: [ Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
+                                     'Die Mösch',
+                                     'In Gold',
+                                     'Willi Ostermann',
+                                     Set['kölsch', '1996', 'birds']
+                                   ]
                   )
                   b.add(insert,
-                        [Cassandra::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25'),
-                        'Memo From Turner',
-                        'Performance',
-                        'Mick Jager',
-                        Set['soundtrack', '1991']]
+                        arguments: [ Cassandra::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25'),
+                                     'Memo From Turner',
+                                     'Performance',
+                                     'Mick Jager',
+                                     Set['soundtrack', '1991']
+                                   ]
                   )
                 end
 
@@ -192,27 +198,27 @@ Feature: Batch statements
 
       insert  = session.prepare("INSERT INTO songs (id, title, album, artist, tags) VALUES (:a, :b, :c, :d, :e)")
       batch   = session.batch do |b|
-                  b.add(insert,
-                        {:a => Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
+                  b.add(insert, arguments: {
+                        :a => Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
                         :b => 'La Petite Tonkinoise',
                         :c =>'Bye Bye Blackbird',
                         :d => 'Joséphine Baker',
-                        :e => Set['jazz', '2013']}
-                  )
-                  b.add(insert,
-                        {:a => Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
+                        :e => Set['jazz', '2013']
+                  })
+                  b.add(insert, arguments: {
+                        :a => Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
                         :b => 'Die Mösch',
                         :c => 'In Gold',
                         :d => 'Willi Ostermann',
-                        :e => Set['kölsch', '1996', 'birds']}
-                  )
-                  b.add(insert,
-                        {:a => Cassandra::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25'),
+                        :e => Set['kölsch', '1996', 'birds']
+                  })
+                  b.add(insert, arguments: {
+                        :a => Cassandra::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25'),
                         :b => 'Memo From Turner',
                         :c => 'Performance',
                         :d => 'Mick Jager',
-                        :e => Set['soundtrack', '1991']}
-                  )
+                        :e => Set['soundtrack', '1991']
+                  })
                 end
 
       puts "inserting rows in a batch"
@@ -243,8 +249,8 @@ Feature: Batch statements
       batch = session.batch
 
       batch.add("INSERT INTO cas_batch (k, v) VALUES ('key1', 0)")
-      batch.add(statement, ["key1", 1])
-      batch.add(statement, ["key1", 2])
+      batch.add(statement, arguments: ["key1", 1])
+      batch.add(statement, arguments: ["key1", 2])
 
       results =  session.execute(batch)
       rows = results.first
@@ -340,7 +346,7 @@ Feature: Batch statements
                                 ")
 
       batch = session.batch do |b|
-                b.add(update, [Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50')])
+                b.add(update, arguments: [Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50')])
               end
 
       puts "updating rows in a batch"

@@ -750,7 +750,7 @@ module Cassandra
       describe('#batch') do
         it 'sends a BatchRequest' do
           sent = false
-          batch = Statements::Batch::Logged.new
+          batch = Statements::Batch::Logged.new(driver.execution_options)
           batch_request = double('batch request', :consistency => :one, :retries => 0)
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
@@ -766,7 +766,7 @@ module Cassandra
             end
           end
 
-          batch.add('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', [1, 2, 3, 4, 5])
+          batch.add('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', arguments: [1, 2, 3, 4, 5])
 
           client.connect.value
 
@@ -780,7 +780,7 @@ module Cassandra
 
         it 'can include prepared statements' do
           sent = false
-          batch = Statements::Batch::Logged.new
+          batch = Statements::Batch::Logged.new(driver.execution_options)
           batch_request = double('batch request', :consistency => :one, :retries => 0)
           params_metadata = [
             ['simplex', 'songs', 'id', Cassandra::Types.uuid],
@@ -809,7 +809,7 @@ module Cassandra
 
           statement = client.prepare('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', Execution::Options.new(:consistency => :one, :trace => false)).get
 
-          batch.add(statement, [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])
+          batch.add(statement, arguments: [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])
 
           expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false, nil, nil).and_return(batch_request)
           allow(batch_request).to receive(:clear)
@@ -822,7 +822,7 @@ module Cassandra
         it 'automatically re-prepares statements' do
           sent = false
           count = 0
-          batch = Statements::Batch::Logged.new
+          batch = Statements::Batch::Logged.new(driver.execution_options)
           batch_request = double('batch request', :consistency => :one, :retries => 0)
           params_metadata = [
             ['simplex', 'songs', 'id', Cassandra::Types.uuid],
@@ -852,7 +852,7 @@ module Cassandra
 
           statement = client.prepare('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', Execution::Options.new(:consistency => :one, :trace => false)).get
 
-          batch.add(statement, [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])
+          batch.add(statement, arguments: [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])
 
           expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false, nil, nil).and_return(batch_request)
           allow(batch_request).to receive(:clear)
@@ -889,7 +889,7 @@ module Cassandra
           end
 
           client.connect.value
-          batch = Statements::Batch::Logged.new
+          batch = Statements::Batch::Logged.new(driver.execution_options)
 
           client.batch(batch, Execution::Options.new(:consistency => :one)).get
 
@@ -913,7 +913,7 @@ module Cassandra
 
           client.connect.value
 
-          batch = Statements::Batch::Logged.new
+          batch = Statements::Batch::Logged.new(driver.execution_options)
 
           expect do
             client.batch(batch, Execution::Options.new(:consistency => :one)).get
