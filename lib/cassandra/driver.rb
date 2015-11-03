@@ -69,7 +69,8 @@ module Cassandra
         :consistency => consistency,
         :trace       => trace,
         :page_size   => page_size,
-        :timeout     => timeout
+        :timeout     => timeout,
+        :idempotent  => false
       })
     end
 

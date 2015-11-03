@@ -57,9 +57,11 @@ module Cassandra
     #   initial request.
     # @option options [Array, Hash] :arguments (nil) positional or named
     #   arguments for the statement.
-    # @option options [Array, Hash] :type_hints (nil) override Util.guess_type to
-    #   determine the CQL type for an argument; nil elements will fall-back
+    # @option options [Array, Hash] :type_hints (nil) override Util.guess_type
+    #   to determine the CQL type for an argument; nil elements will fall-back
     #   to Util.guess_type.
+    # @option options [Boolean] :idempotent (false) specify whether this
+    #   statement can be retried safely on timeout.
     #
     # @see Cassandra.cluster Options that can be specified on the cluster-level
     #   and their default values.
@@ -83,7 +85,7 @@ module Cassandra
 
       case statement
       when ::String
-        @client.query(Statements::Simple.new(statement, options.arguments, options.type_hints), options)
+        @client.query(Statements::Simple.new(statement, options.arguments, options.type_hints, options.idempotent?), options)
       when Statements::Simple
         @client.query(statement, options)
       when Statements::Prepared
@@ -131,6 +133,9 @@ module Cassandra
     # @option options [Boolean] :trace (false) whether to enable request tracing
     # @option options [Numeric] :timeout (nil) if specified, it is a number of
     #   seconds after which to time out the request if it hasn't completed
+    # @option options [Boolean] :idempotent (false) specify whether the
+    #   statement being prepared can be retried safely on timeout during
+    #   execution.
     #
     # @return [Cassandra::Future<Cassandra::Statements::Prepared>] future
     #   prepared statement
@@ -169,7 +174,7 @@ module Cassandra
     # @yieldparam batch [Statements::Batch] a logged batch
     # @return [Statements::Batch] a logged batch
     def logged_batch(&block)
-      statement = Statements::Batch::Logged.new
+      statement = Statements::Batch::Logged.new(@options)
       yield(statement) if block_given?
       statement
     end
@@ -180,7 +185,7 @@ module Cassandra
     # @yieldparam batch [Statements::Batch] an unlogged batch
     # @return [Statements::Batch] an unlogged batch
     def unlogged_batch
-      statement = Statements::Batch::Unlogged.new
+      statement = Statements::Batch::Unlogged.new(@options)
       yield(statement) if block_given?
       statement
     end
@@ -190,7 +195,7 @@ module Cassandra
     # @yieldparam batch [Statements::Batch] a counter batch
     # @return [Statements::Batch] a counter batch
     def counter_batch
-      statement = Statements::Batch::Counter.new
+      statement = Statements::Batch::Counter.new(@options)
       yield(statement) if block_given?
       statement
     end

@@ -30,13 +30,14 @@ module Cassandra
       attr_reader :params_types, :result_metadata, :keyspace, :partition_key
 
       # @private
-      def initialize(cql, params_types, result_metadata, params, keyspace = nil, partition_key = nil)
+      def initialize(cql, params_types, result_metadata, params, keyspace = nil, partition_key = nil, idempotent = false)
         @cql             = cql
         @params_types    = params_types
         @result_metadata = result_metadata
         @params          = params
         @keyspace        = keyspace
         @partition_key   = partition_key
+        @idempotent      = idempotent
       end
 
       # @return [String] a CLI-friendly bound statement representation

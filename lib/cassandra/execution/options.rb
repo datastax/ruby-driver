@@ -59,6 +59,7 @@ module Cassandra
         paging_state       = options[:paging_state]
         arguments          = options[:arguments]
         type_hints         = options[:type_hints]
+        idempotent         = options[:idempotent]
 
         Util.assert_one_of(CONSISTENCIES, consistency) { ":consistency must be one of #{CONSISTENCIES.inspect}, #{consistency.inspect} given" }
 
@@ -102,11 +103,17 @@ module Cassandra
         @paging_state       = paging_state
         @arguments          = arguments
         @type_hints         = type_hints
+        @idempotent         = idempotent
       end
 
       # @return [Boolean] whether request tracing was enabled
       def trace?
         @trace
+      end
+
+      # @return [Boolean] whether statement can be retried on timeout
+      def idempotent?
+        @idempotent
       end
 
       def eql?(other)

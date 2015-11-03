@@ -43,6 +43,7 @@ module Cassandra
         @retries            = retries
         @client             = client
         @connection_options = connection_options
+        @idempotent         = options.idempotent?
       end
 
       # Creates a statement bound with specific arguments
@@ -92,7 +93,7 @@ module Cassandra
 
         partition_key = create_partition_key(params)
 
-        Bound.new(@cql, param_types, @result_metadata, params, keyspace_name, partition_key)
+        Bound.new(@cql, param_types, @result_metadata, params, keyspace_name, partition_key, @idempotent)
       end
 
       # @return [Cassandra::Execution::Info] execution info for PREPARE request
