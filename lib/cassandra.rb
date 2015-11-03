@@ -60,7 +60,7 @@ module Cassandra
   #
   # @option options [Integer] :port (9042) cassandra native protocol port.
   #
-  # @option options [Boolean] :nodelay (false) when set to `true`, disables
+  # @option options [Boolean] :nodelay (true) when set to `true`, disables
   #   nagle algorithm.
   #
   # @option options [String] :datacenter (nil) name of current datacenter.

@@ -119,7 +119,7 @@ module Cassandra
     let(:thread_pool_size)          { 4 }
     let(:shuffle_replicas)          { true }
     let(:client_timestamps)         { false }
-    let(:nodelay)                   { false }
+    let(:nodelay)                   { true }
 
     let(:connections_per_local_node)  { 2 }
     let(:connections_per_remote_node) { 1 }
