@@ -579,6 +579,8 @@ Control connection failed and is unlikely to recover.
           when Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
             refresh_tables.delete(keyspace)
             refresh_types.delete(keyspace)
+            refresh_functions.delete(keyspace)
+            refresh_aggregates.delete(keyspace)
             refresh_keyspaces[keyspace] = true
           when Protocol::Constants::SCHEMA_CHANGE_TARGET_TABLE
             tables = refresh_tables[keyspace] ||= ::Hash.new
