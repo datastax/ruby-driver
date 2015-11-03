@@ -144,8 +144,10 @@ class RoundRobinTest < IntegrationTestCase
     @@ccm_cluster.stop_node('node1')
     @@ccm_cluster.stop_node('node2')
 
-    assert_raises(Cassandra::Errors::UnavailableError) do
+    begin
       Retry.with_attempts(5, Cassandra::Errors::WriteTimeoutError) { session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)") }
+    rescue Cassandra::Errors::NoHostsAvailable => e
+      raise e unless e.errors.first.last.is_a?(Cassandra::Errors::UnavailableError)
     end
 
     @@ccm_cluster.start_node('node1')

@@ -106,10 +106,19 @@ module Cassandra
 
       # Returns a decision that signals to driver to ignore the error
       #
-      # @return [Cassandra::Policies::Retry::Decision] tell driver to ignore the error
-      #   and return an empty result to the application
+      # @return [Cassandra::Policies::Retry::Decision] tell driver to ignore
+      #   the error and return an empty result to the application
       def ignore
         DECISION_IGNORE
+      end
+
+      # Returns a decision that signals to the driver attempt execution on the
+      # next host in the load balancing plan
+      #
+      # @return [Cassandra::Policies::Retry::Decision] tell the driver to
+      #   re-execute the statement on another host
+      def try_next_host
+        DECISION_TRY_NEXT_HOST
       end
     end
 
@@ -128,12 +137,17 @@ module Cassandra
 
       class Ignore
       end
+
+      class TryNextHost
+      end
     end
 
     # @private
     DECISION_RERAISE = Decisions::Reraise.new
     # @private
-    DECISION_IGNORE  = Decisions::Ignore.new
+    DECISION_IGNORE = Decisions::Ignore.new
+    # @private
+    DECISION_TRY_NEXT_HOST = Decisions::TryNextHost.new
   end
 end
 

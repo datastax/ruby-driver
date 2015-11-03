@@ -28,18 +28,24 @@ module Cassandra
           if received >= required && !retrieved
             try_again(consistency)
           else
-            reraise
+            try_next_host
           end
         end
 
         def write_timeout(statement, consistency, type, required, received, retries)
           return reraise if retries > 0
 
-          type == :batch_log ? try_again(consistency) : reraise
+          if statement.idempotent? && received.zero?
+            try_next_host
+          elsif type == :batch_log
+            try_again(consistency)
+          else
+            reraise
+          end
         end
 
         def unavailable(statement, consistency, required, alive, retries)
-          reraise
+          try_next_host
         end
       end
     end

@@ -766,6 +766,19 @@ module Cassandra
                 when Retry::Decisions::Retry
                   request.consistency = decision.consistency
                   do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts, retries + 1)
+                when Retry::Decisions::TryNextHost
+                  errors ||= {}
+                  errors[host] = r.to_error(statement)
+                  case request
+                  when Protocol::QueryRequest, Protocol::PrepareRequest
+                    send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                  when Protocol::ExecuteRequest
+                    execute_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                  when Protocol::BatchRequest
+                    batch_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
+                  else
+                    promise.break(e)
+                  end
                 when Retry::Decisions::Ignore
                   promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
                 when Retry::Decisions::Reraise

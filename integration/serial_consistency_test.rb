@@ -152,15 +152,19 @@ class SerialConsistencyTest < IntegrationTestCase
       @@ccm_cluster.stop_node("node2")
 
       # Simple statement
-      assert_raises(Cassandra::Errors::UnavailableError) do
+      begin
         session.execute("UPDATE users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = 0 IF first = 'John'",
                         consistency: :local_one, serial_consistency: :local_serial)
+      rescue Cassandra::Errors::NoHostsAvailable => e
+        raise e unless e.errors.first.last.is_a?(Cassandra::Errors::UnavailableError)
       end
 
       # Prepared statement
       update = Retry.with_attempts(5) { session.prepare("UPDATE simplex.users SET first = 'John', last = 'Doe', age = 40 WHERE user_id = ? IF first = 'Joss'") }
-      assert_raises(Cassandra::Errors::UnavailableError) do
+      begin
         Retry.with_attempts(5, Cassandra::Errors::InvalidError) { session.execute(update, arguments: [0], consistency: :local_one, serial_consistency: :local_serial) }
+      rescue Cassandra::Errors::NoHostsAvailable => e
+        raise e unless e.errors.first.last.is_a?(Cassandra::Errors::UnavailableError)
       end
     ensure
       cluster && cluster.close
@@ -271,8 +275,10 @@ class SerialConsistencyTest < IntegrationTestCase
       simple_batch = session.batch do |b|
         b.add("UPDATE users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = 0 IF first = 'John'")
       end
-      assert_raises(Cassandra::Errors::UnavailableError) do
+      begin
         session.execute(simple_batch, consistency: :local_one, serial_consistency: :local_serial)
+      rescue Cassandra::Errors::NoHostsAvailable => e
+        raise e unless e.errors.first.last.is_a?(Cassandra::Errors::UnavailableError)
       end
 
       # Prepared statement
@@ -280,8 +286,10 @@ class SerialConsistencyTest < IntegrationTestCase
       prepared_batch = session.batch do |b|
         b.add(update, [0])
       end
-      assert_raises(Cassandra::Errors::UnavailableError) do
+      begin
         Retry.with_attempts(5, Cassandra::Errors::InvalidError) { session.execute(prepared_batch, consistency: :local_one, serial_consistency: :local_serial) }
+      rescue Cassandra::Errors::NoHostsAvailable => e
+        raise e unless e.errors.first.last.is_a?(Cassandra::Errors::UnavailableError)
       end
     ensure
       cluster && cluster.close

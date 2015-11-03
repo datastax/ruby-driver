@@ -18,5 +18,8 @@
 
 module Cassandra
   module Statement
+    def idempotent?
+      !!@idempotent
+    end
   end
 end
