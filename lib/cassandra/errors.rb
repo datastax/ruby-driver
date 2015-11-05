@@ -208,6 +208,95 @@ module Cassandra
       end
     end
 
+    # Raised when a write request fails.
+    #
+    # @see https://github.com/apache/cassandra/blob/33f1edcce97779c971d4f78712a9a8bf014ffbbc/doc/native_protocol_v4.spec#L1111-L1138 Description of Write Failure Error in Apache Cassandra native protocol spec v4
+    class WriteError < ::StandardError
+      include ExecutionError
+
+      # @return [Symbol] the type of write request that timed out, one of
+      #   {Cassandra::WRITE_TYPES}
+      attr_reader :type
+      # @return [Symbol] the original consistency level for the request, one of
+      #   {Cassandra::CONSISTENCIES}
+      attr_reader :consistency
+      # @return [Integer] the number of acks required
+      attr_reader :required
+      # @return [Integer] the number of acks received
+      attr_reader :received
+      # @return [Integer] the number of writes failed
+      attr_reader :failed
+
+      # @private
+      def initialize(message, statement, type, consistency, required, failed, received)
+        super(message, statement)
+
+        @type        = type
+        @consistency = consistency
+        @required    = required
+        @failed      = failed
+        @received    = received
+      end
+    end
+
+    # Raised when a read request fails.
+    #
+    # @see https://github.com/apache/cassandra/blob/33f1edcce97779c971d4f78712a9a8bf014ffbbc/doc/native_protocol_v4.spec#L1089-L1103 Description of Read Failure Error in Apache Cassandra native protocol spec v4
+    class ReadError < ::StandardError
+      include ExecutionError
+
+      # @return [Boolean] whether actual data (as opposed to data checksum) was
+      #   present in the received responses.
+      attr_reader :retrieved
+      # @return [Symbol] the original consistency level for the request, one of
+      #   {Cassandra::CONSISTENCIES}
+      attr_reader :consistency
+      # @return [Integer] the number of responses required
+      attr_reader :required
+      # @return [Integer] the number of responses received
+      attr_reader :received
+      # @return [Integer] the number of reads failed
+      attr_reader :failed
+
+      # @private
+      def initialize(message, statement, retrieved, consistency, required, failed, received)
+        super(message, statement)
+
+        @retrieved   = retrieved
+        @consistency = consistency
+        @required    = required
+        @failed      = failed
+        @received    = received
+      end
+
+      def retrieved?
+        @retrieved
+      end
+    end
+
+    # Raised when function execution fails.
+    #
+    # @see https://github.com/apache/cassandra/blob/33f1edcce97779c971d4f78712a9a8bf014ffbbc/doc/native_protocol_v4.spec#L1104-L1110 Description of Function Failure Error in Apache Cassandra native protocol spec v4
+    class FunctionCallError < ::StandardError
+      include ExecutionError
+
+      # @return [String] keyspace
+      attr_reader :keyspace
+      # @return [String] name
+      attr_reader :name
+      # @return [String] signature
+      attr_reader :signature
+
+      # @private
+      def initialize(message, statement, keyspace, name, signature)
+        super(message, statement)
+
+        @keyspace  = keyspace
+        @name      = name
+        @signature = signature
+      end
+    end
+
     # Client error represents bad driver state or mis-configuration
     class ClientError < ::StandardError
       include Error

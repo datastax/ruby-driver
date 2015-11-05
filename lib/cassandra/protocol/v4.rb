@@ -197,6 +197,9 @@ module Cassandra
             when 0x1000 then UnavailableErrorResponse.new(code, message, buffer.read_consistency, buffer.read_int, buffer.read_int)
             when 0x1100 then WriteTimeoutErrorResponse.new(code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, buffer.read_string)
             when 0x1200 then ReadTimeoutErrorResponse.new(code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, (buffer.read_byte != 0))
+            when 0x1300 then ReadFailureErrorResponse.new(code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, buffer.read_int, (buffer.read_byte != 0))
+            when 0x1400 then FunctionFailureErrorResponse.new(code, message, buffer.read_string, buffer.read_string, buffer.read_string_list)
+            when 0x1500 then WriteFailureErrorResponse.new(code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, buffer.read_int, buffer.read_string)
             when 0x2400 then AlreadyExistsErrorResponse.new(code, message, buffer.read_string, buffer.read_string)
             when 0x2500 then UnpreparedErrorResponse.new(code, message, buffer.read_short_bytes)
             else
