@@ -49,7 +49,7 @@ module CCM extend self
     end
 
     def host_up(host)
-      synchronize { @hosts = @hosts.dup.push(host) }
+      synchronize { @hosts = @hosts.dup.push(host).sort_by!(&:ip) }
 
       self
     end
