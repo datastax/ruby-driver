@@ -295,16 +295,16 @@ module Cassandra
         end
       end
 
-      def refresh_hosts_async_maybe_retry
+      def refresh_peers_async_maybe_retry
         synchronize do
           return Ione::Future.resolved if @refreshing_hosts
           @refreshing_hosts = true
         end
 
-        refresh_hosts_async.fallback do |e|
+        refresh_peers_async.fallback do |e|
           case e
           when Errors::HostError, Errors::TimeoutError
-            refresh_hosts_async_retry(e, @reconnection_policy.schedule)
+            refresh_peers_async_retry(e, @reconnection_policy.schedule)
           else
             connection = @connection
             connection && connection.close(e)
@@ -318,16 +318,16 @@ module Cassandra
         end
       end
 
-      def refresh_hosts_async_retry(error, schedule)
+      def refresh_peers_async_retry(error, schedule)
         timeout = schedule.next
         @logger.info("Failed to refresh hosts (#{error.class.name}: #{error.message}), retrying in #{timeout}")
 
         timer = @io_reactor.schedule_timer(timeout)
         timer.flat_map do
-          refresh_hosts_async.fallback do |e|
+          refresh_peers_async.fallback do |e|
             case e
             when Errors::HostError, Errors::TimeoutError
-              refresh_hosts_async_retry(e, schedule)
+              refresh_peers_async_retry(e, schedule)
             else
               connection = @connection
               connection && connection.close(e)
@@ -338,27 +338,17 @@ module Cassandra
         end
       end
 
-      def refresh_hosts_async
+      def refresh_peers_async
         connection = @connection
 
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
-        @logger.info("Refreshing all host metadata")
+        @logger.info("Refreshing peers metadata")
 
-        local = send_select_request(connection, SELECT_LOCAL)
-        peers = send_select_request(connection, SELECT_PEERS)
-
-        Ione::Future.all(local, peers).map do |(local, peers)|
+        send_select_request(connection, SELECT_PEERS).map do |peers|
           @logger.debug("#{peers.size} peer(s) found")
 
           ips = ::Set.new
-
-          unless local.empty?
-            ips << ip = IPAddr.new(connection.host)
-            data = local.first
-            @registry.host_found(ip, data)
-            @metadata.update(data)
-          end
 
           peers.shuffle!
           peers.each do |data|
@@ -369,10 +359,33 @@ module Cassandra
           end
 
           @registry.each_host do |host|
+            next if host.ip == connection.host
             @registry.host_lost(host.ip) unless ips.include?(host.ip)
           end
 
-          @logger.info("Refreshed all host metadata")
+          @logger.info("Refreshed peers metadata")
+
+          nil
+        end
+      end
+
+      def refresh_metadata_async
+        connection = @connection
+
+        return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
+
+        @logger.info("Refreshing connected host's metadata")
+
+        send_select_request(connection, SELECT_LOCAL).map do |local|
+          if local.empty?
+            raise Errors::InternalError, "Unable to fetch connected host's metadata"
+          else
+            data = local.first
+            @registry.host_found(IPAddr.new(connection.host), data)
+            @metadata.update(data)
+          end
+
+          @logger.info("Refreshed connected host's metadata")
 
           nil
         end
@@ -528,9 +541,10 @@ Control connection failed and is unlikely to recover.
             end
           end
 
-          register_async
+          refresh_maybe_retry(:metadata)
         end
-        f = f.flat_map { refresh_hosts_async_maybe_retry }
+        f = f.flat_map { register_async }
+        f = f.flat_map { refresh_peers_async_maybe_retry }
         f = f.flat_map { refresh_maybe_retry(:schema) } if @connection_options.synchronize_schema?
         f = f.fallback do |error|
           @logger.debug("Connection to #{host.ip} failed (#{error.class.name}: #{error.message})")
