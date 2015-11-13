@@ -21,16 +21,16 @@ module Cassandra
     class FunctionFailureErrorResponse < ErrorResponse
       attr_reader :keyspace, :name, :signature
 
-      def initialize(code, message, keyspace, name, signature)
-        super(code, message)
+      def initialize(custom_payload, warnings, code, message, keyspace, name, signature)
+        super(custom_payload, warnings, code, message)
 
         @keyspace  = keyspace
         @name      = name
         @signature = signature
       end
 
-      def to_error(statement = nil)
-        Errors::FunctionCallError.new(@message, statement, @keyspace, @name, @signature)
+      def to_error(keyspace, statement, options, hosts, consistency, retries)
+        Errors::FunctionCallError.new(@message, @custom_payload, @warnings, keyspace, statement, options, hosts, consistency, retries, @keyspace, @name, @signature)
       end
 
       def to_s

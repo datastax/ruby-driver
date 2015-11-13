@@ -62,6 +62,8 @@ module Cassandra
     #   to Util.guess_type.
     # @option options [Boolean] :idempotent (false) specify whether this
     #   statement can be retried safely on timeout.
+    # @option options [Hash<[String, Symbol], String>] :payload (nil) custom
+    #   outgoing payload to be sent with the request.
     #
     # @see Cassandra.cluster Options that can be specified on the cluster-level
     #   and their default values.

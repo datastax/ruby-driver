@@ -19,10 +19,10 @@
 module Cassandra
   module Protocol
     class ResultResponse < Response
-      attr_reader :trace_id
+      attr_reader :custom_payload, :warnings, :trace_id
 
-      def initialize(trace_id)
-        @trace_id = trace_id
+      def initialize(custom_payload, warnings, trace_id)
+        @custom_payload, @warnings, @trace_id = custom_payload, warnings, trace_id
       end
 
       def void?

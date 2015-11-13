@@ -178,6 +178,16 @@ module Cassandra
         map
       end
 
+      def read_bytes_map
+        map = {}
+        map_size = read_unsigned_short
+        map_size.times do
+          key = read_string
+          map[key] = read_bytes
+        end
+        map
+      end
+
       def read_string_multimap
         map = {}
         map_size = read_unsigned_short
@@ -268,6 +278,15 @@ module Cassandra
         map.each do |key, value|
           append_string(key)
           append_string(value)
+        end
+        self
+      end
+
+      def append_bytes_map(map)
+        append_short(map.size)
+        map.each do |key, value|
+          append_string(key)
+          append_bytes(value)
         end
         self
       end

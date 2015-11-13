@@ -21,14 +21,14 @@ module Cassandra
     class UnpreparedErrorResponse < ErrorResponse
       attr_reader :id
 
-      def initialize(code, message, id)
-        super(code, message)
+      def initialize(custom_payload, warnings, code, message, id)
+        super(custom_payload, warnings, code, message)
 
         @id = id
       end
 
-      def to_error(statement = nil)
-        Errors::UnpreparedError.new(@message, statement, @id)
+      def to_error(keyspace, statement, options, hosts, consistency, retries)
+        Errors::UnpreparedError.new(@message, @custom_payload, @warnings, keyspace, statement, options, hosts, consistency, retries, @id)
       end
 
       def to_s

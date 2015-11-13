@@ -43,7 +43,7 @@ module Cassandra
                   case r
                   when Protocol::QueryRequest
                     if data.include?(r.cql)
-                      Ione::Future.resolved(Protocol::RowsResultResponse.new(data[r.cql], nil, nil, nil))
+                      Ione::Future.resolved(Protocol::RowsResultResponse.new(nil, nil, data[r.cql], nil, nil, nil))
                     else
                       raise "unsupported cql: #{r.cql}"
                     end

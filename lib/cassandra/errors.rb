@@ -46,6 +46,25 @@ module Cassandra
     # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L654-L655 Description of Server Error in Apache Cassandra native protocol spec v1
     class ServerError < ::StandardError
       include Error, HostError
+
+      # @private
+      def initialize(message, payload, warnings, keyspace, statement, options, hosts, consistency, retries)
+        super(message)
+        @payload     = payload
+        @warnings    = warnings
+        @keyspace    = keyspace
+        @statement   = statement
+        @options     = options
+        @hosts       = hosts
+        @consistency = consistency
+        @retries     = retries
+      end
+
+      # Query execution information, such as number of retries and all tried hosts, etc.
+      # @return [Cassandra::Execution::Info]
+      def execution_info
+        @info ||= Execution::Info.new(@payload, @warnings, @keyspace, @statement, @options, @hosts, @consistency, @retries, nil)
+      end
     end
 
     # Mixed into all internal driver errors.
@@ -77,14 +96,23 @@ module Cassandra
     module ExecutionError
       include Error
 
-      # @return [Cassandra::Statement] statement that triggered the error.
-      attr_reader :statement
-
       # @private
-      def initialize(message, statement)
+      def initialize(message, payload, warnings, keyspace, statement, options, hosts, consistency, retries)
         super(message)
+        @payload     = payload
+        @warnings    = warnings
+        @keyspace    = keyspace
+        @statement   = statement
+        @options     = options
+        @hosts       = hosts
+        @consistency = consistency
+        @retries     = retries
+      end
 
-        @statement = statement
+      # Query execution information, such as number of retries and all tried hosts, etc.
+      # @return [Cassandra::Execution::Info]
+      def execution_info
+        @info ||= Execution::Info.new(@payload, @warnings, @keyspace, @statement, @options, @hosts, @consistency, @retries, nil)
       end
     end
 
@@ -112,9 +140,8 @@ module Cassandra
       attr_reader :alive
 
       # @private
-      def initialize(message, statement, consistency, required, alive)
-        super(message, statement)
-
+      def initialize(message, payload, warnings, keyspace, statement, options, hosts, r_consistency, retries, consistency, required, alive)
+        super(message, payload, warnings, keyspace, statement, options, hosts, r_consistency, retries)
         @consistency = consistency
         @required    = required
         @alive       = alive
@@ -164,9 +191,8 @@ module Cassandra
       attr_reader :received
 
       # @private
-      def initialize(message, statement, type, consistency, required, received)
-        super(message, statement)
-
+      def initialize(message, payload, warnings, keyspace, statement, options, hosts, r_consistency, retries, type, consistency, required, received)
+        super(message, payload, warnings, keyspace, statement, options, hosts, r_consistency, retries)
         @type        = type
         @consistency = consistency
         @required    = required
@@ -194,9 +220,8 @@ module Cassandra
       attr_reader :received
 
       # @private
-      def initialize(message, statement, retrieved, consistency, required, received)
-        super(message, statement)
-
+      def initialize(message, payload, warnings, keyspace, statement, options, hosts, r_consistency, retries, retrieved, consistency, required, received)
+        super(message, payload, warnings, keyspace, statement, options, hosts, r_consistency, retries)
         @retrieved   = retrieved
         @consistency = consistency
         @required    = required
@@ -228,9 +253,8 @@ module Cassandra
       attr_reader :failed
 
       # @private
-      def initialize(message, statement, type, consistency, required, failed, received)
-        super(message, statement)
-
+      def initialize(message, payload, warnings, keyspace, statement, options, hosts, r_consistency, retries, type, consistency, required, failed, received)
+        super(message, payload, warnings, keyspace, statement, options, hosts, r_consistency, retries)
         @type        = type
         @consistency = consistency
         @required    = required
@@ -259,9 +283,8 @@ module Cassandra
       attr_reader :failed
 
       # @private
-      def initialize(message, statement, retrieved, consistency, required, failed, received)
-        super(message, statement)
-
+      def initialize(message, payload, warnings, keyspace, statement, options, hosts, r_consistency, retries, retrieved, consistency, required, failed, received)
+        super(message, payload, warnings, keyspace, statement, options, hosts, r_consistency, retries)
         @retrieved   = retrieved
         @consistency = consistency
         @required    = required
@@ -288,9 +311,8 @@ module Cassandra
       attr_reader :signature
 
       # @private
-      def initialize(message, statement, keyspace, name, signature)
-        super(message, statement)
-
+      def initialize(message, payload, warnings, r_keyspace, statement, options, hosts, consistency, retries, keyspace, name, signature)
+        super(message, payload, warnings, r_keyspace, statement, options, hosts, consistency, retries)
         @keyspace  = keyspace
         @name      = name
         @signature = signature
@@ -307,26 +329,71 @@ module Cassandra
     #
     # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L656-L658 Description of Protocol Error in Apache Cassandra native protocol spec v1
     class ProtocolError < ClientError
+      # @private
+      def initialize(message, payload, warnings, keyspace, statement, options, hosts, consistency, retries)
+        super(message)
+        @payload     = payload
+        @warnings    = warnings
+        @keyspace    = keyspace
+        @statement   = statement
+        @options     = options
+        @hosts       = hosts
+        @consistency = consistency
+        @retries     = retries
+      end
+
+      # Query execution information, such as number of retries and all tried hosts, etc.
+      # @return [Cassandra::Execution::Info]
+      def execution_info
+        @info ||= Execution::Info.new(@payload, @warnings, @keyspace, @statement, @options, @hosts, @consistency, @retries, nil)
+      end
     end
 
     # Raised when cannot authenticate to Cassandra
     #
     # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L659-L660 Description of Bad Credentials Error in Apache Cassandra native protocol spec v1
     class AuthenticationError < ClientError
+      # @private
+      def initialize(message, payload, warnings, keyspace, statement, options, hosts, consistency, retries)
+        super(message)
+        @payload     = payload
+        @warnings    = warnings
+        @keyspace    = keyspace
+        @statement   = statement
+        @options     = options
+        @hosts       = hosts
+        @consistency = consistency
+        @retries     = retries
+      end
+
+      # Query execution information, such as number of retries and all tried hosts, etc.
+      # @return [Cassandra::Execution::Info]
+      def execution_info
+        @info ||= Execution::Info.new(@payload, @warnings, @keyspace, @statement, @options, @hosts, @consistency, @retries, nil)
+      end
     end
 
     # Mixed into all request validation errors.
     module ValidationError
       include Error
 
-      # @return [Cassandra::Statement] statement that triggered the error.
-      attr_reader :statement
-
       # @private
-      def initialize(message, statement)
+      def initialize(message, payload, warnings, keyspace, statement, options, hosts, consistency, retries)
         super(message)
+        @payload     = payload
+        @warnings    = warnings
+        @keyspace    = keyspace
+        @statement   = statement
+        @options     = options
+        @hosts       = hosts
+        @consistency = consistency
+        @retries     = retries
+      end
 
-        @statement = statement
+      # Query execution information, such as number of retries and all tried hosts, etc.
+      # @return [Cassandra::Execution::Info]
+      def execution_info
+        @info ||= Execution::Info.new(@payload, @warnings, @keyspace, @statement, @options, @hosts, @consistency, @retries, nil)
       end
     end
 
@@ -343,9 +410,8 @@ module Cassandra
       attr_reader :id
 
       # @private
-      def initialize(message, statement, id)
-        super(message, statement)
-
+      def initialize(message, payload, warnings, keyspace, statement, options, hosts, consistency, retries, id)
+        super(message, payload, warnings, keyspace, statement, options, hosts, consistency, retries)
         @id = id
       end
     end
@@ -411,9 +477,8 @@ module Cassandra
       attr_reader :table
 
       # @private
-      def initialize(message, statement, keyspace, table)
-        super(message, statement)
-
+      def initialize(message, payload, warnings, r_keyspace, statement, options, hosts, consistency, retries, keyspace, table)
+        super(message, payload, warnings, r_keyspace, statement, options, hosts, consistency, retries)
         @keyspace = keyspace
         @table    = table
       end

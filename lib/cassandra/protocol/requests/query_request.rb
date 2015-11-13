@@ -19,10 +19,10 @@
 module Cassandra
   module Protocol
     class QueryRequest < Request
-      attr_reader :cql, :values, :type_hints, :serial_consistency, :page_size, :paging_state, :timestamp
+      attr_reader :cql, :values, :type_hints, :serial_consistency, :page_size, :paging_state, :timestamp, :payload
       attr_accessor :consistency, :retries
 
-      def initialize(cql, values, type_hints, consistency, serial_consistency = nil, page_size = nil, paging_state = nil, trace = false, names = EMPTY_LIST, timestamp = nil)
+      def initialize(cql, values, type_hints, consistency, serial_consistency = nil, page_size = nil, paging_state = nil, trace = false, names = EMPTY_LIST, timestamp = nil, payload = nil)
         super(7, trace)
         @cql = cql
         @values = values
@@ -33,6 +33,11 @@ module Cassandra
         @paging_state = paging_state
         @names = names
         @timestamp = timestamp
+        @payload = payload
+      end
+
+      def payload?
+        !!@payload
       end
 
       def write(buffer, protocol_version, encoder)

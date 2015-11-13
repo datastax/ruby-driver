@@ -21,8 +21,8 @@ module Cassandra
     class ReadFailureErrorResponse < ErrorResponse
       attr_reader :consistency, :received, :blockfor, :numfailures, :data_present
 
-      def initialize(code, message, consistency, received, blockfor, numfailures, data_present)
-        super(code, message)
+      def initialize(custom_payload, warnings, code, message, consistency, received, blockfor, numfailures, data_present)
+        super(custom_payload, warnings, code, message)
 
         @consistency  = consistency
         @received     = received
@@ -31,8 +31,8 @@ module Cassandra
         @data_present = data_present
       end
 
-      def to_error(statement = nil)
-        Errors::ReadError.new(@message, statement, @data_present, @consistency, @blockfor, @numfailures, @received)
+      def to_error(keyspace, statement, options, hosts, consistency, retries)
+        Errors::ReadError.new(@message, @custom_payload, @warnings, keyspace, statement, options, hosts, consistency, retries, @data_present, @consistency, @blockfor, @numfailures, @received)
       end
 
       def to_s

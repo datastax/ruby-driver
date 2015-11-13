@@ -181,20 +181,20 @@ module Cassandra
               if credentials
                 send_credentials(connection, credentials)
               else
-                Ione::Future.failed(Errors::AuthenticationError.new('Server requested authentication, but client was not configured to authenticate'))
+                Ione::Future.failed(Errors::AuthenticationError.new('Server requested authentication, but client was not configured to authenticate', nil, nil, nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0))
               end
             else
               authenticator = @connection_options.create_authenticator(r.authentication_class)
               if authenticator
                 challenge_response_cycle(connection, authenticator, authenticator.initial_response)
               else
-                Ione::Future.failed(Errors::AuthenticationError.new('Server requested authentication, but client was not configured to authenticate'))
+                Ione::Future.failed(Errors::AuthenticationError.new('Server requested authentication, but client was not configured to authenticate', nil, nil, nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0))
               end
             end
           when Protocol::ReadyResponse
             ::Ione::Future.resolved(connection)
           when Protocol::ErrorResponse
-            ::Ione::Future.failed(r.to_error(VOID_STATEMENT))
+            ::Ione::Future.failed(r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0))
           else
             ::Ione::Future.failed(Errors::InternalError.new("Unexpected response #{r.inspect}"))
           end
@@ -207,7 +207,7 @@ module Cassandra
           when Protocol::SupportedResponse
             r.options
           when Protocol::ErrorResponse
-            raise r.to_error(VOID_STATEMENT)
+            raise r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0)
           else
             raise Errors::InternalError, "Unexpected response #{r.inspect}"
           end
@@ -220,7 +220,7 @@ module Cassandra
           when Protocol::ReadyResponse
             connection
           when Protocol::ErrorResponse
-            raise r.to_error(VOID_STATEMENT)
+            raise r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0)
           else
             raise Errors::InternalError, "Unexpected response #{r.inspect}"
           end
@@ -237,7 +237,7 @@ module Cassandra
             authenticator.authentication_successful(r.token) rescue nil
             ::Ione::Future.resolved(connection)
           when Protocol::ErrorResponse
-            ::Ione::Future.failed(r.to_error(VOID_STATEMENT))
+            ::Ione::Future.failed(r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0))
           else
             ::Ione::Future.failed(Errors::InternalError.new("Unexpected response #{r.inspect}"))
           end

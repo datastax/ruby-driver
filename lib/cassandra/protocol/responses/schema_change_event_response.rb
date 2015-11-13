@@ -35,8 +35,13 @@ module Cassandra
         TYPE
       end
 
-      def eql?(rs)
-        rs.type == self.type && rs.change == self.change && rs.keyspace == self.keyspace && rs.name == self.name
+      def eql?(other)
+        other.is_a?(SchemaChangeEventResponse) && other.type == TYPE &&
+          @change == other.change &&
+          @keyspace == other.keyspace &&
+          @name == other.name &&
+          @target == other.target &&
+          @arguments == other.arguments
       end
       alias_method :==, :eql?
 

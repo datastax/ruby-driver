@@ -185,7 +185,7 @@ module Cassandra
           when Protocol::ReadyResponse
             nil
           when Protocol::ErrorResponse
-            raise r.to_error(VOID_STATEMENT)
+            raise r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0)
           else
             raise Errors::InternalError, "Unexpected response #{r.inspect}"
           end
@@ -736,7 +736,7 @@ Control connection failed and is unlikely to recover.
           when Protocol::RowsResultResponse
             r.rows
           when Protocol::ErrorResponse
-            e = r.to_error(VOID_STATEMENT)
+            e = r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0)
             raise e.class, e.message, caller
           else
             raise Errors::InternalError, "Unexpected response #{r.inspect}", caller

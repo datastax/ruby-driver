@@ -23,16 +23,21 @@ module Cassandra
       UNLOGGED_TYPE = 1
       COUNTER_TYPE = 2
 
-      attr_reader :type, :timestamp
+      attr_reader :type, :timestamp, :payload
       attr_accessor :consistency, :retries
 
-      def initialize(type, consistency, trace=false, serial_consistency = nil, timestamp = nil)
+      def initialize(type, consistency, trace=false, serial_consistency = nil, timestamp = nil, payload = nil)
         super(0x0D, trace)
         @type  = type
         @parts = []
         @consistency = consistency
         @serial_consistency = serial_consistency
         @timestamp = timestamp
+        @payload = payload
+      end
+
+      def payload?
+        !!@payload
       end
 
       def clear

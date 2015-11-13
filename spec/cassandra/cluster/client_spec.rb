@@ -355,9 +355,9 @@ module Cassandra
                 case request.cql
                 when 'SELECT * FROM songs'
                   handled = true
-                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                  Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
                 else
-                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                  Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
                 end
               end
             end
@@ -380,12 +380,12 @@ module Cassandra
               when Cassandra::Protocol::QueryRequest
                 case request.cql
                 when 'SELECT * FROM songs'
-                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                  Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
                 when 'USE foo'
                   count += 1
-                  Cassandra::Protocol::SetKeyspaceResultResponse.new('foo', false)
+                  Cassandra::Protocol::SetKeyspaceResultResponse.new(nil, nil, 'foo', false)
                 else
-                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                  Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
                 end
               end
             end
@@ -411,12 +411,12 @@ module Cassandra
               when Cassandra::Protocol::QueryRequest
                 case request.cql
                 when 'SELECT * FROM songs'
-                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                  Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
                 when 'USE "FooBar"'
                   count += 1
-                  Cassandra::Protocol::SetKeyspaceResultResponse.new('FooBar', false)
+                  Cassandra::Protocol::SetKeyspaceResultResponse.new(nil, nil, 'FooBar', false)
                 else
-                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                  Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
                 end
               end
             end
@@ -448,10 +448,10 @@ module Cassandra
                     count += 1
                     raise Cassandra::Errors::ClientError.new
                   else
-                    Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                    Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
                   end
                 else
-                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                  Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
                 end
               end
             end
@@ -475,7 +475,7 @@ module Cassandra
                 when 'SELECT * FROM songs'
                   raise Cassandra::Errors::ClientError.new
                 else
-                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                  Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
                 end
               end
             end
@@ -497,9 +497,9 @@ module Cassandra
               when Cassandra::Protocol::QueryRequest
                 case request.cql
                 when 'SELECT * FROM songs'
-                  Protocol::ErrorResponse.new(0x2200, 'blargh')
+                  Protocol::ErrorResponse.new(nil, nil, 0x2200, 'blargh')
                 else
-                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                  Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
                 end
               end
             end
@@ -512,7 +512,7 @@ module Cassandra
         end
 
         it 'waits for keyspace to be switched before running other requests' do
-          keyspace_set = Cassandra::Protocol::SetKeyspaceResultResponse.new('foo', false)
+          keyspace_set = Cassandra::Protocol::SetKeyspaceResultResponse.new(nil, nil, 'foo', false)
           future       = Ione::CompletableFuture.new
           count        = 0
           io_reactor.on_connection do |connection|
@@ -525,7 +525,7 @@ module Cassandra
               when Cassandra::Protocol::QueryRequest
                 case request.cql
                 when 'SELECT * FROM songs'
-                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                  Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
                 when 'USE foo'
                   if count == 0
                     count += 1
@@ -534,7 +534,7 @@ module Cassandra
                     throw(:halt, future)
                   end
                 else
-                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                  Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
                 end
               end
             end
@@ -569,7 +569,7 @@ module Cassandra
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
-                Protocol::PreparedResultResponse.new(123, [], [], nil, nil)
+                Protocol::PreparedResultResponse.new(nil, nil, 123, [], [], nil, nil)
               end
             end
           end
@@ -590,10 +590,10 @@ module Cassandra
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
-                Protocol::PreparedResultResponse.new(123, [], [], nil, nil)
+                Protocol::PreparedResultResponse.new(nil, nil, 123, [], [], nil, nil)
               when Cassandra::Protocol::ExecuteRequest
                 sent = true
-                Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
               end
             end
           end
@@ -614,9 +614,9 @@ module Cassandra
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
                 count += 1
-                Protocol::PreparedResultResponse.new('123', [], [], nil, nil)
+                Protocol::PreparedResultResponse.new(nil, nil, '123', [], [], nil, nil)
               when Cassandra::Protocol::ExecuteRequest
-                Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
               end
             end
           end
@@ -642,13 +642,13 @@ module Cassandra
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
                 count += 1
-                Protocol::PreparedResultResponse.new('123', [], [], nil, nil)
+                Protocol::PreparedResultResponse.new(nil, nil, '123', [], [], nil, nil)
               when Cassandra::Protocol::ExecuteRequest
                 if error
                   error = false
-                  Cassandra::Protocol::UnpreparedErrorResponse.new(0x2500, 'unprepared', "0xbad1d")
+                  Cassandra::Protocol::UnpreparedErrorResponse.new(nil, nil, 0x2500, 'unprepared', "0xbad1d")
                 else
-                  Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                  Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
                 end
               end
             end
@@ -675,14 +675,14 @@ module Cassandra
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
-                Protocol::PreparedResultResponse.new('123', [], [], nil, nil)
+                Protocol::PreparedResultResponse.new(nil, nil, '123', [], [], nil, nil)
               when Cassandra::Protocol::ExecuteRequest
                 attempts << connection.host
                 if count == 0
                   count += 1
                   raise Cassandra::Errors::ClientError.new
                 end
-                Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
               end
             end
           end
@@ -705,9 +705,9 @@ module Cassandra
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
-                Protocol::PreparedResultResponse.new(123, [], [], nil, nil)
+                Protocol::PreparedResultResponse.new(nil, nil, 123, [], [], nil, nil)
               when Cassandra::Protocol::ExecuteRequest
-                Protocol::ErrorResponse.new(0x2200, 'blargh')
+                Protocol::ErrorResponse.new(nil, nil, 0x2200, 'blargh')
               end
             end
           end
@@ -730,7 +730,7 @@ module Cassandra
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
-                Protocol::PreparedResultResponse.new(123, [], [], nil, nil)
+                Protocol::PreparedResultResponse.new(nil, nil, 123, [], [], nil, nil)
               when Cassandra::Protocol::ExecuteRequest
                 raise Cassandra::Errors::ClientError.new
               end
@@ -761,7 +761,7 @@ module Cassandra
                 Cassandra::Protocol::ReadyResponse.new
               when batch_request
                 sent = true
-                Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
               end
             end
           end
@@ -770,7 +770,7 @@ module Cassandra
 
           client.connect.value
 
-          expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false, nil, nil).and_return(batch_request)
+          expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false, nil, nil, nil).and_return(batch_request)
           allow(batch_request).to receive(:clear)
           expect(batch_request).to receive(:add_query).once.with('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', [1, 2, 3, 4, 5], [Cassandra::Types.bigint, Cassandra::Types.bigint, Cassandra::Types.bigint, Cassandra::Types.bigint, Cassandra::Types.bigint])
           expect(batch_request).to receive(:retries=).once.with(0)
@@ -797,10 +797,10 @@ module Cassandra
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
-                Protocol::PreparedResultResponse.new(123, params_metadata, [], nil, nil)
+                Protocol::PreparedResultResponse.new(nil, nil, 123, params_metadata, [], nil, nil)
               when batch_request
                 sent = true
-                Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
               end
             end
           end
@@ -811,7 +811,7 @@ module Cassandra
 
           batch.add(statement, arguments: [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])
 
-          expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false, nil, nil).and_return(batch_request)
+          expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false, nil, nil, nil).and_return(batch_request)
           allow(batch_request).to receive(:clear)
           expect(batch_request).to receive(:add_prepared).once.with(123, [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']], params_metadata.map(&:last))
           expect(batch_request).to receive(:retries=).once.with(0)
@@ -840,10 +840,10 @@ module Cassandra
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::PrepareRequest
                 count += 1
-                Protocol::PreparedResultResponse.new(123, params_metadata, [], nil, nil)
+                Protocol::PreparedResultResponse.new(nil, nil, 123, params_metadata, [], nil, nil)
               when batch_request
                 sent = true
-                Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
               end
             end
           end
@@ -854,7 +854,7 @@ module Cassandra
 
           batch.add(statement, arguments: [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])
 
-          expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false, nil, nil).and_return(batch_request)
+          expect(Cassandra::Protocol::BatchRequest).to receive(:new).once.with(0, :one, false, nil, nil, nil).and_return(batch_request)
           allow(batch_request).to receive(:clear)
           expect(batch_request).to receive(:add_prepared).once.with(123, [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']], params_metadata.map(&:last))
           expect(batch_request).to receive(:retries=).once.with(0)
@@ -883,7 +883,7 @@ module Cassandra
                   count += 1
                   raise Cassandra::Errors::ClientError.new
                 end
-                Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+                Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
               end
             end
           end

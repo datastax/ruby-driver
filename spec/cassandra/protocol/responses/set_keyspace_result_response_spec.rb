@@ -24,14 +24,14 @@ module Cassandra
     describe SetKeyspaceResultResponse do
       describe '#void?' do
         it 'is not void' do
-          response = described_class.new('system', nil)
+          response = described_class.new(nil, nil, 'system', nil)
           response.should_not be_void
         end
       end
 
       describe '#to_s' do
         it 'returns a string with the keyspace' do
-          response = described_class.new('system', nil)
+          response = described_class.new(nil, nil, 'system', nil)
           response.to_s.should == 'RESULT SET_KEYSPACE "system"'
         end
       end

@@ -29,7 +29,9 @@ module Cassandra
       attr_reader :result_metadata
 
       # @private
-      def initialize(cql, params_metadata, result_metadata, partition_key, trace_id, keyspace, statement, options, hosts, consistency, retries, client, connection_options)
+      def initialize(payload, warnings, cql, params_metadata, result_metadata, partition_key, trace_id, keyspace, statement, options, hosts, consistency, retries, client, connection_options)
+        @payload            = payload
+        @warnings           = warnings
         @cql                = cql
         @params_metadata    = params_metadata
         @result_metadata    = result_metadata
@@ -44,6 +46,7 @@ module Cassandra
         @client             = client
         @connection_options = connection_options
         @idempotent         = options.idempotent?
+        @payload            = payload
       end
 
       # Creates a statement bound with specific arguments
@@ -98,7 +101,7 @@ module Cassandra
 
       # @return [Cassandra::Execution::Info] execution info for PREPARE request
       def execution_info
-        @info ||= Execution::Info.new(@keyspace, @statement, @options, @hosts, @consistency, @retries, @trace_id ? Execution::Trace.new(@trace_id, @client) : nil)
+        @info ||= Execution::Info.new(@payload, @warnings, @keyspace, @statement, @options, @hosts, @consistency, @retries, @trace_id ? Execution::Trace.new(@trace_id, @client) : nil)
       end
 
       # @return [String] a CLI-friendly prepared statement representation

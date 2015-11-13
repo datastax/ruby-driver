@@ -21,8 +21,8 @@ module Cassandra
     class PreparedResultResponse < ResultResponse
       attr_reader :id, :metadata, :result_metadata, :pk_idx
 
-      def initialize(id, metadata, result_metadata, pk_idx, trace_id)
-        super(trace_id)
+      def initialize(custom_payload, warnings, id, metadata, result_metadata, pk_idx, trace_id)
+        super(custom_payload, warnings, trace_id)
         @id              = id
         @metadata        = metadata
         @result_metadata = result_metadata

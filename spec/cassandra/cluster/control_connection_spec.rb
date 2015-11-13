@@ -161,7 +161,7 @@ module Cassandra
             when Protocol::QueryRequest
               response = case request.cql
               when /USE\s+"?(\S+)"?/
-                Cassandra::Protocol::SetKeyspaceResultResponse.new($1, nil)
+                Cassandra::Protocol::SetKeyspaceResultResponse.new(nil, nil, $1, nil)
               when /FROM system\.local/
                 row = {
                   'rack'            => connection[:spec_rack],
@@ -169,7 +169,7 @@ module Cassandra
                   'host_id'         => connection[:spec_host_id],
                   'release_version' => connection[:spec_release_version]
                 }
-                Protocol::RowsResultResponse.new([row], local_metadata, nil, nil)
+                Protocol::RowsResultResponse.new(nil, nil, [row], local_metadata, nil, nil)
               when /FROM system\.peers WHERE peer = '?(\S+)'/
                 ip   = $1
                 rows = [
@@ -180,7 +180,7 @@ module Cassandra
                     'release_version' => release_versions[ip]
                   }
                 ]
-                Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
+                Protocol::RowsResultResponse.new(nil, nil, rows, peer_metadata, nil, nil)
               when /FROM system\.peers/
                 rows = min_peers[0].times.map do |host_id|
                   ip = additional_rpc_addresses.shift
@@ -193,7 +193,7 @@ module Cassandra
                     'release_version' => release_versions[ip]
                   }
                 end
-                Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
+                Protocol::RowsResultResponse.new(nil, nil, rows, peer_metadata, nil, nil)
               end
             when Protocol::OptionsRequest
               Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
@@ -212,7 +212,7 @@ module Cassandra
           handle_request do |request|
             if counter < 3
               counter += 1
-              Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              Protocol::ErrorResponse.new(nil, nil, 0x0a, 'Bork version, dummy!')
             elsif counter == 3
               counter += 1
               Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
@@ -230,7 +230,7 @@ module Cassandra
           handle_request do |request|
             if counter < 3
               counter += 1
-              Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              Protocol::ErrorResponse.new(nil, nil, 0x0a, 'Bork version, dummy!')
             elsif counter == 3
               counter += 1
               Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
@@ -246,7 +246,7 @@ module Cassandra
           counter = 0
           handle_request do |request|
             counter += 1
-            Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+            Protocol::ErrorResponse.new(nil, nil, 0x0a, 'Bork version, dummy!')
           end
           expect { control_connection.connect_async.value }.to raise_error(Cassandra::Errors::ProtocolError, 'Bork version, dummy!')
           counter.should == 7
@@ -254,7 +254,7 @@ module Cassandra
 
         it 'gives up when a non-protocol version related error is raised' do
           handle_request do |request|
-            Protocol::ErrorResponse.new(0x1001, 'Get off my lawn!')
+            Protocol::ErrorResponse.new(nil, nil, 0x1001, 'Get off my lawn!')
           end
           expect { control_connection.connect_async.value }.to raise_error(Cassandra::Errors::NoHostsAvailable)
         end
@@ -321,7 +321,7 @@ module Cassandra
                     'rpc_address'     => nil,
                     'release_version' => nil
                   }
-                  Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
+                  Protocol::RowsResultResponse.new(nil, nil, rows, peer_metadata, nil, nil)
                 end
               end
             end
@@ -566,10 +566,10 @@ module Cassandra
                               'release_version' => release_versions[ip]
                             }
                           ]
-                          Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
+                          Protocol::RowsResultResponse.new(nil, nil, rows, peer_metadata, nil, nil)
                         else
                           attempts += 1
-                          Protocol::RowsResultResponse.new([], peer_metadata, nil, nil)
+                          Protocol::RowsResultResponse.new(nil, nil, [], peer_metadata, nil, nil)
                         end
                       end
                     end

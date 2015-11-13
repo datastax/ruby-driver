@@ -179,19 +179,19 @@ module Cassandra
             message = buffer.read_string
 
             case code
-            when 0x1000 then UnavailableErrorResponse.new(code, message, buffer.read_consistency, buffer.read_int, buffer.read_int)
-            when 0x1100 then WriteTimeoutErrorResponse.new(code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, buffer.read_string)
-            when 0x1200 then ReadTimeoutErrorResponse.new(code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, (buffer.read_byte != 0))
-            when 0x2400 then AlreadyExistsErrorResponse.new(code, message, buffer.read_string, buffer.read_string)
-            when 0x2500 then UnpreparedErrorResponse.new(code, message, buffer.read_short_bytes)
+            when 0x1000 then UnavailableErrorResponse.new(nil, nil, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int)
+            when 0x1100 then WriteTimeoutErrorResponse.new(nil, nil, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, buffer.read_string)
+            when 0x1200 then ReadTimeoutErrorResponse.new(nil, nil, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, (buffer.read_byte != 0))
+            when 0x2400 then AlreadyExistsErrorResponse.new(nil, nil, code, message, buffer.read_string, buffer.read_string)
+            when 0x2500 then UnpreparedErrorResponse.new(nil, nil, code, message, buffer.read_short_bytes)
             else
-              ErrorResponse.new(code, message)
+              ErrorResponse.new(nil, nil, code, message)
             end
           when CODE_RESULT
             result_type = buffer.read_int
             case result_type
             when 0x0001 # Void
-              VoidResultResponse.new(trace_id)
+              VoidResultResponse.new(nil, nil, trace_id)
             when 0x0002 # Rows
               original_buffer_length = buffer.length
               column_specs, paging_state = Coder.read_metadata_v1(buffer)
@@ -199,21 +199,34 @@ module Cassandra
               if column_specs.nil?
                 consumed_bytes  = original_buffer_length - buffer.length
                 remaining_bytes = CqlByteBuffer.new(buffer.read(size - consumed_bytes - 4))
-                RawRowsResultResponse.new(protocol_version, remaining_bytes, paging_state, trace_id)
+                RawRowsResultResponse.new(nil, nil, protocol_version, remaining_bytes, paging_state, trace_id)
               else
-                RowsResultResponse.new(Coder.read_values_v1(buffer, column_specs), column_specs, paging_state, trace_id)
+                RowsResultResponse.new(nil, nil, Coder.read_values_v1(buffer, column_specs), column_specs, paging_state, trace_id)
               end
             when 0x0003 # SetKeyspace
-              SetKeyspaceResultResponse.new(buffer.read_string, trace_id)
+              SetKeyspaceResultResponse.new(nil, nil, buffer.read_string, trace_id)
             when 0x0004 # Prepared
               id              = buffer.read_short_bytes
               params_metadata = Coder.read_metadata_v1(buffer).first
               result_metadata = nil
               result_metadata = Coder.read_metadata_v1(buffer).first if protocol_version > 1
 
-              PreparedResultResponse.new(id, params_metadata, result_metadata, nil, trace_id)
+              PreparedResultResponse.new(nil, nil, id, params_metadata, result_metadata, nil, trace_id)
             when 0x0005 # SchemaChange
-              SchemaChangeResultResponse.new(buffer.read_string, buffer.read_string, buffer.read_string, trace_id)
+              change    = buffer.read_string
+              keyspace  = buffer.read_string
+              name      = buffer.read_string
+              arguments = EMPTY_LIST
+              target    = nil
+
+              if name.empty?
+                name   = nil
+                target = Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
+              else
+                target = Constants::SCHEMA_CHANGE_TARGET_TABLE
+              end
+
+              SchemaChangeResultResponse.new(nil, nil, change, keyspace, name, target, arguments, nil)
             else
               raise Errors::DecodingError, "Unsupported result type: #{result_type.inspect}"
             end

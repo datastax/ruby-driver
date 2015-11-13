@@ -209,7 +209,9 @@ module Cassandra
 
         timestamp = nil
         timestamp = ::Time.now if @connection_options.client_timestamps? && @connection_options.protocol_version > 2
-        request   = Protocol::QueryRequest.new(statement.cql, statement.params, statement.params_types, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?, statement.params_names, timestamp)
+        payload   = nil
+        payload   = options.payload if  @connection_options.protocol_version >= 4
+        request   = Protocol::QueryRequest.new(statement.cql, statement.params, statement.params_types, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?, statement.params_names, timestamp, payload)
         timeout   = options.timeout
         promise   = @futures.promise
 
@@ -222,7 +224,9 @@ module Cassandra
       end
 
       def prepare(cql, options)
-        request = Protocol::PrepareRequest.new(cql, options.trace?)
+        payload = nil
+        payload = options.payload if  @connection_options.protocol_version >= 4
+        request = Protocol::PrepareRequest.new(cql, options.trace?, payload)
         timeout = options.timeout
         promise = @futures.promise
 
@@ -238,9 +242,11 @@ module Cassandra
       def execute(statement, options)
         timestamp       = nil
         timestamp       = ::Time.now if @connection_options.client_timestamps? && @connection_options.protocol_version > 2
+        payload         = nil
+        payload         = options.payload if  @connection_options.protocol_version >= 4
         timeout         = options.timeout
         result_metadata = statement.result_metadata
-        request         = Protocol::ExecuteRequest.new(nil, statement.params_types, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?, timestamp)
+        request         = Protocol::ExecuteRequest.new(nil, statement.params_types, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?, timestamp, payload)
         promise         = @futures.promise
 
         keyspace = @keyspace
@@ -256,8 +262,10 @@ module Cassandra
 
         timestamp = nil
         timestamp = ::Time.now if @connection_options.client_timestamps? && @connection_options.protocol_version > 2
+        payload   = nil
+        payload   = options.payload if  @connection_options.protocol_version >= 4
         timeout   = options.timeout
-        request   = Protocol::BatchRequest.new(BATCH_TYPES[statement.type], options.consistency, options.trace?, options.serial_consistency, timestamp)
+        request   = Protocol::BatchRequest.new(BATCH_TYPES[statement.type], options.consistency, options.trace?, options.serial_consistency, timestamp, payload)
         keyspace  = @keyspace
         plan      = @load_balancing_policy.plan(keyspace, statement, options)
         promise   = @futures.promise
@@ -701,7 +709,7 @@ module Cassandra
                   end
                 end
               when Protocol::ErrorResponse
-                error = r.to_error(statement)
+                error = r.to_error(keyspace, statement, options, hosts, request.consistency, retries)
 
                 if error.is_a?(Errors::HostError) || (error.is_a?(Errors::TimeoutError) && statement.idempotent?)
                   errors ||= {}
@@ -720,7 +728,7 @@ module Cassandra
                 end
               when Protocol::SetKeyspaceResultResponse
                 @keyspace = r.keyspace
-                promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
+                promise.fulfill(Results::Void.new(r.custom_payload, r.warnings, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
               when Protocol::PreparedResultResponse
                 cql = request.cql
                 synchronize do
@@ -732,12 +740,12 @@ module Cassandra
                 pk_idx   = r.pk_idx
                 pk_idx ||= @schema.get_pk_idx(metadata)
 
-                promise.fulfill(Statements::Prepared.new(cql, metadata, r.result_metadata, pk_idx, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @connection_options))
+                promise.fulfill(Statements::Prepared.new(r.custom_payload, r.warnings, cql, metadata, r.result_metadata, pk_idx, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @connection_options))
               when Protocol::RawRowsResultResponse
                 r.materialize(statement.result_metadata)
-                promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
+                promise.fulfill(Results::Paged.new(r.custom_payload, r.warnings, r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
               when Protocol::RowsResultResponse
-                promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
+                promise.fulfill(Results::Paged.new(r.custom_payload, r.warnings, r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
               when Protocol::SchemaChangeResultResponse
                 @schema.delete_keyspace(r.keyspace) if r.change == 'DROPPED' && r.target == Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
 
@@ -748,10 +756,10 @@ module Cassandra
                       @logger.error("Schema agreement failure (#{e.class.name}: #{e.message})")
                     end
                   end
-                  promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
+                  promise.fulfill(Results::Void.new(r.custom_payload, r.warnings, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
                 end
               else
-                promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
+                promise.fulfill(Results::Void.new(r.custom_payload, r.warnings, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
               end
 
               if decision
@@ -761,7 +769,7 @@ module Cassandra
                   do_send_request_by_plan(host, connection, promise, keyspace, statement, options, request, plan, timeout, errors, hosts, retries + 1)
                 when Retry::Decisions::TryNextHost
                   errors ||= {}
-                  errors[host] = r.to_error(statement)
+                  errors[host] = r.to_error(keyspace, statement, options, hosts, request.consistency, retries)
                   case request
                   when Protocol::QueryRequest, Protocol::PrepareRequest
                     send_request_by_plan(promise, keyspace, statement, options, request, plan, timeout, errors, hosts)
@@ -773,11 +781,11 @@ module Cassandra
                     promise.break(e)
                   end
                 when Retry::Decisions::Ignore
-                  promise.fulfill(Results::Void.new(r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
+                  promise.fulfill(Results::Void.new(r.custom_payload, r.warnings, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
                 when Retry::Decisions::Reraise
-                  promise.break(r.to_error(statement))
+                  promise.break(r.to_error(keyspace, statement, options, hosts, request.consistency, retries))
                 else
-                  promise.break(r.to_error(statement))
+                  promise.break(r.to_error(keyspace, statement, options, hosts, request.consistency, retries))
                 end
               end
             rescue => e
@@ -862,7 +870,7 @@ module Cassandra
             @keyspace = r.keyspace
             nil
           when Protocol::ErrorResponse
-            raise r.to_error(Statements::Simple.new("USE #{Util.escape_name(keyspace)}"))
+            raise r.to_error(nil, Statements::Simple.new("USE #{Util.escape_name(keyspace)}"), VOID_OPTIONS, EMPTY_LIST, :one, 0)
           else
             raise Errors::InternalError, "Unexpected response #{r.inspect}"
           end
@@ -898,7 +906,7 @@ module Cassandra
             end
             id
           when Protocol::ErrorResponse
-            raise r.to_error(VOID_STATEMENT)
+            raise r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0)
           else
             raise Errors::InternalError, "Unexpected response #{r.inspect}"
           end
@@ -917,7 +925,7 @@ module Cassandra
           when Protocol::RowsResultResponse
             r.rows
           when Protocol::ErrorResponse
-            raise r.to_error(VOID_STATEMENT)
+            raise r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0)
           else
             raise Errors::InternalError, "Unexpected response #{r.inspect}"
           end

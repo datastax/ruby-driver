@@ -189,13 +189,15 @@ module Cassandra
         end
 
         def send_select_request(connection, cql, params = EMPTY_LIST, types = EMPTY_LIST)
+          backtrace = caller
           connection.send_request(Protocol::QueryRequest.new(cql, params, types, :one)).map do |r|
             case r
             when Protocol::RowsResultResponse
               r.rows
             when Protocol::ErrorResponse
-              e = r.to_error(VOID_STATEMENT)
-              raise e.class, e.message, caller
+              e = r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0)
+              e.set_backtrace(backtrace)
+              raise e
             else
               raise Errors::InternalError, "Unexpected response #{r.inspect}", caller
             end

@@ -22,14 +22,23 @@ module Cassandra
       class Encoder
         HEADER_FORMAT = 'c2ncN'.freeze
 
-        def initialize(compressor = nil, protocol_version = 3)
+        def initialize(compressor = nil, protocol_version = 4)
           @compressor       = compressor
           @protocol_version = protocol_version
         end
 
         def encode(buffer, request, stream_id)
-          flags = request.trace? ? 2 : 0
-          body  = request.write(CqlByteBuffer.new, @protocol_version, self)
+          flags  = 0
+          flags |= 0x02 if request.trace?
+
+          body = CqlByteBuffer.new
+
+          if request.payload?
+            flags |= 0x04
+            body.append_bytes_map(request.payload)
+          end
+
+          request.write(body, @protocol_version, self)
 
           if @compressor && request.compressable? && @compressor.compress?(body)
             flags |= 1
@@ -80,7 +89,7 @@ module Cassandra
             stream_id  = (frame_header >> 8) & 0xff
             stream_id  = (stream_id & 0x7f) - (stream_id & 0x80)
 
-            @handler.complete_request(stream_id, ErrorResponse.new(0x000A, "Invalid or unsupported protocol version"))
+            @handler.complete_request(stream_id, ErrorResponse.new(nil, nil, 0x000A, "Invalid or unsupported protocol version"))
 
             return
           end
@@ -151,13 +160,15 @@ module Cassandra
 
         def actual_decode(buffer, fields, size, code)
           protocol_version = (fields >> 24) & 0x7f
-          compression      = (fields >> 16) & 0x01
-          tracing          = (fields >> 16) & 0x02
+          compression      = ((fields >> 16) & 0x01) == 0x01
+          tracing          = ((fields >> 16) & 0x02) == 0x02
+          payload          = ((fields >> 16) & 0x04) == 0x04
+          warning          = ((fields >> 16) & 0x08) == 0x08
           stream_id        = fields & 0xffff
           stream_id        = (stream_id & 0x7fff) - (stream_id & 0x8000)
           opcode           = code & 0xff
 
-          if compression == 1
+          if compression
             if @compressor
               buffer = CqlByteBuffer.new(@compressor.decompress(buffer.read(size)))
               size   = buffer.size
@@ -166,15 +177,29 @@ module Cassandra
             end
           end
 
-          if tracing == 2
+          if tracing
             trace_id = buffer.read_uuid
-            size    -= 16
+            size     = buffer.size
           else
             trace_id = nil
           end
 
+          if payload
+            custom_payload = buffer.read_bytes_map.freeze
+            size           = buffer.size
+          else
+            custom_payload = nil
+          end
+
+          if warning
+            warnings = buffer.read_string_list
+            size     = buffer.size
+          else
+            warnings = nil
+          end
+
           extra_length = buffer.length - size
-          response = decode_response(opcode, protocol_version, buffer, size, trace_id)
+          response = decode_response(opcode, protocol_version, buffer, size, trace_id, custom_payload, warnings)
 
           if buffer.length > extra_length
             buffer.discard(buffer.length - extra_length)
@@ -187,23 +212,23 @@ module Cassandra
           end
         end
 
-        def decode_response(opcode, protocol_version, buffer, size, trace_id)
+        def decode_response(opcode, protocol_version, buffer, size, trace_id, custom_payload, warnings)
           case opcode
           when 0x00 # ERROR
             code    = buffer.read_int
             message = buffer.read_string
 
             case code
-            when 0x1000 then UnavailableErrorResponse.new(code, message, buffer.read_consistency, buffer.read_int, buffer.read_int)
-            when 0x1100 then WriteTimeoutErrorResponse.new(code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, buffer.read_string)
-            when 0x1200 then ReadTimeoutErrorResponse.new(code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, (buffer.read_byte != 0))
-            when 0x1300 then ReadFailureErrorResponse.new(code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, buffer.read_int, (buffer.read_byte != 0))
-            when 0x1400 then FunctionFailureErrorResponse.new(code, message, buffer.read_string, buffer.read_string, buffer.read_string_list)
-            when 0x1500 then WriteFailureErrorResponse.new(code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, buffer.read_int, buffer.read_string)
-            when 0x2400 then AlreadyExistsErrorResponse.new(code, message, buffer.read_string, buffer.read_string)
-            when 0x2500 then UnpreparedErrorResponse.new(code, message, buffer.read_short_bytes)
+            when 0x1000 then UnavailableErrorResponse.new(custom_payload, warnings, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int)
+            when 0x1100 then WriteTimeoutErrorResponse.new(custom_payload, warnings, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, buffer.read_string)
+            when 0x1200 then ReadTimeoutErrorResponse.new(custom_payload, warnings, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, (buffer.read_byte != 0))
+            when 0x1300 then ReadFailureErrorResponse.new(custom_payload, warnings, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, buffer.read_int, (buffer.read_byte != 0))
+            when 0x1400 then FunctionFailureErrorResponse.new(custom_payload, warnings, code, message, buffer.read_string, buffer.read_string, buffer.read_string_list)
+            when 0x1500 then WriteFailureErrorResponse.new(custom_payload, warnings, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, buffer.read_int, buffer.read_string)
+            when 0x2400 then AlreadyExistsErrorResponse.new(custom_payload, warnings, code, message, buffer.read_string, buffer.read_string)
+            when 0x2500 then UnpreparedErrorResponse.new(custom_payload, warnings, code, message, buffer.read_short_bytes)
             else
-              ErrorResponse.new(code, message)
+              ErrorResponse.new(custom_payload, warnings, code, message)
             end
           when 0x02 # READY
             READY
@@ -215,7 +240,7 @@ module Cassandra
             result_type = buffer.read_int
             case result_type
             when 0x0001 # Void
-              VoidResultResponse.new(trace_id)
+              VoidResultResponse.new(custom_payload, warnings, trace_id)
             when 0x0002 # Rows
               original_buffer_length = buffer.length
               column_specs, paging_state = Coder.read_metadata_v4(buffer)
@@ -223,28 +248,40 @@ module Cassandra
               if column_specs.nil?
                 consumed_bytes  = original_buffer_length - buffer.length
                 remaining_bytes = CqlByteBuffer.new(buffer.read(size - consumed_bytes - 4))
-                RawRowsResultResponse.new(protocol_version, remaining_bytes, paging_state, trace_id)
+                RawRowsResultResponse.new(custom_payload, warnings, protocol_version, remaining_bytes, paging_state, trace_id)
               else
-                RowsResultResponse.new(Coder.read_values_v4(buffer, column_specs), column_specs, paging_state, trace_id)
+                RowsResultResponse.new(custom_payload, warnings, Coder.read_values_v4(buffer, column_specs), column_specs, paging_state, trace_id)
               end
             when 0x0003 # SetKeyspace
-              SetKeyspaceResultResponse.new(buffer.read_string, trace_id)
+              SetKeyspaceResultResponse.new(custom_payload, warnings, buffer.read_string, trace_id)
             when 0x0004 # Prepared
               id = buffer.read_short_bytes
               pk_idx, params_metadata = Coder.read_prepared_metadata_v4(buffer)
               result_metadata = Coder.read_metadata_v4(buffer).first
 
-              PreparedResultResponse.new(id, params_metadata, result_metadata, pk_idx, trace_id)
+              PreparedResultResponse.new(custom_payload, warnings, id, params_metadata, result_metadata, pk_idx, trace_id)
             when 0x0005 # SchemaChange
-              change   = buffer.read_string
-              target   = buffer.read_string
-              keyspace = buffer.read_string
+              change    = buffer.read_string
+              target    = buffer.read_string
+              keyspace  = nil
+              name      = nil
+              arguments = EMPTY_LIST
 
-              if target == 'KEYSPACE'
-                SchemaChangeResultResponse.new(change, keyspace, nil, trace_id, target)
-              else
-                SchemaChangeResultResponse.new(change, keyspace, buffer.read_string, trace_id, target)
+              case target
+              when Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
+                keyspace = buffer.read_string
+              when Protocol::Constants::SCHEMA_CHANGE_TARGET_TABLE,
+                   Protocol::Constants::SCHEMA_CHANGE_TARGET_UDT
+                keyspace = buffer.read_string
+                name     = buffer.read_string
+              when Protocol::Constants::SCHEMA_CHANGE_TARGET_FUNCTION,
+                   Protocol::Constants::SCHEMA_CHANGE_TARGET_AGGREGATE
+                keyspace  = buffer.read_string
+                name      = buffer.read_string
+                arguments = buffer.read_string_list
               end
+
+              SchemaChangeResultResponse.new(custom_payload, warnings, change, keyspace, name, target, arguments, trace_id)
             else
               raise Errors::DecodingError, "Unsupported result type: #{result_type.inspect}"
             end
@@ -254,6 +291,7 @@ module Cassandra
             when 'SCHEMA_CHANGE'
               change    = buffer.read_string
               target    = buffer.read_string
+              keyspace  = nil
               arguments = EMPTY_LIST
 
               case target
