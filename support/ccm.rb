@@ -836,7 +836,6 @@ module CCM extend self
   def ccm
     @ccm ||= begin
       Runner.new(ccm_script, {
-                 'HOME'              => ccm_home,
                  'CCM_MAX_HEAP_SIZE' => '256M',
                  'CCM_HEAP_NEWSIZE'  => '64M',
                  'MALLOC_ARENA_MAX'  => '1'},
@@ -895,9 +894,9 @@ module CCM extend self
 
     config = [
       '--rt', '1000',
-      'read_request_timeout_in_ms: 2000',
-      'write_request_timeout_in_ms: 2000',
-      'request_timeout_in_ms: 2000',
+      'read_request_timeout_in_ms: 1000',
+      'write_request_timeout_in_ms: 1000',
+      'request_timeout_in_ms: 1000',
       'phi_convict_threshold: 16',
       'hinted_handoff_enabled: false',
       'dynamic_snitch_update_interval_in_ms: 1000'

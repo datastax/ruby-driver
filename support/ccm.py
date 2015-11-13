@@ -1,10 +1,6 @@
 import sys, os, signal, yaml
 from struct import pack, unpack
 
-base_dir = os.path.dirname(os.path.abspath(__file__))
-
-sys.path.append(base_dir + "/ccm")
-
 from ccmlib import common
 from ccmlib.cmds import command, cluster_cmds, node_cmds
 
