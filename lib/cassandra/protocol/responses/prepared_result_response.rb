@@ -36,10 +36,10 @@ module Cassandra
 
       def hash
         @h ||= begin
-          h = 0
-          h = ((h & 0x01ffffff) * 31) ^ @id.hash
-          h = ((h & 0x01ffffff) * 31) ^ @metadata.hash
-          h = ((h & 0x01ffffff) * 31) ^ @trace_id.hash
+          h = 17
+          h = 31 * h + @id.hash
+          h = 31 * h + @metadata.hash
+          h = 31 * h + @trace_id.hash
           h
         end
       end

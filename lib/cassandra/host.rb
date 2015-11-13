@@ -61,7 +61,11 @@ module Cassandra
 
     # @private
     def hash
-      @hash ||= @ip.hash
+      @hash ||= begin
+        h = 17
+        h = 31 * h + @ip.hash
+        h
+      end
     end
 
     # @param other [Cassandra::Host] a host to compare

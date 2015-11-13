@@ -48,7 +48,11 @@ module Cassandra
       alias_method :==, :eql?
 
       def hash
-        @h ||= @cql.hash
+        @h ||= begin
+          h = 17
+          h = 31 * h + @cql.hash
+          h
+        end
       end
     end
   end

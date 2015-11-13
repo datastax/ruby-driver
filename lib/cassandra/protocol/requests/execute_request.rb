@@ -86,14 +86,15 @@ module Cassandra
 
       def hash
         @h ||= begin
-          h = 0
-          h = ((h & 33554431) * 31) ^ @id.hash
-          h = ((h & 33554431) * 31) ^ @metadata.hash
-          h = ((h & 33554431) * 31) ^ @values.hash
-          h = ((h & 33554431) * 31) ^ @consistency.hash
-          h = ((h & 33554431) * 31) ^ @serial_consistency.hash
-          h = ((h & 33554431) * 31) ^ @page_size.hash
-          h = ((h & 33554431) * 31) ^ @paging_state.hash
+          h = 17
+          h = 31 * h + @id.hash
+          h = 31 * h + @metadata.hash
+          h = 31 * h + @values.hash
+          h = 31 * h + @consistency.hash
+          h = 31 * h + @serial_consistency.hash
+          h = 31 * h + @page_size.hash
+          h = 31 * h + @paging_state.hash
+          h = 31 * h + @timestamp.hash
           h
         end
       end

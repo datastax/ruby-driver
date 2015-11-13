@@ -47,12 +47,12 @@ module Cassandra
 
       def hash
         @h ||= begin
-          h = 0
-          h = ((h & 33554431) * 31) ^ @target.hash
-          h = ((h & 33554431) * 31) ^ @change.hash
-          h = ((h & 33554431) * 31) ^ @keyspace.hash
-          h = ((h & 33554431) * 31) ^ @name.hash
-          h = ((h & 33554431) * 31) ^ @arguments.hash
+          h = 17
+          h = 31 * h + @change.hash
+          h = 31 * h + @keyspace.hash
+          h = 31 * h + @name.hash
+          h = 31 * h + @target.hash
+          h = 31 * h + @arguments.hash
           h
         end
       end
