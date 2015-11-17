@@ -46,7 +46,8 @@ module Cassandra
     let(:executor)         { Executors::ThreadPool.new(thread_pool_size) }
     let(:futures_factory)  { Future::Factory.new(executor) }
 
-    let(:schema_type_parser) { Cluster::Schema::TypeParser.new }
+    let(:schema_fqcn_type_parser) { Cluster::Schema::FQCNTypeParser.new }
+    let(:schema_cql_type_parser)  { Cluster::Schema::CQLTypeParser.new }
 
     let(:simple_replication_strategy)           { Cluster::Schema::ReplicationStrategies::Simple.new }
     let(:network_topology_replication_strategy) { Cluster::Schema::ReplicationStrategies::NetworkTopology.new }
@@ -165,11 +166,11 @@ module Cassandra
     def create_schema_fetcher_picker
       picker = Cluster::Schema::Fetchers::MultiVersion.new(cluster_registry)
 
-      picker.when('1.2') { Cluster::Schema::Fetchers::V1_2_x.new(schema_type_parser, cluster_schema) }
-      picker.when('2.0') { Cluster::Schema::Fetchers::V2_0_x.new(schema_type_parser, cluster_schema) }
-      picker.when('2.1') { Cluster::Schema::Fetchers::V2_1_x.new(schema_type_parser, cluster_schema) }
-      picker.when('2.2') { Cluster::Schema::Fetchers::V2_2_x.new(schema_type_parser, cluster_schema) }
-      picker.when('3.0') { Cluster::Schema::Fetchers::V3_0_x.new(schema_type_parser, cluster_schema) }
+      picker.when('1.2') { Cluster::Schema::Fetchers::V1_2_x.new(schema_fqcn_type_parser, cluster_schema) }
+      picker.when('2.0') { Cluster::Schema::Fetchers::V2_0_x.new(schema_fqcn_type_parser, cluster_schema) }
+      picker.when('2.1') { Cluster::Schema::Fetchers::V2_1_x.new(schema_fqcn_type_parser, cluster_schema) }
+      picker.when('2.2') { Cluster::Schema::Fetchers::V2_2_x.new(schema_fqcn_type_parser, cluster_schema) }
+      picker.when('3.0') { Cluster::Schema::Fetchers::V3_0_x.new(schema_cql_type_parser, cluster_schema) }
 
       picker
     end

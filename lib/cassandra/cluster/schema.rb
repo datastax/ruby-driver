@@ -248,7 +248,8 @@ module Cassandra
   end
 end
 
+require 'cassandra/cluster/schema/cql_type_parser'
 require 'cassandra/cluster/schema/fetchers'
 require 'cassandra/cluster/schema/partitioners'
 require 'cassandra/cluster/schema/replication_strategies'
-require 'cassandra/cluster/schema/type_parser'
+require 'cassandra/cluster/schema/fqcn_type_parser'

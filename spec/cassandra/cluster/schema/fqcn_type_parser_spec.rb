@@ -21,8 +21,8 @@ require 'spec_helper'
 module Cassandra
   class Cluster
     class Schema
-      describe(TypeParser) do
-        let(:parser) { TypeParser.new }
+      describe(FQCNTypeParser) do
+        let(:parser) { FQCNTypeParser.new }
 
         describe('#parse') do
           [

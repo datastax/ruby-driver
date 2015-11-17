@@ -62,7 +62,7 @@ module Cassandra
       cql << "\n  SFUNC #{@state_function.name}"
       cql << "\n  STYPE #{@state_type}"
       cql << "\n  FINALFUNC #{@final_function.name}" if @final_function
-      cql << "\n  INITCOND #{Util.encode_object(@initial_state)}"
+      cql << "\n  INITCOND #{@initial_state}"
       cql << ";"
     end
   end

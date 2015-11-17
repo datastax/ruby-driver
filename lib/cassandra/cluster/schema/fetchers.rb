@@ -655,7 +655,7 @@ module Cassandra
             aggregate_type = @type_parser.parse(aggregate_data['return_type']).results.first.first
             argument_types = aggregate_data['argument_types'].map {|fqcn| @type_parser.parse(fqcn).results.first.first}.freeze
             state_type     = @type_parser.parse(aggregate_data['state_type']).results.first.first
-            initial_state  = Protocol::Coder.read_value_v3(Protocol::CqlByteBuffer.new.append_bytes(aggregate_data['initcond']), state_type)
+            initial_state  = Util.encode_object(Protocol::Coder.read_value_v3(Protocol::CqlByteBuffer.new.append_bytes(aggregate_data['initcond']), state_type))
             state_function = functions[aggregate_data['state_func']]
             final_function = functions[aggregate_data['final_func']]
 
@@ -813,24 +813,94 @@ module Cassandra
             send_select_request(connection, SELECT_AGGREGATE, params, hints)
           end
 
+          def create_function(function_data, types = nil)
+            keyspace_name  = function_data['keyspace_name']
+            function_name  = function_data['function_name']
+            function_lang  = function_data['language']
+            types        ||= @schema.keyspace(keyspace_name).raw_types
+            function_type  = @type_parser.parse(function_data['return_type'], types).first
+            function_body  = function_data['body']
+            called_on_null = function_data['called_on_null_input']
+
+            arguments = ::Hash.new
+
+            function_data['argument_names'].zip(function_data['argument_types']) do |argument_name, argument_type|
+              arguments[argument_name] = Argument.new(argument_name, @type_parser.parse(argument_type, types).first)
+            end
+
+            Function.new(keyspace_name, function_name, function_lang, function_type, arguments, function_body, called_on_null)
+          end
+
+          def create_aggregate(aggregate_data, functions, types = nil)
+            keyspace_name  = aggregate_data['keyspace_name']
+            aggregate_name = aggregate_data['aggregate_name']
+            types        ||= @schema.keyspace(keyspace_name).raw_types
+            aggregate_type = @type_parser.parse(aggregate_data['return_type'], types).first
+            argument_types = aggregate_data['argument_types'].map {|argument_type| @type_parser.parse(argument_type, types).first}.freeze
+            state_type     = @type_parser.parse(aggregate_data['state_type'], types).first
+            initial_state  = aggregate_data['initcond']
+            state_function = functions[aggregate_data['state_func']]
+            final_function = functions[aggregate_data['final_func']]
+
+            Aggregate.new(keyspace_name, aggregate_name, aggregate_type, argument_types, state_type, initial_state, state_function, final_function)
+          end
+
+          def create_types(rows_types, types)
+            skipped_rows = ::Array.new
+
+            loop do
+              rows_size = rows_types.size
+
+              until rows_types.empty?
+                type_data     = rows_types.shift
+                type_name     = type_data['type_name']
+                type_keyspace = type_data['keyspace_name']
+                type_fields   = ::Array.new
+
+                begin
+                  field_names = type_data['field_names']
+                  field_types = type_data['field_types']
+                  field_names.each_with_index do |field_name, i|
+                    field_type = @type_parser.parse(field_types[i], types).first
+                    type_fields << [field_name, field_type]
+                  end
+
+                  types[type_name] = Types.udt(type_keyspace, type_name, type_fields)
+                rescue CQLTypeParser::IncompleteTypeError
+                  skipped_rows << type_data
+                  next
+                end
+              end
+
+              break if skipped_rows.empty?
+
+              if rows_size == skipped_rows.size
+                raise "Unable to resolve circular references among UDTs when parsing"
+              else
+                rows_types, skipped_rows = skipped_rows, rows_types
+              end
+            end
+          end
+
           def create_keyspace(keyspace_data, rows_tables, rows_columns,
                               rows_types, rows_functions, rows_aggregates)
             keyspace_name = keyspace_data['keyspace_name']
             replication   = create_replication(keyspace_data)
-            types = rows_types.each_with_object({}) do |row, types|
-                      types[row['type_name']] = create_type(row)
-                    end
+
+            types = ::Hash.new
+            create_types(rows_types, types)
+
             functions = rows_functions.each_with_object({}) do |row, functions|
-                          functions[row['function_name']] = create_function(row)
+                          functions[row['function_name']] = create_function(row, types)
                         end
             aggregates = rows_aggregates.each_with_object({}) do |row, aggregates|
-                           aggregates[row['aggregate_name']] = create_aggregate(row, functions)
+                           aggregates[row['aggregate_name']] = create_aggregate(row, functions, types)
                          end
 
             lookup_columns = map_rows_by(rows_columns, 'table_name')
             tables = rows_tables.each_with_object({}) do |row, tables|
               table_name = row['table_name']
-              tables[table_name] = create_table(row, lookup_columns[table_name])
+              tables[table_name] = create_table(row, lookup_columns[table_name], types)
             end
 
             Keyspace.new(keyspace_name, keyspace_data['durable_writes'],
@@ -876,7 +946,16 @@ module Cassandra
             )
           end
 
-          def create_table(table_data, rows_columns)
+          def create_column(column_data, types)
+            name      = column_data['column_name']
+            is_static = (column_data['kind'].to_s.upcase == 'STATIC')
+            order     = column_data['clustering_order'] == 'desc' ? :desc : :asc
+            type, is_frozen = @type_parser.parse(column_data['type'], types)
+
+            Column.new(name, type, order, nil, is_static, is_frozen)
+          end
+
+          def create_table(table_data, rows_columns, types = nil)
             keyspace_name   = table_data['keyspace_name']
             table_name      = table_data['table_name']
             table_flags     = table_data['flags']
@@ -892,15 +971,16 @@ module Cassandra
             partition_key      = []
             clustering_columns = []
             clustering_order   = []
+            types            ||= @schema.keyspace(keyspace_name).raw_types
 
             rows_columns.each do |row|
               next if row['column_name'].empty?
 
-              column = create_column(row)
-              type   = row['type'].to_s
-              index  = row['component_index'] || 0
+              column = create_column(row, types)
+              kind   = row['kind'].to_s
+              index  = row['position'] || 0
 
-              case type.upcase
+              case kind.upcase
               when 'PARTITION_KEY'
                 partition_key[index] = column
               when 'CLUSTERING'

@@ -19,7 +19,7 @@
 module Cassandra
   class Cluster
     class Schema
-      class TypeParser
+      class FQCNTypeParser
         # @private
         Node   = Struct.new(:parent, :name, :children)
         # @private

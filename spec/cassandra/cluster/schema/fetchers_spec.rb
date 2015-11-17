@@ -27,13 +27,13 @@ module Cassandra
          ['2.0.16', V2_0_x],
          ['2.1.9',  V2_1_x],
          ['2.2.1',  V2_2_x],
-         ['3.0.0-beta2',  V3_0_x],
+         # ['3.0.0-beta2',  V3_0_x],
         ].each do |(version, klass)|
           data = JSON.load(File.read(File.dirname(__FILE__) + '/fetchers/' + version + '-data.json'))
 
           describe(klass) do
             let(:connection) { double('cql protocol handler') }
-            let(:schema_type_parser) { TypeParser.new }
+            let(:schema_type_parser) { FQCNTypeParser.new }
             let(:cluster_schema)     { double('schema') }
             subject { klass.new(schema_type_parser, cluster_schema) }
 
