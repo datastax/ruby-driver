@@ -417,3 +417,42 @@ Feature: Request Execution Errors
       """
       127.0.0.3 (Cassandra::Errors::TimeoutError: Timed out)
       """
+
+  @netblock
+  Scenario: Binding a future resolution with a timeout
+    Given the following schema:
+      """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      $stdout.puts("=== START ===")
+      $stdout.flush
+      until (input = $stdin.gets).nil? # block until closed
+        query = input.chomp
+        begin
+          future = session.execute_async(query)
+          future.get(2)
+        rescue => e
+          $stdout.puts("#{e.class.name}: #{e.message}")
+        end
+        $stdout.flush
+      end
+      $stdout.puts("=== STOP ===")
+      $stdout.flush
+      """
+    When it is running interactively
+    And I wait for its output to contain "START"
+    And all nodes are unreachable
+    And I type "SELECT * FROM simplex.users"
+    And I close the stdin stream
+    Then its output should contain:
+      """
+      Cassandra::Errors::TimeoutError: Future did not complete within 2.0 seconds. Wait time: 2.0
+      """

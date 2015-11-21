@@ -614,4 +614,38 @@ class SessionTest < IntegrationTestCase
     end
   end
 
+  # Test for future resolution timeout
+  #
+  # test_raise_error_on_future_resolution_timeout tests that the future#get timeout is honored while waiting for a future 
+  # to resolve. It pauses all nodes such that they are unreachable by the driver. It then performs a simple SELECT query 
+  # asynchronously, fetching the future with a timeout of 2 seconds. Finally, it asserts that the 
+  # Cassandra::Errors::TimeoutError is returned within 2 seconds.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-96
+  # @expected_result A TimeoutError is raised within 2 seconds when waiting for the future to resolve
+  #
+  # @test_category queries:timeout
+  #
+  def test_raise_error_on_future_resolution_timeout
+    setup_schema
+
+    begin
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      @@ccm_cluster.block_node("node1")
+
+      future = session.execute_async("SELECT * FROM users")
+      start_time = Time.now.to_i
+      assert_raises(Cassandra::Errors::TimeoutError) do
+        future.get(2)
+      end
+      assert_equal 2, Time.now.to_i - start_time
+    ensure
+      @@ccm_cluster.unblock_nodes
+      cluster && cluster.close
+    end
+  end
+
 end
