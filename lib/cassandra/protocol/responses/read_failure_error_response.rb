@@ -27,7 +27,7 @@ module Cassandra
         @consistency  = consistency
         @received     = received
         @blockfor     = blockfor
-        @numfailures  = numfailues
+        @numfailures  = numfailures
         @data_present = data_present
       end
 
