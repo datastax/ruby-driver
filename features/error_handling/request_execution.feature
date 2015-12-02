@@ -456,3 +456,99 @@ Feature: Request Execution Errors
       """
       Cassandra::Errors::TimeoutError: Future did not complete within 2.0 seconds. Wait time: 2.0
       """
+
+  @cassandra-version-specific @cassandra-version-2.2 @client_failures
+  Scenario: Executing an INSERT during a WriteFailure
+    Given the following schema:
+      """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      CREATE TABLE simplex.test (k int PRIMARY KEY, v int);
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      begin
+        session.execute("INSERT INTO simplex.test (k, v) VALUES (1, 0)", consistency: :all)
+      rescue => e
+        puts "#{e.class.name}: #{e.message}"
+      end
+      """
+    When node 1 is failing writes on keyspace "simplex"
+    And it is executed
+    Then its output should contain:
+      """
+      Cassandra::Errors::WriteError
+      """
+
+  @cassandra-version-specific @cassandra-version-2.2 @client_failures
+  Scenario: Executing an INSERT during a ReadFailure
+    Given the following schema:
+      """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      CREATE TABLE simplex.test (k int, v0 int, v1 int, PRIMARY KEY (k, v0));
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      insert = session.prepare("INSERT INTO simplex.test (k, v0, v1) VALUES (1, ?, 1)")
+      (0..3000).each do |num|
+        session.execute(insert, arguments: [num])
+      end
+
+      delete = session.prepare("DELETE v1 FROM simplex.test WHERE k = 1 AND v0 =?")
+      (0..2001).each do |num|
+        session.execute(delete, arguments: [num])
+      end
+
+      begin
+        session.execute("SELECT * FROM simplex.test WHERE k = 1")
+      rescue => e
+        puts "#{e.class.name}: #{e.message}"
+      end
+      """
+    When tombstone thresholds are changed
+    And it is executed
+    Then its output should contain:
+      """
+      Cassandra::Errors::ReadError
+      """
+
+  @cassandra-version-specific @cassandra-version-2.2
+  Scenario: Executing a SELECT during a FunctionFailure
+    Given the following schema:
+      """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      CREATE TABLE simplex.d (k int PRIMARY KEY , d double);
+      CREATE FUNCTION simplex.test_failure(d double)
+                      RETURNS NULL ON NULL INPUT
+                      RETURNS double
+                      LANGUAGE java AS 'throw new RuntimeException("failure");';
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      session.execute("INSERT INTO simplex.d (k, d) VALUES (0, 5.12)")
+
+      begin
+        session.execute("SELECT test_failure(d) FROM simplex.d WHERE k = 0")
+      rescue => e
+        puts "#{e.class.name}: #{e.message}"
+      end
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      Cassandra::Errors::FunctionCallError: execution of 'simplex.test_failure[double]' failed: java.lang.RuntimeException: failure
+      """

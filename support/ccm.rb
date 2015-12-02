@@ -504,7 +504,7 @@ module CCM extend self
       start
     end
 
-    def start_node(name)
+    def start_node(name, jvm_arg=nil)
       node = @nodes.find {|n| n.name == name}
       raise "unknown node #{name.inspect}" unless node
 
@@ -515,7 +515,12 @@ module CCM extend self
         attempts = 1
 
         begin
-          @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto')
+          if jvm_arg
+            @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto', "--jvm_arg=#{jvm_arg}")
+          else
+            @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto')
+          end
+
           refresh_status
         rescue => e
           @ccm.exec(node.name, 'stop') rescue nil
@@ -690,6 +695,15 @@ module CCM extend self
       @client_cert = nil
       @private_key = nil
       @passphrase  = nil
+      start
+    end
+
+    def change_tombstone_thresholds
+      stop
+      @ccm.exec('updateconf',
+                'tombstone_failure_threshold: 2000',
+                'tombstone_warn_threshold: 1000'
+      )
       start
     end
 
