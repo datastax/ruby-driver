@@ -13,4 +13,3 @@
 /venv
 /lib/cassandra_murmur3.*
 /node_modules
-/.idea
