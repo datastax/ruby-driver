@@ -218,7 +218,7 @@ module Cassandra
         end
       end
 
-      def assert_date(value)
+      def assert_date(value, message, &block)
         Util.assert_instance_of(::Date, value, message, &block)
       end
 
@@ -226,7 +226,7 @@ module Cassandra
         Integer(value)
       end
 
-      def assert_smallint(value)
+      def assert_smallint(value, message, &block)
         Util.assert_instance_of(::Integer, value, message, &block)
         Util.assert(value <= 32767 && value >= -32768, message, &block)
       end
@@ -241,7 +241,7 @@ module Cassandra
         end
       end
 
-      def assert_time(value)
+      def assert_time(value, message, &block)
         Util.assert_instance_of(::Time, value, message, &block)
       end
 
@@ -249,7 +249,7 @@ module Cassandra
         Integer(value)
       end
 
-      def assert_tinyint(value)
+      def assert_tinyint(value, message, &block)
         Util.assert_instance_of(::Integer, value, message, &block)
         Util.assert(value <= 127 && value >= -128, message, &block)
       end
