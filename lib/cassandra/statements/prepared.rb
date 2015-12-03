@@ -70,23 +70,30 @@ module Cassandra
         if args.is_a?(::Hash)
           @params_metadata.each do |(_, _, name, type)|
             name = name.to_sym unless args.has_key?(name)
+            value = args.fetch(name, NOT_SET)
 
-            if args.has_key?(name)
-              value = args[name]
-              Util.assert_type(type, value) { "argument for #{name.inspect} must be #{type}, #{value} given" }
-              params << value
-            elsif @connection_options.protocol_version >= 4
-              params << NOT_SET
+            if value == NOT_SET
+              if @connection_options.protocol_version < 4
+                raise ::ArgumentError, "argument #{name.inspect} it not present in #{args.inspect}"
+              end
             else
-              raise ::ArgumentError, "argument #{name.inspect} it not present in #{args.inspect}"
+              Util.assert_type(type, value) { "argument for #{name.inspect} must be #{type}, #{value} given" }
             end
 
+            params << value
             param_types << type
           end
         else
           Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{@params_metadata.size} bind parameters, #{args.size} given" }
           @params_metadata.zip(args) do |(_, _, name, type), value|
-            Util.assert_type(type, value) { "argument for #{name.inspect} must be #{type}, #{value} given" }
+            if value == NOT_SET
+              if @connection_options.protocol_version < 4
+                raise ::ArgumentError, "argument #{name.inspect} it not present in #{args.inspect}"
+              end
+            else
+              Util.assert_type(type, value) { "argument for #{name.inspect} must be #{type}, #{value} given" }
+            end
+
             params << value
             param_types << type
           end
