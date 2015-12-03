@@ -120,5 +120,9 @@ module Cassandra
       other == @values
     end
     alias :== :eql?
+
+    def hash
+      @values.inject(17) {|h, v| 31 * h + v.hash}
+    end
   end
 end

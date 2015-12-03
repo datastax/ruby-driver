@@ -416,5 +416,9 @@ module Cassandra
       other.is_a?(UDT) && @values.all? {|(n, v)| v == other[n]}
     end
     alias :== :eql?
+
+    def hash
+      @values.inject(17) {|h, (n, v)| 31 * h + v.hash}
+    end
   end
 end
