@@ -42,7 +42,7 @@ module Cassandra
           return
         end
 
-        if NOT_SET == value
+        if NOT_SET.eql?(value)
           buffer.append_int(-2)
           return
         end

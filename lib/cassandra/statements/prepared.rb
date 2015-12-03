@@ -72,7 +72,7 @@ module Cassandra
             name = name.to_sym unless args.has_key?(name)
             value = args.fetch(name, NOT_SET)
 
-            if value == NOT_SET
+            if NOT_SET.eql?(value)
               if @connection_options.protocol_version < 4
                 raise ::ArgumentError, "argument #{name.inspect} it not present in #{args.inspect}"
               end
@@ -86,7 +86,7 @@ module Cassandra
         else
           Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{@params_metadata.size} bind parameters, #{args.size} given" }
           @params_metadata.zip(args) do |(_, _, name, type), value|
-            if value == NOT_SET
+            if NOT_SET.eql?(value)
               if @connection_options.protocol_version < 4
                 raise ::ArgumentError, "argument #{name.inspect} it not present in #{args.inspect}"
               end
@@ -131,7 +131,7 @@ module Cassandra
           name     = metadata[2]
           type     = metadata[3]
 
-          if value == NOT_SET
+          if NOT_SET.eql?(value)
             raise ::ArgumentError, "argument #{name.inspect} is a part of " \
                                    "the partition key and must be present."
           end
@@ -151,7 +151,7 @@ module Cassandra
             name     = metadata[2]
             type     = metadata[3]
 
-            if value == NOT_SET
+            if NOT_SET.eql?(value)
               raise ::ArgumentError, "argument #{name.inspect} is a part of " \
                                      "the partition key and must be present."
             end
