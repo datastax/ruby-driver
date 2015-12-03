@@ -109,7 +109,7 @@ module Cassandra
     let(:reconnection_policy)       { Reconnection::Policies::Exponential.new(0.5, 30, 2) }
     let(:retry_policy)              { Retry::Policies::Default.new }
     let(:address_resolution_policy) { AddressResolution::Policies::None.new }
-    let(:consistency)               { :local_quorum }
+    let(:consistency)               { :local_one }
     let(:trace)                     { false }
     let(:page_size)                 { 10000 }
     let(:heartbeat_interval)        { 30 }

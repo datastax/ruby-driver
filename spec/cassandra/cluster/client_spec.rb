@@ -42,6 +42,14 @@ module Cassandra
       let(:driver) { Driver.new(driver_settings) }
       let(:client) { Client.new(driver.logger, driver.cluster_registry, driver.cluster_schema, driver.io_reactor, driver.connector, driver.load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.address_resolution_policy, driver.connection_options, driver.futures_factory) }
 
+      describe('defaults') do
+        context 'for driver' do
+          it 'should use local_one consistency' do
+            expect(driver.consistency).to eq(:local_one)
+          end
+        end
+      end
+
       describe('#connect') do
         context 'when all hosts are ignored' do
           before do
