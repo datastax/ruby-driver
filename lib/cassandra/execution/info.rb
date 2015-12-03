@@ -26,8 +26,6 @@ module Cassandra
       attr_reader :warnings
       # @return [String] keyspace used for the query
       attr_reader :keyspace
-      # @return [String] keyspace used for the query
-      attr_reader :keyspace
       # @return [Cassandra::Statement] original statement
       attr_reader :statement
       # @return [Cassandra::Execution::Options] original execution options

@@ -414,9 +414,11 @@ module CCM extend self
       nil
     end
 
-    def start
+    def start(jvm_arg=nil)
       if @cluster
-        return if @nodes.all?(&:up?) && @cluster.hosts.select(&:up?).count == @nodes.size
+        unless jvm_arg
+          return if @nodes.all?(&:up?) && @cluster.hosts.select(&:up?).count == @nodes.size
+        end
 
         @cluster.close
         @cluster = @session = nil
@@ -457,7 +459,12 @@ module CCM extend self
         attempts = 1
 
         begin
-          @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
+          if jvm_arg
+            @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto', "--jvm_arg=#{jvm_arg}")
+          else
+            @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
+          end
+
           refresh_status
         rescue => e
           @ccm.exec('stop') rescue nil

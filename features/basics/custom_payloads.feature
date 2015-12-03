@@ -30,3 +30,39 @@ Feature: Custom payloads
       """
       success
       """
+
+  @cassandra-version-specific @cassandra-version-2.2
+  Scenario: Mirroring a sent custom payload
+    Given the following schema:
+      """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+      USE simplex;
+      CREATE TABLE test (k int, v int, PRIMARY KEY (k, v));
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      result = session.execute('SELECT * FROM test', payload: {'first_key' => 'first_value'})
+      puts result.execution_info.payload
+
+      select = session.prepare('SELECT * FROM test WHERE k=?')
+      result = session.execute(select, arguments: [0], payload: {'second_key' => 'second_value'})
+      puts result.execution_info.payload
+
+      batch = session.batch do |b|
+        b.add("INSERT INTO test (k, v) VALUES (1, 1)")
+      end
+      result = session.execute(batch, payload: {'third_key' => 'third_value', 'fourth_key' => 'fourth_value'})
+      puts result.execution_info.payload
+      """
+    When payload mirroring query handler is enabled
+    And it is executed
+    Then its output should contain:
+      """
+      {"first_key"=>"first_value"}
+      {"second_key"=>"second_value"}
+      {"fourth_key"=>"fourth_value", "third_key"=>"third_value"}
+      """

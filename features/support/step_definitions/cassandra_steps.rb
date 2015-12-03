@@ -133,6 +133,11 @@ When(/^tombstone thresholds are changed$/) do
   @cluster.change_tombstone_thresholds
 end
 
+When(/^payload mirroring query handler is enabled$/) do
+  @cluster.stop
+  @cluster.start("-Dcassandra.custom_query_handler_class=org.apache.cassandra.cql3.CustomPayloadMirroringQueryHandler")
+end
+
 When(/^I wait for (\d+) seconds$/) do |interval|
   sleep(interval.to_i)
 end
