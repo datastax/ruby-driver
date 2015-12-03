@@ -93,3 +93,22 @@ Feature: Request tracing
       """
       request: Execute CQL3 query
       """
+
+  @cassandra-version-specific @cassandra-version-2.2
+  Scenario: Client IP is present in the trace
+    Given the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster   = Cassandra.cluster
+      session   = cluster.connect("simplex")
+      execution = session.execute("SELECT * FROM songs", trace: true).execution_info
+      trace     = execution.trace
+
+      puts "client ip: #{trace.client}"
+      """
+    When it is executed
+    Then its output should match:
+      """
+      client ip: 127.0.0.1
+      """

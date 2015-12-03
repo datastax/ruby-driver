@@ -648,4 +648,31 @@ class SessionTest < IntegrationTestCase
     end
   end
 
+  # Test for client IP in trace
+  #
+  # test_client_ip_in_trace tests that the query trace has the client IP information. That is, the IP of the client that
+  # created the query and the tracing request. It makes a simple SELECT query with tracing enabled, and verifies that
+  # the client IP is present in the trace.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-106
+  # @expected_result The client IP should be present in the trace
+  #
+  # @test_category tracing
+  #
+  def test_client_ip_in_trace
+    skip("Client IP in trace is only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+
+    setup_schema
+    begin
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      trace = session.execute("SELECT * FROM users", trace: true).execution_info.trace
+      assert_equal "127.0.0.1", trace.client.to_s
+    ensure
+      cluster && cluster.close
+    end
+  end
+
 end
