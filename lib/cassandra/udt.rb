@@ -418,7 +418,10 @@ module Cassandra
     alias :== :eql?
 
     def hash
-      @values.inject(17) {|h, (n, v)| 31 * h + v.hash}
+      @values.inject(17) do |h, (n, v)|
+        h = 31 * h + n.hash
+        h = 31 * h + v.hash
+      end
     end
   end
 end
