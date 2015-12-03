@@ -61,6 +61,10 @@ module Cassandra
         when :uuid, :timeuuid  then write_uuid(buffer, value)
         when :varchar          then write_varchar(buffer, value)
         when :varint           then write_varint(buffer, value)
+        when :tinyint          then write_tinyint(buffer, value)
+        when :smallint         then write_smallint(buffer, value)
+        when :time             then write_time(buffer, value)
+        when :date             then write_date(buffer, value)
         when :list, :set       then write_list_v3(buffer, value, type.value_type)
         when :map              then write_map_v3(buffer, value, type.key_type, type.value_type)
         when :udt              then write_udt_v3(buffer, value, type.fields)
@@ -801,6 +805,27 @@ module Cassandra
 
       def write_varint(buffer, value)
         buffer.append_bytes(CqlByteBuffer.new.append_varint(value))
+      end
+
+      def write_tinyint(buffer, value)
+        buffer.append_int(1)
+        buffer.append_tinyint(value)
+      end
+
+      def write_smallint(buffer, value)
+        buffer.append_int(2)
+        buffer.append_smallint(value)
+      end
+
+      def write_time(buffer, value)
+        ns = value.to_nanoseconds
+        buffer.append_int(8)
+        buffer.append_long(ns)
+      end
+
+      def write_date(buffer, value)
+        buffer.append_int(4)
+        buffer.append_int(value.gregorian.jd - DATE_OFFSET)
       end
 
       def read_short_size(buffer)

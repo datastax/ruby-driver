@@ -214,6 +214,14 @@ module Cassandra
         raise Errors::DecodingError, "Not enough bytes available to decode a tinyint: #{e.message}", e.backtrace
       end
 
+      def append_tinyint(n)
+        append([n].pack(Formats::CHAR_FORMAT))
+      end
+
+      def append_smallint(n)
+        append_short(n)
+      end
+
       def append_int(n)
         append([n].pack(Formats::INT_FORMAT))
       end
