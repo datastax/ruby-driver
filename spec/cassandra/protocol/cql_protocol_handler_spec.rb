@@ -204,8 +204,8 @@ module Cassandra
             f2 = protocol_handler.send_request(request)
             connection.data_listener.call("\x81\x01\x00\x08\x00\x00\x00\x12FAKECOMPRESSEDBODY")
             connection.data_listener.call("\x81\x01\x01\x08\x00\x00\x00\x12FAKECOMPRESSEDBODY")
-            f1.value.should == Protocol::PreparedResultResponse.new(id, [["cql_rb_911", "users", "user_name", Types.varchar]], nil, nil)
-            f2.value.should == Protocol::PreparedResultResponse.new(id, [["cql_rb_911", "users", "user_name", Types.varchar]], nil, nil)
+            f1.value.should == Protocol::PreparedResultResponse.new(nil, nil, id, [["cql_rb_911", "users", "user_name", Types.varchar]], nil, nil, nil)
+            f2.value.should == Protocol::PreparedResultResponse.new(nil, nil, id, [["cql_rb_911", "users", "user_name", Types.varchar]], nil, nil, nil)
           end
         end
 
@@ -352,7 +352,7 @@ module Cassandra
             event = e
           end
           connection.data_listener.call("\x81\x00\xFF\f\x00\x00\x00+\x00\rSCHEMA_CHANGE\x00\aDROPPED\x00\x0cthe_keyspace\x00\x09the_table")
-          event.should == Protocol::SchemaChangeEventResponse.new('DROPPED', 'the_keyspace', 'the_table')
+          event.should == Protocol::SchemaChangeEventResponse.new('DROPPED', 'the_keyspace', 'the_table', 'TABLE', [])
         end
       end
 

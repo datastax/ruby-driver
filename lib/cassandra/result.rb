@@ -23,7 +23,7 @@ module Cassandra
     # Query execution information, such as number of retries and all tried hosts, etc.
     # @return [Cassandra::Execution::Info]
     def execution_info
-      @info ||= Execution::Info.new(@keyspace, @statement, @options, @hosts, @consistency, @retries, @trace_id ? Execution::Trace.new(@trace_id, @client) : nil)
+      @info ||= Execution::Info.new(@payload, @warnings, @keyspace, @statement, @options, @hosts, @consistency, @retries, @trace_id ? Execution::Trace.new(@trace_id, @client) : nil)
     end
 
     # @return [Boolean] whether it has any rows
@@ -96,7 +96,9 @@ module Cassandra
     class Paged < Result
       attr_reader :paging_state
 
-      def initialize(rows, paging_state, trace_id, keyspace, statement, options, hosts, consistency, retries, client, futures_factory)
+      def initialize(payload, warnings, rows, paging_state, trace_id, keyspace, statement, options, hosts, consistency, retries, client, futures_factory)
+        @payload        = payload
+        @warnings       = warnings
         @rows           = rows
         @paging_state   = paging_state
         @trace_id       = trace_id
@@ -162,7 +164,9 @@ module Cassandra
     end
 
     class Void < Result
-      def initialize(trace_id, keyspace, statement, options, hosts, consistency, retries, client, futures_factory)
+      def initialize(payload, warnings, trace_id, keyspace, statement, options, hosts, consistency, retries, client, futures_factory)
+        @payload     = payload
+        @warnings    = warnings
         @trace_id    = trace_id
         @keyspace    = keyspace
         @statement   = statement
@@ -191,10 +195,10 @@ module Cassandra
       # @return [Cassandra::Result]
       def each(&block)
         if block_given?
-          NO_ROWS.each(&block)
+          EMPTY_LIST.each(&block)
           self
         else
-          NO_ROWS.each
+          EMPTY_LIST.each
         end
       end
       alias :rows :each
@@ -231,10 +235,6 @@ module Cassandra
       def inspect
         "#<Cassandra::Result:0x#{self.object_id.to_s(16)} @rows=[] @last_page=true>"
       end
-
-      private
-
-      NO_ROWS = [].freeze
     end
   end
 end

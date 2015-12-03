@@ -1,10 +1,6 @@
 import sys, os, signal, yaml
 from struct import pack, unpack
 
-base_dir = os.path.dirname(os.path.abspath(__file__))
-
-sys.path.append(base_dir + "/ccm")
-
 from ccmlib import common
 from ccmlib.cmds import command, cluster_cmds, node_cmds
 
@@ -49,6 +45,8 @@ if __name__ == "__main__":
             except:
                 pass
 
+    sys.stderr.write('\x00');
+
     while True:
         size = unpack('H', sys.stdin.read(2))[0]
         args = yaml.safe_load(sys.stdin.read(size))
@@ -73,4 +71,4 @@ if __name__ == "__main__":
         cmd.validate(parser, options, args)
 
         cmd.run()
-        sys.stdout.write('=== DONE ===')
+        sys.stderr.write('\x01')

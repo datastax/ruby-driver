@@ -20,10 +20,58 @@ require 'fileutils'
 require 'logger'
 require 'cliver'
 require 'os'
+require 'cassandra'
 
 # Cassandra Cluster Manager integration for
 # driving a cassandra cluster from tests.
 module CCM extend self
+  class SameOrderLoadBalancingPolicy < Cassandra::LoadBalancing::Policy
+    class Plan
+      def initialize(hosts)
+        @hosts = hosts
+      end
+
+      def has_next?
+        !@hosts.empty?
+      end
+
+      def next
+        @hosts.shift
+      end
+    end
+
+    include MonitorMixin
+
+    def initialize
+      @hosts = ::Array.new
+
+      mon_initialize
+    end
+
+    def host_up(host)
+      synchronize { @hosts = @hosts.dup.push(host).sort_by!(&:ip) }
+
+      self
+    end
+
+    def host_down(host)
+      synchronize do
+        @hosts = @hosts.dup
+        @hosts.delete(host)
+      end
+
+      self
+    end
+
+    def distance(host)
+      @hosts.include?(host) ? :local : :ignore
+    end
+
+    def plan(keyspace, statement, options)
+      Plan.new(@hosts.dup)
+    end
+  end
+
   class PrintingNotifier
     def initialize(out)
       @out = out
@@ -105,11 +153,10 @@ module CCM extend self
         @env         = env
         @notifier    = notifier
         @python_path = Cliver.detect!('python', '~> 2.7', detector: /(?<=Python )[0-9][.0-9a-z]+/)
+        start
       end
 
       def exec(*args)
-        start_ccm_helper
-
         cmd = args.dup.unshift('ccm').join(' ')
         out = ''
         done = false
@@ -122,14 +169,8 @@ module CCM extend self
           output = @stdout.read rescue ''
           @notifier.command_output(@pid, output) unless output.empty?
 
-          @stdin.close
-          @stdout.close
-          Process.waitpid(@pid)
-
-          @notifier.executed_command(cmd, @pid, $?)
-          @stdin  = nil
-          @stdout = nil
-          @pid    = nil
+          stop
+          start
 
           raise
         end
@@ -138,22 +179,20 @@ module CCM extend self
           if IO.select([@stdout], nil, nil, 30)
             begin
               chunk = @stdout.read_nonblock(4096)
-              if chunk.end_with?('=== DONE ===')
-                chunk.sub!('=== DONE ===', '')
+
+              if chunk.end_with?("\x01")
+                chunk.chomp!("\x01")
                 done = true
               end
-              out << chunk
-              @notifier.command_output(@pid, chunk) unless chunk.empty?
+
+              unless chunk.empty?
+                out << chunk
+                @notifier.command_output(@pid, chunk)
+              end
             rescue IO::WaitReadable
             rescue EOFError
-              @stdin.close
-              @stdout.close
-              Process.waitpid(@pid)
-
-              @notifier.executed_command(cmd, @pid, $?)
-              @stdin  = nil
-              @stdout = nil
-              @pid    = nil
+              stop
+              start
 
               raise "#{cmd} failed"
             end
@@ -167,12 +206,20 @@ module CCM extend self
 
       private
 
-      def start_ccm_helper
+      def start
         return if @stdin && @stdout && @pid
 
         in_r, @stdin = IO.pipe
         @stdout, out_w = IO.pipe
 
+        if in_r.respond_to?(:set_encoding)
+          in_r.set_encoding('binary')
+          @stdin.set_encoding('binary')
+          @stdout.set_encoding('binary')
+          out_w.set_encoding('binary')
+        end
+
+        out_w.sync  = true
         @stdin.sync = true
 
         @pid = Process.spawn(
@@ -184,8 +231,20 @@ module CCM extend self
           }
         )
 
+        @stdout.read(1)
+
         in_r.close
         out_w.close
+      end
+
+      def stop
+        @stdin.close
+        @stdout.close
+        Process.waitpid(@pid)
+
+        @stdin  = nil
+        @stdout = nil
+        @pid    = nil
       end
 
       def encode(args)
@@ -199,7 +258,7 @@ module CCM extend self
   if OS.linux?
     class Firewall
       def block(ip)
-        puts "Blocking #{ip}..."
+        $stderr.puts "Blocking #{ip}..."
         success = system('sudo', 'iptables', '-A', 'INPUT', '-d', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
         raise "failed to block #{ip}" unless success
         success = system('sudo', 'iptables', '-A', 'OUTPUT', '-s', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
@@ -209,7 +268,7 @@ module CCM extend self
       end
 
       def unblock(ip)
-        puts "Unblocking #{ip}..."
+        $stderr.puts "Unblocking #{ip}..."
         success = system('sudo', 'iptables', '-D', 'INPUT', '-d', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
         raise "failed to unblock #{ip}" unless success
         success = system('sudo', 'iptables', '-D', 'OUTPUT', '-s', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
@@ -227,7 +286,7 @@ module CCM extend self
       def block(ip)
         prepare unless @ready
 
-        puts "Blocking #{ip}..."
+        $stderr.puts "Blocking #{ip}..."
         success = system('sudo', 'pfctl', '-t', '_ruby_driver_test_blocklist_', '-T', 'add', "#{ip}/32", err: '/dev/null')
         raise "failed to block #{ip}" unless success
 
@@ -237,7 +296,7 @@ module CCM extend self
       def unblock(ip)
         prepare unless @ready
 
-        puts "Unblocking #{ip}..."
+        $stderr.puts "Unblocking #{ip}..."
         success = system('sudo', 'pfctl', '-t', '_ruby_driver_test_blocklist_', '-T', 'delete', "#{ip}/32", err: '/dev/null')
         raise "failed to unblock #{ip}" unless success
 
@@ -247,14 +306,14 @@ module CCM extend self
       private
 
       def prepare
-        puts "Checking if '_ruby_driver_test_blocklist_' table is present in pf.conf"
+        $stderr.puts "Checking if '_ruby_driver_test_blocklist_' table is present in pf.conf"
         if `sudo pfctl -s rules 2>/dev/null | grep 'block drop proto tcp from any to <_ruby_driver_test_blocklist_> port = 9042'`.chomp.empty?
-          puts "Ruby driver tests need to modify pf.conf to be able to simulate network partitions"
+          $stderr.puts "Ruby driver tests need to modify pf.conf to be able to simulate network partitions"
           success = system('sudo bash -c "echo \'block drop proto tcp from any to <_ruby_driver_test_blocklist_> port {9042, 7000, 7001}\' >> /etc/pf.conf"')
           abort "Unable to add rule to block _ruby_driver_test_blocklist_ table to /etc/pf.conf" unless success
           success = system('sudo bash -c "echo \'block drop proto tcp from <_ruby_driver_test_blocklist_> to any port {9042, 7000, 7001}\' >> /etc/pf.conf"')
           abort "Unable to add rule to block _ruby_driver_test_blocklist_ table to /etc/pf.conf" unless success
-          puts "Starting PF firewall"
+          $stderr.puts "Starting PF firewall"
           system('sudo pfctl -ef /etc/pf.conf 2>/dev/null')
         end
 
@@ -328,18 +387,21 @@ module CCM extend self
       @datacenters = datacenters
       @keyspaces   = keyspaces
 
-      @nodes = (1..nodes_count).map do |i|
-        Node.new("node#{i}", 'DOWN', self)
+      @nodes = []
+
+      (1..nodes_count).each do |i|
+        @nodes << Node.new("node#{i}", 'DOWN', self)
       end if nodes_count
+
       @blocked = ::Set.new
     end
 
     def running?
-      nodes.any?(&:up?)
+      @nodes.any?(&:up?)
     end
 
     def stop
-      return if nodes.all?(&:down?)
+      return if @nodes.all?(&:down?)
 
       if @cluster
         @cluster.close
@@ -347,41 +409,26 @@ module CCM extend self
       end
 
       @ccm.exec('stop')
-      nodes.each(&:down!)
+      refresh_status
 
       nil
     end
 
     def start
-      return if @cluster && nodes.all?(&:up?) && @cluster.hosts.select(&:up?).count == nodes.size
-
       if @cluster
+        return if @nodes.all?(&:up?) && @cluster.hosts.select(&:up?).count == @nodes.size
+
         @cluster.close
         @cluster = @session = nil
       end
 
-      attempts = 1
-
-      begin
-        @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
-      rescue => e
-        @ccm.exec('stop') rescue nil
-        %x{pkill -9 -f .ccm}
-
-        if attempts >= 10
-          raise e
-        else
-          wait = attempts * 0.4
-          puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
-          attempts += 1
-          sleep(wait)
-          retry
-        end
-      end
-
-      nodes.each(&:up!)
-
-      options = {:logger => logger, :consistency => :one}
+      options = { :logger             => logger,
+                  :consistency        => :all,
+                  :synchronize_schema => false,
+                  :idempotent         => true,
+                  :timeout            => nil,
+                  :heartbeat_interval => nil,
+                  :idle_timeout       => nil }
 
       if @username && @password
         options[:username] = @username
@@ -404,34 +451,50 @@ module CCM extend self
         options[:passphrase] = @passphrase
       end
 
-      attempts = 1
+      options[:load_balancing_policy] = SameOrderLoadBalancingPolicy.new
 
-      begin
-        @cluster = Cassandra.cluster(options)
-      rescue => e
-        if attempts >= 10
-          raise e
-        else
-          wait = attempts * 0.4
-          puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
+      until @nodes.all?(&:up?) && @cluster && @cluster.hosts.select(&:up?).count == @nodes.size
+        attempts = 1
+
+        begin
+          @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
+          refresh_status
+        rescue => e
+          @ccm.exec('stop') rescue nil
+
+          raise e if attempts >= 20
+
+          wait = attempts * 2
+          $stderr.puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
           attempts += 1
           sleep(wait)
           retry
         end
+
+        attempts = 1
+
+        begin
+          @cluster = Cassandra.cluster(options)
+        rescue => e
+          refresh_status
+          next unless @nodes.all?(&:up?)
+          raise e if attempts >= 20
+
+          wait = attempts * 2
+          $stderr.puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
+          attempts += 1
+          sleep(wait)
+          retry
+        end
+
+        until @cluster.hosts.all?(&:up?)
+          $stderr.puts "not all hosts are up yet, retrying in 1s..."
+          sleep(1)
+        end
       end
 
-      until @cluster.hosts.all?(&:up?)
-        puts "not all hosts are up yet, retrying in 1s..."
-        sleep(1)
-      end
-
-      puts "creating session"
+      $stderr.puts "creating session"
       @session = @cluster.connect
-
-      until @cluster.hosts.all?(&:up?)
-        puts "not all hosts are up yet, retrying in 1s..."
-        sleep(1)
-      end
 
       nil
     end
@@ -442,40 +505,59 @@ module CCM extend self
     end
 
     def start_node(name)
-      node = nodes.find {|n| n.name == name}
-      return if node.nil? || node.up?
+      node = @nodes.find {|n| n.name == name}
+      raise "unknown node #{name.inspect}" unless node
 
-      attempts = 1
+      i  = name.sub('node', '')
+      ip = "127.0.0.#{i}"
 
-      begin
-        @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto')
-      rescue => e
-        @ccm.exec(node.name, 'stop') rescue nil
+      until node.up?
+        attempts = 1
 
-        if attempts >= 10
-          raise e
-        else
-          wait = attempts * 0.4
-          puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
-          attempts += 1
-          sleep(wait)
-          retry
+        begin
+          @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto')
+          refresh_status
+        rescue => e
+          @ccm.exec(node.name, 'stop') rescue nil
+
+          if attempts >= 20
+            raise e
+          else
+            wait = attempts * 2
+            $stderr.puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
+            attempts += 1
+            sleep(wait)
+            retry
+          end
         end
-      end
 
-      node.up!
+        if @cluster
+          attempts = 1
 
-      if @cluster
-        i  = name.sub('node', '')
-        ip = "127.0.0.#{i}"
-        sleep(1) until @cluster.has_host?(ip) && @cluster.host(ip).up?
+          until @cluster.has_host?(ip) && @cluster.host(ip).up?
+            refresh_status
+
+            break if node.down?
+
+            if attempts >= 20
+              @ccm.exec(node.name, 'stop')
+              refresh_status
+              break
+            end
+
+            wait = attempts * 2
+            $stderr.puts "did not receive node up event for #{node.name.inspect}, retrying in #{wait}s..."
+            attempts += 1
+            sleep(wait)
+          end
+        end
       end
 
       nil
     end
 
     def stop_node(name)
-      node = nodes.find {|n| n.name == name}
+      node = @nodes.find {|n| n.name == name}
       return if node.nil? || node.down?
       @ccm.exec(node.name, 'stop')
       node.down!
@@ -484,18 +566,18 @@ module CCM extend self
     end
 
     def remove_node(name)
-      node = nodes.find {|n| n.name == name}
+      node = @nodes.find {|n| n.name == name}
       return if node.nil?
       @ccm.exec(node.name, 'stop')
       @ccm.exec(node.name, 'remove')
       node.down!
-      nodes.delete(node)
+      @nodes.delete(node)
 
       nil
     end
 
     def decommission_node(name)
-      node = nodes.find {|n| n.name == name}
+      node = @nodes.find {|n| n.name == name}
       return if node.nil?
       @ccm.exec(node.name, 'decommission')
 
@@ -503,18 +585,18 @@ module CCM extend self
     end
 
     def add_node(name)
-      return if nodes.any? {|n| n.name == name}
+      return if @nodes.any? {|n| n.name == name}
 
       i = name.sub('node', '')
 
       @ccm.exec('add', '-b', "-t 127.0.0.#{i}:9160", "-l 127.0.0.#{i}:7000", "--binary-itf=127.0.0.#{i}:9042", name)
-      nodes << Node.new(name, 'DOWN', self)
+      @nodes << Node.new(name, 'DOWN', self)
 
       nil
     end
 
     def block_node(name)
-      node = nodes.find {|n| n.name == name}
+      node = @nodes.find {|n| n.name == name}
       return if node.nil?
       return if @blocked.include?(name)
 
@@ -525,14 +607,14 @@ module CCM extend self
     end
 
     def block_nodes
-      nodes.each do |node|
+      @nodes.each do |node|
         block_node(node.name)
       end
     end
 
     def unblock_nodes
       @blocked.each do |name|
-        node = nodes.find {|n| n.name == name}
+        node = @nodes.find {|n| n.name == name}
         return if node.nil?
 
         @ccm.exec(node.name, 'resume')
@@ -549,7 +631,7 @@ module CCM extend self
     end
 
     def nodes_count
-      nodes.size
+      @nodes.size
     end
 
     def enable_authentication
@@ -612,10 +694,41 @@ module CCM extend self
     end
 
     def setup_schema(schema)
-      clear
-      execute(schema)
+      schema.strip!
+      schema.chomp!(";")
+      statements = schema.split(";\n")
 
-      nil
+      Retry.with_attempts(5) do
+        start
+        @session.execute("USE system")
+
+        if @cluster.hosts.sample.release_version >= '3.0'
+          rows = @session.execute("SELECT keyspace_name FROM system_schema.keyspaces")
+        else
+          rows = @session.execute("SELECT keyspace_name FROM system.schema_keyspaces")
+        end
+
+        rows.each do |row|
+          next if row['keyspace_name'].start_with?('system')
+          @session.execute("DROP KEYSPACE #{row['keyspace_name']}")
+        end
+
+        statements.each do |statement|
+          begin
+            @session.execute(statement)
+          rescue Cassandra::Errors::AlreadyExistsError
+          end
+        end
+
+        @session.execute("USE system")
+      end
+    rescue Cassandra::Errors::NoHostsAvailable => e
+      if e.errors.first.last.is_a?(Cassandra::Errors::ServerError)
+        $stderr.puts "#{e.class.name}: #{e.message}, retrying..."
+        retry
+      end
+
+      raise
     end
 
     def execute(cql)
@@ -624,7 +737,12 @@ module CCM extend self
       cql.strip!
       cql.chomp!(";")
       cql.split(";\n").each do |statement|
-        @session.execute(statement)
+        Retry.with_attempts(5) do
+          begin
+            @session.execute(statement)
+          rescue Cassandra::Errors::AlreadyExistsError
+          end
+        end
       end
 
       @session.execute("USE system")
@@ -632,36 +750,44 @@ module CCM extend self
       nil
     end
 
-    def clear
-      start
-      @session.execute("SELECT keyspace_name FROM system.schema_keyspaces").each do |row|
-        next if row['keyspace_name'].start_with?('system')
+    def refresh_status
+      seen = ::Set.new
+      @ccm.exec('status').each_line do |line|
+        line.strip!
+        next if line.start_with?('Cluster: ')
+        name, status = line.split(": ")
+        next if status.nil?
+        node = @nodes.find {|n| n.name == name}
 
-        @session.execute("DROP KEYSPACE #{row['keyspace_name']}")
+        if node
+          if status == 'UP'
+            node.up!
+          else
+            node.down!
+          end
+        else
+          @nodes << node = Node.new(name, status, self)
+        end
+
+        seen << node
       end
+
+      @nodes.select! {|n| seen.include?(n)}
       nil
+    end
+
+    def execute_cqlsh(statement)
+      node = @nodes.find(&:up?)
+      raise "no nodes running" unless node
+      @ccm.exec(node.name, 'cqlsh', '-v', '-x', statement)
     end
 
     private
 
-    def nodes
-      @nodes ||= begin
-        nodes = []
-        @ccm.exec('status').each_line do |line|
-          line.strip!
-          next if line.start_with?('Cluster: ')
-          name, status = line.split(": ")
-          next if status.nil?
-          nodes << Node.new(name, status, self)
-        end
-        nodes
-      end
-    end
-
     def logger
       @logger ||= begin
         logger = Logger.new($stderr)
-        logger.level = Logger::INFO
+        logger.level = Logger::DEBUG
         logger.formatter = proc { |severity, time, progname, message|
           "Cluster:0x#{object_id.to_s(16)} | #{time.strftime("%T,%L")} - [#{severity}] #{message}\n"
         }
@@ -677,7 +803,7 @@ module CCM extend self
   def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
     cluster_name = 'ruby-driver-cassandra-%s-test-cluster' % cassandra_version
 
-    if @current_cluster
+    if @current_cluster && @current_cluster.name == cluster_name
       unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
         @current_cluster.stop
         remove_cluster(@current_cluster.name)
@@ -709,16 +835,11 @@ module CCM extend self
 
   def ccm
     @ccm ||= begin
-      Runner.new(
-        ccm_script,
-        {
-          'HOME'              => ccm_home,
-          'CCM_MAX_HEAP_SIZE' => '64M',
-          'CCM_HEAP_NEWSIZE'  => '16M',
-          'MALLOC_ARENA_MAX'  => '1'
-        },
-        PrintingNotifier.new($stderr)
-      )
+      Runner.new(ccm_script, {
+                 'CCM_MAX_HEAP_SIZE' => '256M',
+                 'CCM_HEAP_NEWSIZE'  => '64M',
+                 'MALLOC_ARENA_MAX'  => '1'},
+                 PrintingNotifier.new($stderr))
     end
   end
 
@@ -769,7 +890,7 @@ module CCM extend self
   def create_cluster(name, version, datacenters, nodes_per_datacenter)
     nodes = Array.new(datacenters, nodes_per_datacenter).join(':')
 
-    ccm.exec('create', '-v', 'binary:' + version, '-b', name)
+    ccm.exec('create', '-v', version, '-b', name)
 
     config = [
       '--rt', '1000',
@@ -803,6 +924,10 @@ module CCM extend self
       config << 'in_memory_compaction_limit_in_mb: 1'
     end
 
+    if cassandra_version > '2.2'
+      config << 'enable_user_defined_functions: true'
+    end
+
     config << 'key_cache_size_in_mb: 0'
     config << 'key_cache_save_period: 0'
     config << 'memtable_flush_writers: 1'
@@ -828,7 +953,12 @@ module CCM extend self
         current = name.start_with?('*')
         name.sub!('*', '')
         cluster = Cluster.new(name, ccm, firewall)
-        @current_cluster = cluster if current
+
+        if current
+          @current_cluster = cluster
+          @current_cluster.refresh_status
+        end
+
         cluster
       end
     end
@@ -846,7 +976,15 @@ module CCM extend self
     nil
   end
 
-  def self.stop_and_remove
+  def stop_and_reset
     @current_cluster.stop
+    @current_cluster = nil
   end
+end
+
+if __FILE__ == $0
+  require 'bundler/setup'
+  require 'cassandra'
+
+  CCM.setup_cluster(1, 3)
 end

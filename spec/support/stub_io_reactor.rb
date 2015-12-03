@@ -308,7 +308,7 @@ class StubIoReactor
           buffer.append_int(0x05)
           buffer.append_string(response.change)
           buffer.append_string(response.keyspace)
-          buffer.append_string(response.table)
+          buffer.append_string(response.name)
         end
       when EventResponse
         opcode = 0x0c
@@ -318,7 +318,7 @@ class StubIoReactor
           buffer.append_string('SCHEMA_CHANGE')
           buffer.append_string(response.change)
           buffer.append_string(response.keyspace)
-          buffer.append_string(response.table)
+          buffer.append_string(response.name)
         when Cassandra::Protocol::StatusChangeEventResponse
           buffer.append_string('STATUS_CHANGE')
           buffer.append_string(response.change)
@@ -342,7 +342,7 @@ class StubIoReactor
       when Cassandra::Protocol::StartupRequest
         receive(encode(version, stream, Cassandra::Protocol::ReadyResponse.new))
       when Cassandra::Protocol::QueryRequest
-        receive(encode(version, stream, Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)))
+        receive(encode(version, stream, Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)))
       when Cassandra::Protocol::OptionsRequest
         receive(encode(version, stream, Cassandra::Protocol::SupportedResponse.new({'CQL_VERSION' => ['3.0.0'], 'COMPRESSION' => []})))
       else

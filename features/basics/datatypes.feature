@@ -15,15 +15,14 @@ Feature: Datatypes
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE mytable (
+      CREATE TABLE simplex.mytable (
         a int PRIMARY KEY,
         b ascii,
         c blob,
         d text,
         e varchar,
       );
-      INSERT INTO mytable (a, b, c, d, e)
+      INSERT INTO simplex.mytable (a, b, c, d, e)
       VALUES (
         0,
         'ascii',
@@ -59,8 +58,7 @@ Feature: Datatypes
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE mytable (
+      CREATE TABLE simplex.mytable (
         a int PRIMARY KEY,
         b bigint,
         c decimal,
@@ -69,7 +67,7 @@ Feature: Datatypes
         f int,
         g varint
       );
-      INSERT INTO mytable (a, b, c, d, e, f, g)
+      INSERT INTO simplex.mytable (a, b, c, d, e, f, g)
       VALUES (
         0,
         765438000,
@@ -111,8 +109,7 @@ Feature: Datatypes
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE mytable (
+      CREATE TABLE simplex.mytable (
         a int PRIMARY KEY,
         b boolean,
         c inet,
@@ -120,7 +117,7 @@ Feature: Datatypes
         e timeuuid,
         f uuid
       );
-      INSERT INTO mytable (a, b, c, d, e, f)
+      INSERT INTO simplex.mytable (a, b, c, d, e, f)
       VALUES (
         0,
         true,
@@ -159,14 +156,13 @@ Feature: Datatypes
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE user (
+      CREATE TABLE simplex.user (
         id int PRIMARY KEY,
         logins List<timestamp>,
         locations Map<timestamp, double>,
         ip_addresses Set<inet>
       );
-      INSERT INTO user (id, logins, locations, ip_addresses)
+      INSERT INTO simplex.user (id, logins, locations, ip_addresses)
       VALUES (
         0,
         ['2014-09-11 10:09:08+0000', '2014-09-12 10:09:00+0000'],
@@ -200,12 +196,11 @@ Feature: Datatypes
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE user (
+      CREATE TABLE simplex.user (
         id int PRIMARY KEY,
         name frozen <tuple<varchar, varchar>>
       );
-      INSERT INTO user (id, name)
+      INSERT INTO simplex.user (id, name)
       VALUES (0, ('John', 'Smith'))
       """
     And the following example:
@@ -215,22 +210,22 @@ Feature: Datatypes
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
-      row = session.execute("SELECT * FROM user").first
+      row = session.execute("SELECT * FROM user", consistency: :all).first
 
       puts "Name: #{row['name']}"
 
       update = session.prepare("UPDATE user SET name=? WHERE id=0")
-      session.execute(update, arguments: [Cassandra::Tuple.new('Jane', 'Doe')])
+      session.execute(update, arguments: [Cassandra::Tuple.new('Jane', 'Doe')], consistency: :all)
 
       row = session.execute("SELECT * FROM user").first
       puts "Name: #{row['name']}"
 
-      session.execute("INSERT INTO user (id, name) VALUES (1, (?, ?))", arguments: ['Agent', 'Smith'])
+      session.execute("INSERT INTO user (id, name) VALUES (1, (?, ?))", arguments: ['Agent', 'Smith'], consistency: :all)
       row = session.execute("SELECT * FROM user WHERE id=1").first
       puts "Name: #{row['name']}"
 
       insert = session.prepare("INSERT INTO user (id, name) VALUES (?, ?)")
-      session.execute(insert, arguments: [2, Cassandra::Tuple.new('Apache', 'Cassandra')])
+      session.execute(insert, arguments: [2, Cassandra::Tuple.new('Apache', 'Cassandra')], consistency: :all)
       row = session.execute("SELECT * FROM user WHERE id=2").first
 
       puts "Name: #{row['name']}"
@@ -256,13 +251,12 @@ Feature: Datatypes
     Given the following schema:
     """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE airports (
+      CREATE TABLE simplex.airports (
         id int PRIMARY KEY,
         flight_destinations Map<int, frozen<Tuple<double, double>>>,
         flight_numbers List<frozen<Set<int>>>
       );
-      INSERT INTO airports (id, flight_destinations, flight_numbers)
+      INSERT INTO simplex.airports (id, flight_destinations, flight_numbers)
       VALUES (
         0,
         {747: (37.397357, 42.7357), 458: (122.7423, 2.92547), 638: (105.357423, 20.57925)},
@@ -290,4 +284,45 @@ Feature: Datatypes
       Flight: 458 to destination: (122.7423, 2.92547)
       Flight: 638 to destination: (105.357423, 20.57925)
       Flight: 747 to destination: (37.397357, 42.7357)
+      """
+
+  @cassandra-version-specific @cassandra-version-2.2
+  Scenario: Using time, date, smallint and tinyint
+    Given the following schema:
+    """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      CREATE TABLE simplex.checks (
+        id int PRIMARY KEY,
+        date date,
+        time time,
+        attempt tinyint,
+        value   smallint
+      );
+      INSERT INTO simplex.checks (id, date, time, attempt, value)
+      VALUES (0, '2015-05-03', '16:42:23.553', 1, 452);
+      INSERT INTO simplex.checks (id, date, time, attempt, value)
+      VALUES (1, '2015-05-03', '16:42:33.555', 1, 458);
+      INSERT INTO simplex.checks (id, date, time, attempt, value)
+      VALUES (2, '2015-05-03', '16:42:53.554', 4, 150);
+      INSERT INTO simplex.checks (id, date, time, attempt, value)
+      VALUES (3, '2015-05-03', '16:43:03.557', 2, 225);
+      """
+    And the following example:
+    """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      session.execute("SELECT * FROM checks").each do |row|
+        puts "Value on #{row['date']} at #{row['time']} was #{row['value']}, attempted #{row['attempt']} times"
+      end
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      Value on 2015-05-03 at 16:42:33.555 was 458, attempted 1 times
+      Value on 2015-05-03 at 16:42:23.553 was 452, attempted 1 times
+      Value on 2015-05-03 at 16:42:53.554 was 150, attempted 4 times
+      Value on 2015-05-03 at 16:43:03.557 was 225, attempted 2 times
       """

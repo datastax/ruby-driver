@@ -11,8 +11,7 @@ Feature: Request Execution Errors
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
       """
     And the following example:
       """ruby
@@ -165,11 +164,10 @@ Feature: Request Execution Errors
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-      USE simplex;
-      CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
-      INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
-      INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
-      INSERT INTO users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
       """
     And the following example:
       """ruby
@@ -209,8 +207,7 @@ Feature: Request Execution Errors
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
       """
     And the following example:
       """ruby
@@ -238,11 +235,10 @@ Feature: Request Execution Errors
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-      USE simplex;
-      CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
-      INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
-      INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
-      INSERT INTO users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
       """
     And the following example:
       """ruby
@@ -256,7 +252,7 @@ Feature: Request Execution Errors
       until (input = $stdin.gets).nil? # block until closed
         query = input.chomp
         begin
-          results = session.execute(query, consistency: :all, timeout: 2)
+          results = session.execute(query, consistency: :all, timeout: 2, idempotent: true)
           puts results.inspect
           execution_info = results.execution_info
           $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")
@@ -283,11 +279,10 @@ Feature: Request Execution Errors
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-      USE simplex;
-      CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
-      INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
-      INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
-      INSERT INTO users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
       """
     And the following example:
       """ruby
@@ -301,7 +296,7 @@ Feature: Request Execution Errors
       until (input = $stdin.gets).nil? # block until closed
         query = input.chomp
         begin
-          results = session.execute(query, consistency: :all, timeout: 2)
+          results = session.execute(query, consistency: :all, timeout: 2, idempotent: true)
           puts results.inspect
           execution_info = results.execution_info
           $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")
@@ -328,11 +323,10 @@ Feature: Request Execution Errors
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-      USE simplex;
-      CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
-      INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
-      INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
-      INSERT INTO users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
       """
     And the following example:
       """ruby
@@ -346,7 +340,7 @@ Feature: Request Execution Errors
       until (input = $stdin.gets).nil? # block until closed
         query = input.chomp
         begin
-          results = session.execute(query, consistency: :all, timeout: 2)
+          results = session.execute(query, consistency: :all, timeout: 2, idempotent: true)
           puts results.inspect
           execution_info = results.execution_info
           $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")
@@ -373,11 +367,10 @@ Feature: Request Execution Errors
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-      USE simplex;
-      CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
-      INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
-      INSERT INTO users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
-      INSERT INTO users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (1, 'Mary', 'Doe', 35);
+      INSERT INTO simplex.users (user_id, first, last, age) VALUES (2, 'Agent', 'Smith', 32);
       """
     And the following example:
       """ruby
@@ -391,7 +384,7 @@ Feature: Request Execution Errors
       until (input = $stdin.gets).nil? # block until closed
         query = input.chomp
         begin
-          results = session.execute(query, consistency: :all, timeout: 2)
+          results = session.execute(query, consistency: :all, timeout: 2, idempotent: true)
           puts results.inspect
           execution_info = results.execution_info
           $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")
@@ -423,4 +416,43 @@ Feature: Request Execution Errors
     And its output should contain:
       """
       127.0.0.3 (Cassandra::Errors::TimeoutError: Timed out)
+      """
+
+  @netblock
+  Scenario: Binding a future resolution with a timeout
+    Given the following schema:
+      """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+      CREATE TABLE simplex.users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      $stdout.puts("=== START ===")
+      $stdout.flush
+      until (input = $stdin.gets).nil? # block until closed
+        query = input.chomp
+        begin
+          future = session.execute_async(query)
+          future.get(2)
+        rescue => e
+          $stdout.puts("#{e.class.name}: #{e.message}")
+        end
+        $stdout.flush
+      end
+      $stdout.puts("=== STOP ===")
+      $stdout.flush
+      """
+    When it is running interactively
+    And I wait for its output to contain "START"
+    And all nodes are unreachable
+    And I type "SELECT * FROM simplex.users"
+    And I close the stdin stream
+    Then its output should contain:
+      """
+      Cassandra::Errors::TimeoutError: Future did not complete within 2.0 seconds. Wait time: 2.0
       """

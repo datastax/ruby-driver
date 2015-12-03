@@ -25,7 +25,11 @@ module Cassandra
       alias_method :==, :eql?
 
       def hash
-        @h ||= to_s.hash ^ 0xbadc0de
+        @h ||= begin
+          h = 17
+          h = 31 * h + 'READY'.hash
+          h
+        end
       end
 
       def to_s

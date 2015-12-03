@@ -26,7 +26,7 @@ module Cassandra
       end
 
       let :clock do
-        Time.at(1370771820, 329394)
+        ::Time.at(1370771820, 329394)
       end
 
       describe '#now' do

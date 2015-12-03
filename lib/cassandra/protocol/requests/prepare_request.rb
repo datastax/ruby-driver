@@ -19,14 +19,19 @@
 module Cassandra
   module Protocol
     class PrepareRequest < Request
-      attr_reader :cql
+      attr_reader :cql, :payload
       attr_accessor :consistency, :retries
 
-      def initialize(cql, trace=false)
+      def initialize(cql, trace=false, payload = nil)
         raise ArgumentError, 'No CQL given!' unless cql
         super(9, trace)
         @cql = cql
         @consistency = :one
+        @payload = payload
+      end
+
+      def payload?
+        !!@payload
       end
 
       def write(buffer, protocol_version, encoder)
@@ -43,7 +48,11 @@ module Cassandra
       alias_method :==, :eql?
 
       def hash
-        @h ||= @cql.hash
+        @h ||= begin
+          h = 17
+          h = 31 * h + @cql.hash
+          h
+        end
       end
     end
   end

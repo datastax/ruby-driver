@@ -7,14 +7,13 @@ Feature: User-Defined Types
     Given a running cassandra cluster with schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      USE simplex;
-      CREATE TYPE address (street text, zipcode int);
-      CREATE TYPE check_in (
+      CREATE TYPE simplex.address (street text, zipcode int);
+      CREATE TYPE simplex.check_in (
         location frozen <address>,
         time timestamp,
         data frozen <tuple<int, text, float>>
       );
-      CREATE TABLE users (id int PRIMARY KEY, location frozen<address>);
+      CREATE TABLE simplex.users (id int PRIMARY KEY, location frozen<address>);
       """
 
   Scenario: Using User-Defined Types with prepared statements
@@ -26,7 +25,7 @@ Feature: User-Defined Types
       session = cluster.connect('simplex')
       insert  = session.prepare('INSERT INTO users (id, location) VALUES (?, ?)')
 
-      session.execute(insert, arguments: [0, Cassandra::UDT.new(street: '123 Main St.', zipcode: 78723)])
+      session.execute(insert, arguments: [0, Cassandra::UDT.new(street: '123 Main St.', zipcode: 78723)], consistency: :all)
       session.execute('SELECT * FROM users').each do |row|
         location = row['location']
         puts "Location: #{location}"
@@ -46,7 +45,7 @@ Feature: User-Defined Types
       cluster = Cassandra.cluster(consistency: :all)
       session = cluster.connect('simplex')
 
-      session.execute("INSERT INTO users (id, location) VALUES (0, {street: '123 Main St.', zipcode: 78723})")
+      session.execute("INSERT INTO users (id, location) VALUES (0, {street: '123 Main St.', zipcode: 78723})", consistency: :all)
       session.execute('SELECT * FROM users').each do |row|
         location = row['location']
         puts "Location: #{location}"
@@ -92,7 +91,7 @@ Feature: User-Defined Types
       session = cluster.connect('simplex')
       insert  = session.prepare('INSERT INTO users (id, location) VALUES (?, ?)')
 
-      session.execute(insert, arguments: [0, Cassandra::UDT.new(zipcode: 78723)])
+      session.execute(insert, arguments: [0, Cassandra::UDT.new(zipcode: 78723)], consistency: :all)
       session.execute('SELECT * FROM users').each do |row|
         location = row['location']
         puts "Location: #{location}"
@@ -119,7 +118,7 @@ Feature: User-Defined Types
       tuple = Cassandra::Tuple.new(42, 'math', 3.14)
       input = Cassandra::UDT.new(location: location, time: Time.at(1358013521, 123000), data: tuple)
 
-      session.execute(insert, arguments: [0, input])
+      session.execute(insert, arguments: [0, input], consistency: :all)
       session.execute('SELECT * FROM registration').each do |row|
         info = row['info']
         puts "Info: {street: #{info.location.street}, zipcode: #{info.location.zipcode}}, #{info.time.httpdate}, #{info.data}"

@@ -24,14 +24,14 @@ module Cassandra
     describe RowsResultResponse do
       describe '#void?' do
         it 'is not void' do
-          response = RowsResultResponse.new([{'col' => 'foo'}], [['ks', 'tbl', 'col', :varchar]], nil, nil)
+          response = RowsResultResponse.new(nil, nil, [{'col' => 'foo'}], [['ks', 'tbl', 'col', :varchar]], nil, nil)
           response.should_not be_void
         end
       end
 
       describe '#to_s' do
         it 'returns a string with metadata and rows' do
-          response = RowsResultResponse.new([{'col' => 'foo'}], [['ks', 'tbl', 'col', :varchar]], nil, nil)
+          response = RowsResultResponse.new(nil, nil, [{'col' => 'foo'}], [['ks', 'tbl', 'col', :varchar]], nil, nil)
           response.to_s.should == 'RESULT ROWS [["ks", "tbl", "col", :varchar]] [{"col"=>"foo"}]'
         end
       end

@@ -22,7 +22,7 @@ module Cassandra
   class Cluster
     describe(ControlConnection) do
       let :control_connection do
-        ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, driver.connector, connection_options)
+        ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, driver.connector, connection_options, schema_fetcher)
       end
 
       let :io_reactor do
@@ -60,6 +60,8 @@ module Cassandra
       end
 
       let(:address_resolution_policy) { driver.address_resolution_policy }
+
+      let(:schema_fetcher) { driver.schema_fetcher }
 
       def connections
         io_reactor.connections
@@ -105,23 +107,23 @@ module Cassandra
       end
 
       let :data_centers do
-        Hash.new('dc1')
+        ::Hash.new('dc1')
       end
 
       let :racks do
-        Hash.new('rack1')
+        ::Hash.new('rack1')
       end
 
       let :release_versions do
-        Hash.new('2.0.7-SNAPSHOT')
+        ::Hash.new('2.0.7-SNAPSHOT')
       end
 
       let :host_ids do
-        Hash.new {|hash, ip| hash[ip] = uuid_generator.uuid}
+        ::Hash.new {|hash, ip| hash[ip] = uuid_generator.uuid}
       end
 
       let :additional_nodes do
-        Array.new(5) { IPAddr.new("127.0.#{rand(255)}.#{rand(255)}") }
+        ::Array.new(5) { ::IPAddr.new("127.0.#{rand(255)}.#{rand(255)}") }
       end
 
       let :bind_all_rpc_addresses do
@@ -159,7 +161,7 @@ module Cassandra
             when Protocol::QueryRequest
               response = case request.cql
               when /USE\s+"?(\S+)"?/
-                Cassandra::Protocol::SetKeyspaceResultResponse.new($1, nil)
+                Cassandra::Protocol::SetKeyspaceResultResponse.new(nil, nil, $1, nil)
               when /FROM system\.local/
                 row = {
                   'rack'            => connection[:spec_rack],
@@ -167,7 +169,7 @@ module Cassandra
                   'host_id'         => connection[:spec_host_id],
                   'release_version' => connection[:spec_release_version]
                 }
-                Protocol::RowsResultResponse.new([row], local_metadata, nil, nil)
+                Protocol::RowsResultResponse.new(nil, nil, [row], local_metadata, nil, nil)
               when /FROM system\.peers WHERE peer = '?(\S+)'/
                 ip   = $1
                 rows = [
@@ -178,7 +180,7 @@ module Cassandra
                     'release_version' => release_versions[ip]
                   }
                 ]
-                Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
+                Protocol::RowsResultResponse.new(nil, nil, rows, peer_metadata, nil, nil)
               when /FROM system\.peers/
                 rows = min_peers[0].times.map do |host_id|
                   ip = additional_rpc_addresses.shift
@@ -187,11 +189,11 @@ module Cassandra
                     'rack'            => racks[ip],
                     'data_center'     => data_centers[ip],
                     'host_id'         => host_ids[ip],
-                    'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
+                    'rpc_address'     => bind_all_rpc_addresses ? ::IPAddr.new('0.0.0.0') : ip,
                     'release_version' => release_versions[ip]
                   }
                 end
-                Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
+                Protocol::RowsResultResponse.new(nil, nil, rows, peer_metadata, nil, nil)
               end
             when Protocol::OptionsRequest
               Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
@@ -210,7 +212,7 @@ module Cassandra
           handle_request do |request|
             if counter < 3
               counter += 1
-              Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              Protocol::ErrorResponse.new(nil, nil, 0x0a, 'Bork version, dummy!')
             elsif counter == 3
               counter += 1
               Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
@@ -228,7 +230,7 @@ module Cassandra
           handle_request do |request|
             if counter < 3
               counter += 1
-              Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+              Protocol::ErrorResponse.new(nil, nil, 0x0a, 'Bork version, dummy!')
             elsif counter == 3
               counter += 1
               Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
@@ -244,7 +246,7 @@ module Cassandra
           counter = 0
           handle_request do |request|
             counter += 1
-            Protocol::ErrorResponse.new(0x0a, 'Bork version, dummy!')
+            Protocol::ErrorResponse.new(nil, nil, 0x0a, 'Bork version, dummy!')
           end
           expect { control_connection.connect_async.value }.to raise_error(Cassandra::Errors::ProtocolError, 'Bork version, dummy!')
           counter.should == 7
@@ -252,7 +254,7 @@ module Cassandra
 
         it 'gives up when a non-protocol version related error is raised' do
           handle_request do |request|
-            Protocol::ErrorResponse.new(0x1001, 'Get off my lawn!')
+            Protocol::ErrorResponse.new(nil, nil, 0x1001, 'Get off my lawn!')
           end
           expect { control_connection.connect_async.value }.to raise_error(Cassandra::Errors::NoHostsAvailable)
         end
@@ -306,7 +308,7 @@ module Cassandra
                       'rack'            => racks[ip],
                       'data_center'     => data_centers[ip],
                       'host_id'         => host_ids[ip],
-                      'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
+                      'rpc_address'     => bind_all_rpc_addresses ? ::IPAddr.new('0.0.0.0') : ip,
                       'release_version' => release_versions[ip]
                     }
                   end
@@ -319,7 +321,7 @@ module Cassandra
                     'rpc_address'     => nil,
                     'release_version' => nil
                   }
-                  Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
+                  Protocol::RowsResultResponse.new(nil, nil, rows, peer_metadata, nil, nil)
                 end
               end
             end
@@ -413,7 +415,7 @@ module Cassandra
               end
 
               let :address do
-                IPAddr.new('127.0.0.1')
+                ::IPAddr.new('127.0.0.1')
               end
 
               it 'logs when it receives an UP event' do
@@ -434,12 +436,7 @@ module Cassandra
 
                 it 'notifies registry' do
                   ip = address.to_s
-                  expect(cluster_registry).to receive(:host_found).once.with(address, {
-                    'rack'            => racks[ip],
-                    'data_center'     => data_centers[ip],
-                    'host_id'         => host_ids[ip],
-                    'release_version' => release_versions[ip]
-                  })
+                  expect(cluster_registry).to receive(:host_up).once.with(address)
                   connections.first.trigger_event(event)
                 end
               end
@@ -453,8 +450,14 @@ module Cassandra
                   additional_nodes[3]
                 end
 
-                it 'does nothing' do
-                  expect(cluster_registry).to_not receive(:host_found)
+                it 'refreshes metadata and notifies registry' do
+                  ip = address.to_s
+                  expect(cluster_registry).to receive(:host_found).once.with(address, {
+                    'rack'            => racks[ip],
+                    'data_center'     => data_centers[ip],
+                    'host_id'         => host_ids[ip],
+                    'release_version' => release_versions[ip]
+                  })
 
                   connections.first.trigger_event(event)
                 end
@@ -538,6 +541,54 @@ module Cassandra
                   expect(cluster_registry).to_not receive(:host_found)
 
                   connections.first.trigger_event(event)
+                end
+              end
+
+              context 'and host not found in system tables' do
+                let(:address)               { additional_nodes[3] }
+                let(:reconnect_interval)    { 5 }
+                let(:reconnection_schedule) { double('reconnection schedule', :next => reconnect_interval) }
+
+                before do
+                  attempts = 0
+                  handle_request do |request|
+                    case request
+                    when Protocol::QueryRequest
+                      case request.cql
+                      when /FROM system\.peers WHERE peer = '?(\S+)'/
+                        if attempts >= 1
+                          ip   = $1
+                          rows = [
+                            {
+                              'rack'            => racks[ip],
+                              'data_center'     => data_centers[ip],
+                              'host_id'         => host_ids[ip],
+                              'release_version' => release_versions[ip]
+                            }
+                          ]
+                          Protocol::RowsResultResponse.new(nil, nil, rows, peer_metadata, nil, nil)
+                        else
+                          attempts += 1
+                          Protocol::RowsResultResponse.new(nil, nil, [], peer_metadata, nil, nil)
+                        end
+                      end
+                    end
+                  end
+
+                  reconnection_policy.stub(:schedule) { reconnection_schedule }
+                  cluster_registry.stub(:has_host?) { false }
+                end
+
+                it 'tries again' do
+                  connections.first.trigger_event(event)
+                  ip = address.to_s
+                  expect(cluster_registry).to receive(:host_found).once.with(address, {
+                    'rack'            => racks[ip],
+                    'data_center'     => data_centers[ip],
+                    'host_id'         => host_ids[ip],
+                    'release_version' => release_versions[ip]
+                  })
+                  io_reactor.advance_time(reconnect_interval)
                 end
               end
             end

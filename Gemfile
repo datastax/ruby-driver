@@ -10,8 +10,6 @@ gem 'cliver',        :group => [:development, :test]
 group :development do
   platforms :mri_19 do
     gem 'perftools.rb'
-    gem 'guard'
-    gem 'guard-nanoc'
   end
 end
 
@@ -23,24 +21,10 @@ group :test do
   gem 'cucumber'
   gem 'aruba'
   gem 'os'
-  gem 'minitest'
+  gem 'minitest', '< 5.0.0'
   gem 'delorean'
 end
 
 group :docs do
   gem 'yard'
-
-  platforms :mri_19 do
-    gem 'gherkin'
-    gem 'htmlbeautifier'
-    gem 'nanoc'
-    gem 'nanoc-toolbox'
-    gem 'compass'
-    gem 'bootstrap-sass'
-    gem 'nokogiri'
-    gem 'rubypants'
-    gem 'rouge'
-    gem 'redcarpet'
-    gem 'ditaarb'
-  end
 end

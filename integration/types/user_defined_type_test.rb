@@ -58,8 +58,8 @@ class UserDefinedTypeTest < IntegrationTestCase
       assert_equal 'male', user_value.gender
 
       # Test prepared statement
-      insert = session.prepare("INSERT INTO mytable (a, b) VALUES (?, ?)")
-      session.execute(insert, arguments: [1, Cassandra::UDT.new(age: 25, name: 'Jane', gender: 'female')])
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.mytable (a, b) VALUES (?, ?)") }
+      Retry.with_attempts(5) { session.execute(insert, arguments: [1, Cassandra::UDT.new(age: 25, name: 'Jane', gender: 'female')]) }
 
       user_value = session.execute("SELECT b FROM mytable where a=1").first['b']
       assert_equal 25, user_value.age
@@ -123,9 +123,9 @@ class UserDefinedTypeTest < IntegrationTestCase
       assert_nil user_value.gender
 
       # Test prepared statements
-      insert = session.prepare("INSERT INTO mytable (a, b) VALUES (?, ?)")
-      session.execute(insert, arguments: [2, Cassandra::UDT.new(age: 35, name: 'James')])
-      session.execute(insert, arguments: [3, Cassandra::UDT.new(name: 'Jess')])
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.mytable (a, b) VALUES (?, ?)") }
+      Retry.with_attempts(5) { session.execute(insert, arguments: [2, Cassandra::UDT.new(age: 35, name: 'James')]) }
+      Retry.with_attempts(5) { session.execute(insert, arguments: [3, Cassandra::UDT.new(name: 'Jess')]) }
 
       user_value = session.execute("SELECT b FROM mytable where a=2").first['b']
       assert_equal 35, user_value.age
@@ -184,8 +184,8 @@ class UserDefinedTypeTest < IntegrationTestCase
       end
 
       # Insert into table
-      insert = session.prepare("INSERT INTO mytable (zz, a) VALUES (?, ?)")
-      session.execute(insert, arguments: [0, Cassandra::UDT.new(input)])
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.mytable (zz, a) VALUES (?, ?)") }
+      Retry.with_attempts(5) { session.execute(insert, arguments: [0, Cassandra::UDT.new(input)]) }
 
       # Verify UDT written correctly
       user_value = session.execute("SELECT a FROM mytable WHERE zz=0").first['a']
@@ -240,8 +240,8 @@ class UserDefinedTypeTest < IntegrationTestCase
       # Insert into table
       [0, 1, 2, 3, max_udt_depth].each do |depth|
         input = udts[depth]
-        insert = session.prepare("INSERT INTO mytable (zz, v_#{depth}) VALUES (0, ?)")
-        session.execute(insert, arguments: [input])
+        insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.mytable (zz, v_#{depth}) VALUES (0, ?)") }
+        Retry.with_attempts(5) { session.execute(insert, arguments: [input]) }
 
         user_value = session.execute("SELECT v_#{depth} FROM mytable WHERE zz=0").first
         expected = nested_udt_helper(input, depth)
@@ -277,8 +277,8 @@ class UserDefinedTypeTest < IntegrationTestCase
       end
 
       # Insert into table
-      insert = session.prepare("INSERT INTO mytable (zz, a) VALUES (?, ?)")
-      session.execute(insert, arguments: [0, Cassandra::UDT.new(input)])
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.mytable (zz, a) VALUES (?, ?)") }
+      Retry.with_attempts(5) { session.execute(insert, arguments: [0, Cassandra::UDT.new(input)]) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first['a']
@@ -313,8 +313,8 @@ class UserDefinedTypeTest < IntegrationTestCase
       end
 
       # Insert into table
-      insert = session.prepare("INSERT INTO mytable (zz, a) VALUES (?, ?)")
-      session.execute(insert, arguments: [0, Cassandra::UDT.new(input)])
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.mytable (zz, a) VALUES (?, ?)") }
+      Retry.with_attempts(5) { session.execute(insert, arguments: [0, Cassandra::UDT.new(input)]) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first['a']
@@ -360,8 +360,8 @@ class UserDefinedTypeTest < IntegrationTestCase
       end
 
       # Insert into table
-      insert = session.prepare("INSERT INTO mytable (zz, a) VALUES (?, ?)")
-      session.execute(insert, arguments: [0, Cassandra::UDT.new(input)])
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.mytable (zz, a) VALUES (?, ?)") }
+      Retry.with_attempts(5) { session.execute(insert, arguments: [0, Cassandra::UDT.new(input)]) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first['a']
@@ -409,8 +409,8 @@ class UserDefinedTypeTest < IntegrationTestCase
       end
 
       # Insert into table
-      insert = session.prepare("INSERT INTO mytable (zz, a) VALUES (?, ?)")
-      session.execute(insert, arguments: [0, Cassandra::UDT.new(input)])
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.mytable (zz, a) VALUES (?, ?)") }
+      Retry.with_attempts(5) { session.execute(insert, arguments: [0, Cassandra::UDT.new(input)]) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first['a']
@@ -486,9 +486,8 @@ class UserDefinedTypeTest < IntegrationTestCase
       arguments = []
       (DatatypeUtils.collection_types.size+1).times { arguments.push('?') }
 
-      insert = session.prepare("INSERT INTO mytable (#{parameters.join(",")})
-              VALUES (#{arguments.join(",")})")
-      session.execute(insert, arguments: params)
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.mytable (#{parameters.join(",")}) VALUES (#{arguments.join(",")})") }
+      Retry.with_attempts(5) { session.execute(insert, arguments: params) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first
@@ -568,8 +567,8 @@ class UserDefinedTypeTest < IntegrationTestCase
       end
 
       # Insert into table
-      insert = session.prepare("INSERT INTO mytable (zz, a) VALUES (?, ?)")
-      session.execute(insert, arguments: [0, Cassandra::UDT.new(input)])
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.mytable (zz, a) VALUES (?, ?)") }
+      Retry.with_attempts(5) { session.execute(insert, arguments: [0, Cassandra::UDT.new(input)]) }
 
       # Verify results
       result = session.execute("SELECT * FROM mytable").first['a']

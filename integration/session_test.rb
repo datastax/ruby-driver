@@ -49,7 +49,11 @@ class SessionTest < IntegrationTestCase
   def test_can_select_from_an_existing_keyspace
     cluster = Cassandra.cluster
     session = cluster.connect()
-    results = session.execute("SELECT * FROM system.schema_keyspaces")
+    if CCM.cassandra_version.start_with?('3.0')
+      results = session.execute("SELECT * FROM system_schema.keyspaces")
+    else
+      results = session.execute("SELECT * FROM system.schema_keyspaces")
+    end
 
     refute_nil results
   ensure
@@ -145,13 +149,13 @@ class SessionTest < IntegrationTestCase
     cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
-    insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
-    select = session.prepare("SELECT * FROM users")
+    insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.users (user_id, first, last, age) VALUES (?, ?, ?, ?)") }
+    select = Retry.with_attempts(5) { session.prepare("SELECT * FROM simplex.users") }
     refute_nil insert
     refute_nil select
 
-    session.execute(insert, arguments: [0, 'John', 'Doe', 40])
-    result = session.execute(select).first
+    Retry.with_attempts(5) { session.execute(insert, arguments: [0, 'John', 'Doe', 40]) }
+    result = Retry.with_attempts(5) { session.execute(select).first }
     assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
   ensure
     cluster && cluster.close
@@ -163,7 +167,7 @@ class SessionTest < IntegrationTestCase
     cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
-    insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
+    insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.users (user_id, first, last, age) VALUES (?, ?, ?, ?)") }
     refute_nil insert
 
     assert_raises(ArgumentError) do
@@ -190,20 +194,20 @@ class SessionTest < IntegrationTestCase
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
-      insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)")
-      session.execute(insert, arguments: {:a => 0, :b => 'John', :c => 'Doe', :d => 40})
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.users (user_id, first, last, age) VALUES (:a, :b, :c, :d)") }
+      Retry.with_attempts(5) { session.execute(insert, arguments: {:a => 0, :b => 'John', :c => 'Doe', :d => 40}) }
 
-      select = session.prepare("SELECT * FROM users WHERE user_id=:id")
-      result = session.execute(select, arguments: {:id => 0}).first
+      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM simplex.users WHERE user_id=:id") }
+      result = Retry.with_attempts(5) { session.execute(select, arguments: {:id => 0}).first }
 
       assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
 
       batch = session.batch do |b|
-        b.add(insert, {:a => 1, :b => 'Jane', :c => 'Doe', :d => 30})
-        b.add(insert, {:a => 2, :b => 'Agent', :c => 'Smith', :d => 20})
+        b.add(insert, arguments: {:a => 1, :b => 'Jane', :c => 'Doe', :d => 30})
+        b.add(insert, arguments: {:a => 2, :b => 'Agent', :c => 'Smith', :d => 20})
       end
 
-      session.execute(batch)
+      Retry.with_attempts(5) { session.execute(batch) }
 
       results = session.execute("SELECT * FROM users")
       assert_equal 3, results.size
@@ -229,8 +233,8 @@ class SessionTest < IntegrationTestCase
       assert_equal result, {"user_id"=>0, "age"=>40, "first"=>"John", "last"=>"Doe"}
 
       batch = session.batch do |b|
-        b.add("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)", {:a => 1, :b => 'Jane', :c => 'Doe', :d => 30})
-        b.add("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)", {:a => 2, :b => 'Agent', :c => 'Smith', :d => 20})
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)", arguments: {:a => 1, :b => 'Jane', :c => 'Doe', :d => 30})
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)", arguments: {:a => 2, :b => 'Agent', :c => 'Smith', :d => 20})
       end
 
       session.execute(batch)
@@ -244,6 +248,7 @@ class SessionTest < IntegrationTestCase
 
   def test_raise_error_on_invalid_named_parameters
     skip("Named parameters are only available in C* after 2.1") if CCM.cassandra_version < '2.1.0'
+    skip("Missing named parameters are ignored in C* after 2.2") if CCM.cassandra_version >= '2.2.0'
 
     setup_schema
 
@@ -251,7 +256,7 @@ class SessionTest < IntegrationTestCase
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
-      insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (:a, :b, :c, :d)")
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.users (user_id, first, last, age) VALUES (:a, :b, :c, :d)") }
 
       assert_raises(ArgumentError) do
         session.execute(insert, arguments: {:a => 0, :b => 'John', :c => 'Doe'})
@@ -268,11 +273,11 @@ class SessionTest < IntegrationTestCase
     session = cluster.connect("simplex")
 
     assert_raises(Cassandra::Errors::InvalidError) do
-      session.prepare("INSERT INTO badtable (user_id, first, last, age) VALUES (?, ?, ?, ?)")
+      session.prepare("INSERT INTO simplex.badtable (user_id, first, last, age) VALUES (?, ?, ?, ?)")
     end
 
     assert_raises(Cassandra::Errors::InvalidError) do
-      session.prepare("SELECT * FROM badtable")
+      session.prepare("SELECT * FROM simplex.badtable")
     end
   ensure
     cluster && cluster.close
@@ -311,9 +316,9 @@ class SessionTest < IntegrationTestCase
       session = cluster.connect("simplex")
 
       batch = session.batch do |b|
-        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", [3, 'Apache', 'Cassandra', 8])
-        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", [4, 'DataStax', 'Ruby-Driver', 1])
-        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", [5, 'Cassandra', 'Community', 8])
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", arguments: [3, 'Apache', 'Cassandra', 8])
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", arguments: [4, 'DataStax', 'Ruby-Driver', 1])
+        b.add("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)", arguments: [5, 'Cassandra', 'Community', 8])
       end
 
       session.execute(batch)
@@ -333,16 +338,16 @@ class SessionTest < IntegrationTestCase
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
     
-      insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.users (user_id, first, last, age) VALUES (?, ?, ?, ?)") }
       refute_nil insert
 
       batch = session.batch do |b|
-        b.add(insert, [6, 'Joséphine', 'Baker', 108])
-        b.add(insert, [7, 'Stefan', 'Löfven', 57])
-        b.add(insert, [8, 'Mick', 'Jager', 71])
+        b.add(insert, arguments: [6, 'Joséphine', 'Baker', 108])
+        b.add(insert, arguments: [7, 'Stefan', 'Löfven', 57])
+        b.add(insert, arguments: [8, 'Mick', 'Jager', 71])
       end
 
-      session.execute(batch)
+      Retry.with_attempts(5) { session.execute(batch) }
       results = session.execute("SELECT * FROM users")
       assert_equal 3, results.size
     ensure
@@ -359,9 +364,9 @@ class SessionTest < IntegrationTestCase
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
-      insert = session.prepare("INSERT INTO test (k, v) VALUES (?, ?)")
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.test (k, v) VALUES (?, ?)") }
       ("a".."z").each_with_index do |letter, number|
-        session.execute(insert, arguments: [letter, number])
+        Retry.with_attempts(5) { session.execute(insert, arguments: [letter, number]) }
       end
 
       # Small page_size
@@ -421,12 +426,12 @@ class SessionTest < IntegrationTestCase
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
 
-      insert = session.prepare("INSERT INTO test (k, v) VALUES (?, ?)")
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.test (k, v) VALUES (?, ?)") }
       ("a".."z").each_with_index do |letter, number|
-        session.execute(insert, arguments: [letter, number])
+        Retry.with_attempts(5) { session.execute(insert, arguments: [letter, number]) }
       end
 
-      select = session.prepare("SELECT * FROM test")
+      select = Retry.with_attempts(5) { session.prepare("SELECT * FROM simplex.test") }
       future = session.execute_async(select, page_size: 5)
       count = 0
 
@@ -524,7 +529,7 @@ class SessionTest < IntegrationTestCase
       session = cluster.connect("simplex")
 
       # Insert from the future
-      timestamp = curr_time_in_micro(Time.now + 1000)
+      timestamp = curr_time_in_micro(::Time.now + 1000)
       session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40) USING TIMESTAMP #{timestamp}")
       result = session.execute("SELECT writetime(first) FROM users WHERE user_id = 0").first
       assert_equal timestamp, result["writetime(first)"]
@@ -536,18 +541,18 @@ class SessionTest < IntegrationTestCase
       assert_equal timestamp, result["writetime(first)"]
 
       # Prepared statements
-      insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
-      session.execute(insert, arguments: [0, 'Jane', 'Smith', 30])
+      insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.users (user_id, first, last, age) VALUES (?, ?, ?, ?)") }
+      Retry.with_attempts(5) { session.execute(insert, arguments: [0, 'Jane', 'Smith', 30]) }
       result = session.execute("SELECT writetime(first) FROM users WHERE user_id = 0").first
       assert_equal timestamp, result["writetime(first)"]
 
       # Batch statements
       batch = session.batch do |b|
         b.add("INSERT INTO users (user_id, first, last, age) VALUES (0, 'Apache', 'Cassandra', 6)")
-        b.add(insert, [0, 'Ruby', 'Driver', 2])
+        b.add(insert, arguments: [0, 'Ruby', 'Driver', 2])
       end
 
-      session.execute(batch)
+      Retry.with_attempts(5) { session.execute(batch) }
       result = session.execute("SELECT writetime(first) FROM users WHERE user_id = 0").first
       assert_equal timestamp, result["writetime(first)"]
     ensure
@@ -590,21 +595,55 @@ class SessionTest < IntegrationTestCase
         assert_equal "John", result["first"]
 
         # Prepared statements
-        insert = session.prepare("INSERT INTO users (user_id, first, last, age) VALUES (?, ?, ?, ?)")
-        session.execute(insert, arguments: [0, 'Jane', 'Smith', 30])
+        insert = Retry.with_attempts(5) { session.prepare("INSERT INTO simplex.users (user_id, first, last, age) VALUES (?, ?, ?, ?)") }
+        Retry.with_attempts(5) { session.execute(insert, arguments: [0, 'Jane', 'Smith', 30]) }
         result = session.execute("SELECT * FROM users WHERE user_id = 0").first
         assert_equal "John", result["first"]
 
         # Batch statements
         batch = session.batch do |b|
-          b.add(insert, [0, 'Ruby', 'Driver', 2])
+          b.add(insert, arguments: [0, 'Ruby', 'Driver', 2])
         end
 
-        session.execute(batch)
+        Retry.with_attempts(5) { session.execute(batch) }
         result = session.execute("SELECT * FROM users WHERE user_id = 0").first
         assert_equal "John", result["first"]
       end
     ensure
+      cluster && cluster.close
+    end
+  end
+
+  # Test for future resolution timeout
+  #
+  # test_raise_error_on_future_resolution_timeout tests that the future#get timeout is honored while waiting for a future 
+  # to resolve. It pauses all nodes such that they are unreachable by the driver. It then performs a simple SELECT query 
+  # asynchronously, fetching the future with a timeout of 2 seconds. Finally, it asserts that the 
+  # Cassandra::Errors::TimeoutError is returned within 2 seconds.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-96
+  # @expected_result A TimeoutError is raised within 2 seconds when waiting for the future to resolve
+  #
+  # @test_category queries:timeout
+  #
+  def test_raise_error_on_future_resolution_timeout
+    setup_schema
+
+    begin
+      cluster = Cassandra.cluster
+      session = cluster.connect("simplex")
+
+      @@ccm_cluster.block_node("node1")
+
+      future = session.execute_async("SELECT * FROM users")
+      start_time = Time.now.to_i
+      assert_raises(Cassandra::Errors::TimeoutError) do
+        future.get(2)
+      end
+      assert_equal 2, Time.now.to_i - start_time
+    ensure
+      @@ccm_cluster.unblock_nodes
       cluster && cluster.close
     end
   end

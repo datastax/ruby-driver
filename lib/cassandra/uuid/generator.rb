@@ -44,7 +44,7 @@ module Cassandra
       # @param [Object<#now>] clock used to generate timeuuid from current time
       #
       # @raise [ArgumentError] if clock doesn't respond to `now`
-      def initialize(node_id = (SecureRandom.random_number(2**47) | 0x010000000000), clock_id = SecureRandom.random_number(65536), clock = Time)
+      def initialize(node_id = (::SecureRandom.random_number(2**47) | 0x010000000000), clock_id = ::SecureRandom.random_number(65536), clock = ::Time)
         raise ::ArgumentError, "invalid clock" unless clock.respond_to?(:now)
 
         @node_id  = Integer(node_id)
@@ -84,7 +84,7 @@ module Cassandra
           @sequence += 1
         elsif @last_usecs && @last_usecs > usecs
           @sequence = 0
-          @clock_id = SecureRandom.random_number(65536)
+          @clock_id = ::SecureRandom.random_number(65536)
         else
           @sequence = 0
         end
@@ -153,12 +153,12 @@ module Cassandra
         raise ::ArgumentError, "not enough arguments" if args.empty?
         raise ::ArgumentError, "too many arguments"   if args.size > 3
 
-        if args.first.is_a?(Time)
+        if args.first.is_a?(::Time)
           time   = args.shift
-          jitter = args.empty? ? SecureRandom.random_number(65536) : Integer(args.shift)
+          jitter = args.empty? ? ::SecureRandom.random_number(65536) : Integer(args.shift)
         else
-          jitter = args.size > 2 ? Integer(args.pop) : SecureRandom.random_number(65536)
-          time   = Time.at(*args)
+          jitter = args.size > 2 ? Integer(args.pop) : ::SecureRandom.random_number(65536)
+          time   = ::Time.at(*args)
         end
 
         from_usecs(time.to_i * 1_000_000 + time.usec + jitter)
@@ -179,7 +179,7 @@ module Cassandra
       #
       # @return [Cassandra::Uuid] a new UUID
       def uuid
-        Uuid.new(SecureRandom.uuid)
+        Uuid.new(::SecureRandom.uuid)
       end
 
       private

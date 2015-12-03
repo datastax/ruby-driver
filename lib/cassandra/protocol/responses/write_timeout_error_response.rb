@@ -21,8 +21,8 @@ module Cassandra
     class WriteTimeoutErrorResponse < ErrorResponse
       attr_reader :consistency, :received, :blockfor, :write_type
 
-      def initialize(code, message, consistency, received, blockfor, write_type)
-        super(code, message)
+      def initialize(custom_payload, warnings, code, message, consistency, received, blockfor, write_type)
+        super(custom_payload, warnings, code, message)
 
         write_type.downcase!
 
@@ -32,8 +32,8 @@ module Cassandra
         @write_type  = write_type.to_sym
       end
 
-      def to_error(statement = nil)
-        Errors::WriteTimeoutError.new(@message, statement, @write_type, @consistency, @blockfor, @received)
+      def to_error(keyspace, statement, options, hosts, consistency, retries)
+        Errors::WriteTimeoutError.new(@message, @custom_payload, @warnings, keyspace, statement, options, hosts, consistency, retries, @write_type, @consistency, @blockfor, @received)
       end
 
       def to_s

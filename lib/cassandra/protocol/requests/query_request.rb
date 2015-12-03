@@ -19,10 +19,10 @@
 module Cassandra
   module Protocol
     class QueryRequest < Request
-      attr_reader :cql, :values, :type_hints, :serial_consistency, :page_size, :paging_state, :timestamp
+      attr_reader :cql, :values, :type_hints, :serial_consistency, :page_size, :paging_state, :timestamp, :payload
       attr_accessor :consistency, :retries
 
-      def initialize(cql, values, type_hints, consistency, serial_consistency = nil, page_size = nil, paging_state = nil, trace = false, names = EMPTY_LIST, timestamp = nil)
+      def initialize(cql, values, type_hints, consistency, serial_consistency = nil, page_size = nil, paging_state = nil, trace = false, names = EMPTY_LIST, timestamp = nil, payload = nil)
         super(7, trace)
         @cql = cql
         @values = values
@@ -33,6 +33,11 @@ module Cassandra
         @paging_state = paging_state
         @names = names
         @timestamp = timestamp
+        @payload = payload
+      end
+
+      def payload?
+        !!@payload
       end
 
       def write(buffer, protocol_version, encoder)
@@ -83,15 +88,19 @@ module Cassandra
       alias_method :==, :eql?
 
       def hash
-        h = 0xcbf29ce484222325
-        h = 0xffffffffffffffff & (0x100000001b3 * (h ^ @cql.hash))
-        h = 0xffffffffffffffff & (0x100000001b3 * (h ^ @values.hash))
-        h = 0xffffffffffffffff & (0x100000001b3 * (h ^ @type_hints.hash))
-        h = 0xffffffffffffffff & (0x100000001b3 * (h ^ @consistency.hash))
-        h = 0xffffffffffffffff & (0x100000001b3 * (h ^ @serial_consistency.hash))
-        h = 0xffffffffffffffff & (0x100000001b3 * (h ^ @page_size.hash))
-        h = 0xffffffffffffffff & (0x100000001b3 * (h ^ @paging_state.hash))
-        h
+        @h ||= begin
+          h = 17
+          h = 31 * h + @cql.hash
+          h = 31 * h + @values.hash
+          h = 31 * h + @type_hints.hash
+          h = 31 * h + @consistency.hash
+          h = 31 * h + @serial_consistency.hash
+          h = 31 * h + @page_size.hash
+          h = 31 * h + @paging_state.hash
+          h = 31 * h + @names.hash
+          h = 31 * h + @timestamp.hash
+          h
+        end
       end
     end
   end

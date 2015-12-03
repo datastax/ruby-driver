@@ -30,23 +30,29 @@ module Cassandra
                   :replicate_on_write, :compaction_strategy, :compact_storage,
                   :compression_parameters
 
-      def initialize(data, compaction_strategy, compression_parameters, compact_storage, cassandra_version)
-        @comment                     = data['comment']
-        @read_repair_chance          = data['read_repair_chance']
-        @local_read_repair_chance    = data['local_read_repair_chance']
-        @gc_grace_seconds            = data['gc_grace_seconds']
-        @caching                     = data['caching']
-        @bloom_filter_fp_chance      = data['bloom_filter_fp_chance']      || 0.01
-        @populate_io_cache_on_flush  = data['populate_io_cache_on_flush']  || false
-        @memtable_flush_period_in_ms = data['memtable_flush_period_in_ms'] || 0
-        @default_time_to_live        = data['default_time_to_live']        || 0
-        @speculative_retry           = data['speculative_retry']           || 'NONE'
-        @index_interval              = data['index_interval']              || 128
-        @replicate_on_write          = data['replicate_on_write']          || true
+      def initialize(comment, read_repair_chance, local_read_repair_chance,
+                     gc_grace_seconds, caching, bloom_filter_fp_chance,
+                     populate_io_cache_on_flush, memtable_flush_period_in_ms,
+                     default_time_to_live, speculative_retry, index_interval,
+                     replicate_on_write, min_index_interval, max_index_interval,
+                     compaction_strategy, compression_parameters, compact_storage)
+        @comment                     = comment
+        @read_repair_chance          = read_repair_chance
+        @local_read_repair_chance    = local_read_repair_chance
+        @gc_grace_seconds            = gc_grace_seconds
+        @caching                     = caching
+        @bloom_filter_fp_chance      = bloom_filter_fp_chance
+        @populate_io_cache_on_flush  = populate_io_cache_on_flush
+        @memtable_flush_period_in_ms = memtable_flush_period_in_ms
+        @default_time_to_live        = default_time_to_live
+        @speculative_retry           = speculative_retry
+        @index_interval              = index_interval
+        @replicate_on_write          = replicate_on_write
+        @min_index_interval          = min_index_interval
+        @max_index_interval          = max_index_interval
         @compaction_strategy         = compaction_strategy
         @compression_parameters      = compression_parameters
         @compact_storage             = compact_storage
-        @cassandra_version           = cassandra_version
       end
 
       def replicate_on_write?
@@ -65,19 +71,22 @@ module Cassandra
         options = []
 
         options << 'COMPACT STORAGE' if @compact_storage
-        options << "bloom_filter_fp_chance = #{@bloom_filter_fp_chance}"
-        options << "caching = '#{@caching}'"
-        options << "comment = '#{@comment}'" if @comment
-        options << "compaction = #{@compaction_strategy.to_cql}"
-        options << "compression = #{Util.encode_hash(@compression_parameters)}"
-        options << "dclocal_read_repair_chance = #{@local_read_repair_chance}"
-        options << "default_time_to_live = #{@default_time_to_live}" if !@cassandra_version.start_with?('1')
-        options << "gc_grace_seconds = #{@gc_grace_seconds}"
-        options << "index_interval = #{@index_interval}" if !@cassandra_version.start_with?('1')
-        options << "populate_io_cache_on_flush = '#{@populate_io_cache_on_flush}'"
-        options << "read_repair_chance = #{@read_repair_chance}"
-        options << "replicate_on_write = '#{@replicate_on_write}'" if @cassandra_version.start_with?('1') || @cassandra_version.start_with?('2.0')
-        options << "speculative_retry = '#{@speculative_retry}'" if !@cassandra_version.start_with?('1')
+        options << "bloom_filter_fp_chance = #{Util.encode_object(@bloom_filter_fp_chance)}" unless @bloom_filter_fp_chance.nil?
+        options << "caching = #{Util.encode_object(@caching)}" unless @caching.nil?
+        options << "comment = #{Util.encode_object(@comment)}" unless @comment.nil?
+        options << "compaction = #{@compaction_strategy.to_cql}" unless @compaction_strategy.nil?
+        options << "compression = #{Util.encode_object(@compression_parameters)}" unless @compression_parameters.nil?
+        options << "dclocal_read_repair_chance = #{Util.encode_object(@local_read_repair_chance)}" unless @local_read_repair_chance.nil?
+        options << "default_time_to_live = #{Util.encode_object(@default_time_to_live)}" unless @default_time_to_live.nil?
+        options << "gc_grace_seconds = #{Util.encode_object(@gc_grace_seconds)}" unless @gc_grace_seconds.nil?
+        options << "index_interval = #{Util.encode_object(@index_interval)}" unless @index_interval.nil?
+        options << "max_index_interval = #{Util.encode_object(@max_index_interval)}" unless @max_index_interval.nil?
+        options << "memtable_flush_period_in_ms = #{Util.encode_object(@memtable_flush_period_in_ms)}" unless @memtable_flush_period_in_ms.nil?
+        options << "min_index_interval = #{Util.encode_object(@min_index_interval)}" unless @min_index_interval.nil?
+        options << "populate_io_cache_on_flush = '#{@populate_io_cache_on_flush}'" unless @populate_io_cache_on_flush.nil?
+        options << "read_repair_chance = #{Util.encode_object(@read_repair_chance)}" unless @read_repair_chance.nil?
+        options << "replicate_on_write = '#{@replicate_on_write}'" unless @replicate_on_write.nil?
+        options << "speculative_retry = #{Util.encode_object(@speculative_retry)}" unless @speculative_retry.nil?
 
         options.join("\nAND ")
       end
@@ -98,13 +107,9 @@ module Cassandra
           @replicate_on_write == other.replicate_on_write &&
           @compaction_strategy == other.compaction_strategy &&
           @compression_parameters == other.compression_parameters &&
-          @compact_storage == other.compact_storage &&
-          @cassandra_version == other.cassandra_version
+          @compact_storage == other.compact_storage
       end
       alias :== :eql?
-
-      attr_reader :cassandra_version
-      protected :cassandra_version
     end
 
     # @private
@@ -137,9 +142,11 @@ module Cassandra
     attr_reader :name
     # @private
     attr_reader :options
+    # @private
+    attr_reader :partition_key
 
     # @private
-    def initialize(keyspace, name, partition_key, clustering_columns, columns, options, clustering_order, release_version)
+    def initialize(keyspace, name, partition_key, clustering_columns, columns, options, clustering_order)
       @keyspace           = keyspace
       @name               = name
       @partition_key      = partition_key
@@ -147,7 +154,6 @@ module Cassandra
       @columns            = columns
       @options            = options
       @clustering_order   = clustering_order
-      @release_version    = release_version
     end
 
     # @param name [String] column name
@@ -180,7 +186,12 @@ module Cassandra
 
     # @return [String] a cql representation of this table
     def to_cql
-      cql   = "CREATE TABLE #{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} (\n"
+      cql = "CREATE TABLE #{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} (\n"
+      primary_key = nil
+      if @partition_key.one? && @clustering_columns.empty?
+        primary_key = @partition_key.first.name
+      end
+
       first = true
       @columns.each do |(_, column)|
         if first
@@ -189,27 +200,31 @@ module Cassandra
           cql << ",\n" unless first
         end
         cql << "  #{column.name} #{type_to_cql(column.type, column.frozen?)}"
+        cql << ' PRIMARY KEY' if primary_key && column.name == primary_key
       end
-      cql << ",\n  PRIMARY KEY ("
-      if @partition_key.one?
-        cql << @partition_key.first.name
-      else
-        cql << '('
-        first = true
-        @partition_key.each do |column|
-          if first
-            first = false
-          else
-            cql << ', '
+
+      unless primary_key
+        cql << ",\n  PRIMARY KEY ("
+        if @partition_key.one?
+          cql << @partition_key.first.name
+        else
+          cql << '('
+          first = true
+          @partition_key.each do |column|
+            if first
+              first = false
+            else
+              cql << ', '
+            end
+            cql << column.name
           end
-          cql << column.name
+          cql << ')'
+        end
+        @clustering_columns.each do |column|
+          cql << ", #{column.name}"
         end
         cql << ')'
       end
-      @clustering_columns.each do |column|
-        cql << ", #{column.name}"
-      end
-      cql << ')'
 
       cql << "\n)\nWITH "
 
@@ -250,53 +265,6 @@ module Cassandra
     end
     alias :== :eql?
 
-    # @private
-    def create_partition_key(values)
-      partition_key = @partition_key
-      return nil if partition_key.size > values.size
-
-      if partition_key.one?
-        column      = partition_key.first
-        column_name = column.name
-        return nil unless values.has_key?(column_name)
-
-        buffer = Protocol::CqlByteBuffer.new
-
-        if @release_version > '2.1'
-          Protocol::Coder.write_value_v3(buffer, values[column_name], column.type)
-        else
-          Protocol::Coder.write_value_v1(buffer, values[column_name], column.type)
-        end
-
-        buffer.discard(4)
-      else
-        buf    = nil
-        buffer = nil
-
-        partition_key.each do |column|
-          column_name = column.name
-          return nil unless values.has_key?(column_name)
-
-          buf    ||= Protocol::CqlByteBuffer.new
-          buffer ||= Protocol::CqlByteBuffer.new
-
-          if @release_version > '2.1'
-            Protocol::Coder.write_value_v3(buf, values[column_name], column.type)
-          else
-            Protocol::Coder.write_value_v1(buf, values[column_name], column.type)
-          end
-
-          buf.discard(4) # discard size
-
-          size = buf.length
-          buffer.append_short(size)
-          buffer << buf.read(size) << NULL_BYTE
-        end
-      end
-
-      buffer.to_str
-    end
-
     private
 
     # @private
@@ -319,11 +287,8 @@ module Cassandra
       end
     end
 
-    # @private
-    NULL_BYTE = "\x00".freeze
-
-    attr_reader :partition_key, :clustering_columns, :clustering_order
-    protected :partition_key, :clustering_columns, :clustering_order
+    attr_reader :clustering_columns, :clustering_order
+    protected :clustering_columns, :clustering_order
 
     protected
 

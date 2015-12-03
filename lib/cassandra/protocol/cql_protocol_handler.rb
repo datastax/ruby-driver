@@ -49,7 +49,10 @@ module Cassandra
 
         @promises = Hash.new
 
-        if protocol_version > 2
+        if protocol_version > 3
+          @frame_encoder = V4::Encoder.new(@compressor, protocol_version)
+          @frame_decoder = V4::Decoder.new(self, @compressor)
+        elsif protocol_version > 2
           @frame_encoder = V3::Encoder.new(@compressor, protocol_version)
           @frame_decoder = V3::Decoder.new(self, @compressor)
         else

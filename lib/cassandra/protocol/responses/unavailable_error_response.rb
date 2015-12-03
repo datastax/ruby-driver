@@ -21,16 +21,16 @@ module Cassandra
     class UnavailableErrorResponse < ErrorResponse
       attr_reader :consistency, :required, :alive
 
-      def initialize(code, message, consistency, required, alive)
-        super(code, message)
+      def initialize(custom_payload, warnings, code, message, consistency, required, alive)
+        super(custom_payload, warnings, code, message)
 
         @consistency = consistency
         @required    = required
         @alive       = alive
       end
 
-      def to_error(statement = nil)
-        Errors::UnavailableError.new(@message, statement, @consistency, @required, @alive)
+      def to_error(keyspace, statement, options, hosts, r_consistency, retries)
+        Errors::UnavailableError.new(@message, @custom_payload, @warnings, keyspace, statement, options, hosts, r_consistency, retries, @consistency, @required, @alive)
       end
 
       def to_s

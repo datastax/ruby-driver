@@ -178,6 +178,16 @@ module Cassandra
         map
       end
 
+      def read_bytes_map
+        map = {}
+        map_size = read_unsigned_short
+        map_size.times do
+          key = read_string
+          map[key] = read_bytes
+        end
+        map
+      end
+
       def read_string_multimap
         map = {}
         map_size = read_unsigned_short
@@ -186,6 +196,22 @@ module Cassandra
           map[key] = read_string_list
         end
         map
+      end
+
+      def read_smallint
+        n = read_short
+        return n if n <= 0x7fff
+        n - 0xffff - 1
+      rescue RangeError => e
+        raise Errors::DecodingError, "Not enough bytes available to decode a smallint: #{e.message}", e.backtrace
+      end
+
+      def read_tinyint
+        n = read_byte
+        return n if n <= 0x7f
+        n - 0xff - 1
+      rescue RangeError => e
+        raise Errors::DecodingError, "Not enough bytes available to decode a tinyint: #{e.message}", e.backtrace
       end
 
       def append_int(n)
@@ -252,6 +278,15 @@ module Cassandra
         map.each do |key, value|
           append_string(key)
           append_string(value)
+        end
+        self
+      end
+
+      def append_bytes_map(map)
+        append_short(map.size)
+        map.each do |key, value|
+          append_string(key)
+          append_bytes(value)
         end
         self
       end

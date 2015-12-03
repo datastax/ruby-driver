@@ -21,8 +21,8 @@ module Cassandra
     class RowsResultResponse < ResultResponse
       attr_reader :rows, :metadata, :paging_state
 
-      def initialize(rows, metadata, paging_state, trace_id)
-        super(trace_id)
+      def initialize(custom_payload, warnings, rows, metadata, paging_state, trace_id)
+        super(custom_payload, warnings, trace_id)
         @rows, @metadata, @paging_state = rows, metadata, paging_state
       end
 

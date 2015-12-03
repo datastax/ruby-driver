@@ -18,5 +18,10 @@
 
 module Cassandra
   module Statement
+    # Determines whether or not the statement is safe to retry on timeout
+    # @return [Boolean] whether the statement is safe to retry on timeout
+    def idempotent?
+      !!@idempotent
+    end
   end
 end

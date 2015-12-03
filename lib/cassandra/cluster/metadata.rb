@@ -30,6 +30,8 @@ module Cassandra
         @partitioners     = schema_partitioners
         @strategies       = replication_strategies
         @default_strategy = default_replication_strategy
+        @token_replicas   = ::Hash.new
+        @token_ring       = ::Array.new
       end
 
       def find_replicas(keyspace, statement)

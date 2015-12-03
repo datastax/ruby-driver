@@ -19,11 +19,14 @@
 module Cassandra
   module Protocol
     class PreparedResultResponse < ResultResponse
-      attr_reader :id, :metadata, :result_metadata
+      attr_reader :id, :metadata, :result_metadata, :pk_idx
 
-      def initialize(id, metadata, result_metadata, trace_id)
-        super(trace_id)
-        @id, @metadata, @result_metadata = id, metadata, result_metadata
+      def initialize(custom_payload, warnings, id, metadata, result_metadata, pk_idx, trace_id)
+        super(custom_payload, warnings, trace_id)
+        @id              = id
+        @metadata        = metadata
+        @result_metadata = result_metadata
+        @pk_idx          = pk_idx
       end
 
       def eql?(other)
@@ -33,10 +36,10 @@ module Cassandra
 
       def hash
         @h ||= begin
-          h = 0
-          h = ((h & 0x01ffffff) * 31) ^ @id.hash
-          h = ((h & 0x01ffffff) * 31) ^ @metadata.hash
-          h = ((h & 0x01ffffff) * 31) ^ @trace_id.hash
+          h = 17
+          h = 31 * h + @id.hash
+          h = 31 * h + @metadata.hash
+          h = 31 * h + @trace_id.hash
           h
         end
       end

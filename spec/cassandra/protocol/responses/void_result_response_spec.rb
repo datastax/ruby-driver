@@ -24,13 +24,13 @@ module Cassandra
     describe VoidResultResponse do
       describe '#void?' do
         it 'is void' do
-          described_class.new(nil).should be_void
+          described_class.new(nil, nil, nil).should be_void
         end
       end
 
       describe '#to_s' do
         it 'returns a string' do
-          described_class.new(nil).to_s.should == 'RESULT VOID'
+          described_class.new(nil, nil, nil).to_s.should == 'RESULT VOID'
         end
       end
     end

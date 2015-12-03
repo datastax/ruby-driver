@@ -20,13 +20,9 @@ require 'spec_helper'
 
 # @private
 class FakeSchema < Cassandra::Cluster::Schema
-  def initialize
-    super(nil)
-  end
-
   def add_keyspace(name, replication_class, replication_options)
     replication = Cassandra::Keyspace::Replication.new(replication_class, replication_options)
-    @keyspaces[name] = Cassandra::Keyspace.new(name, true, replication, {}, {})
+    @keyspaces[name] = Cassandra::Keyspace.new(name, true, replication, {}, {}, {}, {})
     self
   end
 end
@@ -68,7 +64,7 @@ module Cassandra
           let(:keyspace) { 'simplex' }
 
           before do
-            schema.add_keyspace(keyspace, 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor' => 3)
+            schema.add_keyspace(keyspace, 'SimpleStrategy', 'replication_factor' => 3)
 
             hosts.each do |address, data|
               registry.host_found(address, data)

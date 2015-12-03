@@ -51,13 +51,13 @@ class DatatypeUtils
       when 'bigint' then 765438000
       when 'blob' then '0x626c6f62'
       when 'boolean' then true
-      when 'decimal' then BigDecimal.new('1313123123.234234234234234234123')
+      when 'decimal' then ::BigDecimal.new('1313123123.234234234234234234123')
       when 'double' then 3.141592653589793
       when 'float' then 1.25
-      when 'inet' then IPAddr.new('200.199.198.197')
+      when 'inet' then ::IPAddr.new('200.199.198.197')
       when 'int' then 4
       when 'text' then 'text'
-      when 'timestamp' then Time.at(1358013521, 123000)
+      when 'timestamp' then ::Time.at(1358013521, 123000)
       when 'timeuuid' then Cassandra::TimeUuid.new('FE2B4360-28C6-11E2-81C1-0800200C9A66')
       when 'uuid' then Cassandra::Uuid.new('00b69180-d0e1-11e2-8b8b-0800200c9a66')
       when 'varchar' then 'varchar'

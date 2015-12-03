@@ -25,7 +25,7 @@ module Cassandra
       let(:client) { double('client') }
       let(:trace)  { Trace.new(id, client) }
 
-      [:coordinator, :duration, :parameters, :request, :started_at].each do |method|
+      [:coordinator, :duration, :parameters, :request, :started_at, :client].each do |method|
         describe("##{method}") do
           let(:statement) { Statements::Simple.new("SELECT * FROM system_traces.sessions WHERE session_id = %s" % id) }
           let(:data) do
@@ -34,7 +34,7 @@ module Cassandra
               'duration'    => nil,
               'parameters'  => {'page_size' => '50000', 'query' => 'SELECT * FROM songs'},
               'request'     => 'Execute CQL3 query',
-              'started_at'  => Time.now
+              'started_at'  => ::Time.now
             }
           end
           let(:rows) { [data] }

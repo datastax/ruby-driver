@@ -26,7 +26,7 @@ module Cassandra
 
     let(:io_reactor)       { Ione::Io::IoReactor.new }
     let(:cluster_registry) { Cluster::Registry.new(logger) }
-    let(:cluster_schema)   { Cluster::Schema.new(schema_type_parser) }
+    let(:cluster_schema)   { Cluster::Schema.new }
     let(:cluster_metadata) { Cluster::Metadata.new(
                                cluster_registry,
                                cluster_schema,
@@ -36,8 +36,8 @@ module Cassandra
                                  'org.apache.cassandra.dht.RandomPartitioner'      => random_partitioner
                                }.freeze,
                                {
-                                 'org.apache.cassandra.locator.SimpleStrategy'          => simple_replication_strategy,
-                                 'org.apache.cassandra.locator.NetworkTopologyStrategy' => network_topology_replication_strategy
+                                 'SimpleStrategy'          => simple_replication_strategy,
+                                 'NetworkTopologyStrategy' => network_topology_replication_strategy
                                }.freeze,
                                no_replication_strategy
                               )
@@ -46,7 +46,8 @@ module Cassandra
     let(:executor)         { Executors::ThreadPool.new(thread_pool_size) }
     let(:futures_factory)  { Future::Factory.new(executor) }
 
-    let(:schema_type_parser) { Cluster::Schema::TypeParser.new }
+    let(:schema_fqcn_type_parser) { Cluster::Schema::FQCNTypeParser.new }
+    let(:schema_cql_type_parser)  { Cluster::Schema::CQLTypeParser.new }
 
     let(:simple_replication_strategy)           { Cluster::Schema::ReplicationStrategies::Simple.new }
     let(:network_topology_replication_strategy) { Cluster::Schema::ReplicationStrategies::NetworkTopology.new }
@@ -58,7 +59,9 @@ module Cassandra
 
     let(:connector) { Cluster::Connector.new(logger, io_reactor, cluster_registry, connection_options, execution_options) }
 
-    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, connector, connection_options) }
+    let(:schema_fetcher) { create_schema_fetcher_picker }
+
+    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, connector, connection_options, schema_fetcher) }
 
     let(:cluster) { Cluster.new(logger, io_reactor, executor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, address_resolution_policy, connector, futures_factory) }
 
@@ -67,7 +70,8 @@ module Cassandra
         :consistency => consistency,
         :trace       => trace,
         :page_size   => page_size,
-        :timeout     => timeout
+        :timeout     => timeout,
+        :idempotent  => false
       })
     end
 
@@ -93,7 +97,7 @@ module Cassandra
     end
 
     let(:port)                      { 9042 }
-    let(:protocol_version)          { 3 }
+    let(:protocol_version)          { 4 }
     let(:connect_timeout)           { 10 }
     let(:ssl)                       { false }
     let(:logger)                    { NullLogger.new  }
@@ -105,7 +109,7 @@ module Cassandra
     let(:reconnection_policy)       { Reconnection::Policies::Exponential.new(0.5, 30, 2) }
     let(:retry_policy)              { Retry::Policies::Default.new }
     let(:address_resolution_policy) { AddressResolution::Policies::None.new }
-    let(:consistency)               { :one }
+    let(:consistency)               { :local_one }
     let(:trace)                     { false }
     let(:page_size)                 { 10000 }
     let(:heartbeat_interval)        { 30 }
@@ -117,7 +121,7 @@ module Cassandra
     let(:thread_pool_size)          { 4 }
     let(:shuffle_replicas)          { true }
     let(:client_timestamps)         { false }
-    let(:nodelay)                   { false }
+    let(:nodelay)                   { true }
 
     let(:connections_per_local_node)  { 2 }
     let(:connections_per_remote_node) { 1 }
@@ -155,6 +159,20 @@ module Cassandra
       end
 
       promise.future
+    end
+
+    private
+
+    def create_schema_fetcher_picker
+      picker = Cluster::Schema::Fetchers::MultiVersion.new(cluster_registry)
+
+      picker.when('1.2') { Cluster::Schema::Fetchers::V1_2_x.new(schema_fqcn_type_parser, cluster_schema) }
+      picker.when('2.0') { Cluster::Schema::Fetchers::V2_0_x.new(schema_fqcn_type_parser, cluster_schema) }
+      picker.when('2.1') { Cluster::Schema::Fetchers::V2_1_x.new(schema_fqcn_type_parser, cluster_schema) }
+      picker.when('2.2') { Cluster::Schema::Fetchers::V2_2_x.new(schema_fqcn_type_parser, cluster_schema) }
+      picker.when('3.0') { Cluster::Schema::Fetchers::V3_0_x.new(schema_cql_type_parser, cluster_schema) }
+
+      picker
     end
   end
 end
