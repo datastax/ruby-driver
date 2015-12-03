@@ -36,6 +36,49 @@ module Cassandra
         end
       end
 
+      def write_list_v4(buffer, list, type)
+        raw = CqlByteBuffer.new
+
+        raw.append_int(list.size)
+        list.each do |element|
+          write_value_v4(raw, element, type)
+        end
+
+        buffer.append_bytes(raw)
+      end
+
+      def write_map_v4(buffer, map, key_type, value_type)
+        raw = CqlByteBuffer.new
+
+        raw.append_int(map.size)
+        map.each do |key, value|
+          write_value_v4(raw, key, key_type)
+          write_value_v4(raw, value, value_type)
+        end
+
+        buffer.append_bytes(raw)
+      end
+
+      def write_udt_v4(buffer, value, fields)
+        raw = CqlByteBuffer.new
+
+        fields.each do |field|
+          write_value_v4(raw, value[field.name], field.type)
+        end
+
+        buffer.append_bytes(raw)
+      end
+
+      def write_tuple_v4(buffer, value, members)
+        raw = CqlByteBuffer.new
+
+        members.each_with_index do |type, i|
+          write_value_v4(raw, value[i], type)
+        end
+
+        buffer.append_bytes(raw)
+      end
+
       def write_value_v4(buffer, value, type)
         if value.nil?
           buffer.append_int(-1)
@@ -65,10 +108,10 @@ module Cassandra
         when :smallint         then write_smallint(buffer, value)
         when :time             then write_time(buffer, value)
         when :date             then write_date(buffer, value)
-        when :list, :set       then write_list_v3(buffer, value, type.value_type)
-        when :map              then write_map_v3(buffer, value, type.key_type, type.value_type)
-        when :udt              then write_udt_v3(buffer, value, type.fields)
-        when :tuple            then write_tuple_v3(buffer, value, type.members)
+        when :list, :set       then write_list_v4(buffer, value, type.value_type)
+        when :map              then write_map_v4(buffer, value, type.key_type, type.value_type)
+        when :udt              then write_udt_v4(buffer, value, type.fields)
+        when :tuple            then write_tuple_v4(buffer, value, type.members)
         else
           raise Errors::EncodingError, %(Unsupported value type: #{type})
         end
