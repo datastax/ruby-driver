@@ -108,12 +108,9 @@ module Cassandra
         let(:statement)       { Statements::Bound.new(cql, params_metadata, result_metadata, params) }
 
         it 'executes statement' do
-          promise         = double('promise')
-          bound_statement = double('bound statement')
-          options         = double('options')
+          promise = double('promise')
 
-          expect(Execution::Options).to receive(:new).once.with(default_options).and_return(options)
-          expect(client).to receive(:execute).once.with(statement, options).and_return(promise)
+          expect(client).to receive(:execute).once.with(statement, session_options).and_return(promise)
           expect(session.execute_async(statement)).to eq(promise)
         end
       end
@@ -123,10 +120,9 @@ module Cassandra
 
         it 'sends batch to the client' do
           promise = double('promise')
-          options = double('options')
 
-          expect(Execution::Options).to receive(:new).once.with(default_options).and_return(options)
-          expect(client).to receive(:batch).once.with(statement, options).and_return(promise)
+          statement.add("some statement")
+          expect(client).to receive(:batch).once.with(statement, session_options).and_return(promise)
           expect(session.execute_async(statement)).to eq(promise)
         end
       end
