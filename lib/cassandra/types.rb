@@ -242,7 +242,7 @@ module Cassandra
       end
 
       def assert_time(value, message, &block)
-        Util.assert_instance_of(::Time, value, message, &block)
+        Util.assert_instance_of(Cassandra::Time, value, message, &block)
       end
 
       def new_tinyint(value)
