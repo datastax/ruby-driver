@@ -95,6 +95,7 @@ module Cassandra
       when Statements::Bound
         @client.execute(statement, options)
       when Statements::Batch
+        Util.assert_not_empty(statement.statements) { "batch cannot be empty" }
         @client.batch(statement, options)
       else
         @futures.error(::ArgumentError.new("unsupported statement #{statement.inspect}"))
