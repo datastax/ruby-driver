@@ -60,9 +60,10 @@ module Cassandra
       @nanoseconds
     end
 
-    def ==(other)
-      other == @nanoseconds
+    def eql?(other)
+      other.is_a?(Time) && other.to_nanoseconds == @nanoseconds
     end
+    alias :== :eql?
 
     def <=>(other)
       other <=> nanoseconds
