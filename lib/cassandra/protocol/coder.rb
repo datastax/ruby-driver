@@ -192,7 +192,7 @@ module Cassandra
         when 0x0021 then Types.map(read_type_v4(buffer), read_type_v4(buffer))
         when 0x0022 then Types.set(read_type_v4(buffer))
         when 0x0030 then Types.udt(*read_user_defined_type(buffer))
-        when 0x0031 then Types.tuple(*read_tuple(buffer))
+        when 0x0031 then Types.tuple(*::Array.new(buffer.read_short) { read_type_v4(buffer) })
         else
           raise Errors::DecodingError, %(Unsupported column type: #{id})
         end
@@ -520,7 +520,7 @@ module Cassandra
         when 0x0021 then Types.map(read_type_v3(buffer), read_type_v3(buffer))
         when 0x0022 then Types.set(read_type_v3(buffer))
         when 0x0030 then Types.udt(*read_user_defined_type(buffer))
-        when 0x0031 then Types.tuple(*read_tuple(buffer))
+        when 0x0031 then Types.tuple(*::Array.new(buffer.read_short) { read_type_v3(buffer) })
         else
           raise Errors::DecodingError, %(Unsupported column type: #{id})
         end
@@ -1005,10 +1005,6 @@ module Cassandra
         return nil if (size & 0x80000000 == 0x80000000) || (size == 0)
 
         size
-      end
-
-      def read_tuple(buffer)
-        ::Array.new(buffer.read_short) { read_type_v3(buffer) }
       end
 
       def read_user_defined_type(buffer)
