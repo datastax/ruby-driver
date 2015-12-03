@@ -25,6 +25,8 @@ module Cassandra
     NANOSECONDS_IN_HOUR       = NANOSECONDS_IN_MINUTE * 60
     NANOSECONDS_IN_DAY        = NANOSECONDS_IN_HOUR * 24
 
+    include ::Comparable
+
     def initialize(nanoseconds = 0)
       if nanoseconds < 0 && nanoseconds > NANOSECONDS_IN_DAY - 1
         raise ::ArgumentError, "value must be between 0 and " \
@@ -56,6 +58,14 @@ module Cassandra
 
     def to_nanoseconds
       @nanoseconds
+    end
+
+    def ==(other)
+      other == @nanoseconds
+    end
+
+    def <=>(other)
+      other <=> nanoseconds
     end
   end
 end
