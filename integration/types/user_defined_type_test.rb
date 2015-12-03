@@ -492,13 +492,7 @@ class UserDefinedTypeTest < IntegrationTestCase
       # Verify results
       result = session.execute("SELECT * FROM mytable").first
       result.each_value.zip(params) do |actual, expected|
-        if expected.is_a?(Hash) && expected.keys.first.is_a?(Cassandra::UDT)
-          next # Temporary fix until RUBY-120 is resolved
-        elsif expected.is_a?(Set) && expected.first.is_a?(Cassandra::UDT)
-          next # Temporary fix until RUBY-120 is resolved
-        else
-          assert_equal expected, actual
-        end
+        assert_equal expected, actual
       end
     ensure
       cluster && cluster.close
