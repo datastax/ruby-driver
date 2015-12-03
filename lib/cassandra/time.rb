@@ -67,5 +67,14 @@ module Cassandra
     def <=>(other)
       other <=> nanoseconds
     end
+
+    # @private
+    def hash
+      @hash ||= begin
+        h = 17
+        h = 31 * h + @nanoseconds.hash
+        h
+      end
+    end
   end
 end
