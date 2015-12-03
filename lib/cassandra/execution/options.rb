@@ -112,6 +112,7 @@ module Cassandra
         unless payload.nil?
           Util.assert_instance_of(::Hash, payload) { ":payload must be a Hash" }
           Util.assert_not_empty(payload) { ":payload must not be empty" }
+          Util.assert(payload.size <= 65535) { ":payload cannot contain more than 65535 key/value pairs" }
 
           payload = payload.each_with_object(::Hash.new) do |(key, value), payload|
                       payload[String(key)] = String(value)
