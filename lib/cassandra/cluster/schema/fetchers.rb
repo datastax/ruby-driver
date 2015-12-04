@@ -109,7 +109,7 @@ module Cassandra
         end
 
         def fetch_aggregate(connection, keyspace_name, aggregate_name)
-          select_function(connection, keyspace_name, aggregate_name).map do |rows_aggregates|
+          select_aggregate(connection, keyspace_name, aggregate_name).map do |rows_aggregates|
             if rows_aggregates.empty?
               nil
             else
