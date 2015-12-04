@@ -664,15 +664,35 @@ class SessionTest < IntegrationTestCase
     skip("Client IP in trace is only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     setup_schema
-    begin
-      cluster = Cassandra.cluster
-      session = cluster.connect("simplex")
 
-      trace = session.execute("SELECT * FROM users", trace: true).execution_info.trace
-      assert_equal "127.0.0.1", trace.client.to_s
-    ensure
-      cluster && cluster.close
-    end
+    cluster = Cassandra.cluster
+    session = cluster.connect("simplex")
+
+    trace = session.execute("SELECT * FROM users", trace: true).execution_info.trace
+    assert_equal "127.0.0.1", trace.client.to_s
+  ensure
+    cluster && cluster.close
+  end
+  
+  # Test for the default consistency as local_one
+  #
+  # test_default_consistency_local_one tests that the default consistency for all queries is local_one. It performs a
+  # simple query and verifies through the execution_info that the fulfilled consistency was local_one.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-148
+  # @expected_result local_one should be used as the default consistency
+  #
+  # @test_category consistency
+  #
+  def test_default_consistency_local_one
+    cluster = Cassandra.cluster
+    session = cluster.connect
+
+    execution_info = session.execute("SELECT * FROM system.local").execution_info
+    assert_equal :local_one, execution_info.options.consistency
+  ensure
+    cluster && cluster.close
   end
 
 end
