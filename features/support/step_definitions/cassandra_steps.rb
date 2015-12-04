@@ -124,6 +124,15 @@ When(/^all nodes are unreachable$/) do
   @cluster.block_nodes
 end
 
+When(/^node (\d+) is failing writes on keyspace "(.*?)"$/) do |i, keyspace|
+  @cluster.stop_node("node#{i}")
+  @cluster.start_node("node#{i}", "-Dcassandra.test.fail_writes_ks=#{keyspace}")
+end
+
+When(/^tombstone thresholds are changed$/) do
+  @cluster.change_tombstone_thresholds
+end
+
 When(/^I wait for (\d+) seconds$/) do |interval|
   sleep(interval.to_i)
 end

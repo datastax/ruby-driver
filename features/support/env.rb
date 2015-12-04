@@ -79,3 +79,7 @@ end
 After('@netblock') do
   @cluster.unblock_nodes
 end
+
+After('@client_failures') do
+  @cluster.restart
+end
