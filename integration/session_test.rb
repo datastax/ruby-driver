@@ -695,4 +695,58 @@ class SessionTest < IntegrationTestCase
     cluster && cluster.close
   end
 
+  # Test for UNSET values
+  #
+  # test_unset_values tests that UNSET values are properly encoded by the driver. It first creates a simple table to
+  # use in the test, and some prepared statements. It then tests both implicit and explicit UNSET values when inserting
+  # into Cassandra, verifying that the values have not been set.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-132
+  # @expected_result UNSET values should be implicitly added to bind parameters, leaving not-set values unaffected.
+  #
+  # @test_category prepared_statements:binding
+  #
+  def test_unset_values
+    skip("UNSET values are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+
+    cluster = Cassandra.cluster
+    session = cluster.connect("simplex")
+
+    session.execute("CREATE TABLE IF NOT EXISTS test_unset_values (k int PRIMARY KEY, v0 int, v1 int)")
+    insert = session.prepare("INSERT INTO test_unset_values (k, v0, v1) VALUES (?, ?, ?)")
+    select = session.prepare("SELECT * FROM test_unset_values WHERE k=?")
+
+    param_expected = [
+          # initial condition
+          [[0, 0, 0],                                         [0, 0, 0]],
+          # implicit unset
+          [{'k' => 0, 'v0' => 2},                             [0, 2, 0]],
+          [{'k' => 0, 'v1' => 1},                             [0, 2, 1]],
+          # explicit unset
+          [[0, 3, Cassandra::NOT_SET],                        [0, 3, 1]],
+          [[0, Cassandra::NOT_SET, 2],                        [0, 3, 2]],
+          [{'k' => 0, 'v0' => 4, 'v1' => Cassandra::NOT_SET}, [0, 4, 2]],
+          [{'k' => 0, 'v0' => Cassandra::NOT_SET, 'v1' => 3}, [0, 4, 3]],
+          # nulls still work
+          [[0, nil, nil],                                     [0, nil, nil]],
+      ]
+
+    param_expected.each do |ele|
+      param = ele[0]
+      expected = ele[1]
+
+      session.execute(insert, arguments: param)
+      results = session.execute(select, arguments: [0])
+      assert_equal(expected, results.first.values)
+    end
+
+    # Primary key cannot be unset
+    assert_raises(ArgumentError) do
+      session.execute(insert, arguments: [Cassandra::NOT_SET, 0, 0])
+    end
+  ensure
+    cluster && cluster.close
+  end
+
 end
