@@ -295,6 +295,42 @@ module Cassandra
         end
       end
 
+      def refresh_function_async(keyspace_name, function_name)
+        connection = @connection
+
+        return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
+
+        @logger.info("Refreshing user-defined function \"#{keyspace_name}.#{function_name}\"")
+
+        @schema_fetcher.fetch_function(connection, keyspace_name, function_name).map do |function|
+          if function
+            @schema.replace_function(function)
+          else
+            @schema.delete_function(keyspace_name, function_name)
+          end
+
+          @logger.info("Refreshed user-defined function \"#{keyspace_name}.#{function_name}\"")
+        end
+      end
+
+      def refresh_aggregate_async(keyspace_name, aggregate_name)
+        connection = @connection
+
+        return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
+
+        @logger.info("Refreshing user-defined aggregate \"#{keyspace_name}.#{aggregate_name}\"")
+
+        @schema_fetcher.fetch_aggregate(connection, keyspace_name, aggregate_name).map do |aggregate|
+          if aggregate
+            @schema.replace_aggregate(aggregate)
+          else
+            @schema.delete_aggregate(keyspace_name, aggregate_name)
+          end
+
+          @logger.info("Refreshed user-defined aggregate \"#{keyspace_name}.#{aggregate_name}\"")
+        end
+      end
+
       def refresh_peers_async_maybe_retry
         synchronize do
           return Ione::Future.resolved if @refreshing_hosts

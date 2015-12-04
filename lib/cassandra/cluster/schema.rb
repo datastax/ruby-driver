@@ -176,7 +176,7 @@ module Cassandra
 
         synchronize do
           keyspaces = @keyspaces.dup
-          keyspaces[keyspaces.name] = keyspace
+          keyspaces[keyspace.name] = keyspace
           @keyspaces = keyspaces
         end
 
@@ -190,11 +190,99 @@ module Cassandra
 
         return self unless keyspace
 
-        type = keyspace.table(type_name)
+        type = keyspace.type(type_name)
 
         return self unless type
 
         keyspace = keyspace.delete_type(type_name)
+
+        synchronize do
+          keyspaces = @keyspaces.dup
+          keyspaces[keyspace_name] = keyspace
+          @keyspaces = keyspaces
+        end
+
+        keyspace_changed(keyspace)
+
+        self
+      end
+
+      def replace_function(function)
+        keyspace = @keyspaces[function.keyspace]
+
+        return self unless keyspace
+
+        old_function = keyspace.function(function.name)
+
+        return self if old_function == function
+
+        keyspace = keyspace.update_function(function)
+
+        synchronize do
+          keyspaces = @keyspaces.dup
+          keyspaces[keyspace.name] = keyspace
+          @keyspaces = keyspaces
+        end
+
+        keyspace_changed(keyspace)
+
+        self
+      end
+
+      def delete_function(keyspace_name, function_name)
+        keyspace = @keyspaces[keyspace_name]
+
+        return self unless keyspace
+
+        function = keyspace.function(function_name)
+
+        return self unless function
+
+        keyspace = keyspace.delete_function(function_name)
+
+        synchronize do
+          keyspaces = @keyspaces.dup
+          keyspaces[keyspace_name] = keyspace
+          @keyspaces = keyspaces
+        end
+
+        keyspace_changed(keyspace)
+
+        self
+      end
+
+      def replace_aggregate(aggregate)
+        keyspace = @keyspaces[aggregate.keyspace]
+
+        return self unless keyspace
+
+        old_aggregate = keyspace.aggregate(aggregate.name)
+
+        return self if old_aggregate == aggregate
+
+        keyspace = keyspace.update_aggregate(aggregate)
+
+        synchronize do
+          keyspaces = @keyspaces.dup
+          keyspaces[keyspace.name] = keyspace
+          @keyspaces = keyspaces
+        end
+
+        keyspace_changed(keyspace)
+
+        self
+      end
+
+      def delete_aggregate(keyspace_name, aggregate_name)
+        keyspace = @keyspaces[keyspace_name]
+
+        return self unless keyspace
+
+        aggregate = keyspace.aggregate(aggregate_name)
+
+        return self unless aggregate
+
+        keyspace = keyspace.delete_aggregate(aggregate_name)
 
         synchronize do
           keyspaces = @keyspaces.dup
