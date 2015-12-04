@@ -71,11 +71,9 @@ module Cassandra
 
     # @private
     def hash
-      @hash ||= begin
-        h = 17
-        h = 31 * h + @nanoseconds.hash
-        h
-      end
+      # Modeled after http://developer.android.com/reference/java/lang/Object.html#writing_hashCode, but
+      # simplified since only one field participates in the hash.
+      @hash ||= 31 * 17 + @nanoseconds.hash
     end
   end
 end
