@@ -84,7 +84,7 @@ Feature: Schema Metadata
       """
 
   @cassandra-version-specific @cassandra-version-2.2
-  Scenario: Getting user-defined functions
+  Scenario: Getting user-defined functions and metadata
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
@@ -101,6 +101,15 @@ Feature: Schema Metadata
       cluster = Cassandra.cluster
 
       puts cluster.keyspace('simplex').function('fLog').to_cql
+
+      function = cluster.keyspace('simplex').function('fLog')
+      puts ""
+      puts "Name: #{function.name}"
+      puts "Language: #{function.language}"
+      puts "Return type: #{function.type}"
+      puts "Called on null?: #{function.called_on_null?}"
+      puts "Argument 'input'?: #{function.has_argument?("input")}"
+      function.each_argument { |arg| puts "Argument type: #{arg.type}" }
       """
     When it is executed
     Then its output should contain:
@@ -110,10 +119,17 @@ Feature: Schema Metadata
         RETURNS double
         LANGUAGE java
         AS $$return Double.valueOf(Math.log(input.doubleValue()));$$;
+
+      Name: flog
+      Language: java
+      Return type: double
+      Called on null?: true
+      Argument 'input'?: true
+      Argument type: double
       """
 
   @cassandra-version-specific @cassandra-version-2.2
-  Scenario: Getting user-defined aggregates
+  Scenario: Getting user-defined aggregates and metadata
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
@@ -140,6 +156,16 @@ Feature: Schema Metadata
       cluster = Cassandra.cluster
 
       puts cluster.keyspace('simplex').aggregate('average').to_cql
+
+      aggregate = cluster.keyspace('simplex').aggregate('average')
+      puts ""
+      puts "Name: #{aggregate.name}"
+      puts "Return type: #{aggregate.type}"
+      puts "Argument type: #{aggregate.argument_types[0].kind}"
+      puts "State type: #{aggregate.state_type}"
+      puts "Initial condition: #{aggregate.initial_state}"
+      puts "State function: #{aggregate.state_function.name}"
+      puts "Final function: #{aggregate.final_function.name}"
       """
     When it is executed
     Then its output should contain:
@@ -149,4 +175,12 @@ Feature: Schema Metadata
         STYPE tuple<int, bigint>
         FINALFUNC avgfinal
         INITCOND (0, 0);
+
+      Name: average
+      Return type: double
+      Argument type: int
+      State type: tuple<int, bigint>
+      Initial condition: (0, 0)
+      State function: avgstate
+      Final function: avgfinal
       """
