@@ -949,6 +949,10 @@ module CCM extend self
       config << 'enable_user_defined_functions: true'
     end
 
+    if cassandra_version > '3.0'
+      config << 'enable_scripted_user_defined_functions: true'
+    end
+
     config << 'key_cache_size_in_mb: 0'
     config << 'key_cache_save_period: 0'
     config << 'memtable_flush_writers: 1'

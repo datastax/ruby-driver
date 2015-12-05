@@ -86,6 +86,8 @@ module Cassandra
       cql << ")"
       if @called_on_null
         cql << "\n  CALLED ON NULL INPUT"
+      else
+        cql << "\n  RETURNS NULL ON NULL INPUT"
       end
       cql << "\n  RETURNS #{@type}"
       cql << "\n  LANGUAGE #{@language}"

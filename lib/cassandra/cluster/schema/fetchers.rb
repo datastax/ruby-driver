@@ -109,7 +109,7 @@ module Cassandra
         end
 
         def fetch_aggregate(connection, keyspace_name, aggregate_name)
-          select_function(connection, keyspace_name, aggregate_name).map do |rows_aggregates|
+          select_aggregate(connection, keyspace_name, aggregate_name).map do |rows_aggregates|
             if rows_aggregates.empty?
               nil
             else
@@ -715,11 +715,11 @@ module Cassandra
           SELECT_TABLE         = 'SELECT * FROM system_schema.tables WHERE keyspace_name = ? AND table_name = ?'.freeze
           SELECT_TABLE_COLUMNS = 'SELECT * FROM system_schema.columns WHERE keyspace_name = ? AND table_name = ?'.freeze
 
-          SELECT_TYPE = 'SELECT * FROM system.schema_usertypes WHERE keyspace_name = ? AND type_name = ?'.freeze
+          SELECT_TYPE = 'SELECT * FROM system_schema.types WHERE keyspace_name = ? AND type_name = ?'.freeze
 
-          SELECT_FUNCTION = 'SELECT * FROM system.schema_functions WHERE keyspace_name = ? AND function_name = ?'.freeze
+          SELECT_FUNCTION = 'SELECT * FROM system_schema.functions WHERE keyspace_name = ? AND function_name = ?'.freeze
 
-          SELECT_AGGREGATE = 'SELECT * FROM system.schema_aggregates WHERE keyspace_name = ? AND aggregate_name = ?'.freeze
+          SELECT_AGGREGATE = 'SELECT * FROM system_schema.aggregates WHERE keyspace_name = ? AND aggregate_name = ?'.freeze
 
           private
 
@@ -817,7 +817,7 @@ module Cassandra
             keyspace_name  = function_data['keyspace_name']
             function_name  = function_data['function_name']
             function_lang  = function_data['language']
-            types        ||= @schema.keyspace(keyspace_name).raw_types
+            types        ||= @schema.keyspace(keyspace_name).send(:raw_types)
             function_type  = @type_parser.parse(function_data['return_type'], types).first
             function_body  = function_data['body']
             called_on_null = function_data['called_on_null_input']
@@ -834,7 +834,7 @@ module Cassandra
           def create_aggregate(aggregate_data, functions, types = nil)
             keyspace_name  = aggregate_data['keyspace_name']
             aggregate_name = aggregate_data['aggregate_name']
-            types        ||= @schema.keyspace(keyspace_name).raw_types
+            types        ||= @schema.keyspace(keyspace_name).send(:raw_types)
             aggregate_type = @type_parser.parse(aggregate_data['return_type'], types).first
             argument_types = aggregate_data['argument_types'].map {|argument_type| @type_parser.parse(argument_type, types).first}.freeze
             state_type     = @type_parser.parse(aggregate_data['state_type'], types).first
@@ -971,7 +971,7 @@ module Cassandra
             partition_key      = []
             clustering_columns = []
             clustering_order   = []
-            types            ||= @schema.keyspace(keyspace_name).raw_types
+            types            ||= @schema.keyspace(keyspace_name).send(:raw_types)
 
             rows_columns.each do |row|
               next if row['column_name'].empty?
@@ -1066,6 +1066,20 @@ module Cassandra
           def fetch_type(connection, keyspace_name, type_name)
             find_fetcher(connection)
               .fetch_type(connection, keyspace_name, type_name)
+          rescue => e
+            return Ione::Future.failed(e)
+          end
+
+          def fetch_function(connection, keyspace_name, function_name)
+            find_fetcher(connection)
+              .fetch_function(connection, keyspace_name, function_name)
+          rescue => e
+            return Ione::Future.failed(e)
+          end
+
+          def fetch_aggregate(connection, keyspace_name, aggregate_name)
+            find_fetcher(connection)
+              .fetch_aggregate(connection, keyspace_name, aggregate_name)
           rescue => e
             return Ione::Future.failed(e)
           end

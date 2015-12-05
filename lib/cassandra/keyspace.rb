@@ -232,6 +232,34 @@ module Cassandra
     end
 
     # @private
+    def update_function(function)
+      functions = @functions.dup
+      functions[function.name] = function
+      Keyspace.new(@name, @durable_writes, @replication, @tables, @types, functions, @aggregates)
+    end
+
+    # @private
+    def delete_function(function_name)
+      functions = @functions.dup
+      functions.delete(function_name)
+      Keyspace.new(@name, @durable_writes, @replication, @tables, @types, functions, @aggregates)
+    end
+
+    # @private
+    def update_aggregate(aggregate)
+      aggregates = @aggregates.dup
+      aggregates[aggregate.name] = aggregate
+      Keyspace.new(@name, @durable_writes, @replication, @tables, @types, @functions, aggregates)
+    end
+
+    # @private
+    def delete_aggregate(aggregate_name)
+      aggregates = @aggregates.dup
+      aggregates.delete(aggregate_name)
+      Keyspace.new(@name, @durable_writes, @replication, @tables, @types, @functions, aggregates)
+    end
+
+    # @private
     attr_reader :durable_writes
     protected :durable_writes
 
