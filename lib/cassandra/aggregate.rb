@@ -75,6 +75,10 @@ module Cassandra
       end
     end
 
+    def inspect
+      "#<Cassandra::Aggregate:0x#{self.object_id.to_s(16)} @keyspace=#{@keyspace.inspect}, @name=#{@name.inspect}, @type=#{@type.inspect}, @argument_types=#{@argument_types.inspect}, @initial_state=#{@initial_state.inspect}, @state_function=#{@state_function.inspect}, @final_function=#{@final_function.inspect}>"
+    end
+
     def to_cql
       cql = "CREATE AGGREGATE simplex.average("
       first = true

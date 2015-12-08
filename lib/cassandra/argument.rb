@@ -28,5 +28,12 @@ module Cassandra
       @name = name
       @type = type
     end
+
+    def eql?(other)
+      other.is_a?(Argument) && \
+        @name == other.name && \
+        @type == other.type
+    end
+    alias :== :eql?
   end
 end

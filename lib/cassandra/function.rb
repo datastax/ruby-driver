@@ -71,6 +71,8 @@ module Cassandra
     end
     alias :arguments :each_argument
 
+    # Check if this function is equal to another one
+    # @return [Boolean] whether or not this function is equal to the other one
     def eql?(other)
       other.is_a?(Function) && \
         @keyspace == other.keyspace && \
@@ -95,6 +97,10 @@ module Cassandra
         h = 31 * h + @called_on_null.hash
         h
       end
+    end
+
+    def inspect
+      "#<Cassandra::Function:0x#{self.object_id.to_s(16)} @keyspace=#{@keyspace.inspect}, @name=#{@name.inspect}, @language=#{@language.inspect}, @type=#{@type.inspect}, @arguments=#{@arguments.values.inspect}>"
     end
 
     # @private
