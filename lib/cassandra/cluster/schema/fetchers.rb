@@ -641,7 +641,7 @@ module Cassandra
 
             arguments = ::Hash.new
 
-            function_data['argument_names'].zip(function_data['argument_types']) do |argument_name, fqcn|
+            Array(function_data['argument_names']).zip(Array(function_data['argument_types'])) do |argument_name, fqcn|
               argument_type = @type_parser.parse(fqcn).results.first.first
               arguments[argument_name] = Argument.new(argument_name, argument_type)
             end

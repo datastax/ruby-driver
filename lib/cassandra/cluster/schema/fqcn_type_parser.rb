@@ -46,7 +46,11 @@ module Cassandra
           "org.apache.cassandra.db.marshal.SetType"           => :set,
           "org.apache.cassandra.db.marshal.ListType"          => :list,
           "org.apache.cassandra.db.marshal.UserType"          => :udt,
-          "org.apache.cassandra.db.marshal.TupleType"         => :tuple
+          "org.apache.cassandra.db.marshal.TupleType"         => :tuple,
+          "org.apache.cassandra.db.marshal.ShortType"         => :smallint,
+          "org.apache.cassandra.db.marshal.ByteType"          => :tinyint,
+          "org.apache.cassandra.db.marshal.TimeType"          => :time,
+          "org.apache.cassandra.db.marshal.SimpleDateType"    => :date,
         }.freeze
 
         def parse(string)

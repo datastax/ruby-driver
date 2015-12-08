@@ -71,6 +71,32 @@ module Cassandra
     end
     alias :arguments :each_argument
 
+    def eql?(other)
+      other.is_a?(Function) && \
+        @keyspace == other.keyspace && \
+        @name == other.name && \
+        @language == other.language && \
+        @type == other.type && \
+        @arguments == other.arguments && \
+        @body == other.body && \
+        @called_on_null == other.called_on_null
+    end
+    alias :== :eql?
+
+    def hash
+      @hash ||= begin
+        h = 17
+        h = 31 * h + @keyspace.hash
+        h = 31 * h + @name.hash
+        h = 31 * h + @language.hash
+        h = 31 * h + @type.hash
+        h = 31 * h + @arguments.hash
+        h = 31 * h + @body.hash
+        h = 31 * h + @called_on_null.hash
+        h
+      end
+    end
+
     # @return [String] a cql representation of this function
     def to_cql
       cql = "CREATE FUNCTION #{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}("

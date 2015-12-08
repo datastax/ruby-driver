@@ -134,7 +134,7 @@ class UserDefinedFunctionTest < IntegrationTestCase
     assert cluster.keyspace("simplex").has_function?("sum_int")
     function = cluster.keyspace("simplex").function("sum_int")
     # keyspace#function retrieves the first UDF, so the first one is retrieved here
-    function.each_argument { |arg| assert_equal Cassandra::Types.int, arg.type }
+    function.each_argument { |arg| assert_equal Cassandra::Types.smallint, arg.type }
   ensure
     cluster && cluster.close
   end

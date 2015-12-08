@@ -47,6 +47,34 @@ module Cassandra
       @final_function = final_function
     end
 
+    def eql?(other)
+      other.is_a?(Aggregate) && \
+        @keyspace == other.keyspace && \
+        @name == other.name && \
+        @type == other.type && \
+        @argument_types == other.argument_types && \
+        @state_type == other.state_type && \
+        @initial_state == other.initial_state && \
+        @state_function == other.state_function && \
+        @final_function == other.final_function
+    end
+    alias :== :eql?
+
+    def hash
+      @hash ||= begin
+        h = 17
+        h = 31 * h + @keyspace.hash
+        h = 31 * h + @name.hash
+        h = 31 * h + @type.hash
+        h = 31 * h + @argument_types.hash
+        h = 31 * h + @state_type.hash
+        h = 31 * h + @initial_state.hash
+        h = 31 * h + @state_function.hash
+        h = 31 * h + @final_function.hash
+        h
+      end
+    end
+
     def to_cql
       cql = "CREATE AGGREGATE simplex.average("
       first = true
