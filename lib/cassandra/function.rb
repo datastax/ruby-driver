@@ -77,9 +77,9 @@ module Cassandra
         @name == other.name && \
         @language == other.language && \
         @type == other.type && \
-        @arguments == other.arguments && \
+        @arguments.values == other.arguments && \
         @body == other.body && \
-        @called_on_null == other.called_on_null
+        @called_on_null == other.called_on_null?
     end
     alias :== :eql?
 
@@ -96,6 +96,10 @@ module Cassandra
         h
       end
     end
+
+    # @private
+    attr_reader :body
+    protected :body
 
     # @return [String] a cql representation of this function
     def to_cql
