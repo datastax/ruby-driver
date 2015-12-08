@@ -40,6 +40,7 @@ class DatatypeUtils
       if CCM.cassandra_version >= '2.2.0'
         primitive_types.push('date', 'time', 'smallint', 'tinyint')
       end
+      primitive_types
     end
   end
 
@@ -53,6 +54,7 @@ class DatatypeUtils
       if CCM.cassandra_version >= '2.1.0'
         collection_types.push('Tuple')
       end
+      collection_types
     end
   end
 

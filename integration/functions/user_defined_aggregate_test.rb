@@ -20,35 +20,37 @@ require File.dirname(__FILE__) + '/../integration_test_case.rb'
 
 class UserDefinedAggregateTest < IntegrationTestCase
   def setup
-    @@ccm_cluster.setup_schema(<<-CQL)
-    CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-    USE simplex;
-    CREATE FUNCTION sum_int(key int, val int)
-                    CALLED ON NULL INPUT
-                    RETURNS int
-                    LANGUAGE javascript AS 'key + val';
-    CREATE FUNCTION state_group_and_sum(state map<int, int>, star_rating int)
-                    CALLED ON NULL INPUT
-                    RETURNS map<int, int>
-                    LANGUAGE java
-                    AS 'if (state.get(star_rating) == null) state.put(star_rating, 1); else state.put(star_rating, ((Integer) state.get(star_rating)) + 1); return state;';
-    CREATE FUNCTION percent_stars(state map<int,int>)
-                    RETURNS NULL ON NULL INPUT
-                    RETURNS map<int, int>
-                    LANGUAGE java AS 'Integer sum = 0; for(Object k : state.keySet()) { sum = sum + (Integer) state.get((Integer) k); } java.util.Map<Integer, Integer> results = new java.util.HashMap<Integer, Integer>(); for(Object k : state.keySet()) { results.put((Integer) k, ((Integer) state.get((Integer) k))*100 / sum); } return results;';
-    CREATE FUNCTION extend_list(s list<text>, i int)
-                    CALLED ON NULL INPUT
-                    RETURNS list<text>
-                    LANGUAGE java AS 'if (i != null) s.add(i.toString()); return s;';
-    CREATE FUNCTION update_map(s map<int, int>, i int)
-                    RETURNS NULL ON NULL INPUT
-                    RETURNS map<int, int>
-                    LANGUAGE java AS 's.put(new Integer(i), new Integer(i)); return s;';
-    CREATE FUNCTION sum_int_two(s int, i int, j int)
-                    RETURNS NULL ON NULL INPUT
-                    RETURNS int
-                    LANGUAGE javascript AS 's + i + j';
-    CQL
+    unless CCM.cassandra_version < '2.2.0'
+      @@ccm_cluster.setup_schema(<<-CQL)
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+      USE simplex;
+      CREATE FUNCTION sum_int(key int, val int)
+                      CALLED ON NULL INPUT
+                      RETURNS int
+                      LANGUAGE javascript AS 'key + val';
+      CREATE FUNCTION state_group_and_sum(state map<int, int>, star_rating int)
+                      CALLED ON NULL INPUT
+                      RETURNS map<int, int>
+                      LANGUAGE java
+                      AS 'if (state.get(star_rating) == null) state.put(star_rating, 1); else state.put(star_rating, ((Integer) state.get(star_rating)) + 1); return state;';
+      CREATE FUNCTION percent_stars(state map<int,int>)
+                      RETURNS NULL ON NULL INPUT
+                      RETURNS map<int, int>
+                      LANGUAGE java AS 'Integer sum = 0; for(Object k : state.keySet()) { sum = sum + (Integer) state.get((Integer) k); } java.util.Map<Integer, Integer> results = new java.util.HashMap<Integer, Integer>(); for(Object k : state.keySet()) { results.put((Integer) k, ((Integer) state.get((Integer) k))*100 / sum); } return results;';
+      CREATE FUNCTION extend_list(s list<text>, i int)
+                      CALLED ON NULL INPUT
+                      RETURNS list<text>
+                      LANGUAGE java AS 'if (i != null) s.add(i.toString()); return s;';
+      CREATE FUNCTION update_map(s map<int, int>, i int)
+                      RETURNS NULL ON NULL INPUT
+                      RETURNS map<int, int>
+                      LANGUAGE java AS 's.put(new Integer(i), new Integer(i)); return s;';
+      CREATE FUNCTION sum_int_two(s int, i int, j int)
+                      RETURNS NULL ON NULL INPUT
+                      RETURNS int
+                      LANGUAGE javascript AS 's + i + j';
+      CQL
+    end
   end
 
   # Test raising error for nonexistent UDA
