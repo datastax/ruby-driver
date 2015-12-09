@@ -12,7 +12,7 @@ Feature: Standard authentication
       
       begin
         cluster = Cassandra.cluster(
-                    username: ENV['USERNAME'],
+                    username: ENV['USER_NAME'],
                     password: ENV['PASSWORD']
                   )
         puts "authentication successful"

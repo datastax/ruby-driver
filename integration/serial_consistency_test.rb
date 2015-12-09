@@ -287,7 +287,9 @@ class SerialConsistencyTest < IntegrationTestCase
         b.add(update, arguments: [0])
       end
       begin
-        Retry.with_attempts(5, Cassandra::Errors::InvalidError) { session.execute(prepared_batch, consistency: :local_one, serial_consistency: :local_serial) }
+        Retry.with_attempts(5, Cassandra::Errors::InvalidError, Cassandra::Errors::WriteTimeoutError) do
+          session.execute(prepared_batch, consistency: :local_one, serial_consistency: :local_serial)
+        end
       rescue Cassandra::Errors::NoHostsAvailable => e
         raise e unless e.errors.first.last.is_a?(Cassandra::Errors::UnavailableError)
       end
