@@ -655,7 +655,7 @@ module Cassandra
             aggregate_type = @type_parser.parse(aggregate_data['return_type']).results.first.first
             argument_types = aggregate_data['argument_types'].map {|fqcn| @type_parser.parse(fqcn).results.first.first}.freeze
             state_type     = @type_parser.parse(aggregate_data['state_type']).results.first.first
-            initial_state  = Util.encode_object(Protocol::Coder.read_value_v3(Protocol::CqlByteBuffer.new.append_bytes(aggregate_data['initcond']), state_type))
+            initial_state  = Util.encode_object(Protocol::Coder.read_value_v4(Protocol::CqlByteBuffer.new.append_bytes(aggregate_data['initcond']), state_type))
             state_function = functions[aggregate_data['state_func']]
             final_function = functions[aggregate_data['final_func']]
 
