@@ -710,6 +710,8 @@ class SessionTest < IntegrationTestCase
   def test_unset_values
     skip("UNSET values are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
+    setup_schema
+
     cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 

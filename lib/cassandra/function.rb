@@ -26,8 +26,6 @@ module Cassandra
     attr_reader :language
     # @return [Cassandra::Type] function return type
     attr_reader :type
-    # @return [String] function body
-    attr_reader :body
 
     # @private
     def initialize(keyspace, name, language, type, arguments, body, called_on_null)
@@ -84,6 +82,8 @@ module Cassandra
       @arguments.map { |argument| argument.type }
     end
 
+    # Check if this function is equal to another one
+    # @return [Boolean] whether or not this function is equal to the other one
     def eql?(other)
       other.is_a?(Function) && \
         @keyspace == other.keyspace && \
@@ -109,6 +109,14 @@ module Cassandra
         h
       end
     end
+
+    def inspect
+      "#<Cassandra::Function:0x#{self.object_id.to_s(16)} @keyspace=#{@keyspace.inspect}, @name=#{@name.inspect}, @language=#{@language.inspect}, @type=#{@type.inspect}, @arguments=#{@arguments.values.inspect}>"
+    end
+
+    # @private
+    attr_reader :body
+    protected :body
 
     # @return [String] a cql representation of this function
     def to_cql
