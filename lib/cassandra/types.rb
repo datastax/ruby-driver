@@ -21,7 +21,10 @@ module Cassandra
   # @abstract This class exists for documentation purposes only
   class Type
     # @return [Symbol] shorthand type name
-    def kind
+    attr_reader :kind
+
+    def initialize(kind)
+      @kind = kind
     end
 
     # Coerces a given value to this type
@@ -48,12 +51,6 @@ module Cassandra
   module Types; extend self
     # @private
     class Simple < Type
-      attr_reader :kind
-
-      def initialize(kind)
-        @kind = kind
-      end
-
       def new(value)
         __send__(:"new_#{@kind}", value)
       end
@@ -65,6 +62,10 @@ module Cassandra
 
       def to_s
         @kind.to_s
+      end
+
+      def hash
+        @hash ||= 31 * 17 + @kind.hash
       end
 
       def eql?(other)
@@ -613,13 +614,8 @@ module Cassandra
 
       # @private
       def initialize(value_type)
+        super(:list)
         @value_type = value_type
-      end
-
-      # @return [Symbol] `:list`
-      # @see Cassandra::Type#kind
-      def kind
-        :list
       end
 
       # Coerces the value to Array
@@ -656,6 +652,15 @@ module Cassandra
         "list<#{@value_type.to_s}>"
       end
 
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + @kind.hash
+          h = 31 * h + @value_type.hash
+          h
+        end
+      end
+
       def eql?(other)
         other.is_a?(List) && @value_type == other.value_type
       end
@@ -668,14 +673,9 @@ module Cassandra
 
       # @private
       def initialize(key_type, value_type)
+        super(:map)
         @key_type   = key_type
         @value_type = value_type
-      end
-
-      # @return [Symbol] `:map`
-      # @see Cassandra::Type#kind
-      def kind
-        :map
       end
 
       # Coerces the value to Hash
@@ -727,6 +727,16 @@ module Cassandra
         "map<#{@key_type.to_s}, #{@value_type.to_s}>"
       end
 
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + @kind.hash
+          h = 31 * h + @key_type.hash
+          h = 31 * h + @value_type.hash
+          h
+        end
+      end
+
       def eql?(other)
         other.is_a?(Map) &&
           @key_type == other.key_type &&
@@ -741,13 +751,8 @@ module Cassandra
 
       # @private
       def initialize(value_type)
+        super(:set)
         @value_type = value_type
-      end
-
-      # @return [Symbol] `:set`
-      # @see Cassandra::Type#kind
-      def kind
-        :set
       end
 
       # Coerces the value to Set
@@ -809,6 +814,15 @@ module Cassandra
       # @see Cassandra::Type#to_s
       def to_s
         "set<#{@value_type.to_s}>"
+      end
+
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + @kind.hash
+          h = 31 * h + @value_type.hash
+          h
+        end
       end
 
       def eql?(other)
@@ -1015,13 +1029,8 @@ module Cassandra
 
       # @private
       def initialize(*members)
+        super(:tuple)
         @members = members
-      end
-
-      # @return [Symbol] `:tuple`
-      # @see Cassandra::Type#kind
-      def kind
-        :tuple
       end
 
       # Coerces the value to Cassandra::Tuple
@@ -1060,6 +1069,15 @@ module Cassandra
       # @see Cassandra::Type#to_s
       def to_s
         "tuple<#{@members.map(&:to_s).join(', ')}>"
+      end
+
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + @kind.hash
+          h = 31 * h + @members.hash
+          h
+        end
       end
 
       def eql?(other)
@@ -1183,6 +1201,15 @@ module Cassandra
           "#{@name} #{@type}"
         end
 
+        def hash
+          @hash ||= begin
+            h = 17
+            h = 31 * h + @name.hash
+            h = 31 * h + @type.hash
+            h
+          end
+        end
+
         def eql?(other)
           other.is_a?(Field) &&
             @name == other.name &&
@@ -1202,6 +1229,7 @@ module Cassandra
 
       # @private
       def initialize(keyspace, name, fields)
+        super(:udt)
         @keyspace  = keyspace
         @name      = name
         @fields    = fields
@@ -1234,12 +1262,6 @@ module Cassandra
       #   nil
       def field(name)
         @fields.find {|f| f.name == name}
-      end
-
-      # @return [Symbol] `:udt`
-      # @see Cassandra::Type#kind
-      def kind
-        :udt
       end
 
       # Coerces the value to Cassandra::UDT
@@ -1295,6 +1317,17 @@ module Cassandra
         "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} {#{@fields.join(', ')}}"
       end
 
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + @kind.hash
+          h = 31 * h + @keyspace.hash
+          h = 31 * h + @name.hash
+          h = 31 * h + @fields.hash
+          h
+        end
+      end
+
       def eql?(other)
         other.is_a?(UserDefined) &&
           @keyspace == other.keyspace &&
@@ -1345,12 +1378,8 @@ module Cassandra
       attr_reader :name
 
       def initialize(name)
+        super(:custom)
         @name = name
-      end
-
-      # @return [Symbol] shorthand type name
-      def kind
-        :custom
       end
 
       # Coerces a given value to this type
@@ -1374,6 +1403,15 @@ module Cassandra
       # @return [String] a cassandra representation of this type
       def to_s
         "'#{@name}'"
+      end
+
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + @kind.hash
+          h = 31 * h + @name.hash
+          h
+        end
       end
 
       def eql?(other)

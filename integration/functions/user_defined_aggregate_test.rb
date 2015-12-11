@@ -19,6 +19,8 @@
 require File.dirname(__FILE__) + '/../integration_test_case.rb'
 
 class UserDefinedAggregateTest < IntegrationTestCase
+  include Cassandra::Types
+
   def setup
     unless CCM.cassandra_version < '2.2.0'
       @@ccm_cluster.setup_schema(<<-CQL)
@@ -28,14 +30,27 @@ class UserDefinedAggregateTest < IntegrationTestCase
                       CALLED ON NULL INPUT
                       RETURNS int
                       LANGUAGE javascript AS 'key + val';
+      CREATE FUNCTION sum_int(key smallint, val smallint)
+                      CALLED ON NULL INPUT
+                      RETURNS smallint
+                      LANGUAGE javascript AS 'key + val';
       CREATE FUNCTION state_group_and_sum(state map<int, int>, star_rating int)
                       CALLED ON NULL INPUT
                       RETURNS map<int, int>
                       LANGUAGE java
                       AS 'if (state.get(star_rating) == null) state.put(star_rating, 1); else state.put(star_rating, ((Integer) state.get(star_rating)) + 1); return state;';
+      CREATE FUNCTION state_group_and_sum(state map<int, smallint>, star_rating smallint)
+                      CALLED ON NULL INPUT
+                      RETURNS map<int, smallint>
+                      LANGUAGE java
+                      AS 'if (state.get(star_rating) == null) state.put(star_rating, 1); else state.put(star_rating, ((Integer) state.get(star_rating)) + 1); return state;';
       CREATE FUNCTION percent_stars(state map<int,int>)
                       RETURNS NULL ON NULL INPUT
                       RETURNS map<int, int>
+                      LANGUAGE java AS 'Integer sum = 0; for(Object k : state.keySet()) { sum = sum + (Integer) state.get((Integer) k); } java.util.Map<Integer, Integer> results = new java.util.HashMap<Integer, Integer>(); for(Object k : state.keySet()) { results.put((Integer) k, ((Integer) state.get((Integer) k))*100 / sum); } return results;';
+      CREATE FUNCTION percent_stars(state map<int,smallint>)
+                      RETURNS NULL ON NULL INPUT
+                      RETURNS map<int, smallint>
                       LANGUAGE java AS 'Integer sum = 0; for(Object k : state.keySet()) { sum = sum + (Integer) state.get((Integer) k); } java.util.Map<Integer, Integer> results = new java.util.HashMap<Integer, Integer>(); for(Object k : state.keySet()) { results.put((Integer) k, ((Integer) state.get((Integer) k))*100 / sum); } return results;';
       CREATE FUNCTION extend_list(s list<text>, i int)
                       CALLED ON NULL INPUT
@@ -103,8 +118,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
 
     assert_empty cluster.keyspace("simplex").aggregates
 
-    assert cluster.keyspace("simplex").has_function?("sum_int")
-    state_function = cluster.keyspace("simplex").function("sum_int")
+    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
+    state_function = cluster.keyspace("simplex").function("sum_int", int, int)
 
     session.execute("CREATE AGGREGATE sum_agg(int)
                     SFUNC sum_int
@@ -113,15 +128,78 @@ class UserDefinedAggregateTest < IntegrationTestCase
     )
 
     sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("sum_agg")
-    aggregate = cluster.keyspace("simplex").aggregate("sum_agg")
+    assert cluster.keyspace("simplex").has_aggregate?("sum_agg", int)
+    aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int)
 
     assert_equal "sum_agg", aggregate.name
-    assert_equal Cassandra::Types.int, aggregate.type
-    assert_equal [Cassandra::Types.int], aggregate.argument_types
-    assert_equal Cassandra::Types.int, aggregate.state_type
+    assert_equal int, aggregate.type
+    assert_equal [int], aggregate.argument_types
+    assert_equal int, aggregate.state_type
     assert_equal "0", aggregate.initial_state
     assert_equal state_function, aggregate.state_function
+
+    # Now create another aggregate that deals with smallint's and verify that the smallint version
+    # of sum_int is used for the state function.
+
+    session.execute("CREATE AGGREGATE sum_agg(smallint)
+                    SFUNC sum_int
+                    STYPE smallint
+                    INITCOND 0"
+    )
+
+    sleep(4)
+    assert cluster.keyspace("simplex").has_aggregate?("sum_agg", smallint)
+    aggregate = cluster.keyspace("simplex").aggregate("sum_agg", smallint)
+    assert cluster.keyspace("simplex").has_function?("sum_int", smallint, smallint)
+    state_function = cluster.keyspace("simplex").function("sum_int", smallint, smallint)
+    assert_equal state_function, aggregate.state_function
+  ensure
+    cluster && cluster.close
+  end
+
+  # Test for deleting a basic UDA
+  #
+  # test_can_delete_udas tests that a UDA can be deleted. It first creates
+  # a simple UDA and an override, and verifies that both appear in the keyspace metadata.
+  # Then it deletes one and verifies that it's gone, while the other remains.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-108
+  # @expected_result A UDA should be created and unambiguously deleted.
+  #
+  # @test_category functions:uda
+  #
+  def test_can_delete_udas
+    skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+
+    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    session = cluster.connect("simplex")
+
+    assert_empty cluster.keyspace("simplex").aggregates
+
+    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
+
+    session.execute("CREATE AGGREGATE sum_agg_delete(int)
+                    SFUNC sum_int
+                    STYPE int
+                    INITCOND 0"
+    )
+    session.execute("CREATE AGGREGATE sum_agg_delete(smallint)
+                    SFUNC sum_int
+                    STYPE smallint
+                    INITCOND 0"
+    )
+
+    sleep(2)
+    assert cluster.keyspace("simplex").has_aggregate?("sum_agg_delete", int)
+    assert cluster.keyspace("simplex").has_aggregate?("sum_agg_delete", smallint)
+
+    session.execute("DROP AGGREGATE sum_agg_delete(smallint)")
+
+    sleep(2)
+    assert cluster.keyspace("simplex").has_aggregate?("sum_agg_delete", int)
+    assert !cluster.keyspace("simplex").has_aggregate?("sum_agg_delete", smallint)
+
   ensure
     cluster && cluster.close
   end
@@ -145,10 +223,10 @@ class UserDefinedAggregateTest < IntegrationTestCase
     session = cluster.connect("simplex")
 
     # Initcond, finalfunc
-    assert cluster.keyspace("simplex").has_function?("state_group_and_sum")
-    state_function = cluster.keyspace("simplex").function("state_group_and_sum")
-    assert cluster.keyspace("simplex").has_function?("percent_stars")
-    final_function = cluster.keyspace("simplex").function("percent_stars")
+    assert cluster.keyspace("simplex").has_function?("state_group_and_sum", map(int, int), int)
+    state_function = cluster.keyspace("simplex").function("state_group_and_sum", map(int, int), int)
+    assert cluster.keyspace("simplex").has_function?("percent_stars", map(int, int))
+    final_function = cluster.keyspace("simplex").function("percent_stars", map(int, int))
 
     session.execute("CREATE OR REPLACE AGGREGATE group_and_sum(int)
                     SFUNC state_group_and_sum
@@ -158,29 +236,36 @@ class UserDefinedAggregateTest < IntegrationTestCase
     )
 
     sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("group_and_sum")
-    aggregate = cluster.keyspace("simplex").aggregate("group_and_sum")
+    assert cluster.keyspace("simplex").has_aggregate?("group_and_sum", int)
+    aggregate = cluster.keyspace("simplex").aggregate("group_and_sum", int)
 
     assert_equal "group_and_sum", aggregate.name
-    assert_equal Cassandra::Types.map(Cassandra::Types.int, Cassandra::Types.int), aggregate.type
-    assert_equal [Cassandra::Types.int], aggregate.argument_types
-    assert_equal Cassandra::Types.map(Cassandra::Types.int, Cassandra::Types.int), aggregate.state_type
+    assert_equal map(int, int), aggregate.type
+    assert_equal [int], aggregate.argument_types
+    assert_equal map(int, int), aggregate.state_type
     assert_equal "{}", aggregate.initial_state
     assert_equal state_function, aggregate.state_function
     assert_equal final_function, aggregate.final_function
 
-    # No initcond, finalfunc
-    session.execute("CREATE OR REPLACE AGGREGATE group_and_sum(int)
+    # No initcond, finalfunc, deal with smallint.. verify that we pick the right final func.
+    session.execute("CREATE OR REPLACE AGGREGATE group_and_sum2(smallint)
                     SFUNC state_group_and_sum
-                    STYPE map<int, int>
-                    FINALFUNC percent_stars"
+                    STYPE map<int, smallint>
+                    FINALFUNC percent_stars
+                    INITCOND NULL"
     )
 
     sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("group_and_sum")
-    aggregate = cluster.keyspace("simplex").aggregate("group_and_sum")
+    assert cluster.keyspace("simplex").has_aggregate?("group_and_sum2", smallint)
+    aggregate = cluster.keyspace("simplex").aggregate("group_and_sum2", smallint)
+    assert cluster.keyspace("simplex").has_function?("state_group_and_sum", map(int, smallint), smallint)
+    state_function = cluster.keyspace("simplex").function("state_group_and_sum", map(int, smallint), smallint)
+    assert cluster.keyspace("simplex").has_function?("percent_stars", map(int, smallint))
+    final_function = cluster.keyspace("simplex").function("percent_stars", map(int, smallint))
+    assert_equal state_function, aggregate.state_function
+    assert_equal final_function, aggregate.final_function
 
-    assert_equal nil, aggregate.initial_state
+    assert_equal "null", aggregate.initial_state
   ensure
     cluster && cluster.close
   end
@@ -203,9 +288,9 @@ class UserDefinedAggregateTest < IntegrationTestCase
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
     session = cluster.connect("simplex")
 
-    assert cluster.keyspace("simplex").has_function?("sum_int")
-    assert cluster.keyspace("simplex").has_function?("extend_list")
-    assert cluster.keyspace("simplex").has_function?("update_map")
+    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
+    assert cluster.keyspace("simplex").has_function?("extend_list", list(varchar), int)
+    assert cluster.keyspace("simplex").has_function?("update_map", map(int, int), int)
 
     # No initcond
     session.execute("CREATE AGGREGATE sum_agg(int)
@@ -214,9 +299,9 @@ class UserDefinedAggregateTest < IntegrationTestCase
     )
 
     sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("sum_agg")
-    aggregate = cluster.keyspace("simplex").aggregate("sum_agg")
-    assert_equal nil, aggregate.initial_state
+    assert cluster.keyspace("simplex").has_aggregate?("sum_agg", int)
+    aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int)
+    assert_equal 'null', aggregate.initial_state
 
     # int
     session.execute("CREATE AGGREGATE sum_agg2(int)
@@ -226,8 +311,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
     )
 
     sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("sum_agg2")
-    aggregate = cluster.keyspace("simplex").aggregate("sum_agg2")
+    assert cluster.keyspace("simplex").has_aggregate?("sum_agg2", int)
+    aggregate = cluster.keyspace("simplex").aggregate("sum_agg2", int)
     assert_equal "-1", aggregate.initial_state
 
     # list<text>
@@ -238,8 +323,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
     )
 
     sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("extend_list_agg")
-    aggregate = cluster.keyspace("simplex").aggregate("extend_list_agg")
+    assert cluster.keyspace("simplex").has_aggregate?("extend_list_agg", int)
+    aggregate = cluster.keyspace("simplex").aggregate("extend_list_agg", int)
     assert_equal "['1', '2']", aggregate.initial_state
 
     # map<int,int>
@@ -250,8 +335,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
     )
 
     sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("update_map_agg")
-    aggregate = cluster.keyspace("simplex").aggregate("update_map_agg")
+    assert cluster.keyspace("simplex").has_aggregate?("update_map_agg", int)
+    aggregate = cluster.keyspace("simplex").aggregate("update_map_agg", int)
     assert_equal "{1: 2, 3: 4}", aggregate.initial_state
   ensure
     cluster && cluster.close
@@ -276,8 +361,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
     session = cluster.connect("simplex")
 
-    assert cluster.keyspace("simplex").has_function?("sum_int")
-    assert cluster.keyspace("simplex").has_function?("sum_int_two")
+    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
+    assert cluster.keyspace("simplex").has_function?("sum_int_two", int, int, int)
 
     session.execute("CREATE AGGREGATE sum_agg(int)
                     SFUNC sum_int
@@ -286,9 +371,9 @@ class UserDefinedAggregateTest < IntegrationTestCase
     )
 
     sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("sum_agg")
-    aggregate = cluster.keyspace("simplex").aggregate("sum_agg")
-    assert_equal [Cassandra::Types.int], aggregate.argument_types
+    assert cluster.keyspace("simplex").has_aggregate?("sum_agg", int)
+    aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int)
+    assert_equal [int], aggregate.argument_types
 
     session.execute("CREATE AGGREGATE sum_agg(int,int)
                     SFUNC sum_int_two
@@ -297,9 +382,14 @@ class UserDefinedAggregateTest < IntegrationTestCase
     )
 
     sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("sum_agg")
-    aggregate = cluster.keyspace("simplex").aggregate("sum_agg")
-    assert_equal [Cassandra::Types.int], aggregate.argument_types
+    assert cluster.keyspace("simplex").has_aggregate?("sum_agg", int, int)
+    aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int, int)
+    assert_equal [int, int], aggregate.argument_types
+
+    # Verify that the old aggregate still exists.
+    assert cluster.keyspace("simplex").has_aggregate?("sum_agg", int)
+    aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int)
+    assert_equal [int], aggregate.argument_types
   ensure
     cluster && cluster.close
   end
@@ -323,7 +413,7 @@ class UserDefinedAggregateTest < IntegrationTestCase
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
     session = cluster.connect("simplex")
 
-    assert cluster.keyspace("simplex").has_function?("sum_int")
+    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
 
     session.execute("CREATE AGGREGATE sum_agg(int)
                     SFUNC sum_int
@@ -362,8 +452,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
     cluster = Cassandra.cluster
     session = cluster.connect("simplex")
 
-    assert cluster.keyspace("simplex").has_function?("state_group_and_sum")
-    assert cluster.keyspace("simplex").has_function?("percent_stars")
+    assert cluster.keyspace("simplex").has_function?("state_group_and_sum", map(int, int), int)
+    assert cluster.keyspace("simplex").has_function?("percent_stars", map(int, int))
 
     # Create the UDA
     session.execute("CREATE OR REPLACE AGGREGATE group_and_sum(int)

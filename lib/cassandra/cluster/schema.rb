@@ -212,7 +212,7 @@ module Cassandra
 
         return self unless keyspace
 
-        old_function = keyspace.function(function.name)
+        old_function = keyspace.function(function.name, *function.argument_types)
 
         return self if old_function == function
 
@@ -229,16 +229,16 @@ module Cassandra
         self
       end
 
-      def delete_function(keyspace_name, function_name)
+      def delete_function(keyspace_name, function_name, function_arg_types)
         keyspace = @keyspaces[keyspace_name]
 
         return self unless keyspace
 
-        function = keyspace.function(function_name)
+        function = keyspace.function(function_name, *function_arg_types)
 
         return self unless function
 
-        keyspace = keyspace.delete_function(function_name)
+        keyspace = keyspace.delete_function(function_name, function_arg_types)
 
         synchronize do
           keyspaces = @keyspaces.dup
@@ -256,7 +256,7 @@ module Cassandra
 
         return self unless keyspace
 
-        old_aggregate = keyspace.aggregate(aggregate.name)
+        old_aggregate = keyspace.aggregate(aggregate.name, *aggregate.argument_types)
 
         return self if old_aggregate == aggregate
 
@@ -273,16 +273,16 @@ module Cassandra
         self
       end
 
-      def delete_aggregate(keyspace_name, aggregate_name)
+      def delete_aggregate(keyspace_name, aggregate_name, aggregate_arg_types)
         keyspace = @keyspaces[keyspace_name]
 
         return self unless keyspace
 
-        aggregate = keyspace.aggregate(aggregate_name)
+        aggregate = keyspace.aggregate(aggregate_name, *aggregate_arg_types)
 
         return self unless aggregate
 
-        keyspace = keyspace.delete_aggregate(aggregate_name)
+        keyspace = keyspace.delete_aggregate(aggregate_name, aggregate_arg_types)
 
         synchronize do
           keyspaces = @keyspaces.dup

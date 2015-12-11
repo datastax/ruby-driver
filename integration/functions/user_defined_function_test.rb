@@ -19,6 +19,8 @@
 require File.dirname(__FILE__) + '/../integration_test_case.rb'
 
 class UserDefinedFunctionTest < IntegrationTestCase
+  include Cassandra::Types
+
   def setup
     @@ccm_cluster.setup_schema("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
   end
@@ -78,8 +80,8 @@ class UserDefinedFunctionTest < IntegrationTestCase
     )
 
     sleep(2) #give time for driver to receive schema change event
-    assert cluster.keyspace("simplex").has_function?("sum_int")
-    function = cluster.keyspace("simplex").function("sum_int")
+    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
+    function = cluster.keyspace("simplex").function("sum_int", int, int)
 
     assert_equal "sum_int", function.name
     assert_equal "javascript", function.language
@@ -88,6 +90,50 @@ class UserDefinedFunctionTest < IntegrationTestCase
     assert function.has_argument?("key")
     assert function.has_argument?("val")
     function.each_argument { |arg| assert_equal Cassandra::Types.int, arg.type }
+  ensure
+    cluster && cluster.close
+  end
+
+  # Test for deleting a basic UDA
+  #
+  # test_can_delete_udas tests that a UDA can be deleted. It first creates
+  # a simple UDA and an override, and verifies that both appear in the keyspace metadata.
+  # Then it deletes one and verifies that it's gone, while the other remains.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-108
+  # @expected_result A UDA should be created and unambiguously deleted.
+  #
+  # @test_category functions:uda
+  #
+  def test_can_delete_udfs
+    skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+
+    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    session = cluster.connect("simplex")
+
+    assert_empty cluster.keyspace("simplex").functions
+
+    session.execute("CREATE FUNCTION sum_int_delete(key int, val int)
+                    RETURNS NULL ON NULL INPUT
+                    RETURNS int
+                    LANGUAGE javascript AS 'key + val'"
+    )
+    session.execute("CREATE FUNCTION sum_int_delete(key smallint, val smallint)
+                    RETURNS NULL ON NULL INPUT
+                    RETURNS smallint
+                    LANGUAGE javascript AS 'key + val'"
+    )
+
+    sleep(2)
+    assert cluster.keyspace("simplex").has_function?("sum_int_delete", int, int)
+    assert cluster.keyspace("simplex").has_function?("sum_int_delete", smallint, smallint)
+
+    session.execute("DROP FUNCTION sum_int_delete(smallint, smallint)")
+
+    sleep(2)
+    assert cluster.keyspace("simplex").has_function?("sum_int_delete", int, int)
+    assert !cluster.keyspace("simplex").has_function?("sum_int_delete", smallint, smallint)
   ensure
     cluster && cluster.close
   end
@@ -120,8 +166,8 @@ class UserDefinedFunctionTest < IntegrationTestCase
     )
 
     sleep(2)
-    assert cluster.keyspace("simplex").has_function?("sum_int")
-    function = cluster.keyspace("simplex").function("sum_int")
+    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
+    function = cluster.keyspace("simplex").function("sum_int", int, int)
     function.each_argument { |arg| assert_equal Cassandra::Types.int, arg.type }
 
     session.execute("CREATE FUNCTION sum_int(key smallint, val smallint)
@@ -131,10 +177,15 @@ class UserDefinedFunctionTest < IntegrationTestCase
     )
 
     sleep(2)
-    assert cluster.keyspace("simplex").has_function?("sum_int")
-    function = cluster.keyspace("simplex").function("sum_int")
+    assert cluster.keyspace("simplex").has_function?("sum_int", smallint, smallint)
+    function = cluster.keyspace("simplex").function("sum_int", smallint, smallint)
     # keyspace#function retrieves the first UDF, so the first one is retrieved here
     function.each_argument { |arg| assert_equal Cassandra::Types.smallint, arg.type }
+
+    # Make sure the original function is there, too.
+    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
+    function = cluster.keyspace("simplex").function("sum_int", int, int)
+    function.each_argument { |arg| assert_equal Cassandra::Types.int, arg.type }
   ensure
     cluster && cluster.close
   end
@@ -233,9 +284,9 @@ class UserDefinedFunctionTest < IntegrationTestCase
     )
 
     sleep(2)
-    function = cluster.keyspace("simplex").function("sum_int")
+    function = cluster.keyspace("simplex").function("sum_int", int, int)
     refute function.called_on_null?
-    assert_match /RETURNS NULL ON NULL INPUT/, cluster.keyspace("simplex").function("sum_int").to_cql
+    assert_match /RETURNS NULL ON NULL INPUT/, cluster.keyspace("simplex").function("sum_int", int, int).to_cql
 
     session.execute("CREATE FUNCTION sum_smallint(key smallint, val smallint)
                     CALLED ON NULL INPUT
@@ -244,9 +295,9 @@ class UserDefinedFunctionTest < IntegrationTestCase
     )
 
     sleep(2)
-    function = cluster.keyspace("simplex").function("sum_smallint")
+    function = cluster.keyspace("simplex").function("sum_smallint", smallint, smallint)
     assert function.called_on_null?
-    assert_match /CALLED ON NULL INPUT/, cluster.keyspace("simplex").function("sum_smallint").to_cql
+    assert_match /CALLED ON NULL INPUT/, cluster.keyspace("simplex").function("sum_smallint", smallint, smallint).to_cql
   ensure
     cluster && cluster.close
   end

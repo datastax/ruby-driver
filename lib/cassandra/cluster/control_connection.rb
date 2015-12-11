@@ -295,39 +295,43 @@ module Cassandra
         end
       end
 
-      def refresh_function_async(keyspace_name, function_name)
+      def refresh_function_async(keyspace_name, function_name, function_args)
         connection = @connection
 
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         @logger.info("Refreshing user-defined function \"#{keyspace_name}.#{function_name}\"")
 
-        @schema_fetcher.fetch_function(connection, keyspace_name, function_name).map do |function|
+        # function_args is an array of string, and we need an array of parsed types.
+        parsed_function_args = @schema_fetcher.parse_argument_types(connection, keyspace_name, function_args)
+        @schema_fetcher.fetch_function(connection, keyspace_name, function_name, parsed_function_args).map do |function|
           if function
             @schema.replace_function(function)
           else
-            @schema.delete_function(keyspace_name, function_name)
+            @schema.delete_function(keyspace_name, function_name, parsed_function_args)
           end
 
-          @logger.info("Refreshed user-defined function \"#{keyspace_name}.#{function_name}\"")
+          @logger.info("Refreshed user-defined function \"#{keyspace_name}.#{function_name}(#{function_args.join(',')})\"")
         end
       end
 
-      def refresh_aggregate_async(keyspace_name, aggregate_name)
+      def refresh_aggregate_async(keyspace_name, aggregate_name, aggregate_args)
         connection = @connection
 
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         @logger.info("Refreshing user-defined aggregate \"#{keyspace_name}.#{aggregate_name}\"")
 
-        @schema_fetcher.fetch_aggregate(connection, keyspace_name, aggregate_name).map do |aggregate|
+        # aggregate_args is an array of string, and we need an array of parsed types.
+        parsed_aggregate_args = @schema_fetcher.parse_argument_types(connection, keyspace_name, aggregate_args)
+        @schema_fetcher.fetch_aggregate(connection, keyspace_name, aggregate_name, parsed_aggregate_args).map do |aggregate|
           if aggregate
             @schema.replace_aggregate(aggregate)
           else
-            @schema.delete_aggregate(keyspace_name, aggregate_name)
+            @schema.delete_aggregate(keyspace_name, aggregate_name, parsed_aggregate_args)
           end
 
-          @logger.info("Refreshed user-defined aggregate \"#{keyspace_name}.#{aggregate_name}\"")
+          @logger.info("Refreshed user-defined aggregate \"#{keyspace_name}.#{aggregate_name}(#{aggregate_args.join(',')})\"")
         end
       end
 
@@ -617,7 +621,11 @@ Control connection failed and is unlikely to recover.
         refresh_keyspaces  = ::Hash.new
         refresh_tables     = ::Hash.new
         refresh_types      = ::Hash.new
+
+        # This hash is of the form <keyspace, [Change (for function changes)]>
         refresh_functions  = ::Hash.new
+
+        # This hash is of the form <keyspace, [Change (for aggregate changes)]>
         refresh_aggregates = ::Hash.new
 
         schema_changes.each do |change|
@@ -639,11 +647,11 @@ Control connection failed and is unlikely to recover.
             types = refresh_types[keyspace] ||= ::Hash.new
             types[change.name] = true
           when Protocol::Constants::SCHEMA_CHANGE_TARGET_FUNCTION
-            functions = refresh_functions[keyspace] ||= ::Hash.new
-            functions[change.name] = true
+            functions = refresh_functions[keyspace] ||= []
+            functions << change
           when Protocol::Constants::SCHEMA_CHANGE_TARGET_AGGREGATE
-            aggregates = refresh_aggregates[keyspace] ||= ::Hash.new
-            aggregates[change.name] = true
+            aggregates = refresh_aggregates[keyspace] ||= []
+            aggregates << change
           end
         end
 
@@ -665,15 +673,15 @@ Control connection failed and is unlikely to recover.
           end
         end
 
-        refresh_functions.each do |(keyspace, functions)|
-          functions.each_key do |function|
-            futures << refresh_maybe_retry(:function, keyspace, function)
+        refresh_functions.each do |(keyspace, function_changes)|
+          function_changes.each do |change|
+            futures << refresh_maybe_retry(:function, keyspace, change.name, change.arguments)
           end
         end
 
-        refresh_aggregates.each do |(keyspace, aggregates)|
-          aggregates.each_key do |aggregate|
-            futures << refresh_maybe_retry(:aggregate, keyspace, aggregate)
+        refresh_aggregates.each do |(keyspace, aggregate_changes)|
+          aggregate_changes.each do |change|
+            futures << refresh_maybe_retry(:aggregate, keyspace, change.name, change.arguments)
           end
         end
 
