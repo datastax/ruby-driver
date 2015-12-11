@@ -55,9 +55,10 @@ class UserDefinedFunctionTest < IntegrationTestCase
 
   # Test for creating a basic UDF
   #
-  # test_can_create_udfs tests that a UDF can be created and its metadata is populated appropriately. It first creates
-  # a simple UDT and verifies (after a 2 second sleep) that the keyspace metadata has been updated with the UDF's
-  # existence. It then verifies each of the UDF's metadata.
+  # test_can_create_udfs tests that a UDF can be created and its metadata is
+  # populated appropriately. It first creates a simple UDF and verifies (after
+  # a 2 second sleep) that the keyspace metadata has been updated with the UDF's
+  # existence. It then verifies the UDF's metadata.
   #
   # @since 3.0.0
   # @jira_ticket RUBY-108
@@ -85,11 +86,11 @@ class UserDefinedFunctionTest < IntegrationTestCase
 
     assert_equal "sum_int", function.name
     assert_equal "javascript", function.language
-    assert_equal Cassandra::Types.int, function.type
+    assert_equal int, function.type
     refute function.called_on_null?
     assert function.has_argument?("key")
     assert function.has_argument?("val")
-    function.each_argument { |arg| assert_equal Cassandra::Types.int, arg.type }
+    function.each_argument { |arg| assert_equal int, arg.type }
   ensure
     cluster && cluster.close
   end
@@ -138,6 +139,60 @@ class UserDefinedFunctionTest < IntegrationTestCase
     cluster && cluster.close
   end
 
+  # Test that varchar and text argument types are treated the same.
+  #
+  # test_varchar_udf tests that a UDF can be created with a varchar argtype and
+  # its metadata is populated appropriately. It first creates a simple UDF and
+  # verifies (after a 2 second sleep) that the keyspace metadata has been
+  # updated with the UDF's existence. It then verifies the UDF's metadata
+  # referencing both varchar and text types.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-108
+  # @expected_result A UDF should be created and it should be accessible by
+  #     specifying varchar or text arg-type.
+  #
+  # @test_category functions:udf
+  #
+  def test_varchar_udf
+    skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+
+    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    session = cluster.connect("simplex")
+
+    assert_empty cluster.keyspace("simplex").functions
+
+    session.execute("CREATE FUNCTION varchar_or_text(key varchar)
+                    RETURNS NULL ON NULL INPUT
+                    RETURNS varchar
+                    LANGUAGE java AS 'return key;'"
+    )
+
+    sleep(2)
+    assert cluster.keyspace("simplex").has_function?("varchar_or_text", text)
+    function = cluster.keyspace("simplex").function("varchar_or_text", text)
+
+    assert_equal "varchar_or_text", function.name
+    assert_equal "java", function.language
+    assert_equal text, function.type
+    refute function.called_on_null?
+    assert function.has_argument?("key")
+    function.each_argument { |arg| assert_equal text, arg.type }
+
+    # Do the same checks, with varchar...
+    assert cluster.keyspace("simplex").has_function?("varchar_or_text", varchar)
+    function = cluster.keyspace("simplex").function("varchar_or_text", varchar)
+
+    assert_equal "varchar_or_text", function.name
+    assert_equal "java", function.language
+    assert_equal varchar, function.type
+    refute function.called_on_null?
+    assert function.has_argument?("key")
+    function.each_argument { |arg| assert_equal varchar, arg.type }
+  ensure
+    cluster && cluster.close
+  end
+
   # Test for creating two UDFs with the same name, but different types
   #
   # test_can_create_udf_same_name_different_types tests that a UDF is identified by its signature, which is the
@@ -168,7 +223,7 @@ class UserDefinedFunctionTest < IntegrationTestCase
     sleep(2)
     assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
     function = cluster.keyspace("simplex").function("sum_int", int, int)
-    function.each_argument { |arg| assert_equal Cassandra::Types.int, arg.type }
+    function.each_argument { |arg| assert_equal int, arg.type }
 
     session.execute("CREATE FUNCTION sum_int(key smallint, val smallint)
                     RETURNS NULL ON NULL INPUT
@@ -180,12 +235,12 @@ class UserDefinedFunctionTest < IntegrationTestCase
     assert cluster.keyspace("simplex").has_function?("sum_int", smallint, smallint)
     function = cluster.keyspace("simplex").function("sum_int", smallint, smallint)
     # keyspace#function retrieves the first UDF, so the first one is retrieved here
-    function.each_argument { |arg| assert_equal Cassandra::Types.smallint, arg.type }
+    function.each_argument { |arg| assert_equal smallint, arg.type }
 
     # Make sure the original function is there, too.
     assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
     function = cluster.keyspace("simplex").function("sum_int", int, int)
-    function.each_argument { |arg| assert_equal Cassandra::Types.int, arg.type }
+    function.each_argument { |arg| assert_equal int, arg.type }
   ensure
     cluster && cluster.close
   end

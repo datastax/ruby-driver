@@ -102,7 +102,7 @@ module Cassandra
         when :inet             then write_inet(buffer, value)
         when :timestamp        then write_timestamp(buffer, value)
         when :uuid, :timeuuid  then write_uuid(buffer, value)
-        when :varchar          then write_varchar(buffer, value)
+        when :text             then write_text(buffer, value)
         when :varint           then write_varint(buffer, value)
         when :tinyint          then write_tinyint(buffer, value)
         when :smallint         then write_smallint(buffer, value)
@@ -180,7 +180,7 @@ module Cassandra
         when 0x0009 then Types.int
         when 0x000B then Types.timestamp
         when 0x000C then Types.uuid
-        when 0x000D then Types.varchar
+        when 0x000D then Types.text
         when 0x000E then Types.varint
         when 0x000F then Types.timeuuid
         when 0x0010 then Types.inet
@@ -228,7 +228,7 @@ module Cassandra
         when :timestamp        then read_timestamp(buffer)
         when :uuid             then read_uuid(buffer)
         when :timeuuid         then read_uuid(buffer, TimeUuid)
-        when :varchar          then read_varchar(buffer)
+        when :text             then read_text(buffer)
         when :varint           then read_varint(buffer)
         when :inet             then read_inet(buffer)
         when :tinyint          then read_tinyint(buffer)
@@ -373,7 +373,7 @@ module Cassandra
         when :inet             then write_inet(buffer, value)
         when :timestamp        then write_timestamp(buffer, value)
         when :uuid, :timeuuid  then write_uuid(buffer, value)
-        when :varchar          then write_varchar(buffer, value)
+        when :text             then write_text(buffer, value)
         when :varint           then write_varint(buffer, value)
         when :list, :set       then write_list_v3(buffer, value, type.value_type)
         when :map              then write_map_v3(buffer, value, type.key_type, type.value_type)
@@ -409,7 +409,7 @@ module Cassandra
         when :timestamp        then read_timestamp(buffer)
         when :uuid             then read_uuid(buffer)
         when :timeuuid         then read_uuid(buffer, TimeUuid)
-        when :varchar          then read_varchar(buffer)
+        when :text             then read_text(buffer)
         when :varint           then read_varint(buffer)
         when :inet             then read_inet(buffer)
         when :list
@@ -517,7 +517,7 @@ module Cassandra
         when 0x0009 then Types.int
         when 0x000B then Types.timestamp
         when 0x000C then Types.uuid
-        when 0x000D then Types.varchar
+        when 0x000D then Types.text
         when 0x000E then Types.varint
         when 0x000F then Types.timeuuid
         when 0x0010 then Types.inet
@@ -587,7 +587,7 @@ module Cassandra
         when :float            then write_float(buffer, value)
         when :int              then write_int(buffer, value)
         when :inet             then write_inet(buffer, value)
-        when :varchar, :text   then write_varchar(buffer, value)
+        when :text             then write_text(buffer, value)
         when :timestamp        then write_timestamp(buffer, value)
         when :timeuuid, :uuid  then write_uuid(buffer, value)
         when :varint           then write_varint(buffer, value)
@@ -621,7 +621,7 @@ module Cassandra
         when :float            then read_float(buffer)
         when :int              then read_int(buffer)
         when :timestamp        then read_timestamp(buffer)
-        when :varchar, :text   then read_varchar(buffer)
+        when :text             then read_text(buffer)
         when :varint           then read_varint(buffer)
         when :uuid             then read_uuid(buffer)
         when :timeuuid         then read_uuid(buffer, TimeUuid)
@@ -704,7 +704,7 @@ module Cassandra
         when 0x000A then Types.text
         when 0x000B then Types.timestamp
         when 0x000C then Types.uuid
-        when 0x000D then Types.varchar
+        when 0x000D then Types.text
         when 0x000E then Types.varint
         when 0x000F then Types.timeuuid
         when 0x0010 then Types.inet
@@ -762,7 +762,7 @@ module Cassandra
         read_size(buffer) && buffer.read_uuid(klass)
       end
 
-      def read_varchar(buffer)
+      def read_text(buffer)
         value = buffer.read_bytes
         value && value.force_encoding(::Encoding::UTF_8)
       end
@@ -847,7 +847,7 @@ module Cassandra
         buffer.append_long(ms)
       end
 
-      def write_varchar(buffer, value)
+      def write_text(buffer, value)
         buffer.append_bytes(value.encode(::Encoding::UTF_8))
       end
 
@@ -913,7 +913,7 @@ module Cassandra
         when :inet
           size = read_short_size(buffer)
           size && ::IPAddr.new_ntoh(buffer.read(size))
-        when :varchar, :text
+        when :text
           value = buffer.read_short_bytes
           value && value.force_encoding(::Encoding::UTF_8)
         when :timestamp
@@ -986,7 +986,7 @@ module Cassandra
           else
             buffer.append_short(-1)
           end
-        when :varchar, :text
+        when :text
           buffer.append_short_bytes(value && value.encode(::Encoding::UTF_8))
         when :timestamp
           if value

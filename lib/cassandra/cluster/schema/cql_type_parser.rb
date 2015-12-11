@@ -45,10 +45,11 @@ module Cassandra
           end
 
           case node.name
-          when 'varchar', 'text'   then Cassandra::Types.varchar
+          when 'text'              then Cassandra::Types.text
           when 'blob'              then Cassandra::Types.blob
           when 'ascii'             then Cassandra::Types.ascii
-          when 'bigint', 'counter' then Cassandra::Types.bigint
+          when 'bigint'            then Cassandra::Types.bigint
+          when 'counter'           then Cassandra::Types.counter
           when 'int'               then Cassandra::Types.int
           when 'varint'            then Cassandra::Types.varint
           when 'boolean'           then Cassandra::Types.boolean

@@ -113,7 +113,7 @@ module Cassandra
     end
 
     def inspect
-      "#<Cassandra::Function:0x#{self.object_id.to_s(16)} @keyspace=#{@keyspace.inspect}, @name=#{@name.inspect}, @language=#{@language.inspect}, @type=#{@type.inspect}, @arguments=#{@arguments.values.inspect}>"
+      "#<Cassandra::Function:0x#{self.object_id.to_s(16)} @keyspace=#{@keyspace.inspect}, @name=#{@name.inspect}, @language=#{@language.inspect}, @type=#{@type.inspect}, @arguments=#{@arguments.inspect} @body=#{@body.inspect}>"
     end
 
     # @private

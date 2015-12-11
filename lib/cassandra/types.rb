@@ -1119,38 +1119,6 @@ module Cassandra
     const_set('Uuid', Simple.new(:uuid))
 
     # @!parse
-    #   class Varchar < Type
-    #     # @return [Symbol] `:varchar`
-    #     # @see Cassandra::Type#kind
-    #     def kind
-    #     end
-    #
-    #     # Coerces the value to String
-    #     # @param value [Object] original value
-    #     # @return [String] value
-    #     # @see Cassandra::Type#new
-    #     def new(value)
-    #     end
-    #
-    #     # Asserts that a given value is a String
-    #     # @param value [Object] value to be validated
-    #     # @param message [String] error message to use when assertion
-    #     #   fails
-    #     # @yieldreturn [String] error message to use when assertion fails
-    #     # @raise [ArgumentError] if the value is not a String
-    #     # @return [void]
-    #     # @see Cassandra::Type#assert
-    #     def assert(value, message = nil, &block)
-    #     end
-    #
-    #     # @return [String] `"varchar"`
-    #     # @see Cassandra::Type#to_s
-    #     def to_s
-    #     end
-    #   end
-    const_set('Varchar', Simple.new(:varchar))
-
-    # @!parse
     #   class Varint < Type
     #     # @return [Symbol] `:varint`
     #     # @see Cassandra::Type#kind
@@ -1420,9 +1388,9 @@ module Cassandra
       alias :== :eql?
     end
 
-    # @return [Cassandra::Types::Varchar] varchar type
+    # @return [Cassandra::Types::Text] text type since varchar is an alias for text
     def varchar
-      Varchar
+      Text
     end
 
     # @return [Cassandra::Types::Text] text type
@@ -1521,7 +1489,7 @@ module Cassandra
     end
 
     # @param value_type [Cassandra::Type] the type of elements in this list
-    # @return [Cassandra::Types::Map] map type
+    # @return [Cassandra::Types::List] list type
     def list(value_type)
       Util.assert_instance_of(Cassandra::Type, value_type,
         "list type must be a Cassandra::Type, #{value_type.inspect} given"
@@ -1532,7 +1500,7 @@ module Cassandra
 
     # @param key_type [Cassandra::Type] the type of keys in this map
     # @param value_type [Cassandra::Type] the type of values in this map
-    # @return [Cassandra::Types::Varchar] varchar type
+    # @return [Cassandra::Types::Map] map type
     def map(key_type, value_type)
       Util.assert_instance_of(Cassandra::Type, key_type,
         "map key type must be a Cassandra::Type, #{key_type.inspect} given"
@@ -1544,7 +1512,7 @@ module Cassandra
       Map.new(key_type, value_type)
     end
 
-    # @param value_type [Cassandra::Type] the type of elements in this set
+    # @param value_type [Cassandra::Type] the type of values in this set
     # @return [Cassandra::Types::Set] set type
     def set(value_type)
       Util.assert_instance_of(Cassandra::Type, value_type,
