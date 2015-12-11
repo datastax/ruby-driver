@@ -38,7 +38,9 @@ module Cassandra
       @called_on_null = called_on_null
 
       # Build up an arguments hash keyed on arg-name.
-      @arguments_hash = Hash[@arguments.map { |arg| [arg.name, arg] }]
+      @arguments_hash = @arguments.each_with_object({}) do |arg, h|
+        h[arg.name] = arg
+      end
     end
 
     # @return [Boolean] whether this function will be called on null input

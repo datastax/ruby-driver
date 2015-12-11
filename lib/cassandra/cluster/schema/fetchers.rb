@@ -285,23 +285,18 @@ module Cassandra
                       types[row['type_name']] = create_type(row)
                     end
 
-            # This is a somewhat fancy (though I believe efficient) way of making a hash
-            # from an array of key-value elements. We want the functions hash to be keyed
-            # on [name, arg-types-list]. Similarly for the aggregates hash.
+            # We want the functions hash to be keyed on [name, arg-types-list].
+            # Similarly for the aggregates hash.
 
-            functions = Hash[
-                rows_functions.map do |row|
-                  func = create_function(row)
-                  [[func.name, func.argument_types], func]
-                end
-            ]
+            functions = rows_functions.each_with_object({}) do |row, collector|
+                          func = create_function(row)
+                          collector[[func.name, func.argument_types]] = func
+            end
 
-            aggregates = Hash[
-                rows_aggregates.map do |row|
-                  agg = create_aggregate(row, functions)
-                  [[agg.name, agg.argument_types], agg]
-                end
-            ]
+            aggregates = rows_aggregates.each_with_object({}) do |row, collector|
+                           agg = create_aggregate(row, functions)
+                           collector[[agg.name, agg.argument_types]] = agg
+                         end
 
             lookup_columns = map_rows_by(rows_columns, 'columnfamily_name')
             tables = rows_tables.each_with_object({}) do |row, tables|

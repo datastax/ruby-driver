@@ -20,8 +20,10 @@ module Cassandra
   # Base class for all cassandra types.
   # @abstract This class exists for documentation purposes only
   class Type
-    # @return [Symbol] shorthand type name
-    def kind
+    attr_reader :kind
+
+    def initialize(kind)
+      @kind = kind
     end
 
     # Coerces a given value to this type
@@ -48,12 +50,6 @@ module Cassandra
   module Types; extend self
     # @private
     class Simple < Type
-      attr_reader :kind
-
-      def initialize(kind)
-        @kind = kind
-      end
-
       def new(value)
         __send__(:"new_#{@kind}", value)
       end
@@ -68,7 +64,7 @@ module Cassandra
       end
 
       def hash
-        @hash ||= 31 * 17 + kind.hash
+        @hash ||= 31 * 17 + @kind.hash
       end
 
       def eql?(other)
@@ -617,13 +613,8 @@ module Cassandra
 
       # @private
       def initialize(value_type)
+        super(:list)
         @value_type = value_type
-      end
-
-      # @return [Symbol] `:list`
-      # @see Cassandra::Type#kind
-      def kind
-        :list
       end
 
       # Coerces the value to Array
@@ -663,7 +654,7 @@ module Cassandra
       def hash
         @hash ||= begin
           h = 17
-          h = 31 * h + kind.hash
+          h = 31 * h + @kind.hash
           h = 31 * h + @value_type.hash
           h
         end
@@ -681,14 +672,9 @@ module Cassandra
 
       # @private
       def initialize(key_type, value_type)
+        super(:map)
         @key_type   = key_type
         @value_type = value_type
-      end
-
-      # @return [Symbol] `:map`
-      # @see Cassandra::Type#kind
-      def kind
-        :map
       end
 
       # Coerces the value to Hash
@@ -743,7 +729,7 @@ module Cassandra
       def hash
         @hash ||= begin
           h = 17
-          h = 31 * h + kind.hash
+          h = 31 * h + @kind.hash
           h = 31 * h + @key_type.hash
           h = 31 * h + @value_type.hash
           h
@@ -764,13 +750,8 @@ module Cassandra
 
       # @private
       def initialize(value_type)
+        super(:set)
         @value_type = value_type
-      end
-
-      # @return [Symbol] `:set`
-      # @see Cassandra::Type#kind
-      def kind
-        :set
       end
 
       # Coerces the value to Set
@@ -837,7 +818,7 @@ module Cassandra
       def hash
         @hash ||= begin
           h = 17
-          h = 31 * h + kind.hash
+          h = 31 * h + @kind.hash
           h = 31 * h + @value_type.hash
           h
         end
@@ -1047,13 +1028,8 @@ module Cassandra
 
       # @private
       def initialize(*members)
+        super(:tuple)
         @members = members
-      end
-
-      # @return [Symbol] `:tuple`
-      # @see Cassandra::Type#kind
-      def kind
-        :tuple
       end
 
       # Coerces the value to Cassandra::Tuple
@@ -1097,7 +1073,7 @@ module Cassandra
       def hash
         @hash ||= begin
           h = 17
-          h = 31 * h + kind.hash
+          h = 31 * h + @kind.hash
           h = 31 * h + @members.hash
           h
         end
@@ -1252,6 +1228,7 @@ module Cassandra
 
       # @private
       def initialize(keyspace, name, fields)
+        super(:udt)
         @keyspace  = keyspace
         @name      = name
         @fields    = fields
@@ -1284,12 +1261,6 @@ module Cassandra
       #   nil
       def field(name)
         @fields.find {|f| f.name == name}
-      end
-
-      # @return [Symbol] `:udt`
-      # @see Cassandra::Type#kind
-      def kind
-        :udt
       end
 
       # Coerces the value to Cassandra::UDT
@@ -1348,7 +1319,7 @@ module Cassandra
       def hash
         @hash ||= begin
           h = 17
-          h = 31 * h + kind.hash
+          h = 31 * h + @kind.hash
           h = 31 * h + @keyspace.hash
           h = 31 * h + @name.hash
           h = 31 * h + @fields.hash
@@ -1406,12 +1377,8 @@ module Cassandra
       attr_reader :name
 
       def initialize(name)
+        super(:custom)
         @name = name
-      end
-
-      # @return [Symbol] shorthand type name
-      def kind
-        :custom
       end
 
       # Coerces a given value to this type
@@ -1440,7 +1407,7 @@ module Cassandra
       def hash
         @hash ||= begin
           h = 17
-          h = 31 * h + kind.hash
+          h = 31 * h + @kind.hash
           h = 31 * h + @name.hash
           h
         end
