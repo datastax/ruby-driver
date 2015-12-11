@@ -67,6 +67,10 @@ module Cassandra
         @kind.to_s
       end
 
+      def hash
+        @hash ||= 31 * 17 + kind.hash
+      end
+
       def eql?(other)
         other.is_a?(Simple) && @kind == other.kind
       end
@@ -656,6 +660,15 @@ module Cassandra
         "list<#{@value_type.to_s}>"
       end
 
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + kind.hash
+          h = 31 * h + @value_type.hash
+          h
+        end
+      end
+
       def eql?(other)
         other.is_a?(List) && @value_type == other.value_type
       end
@@ -725,6 +738,16 @@ module Cassandra
       # @see Cassandra::Type#to_s
       def to_s
         "map<#{@key_type.to_s}, #{@value_type.to_s}>"
+      end
+
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + kind.hash
+          h = 31 * h + @key_type.hash
+          h = 31 * h + @value_type.hash
+          h
+        end
       end
 
       def eql?(other)
@@ -809,6 +832,15 @@ module Cassandra
       # @see Cassandra::Type#to_s
       def to_s
         "set<#{@value_type.to_s}>"
+      end
+
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + kind.hash
+          h = 31 * h + @value_type.hash
+          h
+        end
       end
 
       def eql?(other)
@@ -1062,6 +1094,15 @@ module Cassandra
         "tuple<#{@members.map(&:to_s).join(', ')}>"
       end
 
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + kind.hash
+          h = 31 * h + @members.hash
+          h
+        end
+      end
+
       def eql?(other)
         other.is_a?(Tuple) && @members == other.members
       end
@@ -1183,6 +1224,15 @@ module Cassandra
           "#{@name} #{@type}"
         end
 
+        def hash
+          @hash ||= begin
+            h = 17
+            h = 31 * h + @name.hash
+            h = 31 * h + @type.hash
+            h
+          end
+        end
+
         def eql?(other)
           other.is_a?(Field) &&
             @name == other.name &&
@@ -1295,6 +1345,17 @@ module Cassandra
         "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} {#{@fields.join(', ')}}"
       end
 
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + kind.hash
+          h = 31 * h + @keyspace.hash
+          h = 31 * h + @name.hash
+          h = 31 * h + @fields.hash
+          h
+        end
+      end
+
       def eql?(other)
         other.is_a?(UserDefined) &&
           @keyspace == other.keyspace &&
@@ -1374,6 +1435,15 @@ module Cassandra
       # @return [String] a cassandra representation of this type
       def to_s
         "'#{@name}'"
+      end
+
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + kind.hash
+          h = 31 * h + @name.hash
+          h
+        end
       end
 
       def eql?(other)

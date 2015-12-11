@@ -97,12 +97,13 @@ Feature: Schema Metadata
     And the following example:
       """ruby
       require 'cassandra'
+      include Cassandra::Types
 
       cluster = Cassandra.cluster
 
-      puts cluster.keyspace('simplex').function('fLog').to_cql
+      puts cluster.keyspace('simplex').function('fLog', double).to_cql
 
-      function = cluster.keyspace('simplex').function('fLog')
+      function = cluster.keyspace('simplex').function('fLog', double)
       puts ""
       puts "Name: #{function.name}"
       puts "Language: #{function.language}"

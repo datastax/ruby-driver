@@ -26,6 +26,8 @@ module Cassandra
     attr_reader :language
     # @return [Cassandra::Type] function return type
     attr_reader :type
+    # @return [String] function body
+    attr_reader :body
 
     # @private
     def initialize(keyspace, name, language, type, arguments, body, called_on_null)
@@ -36,6 +38,9 @@ module Cassandra
       @arguments      = arguments
       @body           = body
       @called_on_null = called_on_null
+
+      # Build up an arguments hash keyed on arg-name.
+      @arguments_hash = Hash[@arguments.map { |arg| [arg.name, arg] }]
     end
 
     # @return [Boolean] whether this function will be called on null input
@@ -46,13 +51,13 @@ module Cassandra
     # @param name [String] argument name
     # @return [Boolean] whether this function has a given argument
     def has_argument?(name)
-      @arguments.has_key?(name)
+      @arguments_hash.has_key?(name)
     end
 
     # @param name [String] argument name
-    # @return [Cassandra::Column, nil] an argument or nil
+    # @return [Cassandra::Argument, nil] an argument or nil
     def argument(name)
-      @arguments[name]
+      @arguments_hash[name]
     end
 
     # Yield or enumerate each argument defined in this function
@@ -63,13 +68,21 @@ module Cassandra
     #   @return [Array<Cassandra::Argument>] a list of arguments
     def each_argument(&block)
       if block_given?
-        @arguments.each_value(&block)
+        @arguments.each(&block)
         self
       else
-        @arguments.values
+        # We return a dup of the arguments so that the caller can manipulate
+        # the array however they want without affecting the source.
+        @arguments.dup
       end
     end
     alias :arguments :each_argument
+
+    # Get the list of argument types for this function.
+    # @return [Array<Cassandra::Type>] a list of argument types.
+    def argument_types
+      @arguments.map { |argument| argument.type }
+    end
 
     def eql?(other)
       other.is_a?(Function) && \
@@ -79,7 +92,7 @@ module Cassandra
         @type == other.type && \
         @arguments == other.arguments && \
         @body == other.body && \
-        @called_on_null == other.called_on_null
+        @called_on_null == other.called_on_null?
     end
     alias :== :eql?
 
@@ -101,7 +114,7 @@ module Cassandra
     def to_cql
       cql = "CREATE FUNCTION #{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}("
       first = true
-      @arguments.each_value do |argument|
+      @arguments.each do |argument|
         if first
           first = false
         else

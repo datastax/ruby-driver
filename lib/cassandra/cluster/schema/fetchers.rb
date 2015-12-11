@@ -98,8 +98,8 @@ module Cassandra
           end
         end
 
-        def fetch_function(connection, keyspace_name, function_name)
-          select_function(connection, keyspace_name, function_name).map do |rows_functions|
+        def fetch_function(connection, keyspace_name, function_name, function_args)
+          select_function(connection, keyspace_name, function_name, function_args).map do |rows_functions|
             if rows_functions.empty?
               nil
             else
@@ -108,8 +108,8 @@ module Cassandra
           end
         end
 
-        def fetch_aggregate(connection, keyspace_name, aggregate_name)
-          select_aggregate(connection, keyspace_name, aggregate_name).map do |rows_aggregates|
+        def fetch_aggregate(connection, keyspace_name, aggregate_name, aggregate_args)
+          select_aggregate(connection, keyspace_name, aggregate_name, aggregate_args).map do |rows_aggregates|
             if rows_aggregates.empty?
               nil
             else
@@ -180,11 +180,11 @@ module Cassandra
           FUTURE_EMPTY_LIST
         end
 
-        def select_function(connection, keyspace_name, function_name)
+        def select_function(connection, keyspace_name, function_name, function_args)
           FUTURE_EMPTY_LIST
         end
 
-        def select_aggregate(connection, keyspace_name, aggregate_name)
+        def select_aggregate(connection, keyspace_name, aggregate_name, aggregate_args)
           FUTURE_EMPTY_LIST
         end
 
@@ -284,12 +284,24 @@ module Cassandra
             types = rows_types.each_with_object({}) do |row, types|
                       types[row['type_name']] = create_type(row)
                     end
-            functions = rows_functions.each_with_object({}) do |row, functions|
-                          functions[row['function_name']] = create_function(row)
-                        end
-            aggregates = rows_aggregates.each_with_object({}) do |row, aggregates|
-                           aggregates[row['aggregate_name']] = create_aggregate(row, functions)
-                         end
+
+            # This is a somewhat fancy (though I believe efficient) way of making a hash
+            # from an array of key-value elements. We want the functions hash to be keyed
+            # on [name, arg-types-list]. Similarly for the aggregates hash.
+
+            functions = Hash[
+                rows_functions.map do |row|
+                  func = create_function(row)
+                  [[func.name, func.argument_types], func]
+                end
+            ]
+
+            aggregates = Hash[
+                rows_aggregates.map do |row|
+                  agg = create_aggregate(row, functions)
+                  [[agg.name, agg.argument_types], agg]
+                end
+            ]
 
             lookup_columns = map_rows_by(rows_columns, 'columnfamily_name')
             tables = rows_tables.each_with_object({}) do |row, tables|
@@ -626,8 +638,19 @@ module Cassandra
           SELECT_AGGREGATES          = 'SELECT * FROM system.schema_aggregates'.freeze
           SELECT_KEYSPACE_FUNCTIONS  = 'SELECT * FROM system.schema_functions WHERE keyspace_name = ?'.freeze
           SELECT_KEYSPACE_AGGREGATES = 'SELECT * FROM system.schema_aggregates WHERE keyspace_name = ?'.freeze
-          SELECT_FUNCTION            = 'SELECT * FROM system.schema_functions WHERE keyspace_name = ? AND function_name = ?'.freeze
-          SELECT_AGGREGATE           = 'SELECT * FROM system.schema_aggregates WHERE keyspace_name = ? AND aggregate_name = ?'.freeze
+          SELECT_FUNCTION            = 'SELECT * FROM system.schema_functions WHERE keyspace_name = ? AND function_name = ? AND argument_types = ?'.freeze
+          SELECT_AGGREGATE           = 'SELECT * FROM system.schema_aggregates WHERE keyspace_name = ? AND aggregate_name = ? AND argument_types = ?'.freeze
+
+          # parse an array of string argument types and return an array of [Cassandra::Type]s.
+          # @param connection a connection to a Cassandra node.
+          # @param keyspace_name [String] name of the keyspace.
+          # @param argument_types [Array<String>] array of argument types.
+          # @return [Array<Cassandra::Type>] array of parsed types.
+          def parse_argument_types(connection, keyspace_name, argument_types)
+            argument_types.map do |argument_type|
+              @type_parser.parse(argument_type).results.first.first
+            end
+          end
 
           private
 
@@ -639,11 +662,11 @@ module Cassandra
             function_body  = function_data['body']
             called_on_null = function_data['called_on_null_input']
 
-            arguments = ::Hash.new
+            arguments = []
 
             Array(function_data['argument_names']).zip(Array(function_data['argument_types'])) do |argument_name, fqcn|
               argument_type = @type_parser.parse(fqcn).results.first.first
-              arguments[argument_name] = Argument.new(argument_name, argument_type)
+              arguments << Argument.new(argument_name, argument_type)
             end
 
             Function.new(keyspace_name, function_name, function_lang, function_type, arguments, function_body, called_on_null)
@@ -656,8 +679,12 @@ module Cassandra
             argument_types = aggregate_data['argument_types'].map {|fqcn| @type_parser.parse(fqcn).results.first.first}.freeze
             state_type     = @type_parser.parse(aggregate_data['state_type']).results.first.first
             initial_state  = Util.encode_object(Protocol::Coder.read_value_v3(Protocol::CqlByteBuffer.new.append_bytes(aggregate_data['initcond']), state_type))
-            state_function = functions[aggregate_data['state_func']]
-            final_function = functions[aggregate_data['final_func']]
+
+            # The state-function takes arguments: first the stype, then the args of the aggregate.
+            state_function = functions[[aggregate_data['state_func'], [state_type].concat(argument_types)]]
+
+            # The final-function takes an stype argument.
+            final_function = functions[[aggregate_data['final_func'], [state_type]]]
 
             Aggregate.new(keyspace_name, aggregate_name, aggregate_type, argument_types, state_type, initial_state, state_function, final_function)
           end
@@ -682,15 +709,15 @@ module Cassandra
             send_select_request(connection, SELECT_KEYSPACE_AGGREGATES, params, hints)
           end
 
-          def select_function(connection, keyspace_name, function_name)
-            params = [keyspace_name, function_name]
-            hints  = [Types.varchar, Types.varchar]
+          def select_function(connection, keyspace_name, function_name, function_args)
+            params = [keyspace_name, function_name, function_args.map(&:to_s)]
+            hints  = [Types.varchar, Types.varchar, Types.list(Types.varchar)]
             send_select_request(connection, SELECT_FUNCTION, params, hints)
           end
 
-          def select_aggregate(connection, keyspace_name, aggregate_name)
-            params = [keyspace_name, aggregate_name]
-            hints  = [Types.varchar, Types.varchar]
+          def select_aggregate(connection, keyspace_name, aggregate_name, aggregate_args)
+            params = [keyspace_name, aggregate_name, aggregate_args.map(&:to_s)]
+            hints  = [Types.varchar, Types.varchar, Types.list(Types.varchar)]
             send_select_request(connection, SELECT_AGGREGATE, params, hints)
           end
         end
@@ -717,9 +744,21 @@ module Cassandra
 
           SELECT_TYPE = 'SELECT * FROM system_schema.types WHERE keyspace_name = ? AND type_name = ?'.freeze
 
-          SELECT_FUNCTION = 'SELECT * FROM system_schema.functions WHERE keyspace_name = ? AND function_name = ?'.freeze
+          SELECT_FUNCTION = 'SELECT * FROM system_schema.functions WHERE keyspace_name = ? AND function_name = ? AND argument_types = ?'.freeze
 
-          SELECT_AGGREGATE = 'SELECT * FROM system_schema.aggregates WHERE keyspace_name = ? AND aggregate_name = ?'.freeze
+          SELECT_AGGREGATE = 'SELECT * FROM system_schema.aggregates WHERE keyspace_name = ? AND aggregate_name = ? AND argument_types = ?'.freeze
+
+          # parse an array of string argument types and return an array of [Cassandra::Type]s.
+          # @param connection a connection to a Cassandra node.
+          # @param keyspace_name [String] name of the keyspace.
+          # @param argument_types [Array<String>] array of argument types.
+          # @return [Array<Cassandra::Type>] array of parsed types.
+          def parse_argument_types(connection, keyspace_name, argument_types)
+            types = @schema.keyspace(keyspace_name).send(:raw_types)
+            argument_types.map do |argument_type|
+              @type_parser.parse(argument_type, types).first
+            end
+          end
 
           private
 
@@ -801,15 +840,15 @@ module Cassandra
             send_select_request(connection, SELECT_TYPE, params, hints)
           end
 
-          def select_function(connection, keyspace_name, function_name)
-            params = [keyspace_name, function_name]
-            hints  = [Types.varchar, Types.varchar]
+          def select_function(connection, keyspace_name, function_name, function_args)
+            params = [keyspace_name, function_name, function_args.map(&:to_s)]
+            hints  = [Types.varchar, Types.varchar, Types.list(Types.varchar)]
             send_select_request(connection, SELECT_FUNCTION, params, hints)
           end
 
-          def select_aggregate(connection, keyspace_name, aggregate_name)
-            params = [keyspace_name, aggregate_name]
-            hints  = [Types.varchar, Types.varchar]
+          def select_aggregate(connection, keyspace_name, aggregate_name, aggregate_args)
+            params = [keyspace_name, aggregate_name, aggregate_args.map(&:to_s)]
+            hints  = [Types.varchar, Types.varchar, Types.list(Types.varchar)]
             send_select_request(connection, SELECT_AGGREGATE, params, hints)
           end
 
@@ -822,10 +861,10 @@ module Cassandra
             function_body  = function_data['body']
             called_on_null = function_data['called_on_null_input']
 
-            arguments = ::Hash.new
+            arguments = []
 
             function_data['argument_names'].zip(function_data['argument_types']) do |argument_name, argument_type|
-              arguments[argument_name] = Argument.new(argument_name, @type_parser.parse(argument_type, types).first)
+              arguments << Argument.new(argument_name, @type_parser.parse(argument_type, types).first)
             end
 
             Function.new(keyspace_name, function_name, function_lang, function_type, arguments, function_body, called_on_null)
@@ -838,9 +877,13 @@ module Cassandra
             aggregate_type = @type_parser.parse(aggregate_data['return_type'], types).first
             argument_types = aggregate_data['argument_types'].map {|argument_type| @type_parser.parse(argument_type, types).first}.freeze
             state_type     = @type_parser.parse(aggregate_data['state_type'], types).first
-            initial_state  = aggregate_data['initcond']
-            state_function = functions[aggregate_data['state_func']]
-            final_function = functions[aggregate_data['final_func']]
+            initial_state  = aggregate_data['initcond'] || 'null'
+
+            # The state-function takes arguments: first the stype, then the args of the aggregate.
+            state_function = functions[[aggregate_data['state_func'], [state_type].concat(argument_types)]]
+
+            # The final-function takes an stype argument.
+            final_function = functions[[aggregate_data['final_func'], [state_type]]]
 
             Aggregate.new(keyspace_name, aggregate_name, aggregate_type, argument_types, state_type, initial_state, state_function, final_function)
           end
@@ -890,12 +933,23 @@ module Cassandra
             types = ::Hash.new
             create_types(rows_types, types)
 
-            functions = rows_functions.each_with_object({}) do |row, functions|
-                          functions[row['function_name']] = create_function(row, types)
-                        end
-            aggregates = rows_aggregates.each_with_object({}) do |row, aggregates|
-                           aggregates[row['aggregate_name']] = create_aggregate(row, functions, types)
-                         end
+            # This is a somewhat fancy (though I believe efficient) way of making a hash
+            # from an array of key-value elements. We want the functions hash to be keyed
+            # on [name, arg-types-list]. Similarly for the aggregates hash.
+
+            functions = Hash[
+                rows_functions.map do |row|
+                  func = create_function(row, types)
+                  [[func.name, func.argument_types], func]
+                end
+            ]
+
+            aggregates = Hash[
+                rows_aggregates.map do |row|
+                  agg = create_aggregate(row, functions, types)
+                  [[agg.name, agg.argument_types], agg]
+                end
+            ]
 
             lookup_columns = map_rows_by(rows_columns, 'table_name')
             tables = rows_tables.each_with_object({}) do |row, tables|
@@ -966,7 +1020,7 @@ module Cassandra
             is_dense    = table_flags.include?('dense')
             is_super    = table_flags.include?('super')
             is_compound = table_flags.include?('compound')
-            is_compact  = is_super || is_dense || !is_compound;
+            is_compact  = is_super || is_dense || !is_compound
 
             partition_key      = []
             clustering_columns = []
@@ -1070,18 +1124,27 @@ module Cassandra
             return Ione::Future.failed(e)
           end
 
-          def fetch_function(connection, keyspace_name, function_name)
+          def fetch_function(connection, keyspace_name, function_name, function_args)
             find_fetcher(connection)
-              .fetch_function(connection, keyspace_name, function_name)
+              .fetch_function(connection, keyspace_name, function_name, function_args)
           rescue => e
             return Ione::Future.failed(e)
           end
 
-          def fetch_aggregate(connection, keyspace_name, aggregate_name)
+          def fetch_aggregate(connection, keyspace_name, aggregate_name, aggregate_args)
             find_fetcher(connection)
-              .fetch_aggregate(connection, keyspace_name, aggregate_name)
+              .fetch_aggregate(connection, keyspace_name, aggregate_name, aggregate_args)
           rescue => e
             return Ione::Future.failed(e)
+          end
+
+          # parse an array of string argument types and return an array of [Cassandra::Type]s.
+          # @param connection a connection to a Cassandra node.
+          # @param keyspace_name [String] name of the keyspace.
+          # @param argument_types [Array<String>] array of argument types.
+          # @return [Array<Cassandra::Type>] array of parsed types.
+          def parse_argument_types(connection, keyspace_name, argument_types)
+            find_fetcher(connection).parse_argument_types(connection, keyspace_name, argument_types)
           end
 
           private
