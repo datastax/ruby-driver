@@ -20,6 +20,7 @@ module Cassandra
   # Base class for all cassandra types.
   # @abstract This class exists for documentation purposes only
   class Type
+    # @return [Symbol] shorthand type name
     attr_reader :kind
 
     def initialize(kind)
