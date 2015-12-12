@@ -19,8 +19,8 @@ Feature: Schema Metadata
     Then its output should contain:
       """cql
       CREATE TABLE system."IndexInfo" (
-        table_name varchar,
-        index_name varchar,
+        table_name text,
+        index_name text,
         PRIMARY KEY (table_name, index_name)
       )
       """
@@ -39,8 +39,8 @@ Feature: Schema Metadata
     Then its output should contain:
       """cql
       CREATE TABLE system."IndexInfo" (
-        table_name varchar,
-        index_name varchar,
+        table_name text,
+        index_name text,
         value 'org.apache.cassandra.db.marshal.EmptyType',
         PRIMARY KEY (table_name, index_name)
       )
@@ -73,13 +73,13 @@ Feature: Schema Metadata
     Then its output should contain:
       """cql
       CREATE TYPE simplex.address (
-        street varchar,
+        street text,
         zipcode int
       );
       CREATE TYPE simplex.check_in (
         location frozen <address>,
         time timestamp,
-        data frozen <tuple<int, varchar, float>>
+        data frozen <tuple<int, text, float>>
       );
       """
 

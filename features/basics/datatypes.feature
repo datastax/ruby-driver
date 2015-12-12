@@ -243,7 +243,7 @@ Feature: Datatypes
       Name: (Jane, Doe)
       Name: (Agent, Smith)
       Name: (Apache, Cassandra)
-      ArgumentError: argument for "name" must be tuple<varchar, varchar>, (Jane, Doe, Extra) given
+      ArgumentError: argument for "name" must be tuple<text, text>, (Jane, Doe, Extra) given
       """
 
   @cassandra-version-specific @cassandra-version-2.1.3

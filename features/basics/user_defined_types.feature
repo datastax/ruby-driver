@@ -72,13 +72,13 @@ Feature: User-Defined Types
     Then its output should contain:
       """cql
       CREATE TYPE simplex.address (
-        street varchar,
+        street text,
         zipcode int
       );
       CREATE TYPE simplex.check_in (
         location frozen <address>,
         time timestamp,
-        data frozen <tuple<int, varchar, float>>
+        data frozen <tuple<int, text, float>>
       );
       """
 
