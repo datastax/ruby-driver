@@ -1,8 +1,8 @@
 CREATE KEYSPACE system WITH replication = {'class': 'LocalStrategy'} AND durable_writes = true;
 
 CREATE TABLE system."IndexInfo" (
-  table_name varchar,
-  index_name varchar,
+  table_name text,
+  index_name text,
   PRIMARY KEY (table_name, index_name)
 )
 WITH COMPACT STORAGE
@@ -44,9 +44,9 @@ CREATE TABLE system.compaction_history (
   id uuid PRIMARY KEY,
   bytes_in bigint,
   bytes_out bigint,
-  columnfamily_name varchar,
+  columnfamily_name text,
   compacted_at timestamp,
-  keyspace_name varchar,
+  keyspace_name text,
   rows_merged map<int, bigint>
 )
 WITH bloom_filter_fp_chance = 0.01
@@ -65,9 +65,9 @@ WITH bloom_filter_fp_chance = 0.01
 
 CREATE TABLE system.compactions_in_progress (
   id uuid PRIMARY KEY,
-  columnfamily_name varchar,
+  columnfamily_name text,
   inputs set<int>,
-  keyspace_name varchar
+  keyspace_name text
 )
 WITH bloom_filter_fp_chance = 0.01
  AND caching = '{"keys":"ALL", "rows_per_partition":"NONE"}'
@@ -106,23 +106,23 @@ WITH COMPACT STORAGE
  AND speculative_retry = '99.0PERCENTILE';
 
 CREATE TABLE system.local (
-  key varchar PRIMARY KEY,
-  bootstrapped varchar,
+  key text PRIMARY KEY,
+  bootstrapped text,
   broadcast_address inet,
-  cluster_name varchar,
-  cql_version varchar,
-  data_center varchar,
+  cluster_name text,
+  cql_version text,
+  data_center text,
   gossip_generation int,
   host_id uuid,
   listen_address inet,
-  native_protocol_version varchar,
-  partitioner varchar,
-  rack varchar,
-  release_version varchar,
+  native_protocol_version text,
+  partitioner text,
+  rack text,
+  release_version text,
   rpc_address inet,
   schema_version uuid,
-  thrift_version varchar,
-  tokens set<varchar>,
+  thrift_version text,
+  tokens set<text>,
   truncated_at map<uuid, blob>
 )
 WITH bloom_filter_fp_chance = 0.01
@@ -183,14 +183,14 @@ WITH bloom_filter_fp_chance = 0.01
 
 CREATE TABLE system.peers (
   peer inet PRIMARY KEY,
-  data_center varchar,
+  data_center text,
   host_id uuid,
   preferred_ip inet,
-  rack varchar,
-  release_version varchar,
+  rack text,
+  release_version text,
   rpc_address inet,
   schema_version uuid,
-  tokens set<varchar>
+  tokens set<text>
 )
 WITH bloom_filter_fp_chance = 0.01
  AND caching = '{"keys":"ALL", "rows_per_partition":"NONE"}'
@@ -225,25 +225,25 @@ WITH bloom_filter_fp_chance = 0.01
  AND speculative_retry = '99.0PERCENTILE';
 
 CREATE TABLE system.schema_columnfamilies (
-  keyspace_name varchar,
-  columnfamily_name varchar,
+  keyspace_name text,
+  columnfamily_name text,
   bloom_filter_fp_chance double,
-  caching varchar,
+  caching text,
   cf_id uuid,
-  column_aliases varchar,
-  comment varchar,
-  compaction_strategy_class varchar,
-  compaction_strategy_options varchar,
-  comparator varchar,
-  compression_parameters varchar,
+  column_aliases text,
+  comment text,
+  compaction_strategy_class text,
+  compaction_strategy_options text,
+  comparator text,
+  compression_parameters text,
   default_time_to_live int,
-  default_validator varchar,
-  dropped_columns map<varchar, bigint>,
+  default_validator text,
+  dropped_columns map<text, bigint>,
   gc_grace_seconds int,
   index_interval int,
   is_dense boolean,
-  key_aliases varchar,
-  key_validator varchar,
+  key_aliases text,
+  key_validator text,
   local_read_repair_chance double,
   max_compaction_threshold int,
   max_index_interval int,
@@ -251,10 +251,10 @@ CREATE TABLE system.schema_columnfamilies (
   min_compaction_threshold int,
   min_index_interval int,
   read_repair_chance double,
-  speculative_retry varchar,
-  subcomparator varchar,
-  type varchar,
-  value_alias varchar,
+  speculative_retry text,
+  subcomparator text,
+  type text,
+  value_alias text,
   PRIMARY KEY (keyspace_name, columnfamily_name)
 )
 WITH bloom_filter_fp_chance = 0.01
@@ -272,15 +272,15 @@ WITH bloom_filter_fp_chance = 0.01
  AND speculative_retry = '99.0PERCENTILE';
 
 CREATE TABLE system.schema_columns (
-  keyspace_name varchar,
-  columnfamily_name varchar,
-  column_name varchar,
+  keyspace_name text,
+  columnfamily_name text,
+  column_name text,
   component_index int,
-  index_name varchar,
-  index_options varchar,
-  index_type varchar,
-  type varchar,
-  validator varchar,
+  index_name text,
+  index_options text,
+  index_type text,
+  type text,
+  validator text,
   PRIMARY KEY (keyspace_name, columnfamily_name, column_name)
 )
 WITH bloom_filter_fp_chance = 0.01
@@ -298,10 +298,10 @@ WITH bloom_filter_fp_chance = 0.01
  AND speculative_retry = '99.0PERCENTILE';
 
 CREATE TABLE system.schema_keyspaces (
-  keyspace_name varchar PRIMARY KEY,
+  keyspace_name text PRIMARY KEY,
   durable_writes boolean,
-  strategy_class varchar,
-  strategy_options varchar
+  strategy_class text,
+  strategy_options text
 )
 WITH COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
@@ -319,10 +319,10 @@ WITH COMPACT STORAGE
  AND speculative_retry = '99.0PERCENTILE';
 
 CREATE TABLE system.schema_triggers (
-  keyspace_name varchar,
-  columnfamily_name varchar,
-  trigger_name varchar,
-  trigger_options map<varchar, varchar>,
+  keyspace_name text,
+  columnfamily_name text,
+  trigger_name text,
+  trigger_options map<text, text>,
   PRIMARY KEY (keyspace_name, columnfamily_name, trigger_name)
 )
 WITH bloom_filter_fp_chance = 0.01
@@ -340,10 +340,10 @@ WITH bloom_filter_fp_chance = 0.01
  AND speculative_retry = '99.0PERCENTILE';
 
 CREATE TABLE system.schema_usertypes (
-  keyspace_name varchar,
-  type_name varchar,
-  field_names list<varchar>,
-  field_types list<varchar>,
+  keyspace_name text,
+  type_name text,
+  field_names list<text>,
+  field_types list<text>,
   PRIMARY KEY (keyspace_name, type_name)
 )
 WITH bloom_filter_fp_chance = 0.01
@@ -361,10 +361,10 @@ WITH bloom_filter_fp_chance = 0.01
  AND speculative_retry = '99.0PERCENTILE';
 
 CREATE TABLE system.size_estimates (
-  keyspace_name varchar,
-  table_name varchar,
-  range_start varchar,
-  range_end varchar,
+  keyspace_name text,
+  table_name text,
+  range_start text,
+  range_end text,
   mean_partition_size bigint,
   partitions_count bigint,
   PRIMARY KEY (keyspace_name, table_name, range_start, range_end)
@@ -384,8 +384,8 @@ WITH bloom_filter_fp_chance = 0.01
  AND speculative_retry = '99.0PERCENTILE';
 
 CREATE TABLE system.sstable_activity (
-  keyspace_name varchar,
-  columnfamily_name varchar,
+  keyspace_name text,
+  columnfamily_name text,
   generation int,
   rate_120m double,
   rate_15m double,
@@ -410,10 +410,10 @@ CREATE KEYSPACE system_traces WITH replication = {'class': 'SimpleStrategy', 're
 CREATE TABLE system_traces.events (
   session_id uuid,
   event_id timeuuid,
-  activity varchar,
+  activity text,
   source inet,
   source_elapsed int,
-  thread varchar,
+  thread text,
   PRIMARY KEY (session_id, event_id)
 )
 WITH bloom_filter_fp_chance = 0.01
@@ -434,8 +434,8 @@ CREATE TABLE system_traces.sessions (
   session_id uuid PRIMARY KEY,
   coordinator inet,
   duration int,
-  parameters map<varchar, varchar>,
-  request varchar,
+  parameters map<text, text>,
+  request text,
   started_at timestamp
 )
 WITH bloom_filter_fp_chance = 0.01

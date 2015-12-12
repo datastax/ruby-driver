@@ -19,8 +19,8 @@ WITH COMPACT STORAGE
  AND replicate_on_write = 'true';
 
 CREATE TABLE system."IndexInfo" (
-  table_name varchar,
-  index_name varchar,
+  table_name text,
+  index_name text,
   PRIMARY KEY (table_name, index_name)
 )
 WITH COMPACT STORAGE
@@ -72,7 +72,7 @@ WITH COMPACT STORAGE
  AND replicate_on_write = 'true';
 
 CREATE TABLE system."NodeIdInfo" (
-  key varchar,
+  key text,
   id timeuuid,
   PRIMARY KEY (key, id)
 )
@@ -90,7 +90,7 @@ WITH COMPACT STORAGE
 
 CREATE TABLE system."Schema" (
   key blob,
-  column1 varchar,
+  column1 text,
   value blob,
   PRIMARY KEY (key, column1)
 )
@@ -142,19 +142,19 @@ WITH COMPACT STORAGE
  AND replicate_on_write = 'true';
 
 CREATE TABLE system.local (
-  key varchar PRIMARY KEY,
-  bootstrapped varchar,
-  cluster_name varchar,
-  cql_version varchar,
-  data_center varchar,
+  key text PRIMARY KEY,
+  bootstrapped text,
+  cluster_name text,
+  cql_version text,
+  data_center text,
   gossip_generation int,
   host_id uuid,
-  partitioner varchar,
-  rack varchar,
-  release_version varchar,
+  partitioner text,
+  rack text,
+  release_version text,
   schema_version uuid,
-  thrift_version varchar,
-  tokens set<varchar>,
+  thrift_version text,
+  tokens set<text>,
   truncated_at map<uuid, blob>
 )
 WITH bloom_filter_fp_chance = 0.01
@@ -185,13 +185,13 @@ WITH bloom_filter_fp_chance = 0.01
 
 CREATE TABLE system.peers (
   peer inet PRIMARY KEY,
-  data_center varchar,
+  data_center text,
   host_id uuid,
-  rack varchar,
-  release_version varchar,
+  rack text,
+  release_version text,
   rpc_address inet,
   schema_version uuid,
-  tokens set<varchar>
+  tokens set<text>
 )
 WITH bloom_filter_fp_chance = 0.01
  AND caching = 'KEYS_ONLY'
@@ -220,31 +220,31 @@ WITH bloom_filter_fp_chance = 0.01
  AND replicate_on_write = 'true';
 
 CREATE TABLE system.schema_columnfamilies (
-  keyspace_name varchar,
-  columnfamily_name varchar,
+  keyspace_name text,
+  columnfamily_name text,
   bloom_filter_fp_chance double,
-  caching varchar,
-  column_aliases varchar,
-  comment varchar,
-  compaction_strategy_class varchar,
-  compaction_strategy_options varchar,
-  comparator varchar,
-  compression_parameters varchar,
-  default_validator varchar,
+  caching text,
+  column_aliases text,
+  comment text,
+  compaction_strategy_class text,
+  compaction_strategy_options text,
+  comparator text,
+  compression_parameters text,
+  default_validator text,
   gc_grace_seconds int,
   id int,
-  key_alias varchar,
-  key_aliases varchar,
-  key_validator varchar,
+  key_alias text,
+  key_aliases text,
+  key_validator text,
   local_read_repair_chance double,
   max_compaction_threshold int,
   min_compaction_threshold int,
   populate_io_cache_on_flush boolean,
   read_repair_chance double,
   replicate_on_write boolean,
-  subcomparator varchar,
-  type varchar,
-  value_alias varchar,
+  subcomparator text,
+  type text,
+  value_alias text,
   PRIMARY KEY (keyspace_name, columnfamily_name)
 )
 WITH bloom_filter_fp_chance = 0.01
@@ -259,14 +259,14 @@ WITH bloom_filter_fp_chance = 0.01
  AND replicate_on_write = 'true';
 
 CREATE TABLE system.schema_columns (
-  keyspace_name varchar,
-  columnfamily_name varchar,
-  column_name varchar,
+  keyspace_name text,
+  columnfamily_name text,
+  column_name text,
   component_index int,
-  index_name varchar,
-  index_options varchar,
-  index_type varchar,
-  validator varchar,
+  index_name text,
+  index_options text,
+  index_type text,
+  validator text,
   PRIMARY KEY (keyspace_name, columnfamily_name, column_name)
 )
 WITH bloom_filter_fp_chance = 0.01
@@ -281,10 +281,10 @@ WITH bloom_filter_fp_chance = 0.01
  AND replicate_on_write = 'true';
 
 CREATE TABLE system.schema_keyspaces (
-  keyspace_name varchar PRIMARY KEY,
+  keyspace_name text PRIMARY KEY,
   durable_writes boolean,
-  strategy_class varchar,
-  strategy_options varchar
+  strategy_class text,
+  strategy_options text
 )
 WITH COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
@@ -303,10 +303,10 @@ CREATE KEYSPACE system_traces WITH replication = {'class': 'SimpleStrategy', 're
 CREATE TABLE system_traces.events (
   session_id uuid,
   event_id timeuuid,
-  activity varchar,
+  activity text,
   source inet,
   source_elapsed int,
-  thread varchar,
+  thread text,
   PRIMARY KEY (session_id, event_id)
 )
 WITH bloom_filter_fp_chance = 0.01
@@ -324,8 +324,8 @@ CREATE TABLE system_traces.sessions (
   session_id uuid PRIMARY KEY,
   coordinator inet,
   duration int,
-  parameters map<varchar, varchar>,
-  request varchar,
+  parameters map<text, text>,
+  request text,
   started_at timestamp
 )
 WITH bloom_filter_fp_chance = 0.01
