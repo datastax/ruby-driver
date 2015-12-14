@@ -139,7 +139,7 @@ module Cassandra
             frame_header   = buffer.read_int
             frame_code     = buffer.read_byte
             frame_length   = buffer.read_int
-            buffer_length -= 8
+            buffer_length -= 9
           end
 
           @header = frame_header
