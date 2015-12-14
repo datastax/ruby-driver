@@ -153,12 +153,12 @@ Feature: Schema Metadata
     And the following example:
       """ruby
       require 'cassandra'
+      include Cassandra::Types
 
       cluster = Cassandra.cluster
 
-      puts cluster.keyspace('simplex').aggregate('average').to_cql
-
-      aggregate = cluster.keyspace('simplex').aggregate('average')
+      aggregate = cluster.keyspace('simplex').aggregate('average', int)
+      puts aggregate.to_cql
       puts ""
       puts "Name: #{aggregate.name}"
       puts "Return type: #{aggregate.type}"
