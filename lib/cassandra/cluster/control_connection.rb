@@ -775,13 +775,15 @@ Control connection failed and is unlikely to recover.
       end
 
       def send_select_request(connection, request)
+        backtrace = caller
         connection.send_request(request).map do |r|
           case r
           when Protocol::RowsResultResponse
             r.rows
           when Protocol::ErrorResponse
             e = r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0)
-            raise e.class, e.message, caller
+            e.set_backtrace(backtrace)
+            raise e
           else
             raise Errors::InternalError, "Unexpected response #{r.inspect}", caller
           end
