@@ -1,5 +1,5 @@
 <%
-cassandra_version = ENV['CASSANDRA_VERSION'] || '2.1.7'
+cassandra_version = ENV['CASSANDRA_VERSION'] || '3.0.1'
 cassandra_version_tags = ''
 
 if cassandra_version > '3.0'
