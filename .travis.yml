@@ -1,41 +1,17 @@
 language: ruby
-script: bundle exec rake $TEST_SUITE
+script: bundle exec rake rspec
 bundler_args: --without development docs
-addons:
-  apt:
-    packages:
-    - python-pip
-before_install:
-  - sudo apt-get install python-pip
-  - pip install --user virtualenv
-  - virtualenv venv
-  - source venv/bin/activate
-  - cd support/ccm
-  - python setup.py install
-  - cd -
 rvm:
   - 1.9.3
   - 2.0.0
-  - 2.1.6
-  - 2.2.2
+  - 2.1.7
+  - 2.2.3
   - jruby
   - rbx-2.2.10
-jdk:
-  - openjdk7
 env:
   global:
     - FAIL_FAST=no
     - COVERAGE=no
-  matrix:
-    - CASSANDRA_VERSION=2.1.6 TEST_SUITE=rspec
-    - CASSANDRA_VERSION=2.1.6 TEST_SUITE=integration
-    - CASSANDRA_VERSION=2.1.6 TEST_SUITE=cucumber
-    - CASSANDRA_VERSION=2.0.15 TEST_SUITE=rspec
-    - CASSANDRA_VERSION=2.0.15 TEST_SUITE=integration
-    - CASSANDRA_VERSION=2.0.15 TEST_SUITE=cucumber
-    - CASSANDRA_VERSION=1.2.19 TEST_SUITE=rspec
-    - CASSANDRA_VERSION=1.2.19 TEST_SUITE=integration
-    - CASSANDRA_VERSION=1.2.19 TEST_SUITE=cucumber
 matrix:
   allow_failures:
     - rvm: rbx-2
