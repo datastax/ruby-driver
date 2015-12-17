@@ -32,25 +32,6 @@ class IntegrationTestCase < MiniTest::Unit::TestCase
 
   def self.after_suite
   end
-
-  # Wait and retry until the given block returns a truthy value or
-  # the timeout expires.
-  #
-  # @param timeout - timeout in seconds, may be fractional.
-  # @param block - block to execute repeatedly; careful about side effects.
-  # @return the result of the block.
-  def assert_wait_and_retry_until(timeout, msg = nil, &block)
-    expiration = Time.now + timeout
-    result = nil
-    while Time.now < expiration
-      result = block.call
-      break if result
-      sleep(0.25)
-    end
-
-    assert result, msg
-    result
-  end
 end
 
 class IntegrationUnit < MiniTest::Unit

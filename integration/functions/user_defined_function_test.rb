@@ -17,12 +17,14 @@
 #++
 
 require File.dirname(__FILE__) + '/../integration_test_case.rb'
+require_relative 'schema_change_listener'
 
 class UserDefinedFunctionTest < IntegrationTestCase
   include Cassandra::Types
 
   def setup
     @@ccm_cluster.setup_schema("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
+    @listener = SchemaChangeListener.new
   end
 
   # Test raising error for nonexistent UDF
@@ -70,6 +72,7 @@ class UserDefinedFunctionTest < IntegrationTestCase
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    cluster.register(@listener)
     session = cluster.connect("simplex")
 
     assert_empty cluster.keyspace("simplex").functions
@@ -80,9 +83,8 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE javascript AS 'key + val'"
     )
 
-
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_function?("sum_int", int, int)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_function?("sum_int", int, int)
     end
 
     function = cluster.keyspace("simplex").function("sum_int", int, int)
@@ -114,6 +116,7 @@ class UserDefinedFunctionTest < IntegrationTestCase
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    cluster.register(@listener)
     session = cluster.connect("simplex")
 
     assert_empty cluster.keyspace("simplex").functions
@@ -129,16 +132,18 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_function?("sum_int_delete", int, int)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_function?("sum_int_delete", int, int)
     end
 
-    assert cluster.keyspace("simplex").has_function?("sum_int_delete", smallint, smallint)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_function?("sum_int_delete", smallint, smallint)
+    end
 
     session.execute("DROP FUNCTION sum_int_delete(smallint, smallint)")
 
-    assert_wait_and_retry_until(2) do
-      !cluster.keyspace("simplex").has_function?("sum_int_delete", smallint, smallint)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      !ks.has_function?("sum_int_delete", smallint, smallint)
     end
     assert cluster.keyspace("simplex").has_function?("sum_int_delete", int, int)
   ensure
@@ -164,6 +169,7 @@ class UserDefinedFunctionTest < IntegrationTestCase
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    cluster.register(@listener)
     session = cluster.connect("simplex")
 
     assert_empty cluster.keyspace("simplex").functions
@@ -174,8 +180,8 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE java AS 'return key;'"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_function?("varchar_or_text", text)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_function?("varchar_or_text", text)
     end
 
     function = cluster.keyspace("simplex").function("varchar_or_text", text)
@@ -218,6 +224,7 @@ class UserDefinedFunctionTest < IntegrationTestCase
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    cluster.register(@listener)
     session = cluster.connect("simplex")
 
     assert_empty cluster.keyspace("simplex").functions
@@ -228,8 +235,8 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_function?("sum_int", int, int)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_function?("sum_int", int, int)
     end
 
     function = cluster.keyspace("simplex").function("sum_int", int, int)
@@ -241,8 +248,8 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_function?("sum_int", smallint, smallint)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_function?("sum_int", smallint, smallint)
     end
 
     function = cluster.keyspace("simplex").function("sum_int", smallint, smallint)
@@ -272,6 +279,7 @@ class UserDefinedFunctionTest < IntegrationTestCase
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    cluster.register(@listener)
     session = cluster.connect("simplex")
 
     session.execute("CREATE FUNCTION print_time()
@@ -280,8 +288,8 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE java AS 'return System.currentTimeMillis() / 1000L;'"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_function?("print_time")
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_function?("print_time")
     end
 
     function = cluster.keyspace("simplex").function("print_time")
@@ -307,6 +315,7 @@ class UserDefinedFunctionTest < IntegrationTestCase
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    cluster.register(@listener)
     session = cluster.connect("simplex")
 
     session.execute("CREATE FUNCTION sum_int(key int, val int)
@@ -316,8 +325,8 @@ class UserDefinedFunctionTest < IntegrationTestCase
     )
 
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_function?('sum_int', int, int)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_function?('sum_int', int, int)
     end
 
     original_functions = cluster.keyspace("simplex").functions
@@ -355,6 +364,7 @@ class UserDefinedFunctionTest < IntegrationTestCase
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    cluster.register(@listener)
     session = cluster.connect("simplex")
 
     session.execute("CREATE FUNCTION sum_int(key int, val int)
@@ -363,8 +373,8 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    function = assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").function("sum_int", int, int)
+    function = @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.function("sum_int", int, int)
     end
     refute function.called_on_null?
     assert_match /RETURNS NULL ON NULL INPUT/, cluster.keyspace("simplex").function("sum_int", int, int).to_cql
@@ -375,8 +385,8 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    function = assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").function("sum_smallint", smallint, smallint)
+    function = @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.function("sum_smallint", smallint, smallint)
     end
     assert function.called_on_null?
     assert_match /CALLED ON NULL INPUT/, cluster.keyspace("simplex").function("sum_smallint", smallint, smallint).to_cql

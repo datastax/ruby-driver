@@ -17,6 +17,7 @@
 #++
 
 require File.dirname(__FILE__) + '/../integration_test_case.rb'
+require_relative 'schema_change_listener'
 
 class UserDefinedAggregateTest < IntegrationTestCase
   include Cassandra::Types
@@ -66,6 +67,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
                       LANGUAGE javascript AS 's + i + j';
       CQL
     end
+
+    @listener = SchemaChangeListener.new
   end
 
   # Test raising error for nonexistent UDA
@@ -114,6 +117,7 @@ class UserDefinedAggregateTest < IntegrationTestCase
     skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    cluster.register(@listener)
     session = cluster.connect("simplex")
 
     assert_empty cluster.keyspace("simplex").aggregates
@@ -127,8 +131,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND 0"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_aggregate?("sum_agg", int)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_aggregate?("sum_agg", int)
     end
     aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int)
 
@@ -148,8 +152,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND 0"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_aggregate?("sum_agg", smallint)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_aggregate?("sum_agg", smallint)
     end
     aggregate = cluster.keyspace("simplex").aggregate("sum_agg", smallint)
     assert cluster.keyspace("simplex").has_function?("sum_int", smallint, smallint)
@@ -175,6 +179,7 @@ class UserDefinedAggregateTest < IntegrationTestCase
     skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    cluster.register(@listener)
     session = cluster.connect("simplex")
 
     assert_empty cluster.keyspace("simplex").aggregates
@@ -192,15 +197,17 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND 0"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_aggregate?("sum_agg_delete", int)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_aggregate?("sum_agg_delete", int)
     end
-    assert cluster.keyspace("simplex").has_aggregate?("sum_agg_delete", smallint)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_aggregate?("sum_agg_delete", smallint)
+    end
 
     session.execute("DROP AGGREGATE sum_agg_delete(smallint)")
 
-    assert_wait_and_retry_until(2) do
-      !cluster.keyspace("simplex").has_aggregate?("sum_agg_delete", smallint)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      !ks.has_aggregate?("sum_agg_delete", smallint)
     end
     assert cluster.keyspace("simplex").has_aggregate?("sum_agg_delete", int)
   ensure
@@ -223,6 +230,7 @@ class UserDefinedAggregateTest < IntegrationTestCase
     skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    cluster.register(@listener)
     session = cluster.connect("simplex")
 
     # Initcond, finalfunc
@@ -238,8 +246,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND {}"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_aggregate?("group_and_sum", int)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_aggregate?("group_and_sum", int)
     end
     aggregate = cluster.keyspace("simplex").aggregate("group_and_sum", int)
 
@@ -259,8 +267,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND NULL"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_aggregate?("group_and_sum2", smallint)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_aggregate?("group_and_sum2", smallint)
     end
     aggregate = cluster.keyspace("simplex").aggregate("group_and_sum2", smallint)
     assert cluster.keyspace("simplex").has_function?("state_group_and_sum", map(int, smallint), smallint)
@@ -291,6 +299,7 @@ class UserDefinedAggregateTest < IntegrationTestCase
     skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    cluster.register(@listener)
     session = cluster.connect("simplex")
 
     assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
@@ -303,8 +312,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     STYPE int"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_aggregate?("sum_agg", int)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_aggregate?("sum_agg", int)
     end
     aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int)
     assert_equal 'null', aggregate.initial_state
@@ -316,8 +325,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND -1"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_aggregate?("sum_agg2", int)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_aggregate?("sum_agg2", int)
     end
     aggregate = cluster.keyspace("simplex").aggregate("sum_agg2", int)
     assert_equal "-1", aggregate.initial_state
@@ -329,8 +338,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND ['1', '2']"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_aggregate?("extend_list_agg", int)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_aggregate?("extend_list_agg", int)
     end
     aggregate = cluster.keyspace("simplex").aggregate("extend_list_agg", int)
     assert_equal "['1', '2']", aggregate.initial_state
@@ -342,8 +351,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND {1: 2, 3: 4}"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_aggregate?("update_map_agg", int)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_aggregate?("update_map_agg", int)
     end
     aggregate = cluster.keyspace("simplex").aggregate("update_map_agg", int)
     assert_equal "{1: 2, 3: 4}", aggregate.initial_state
@@ -368,6 +377,7 @@ class UserDefinedAggregateTest < IntegrationTestCase
     skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    cluster.register(@listener)
     session = cluster.connect("simplex")
 
     assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
@@ -379,8 +389,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND 0"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_aggregate?("sum_agg", int)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_aggregate?("sum_agg", int)
     end
     aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int)
     assert_equal [int], aggregate.argument_types
@@ -391,8 +401,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND 0"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_aggregate?("sum_agg", int, int)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_aggregate?("sum_agg", int, int)
     end
     aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int, int)
     assert_equal [int, int], aggregate.argument_types
@@ -422,6 +432,7 @@ class UserDefinedAggregateTest < IntegrationTestCase
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
+    cluster.register(@listener)
     session = cluster.connect("simplex")
 
     assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
@@ -432,8 +443,8 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND 0"
     )
 
-    assert_wait_and_retry_until(2) do
-      cluster.keyspace("simplex").has_aggregate?('sum_agg', int)
+    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
+      ks.has_aggregate?('sum_agg', int)
     end
     original_aggregates = cluster.keyspace("simplex").aggregates
 
