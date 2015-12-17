@@ -71,8 +71,10 @@ class UserDefinedFunctionTest < IntegrationTestCase
   def test_can_create_udfs
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    cluster.register(@listener)
+    cluster = Cassandra.cluster(
+        schema_refresh_delay: 0.1,
+        schema_refresh_timeout: 0.1,
+        listeners: [@listener])
     session = cluster.connect("simplex")
 
     assert_empty cluster.keyspace("simplex").functions
@@ -115,8 +117,10 @@ class UserDefinedFunctionTest < IntegrationTestCase
   def test_can_delete_udfs
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    cluster.register(@listener)
+    cluster = Cassandra.cluster(
+        schema_refresh_delay: 0.1,
+        schema_refresh_timeout: 0.1,
+        listeners: [@listener])
     session = cluster.connect("simplex")
 
     assert_empty cluster.keyspace("simplex").functions
@@ -168,8 +172,10 @@ class UserDefinedFunctionTest < IntegrationTestCase
   def test_varchar_udf
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    cluster.register(@listener)
+    cluster = Cassandra.cluster(
+        schema_refresh_delay: 0.1,
+        schema_refresh_timeout: 0.1,
+        listeners: [@listener])
     session = cluster.connect("simplex")
 
     assert_empty cluster.keyspace("simplex").functions
@@ -223,8 +229,10 @@ class UserDefinedFunctionTest < IntegrationTestCase
   def test_can_create_udf_same_name_different_types
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    cluster.register(@listener)
+    cluster = Cassandra.cluster(
+        schema_refresh_delay: 0.1,
+        schema_refresh_timeout: 0.1,
+        listeners: [@listener])
     session = cluster.connect("simplex")
 
     assert_empty cluster.keyspace("simplex").functions
@@ -278,8 +286,10 @@ class UserDefinedFunctionTest < IntegrationTestCase
   def test_can_create_function_no_argument
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    cluster.register(@listener)
+    cluster = Cassandra.cluster(
+        schema_refresh_delay: 0.1,
+        schema_refresh_timeout: 0.1,
+        listeners: [@listener])
     session = cluster.connect("simplex")
 
     session.execute("CREATE FUNCTION print_time()
@@ -314,8 +324,10 @@ class UserDefinedFunctionTest < IntegrationTestCase
   def test_functions_follow_keyspace_alter
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    cluster.register(@listener)
+    cluster = Cassandra.cluster(
+        schema_refresh_delay: 0.1,
+        schema_refresh_timeout: 0.1,
+        listeners: [@listener])
     session = cluster.connect("simplex")
 
     session.execute("CREATE FUNCTION sum_int(key int, val int)
@@ -363,8 +375,10 @@ class UserDefinedFunctionTest < IntegrationTestCase
   def test_cql_for_called_on_null
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    cluster.register(@listener)
+    cluster = Cassandra.cluster(
+        schema_refresh_delay: 0.1,
+        schema_refresh_timeout: 0.1,
+        listeners: [@listener])
     session = cluster.connect("simplex")
 
     session.execute("CREATE FUNCTION sum_int(key int, val int)

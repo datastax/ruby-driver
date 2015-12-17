@@ -116,8 +116,10 @@ class UserDefinedAggregateTest < IntegrationTestCase
   def test_can_create_udas
     skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    cluster.register(@listener)
+    cluster = Cassandra.cluster(
+        schema_refresh_delay: 0.1,
+        schema_refresh_timeout: 0.1,
+        listeners: [@listener])
     session = cluster.connect("simplex")
 
     assert_empty cluster.keyspace("simplex").aggregates
@@ -178,8 +180,10 @@ class UserDefinedAggregateTest < IntegrationTestCase
   def test_can_delete_udas
     skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    cluster.register(@listener)
+    cluster = Cassandra.cluster(
+        schema_refresh_delay: 0.1,
+        schema_refresh_timeout: 0.1,
+        listeners: [@listener])
     session = cluster.connect("simplex")
 
     assert_empty cluster.keyspace("simplex").aggregates
@@ -229,8 +233,10 @@ class UserDefinedAggregateTest < IntegrationTestCase
   def test_udas_with_finalfunc
     skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    cluster.register(@listener)
+    cluster = Cassandra.cluster(
+        schema_refresh_delay: 0.1,
+        schema_refresh_timeout: 0.1,
+        listeners: [@listener])
     session = cluster.connect("simplex")
 
     # Initcond, finalfunc
@@ -298,8 +304,10 @@ class UserDefinedAggregateTest < IntegrationTestCase
   def test_uda_initconds
     skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    cluster.register(@listener)
+    cluster = Cassandra.cluster(
+        schema_refresh_delay: 0.1,
+        schema_refresh_timeout: 0.1,
+        listeners: [@listener])
     session = cluster.connect("simplex")
 
     assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
@@ -376,8 +384,10 @@ class UserDefinedAggregateTest < IntegrationTestCase
   def test_can_create_uda_same_name_different_types
     skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    cluster.register(@listener)
+    cluster = Cassandra.cluster(
+        schema_refresh_delay: 0.1,
+        schema_refresh_timeout: 0.1,
+        listeners: [@listener])
     session = cluster.connect("simplex")
 
     assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
@@ -431,8 +441,10 @@ class UserDefinedAggregateTest < IntegrationTestCase
   def test_aggregates_follow_keyspace_alter
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    cluster.register(@listener)
+    cluster = Cassandra.cluster(
+        schema_refresh_delay: 0.1,
+        schema_refresh_timeout: 0.1,
+        listeners: [@listener])
     session = cluster.connect("simplex")
 
     assert cluster.keyspace("simplex").has_function?("sum_int", int, int)

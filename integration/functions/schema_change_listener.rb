@@ -1,5 +1,7 @@
 class SchemaChangeListener
   class Condition
+    attr_reader :promise
+
     def initialize(promise, &block)
       @promise = promise
       @block   = block
@@ -29,6 +31,8 @@ class SchemaChangeListener
     @conditions[keyspace.name] << Condition.new(promise, &block)
 
     promise.future.get(timeout)
+  ensure
+    @conditions[keyspace.name].reject! { |c| c.promise == promise }
   end
 
   def keyspace_changed(keyspace)
