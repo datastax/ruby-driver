@@ -57,7 +57,7 @@ class UserDefinedFunctionTest < IntegrationTestCase
   #
   # test_can_create_udfs tests that a UDF can be created and its metadata is
   # populated appropriately. It first creates a simple UDF and verifies (after
-  # a 2 second sleep) that the keyspace metadata has been updated with the UDF's
+  # a max 2 second sleep) that the keyspace metadata has been updated with the UDF's
   # existence. It then verifies the UDF's metadata.
   #
   # @since 3.0.0
@@ -80,8 +80,11 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    sleep(2) #give time for driver to receive schema change event
-    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
+
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_function?("sum_int", int, int)
+    end
+
     function = cluster.keyspace("simplex").function("sum_int", int, int)
 
     assert_equal "sum_int", function.name
@@ -95,17 +98,17 @@ class UserDefinedFunctionTest < IntegrationTestCase
     cluster && cluster.close
   end
 
-  # Test for deleting a basic UDA
+  # Test for deleting a basic UDF
   #
-  # test_can_delete_udas tests that a UDA can be deleted. It first creates
-  # a simple UDA and an override, and verifies that both appear in the keyspace metadata.
+  # test_can_delete_udfs tests that a UDF can be deleted. It first creates
+  # a simple UDF and an override, and verifies that both appear in the keyspace metadata.
   # Then it deletes one and verifies that it's gone, while the other remains.
   #
   # @since 3.0.0
   # @jira_ticket RUBY-108
-  # @expected_result A UDA should be created and unambiguously deleted.
+  # @expected_result A UDF should be created and unambiguously deleted.
   #
-  # @test_category functions:uda
+  # @test_category functions:udf
   #
   def test_can_delete_udfs
     skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
@@ -126,15 +129,18 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_function?("sum_int_delete", int, int)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_function?("sum_int_delete", int, int)
+    end
+
     assert cluster.keyspace("simplex").has_function?("sum_int_delete", smallint, smallint)
 
     session.execute("DROP FUNCTION sum_int_delete(smallint, smallint)")
 
-    sleep(2)
+    assert_wait_and_retry_until(2) do
+      !cluster.keyspace("simplex").has_function?("sum_int_delete", smallint, smallint)
+    end
     assert cluster.keyspace("simplex").has_function?("sum_int_delete", int, int)
-    assert !cluster.keyspace("simplex").has_function?("sum_int_delete", smallint, smallint)
   ensure
     cluster && cluster.close
   end
@@ -143,7 +149,7 @@ class UserDefinedFunctionTest < IntegrationTestCase
   #
   # test_varchar_udf tests that a UDF can be created with a varchar argtype and
   # its metadata is populated appropriately. It first creates a simple UDF and
-  # verifies (after a 2 second sleep) that the keyspace metadata has been
+  # verifies (after a max 2 second sleep) that the keyspace metadata has been
   # updated with the UDF's existence. It then verifies the UDF's metadata
   # referencing both varchar and text types.
   #
@@ -168,8 +174,10 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE java AS 'return key;'"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_function?("varchar_or_text", text)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_function?("varchar_or_text", text)
+    end
+
     function = cluster.keyspace("simplex").function("varchar_or_text", text)
 
     assert_equal "varchar_or_text", function.name
@@ -220,8 +228,10 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_function?("sum_int", int, int)
+    end
+
     function = cluster.keyspace("simplex").function("sum_int", int, int)
     function.each_argument { |arg| assert_equal int, arg.type }
 
@@ -231,8 +241,10 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_function?("sum_int", smallint, smallint)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_function?("sum_int", smallint, smallint)
+    end
+
     function = cluster.keyspace("simplex").function("sum_int", smallint, smallint)
     # keyspace#function retrieves the first UDF, so the first one is retrieved here
     function.each_argument { |arg| assert_equal smallint, arg.type }
@@ -268,8 +280,10 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE java AS 'return System.currentTimeMillis() / 1000L;'"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_function?("print_time")
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_function?("print_time")
+    end
+
     function = cluster.keyspace("simplex").function("print_time")
     assert_empty function.each_argument
   ensure
@@ -301,10 +315,21 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    sleep(2)
+
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_function?('sum_int', int, int)
+    end
+
     original_functions = cluster.keyspace("simplex").functions
 
     session.execute("ALTER KEYSPACE simplex WITH durable_writes = false")
+
+    # This is a little strange. We need to wait until the alter causes
+    # an event that will refresh our cluster object, but there's no visible
+    # effect of a change (since nothing is supposed to change). So just sleep
+    # and hope.
+
+    sleep(2)
     new_functions = cluster.keyspace("simplex").functions
     assert_equal original_functions, new_functions
 
@@ -338,8 +363,9 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    sleep(2)
-    function = cluster.keyspace("simplex").function("sum_int", int, int)
+    function = assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").function("sum_int", int, int)
+    end
     refute function.called_on_null?
     assert_match /RETURNS NULL ON NULL INPUT/, cluster.keyspace("simplex").function("sum_int", int, int).to_cql
 
@@ -349,8 +375,9 @@ class UserDefinedFunctionTest < IntegrationTestCase
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    sleep(2)
-    function = cluster.keyspace("simplex").function("sum_smallint", smallint, smallint)
+    function = assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").function("sum_smallint", smallint, smallint)
+    end
     assert function.called_on_null?
     assert_match /CALLED ON NULL INPUT/, cluster.keyspace("simplex").function("sum_smallint", smallint, smallint).to_cql
   ensure

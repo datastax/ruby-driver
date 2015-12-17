@@ -127,8 +127,9 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND 0"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("sum_agg", int)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_aggregate?("sum_agg", int)
+    end
     aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int)
 
     assert_equal "sum_agg", aggregate.name
@@ -147,8 +148,9 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND 0"
     )
 
-    sleep(4)
-    assert cluster.keyspace("simplex").has_aggregate?("sum_agg", smallint)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_aggregate?("sum_agg", smallint)
+    end
     aggregate = cluster.keyspace("simplex").aggregate("sum_agg", smallint)
     assert cluster.keyspace("simplex").has_function?("sum_int", smallint, smallint)
     state_function = cluster.keyspace("simplex").function("sum_int", smallint, smallint)
@@ -190,16 +192,17 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND 0"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("sum_agg_delete", int)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_aggregate?("sum_agg_delete", int)
+    end
     assert cluster.keyspace("simplex").has_aggregate?("sum_agg_delete", smallint)
 
     session.execute("DROP AGGREGATE sum_agg_delete(smallint)")
 
-    sleep(2)
+    assert_wait_and_retry_until(2) do
+      !cluster.keyspace("simplex").has_aggregate?("sum_agg_delete", smallint)
+    end
     assert cluster.keyspace("simplex").has_aggregate?("sum_agg_delete", int)
-    assert !cluster.keyspace("simplex").has_aggregate?("sum_agg_delete", smallint)
-
   ensure
     cluster && cluster.close
   end
@@ -235,8 +238,9 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND {}"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("group_and_sum", int)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_aggregate?("group_and_sum", int)
+    end
     aggregate = cluster.keyspace("simplex").aggregate("group_and_sum", int)
 
     assert_equal "group_and_sum", aggregate.name
@@ -255,8 +259,9 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND NULL"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("group_and_sum2", smallint)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_aggregate?("group_and_sum2", smallint)
+    end
     aggregate = cluster.keyspace("simplex").aggregate("group_and_sum2", smallint)
     assert cluster.keyspace("simplex").has_function?("state_group_and_sum", map(int, smallint), smallint)
     state_function = cluster.keyspace("simplex").function("state_group_and_sum", map(int, smallint), smallint)
@@ -298,8 +303,9 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     STYPE int"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("sum_agg", int)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_aggregate?("sum_agg", int)
+    end
     aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int)
     assert_equal 'null', aggregate.initial_state
 
@@ -310,8 +316,9 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND -1"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("sum_agg2", int)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_aggregate?("sum_agg2", int)
+    end
     aggregate = cluster.keyspace("simplex").aggregate("sum_agg2", int)
     assert_equal "-1", aggregate.initial_state
 
@@ -322,8 +329,9 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND ['1', '2']"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("extend_list_agg", int)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_aggregate?("extend_list_agg", int)
+    end
     aggregate = cluster.keyspace("simplex").aggregate("extend_list_agg", int)
     assert_equal "['1', '2']", aggregate.initial_state
 
@@ -334,8 +342,9 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND {1: 2, 3: 4}"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("update_map_agg", int)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_aggregate?("update_map_agg", int)
+    end
     aggregate = cluster.keyspace("simplex").aggregate("update_map_agg", int)
     assert_equal "{1: 2, 3: 4}", aggregate.initial_state
   ensure
@@ -370,8 +379,9 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND 0"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("sum_agg", int)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_aggregate?("sum_agg", int)
+    end
     aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int)
     assert_equal [int], aggregate.argument_types
 
@@ -381,8 +391,9 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND 0"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_aggregate?("sum_agg", int, int)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_aggregate?("sum_agg", int, int)
+    end
     aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int, int)
     assert_equal [int, int], aggregate.argument_types
 
@@ -421,10 +432,20 @@ class UserDefinedAggregateTest < IntegrationTestCase
                     INITCOND 0"
     )
 
-    sleep(2)
+    assert_wait_and_retry_until(2) do
+      cluster.keyspace("simplex").has_aggregate?('sum_agg', int)
+    end
     original_aggregates = cluster.keyspace("simplex").aggregates
 
     session.execute("ALTER KEYSPACE simplex WITH durable_writes = false")
+
+    # This is a little strange. We need to wait until the alter causes
+    # an event that will refresh our cluster object, but there's no visible
+    # effect of a change (since nothing is supposed to change). So just sleep
+    # and hope.
+
+    sleep(2)
+
     new_aggregates = cluster.keyspace("simplex").aggregates
     assert_equal original_aggregates, new_aggregates
 
