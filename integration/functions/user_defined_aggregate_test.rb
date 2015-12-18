@@ -19,11 +19,13 @@
 require File.dirname(__FILE__) + '/../integration_test_case.rb'
 require_relative 'schema_change_listener'
 
+# noinspection RubyInstanceMethodNamingConvention
 class UserDefinedAggregateTest < IntegrationTestCase
   include Cassandra::Types
 
   def setup
     unless CCM.cassandra_version < '2.2.0'
+      # noinspection RubyClassVariableUsageInspection
       @@ccm_cluster.setup_schema(<<-CQL)
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
       USE simplex;
@@ -66,9 +68,19 @@ class UserDefinedAggregateTest < IntegrationTestCase
                       RETURNS int
                       LANGUAGE javascript AS 's + i + j';
       CQL
-    end
 
-    @listener = SchemaChangeListener.new
+      @cluster = Cassandra.cluster(
+          schema_refresh_delay: 0.1,
+          schema_refresh_timeout: 0.1
+      )
+      @listener = SchemaChangeListener.new(@cluster)
+      @cluster.register(@listener)
+      @session = @cluster.connect('simplex')
+    end
+  end
+
+  def teardown
+    @cluster.close
   end
 
   # Test raising error for nonexistent UDA
@@ -86,20 +98,15 @@ class UserDefinedAggregateTest < IntegrationTestCase
   # @test_category functions:uda
   #
   def test_raise_error_on_nonexisting_state_function
-    skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
-
-    cluster = Cassandra.cluster
-    session = cluster.connect("simplex")
+    skip('UDAs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
 
     assert_raises(Cassandra::Errors::InvalidError) do
-      session.execute("CREATE AGGREGATE sum_agg(int)
-                      SFUNC non_existent
-                      STYPE int
-                      INITCOND 0"
+      @session.execute('CREATE AGGREGATE sum_agg(int)
+                        SFUNC non_existent
+                        STYPE int
+                        INITCOND 0'
       )
     end
-  ensure
-    cluster && cluster.close
   end
 
   # Test for creating a basic UDA
@@ -114,55 +121,43 @@ class UserDefinedAggregateTest < IntegrationTestCase
   # @test_category functions:uda
   #
   def test_can_create_udas
-    skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+    skip('UDAs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(
-        schema_refresh_delay: 0.1,
-        schema_refresh_timeout: 0.1,
-        listeners: [@listener])
-    session = cluster.connect("simplex")
+    assert_empty @cluster.keyspace('simplex').aggregates
 
-    assert_empty cluster.keyspace("simplex").aggregates
+    assert @cluster.keyspace('simplex').has_function?('sum_int', int, int)
+    state_function = @cluster.keyspace('simplex').function('sum_int', int, int)
 
-    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
-    state_function = cluster.keyspace("simplex").function("sum_int", int, int)
-
-    session.execute("CREATE AGGREGATE sum_agg(int)
+    @session.execute('CREATE AGGREGATE sum_agg(int)
                     SFUNC sum_int
                     STYPE int
-                    INITCOND 0"
+                    INITCOND 0'
     )
 
-    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
-      ks.has_aggregate?("sum_agg", int)
-    end
-    aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int)
+    @listener.wait_for_aggregate('simplex', 'sum_agg', int)
+    aggregate = @cluster.keyspace('simplex').aggregate('sum_agg', int)
 
-    assert_equal "sum_agg", aggregate.name
+    assert_equal 'sum_agg', aggregate.name
     assert_equal int, aggregate.type
     assert_equal [int], aggregate.argument_types
     assert_equal int, aggregate.state_type
-    assert_equal "0", aggregate.initial_state
+    assert_equal '0', aggregate.initial_state
     assert_equal state_function, aggregate.state_function
 
     # Now create another aggregate that deals with smallint's and verify that the smallint version
     # of sum_int is used for the state function.
 
-    session.execute("CREATE AGGREGATE sum_agg(smallint)
-                    SFUNC sum_int
-                    STYPE smallint
-                    INITCOND 0"
+    @session.execute('CREATE AGGREGATE sum_agg(smallint)
+                      SFUNC sum_int
+                      STYPE smallint
+                      INITCOND 0'
     )
 
-    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
-      ks.has_aggregate?("sum_agg", smallint)
-    end
-    aggregate = cluster.keyspace("simplex").aggregate("sum_agg", smallint)
-    assert cluster.keyspace("simplex").has_function?("sum_int", smallint, smallint)
-    state_function = cluster.keyspace("simplex").function("sum_int", smallint, smallint)
+    @listener.wait_for_aggregate('simplex', 'sum_agg', smallint)
+    aggregate = @cluster.keyspace('simplex').aggregate('sum_agg', smallint)
+    assert @cluster.keyspace('simplex').has_function?('sum_int', smallint, smallint)
+    state_function = @cluster.keyspace('simplex').function('sum_int', smallint, smallint)
     assert_equal state_function, aggregate.state_function
-  ensure
-    cluster && cluster.close
   end
 
   # Test for deleting a basic UDA
@@ -178,44 +173,32 @@ class UserDefinedAggregateTest < IntegrationTestCase
   # @test_category functions:uda
   #
   def test_can_delete_udas
-    skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+    skip('UDAs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(
-        schema_refresh_delay: 0.1,
-        schema_refresh_timeout: 0.1,
-        listeners: [@listener])
-    session = cluster.connect("simplex")
+    assert_empty @cluster.keyspace('simplex').aggregates
 
-    assert_empty cluster.keyspace("simplex").aggregates
+    assert @cluster.keyspace('simplex').has_function?('sum_int', int, int)
 
-    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
-
-    session.execute("CREATE AGGREGATE sum_agg_delete(int)
+    @session.execute('CREATE AGGREGATE sum_agg_delete(int)
                     SFUNC sum_int
                     STYPE int
-                    INITCOND 0"
+                    INITCOND 0'
     )
-    session.execute("CREATE AGGREGATE sum_agg_delete(smallint)
+    @session.execute('CREATE AGGREGATE sum_agg_delete(smallint)
                     SFUNC sum_int
                     STYPE smallint
-                    INITCOND 0"
+                    INITCOND 0'
     )
 
-    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
-      ks.has_aggregate?("sum_agg_delete", int)
-    end
-    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
-      ks.has_aggregate?("sum_agg_delete", smallint)
-    end
+    @listener.wait_for_aggregate('simplex', 'sum_agg_delete', int)
+    @listener.wait_for_aggregate('simplex', 'sum_agg_delete', smallint)
 
-    session.execute("DROP AGGREGATE sum_agg_delete(smallint)")
+    @session.execute('DROP AGGREGATE sum_agg_delete(smallint)')
 
-    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
-      !ks.has_aggregate?("sum_agg_delete", smallint)
+    @listener.wait_for_change('simplex', 2) do |ks|
+      !ks.has_aggregate?('sum_agg_delete', smallint)
     end
-    assert cluster.keyspace("simplex").has_aggregate?("sum_agg_delete", int)
-  ensure
-    cluster && cluster.close
+    assert @cluster.keyspace('simplex').has_aggregate?('sum_agg_delete', int)
   end
 
   # Test for creating a UDA with a finalfunc
@@ -231,62 +214,52 @@ class UserDefinedAggregateTest < IntegrationTestCase
   # @test_category functions:uda
   #
   def test_udas_with_finalfunc
-    skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
-
-    cluster = Cassandra.cluster(
-        schema_refresh_delay: 0.1,
-        schema_refresh_timeout: 0.1,
-        listeners: [@listener])
-    session = cluster.connect("simplex")
+    skip('UDAs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
 
     # Initcond, finalfunc
-    assert cluster.keyspace("simplex").has_function?("state_group_and_sum", map(int, int), int)
-    state_function = cluster.keyspace("simplex").function("state_group_and_sum", map(int, int), int)
-    assert cluster.keyspace("simplex").has_function?("percent_stars", map(int, int))
-    final_function = cluster.keyspace("simplex").function("percent_stars", map(int, int))
+    ks = @cluster.keyspace('simplex')
+    assert ks.has_function?('state_group_and_sum', map(int, int), int)
+    state_function = ks.function('state_group_and_sum', map(int, int), int)
+    assert ks.has_function?('percent_stars', map(int, int))
+    final_function = ks.function('percent_stars', map(int, int))
 
-    session.execute("CREATE OR REPLACE AGGREGATE group_and_sum(int)
+    @session.execute('CREATE OR REPLACE AGGREGATE group_and_sum(int)
                     SFUNC state_group_and_sum
                     STYPE map<int, int>
                     FINALFUNC percent_stars
-                    INITCOND {}"
+                    INITCOND {}'
     )
 
-    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
-      ks.has_aggregate?("group_and_sum", int)
-    end
-    aggregate = cluster.keyspace("simplex").aggregate("group_and_sum", int)
+    @listener.wait_for_aggregate('simplex', 'group_and_sum', int)
+    aggregate = @cluster.keyspace('simplex').aggregate('group_and_sum', int)
 
-    assert_equal "group_and_sum", aggregate.name
+    assert_equal 'group_and_sum', aggregate.name
     assert_equal map(int, int), aggregate.type
     assert_equal [int], aggregate.argument_types
     assert_equal map(int, int), aggregate.state_type
-    assert_equal "{}", aggregate.initial_state
+    assert_equal '{}', aggregate.initial_state
     assert_equal state_function, aggregate.state_function
     assert_equal final_function, aggregate.final_function
 
-    # No initcond, finalfunc, deal with smallint.. verify that we pick the right final func.
-    session.execute("CREATE OR REPLACE AGGREGATE group_and_sum2(smallint)
+    # No initcond, finalfunc, deal with smallint..
+    # verify that we pick the right final func.
+    @session.execute('CREATE OR REPLACE AGGREGATE group_and_sum2(smallint)
                     SFUNC state_group_and_sum
                     STYPE map<int, smallint>
                     FINALFUNC percent_stars
-                    INITCOND NULL"
+                    INITCOND NULL'
     )
 
-    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
-      ks.has_aggregate?("group_and_sum2", smallint)
-    end
-    aggregate = cluster.keyspace("simplex").aggregate("group_and_sum2", smallint)
-    assert cluster.keyspace("simplex").has_function?("state_group_and_sum", map(int, smallint), smallint)
-    state_function = cluster.keyspace("simplex").function("state_group_and_sum", map(int, smallint), smallint)
-    assert cluster.keyspace("simplex").has_function?("percent_stars", map(int, smallint))
-    final_function = cluster.keyspace("simplex").function("percent_stars", map(int, smallint))
+    @listener.wait_for_aggregate('simplex', 'group_and_sum2', smallint)
+    aggregate = @cluster.keyspace('simplex').aggregate('group_and_sum2', smallint)
+    assert @cluster.keyspace('simplex').has_function?('state_group_and_sum', map(int, smallint), smallint)
+    state_function = @cluster.keyspace('simplex').function('state_group_and_sum', map(int, smallint), smallint)
+    assert @cluster.keyspace('simplex').has_function?('percent_stars', map(int, smallint))
+    final_function = @cluster.keyspace('simplex').function('percent_stars', map(int, smallint))
     assert_equal state_function, aggregate.state_function
     assert_equal final_function, aggregate.final_function
 
-    assert_equal "null", aggregate.initial_state
-  ensure
-    cluster && cluster.close
+    assert_equal 'null', aggregate.initial_state
   end
 
   # Test for creating a UDA with different initconds
@@ -302,70 +275,54 @@ class UserDefinedAggregateTest < IntegrationTestCase
   # @test_category functions:uda
   #
   def test_uda_initconds
-    skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+    skip('UDAs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(
-        schema_refresh_delay: 0.1,
-        schema_refresh_timeout: 0.1,
-        listeners: [@listener])
-    session = cluster.connect("simplex")
-
-    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
-    assert cluster.keyspace("simplex").has_function?("extend_list", list(varchar), int)
-    assert cluster.keyspace("simplex").has_function?("update_map", map(int, int), int)
+    assert @cluster.keyspace('simplex').has_function?('sum_int', int, int)
+    assert @cluster.keyspace('simplex').has_function?('extend_list', list(varchar), int)
+    assert @cluster.keyspace('simplex').has_function?('update_map', map(int, int), int)
 
     # No initcond
-    session.execute("CREATE AGGREGATE sum_agg(int)
+    @session.execute('CREATE AGGREGATE sum_agg(int)
                     SFUNC sum_int
-                    STYPE int"
+                    STYPE int'
     )
 
-    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
-      ks.has_aggregate?("sum_agg", int)
-    end
-    aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int)
+    @listener.wait_for_aggregate('simplex', 'sum_agg', int)
+    aggregate = @cluster.keyspace('simplex').aggregate('sum_agg', int)
     assert_equal 'null', aggregate.initial_state
 
     # int
-    session.execute("CREATE AGGREGATE sum_agg2(int)
+    @session.execute('CREATE AGGREGATE sum_agg2(int)
                     SFUNC sum_int
                     STYPE int
-                    INITCOND -1"
+                    INITCOND -1'
     )
 
-    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
-      ks.has_aggregate?("sum_agg2", int)
-    end
-    aggregate = cluster.keyspace("simplex").aggregate("sum_agg2", int)
-    assert_equal "-1", aggregate.initial_state
+    @listener.wait_for_aggregate('simplex', 'sum_agg2', int)
+    aggregate = @cluster.keyspace('simplex').aggregate('sum_agg2', int)
+    assert_equal '-1', aggregate.initial_state
 
     # list<text>
-    session.execute("CREATE AGGREGATE extend_list_agg(int)
+    @session.execute("CREATE AGGREGATE extend_list_agg(int)
                     SFUNC extend_list
                     STYPE list<text>
                     INITCOND ['1', '2']"
     )
 
-    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
-      ks.has_aggregate?("extend_list_agg", int)
-    end
-    aggregate = cluster.keyspace("simplex").aggregate("extend_list_agg", int)
+    @listener.wait_for_aggregate('simplex', 'extend_list_agg', int)
+    aggregate = @cluster.keyspace('simplex').aggregate('extend_list_agg', int)
     assert_equal "['1', '2']", aggregate.initial_state
 
     # map<int,int>
-    session.execute("CREATE AGGREGATE update_map_agg(int)
+    @session.execute('CREATE AGGREGATE update_map_agg(int)
                     SFUNC update_map
                     STYPE map<int, int>
-                    INITCOND {1: 2, 3: 4}"
+                    INITCOND {1: 2, 3: 4}'
     )
 
-    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
-      ks.has_aggregate?("update_map_agg", int)
-    end
-    aggregate = cluster.keyspace("simplex").aggregate("update_map_agg", int)
-    assert_equal "{1: 2, 3: 4}", aggregate.initial_state
-  ensure
-    cluster && cluster.close
+    @listener.wait_for_aggregate('simplex', 'update_map_agg', int)
+    aggregate = @cluster.keyspace('simplex').aggregate('update_map_agg', int)
+    assert_equal '{1: 2, 3: 4}', aggregate.initial_state
   end
 
   # Test for creating two UDAs with the same name, but different types
@@ -382,49 +339,37 @@ class UserDefinedAggregateTest < IntegrationTestCase
   # @test_category functions:uda
   #
   def test_can_create_uda_same_name_different_types
-    skip("UDAs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
-
-    cluster = Cassandra.cluster(
-        schema_refresh_delay: 0.1,
-        schema_refresh_timeout: 0.1,
-        listeners: [@listener])
-    session = cluster.connect("simplex")
-
-    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
-    assert cluster.keyspace("simplex").has_function?("sum_int_two", int, int, int)
-
-    session.execute("CREATE AGGREGATE sum_agg(int)
+    skip('UDAs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
+  
+    assert @cluster.keyspace('simplex').has_function?('sum_int', int, int)
+    assert @cluster.keyspace('simplex').has_function?('sum_int_two', int, int, int)
+  
+    @session.execute('CREATE AGGREGATE sum_agg(int)
                     SFUNC sum_int
                     STYPE int
-                    INITCOND 0"
+                    INITCOND 0'
     )
-
-    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
-      ks.has_aggregate?("sum_agg", int)
-    end
-    aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int)
+  
+    @listener.wait_for_aggregate('simplex', 'sum_agg', int)
+    aggregate = @cluster.keyspace('simplex').aggregate('sum_agg', int)
     assert_equal [int], aggregate.argument_types
-
-    session.execute("CREATE AGGREGATE sum_agg(int,int)
+  
+    @session.execute('CREATE AGGREGATE sum_agg(int,int)
                     SFUNC sum_int_two
                     STYPE int
-                    INITCOND 0"
+                    INITCOND 0'
     )
-
-    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
-      ks.has_aggregate?("sum_agg", int, int)
-    end
-    aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int, int)
+  
+    @listener.wait_for_aggregate('simplex', 'sum_agg', int, int)
+    aggregate = @cluster.keyspace('simplex').aggregate('sum_agg', int, int)
     assert_equal [int, int], aggregate.argument_types
-
+  
     # Verify that the old aggregate still exists.
-    assert cluster.keyspace("simplex").has_aggregate?("sum_agg", int)
-    aggregate = cluster.keyspace("simplex").aggregate("sum_agg", int)
+    assert @cluster.keyspace('simplex').has_aggregate?('sum_agg', int)
+    aggregate = @cluster.keyspace('simplex').aggregate('sum_agg', int)
     assert_equal [int], aggregate.argument_types
-  ensure
-    cluster && cluster.close
   end
-
+  
   # Test for maintaining metadata during keyspace changes
   #
   # test_aggregates_follow_keyspace_alter tests that UDA metadata is not change when there are other changes to the
@@ -439,44 +384,36 @@ class UserDefinedAggregateTest < IntegrationTestCase
   # @test_category functions:uda
   #
   def test_aggregates_follow_keyspace_alter
-    skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
-
-    cluster = Cassandra.cluster(
-        schema_refresh_delay: 0.1,
-        schema_refresh_timeout: 0.1,
-        listeners: [@listener])
-    session = cluster.connect("simplex")
-
-    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
-
-    session.execute("CREATE AGGREGATE sum_agg(int)
+    skip('UDFs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
+  
+    assert @cluster.keyspace('simplex').has_function?('sum_int', int, int)
+  
+    @session.execute('CREATE AGGREGATE sum_agg(int)
                     SFUNC sum_int
                     STYPE int
-                    INITCOND 0"
+                    INITCOND 0'
     )
-
-    @listener.wait_for_change(cluster.keyspace('simplex'), 2) do |ks|
-      ks.has_aggregate?('sum_agg', int)
-    end
-    original_aggregates = cluster.keyspace("simplex").aggregates
-
-    session.execute("ALTER KEYSPACE simplex WITH durable_writes = false")
+  
+    @listener.wait_for_aggregate('simplex', 'sum_agg', int)
+    original_aggregates = @cluster.keyspace('simplex').aggregates
+  
+    @session.execute('ALTER KEYSPACE simplex WITH durable_writes = false')
 
     # This is a little strange. We need to wait until the alter causes
-    # an event that will refresh our cluster object, but there's no visible
-    # effect of a change (since nothing is supposed to change). So just sleep
-    # and hope.
+    # an event that will refresh our cluster object, but there's no really
+    # visible change other than the keyspace-changed event. So wait for that
+    # but with no real condition.
 
-    sleep(2)
-
-    new_aggregates = cluster.keyspace("simplex").aggregates
+    @listener.wait_for_change(@cluster.keyspace('simplex'), 2) do
+      true
+    end
+  
+    new_aggregates = @cluster.keyspace('simplex').aggregates
     assert_equal original_aggregates, new_aggregates
-
-    session.execute("ALTER KEYSPACE simplex WITH durable_writes = true")
-  ensure
-    cluster && cluster.close
+  
+    @session.execute('ALTER KEYSPACE simplex WITH durable_writes = true')
   end
-
+  
   # Test for serialization and deserialization of UDAs
   #
   # test_aggregates_serialization_deserialization tests that the driver properly serializes and deserializes UDAs. It
@@ -491,47 +428,41 @@ class UserDefinedAggregateTest < IntegrationTestCase
   # @test_category functions:uda
   #
   def test_aggregates_serialization_deserialization
-    skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
-
-    cluster = Cassandra.cluster
-    session = cluster.connect("simplex")
-
-    assert cluster.keyspace("simplex").has_function?("state_group_and_sum", map(int, int), int)
-    assert cluster.keyspace("simplex").has_function?("percent_stars", map(int, int))
-
+    skip('UDFs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
+  
+    assert @cluster.keyspace('simplex').has_function?('state_group_and_sum', map(int, int), int)
+    assert @cluster.keyspace('simplex').has_function?('percent_stars', map(int, int))
+  
     # Create the UDA
-    session.execute("CREATE OR REPLACE AGGREGATE group_and_sum(int)
+    @session.execute('CREATE OR REPLACE AGGREGATE group_and_sum(int)
                     SFUNC state_group_and_sum
                     STYPE map<int, int>
                     FINALFUNC percent_stars
-                    INITCOND {}"
+                    INITCOND {}'
     )
-
+  
     # Create the table
-    session.execute("CREATE TABLE reviews (item_id uuid, time timeuuid, star_rating int,
-                    PRIMARY KEY (item_id, time)) WITH CLUSTERING ORDER BY (time DESC)")
-
+    @session.execute('CREATE TABLE reviews (item_id uuid, time timeuuid, star_rating int,
+                    PRIMARY KEY (item_id, time)) WITH CLUSTERING ORDER BY (time DESC)')
+  
     # Insert data
-    insert = session.prepare("INSERT INTO reviews (item_id, time, star_rating) VALUES (?, ?, ?)")
+    insert = @session.prepare('INSERT INTO reviews (item_id, time, star_rating) VALUES (?, ?, ?)')
     item_id = Cassandra::Uuid.new('0979dea5-5a65-446d-bad6-27d04d5dd8a5')
     generator = Cassandra::Uuid::Generator.new
-    session.execute(insert, arguments: [item_id, generator.now, 5])
-    session.execute(insert, arguments: [item_id, generator.now, 4])
-    session.execute(insert, arguments: [item_id, generator.now, 4])
-    session.execute(insert, arguments: [item_id, generator.now, 3])
-    session.execute(insert, arguments: [item_id, generator.now, 3])
-    session.execute(insert, arguments: [item_id, generator.now, 4])
-    session.execute(insert, arguments: [item_id, generator.now, 2])
-    session.execute(insert, arguments: [item_id, generator.now, 5])
-    session.execute(insert, arguments: [item_id, generator.now, 4])
-    session.execute(insert, arguments: [item_id, generator.now, 5])
-
+    @session.execute(insert, arguments: [item_id, generator.now, 5])
+    @session.execute(insert, arguments: [item_id, generator.now, 4])
+    @session.execute(insert, arguments: [item_id, generator.now, 4])
+    @session.execute(insert, arguments: [item_id, generator.now, 3])
+    @session.execute(insert, arguments: [item_id, generator.now, 3])
+    @session.execute(insert, arguments: [item_id, generator.now, 4])
+    @session.execute(insert, arguments: [item_id, generator.now, 2])
+    @session.execute(insert, arguments: [item_id, generator.now, 5])
+    @session.execute(insert, arguments: [item_id, generator.now, 4])
+    @session.execute(insert, arguments: [item_id, generator.now, 5])
+  
     # Verify UDA
-    results = session.execute("SELECT group_and_sum(star_rating) FROM reviews WHERE item_id=0979dea5-5a65-446d-bad6-27d04d5dd8a5")
+    results = @session.execute('SELECT group_and_sum(star_rating) FROM reviews WHERE item_id=0979dea5-5a65-446d-bad6-27d04d5dd8a5')
     expected = {2 => 10, 3 => 20, 4 => 40, 5 => 30}
-    assert_equal expected, results.first["simplex.group_and_sum(star_rating)"]
-  ensure
-    cluster && cluster.close
+    assert_equal expected, results.first['simplex.group_and_sum(star_rating)']
   end
-
 end
