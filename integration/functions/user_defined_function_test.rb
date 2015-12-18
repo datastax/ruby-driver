@@ -32,7 +32,6 @@ class UserDefinedFunctionTest < IntegrationTestCase
           schema_refresh_timeout: 0.1
       )
       @listener = SchemaChangeListener.new(@cluster)
-      @cluster.register(@listener)
       @session = @cluster.connect('simplex')
     end
   end

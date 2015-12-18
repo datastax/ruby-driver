@@ -18,6 +18,7 @@ class SchemaChangeListener
   def initialize(cluster)
     @cluster = cluster
     @conditions = {}
+    @cluster.register(self)
   end
 
   def wait_for_change(keyspace_name, timeout = nil, &block)
