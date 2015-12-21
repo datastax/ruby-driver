@@ -2,31 +2,32 @@
 
 Features:
 
-* [RUBY-96] Added optional time out to Cassandra::Future#get
-* [RUBY-129] Change default consistency level to LOCAL_ONE
-* [RUBY-132] Update default behavior for unbound values: for Cassandra 2.1 or less, raise an exception. For 2.2 and later, use UNSET values implicitly.
-* [RUBY-105, RUBY-115, RUBY-109] Add v4 protocol support, which includes the following:
-** smallint, tinyint, date, time Cassandra data type handling
-** ReadFailure, WriteFailure, FunctionFailure error reporting/handling
-* [RUBY-142, RUBY-107] Manage schema metadata in the driver, including schema change event handling.
-* [RUBY-106] Include client ip addresses in results of retrieving system traces from Cassandra 3.x.
-* [RUBY-91] Enable tcp no-delay by default
-* [RUBY-104] Handle new 'try-next' retry-policy decision for retrying requests on the next host in the load balancing plan.
-* [RUBY-108] Add user-defined function (UDF) and user-defined aggregate (UDA) support.
-* [RUBY-145, RUBY-146] Allow the user to specify that a statement is/is not idempotent, and don't automatically retry non-idempotent statements on timeouts.
-* [RUBY-147] Update type parsing to support new format introduced in Cassandrda 3.0.
-
+* Added optional time out to Cassandra::Future#get
+* Allow skipping bound values or using `Cassandra::UNSET` explicitly.
+* Add support for smallint, tinyint, date (`Cassandra::Date`) and time (`Cassandra::Time`) data types.
+* Add new errors: `Cassandra::Errors::ReadError`, `Cassandra::Errors::WriteError` and `Cassandra::Errors::FunctionCallError`.
+* Include schema metadata for User Defined Functions and User Defined Aggregates.
+* Include client ip addresses in request traces, only on Cassandra 3.x.
+* Add new retry policy decision `Cassandra::Retry::Policy#try_next_host`.
+* Support specifying statement idempotence with the new `:idempotent` option when executing.
+* Support sending custom payloads when preparing or executing statements using the new `:payload` option.
+* Expose custom payloads received with responses on server exceptions and `Cassandra::Execution::Info` instances.
+* Expose server warnings on server exceptions and `Cassandra::Execution::Info` instances.
 
 Bug Fixes:
 
 * [RUBY-143] Retry querying system table for metadata of new hosts when prior attempts fail, ultimately enabling use of new hosts.
 * [RUBY-150] Fixed a protocol decoding error that occurred when multiple messages are available in a stream.
 * [RUBY-151] Decode incomplete UDTs properly.
-* [RUBY-120] Tuples and UDTs can safely be used in sets and hash-keys.
+* [RUBY-120] Tuples and UDTs can be used in sets and hash keys.
 
 Breaking Changes:
 
 * Cassandra::Future#join is now an alias to Cassandra::Future#get and will raise an error if the future is resolved with one.
+* Default consistency level is now `LOCAL_ONE`.
+* Enable tcp no-delay by default.
+* Unavailable errors are retried on the next host in the load balancing plan by default.
+* Statement execution no longer retried on timeouts, unless `:idempotent => true` has been specified when executing.
 
 # 2.1.5
 
