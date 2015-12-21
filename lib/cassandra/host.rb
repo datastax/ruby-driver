@@ -68,14 +68,13 @@ module Cassandra
       end
     end
 
-    # @param other [Cassandra::Host] a host to compare
-    # @return [Boolean] whether this host has the same ip as the other
+    # @private
     def eql?(other)
       other.eql?(@ip)
     end
     alias :== :eql?
 
-    # @return [String] a CLI-friendly host representation
+    # @private
     def inspect
       "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @ip=#{@ip}>"
     end

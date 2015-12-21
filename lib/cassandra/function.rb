@@ -17,6 +17,10 @@
 #++
 
 module Cassandra
+  # Represents a cassandra user defined function
+  # @see Cassandra::Keyspace#each_function
+  # @see Cassandra::Keyspace#function
+  # @see Cassandra::Keyspace#has_function?
   class Function
     # @private
     attr_reader :keyspace
@@ -26,6 +30,8 @@ module Cassandra
     attr_reader :language
     # @return [Cassandra::Type] function return type
     attr_reader :type
+    # @return [String] function body
+    attr_reader :body
 
     # @private
     def initialize(keyspace, name, language, type, arguments, body, called_on_null)
@@ -84,8 +90,7 @@ module Cassandra
       @arguments.map { |argument| argument.type }
     end
 
-    # Check if this function is equal to another one
-    # @return [Boolean] whether or not this function is equal to the other one
+    # @private
     def eql?(other)
       other.is_a?(Function) && \
         @keyspace == other.keyspace && \
@@ -98,6 +103,7 @@ module Cassandra
     end
     alias :== :eql?
 
+    # @private
     def hash
       @hash ||= begin
         h = 17
@@ -112,13 +118,10 @@ module Cassandra
       end
     end
 
+    # @private
     def inspect
       "#<Cassandra::Function:0x#{self.object_id.to_s(16)} @keyspace=#{@keyspace.inspect}, @name=#{@name.inspect}, @language=#{@language.inspect}, @type=#{@type.inspect}, @arguments=#{@arguments.inspect} @body=#{@body.inspect}>"
     end
-
-    # @private
-    attr_reader :body
-    protected :body
 
     # @return [String] a cql representation of this function
     def to_cql

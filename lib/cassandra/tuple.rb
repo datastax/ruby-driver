@@ -112,15 +112,18 @@ module Cassandra
       "(#{@values.map(&:to_s).join(', ')})"
     end
 
+    # @private
     def inspect
       "#<Cassandra::Tuple:0x#{self.object_id.to_s(16)} #{to_s}>"
     end
 
+    # @private
     def eql?(other)
       other == @values
     end
     alias :== :eql?
 
+    # @private
     def hash
       @values.inject(17) {|h, v| 31 * h + v.hash}
     end

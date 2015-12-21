@@ -186,12 +186,12 @@ module Cassandra
     end
     alias :aggregates :each_aggregate
 
-    # @return [String] a cql representation of this table
+    # @return [String] a cql representation of this keyspace
     def to_cql
       "CREATE KEYSPACE #{Util.escape_name(@name)} WITH replication = #{@replication.to_cql} AND durable_writes = #{@durable_writes};"
     end
 
-    # @return [Boolean] whether this keyspace is equal to the other
+    # @private
     def eql?(other)
       other.is_a?(Keyspace) &&
         @name == other.name &&
@@ -204,7 +204,7 @@ module Cassandra
     end
     alias :== :eql?
 
-    # @return [String] a CLI-friendly keyspace representation
+    # @private
     def inspect
       "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @name=#{@name}>"
     end

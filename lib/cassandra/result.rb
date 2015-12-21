@@ -158,6 +158,7 @@ module Cassandra
         end
       end
 
+      # @private
       def inspect
         "#<Cassandra::Result:0x#{self.object_id.to_s(16)} @rows=#{@rows.inspect} @last_page=#{@paging_state.nil?}>"
       end

@@ -39,6 +39,7 @@ module Cassandra
           @thread         = thread
         end
 
+        # @private
         def ==(other)
           other == @id
         end
@@ -121,6 +122,7 @@ module Cassandra
         @events
       end
 
+      # @private
       def inspect
         "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @id=#{@id.inspect}>"
       end

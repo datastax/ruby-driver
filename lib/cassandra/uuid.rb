@@ -53,6 +53,7 @@ module Cassandra
       end
     end
 
+    # @private
     def hash
       @h ||= begin
         h = 17

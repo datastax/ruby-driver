@@ -244,7 +244,7 @@ module Cassandra
       close_async.get
     end
 
-    # @return [String] a CLI-friendly cluster representation
+    # @private
     def inspect
       "#<#{self.class.name}:0x#{self.object_id.to_s(16)}>"
     end

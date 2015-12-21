@@ -17,6 +17,7 @@
 #++
 
 module Cassandra
+  # Represents a function argument
   class Argument
     # @return [String] column name
     attr_reader :name
@@ -29,11 +30,22 @@ module Cassandra
       @type = type
     end
 
+    # @private
     def eql?(other)
       other.is_a?(Argument) && \
         @name == other.name && \
         @type == other.type
     end
     alias :== :eql?
+
+    # @private
+    def hash
+      @hash ||= begin
+        h = 17
+        h = 31 * h + @name.hash
+        h = 31 * h + @type.hash
+        h
+      end
+    end
   end
 end

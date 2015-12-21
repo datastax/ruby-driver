@@ -142,6 +142,7 @@ module Cassandra
         @idempotent
       end
 
+      # @private
       def eql?(other)
         other.is_a?(Options) &&
           other.consistency == @consistency &&

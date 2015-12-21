@@ -247,12 +247,12 @@ module Cassandra
       cql << ';'
     end
 
-    # @return [String] a CLI-friendly table representation
+    # @private
     def inspect
       "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @keyspace=#{@keyspace} @name=#{@name}>"
     end
 
-    # @return [Boolean] whether this table is equal to the other
+    # @private
     def eql?(other)
       other.is_a?(Table) &&
         @keyspace == other.keyspace &&

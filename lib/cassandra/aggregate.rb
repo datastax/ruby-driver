@@ -17,6 +17,10 @@
 #++
 
 module Cassandra
+  # Represents a cassandra user defined aggregate
+  # @see Cassandra::Keyspace#each_aggregate
+  # @see Cassandra::Keyspace#aggregate
+  # @see Cassandra::Keyspace#has_aggregate?
   class Aggregate
     # @private
     attr_reader :keyspace
@@ -47,6 +51,7 @@ module Cassandra
       @final_function = final_function
     end
 
+    # @private
     def eql?(other)
       other.is_a?(Aggregate) && \
         @keyspace == other.keyspace && \
@@ -60,6 +65,7 @@ module Cassandra
     end
     alias :== :eql?
 
+    # @private
     def hash
       @hash ||= begin
         h = 17
@@ -75,10 +81,12 @@ module Cassandra
       end
     end
 
+    # @private
     def inspect
       "#<Cassandra::Aggregate:0x#{self.object_id.to_s(16)} @keyspace=#{@keyspace.inspect}, @name=#{@name.inspect}, @type=#{@type.inspect}, @argument_types=#{@argument_types.inspect}, @initial_state=#{@initial_state.inspect}, @state_function=#{@state_function.inspect}, @final_function=#{@final_function.inspect}>"
     end
 
+    # @return [String] a cql representation of this aggregate
     def to_cql
       cql = "CREATE AGGREGATE simplex.average("
       first = true
