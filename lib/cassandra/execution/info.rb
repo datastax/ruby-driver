@@ -19,6 +19,11 @@
 module Cassandra
   module Execution
     class Info
+      # @return [Hash<String, String>] a map of string keys and byte buffer
+      #   values, containing custom payloads sent by custom query handlers
+      attr_reader :payload
+      # @return [Array<String>] a list of string warnings from the server
+      attr_reader :warnings
       # @return [String] keyspace used for the query
       attr_reader :keyspace
       # @return [Cassandra::Statement] original statement
@@ -37,7 +42,9 @@ module Cassandra
       attr_reader :trace
 
       # @private
-      def initialize(keyspace, statement, options, hosts, consistency, retries, trace)
+      def initialize(payload, warnings, keyspace, statement, options, hosts, consistency, retries, trace)
+        @payload     = payload
+        @warnings    = warnings
         @keyspace    = keyspace
         @statement   = statement
         @options     = options

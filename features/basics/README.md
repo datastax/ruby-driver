@@ -24,7 +24,7 @@
       <td><code>varchar</code></td>
     </tr>
     <tr>
-      <td rowspan="4"><code>Integer</code></td>
+      <td rowspan="6"><code>Integer</code></td>
       <td><code>bigint</code></td>
     </tr>
     <tr>
@@ -35,6 +35,12 @@
     </tr>
     <tr>
       <td><code>varint</code></td>
+    </tr>
+    <tr>
+      <td><code>smallint</code></td>
+    </tr>
+    <tr>
+      <td><code>tinyint</code></td>
     </tr>
     <tr>
       <td><code>Boolean</code></td>
@@ -58,6 +64,14 @@
     <tr>
       <td><code>Time</code></td>
       <td><code>timestamp</code></td>
+    </tr>
+    <tr>
+      <td><code><a href="http://datastax.github.io/ruby-driver/api/time/">Cassandra::Time</a></code></td>
+      <td><code>time</code></td>
+    </tr>
+    <tr>
+      <td><code>Date</code></td>
+      <td><code>date</code></td>
     </tr>
     <tr>
       <td><code><a href="http://datastax.github.io/ruby-driver/api/uuid/">Cassandra::Uuid</a></code></td>

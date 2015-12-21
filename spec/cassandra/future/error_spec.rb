@@ -20,8 +20,8 @@ module Cassandra
       end
 
       describe('#join') do
-        it 'returns self' do
-          expect(future.join).to eq(future)
+        it 'raises error' do
+          expect { future.get }.to raise_error(error.message)
         end
       end
 

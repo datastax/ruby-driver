@@ -26,7 +26,7 @@ module Cassandra
         let(:buffer) { CqlByteBuffer.new }
 
         it "maintains microsenconds precision" do
-          original = Time.now
+          original = ::Time.now
           decoded  = Coder.read_timestamp(Coder.write_timestamp(buffer, original))
 
           decoded_int  = (decoded.to_r.to_f * 1000).to_i
@@ -38,8 +38,8 @@ module Cassandra
 
       describe('RUBY-128') do
         it 'reads very large short strings and string' do
-          column_specs = YAML::load(File.open(File.dirname(__FILE__) + "/cols.yml"))
-          buffer       = YAML::load(File.open(File.dirname(__FILE__) + "/buffer.yml"))
+          column_specs = ::YAML::load(::File.open(::File.dirname(__FILE__) + "/cols.yml"))
+          buffer       = ::YAML::load(::File.open(::File.dirname(__FILE__) + "/buffer.yml"))
 
           Coder.read_values_v1(buffer, column_specs)
         end

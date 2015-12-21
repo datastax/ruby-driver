@@ -21,15 +21,15 @@ module Cassandra
     class AlreadyExistsErrorResponse < ErrorResponse
       attr_reader :keyspace, :table
 
-      def initialize(code, message, keyspace, table)
-        super(code, message)
+      def initialize(custom_payload, warnings, code, message, keyspace, table)
+        super(custom_payload, warnings, code, message)
 
         @keyspace = keyspace
         @table    = table
       end
 
-      def to_error(statement = nil)
-        Errors::AlreadyExistsError.new(@message, statement, @keyspace, @table)
+      def to_error(keyspace, statement, options, hosts, consistency, retries)
+        Errors::AlreadyExistsError.new(@message, @custom_payload, @warnings, keyspace, statement, options, hosts, consistency, retries, @keyspace, @table)
       end
 
       def to_s

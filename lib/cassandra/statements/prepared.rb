@@ -29,19 +29,24 @@ module Cassandra
       attr_reader :result_metadata
 
       # @private
-      def initialize(cql, params_metadata, result_metadata, trace_id, keyspace, statement, options, hosts, consistency, retries, client, futures_factory, schema)
-        @cql             = cql
-        @params_metadata = params_metadata
-        @result_metadata = result_metadata
-        @trace_id        = trace_id
-        @keyspace        = keyspace
-        @statement       = statement
-        @options         = options
-        @hosts           = hosts
-        @consistency     = consistency
-        @retries         = retries
-        @client          = client
-        @schema          = schema
+      def initialize(payload, warnings, cql, params_metadata, result_metadata, partition_key, trace_id, keyspace, statement, options, hosts, consistency, retries, client, connection_options)
+        @payload            = payload
+        @warnings           = warnings
+        @cql                = cql
+        @params_metadata    = params_metadata
+        @result_metadata    = result_metadata
+        @partition_key      = partition_key
+        @trace_id           = trace_id
+        @keyspace           = keyspace
+        @statement          = statement
+        @options            = options
+        @hosts              = hosts
+        @consistency        = consistency
+        @retries            = retries
+        @client             = client
+        @connection_options = connection_options
+        @idempotent         = options.idempotent?
+        @payload            = payload
       end
 
       # Creates a statement bound with specific arguments
@@ -59,47 +64,113 @@ module Cassandra
           args = EMPTY_LIST
         end
 
-        if args.is_a?(Hash)
-          args = @params_metadata.map do |(_, _, name, type)|
-            unless args.has_key?(name)
-              name = name.to_sym
-              raise ::ArgumentError, "argument :#{name} must be present in #{args.inspect}, but isn't" unless args.has_key?(name)
+        params = []
+        param_types = []
+
+        if args.is_a?(::Hash)
+          @params_metadata.each do |(_, _, name, type)|
+            name = name.to_sym unless args.has_key?(name)
+            value = args.fetch(name, NOT_SET)
+
+            if NOT_SET.eql?(value)
+              if @connection_options.protocol_version < 4
+                raise ::ArgumentError, "argument #{name.inspect} it not present in #{args.inspect}"
+              end
+            else
+              Util.assert_type(type, value) { "argument for #{name.inspect} must be #{type}, #{value} given" }
             end
 
-            args[name]
+            params << value
+            param_types << type
           end
         else
           Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{@params_metadata.size} bind parameters, #{args.size} given" }
+          @params_metadata.zip(args) do |(_, _, name, type), value|
+            if NOT_SET.eql?(value)
+              if @connection_options.protocol_version < 4
+                raise ::ArgumentError, "argument #{name.inspect} it not present in #{args.inspect}"
+              end
+            else
+              Util.assert_type(type, value) { "argument for #{name.inspect} must be #{type}, #{value} given" }
+            end
+
+            params << value
+            param_types << type
+          end
         end
 
-        params_types = @params_metadata.each_with_index.map do |(_, _, name, type), i|
-          Util.assert_type(type, args[i]) { "argument for #{name.inspect} must be #{type}, #{args[i]} given" }
-          type
-        end
+        keyspace_name, _ = @params_metadata.first
 
-        return Bound.new(@cql, params_types, @result_metadata, args) if @params_metadata.empty?
+        partition_key = create_partition_key(params)
 
-        keyspace, table, _, _ = @params_metadata.first
-        return Bound.new(@cql, params_types, @result_metadata, args, keyspace) unless keyspace && table
-
-        values = ::Hash.new
-        @params_metadata.zip(args) do |(keyspace, table, column, type), value|
-          values[column] = value
-        end
-
-        partition_key = @schema.create_partition_key(keyspace, table, values)
-
-        Bound.new(@cql, params_types, @result_metadata, args, keyspace, partition_key)
+        Bound.new(@cql, param_types, @result_metadata, params, keyspace_name, partition_key, @idempotent)
       end
 
       # @return [Cassandra::Execution::Info] execution info for PREPARE request
       def execution_info
-        @info ||= Execution::Info.new(@keyspace, @statement, @options, @hosts, @consistency, @retries, @trace_id ? Execution::Trace.new(@trace_id, @client) : nil)
+        @info ||= Execution::Info.new(@payload, @warnings, @keyspace, @statement, @options, @hosts, @consistency, @retries, @trace_id ? Execution::Trace.new(@trace_id, @client) : nil)
       end
 
       # @return [String] a CLI-friendly prepared statement representation
       def inspect
         "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @cql=#{@cql.inspect}>"
+      end
+
+      private
+
+      def create_partition_key(values)
+        partition_key = @partition_key
+        return nil if partition_key.empty? || partition_key.size > values.size
+        params_metadata = @params_metadata
+
+        buffer = Protocol::CqlByteBuffer.new
+        if partition_key.one?
+          i        = partition_key.first
+          value    = values[i]
+          metadata = params_metadata[i]
+          name     = metadata[2]
+          type     = metadata[3]
+
+          if NOT_SET.eql?(value)
+            raise ::ArgumentError, "argument #{name.inspect} is a part of " \
+                                   "the partition key and must be present."
+          end
+
+          if @connection_options.protocol_version >= 3
+            Protocol::Coder.write_value_v3(buffer, value, type)
+          else
+            Protocol::Coder.write_value_v1(buffer, value, type)
+          end
+
+          buffer.discard(4) # discard size
+        else
+          buf = Protocol::CqlByteBuffer.new
+          partition_key.each do |i|
+            value    = values[i]
+            metadata = params_metadata[i]
+            name     = metadata[2]
+            type     = metadata[3]
+
+            if NOT_SET.eql?(value)
+              raise ::ArgumentError, "argument #{name.inspect} is a part of " \
+                                     "the partition key and must be present."
+            end
+
+            if @connection_options.protocol_version >= 3
+              Protocol::Coder.write_value_v3(buf, value, type)
+            else
+              Protocol::Coder.write_value_v1(buf, value, type)
+            end
+
+            buf.discard(4) # discard size
+
+            size = buf.length
+            buffer.append_short(size)
+            buffer << buf.read(size) << NULL_BYTE
+          end
+        end
+
+        buffer.to_str
       end
     end
   end

@@ -81,7 +81,7 @@ module Cassandra
       def plan(keyspace, statement, options)
       end
 
-      # @return [String] a console-friendly representation of this policy
+      # @private
       def inspect
         "#<#{self.class.name}:0x#{self.object_id.to_s(16)}>"
       end

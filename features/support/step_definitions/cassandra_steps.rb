@@ -41,7 +41,7 @@ When(/^I execute the following cql:$/) do |cql|
 end
 
 Given(/^the following example:$/) do |code|
-  step 'a file named "example.rb" with:', prepend_encoding(code)
+  step 'a file named "example.rb" with:', prepare_code_fragment(code)
 end
 
 When(/^it is executed$/) do
@@ -60,8 +60,21 @@ Then(/^its output should match:$/) do |output|
   step 'the output should match:', output
 end
 
-Given(/^I wait for its output to contain "(.*?)"$/) do |output|
-  step "I wait for output to contain \"#{output}\""
+Given(/^I wait for its output to contain "(.*?)"$/) do |expected|
+  Timeout.timeout(aruba.config.exit_timeout) do
+    loop do
+      begin
+        expected = unescape_text(expected)
+        expected = extract_text(expected) if !aruba.config.keep_ansi || aruba.config.remove_ansi_escape_sequences
+
+        expect(last_command_started.output).to match(Regexp.new(expected))
+      rescue RSpec::Expectations::ExpectationNotMetError => e
+        retry
+      end
+
+      break
+    end
+  end
 end
 
 When(/^node (\d+) starts$/) do |i|
@@ -111,13 +124,47 @@ When(/^all nodes are unreachable$/) do
   @cluster.block_nodes
 end
 
+When(/^node (\d+) is failing writes on keyspace "(.*?)"$/) do |i, keyspace|
+  @cluster.stop_node("node#{i}")
+  @cluster.start_node("node#{i}", "-Dcassandra.test.fail_writes_ks=#{keyspace}")
+end
+
+When(/^tombstone thresholds are changed$/) do
+  @cluster.change_tombstone_thresholds
+end
+
+When(/^payload mirroring query handler is enabled$/) do
+  @cluster.stop
+  @cluster.start("-Dcassandra.custom_query_handler_class=org.apache.cassandra.cql3.CustomPayloadMirroringQueryHandler")
+end
+
 When(/^I wait for (\d+) seconds$/) do |interval|
   sleep(interval.to_i)
 end
 
-def prepend_encoding(code)
+def prepare_code_fragment(code)
   <<-CODE
 # encoding: utf-8
+
+require 'stringio'
+require 'logger'
+
+require 'bundler/setup'
+require 'cassandra'
+
+debug_log = StringIO.new
+
+Cassandra::Driver.let(:logger) do
+  logger = Logger.new(debug_log)
+  logger.level = Logger::DEBUG
+  logger.formatter = proc { |s, t, _, m| "\#{t.strftime("%T,%L")} | [\#{s}] \#{m}\\n" }
+  logger
+end
+
+at_exit do
+  $stderr.puts("\n\n--\nDriver logs:\n\n")
+  $stderr.write(debug_log.string)
+end
 
 #{code}
   CODE

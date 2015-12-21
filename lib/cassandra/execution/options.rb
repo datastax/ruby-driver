@@ -49,6 +49,19 @@ module Cassandra
       # @see Cassandra::Result#paging_state
       attr_reader :paging_state
 
+      # @return [nil, Hash<String, String>] custom outgoing payload, a map of
+      # string and byte buffers.
+      #
+      # @see https://github.com/apache/cassandra/blob/33f1edcce97779c971d4f78712a9a8bf014ffbbc/doc/native_protocol_v4.spec#L127-L133 Description of custom payload in Cassandra native protocol v4.
+      # @see https://datastax.github.io/java-driver/features/custom_payloads/#enabling-custom-payloads-on-c-nodes Enabling custom payloads on Cassandra nodes.
+      #
+      # @example Sending a custom payload
+      #   result = session.execute(payload: {
+      #              'some key' => Cassandra::Protocol::CqlByteBuffer.new
+      #                                                              .append_string('some value')
+      #            })
+      attr_reader :payload
+
       # @private
       def initialize(options)
         consistency        = options[:consistency]
@@ -59,6 +72,8 @@ module Cassandra
         paging_state       = options[:paging_state]
         arguments          = options[:arguments]
         type_hints         = options[:type_hints]
+        idempotent         = options[:idempotent]
+        payload            = options[:payload]
 
         Util.assert_one_of(CONSISTENCIES, consistency) { ":consistency must be one of #{CONSISTENCIES.inspect}, #{consistency.inspect} given" }
 
@@ -94,6 +109,17 @@ module Cassandra
           Util.assert_instance_of_one_of([::Array, ::Hash], type_hints) { ":type_hints must be an Array or a Hash, #{type_hints.inspect} given" }
         end
 
+        unless payload.nil?
+          Util.assert_instance_of(::Hash, payload) { ":payload must be a Hash" }
+          Util.assert_not_empty(payload) { ":payload must not be empty" }
+          Util.assert(payload.size <= 65535) { ":payload cannot contain more than 65535 key/value pairs" }
+
+          payload = payload.each_with_object(::Hash.new) do |(key, value), payload|
+                      payload[String(key)] = String(value)
+                    end
+          payload.freeze
+        end
+
         @consistency        = consistency
         @page_size          = page_size
         @trace              = !!trace
@@ -102,6 +128,8 @@ module Cassandra
         @paging_state       = paging_state
         @arguments          = arguments
         @type_hints         = type_hints
+        @idempotent         = !!idempotent
+        @payload            = payload
       end
 
       # @return [Boolean] whether request tracing was enabled
@@ -109,6 +137,12 @@ module Cassandra
         @trace
       end
 
+      # @return [Boolean] whether statement can be retried on timeout
+      def idempotent?
+        @idempotent
+      end
+
+      # @private
       def eql?(other)
         other.is_a?(Options) &&
           other.consistency == @consistency &&

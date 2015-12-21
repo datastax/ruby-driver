@@ -31,6 +31,7 @@ require 'resolv'
 require 'openssl'
 require 'securerandom'
 require 'time'
+require 'date'
 
 module Cassandra
   # A list of all supported request consistencies
@@ -59,7 +60,7 @@ module Cassandra
   #
   # @option options [Integer] :port (9042) cassandra native protocol port.
   #
-  # @option options [Boolean] :nodelay (false) when set to `true`, disables
+  # @option options [Boolean] :nodelay (true) when set to `true`, disables
   #   nagle algorithm.
   #
   # @option options [String] :datacenter (nil) name of current datacenter.
@@ -167,8 +168,8 @@ module Cassandra
   #   initial listeners. A list of initial cluster state listeners. Note that a
   #   `:load_balancing` policy is automatically registered with the cluster.
   #
-  # @option options [Symbol] :consistency (:one) default consistency to use for
-  #   all requests. Must be one of {Cassandra::CONSISTENCIES}.
+  # @option options [Symbol] :consistency (:local_one) default consistency
+  #   to use for all requests. Must be one of {Cassandra::CONSISTENCIES}.
   #
   # @option options [Boolean] :trace (false) whether or not to trace all
   #   requests by default.
@@ -521,12 +522,27 @@ module Cassandra
 
   # @private
   EMPTY_LIST = [].freeze
+  # @private
+  NOT_SET = ::Object.new
+  # @private
+  NULL_BYTE = "\x00".freeze
+
+  # @private
+  # ensures that:
+  # ::Date.jd(DATE_OFFSET, ::Date::GREGORIAN)
+  # => -5877641-06-23
+  # ::Date.jd(DATE_OFFSET + 2 ** 31, ::Date::GREGORIAN)
+  # => 1970-1-1
+  # ::Date.jd(DATE_OFFSET + 2 ** 32, ::Date::GREGORIAN)
+  # => 5881580-07-12
+  DATE_OFFSET = (::Time.utc(1970, 1, 1).to_date.jd - 2 ** 31)
 end
 
 require 'cassandra/uuid'
 require 'cassandra/time_uuid'
 require 'cassandra/tuple'
 require 'cassandra/udt'
+require 'cassandra/time'
 
 require 'cassandra/types'
 
@@ -546,6 +562,9 @@ require 'cassandra/result'
 require 'cassandra/statement'
 require 'cassandra/statements'
 
+require 'cassandra/aggregate'
+require 'cassandra/argument'
+require 'cassandra/function'
 require 'cassandra/column'
 require 'cassandra/table'
 require 'cassandra/keyspace'

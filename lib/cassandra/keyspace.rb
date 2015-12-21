@@ -51,12 +51,14 @@ module Cassandra
     attr_reader :replication
 
     # @private
-    def initialize(name, durable_writes, replication, tables, types)
+    def initialize(name, durable_writes, replication, tables, types, functions, aggregates)
       @name           = name
       @durable_writes = durable_writes
       @replication    = replication
       @tables         = tables
       @types          = types
+      @functions      = functions
+      @aggregates     = aggregates
     end
 
     # @return [Boolean] whether durables writes are enabled for this keyspace
@@ -121,23 +123,88 @@ module Cassandra
     end
     alias :types :each_type
 
-    # @return [String] a cql representation of this table
-    def to_cql
-      "CREATE KEYSPACE #{Util.escape_name(@name)} WITH REPLICATION = #{@replication.to_cql} AND DURABLE_WRITES = #{@durable_writes};"
+    # @return [Boolean] whether this keyspace has a function with the given name and arguments
+    # @param name [String] function name
+    # @param args [Array<String>] (var-args style) function argument types
+    def has_function?(name, *args)
+      @functions.has_key?([name.downcase, args])
     end
 
-    # @return [Boolean] whether this keyspace is equal to the other
+    # @return [Cassandra::Function, nil] a function or nil
+    # @param name [String] function name
+    # @param args [Array<String>] (var-args style) function argument types
+    def function(name, *args)
+      # The functions_hash datastructure is a hash <[func-name, args], Function>.
+      # So construct the array-key we're looking for.
+      @functions[[name.downcase, args]]
+    end
+
+    # Yield or enumerate each function defined in this keyspace
+    # @overload each_function
+    #   @yieldparam function [Cassandra::Function] current function
+    #   @return [Cassandra::Keyspace] self
+    # @overload each_function
+    #   @return [Array<Cassandra::Function>] a list of functions
+    def each_function(&block)
+      if block_given?
+        @functions.each_value(&block)
+        self
+      else
+        @functions.values
+      end
+    end
+    alias :functions :each_function
+
+    # @return [Boolean] whether this keyspace has an aggregate with the given
+    #                   name and arguments
+    # @param name [String] aggregate name
+    # @param args [Array<String>] (var-args style) aggregate function argument types
+    def has_aggregate?(name, *args)
+      @aggregates.has_key?([name.downcase, args])
+    end
+
+    # @return [Cassandra::Aggregate, nil] an aggregate or nil
+    # @param name [String] aggregate name
+    # @param args [Array<String>] (var-args style) aggregate function argument types
+    def aggregate(name, *args)
+      @aggregates[[name.downcase, args]]
+    end
+
+    # Yield or enumerate each aggregate defined in this keyspace
+    # @overload each_aggregate
+    #   @yieldparam aggregate [Cassandra::Aggregate] current aggregate
+    #   @return [Cassandra::Keyspace] self
+    # @overload each_aggregate
+    #   @return [Array<Cassandra::Aggregate>] a list of aggregates
+    def each_aggregate(&block)
+      if block_given?
+        @aggregates.each_value(&block)
+        self
+      else
+        @aggregates.values
+      end
+    end
+    alias :aggregates :each_aggregate
+
+    # @return [String] a cql representation of this keyspace
+    def to_cql
+      "CREATE KEYSPACE #{Util.escape_name(@name)} WITH replication = #{@replication.to_cql} AND durable_writes = #{@durable_writes};"
+    end
+
+    # @private
     def eql?(other)
       other.is_a?(Keyspace) &&
         @name == other.name &&
         @durable_writes == other.durable_writes &&
         @replication == other.replication &&
         @tables == other.raw_tables &&
-        @types == other.raw_types
+        @types == other.raw_types &&
+        @functions == other.raw_functions &&
+        @aggregates == other.raw_aggregates
     end
     alias :== :eql?
 
-    # @return [String] a CLI-friendly keyspace representation
+    # @private
     def inspect
       "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @name=#{@name}>"
     end
@@ -146,34 +213,56 @@ module Cassandra
     def update_table(table)
       tables = @tables.dup
       tables[table.name] = table
-      Keyspace.new(@name, @durable_writes, @replication, tables, @types)
+      Keyspace.new(@name, @durable_writes, @replication, tables, @types, @functions, @aggregates)
     end
 
     # @private
     def delete_table(table_name)
       tables = @tables.dup
       tables.delete(table_name)
-      Keyspace.new(@name, @durable_writes, @replication, tables, @types)
+      Keyspace.new(@name, @durable_writes, @replication, tables, @types, @functions, @aggregates)
     end
 
     # @private
     def update_type(type)
       types = @types.dup
       types[type.name] = type
-      Keyspace.new(@name, @durable_writes, @replication, @tables, types)
+      Keyspace.new(@name, @durable_writes, @replication, @tables, types, @functions, @aggregates)
     end
 
     # @private
     def delete_type(type_name)
       types = @types.dup
       types.delete(type_name)
-      Keyspace.new(@name, @durable_writes, @replication, @tables, types)
+      Keyspace.new(@name, @durable_writes, @replication, @tables, types, @functions, @aggregates)
     end
 
     # @private
-    def create_partition_key(table, values)
-      table = @tables[table]
-      table && table.create_partition_key(values)
+    def update_function(function)
+      functions = @functions.dup
+      functions[[function.name, function.argument_types]] = function
+      Keyspace.new(@name, @durable_writes, @replication, @tables, @types, functions, @aggregates)
+    end
+
+    # @private
+    def delete_function(function_name, function_args)
+      functions = @functions.dup
+      functions.delete([function_name, function_args])
+      Keyspace.new(@name, @durable_writes, @replication, @tables, @types, functions, @aggregates)
+    end
+
+    # @private
+    def update_aggregate(aggregate)
+      aggregates = @aggregates.dup
+      aggregates[[aggregate.name, aggregate.argument_types]] = aggregate
+      Keyspace.new(@name, @durable_writes, @replication, @tables, @types, @functions, aggregates)
+    end
+
+    # @private
+    def delete_aggregate(aggregate_name, aggregate_args)
+      aggregates = @aggregates.dup
+      aggregates.delete([aggregate_name, aggregate_args])
+      Keyspace.new(@name, @durable_writes, @replication, @tables, @types, @functions, aggregates)
     end
 
     # @private
@@ -190,6 +279,16 @@ module Cassandra
     # @private
     def raw_types
       @types
+    end
+
+    # @private
+    def raw_functions
+      @functions
+    end
+
+    # @private
+    def raw_aggregates
+      @aggregates
     end
   end
 end

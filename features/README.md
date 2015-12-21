@@ -228,7 +228,7 @@ session.execute(batch, consistency: :all)
 [Read more about `Session#execute`](http://datastax.github.io/ruby-driver/api/session/#execute-instance_method)
 [Read more about possible consistencies](http://datastax.github.io/ruby-driver/api/#CONSISTENCIES-constant)
 
-The default consistency level unless you've set it yourself is `:quorum`.
+The default consistency level unless you've set it yourself is `:local_one`.
 
 Consistency is ignored for `USE`, `TRUNCATE`, `CREATE` and `ALTER` statements, and some (like `:any`) aren't allowed in all situations.
 

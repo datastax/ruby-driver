@@ -19,8 +19,8 @@
 module Cassandra
   module Protocol
     class RawRowsResultResponse < RowsResultResponse
-      def initialize(protocol_version, raw_rows, paging_state, trace_id)
-        super(nil, nil, paging_state, trace_id)
+      def initialize(custom_payload, warnings, protocol_version, raw_rows, paging_state, trace_id)
+        super(custom_payload, warnings, nil, nil, paging_state, trace_id)
         @protocol_version = protocol_version
         @raw_rows = raw_rows
       end
@@ -28,7 +28,9 @@ module Cassandra
       def materialize(metadata)
         @metadata = metadata
 
-        if @protocol_version == 3
+        if @protocol_version == 4
+          @rows = Coder.read_values_v4(@raw_rows, @metadata)
+        elsif @protocol_version == 3
           @rows = Coder.read_values_v3(@raw_rows, @metadata)
         else
           @rows = Coder.read_values_v1(@raw_rows, @metadata)

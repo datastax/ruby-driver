@@ -19,10 +19,10 @@
 module Cassandra
   module Protocol
     class ExecuteRequest < Request
-      attr_reader :metadata, :values, :request_metadata, :serial_consistency, :page_size, :paging_state, :timestamp
+      attr_reader :metadata, :values, :request_metadata, :serial_consistency, :page_size, :paging_state, :timestamp, :payload
       attr_accessor :consistency, :retries, :id
 
-      def initialize(id, metadata, values, request_metadata, consistency, serial_consistency=nil, page_size=nil, paging_state=nil, trace=false, timestamp = nil)
+      def initialize(id, metadata, values, request_metadata, consistency, serial_consistency=nil, page_size=nil, paging_state=nil, trace=false, timestamp = nil, payload = nil)
         raise ArgumentError, "Metadata for #{metadata.size} columns, but #{values.size} values given" if metadata.size != values.size
         raise ArgumentError, %(No such consistency: #{consistency.inspect}) if consistency.nil? || !CONSISTENCIES.include?(consistency)
         raise ArgumentError, %(No such consistency: #{serial_consistency.inspect}) unless serial_consistency.nil? || CONSISTENCIES.include?(serial_consistency)
@@ -37,6 +37,11 @@ module Cassandra
         @page_size = page_size
         @paging_state = paging_state
         @timestamp = timestamp
+        @payload = payload
+      end
+
+      def payload?
+        !!@payload
       end
 
       def write(buffer, protocol_version, encoder)
@@ -81,14 +86,15 @@ module Cassandra
 
       def hash
         @h ||= begin
-          h = 0
-          h = ((h & 33554431) * 31) ^ @id.hash
-          h = ((h & 33554431) * 31) ^ @metadata.hash
-          h = ((h & 33554431) * 31) ^ @values.hash
-          h = ((h & 33554431) * 31) ^ @consistency.hash
-          h = ((h & 33554431) * 31) ^ @serial_consistency.hash
-          h = ((h & 33554431) * 31) ^ @page_size.hash
-          h = ((h & 33554431) * 31) ^ @paging_state.hash
+          h = 17
+          h = 31 * h + @id.hash
+          h = 31 * h + @metadata.hash
+          h = 31 * h + @values.hash
+          h = 31 * h + @consistency.hash
+          h = 31 * h + @serial_consistency.hash
+          h = 31 * h + @page_size.hash
+          h = 31 * h + @paging_state.hash
+          h = 31 * h + @timestamp.hash
           h
         end
       end

@@ -51,9 +51,11 @@ module Cassandra
         @error = error
       end
 
-      def get
+      def get(timeout = nil)
         raise(@error, @error.message, @error.backtrace)
       end
+
+      alias :join :get
 
       def on_success
         raise ::ArgumentError, "no block given" unless block_given?
@@ -81,10 +83,6 @@ module Cassandra
         self
       end
 
-      def join
-        self
-      end
-
       def then
         raise ::ArgumentError, "no block given" unless block_given?
         self
@@ -109,9 +107,11 @@ module Cassandra
         @value = value
       end
 
-      def get
+      def get(timeout = nil)
         @value
       end
+
+      alias :join :get
 
       def on_success
         raise ::ArgumentError, "no block given" unless block_given?
@@ -356,23 +356,23 @@ module Cassandra
     end
 
     # Returns future value or raises future error
-    # @note This method blocks until a future is resolved
-    # @raise [Exception] error used to resolve this future if any
-    # @return [Object] value used to resolve this future if any
-    def get
-      @signal.get
-      
+    #
+    # @note This method blocks until a future is resolved or a times out
+    #
+    # @param timeout [nil, Numeric] a maximum number of seconds to block
+    #   current thread for while waiting for this future to resolve. Will
+    #   wait indefinitely if passed `nil`.
+    #
+    # @raise [Errors::TimeoutError] raised when wait time exceeds the timeout
+    # @raise [Exception] raises when the future has been resolved with an
+    #   error. The original exception will be raised.
+    #
+    # @return [Object] the value that the future has been resolved with
+    def get(timeout = nil)
+      @signal.get(timeout)
     end
 
-    # Block until the future has been resolved
-    # @note This method blocks until a future is resolved
-    # @note This method won't raise any errors or return anything but the
-    #   future itself
-    # @return [self]
-    def join
-      @signal.join
-      self
-    end
+    alias :join :get
   end
 
   # @private
@@ -550,27 +550,58 @@ module Cassandra
         self
       end
 
-      def join
-        return unless @state == :pending
+      # @param timeout [nil, Numeric] a maximum number of seconds to block
+      #   current thread for while waiting for this future to resolve. Will
+      #   wait indefinitely if passed `nil`.
+      #
+      # @raise [ArgumentError] raised when a negative timeout is given
+      # @raise [Errors::TimeoutError] raised when wait time exceeds the timeout
+      # @raise [Exception] raises when the future has been resolved with an
+      #   error. The original exception will be raised.
+      #
+      # @return [Object] the value that the future has been resolved with
+      def get(timeout = nil)
+        timeout = timeout && Float(timeout)
 
-        synchronize do
-          return unless @state == :pending
+        if timeout
+          raise ::ArgumentError, "timeout cannot be negative, #{timeout.inspect} given" if timeout < 0
 
-          @waiting += 1
-          @cond.wait while @state == :pending
-          @waiting -= 1
+          start    = ::Time.now
+          now      = start
+          deadline = start + timeout
         end
 
-        nil
-      end
+        if @state == :pending
+          synchronize do
+            if @state == :pending
+              @waiting += 1
+              while @state == :pending
+                if deadline
+                  @cond.wait(deadline - now)
+                  now = ::Time.now
+                  break if now >= deadline
+                else
+                  @cond.wait
+                end
+              end
+              @waiting -= 1
+            end
+          end
 
-      def get
-        join if @state == :pending
+          if @state == :pending
+            total_wait = deadline - start
+            raise Errors::TimeoutError, "Future did not complete within #{timeout.inspect} seconds. Wait time: #{total_wait.inspect}"
+          end
+        end
 
-        raise(@error, @error.message, @error.backtrace) if @state == :broken
+        if @state == :broken
+          raise(@error, @error.message, @error.backtrace)
+        end
 
         @value
       end
+
+      alias :join :get
 
       def add_listener(listener)
         if @state == :pending

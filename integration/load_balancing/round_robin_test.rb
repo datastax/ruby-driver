@@ -17,6 +17,7 @@
 #++
 
 require File.dirname(__FILE__) + '/../integration_test_case.rb'
+require File.dirname(__FILE__) + '/try_next_host_retry_policy.rb'
 
 class RoundRobinTest < IntegrationTestCase
   def self.before_suite
@@ -25,7 +26,7 @@ class RoundRobinTest < IntegrationTestCase
 
   def setup_schema
     @@ccm_cluster.setup_schema(<<-CQL)
-    CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+    CREATE KEYSPACE simplex WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': '2', 'dc2': '2'};
     USE simplex;
     CREATE TABLE users (user_id BIGINT PRIMARY KEY, first VARCHAR, last VARCHAR, age BIGINT);
     CQL
@@ -48,7 +49,7 @@ class RoundRobinTest < IntegrationTestCase
   def test_round_robin_used_explicitly
     setup_schema
     policy  = Cassandra::LoadBalancing::Policies::RoundRobin.new
-    cluster = Cassandra.cluster(load_balancing_policy: policy)
+    cluster = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
 
     hosts_used = []
@@ -66,7 +67,7 @@ class RoundRobinTest < IntegrationTestCase
     allowed_ips = ["127.0.0.1", "127.0.0.3"]
     round_robin = Cassandra::LoadBalancing::Policies::RoundRobin.new
     whitelist = Cassandra::LoadBalancing::Policies::WhiteList.new(allowed_ips, round_robin)
-    cluster = Cassandra.cluster(load_balancing_policy: whitelist)
+    cluster = Cassandra.cluster(load_balancing_policy: whitelist, consistency: :one)
     session = cluster.connect("simplex")
 
     hosts_used = []
@@ -83,7 +84,7 @@ class RoundRobinTest < IntegrationTestCase
   def test_round_robin_ignores_datacenters
     setup_schema
     policy = Cassandra::LoadBalancing::Policies::RoundRobin.new
-    cluster = Cassandra.cluster(load_balancing_policy: policy)
+    cluster = Cassandra.cluster(load_balancing_policy: policy, consistency: :one)
     session = cluster.connect("simplex")
 
     hosts_used = []
@@ -101,7 +102,7 @@ class RoundRobinTest < IntegrationTestCase
     setup_schema
     datacenter = "dc1"
     policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
-    cluster = Cassandra.cluster(load_balancing_policy: policy)
+    cluster = Cassandra.cluster(load_balancing_policy: policy, consistency: :one)
     session = cluster.connect("simplex")
 
     hosts_used = []
@@ -144,8 +145,11 @@ class RoundRobinTest < IntegrationTestCase
     @@ccm_cluster.stop_node('node1')
     @@ccm_cluster.stop_node('node2')
 
-    assert_raises(Cassandra::Errors::UnavailableError) do
-      session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)")
+    begin
+      Retry.with_attempts(5, Cassandra::Errors::WriteTimeoutError) {
+        session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)") }
+    rescue Cassandra::Errors::NoHostsAvailable => e
+      raise e unless e.errors.first.last.is_a?(Cassandra::Errors::UnavailableError)
     end
 
     @@ccm_cluster.start_node('node1')
@@ -205,11 +209,57 @@ class RoundRobinTest < IntegrationTestCase
 
     hosts_used = []
     4.times do
-      info =  session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)", :consistency => :local_one).execution_info
+      info =  session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)",
+                              :consistency => :local_one).execution_info
       hosts_used.push(info.hosts.last.ip.to_s)
     end
 
     assert_equal ['127.0.0.1', '127.0.0.2'], hosts_used.sort.uniq
+    cluster.close
+  end
+
+  # Test for TryNextHost retry decision
+  #
+  # test_try_next_host_retry_decision tests that TryNextHost retry decision is being properly used when returned from the
+  # retry policy. It uses the TryNextHostRetryPolicy class defined in try_next_host_retry_policy.rb as the retry policy.
+  # It performs the same query against the cluster, shutting down one host at a time and making sure the next host is
+  # used. Finally, it checks that a NoHostsAvailable error is raised when all hosts are down.
+  #
+  # @expected_errors [Cassandra::Errors::NoHostsAvailable] When all hosts are down.
+  #
+  # @since 3.0.0
+  # @expected_result Each of the queries should be fulfilled by an available host.
+  #
+  # @test_assumptions Existing Cassandra cluster with keyspace 'simplex' and table 'users'.
+  # @test_category connection:retry_policy
+  #
+  def test_try_next_host_retry_decision
+    setup_schema
+    policy  = Cassandra::LoadBalancing::Policies::RoundRobin.new
+    cluster = Cassandra.cluster(consistency: :one, load_balancing_policy: policy, retry_policy: TryNextHostRetryPolicy.new)
+    session = cluster.connect("simplex")
+
+    @@ccm_cluster.stop_node('node1')
+    info =  session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)",
+                            :consistency => :one).execution_info
+    assert ['127.0.0.2', '127.0.0.3', '127.0.0.4'].include? info.hosts.last.ip.to_s
+
+    @@ccm_cluster.stop_node('node2')
+    info =  session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)",
+                            :consistency => :one).execution_info
+    assert ['127.0.0.3', '127.0.0.4'].include? info.hosts.last.ip.to_s
+
+    @@ccm_cluster.stop_node('node3')
+    info =  session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)",
+                            :consistency => :one).execution_info
+    assert_equal '127.0.0.4', info.hosts.last.ip.to_s
+
+    @@ccm_cluster.stop_node('node4')
+    assert_raises(Cassandra::Errors::NoHostsAvailable) do
+      session.execute("INSERT INTO users (user_id, first, last, age) VALUES (0, 'John', 'Doe', 40)",
+                      :consistency => :one).execution_info
+    end
+
     cluster.close
   end
 end

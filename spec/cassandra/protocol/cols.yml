@@ -13,7 +13,7 @@
   - devices
   - enable
   - &1 !ruby/object:Cassandra::Types::Simple
-    kind: :varchar
+    kind: :text
 - - vital
   - devices
   - lastaction
@@ -30,6 +30,7 @@
   - devices
   - results
   - !ruby/object:Cassandra::Types::Map
+    kind: :map
     key_type: *3
     value_type: *1
 - - vital

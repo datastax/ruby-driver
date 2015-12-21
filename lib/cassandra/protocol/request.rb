@@ -33,6 +33,10 @@ module Cassandra
       def compressable?
         true
       end
+
+      def payload?
+        false
+      end
     end
   end
 end

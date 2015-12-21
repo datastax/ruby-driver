@@ -34,7 +34,7 @@ module Cassandra
             promise   = double('promise')
             statement = double('simple statement')
 
-            expect(Statements::Simple).to receive(:new).once.with(cql, EMPTY_LIST, EMPTY_LIST).and_return(statement)
+            expect(Statements::Simple).to receive(:new).once.with(cql, EMPTY_LIST, EMPTY_LIST, false).and_return(statement)
             expect(client).to receive(:query).once.with(statement, session_options).and_return(promise)
             expect(session.execute_async(cql)).to eq(promise)
           end
@@ -47,7 +47,7 @@ module Cassandra
             promise   = double('promise')
             statement = double('simple statement')
 
-            expect(Statements::Simple).to receive(:new).once.with(cql, [1], []).and_return(statement)
+            expect(Statements::Simple).to receive(:new).once.with(cql, [1], [], false).and_return(statement)
             expect(client).to receive(:query).once.with(statement, session_options.override(arguments: [1])).and_return(promise)
             expect(session.execute_async(cql, arguments: [1])).to eq(promise)
           end
@@ -60,7 +60,7 @@ module Cassandra
             promise   = double('promise')
             statement = double('simple statement')
 
-            expect(Statements::Simple).to receive(:new).once.with(cql, [1], [:int]).and_return(statement)
+            expect(Statements::Simple).to receive(:new).once.with(cql, [1], [:int], false).and_return(statement)
             expect(client).to receive(:query).once.with(statement, session_options.override(arguments: [1], type_hints: [:int])).and_return(promise)
             expect(session.execute_async(cql, arguments: [1], type_hints: [:int])).to eq(promise)
           end
@@ -74,7 +74,7 @@ module Cassandra
             promise   = double('promise')
             statement = double('simple statement')
 
-            expect(Statements::Simple).to receive(:new).once.with(cql, EMPTY_LIST, EMPTY_LIST).and_return(statement)
+            expect(Statements::Simple).to receive(:new).once.with(cql, EMPTY_LIST, EMPTY_LIST, false).and_return(statement)
             expect(client).to receive(:query).once.with(statement, session_options.override(options)).and_return(promise)
             expect(session.execute_async(cql, options)).to eq(promise)
           end
@@ -85,7 +85,7 @@ module Cassandra
         let(:cql)             { "INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)" }
         let(:result_metadata) { nil }
         let(:params_metadata) { Array.new(5) }
-        let(:statement)       { Statements::Prepared.new(cql, params_metadata, result_metadata, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil) }
+        let(:statement)       { Statements::Prepared.new(nil, nil, cql, params_metadata, result_metadata, nil, nil, nil, nil, VOID_OPTIONS, nil, nil, nil, nil, nil) }
 
         it 'binds and executes result' do
           promise         = double('promise')
@@ -108,25 +108,21 @@ module Cassandra
         let(:statement)       { Statements::Bound.new(cql, params_metadata, result_metadata, params) }
 
         it 'executes statement' do
-          promise         = double('promise')
-          bound_statement = double('bound statement')
-          options         = double('options')
+          promise = double('promise')
 
-          expect(Execution::Options).to receive(:new).once.with(default_options).and_return(options)
-          expect(client).to receive(:execute).once.with(statement, options).and_return(promise)
+          expect(client).to receive(:execute).once.with(statement, session_options).and_return(promise)
           expect(session.execute_async(statement)).to eq(promise)
         end
       end
 
       context('batch statement') do
-        let(:statement) { Statements::Batch::Logged.new }
+        let(:statement) { Statements::Batch::Logged.new(session_options) }
 
         it 'sends batch to the client' do
           promise = double('promise')
-          options = double('options')
 
-          expect(Execution::Options).to receive(:new).once.with(default_options).and_return(options)
-          expect(client).to receive(:batch).once.with(statement, options).and_return(promise)
+          statement.add("some statement")
+          expect(client).to receive(:batch).once.with(statement, session_options).and_return(promise)
           expect(session.execute_async(statement)).to eq(promise)
         end
       end

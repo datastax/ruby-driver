@@ -119,7 +119,7 @@ cluster and request types:
       </td>
     </tr>
     <tr>
-      <td rowspan="3">Cluster Errors</td>
+      <td rowspan="6">Cluster Errors</td>
       <td>
         <a href="http://datastax.github.io/ruby-driver/api/errors/write_timeout_error/"><code>Cassandra::Errors::WriteTimeoutError</code></a>
       </td>
@@ -132,6 +132,21 @@ cluster and request types:
     <tr>
       <td>
         <a href="http://datastax.github.io/ruby-driver/api/errors/unavailable_error/"><code>Cassandra::Errors::UnavailableError</code></a>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="http://datastax.github.io/ruby-driver/api/errors/write_error/"><code>Cassandra::Errors::WriteError</code></a>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="http://datastax.github.io/ruby-driver/api/errors/read_error/"><code>Cassandra::Errors::ReadError</code></a>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="http://datastax.github.io/ruby-driver/api/errors/function_call_error/"><code>Cassandra::Errors::FunctionCallError</code></a>
       </td>
     </tr>
     <tr>

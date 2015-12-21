@@ -21,7 +21,10 @@ module Cassandra
   # @abstract This class exists for documentation purposes only
   class Type
     # @return [Symbol] shorthand type name
-    def kind
+    attr_reader :kind
+
+    def initialize(kind)
+      @kind = kind
     end
 
     # Coerces a given value to this type
@@ -48,12 +51,6 @@ module Cassandra
   module Types; extend self
     # @private
     class Simple < Type
-      attr_reader :kind
-
-      def initialize(kind)
-        @kind = kind
-      end
-
       def new(value)
         __send__(:"new_#{@kind}", value)
       end
@@ -65,6 +62,10 @@ module Cassandra
 
       def to_s
         @kind.to_s
+      end
+
+      def hash
+        @hash ||= 31 * 17 + @kind.hash
       end
 
       def eql?(other)
@@ -86,96 +87,96 @@ module Cassandra
         String(value)
       end
 
-      def assert_text(valuee, message, &block)
-        Util.assert_instance_of(::String, valuee, message, &block)
+      def assert_text(value, message, &block)
+        Util.assert_instance_of(::String, value, message, &block)
       end
 
       def new_blob(value)
         String(value)
       end
 
-      def assert_blob(valuee, message, &block)
-        Util.assert_instance_of(::String, valuee, message, &block)
+      def assert_blob(value, message, &block)
+        Util.assert_instance_of(::String, value, message, &block)
       end
 
       def new_ascii(value)
         String(value)
       end
 
-      def assert_ascii(valuee, message, &block)
-        Util.assert_instance_of(::String, valuee, message, &block)
+      def assert_ascii(value, message, &block)
+        Util.assert_instance_of(::String, value, message, &block)
       end
 
       def new_bigint(value)
         Integer(value)
       end
 
-      def assert_bigint(valuee, message, &block)
-        Util.assert_instance_of(::Integer, valuee, message, &block)
+      def assert_bigint(value, message, &block)
+        Util.assert_instance_of(::Integer, value, message, &block)
       end
 
       def new_counter(value)
         Integer(value)
       end
 
-      def assert_counter(valuee, message, &block)
-        Util.assert_instance_of(::Integer, valuee, message, &block)
+      def assert_counter(value, message, &block)
+        Util.assert_instance_of(::Integer, value, message, &block)
       end
 
       def new_int(value)
         Integer(value)
       end
 
-      def assert_int(valuee, message, &block)
-        Util.assert_instance_of(::Integer, valuee, message, &block)
+      def assert_int(value, message, &block)
+        Util.assert_instance_of(::Integer, value, message, &block)
       end
 
       def new_varint(value)
         Integer(value)
       end
 
-      def assert_varint(valuee, message, &block)
-        Util.assert_instance_of(::Integer, valuee, message, &block)
+      def assert_varint(value, message, &block)
+        Util.assert_instance_of(::Integer, value, message, &block)
       end
 
       def new_boolean(value)
         !!value
       end
 
-      def assert_boolean(valuee, message, &block)
-        Util.assert_instance_of_one_of([::TrueClass, ::FalseClass], valuee, message, &block)
+      def assert_boolean(value, message, &block)
+        Util.assert_instance_of_one_of([::TrueClass, ::FalseClass], value, message, &block)
       end
 
       def new_decimal(value)
         ::BigDecimal.new(value)
       end
 
-      def assert_decimal(valuee, message, &block)
-        Util.assert_instance_of(::BigDecimal, valuee, message, &block)
+      def assert_decimal(value, message, &block)
+        Util.assert_instance_of(::BigDecimal, value, message, &block)
       end
 
       def new_double(value)
         Float(value)
       end
 
-      def assert_double(valuee, message, &block)
-        Util.assert_instance_of(::Float, valuee, message, &block)
+      def assert_double(value, message, &block)
+        Util.assert_instance_of(::Float, value, message, &block)
       end
 
       def new_float(value)
         Float(value)
       end
 
-      def assert_float(valuee, message, &block)
-        Util.assert_instance_of(::Float, valuee, message, &block)
+      def assert_float(value, message, &block)
+        Util.assert_instance_of(::Float, value, message, &block)
       end
 
       def new_inet(value)
         ::IPAddr.new(value)
       end
 
-      def assert_inet(valuee, message, &block)
-        Util.assert_instance_of(::IPAddr, valuee, message, &block)
+      def assert_inet(value, message, &block)
+        Util.assert_instance_of(::IPAddr, value, message, &block)
       end
 
       def new_timestamp(value)
@@ -188,122 +189,72 @@ module Cassandra
         end
       end
 
-      def assert_timestamp(valuee, message, &block)
-        Util.assert_instance_of(::Time, valuee, message, &block)
+      def assert_timestamp(value, message, &block)
+        Util.assert_instance_of(::Time, value, message, &block)
       end
 
-      def new_uuid(valuee, message, &block)
+      def new_uuid(value, message, &block)
         Cassandra::Uuid.new(value)
       end
 
-      def assert_uuid(valuee, message, &block)
-        Util.assert_instance_of(Cassandra::Uuid, valuee, message, &block)
+      def assert_uuid(value, message, &block)
+        Util.assert_instance_of(Cassandra::Uuid, value, message, &block)
       end
 
       def new_timeuuid(value)
         Cassandra::TimeUuid.new(value)
       end
 
-      def assert_timeuuid(valuee, message, &block)
-        Util.assert_instance_of(Cassandra::TimeUuid, valuee, message, &block)
+      def assert_timeuuid(value, message, &block)
+        Util.assert_instance_of(Cassandra::TimeUuid, value, message, &block)
+      end
+
+      def new_date(value)
+        case value
+        when ::Date
+          value
+        else
+          return value.to_date if value.respond_to?(:to_date)
+          raise ::ArgumentError, "cannot convert #{value.inspect} to date"
+        end
+      end
+
+      def assert_date(value, message, &block)
+        Util.assert_instance_of(::Date, value, message, &block)
+      end
+
+      def new_smallint(value)
+        Integer(value)
+      end
+
+      def assert_smallint(value, message, &block)
+        Util.assert_instance_of(::Integer, value, message, &block)
+        Util.assert(value <= 32767 && value >= -32768, message, &block)
+      end
+
+      def new_time(value)
+        case value
+        when ::Integer
+          Time.new(value)
+        else
+          return Time.new(value.to_nanoseconds) if value.respond_to?(:to_nanoseconds)
+          raise ::ArgumentError, "cannot convert #{value.inspect} to time"
+        end
+      end
+
+      def assert_time(value, message, &block)
+        Util.assert_instance_of(Cassandra::Time, value, message, &block)
+      end
+
+      def new_tinyint(value)
+        Integer(value)
+      end
+
+      def assert_tinyint(value, message, &block)
+        Util.assert_instance_of(::Integer, value, message, &block)
+        Util.assert(value <= 127 && value >= -128, message, &block)
       end
     end
-
-    # @!parse
-    #   class Varchar < Type
-    #     # @return [Symbol] `:varchar`
-    #     # @see Cassandra::Type#kind
-    #     def kind
-    #     end
-    #
-    #     # Coerces the value to String
-    #     # @param value [Object] original value
-    #     # @return [String] value
-    #     # @see Cassandra::Type#new
-    #     def new(value)
-    #     end
-    #
-    #     # Asserts that a given value is a String
-    #     # @param value [Object] value to be validated
-    #     # @param message [String] error message to use when assertion
-    #     #   fails
-    #     # @yieldreturn [String] error message to use when assertion fails
-    #     # @raise [ArgumentError] if the value is not a String
-    #     # @return [void]
-    #     # @see Cassandra::Type#assert
-    #     def assert(value, message = nil, &block)
-    #     end
-    #
-    #     # @return [String] `"varchar"`
-    #     # @see Cassandra::Type#to_s
-    #     def to_s
-    #     end
-    #   end
-    const_set('Varchar', Simple.new(:varchar))
-
-    # @!parse
-    #   class Text < Type
-    #     # @return [Symbol] `:text`
-    #     # @see Cassandra::Type#kind
-    #     def kind
-    #     end
-    #
-    #     # Coerces the value to String
-    #     # @param value [Object] original value
-    #     # @return [String] value
-    #     # @see Cassandra::Type#new
-    #     def new(value)
-    #     end
-    #
-    #     # Asserts that a given value is a String
-    #     # @param value [Object] value to be validated
-    #     # @param message [String] error message to use when assertion
-    #     #   fails
-    #     # @yieldreturn [String] error message to use when assertion fails
-    #     # @raise [ArgumentError] if the value is not a String
-    #     # @return [void]
-    #     # @see Cassandra::Type#assert
-    #     def assert(value, message = nil, &block)
-    #     end
-    #
-    #     # @return [String] `"text"`
-    #     # @see Cassandra::Type#to_s
-    #     def to_s
-    #     end
-    #   end
-    const_set('Text', Simple.new(:text))
-
-    # @!parse
-    #   class Blob < Type
-    #     # @return [Symbol] `:blob`
-    #     # @see Cassandra::Type#kind
-    #     def kind
-    #     end
-    #
-    #     # Coerces the value to String
-    #     # @param value [Object] original value
-    #     # @return [String] value
-    #     # @see Cassandra::Type#new
-    #     def new(value)
-    #     end
-    #
-    #     # Asserts that a given value is a String
-    #     # @param value [Object] value to be validated
-    #     # @param message [String] error message to use when assertion
-    #     #   fails
-    #     # @yieldreturn [String] error message to use when assertion fails
-    #     # @raise [ArgumentError] if the value is not a String
-    #     # @return [void]
-    #     # @see Cassandra::Type#assert
-    #     def assert(value, message = nil, &block)
-    #     end
-    #
-    #     # @return [String] `"blob"`
-    #     # @see Cassandra::Type#to_s
-    #     def to_s
-    #     end
-    #   end
-    const_set('Blob', Simple.new(:blob))
 
     # @!parse
     #   class Ascii < Type
@@ -370,100 +321,36 @@ module Cassandra
     const_set('Bigint', Simple.new(:bigint))
 
     # @!parse
-    #   class Counter < Type
-    #     # @return [Symbol] `:counter`
+    #   class Blob < Type
+    #     # @return [Symbol] `:blob`
     #     # @see Cassandra::Type#kind
     #     def kind
     #     end
     #
-    #     # Coerces the value to Integer
+    #     # Coerces the value to String
     #     # @param value [Object] original value
-    #     # @return [Integer] value
+    #     # @return [String] value
     #     # @see Cassandra::Type#new
     #     def new(value)
     #     end
     #
-    #     # Asserts that a given value is an Integer
+    #     # Asserts that a given value is a String
     #     # @param value [Object] value to be validated
     #     # @param message [String] error message to use when assertion
     #     #   fails
     #     # @yieldreturn [String] error message to use when assertion fails
-    #     # @raise [ArgumentError] if the value is not an Integer
+    #     # @raise [ArgumentError] if the value is not a String
     #     # @return [void]
     #     # @see Cassandra::Type#assert
     #     def assert(value, message = nil, &block)
     #     end
     #
-    #     # @return [String] `"counter"`
+    #     # @return [String] `"blob"`
     #     # @see Cassandra::Type#to_s
     #     def to_s
     #     end
     #   end
-    const_set('Counter', Simple.new(:counter))
-
-    # @!parse
-    #   class Int < Type
-    #     # @return [Symbol] `:int`
-    #     # @see Cassandra::Type#kind
-    #     def kind
-    #     end
-    #
-    #     # Coerces the value to Integer
-    #     # @param value [Object] original value
-    #     # @return [Integer] value
-    #     # @see Cassandra::Type#new
-    #     def new(value)
-    #     end
-    #
-    #     # Asserts that a given value is an Integer
-    #     # @param value [Object] value to be validated
-    #     # @param message [String] error message to use when assertion
-    #     #   fails
-    #     # @yieldreturn [String] error message to use when assertion fails
-    #     # @raise [ArgumentError] if the value is not an Integer
-    #     # @return [void]
-    #     # @see Cassandra::Type#assert
-    #     def assert(value, message = nil, &block)
-    #     end
-    #
-    #     # @return [String] `"int"`
-    #     # @see Cassandra::Type#to_s
-    #     def to_s
-    #     end
-    #   end
-    const_set('Int', Simple.new(:int))
-
-    # @!parse
-    #   class Varint < Type
-    #     # @return [Symbol] `:varint`
-    #     # @see Cassandra::Type#kind
-    #     def kind
-    #     end
-    #
-    #     # Coerces the value to Integer
-    #     # @param value [Object] original value
-    #     # @return [Integer] value
-    #     # @see Cassandra::Type#new
-    #     def new(value)
-    #     end
-    #
-    #     # Asserts that a given value is an Integer
-    #     # @param value [Object] value to be validated
-    #     # @param message [String] error message to use when assertion
-    #     #   fails
-    #     # @yieldreturn [String] error message to use when assertion fails
-    #     # @raise [ArgumentError] if the value is not an Integer
-    #     # @return [void]
-    #     # @see Cassandra::Type#assert
-    #     def assert(value, message = nil, &block)
-    #     end
-    #
-    #     # @return [String] `"varint"`
-    #     # @see Cassandra::Type#to_s
-    #     def to_s
-    #     end
-    #   end
-    const_set('Varint', Simple.new(:varint))
+    const_set('Blob', Simple.new(:blob))
 
     # @!parse
     #   class Boolean < Type
@@ -496,6 +383,70 @@ module Cassandra
     #     end
     #   end
     const_set('Boolean', Simple.new(:boolean))
+
+    # @!parse
+    #   class Counter < Type
+    #     # @return [Symbol] `:counter`
+    #     # @see Cassandra::Type#kind
+    #     def kind
+    #     end
+    #
+    #     # Coerces the value to Integer
+    #     # @param value [Object] original value
+    #     # @return [Integer] value
+    #     # @see Cassandra::Type#new
+    #     def new(value)
+    #     end
+    #
+    #     # Asserts that a given value is an Integer
+    #     # @param value [Object] value to be validated
+    #     # @param message [String] error message to use when assertion
+    #     #   fails
+    #     # @yieldreturn [String] error message to use when assertion fails
+    #     # @raise [ArgumentError] if the value is not an Integer
+    #     # @return [void]
+    #     # @see Cassandra::Type#assert
+    #     def assert(value, message = nil, &block)
+    #     end
+    #
+    #     # @return [String] `"counter"`
+    #     # @see Cassandra::Type#to_s
+    #     def to_s
+    #     end
+    #   end
+    const_set('Counter', Simple.new(:counter))
+
+    # @!parse
+    #   class Date < Type
+    #     # @return [Symbol] `:date`
+    #     # @see Cassandra::Type#kind
+    #     def kind
+    #     end
+    #
+    #     # Coerces the value to Date
+    #     # @param value [Object] original value
+    #     # @return [Date] value
+    #     # @see Cassandra::Type#new
+    #     def new(value)
+    #     end
+    #
+    #     # Asserts that a given value is a Date
+    #     # @param value [Object] value to be validated
+    #     # @param message [String] error message to use when assertion
+    #     #   fails
+    #     # @yieldreturn [String] error message to use when assertion fails
+    #     # @raise [ArgumentError] if the value is not a Date
+    #     # @return [void]
+    #     # @see Cassandra::Type#assert
+    #     def assert(value, message = nil, &block)
+    #     end
+    #
+    #     # @return [String] `"date"`
+    #     # @see Cassandra::Type#to_s
+    #     def to_s
+    #     end
+    #   end
+    const_set('Date', Simple.new(:date))
 
     # @!parse
     #   class Decimal < Type
@@ -626,100 +577,36 @@ module Cassandra
     const_set('Inet', Simple.new(:inet))
 
     # @!parse
-    #   class Timestamp < Type
-    #     # @return [Symbol] `:timestamp`
+    #   class Int < Type
+    #     # @return [Symbol] `:int`
     #     # @see Cassandra::Type#kind
     #     def kind
     #     end
     #
-    #     # Coerces the value to Time
+    #     # Coerces the value to Integer
     #     # @param value [Object] original value
-    #     # @return [Time] value
+    #     # @return [Integer] value
     #     # @see Cassandra::Type#new
     #     def new(value)
     #     end
     #
-    #     # Asserts that a given value is a Time
+    #     # Asserts that a given value is an Integer
     #     # @param value [Object] value to be validated
     #     # @param message [String] error message to use when assertion
     #     #   fails
     #     # @yieldreturn [String] error message to use when assertion fails
-    #     # @raise [ArgumentError] if the value is not a Time
+    #     # @raise [ArgumentError] if the value is not an Integer
     #     # @return [void]
     #     # @see Cassandra::Type#assert
     #     def assert(value, message = nil, &block)
     #     end
     #
-    #     # @return [String] `"timestamp"`
+    #     # @return [String] `"int"`
     #     # @see Cassandra::Type#to_s
     #     def to_s
     #     end
     #   end
-    const_set('Timestamp', Simple.new(:timestamp))
-
-    # @!parse
-    #   class Uuid < Type
-    #     # @return [Symbol] `:uuid`
-    #     # @see Cassandra::Type#kind
-    #     def kind
-    #     end
-    #
-    #     # Coerces the value to Cassandra::Uuid
-    #     # @param value [Object] original value
-    #     # @return [Cassandra::Uuid] value
-    #     # @see Cassandra::Type#new
-    #     def new(value)
-    #     end
-    #
-    #     # Asserts that a given value is a Cassandra::Uuid
-    #     # @param value [Object] value to be validated
-    #     # @param message [String] error message to use when assertion
-    #     #   fails
-    #     # @yieldreturn [String] error message to use when assertion fails
-    #     # @raise [ArgumentError] if the value is not a Cassandra::Uuid
-    #     # @return [void]
-    #     # @see Cassandra::Type#assert
-    #     def assert(value, message = nil, &block)
-    #     end
-    #
-    #     # @return [String] `"uuid"`
-    #     # @see Cassandra::Type#to_s
-    #     def to_s
-    #     end
-    #   end
-    const_set('Uuid', Simple.new(:uuid))
-
-    # @!parse
-    #   class Timeuuid < Type
-    #     # @return [Symbol] `:timeuuid`
-    #     # @see Cassandra::Type#kind
-    #     def kind
-    #     end
-    #
-    #     # Coerces the value to Cassandra::Timeuuid
-    #     # @param value [Object] original value
-    #     # @return [Cassandra::Timeuuid] value
-    #     # @see Cassandra::Type#new
-    #     def new(value)
-    #     end
-    #
-    #     # Asserts that a given value is a Cassandra::Timeuuid
-    #     # @param value [Object] value to be validated
-    #     # @param message [String] error message to use when assertion
-    #     #   fails
-    #     # @yieldreturn [String] error message to use when assertion fails
-    #     # @raise [ArgumentError] if the value is not a Cassandra::Timeuuid
-    #     # @return [void]
-    #     # @see Cassandra::Type#assert
-    #     def assert(value, message = nil, &block)
-    #     end
-    #
-    #     # @return [String] `"timeuuid"`
-    #     # @see Cassandra::Type#to_s
-    #     def to_s
-    #     end
-    #   end
-    const_set('Timeuuid', Simple.new(:timeuuid))
+    const_set('Int', Simple.new(:int))
 
     class List < Type
       # @private
@@ -727,13 +614,8 @@ module Cassandra
 
       # @private
       def initialize(value_type)
+        super(:list)
         @value_type = value_type
-      end
-
-      # @return [Symbol] `:list`
-      # @see Cassandra::Type#kind
-      def kind
-        :list
       end
 
       # Coerces the value to Array
@@ -770,6 +652,15 @@ module Cassandra
         "list<#{@value_type.to_s}>"
       end
 
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + @kind.hash
+          h = 31 * h + @value_type.hash
+          h
+        end
+      end
+
       def eql?(other)
         other.is_a?(List) && @value_type == other.value_type
       end
@@ -782,14 +673,9 @@ module Cassandra
 
       # @private
       def initialize(key_type, value_type)
+        super(:map)
         @key_type   = key_type
         @value_type = value_type
-      end
-
-      # @return [Symbol] `:map`
-      # @see Cassandra::Type#kind
-      def kind
-        :map
       end
 
       # Coerces the value to Hash
@@ -841,6 +727,16 @@ module Cassandra
         "map<#{@key_type.to_s}, #{@value_type.to_s}>"
       end
 
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + @kind.hash
+          h = 31 * h + @key_type.hash
+          h = 31 * h + @value_type.hash
+          h
+        end
+      end
+
       def eql?(other)
         other.is_a?(Map) &&
           @key_type == other.key_type &&
@@ -855,13 +751,8 @@ module Cassandra
 
       # @private
       def initialize(value_type)
+        super(:set)
         @value_type = value_type
-      end
-
-      # @return [Symbol] `:set`
-      # @see Cassandra::Type#kind
-      def kind
-        :set
       end
 
       # Coerces the value to Set
@@ -925,11 +816,212 @@ module Cassandra
         "set<#{@value_type.to_s}>"
       end
 
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + @kind.hash
+          h = 31 * h + @value_type.hash
+          h
+        end
+      end
+
       def eql?(other)
         other.is_a?(Set) && @value_type == other.value_type
       end
       alias :== :eql?
     end
+
+    # @!parse
+    #   class Smallint < Type
+    #     # @return [Symbol] `:smallint`
+    #     # @see Cassandra::Type#kind
+    #     def kind
+    #     end
+    #
+    #     # Coerces the value to an Integer
+    #     # @param value [Object] original value
+    #     # @return [Integer] value
+    #     # @see Cassandra::Type#new
+    #     def new(value)
+    #     end
+    #
+    #     # Asserts that a given value is an Integer
+    #     # @param value [Object] value to be validated
+    #     # @param message [String] error message to use when assertion
+    #     #   fails
+    #     # @yieldreturn [String] error message to use when assertion fails
+    #     # @raise [ArgumentError] if the value is not an Integer
+    #     # @return [void]
+    #     # @see Cassandra::Type#assert
+    #     def assert(value, message = nil, &block)
+    #     end
+    #
+    #     # @return [String] `"smallint"`
+    #     # @see Cassandra::Type#to_s
+    #     def to_s
+    #     end
+    #   end
+    const_set('Smallint', Simple.new(:smallint))
+
+    # @!parse
+    #   class Text < Type
+    #     # @return [Symbol] `:text`
+    #     # @see Cassandra::Type#kind
+    #     def kind
+    #     end
+    #
+    #     # Coerces the value to String
+    #     # @param value [Object] original value
+    #     # @return [String] value
+    #     # @see Cassandra::Type#new
+    #     def new(value)
+    #     end
+    #
+    #     # Asserts that a given value is a String
+    #     # @param value [Object] value to be validated
+    #     # @param message [String] error message to use when assertion
+    #     #   fails
+    #     # @yieldreturn [String] error message to use when assertion fails
+    #     # @raise [ArgumentError] if the value is not a String
+    #     # @return [void]
+    #     # @see Cassandra::Type#assert
+    #     def assert(value, message = nil, &block)
+    #     end
+    #
+    #     # @return [String] `"text"`
+    #     # @see Cassandra::Type#to_s
+    #     def to_s
+    #     end
+    #   end
+    const_set('Text', Simple.new(:text))
+
+    # @!parse
+    #   class Time < Type
+    #     # @return [Symbol] `:time`
+    #     # @see Cassandra::Type#kind
+    #     def kind
+    #     end
+    #
+    #     # Coerces the value to Time
+    #     # @param value [Object] original value
+    #     # @return [Time] value
+    #     # @see Cassandra::Type#new
+    #     def new(value)
+    #     end
+    #
+    #     # Asserts that a given value is a Time
+    #     # @param value [Object] value to be validated
+    #     # @param message [String] error message to use when assertion
+    #     #   fails
+    #     # @yieldreturn [String] error message to use when assertion fails
+    #     # @raise [ArgumentError] if the value is not a String
+    #     # @return [void]
+    #     # @see Cassandra::Type#assert
+    #     def assert(value, message = nil, &block)
+    #     end
+    #
+    #     # @return [String] `"time"`
+    #     # @see Cassandra::Type#to_s
+    #     def to_s
+    #     end
+    #   end
+    const_set('Time', Simple.new(:time))
+
+    # @!parse
+    #   class Timestamp < Type
+    #     # @return [Symbol] `:timestamp`
+    #     # @see Cassandra::Type#kind
+    #     def kind
+    #     end
+    #
+    #     # Coerces the value to Time
+    #     # @param value [Object] original value
+    #     # @return [Time] value
+    #     # @see Cassandra::Type#new
+    #     def new(value)
+    #     end
+    #
+    #     # Asserts that a given value is a Time
+    #     # @param value [Object] value to be validated
+    #     # @param message [String] error message to use when assertion
+    #     #   fails
+    #     # @yieldreturn [String] error message to use when assertion fails
+    #     # @raise [ArgumentError] if the value is not a Time
+    #     # @return [void]
+    #     # @see Cassandra::Type#assert
+    #     def assert(value, message = nil, &block)
+    #     end
+    #
+    #     # @return [String] `"timestamp"`
+    #     # @see Cassandra::Type#to_s
+    #     def to_s
+    #     end
+    #   end
+    const_set('Timestamp', Simple.new(:timestamp))
+
+    # @!parse
+    #   class Timeuuid < Type
+    #     # @return [Symbol] `:timeuuid`
+    #     # @see Cassandra::Type#kind
+    #     def kind
+    #     end
+    #
+    #     # Coerces the value to Cassandra::Timeuuid
+    #     # @param value [Object] original value
+    #     # @return [Cassandra::Timeuuid] value
+    #     # @see Cassandra::Type#new
+    #     def new(value)
+    #     end
+    #
+    #     # Asserts that a given value is a Cassandra::Timeuuid
+    #     # @param value [Object] value to be validated
+    #     # @param message [String] error message to use when assertion
+    #     #   fails
+    #     # @yieldreturn [String] error message to use when assertion fails
+    #     # @raise [ArgumentError] if the value is not a Cassandra::Timeuuid
+    #     # @return [void]
+    #     # @see Cassandra::Type#assert
+    #     def assert(value, message = nil, &block)
+    #     end
+    #
+    #     # @return [String] `"timeuuid"`
+    #     # @see Cassandra::Type#to_s
+    #     def to_s
+    #     end
+    #   end
+    const_set('Timeuuid', Simple.new(:timeuuid))
+
+    # @!parse
+    #   class Tinyint < Type
+    #     # @return [Symbol] `:tinyint`
+    #     # @see Cassandra::Type#kind
+    #     def kind
+    #     end
+    #
+    #     # Coerces the value to Integer
+    #     # @param value [Object] original value
+    #     # @return [Integer] value
+    #     # @see Cassandra::Type#new
+    #     def new(value)
+    #     end
+    #
+    #     # Asserts that a given value is an Integer
+    #     # @param value [Object] value to be validated
+    #     # @param message [String] error message to use when assertion
+    #     #   fails
+    #     # @yieldreturn [String] error message to use when assertion fails
+    #     # @raise [ArgumentError] if the value is not an Integer
+    #     # @return [void]
+    #     # @see Cassandra::Type#assert
+    #     def assert(value, message = nil, &block)
+    #     end
+    #
+    #     # @return [String] `"tinyint"`
+    #     # @see Cassandra::Type#to_s
+    #     def to_s
+    #     end
+    #   end
+    const_set('Tinyint', Simple.new(:tinyint))
 
     class Tuple < Type
       # @private
@@ -937,13 +1029,8 @@ module Cassandra
 
       # @private
       def initialize(*members)
+        super(:tuple)
         @members = members
-      end
-
-      # @return [Symbol] `:tuple`
-      # @see Cassandra::Type#kind
-      def kind
-        :tuple
       end
 
       # Coerces the value to Cassandra::Tuple
@@ -984,11 +1071,84 @@ module Cassandra
         "tuple<#{@members.map(&:to_s).join(', ')}>"
       end
 
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + @kind.hash
+          h = 31 * h + @members.hash
+          h
+        end
+      end
+
       def eql?(other)
         other.is_a?(Tuple) && @members == other.members
       end
       alias :== :eql?
     end
+
+    # @!parse
+    #   class Uuid < Type
+    #     # @return [Symbol] `:uuid`
+    #     # @see Cassandra::Type#kind
+    #     def kind
+    #     end
+    #
+    #     # Coerces the value to Cassandra::Uuid
+    #     # @param value [Object] original value
+    #     # @return [Cassandra::Uuid] value
+    #     # @see Cassandra::Type#new
+    #     def new(value)
+    #     end
+    #
+    #     # Asserts that a given value is a Cassandra::Uuid
+    #     # @param value [Object] value to be validated
+    #     # @param message [String] error message to use when assertion
+    #     #   fails
+    #     # @yieldreturn [String] error message to use when assertion fails
+    #     # @raise [ArgumentError] if the value is not a Cassandra::Uuid
+    #     # @return [void]
+    #     # @see Cassandra::Type#assert
+    #     def assert(value, message = nil, &block)
+    #     end
+    #
+    #     # @return [String] `"uuid"`
+    #     # @see Cassandra::Type#to_s
+    #     def to_s
+    #     end
+    #   end
+    const_set('Uuid', Simple.new(:uuid))
+
+    # @!parse
+    #   class Varint < Type
+    #     # @return [Symbol] `:varint`
+    #     # @see Cassandra::Type#kind
+    #     def kind
+    #     end
+    #
+    #     # Coerces the value to Integer
+    #     # @param value [Object] original value
+    #     # @return [Integer] value
+    #     # @see Cassandra::Type#new
+    #     def new(value)
+    #     end
+    #
+    #     # Asserts that a given value is an Integer
+    #     # @param value [Object] value to be validated
+    #     # @param message [String] error message to use when assertion
+    #     #   fails
+    #     # @yieldreturn [String] error message to use when assertion fails
+    #     # @raise [ArgumentError] if the value is not an Integer
+    #     # @return [void]
+    #     # @see Cassandra::Type#assert
+    #     def assert(value, message = nil, &block)
+    #     end
+    #
+    #     # @return [String] `"varint"`
+    #     # @see Cassandra::Type#to_s
+    #     def to_s
+    #     end
+    #   end
+    const_set('Varint', Simple.new(:varint))
 
     class UserDefined < Type
       class Field
@@ -1007,6 +1167,15 @@ module Cassandra
         # @return [String] String representation of the field
         def to_s
           "#{@name} #{@type}"
+        end
+
+        def hash
+          @hash ||= begin
+            h = 17
+            h = 31 * h + @name.hash
+            h = 31 * h + @type.hash
+            h
+          end
         end
 
         def eql?(other)
@@ -1028,6 +1197,7 @@ module Cassandra
 
       # @private
       def initialize(keyspace, name, fields)
+        super(:udt)
         @keyspace  = keyspace
         @name      = name
         @fields    = fields
@@ -1060,12 +1230,6 @@ module Cassandra
       #   nil
       def field(name)
         @fields.find {|f| f.name == name}
-      end
-
-      # @return [Symbol] `:udt`
-      # @see Cassandra::Type#kind
-      def kind
-        :udt
       end
 
       # Coerces the value to Cassandra::UDT
@@ -1121,6 +1285,17 @@ module Cassandra
         "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} {#{@fields.join(', ')}}"
       end
 
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + @kind.hash
+          h = 31 * h + @keyspace.hash
+          h = 31 * h + @name.hash
+          h = 31 * h + @fields.hash
+          h
+        end
+      end
+
       def eql?(other)
         other.is_a?(UserDefined) &&
           @keyspace == other.keyspace &&
@@ -1171,12 +1346,8 @@ module Cassandra
       attr_reader :name
 
       def initialize(name)
+        super(:custom)
         @name = name
-      end
-
-      # @return [Symbol] shorthand type name
-      def kind
-        :custom
       end
 
       # Coerces a given value to this type
@@ -1202,15 +1373,24 @@ module Cassandra
         "'#{@name}'"
       end
 
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + @kind.hash
+          h = 31 * h + @name.hash
+          h
+        end
+      end
+
       def eql?(other)
         other.is_a?(Custom) && @name == other.name
       end
       alias :== :eql?
     end
 
-    # @return [Cassandra::Types::Varchar] varchar type
+    # @return [Cassandra::Types::Text] text type since varchar is an alias for text
     def varchar
-      Varchar
+      Text
     end
 
     # @return [Cassandra::Types::Text] text type
@@ -1288,8 +1468,28 @@ module Cassandra
       Timeuuid
     end
 
+    # @return [Cassandra::Types::Date] date type
+    def date
+      Date
+    end
+
+    # @return [Cassandra::Types::Time] time type
+    def time
+      Time
+    end
+
+    # @return [Cassandra::Types::Smallint] smallint type
+    def smallint
+      Smallint
+    end
+
+    # @return [Cassandra::Types::Tinyint] tinyint type
+    def tinyint
+      Tinyint
+    end
+
     # @param value_type [Cassandra::Type] the type of elements in this list
-    # @return [Cassandra::Types::Map] map type
+    # @return [Cassandra::Types::List] list type
     def list(value_type)
       Util.assert_instance_of(Cassandra::Type, value_type,
         "list type must be a Cassandra::Type, #{value_type.inspect} given"
@@ -1300,7 +1500,7 @@ module Cassandra
 
     # @param key_type [Cassandra::Type] the type of keys in this map
     # @param value_type [Cassandra::Type] the type of values in this map
-    # @return [Cassandra::Types::Varchar] varchar type
+    # @return [Cassandra::Types::Map] map type
     def map(key_type, value_type)
       Util.assert_instance_of(Cassandra::Type, key_type,
         "map key type must be a Cassandra::Type, #{key_type.inspect} given"
@@ -1312,7 +1512,7 @@ module Cassandra
       Map.new(key_type, value_type)
     end
 
-    # @param value_type [Cassandra::Type] the type of elements in this set
+    # @param value_type [Cassandra::Type] the type of values in this set
     # @return [Cassandra::Types::Set] set type
     def set(value_type)
       Util.assert_instance_of(Cassandra::Type, value_type,

@@ -220,7 +220,7 @@ class FakeConnection
       when Cassandra::Protocol::StartupRequest
         Cassandra::Protocol::ReadyResponse.new
       when Cassandra::Protocol::QueryRequest
-        Cassandra::Protocol::RowsResultResponse.new([], [], nil, nil)
+        Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
       when Cassandra::Protocol::OptionsRequest
         Cassandra::Protocol::SupportedResponse.new({})
       end

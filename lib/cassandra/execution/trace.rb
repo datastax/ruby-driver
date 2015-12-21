@@ -39,6 +39,7 @@ module Cassandra
           @thread         = thread
         end
 
+        # @private
         def ==(other)
           other == @id
         end
@@ -53,41 +54,61 @@ module Cassandra
 
       # @private
       def initialize(id, client)
-        @id     = id
-        @client = client
+        @id            = id
+        @client        = client
+        @coordinator   = nil
+        @duration      = nil
+        @parameters    = nil
+        @request       = nil
+        @started_at    = nil
+        @events        = nil
+        @client_ip     = nil
+        @loaded        = false
+        @loaded_events = false
 
         mon_initialize
       end
 
-      # Returns the ip of coordinator node. Typically the same as {Cassandra::Execution::Info#hosts}`.last`
+      # Returns the ip of coordinator node. Typically the same as
+      # {Cassandra::Execution::Info#hosts}`.last`
       #
       # @return [IPAddr] ip of the coordinator node
       def coordinator
-        load unless @coordinator
+        load unless @loaded
 
         @coordinator
       end
 
+      # Returns the ip of the client node, the node that ran the driver
+      # instance that started tracing.
+      #
+      # @return [IPAddr, nil] ip of the client node running the driver
+      def client
+        load unless @loaded
+
+        @client_ip
+      end
+
       def duration
-        load unless @duration
+        load unless @loaded
 
         @duration
       end
 
       def parameters
-        load unless @parameters
+        load unless @loaded
 
         @parameters
       end
 
       def request
-        load unless @request
+        load unless @loaded
 
         @request
       end
 
       def started_at
-        load unless @started_at
+        load unless @loaded
 
         @started_at
       end
@@ -96,11 +117,12 @@ module Cassandra
       #
       # @return [Array<Cassandra::Execution::Trace::Event>] events
       def events
-        load_events unless @events
+        load_events unless @loaded_events
 
         @events
       end
 
+      # @private
       def inspect
         "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @id=#{@id.inspect}>"
       end
@@ -117,7 +139,16 @@ module Cassandra
         synchronize do
           return if @loaded
 
-          data = @client.query(Statements::Simple.new(SELECT_SESSION % @id), VOID_OPTIONS).get.first
+          attempt = 1
+          data    = @client.query(Statements::Simple.new(SELECT_SESSION % @id), VOID_OPTIONS).get.first
+
+          while data.nil? && attempt <= 5
+            sleep(attempt * 0.4)
+            data = @client.query(Statements::Simple.new(SELECT_SESSION % @id), VOID_OPTIONS).get.first
+            break if data
+            attempt += 1
+          end
+
           raise ::RuntimeError, "unable to load trace #{@id}" if data.nil?
 
           @coordinator = data['coordinator']
@@ -125,6 +156,7 @@ module Cassandra
           @parameters  = data['parameters']
           @request     = data['request']
           @started_at  = data['started_at']
+          @client_ip   = data['client']
           @loaded      = true
         end
 

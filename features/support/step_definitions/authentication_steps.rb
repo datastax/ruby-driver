@@ -1,43 +1,26 @@
 # encoding: utf-8
 
 When(/^it is executed with a valid username and password in the environment$/) do
-  ENV['USERNAME'] = @username
-  ENV['PASSWORD'] = @password
-
-  step 'it is executed'
-
-  ENV.delete('USERNAME')
-  ENV.delete('PASSWORD')
+  with_environment('USERNAME' => @username, 'PASSWORD' => @password) do
+    step 'it is executed'
+  end
 end
 
 When(/^it is executed with an invalid username and password in the environment$/) do
-  ENV['USERNAME'] = 'invalidname'
-  ENV['PASSWORD'] = 'badpassword'
-
-  step 'it is executed'
-
-  ENV.delete('USERNAME')
-  ENV.delete('PASSWORD')
+  with_environment('USERNAME' => 'invalidname', 'PASSWORD' => 'badpassword') do
+    step 'it is executed'
+  end
 end
 
 When(/^it is executed with a valid ca path in the environment$/) do
-  ENV['SERVER_CERT'] = @server_cert
-
-  step 'it is executed'
-
-  ENV.delete('SERVER_CERT')
+  with_environment('SERVER_CERT' => @server_cert) do
+    step 'it is executed'
+  end
 end
 
 When(/^it is executed with ca and cert path and key in the environment$/) do
-  ENV['SERVER_CERT'] = @server_cert
-  ENV['CLIENT_CERT'] = @client_cert
-  ENV['PRIVATE_KEY'] = @private_key
-  ENV['PASSPHRASE']  = @passphrase
-
-  step 'it is executed'
-
-  ENV.delete('SERVER_CERT')
-  ENV.delete('CLIENT_CERT')
-  ENV.delete('PRIVATE_KEY')
-  ENV.delete('PASSPHRASE')
+  with_environment('SERVER_CERT' => @server_cert, 'CLIENT_CERT' => @client_cert,
+                   'PRIVATE_KEY' => @private_key, 'PASSPHRASE' => @passphrase) do
+    step 'it is executed'
+  end
 end

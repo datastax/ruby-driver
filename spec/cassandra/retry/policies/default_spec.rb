@@ -49,8 +49,8 @@ module Cassandra
             let(:required_responses) { 1 }
             let(:received_responses) { 0 }
 
-            it 'reraises' do
-              expect(decision).to be_a(Decisions::Reraise)
+            it 'tries on next host' do
+              expect(decision).to be_a(Decisions::TryNextHost)
             end
           end
 
@@ -70,8 +70,8 @@ module Cassandra
             context('data retrieved') do
               let(:data_retrieved) { true }
 
-              it 'reraises' do
-                expect(decision).to be_a(Decisions::Reraise)
+              it 'tries on next host' do
+                expect(decision).to be_a(Decisions::TryNextHost)
               end
             end
           end
@@ -129,8 +129,8 @@ module Cassandra
                                replicas_alive, retries)
           end
 
-          it 'reraises' do
-            expect(decision).to be_a(Decisions::Reraise)
+          it 'tries on next host' do
+            expect(decision).to be_a(Decisions::TryNextHost)
           end
         end
       end

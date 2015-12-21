@@ -55,6 +55,9 @@ Feature: membership change detection
     Then its output should contain:
       """
       Host 127.0.0.3 is down
+      """
+    And its output should contain:
+      """
       Host 127.0.0.2 is down
       """
 

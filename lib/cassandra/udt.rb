@@ -408,13 +408,23 @@ module Cassandra
       '{ ' + @values.map {|(n, v)| "#{n}: #{v.inspect}"}.join(', ') + ' }'
     end
 
+    # @private
     def inspect
       "#<Cassandra::UDT:0x#{self.object_id.to_s(16)} #{to_s}>"
     end
 
+    # @private
     def eql?(other)
       other.is_a?(UDT) && @values.all? {|(n, v)| v == other[n]}
     end
     alias :== :eql?
+
+    # @private
+    def hash
+      @values.inject(17) do |h, (n, v)|
+        h = 31 * h + n.hash
+        h = 31 * h + v.hash
+      end
+    end
   end
 end

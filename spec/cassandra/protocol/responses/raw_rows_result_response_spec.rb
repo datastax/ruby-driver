@@ -23,7 +23,7 @@ module Cassandra
   module Protocol
     describe RawRowsResultResponse do
       let :response do
-        described_class.new(2, raw_rows, nil, nil)
+        described_class.new(nil, nil, 2, raw_rows, nil, nil)
       end
 
       let :raw_rows do

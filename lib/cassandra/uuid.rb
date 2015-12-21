@@ -53,8 +53,13 @@ module Cassandra
       end
     end
 
+    # @private
     def hash
-      @n.hash
+      @h ||= begin
+        h = 17
+        h = 31 * h + @n.hash
+        h
+      end
     end
 
     # Returns the numerical representation of this UUID

@@ -65,12 +65,12 @@ module Cassandra
       @frozen
     end
 
-    # @return [String] a CLI-friendly column representation
+    # @private
     def inspect
       "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @name=#{@name} @type=#{@type}>"
     end
 
-    # @return [Boolean] whether this column is equal to the other
+    # @private
     def eql?(other)
       other.is_a?(Column) &&
         @name == other.name &&

@@ -37,6 +37,8 @@ module Cassandra
       #   for the query
       # @param type_hints [Array, Hash] (nil) positional or named types
       #   to override type guessing for the query
+      # @param idempotent [Boolean] (false) whether this statement can be
+      #   safely retries on timeouts
       #
       # @note Positional arguments for simple statements are only supported
       #   starting with Apache Cassandra 2.0 and above.
@@ -45,11 +47,10 @@ module Cassandra
       #   starting with Apache Cassandra 2.1 and above.
       #
       # @raise [ArgumentError] if cql statement given is not a String
-      def initialize(cql, params = nil, type_hints = nil)
+      def initialize(cql, params = nil, type_hints = nil, idempotent = false)
         Util.assert_instance_of(::String, cql) { "cql must be a string, #{cql.inspect} given" }
 
         params ||= EMPTY_LIST
-
 
         if params.is_a?(::Hash)
           params_names = []
@@ -77,6 +78,7 @@ module Cassandra
         @params       = params
         @params_types = params.each_with_index.map {|value, index| (!type_hints.empty? && type_hints[index] && type_hints[index].is_a?(Type)) ? type_hints[index] : Util.guess_type(value)}
         @params_names = params_names
+        @idempotent   = idempotent
       end
 
       # @return [String] a CLI-friendly simple statement representation

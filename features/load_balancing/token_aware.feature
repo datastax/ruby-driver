@@ -16,8 +16,7 @@ Feature: Token-aware Load Balancing Policy
     And the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'NetworkTopologyStrategy', 'dc1': 1, 'dc2': 1};
-      USE simplex;
-      CREATE TABLE songs (
+      CREATE TABLE simplex.songs (
         id uuid PRIMARY KEY,
         title text,
         album text,
@@ -25,7 +24,7 @@ Feature: Token-aware Load Balancing Policy
         tags set<text>,
         data blob
       );
-      INSERT INTO songs (id, title, album, artist, tags)
+      INSERT INTO simplex.songs (id, title, album, artist, tags)
       VALUES (
          756716f7-2e54-4715-9f00-91dcbea6cf50,
          'La Petite Tonkinoise',
@@ -33,7 +32,7 @@ Feature: Token-aware Load Balancing Policy
          'Joséphine Baker',
          {'jazz', '2013'})
       ;
-      INSERT INTO songs (id, title, album, artist, tags)
+      INSERT INTO simplex.songs (id, title, album, artist, tags)
       VALUES (
          f6071e72-48ec-4fcb-bf3e-379c8a696488,
          'Die Mösch',
@@ -41,7 +40,7 @@ Feature: Token-aware Load Balancing Policy
          'Willi Ostermann',
          {'kölsch', '1996', 'birds'}
       );
-      INSERT INTO songs (id, title, album, artist, tags)
+      INSERT INTO simplex.songs (id, title, album, artist, tags)
       VALUES (
          fbdf82ed-0063-4796-9c7c-a3d4f47b4b25,
          'Memo From Turner',
@@ -49,7 +48,7 @@ Feature: Token-aware Load Balancing Policy
          'Mick Jager',
          {'soundtrack', '1991'}
       );
-      CREATE TABLE playlists (
+      CREATE TABLE simplex.playlists (
         id uuid,
         title text,
         album text,
@@ -57,7 +56,7 @@ Feature: Token-aware Load Balancing Policy
         song_id uuid,
         PRIMARY KEY ((id, title), album, artist)
       );
-      INSERT INTO playlists (id, song_id, title, album, artist)
+      INSERT INTO simplex.playlists (id, song_id, title, album, artist)
       VALUES (
          2cc9ccb7-6221-4ccb-8387-f22b6a1b354d,
          756716f7-2e54-4715-9f00-91dcbea6cf50,
@@ -65,7 +64,7 @@ Feature: Token-aware Load Balancing Policy
          'Bye Bye Blackbird',
          'Joséphine Baker'
       );
-      INSERT INTO playlists (id, song_id, title, album, artist)
+      INSERT INTO simplex.playlists (id, song_id, title, album, artist)
       VALUES (
          2cc9ccb7-6221-4ccb-8387-f22b6a1b354d,
          f6071e72-48ec-4fcb-bf3e-379c8a696488,
@@ -73,7 +72,7 @@ Feature: Token-aware Load Balancing Policy
          'In Gold',
          'Willi Ostermann'
       );
-      INSERT INTO playlists (id, song_id, title, album, artist)
+      INSERT INTO simplex.playlists (id, song_id, title, album, artist)
       VALUES (
          3fd2bedf-a8c8-455a-a462-0cd3a4353c54,
          fbdf82ed-0063-4796-9c7c-a3d4f47b4b25,
@@ -81,7 +80,7 @@ Feature: Token-aware Load Balancing Policy
          'Performance',
          'Mick Jager'
       );
-      INSERT INTO playlists (id, song_id, title, album, artist)
+      INSERT INTO simplex.playlists (id, song_id, title, album, artist)
       VALUES (
          3fd2bedf-a8c8-455a-a462-0cd3a4353c54,
          756716f7-2e54-4715-9f00-91dcbea6cf50,
@@ -110,7 +109,7 @@ Feature: Token-aware Load Balancing Policy
         result  = session.execute(statement, arguments: [uuid])
         replica = result.execution_info.hosts.first
         total   = result.execution_info.hosts.size
-        puts "uuid=#{uuid} token=#{result.first['token(id)']} replica=#{replica.ip} total=#{total}"
+        puts "uuid=#{uuid} token=#{result.first.values.first} replica=#{replica.ip} total=#{total}"
       end
       """
     When it is executed
@@ -139,7 +138,7 @@ Feature: Token-aware Load Balancing Policy
         result  = session.execute(statement, arguments: [uuid], consistency: :one)
         replica = result.execution_info.hosts.first
         total   = result.execution_info.hosts.size
-        puts "uuid=#{uuid} token=#{result.first['token(id)']} replica=#{replica.ip} total=#{total}"
+        puts "uuid=#{uuid} token=#{result.first.values.first} replica=#{replica.ip} total=#{total}"
       end
       """
     And node 2 is stopped
@@ -170,7 +169,7 @@ Feature: Token-aware Load Balancing Policy
         result  = session.execute(statement, arguments: arguments)
         replica = result.execution_info.hosts.first
         total   = result.execution_info.hosts.size
-        puts "uuid=#{arguments[0]} title=#{arguments[0]} token=#{result.first['token(id, title)']} replica=#{replica.ip} total=#{total}"
+        puts "uuid=#{arguments[0]} title=#{arguments[0]} token=#{result.first.values.first} replica=#{replica.ip} total=#{total}"
       end
       """
     When it is executed

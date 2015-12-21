@@ -1,0 +1,27 @@
+ruby:
+  - 1.9.3
+  - 2.0
+  - 2.1
+  - 2.2
+  - jruby
+  - rbx-2.2
+cassandra:
+  - 2.0
+  - 2.1
+  - 2.2
+  - 3.0
+os:
+  - ubuntu/trusty64
+build:
+  - type: bundler
+    without: development docs
+  - script: |
+      # Set the Java paths (for CCM)
+      export JAVA_HOME=$CCM_JAVA_HOME
+      export PATH=$JAVA_HOME/bin:$PATH
+
+      # Define Cassandra runtime
+      export CASSANDRA_VERSION=$CCM_CASSANDRA_VERSION
+
+      # Run the tests
+      bundle exec rake test

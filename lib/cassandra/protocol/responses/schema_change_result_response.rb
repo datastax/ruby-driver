@@ -19,44 +19,41 @@
 module Cassandra
   module Protocol
     class SchemaChangeResultResponse < ResultResponse
-      attr_reader :change, :keyspace, :table, :type, :target
+      attr_reader :change, :keyspace, :name, :type, :target, :arguments
 
-      def initialize(change, keyspace, name, trace_id, target = nil)
-        super(trace_id)
+      def initialize(custom_payload, warnings, change, keyspace, name, target, arguments, trace_id)
+        super(custom_payload, warnings, trace_id)
 
-        @change   = change
-        @keyspace = keyspace
-
-        if target
-          @target = target
-          @table = @type = name
-        else
-          if name.empty?
-            @target = Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
-          else
-            @target = Constants::SCHEMA_CHANGE_TARGET_TABLE
-            @table  = name
-          end
-        end
+        @change    = change
+        @keyspace  = keyspace
+        @name      = name
+        @target    = target
+        @arguments = arguments
       end
 
       def eql?(other)
-        self.change == other.change && self.keyspace == other.keyspace && self.table == other.table
+        @change == other.change &&
+        @keyspace == other.keyspace &&
+        @name == other.name &&
+        @target == other.target &&
+        @arguments == other.arguments
       end
       alias_method :==, :eql?
 
       def hash
         @h ||= begin
-          h = 0
-          h = ((h & 0xffffffff) * 31) ^ @change.hash
-          h = ((h & 0xffffffff) * 31) ^ @keyspace.hash
-          h = ((h & 0xffffffff) * 31) ^ @table.hash
+          h = 17
+          h = 31 * h + @change.hash
+          h = 31 * h + @keyspace.hash
+          h = 31 * h + @name.hash
+          h = 31 * h + @target.hash
+          h = 31 * h + @arguments.hash
           h
         end
       end
 
       def to_s
-        %(RESULT SCHEMA_CHANGE #@change #@target "#@keyspace" "#@table")
+        %(RESULT SCHEMA_CHANGE #@change #@target "#@keyspace" "#@name")
       end
 
       private

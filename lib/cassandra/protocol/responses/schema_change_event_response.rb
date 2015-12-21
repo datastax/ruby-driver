@@ -21,47 +21,48 @@ module Cassandra
     class SchemaChangeEventResponse < EventResponse
       TYPE = 'SCHEMA_CHANGE'.freeze
 
-      attr_reader :change, :keyspace, :table, :type, :target
+      attr_reader :change, :keyspace, :name, :target, :arguments
 
-      def initialize(change, keyspace, name, target = nil)
-        @change   = change
-        @keyspace = keyspace
-
-        if target
-          @target = target
-          @table = @type = name
-        else
-          if name.empty?
-            @target = Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
-          else
-            @target = Constants::SCHEMA_CHANGE_TARGET_TABLE
-            @table  = name
-          end
-        end
+      def initialize(change, keyspace, name, target, arguments)
+        @change    = change
+        @keyspace  = keyspace
+        @name      = name
+        @target    = target
+        @arguments = arguments
       end
 
       def type
         TYPE
       end
 
-      def eql?(rs)
-        rs.type == self.type && rs.change == self.change && rs.keyspace == self.keyspace && rs.table == self.table
+      def eql?(other)
+        other.is_a?(SchemaChangeEventResponse) && other.type == TYPE &&
+          @change == other.change &&
+          @keyspace == other.keyspace &&
+          @name == other.name &&
+          @target == other.target &&
+          @arguments == other.arguments
       end
       alias_method :==, :eql?
 
       def hash
         @h ||= begin
-          h = 0
-          h = ((h & 33554431) * 31) ^ @type.hash
-          h = ((h & 33554431) * 31) ^ @change.hash
-          h = ((h & 33554431) * 31) ^ @keyspace.hash
-          h = ((h & 33554431) * 31) ^ @table.hash
+          h = 17
+          h = 31 * h + @change.hash
+          h = 31 * h + @keyspace.hash
+          h = 31 * h + @name.hash
+          h = 31 * h + @target.hash
+          h = 31 * h + @arguments.hash
           h
         end
       end
 
       def to_s
-        %(EVENT SCHEMA_CHANGE #@change #@target "#@keyspace" "#@table")
+        if @arguments
+          %(EVENT SCHEMA_CHANGE #@change #@target "#@keyspace" "#@name" #@arguments)
+        else
+          %(EVENT SCHEMA_CHANGE #@change #@target "#@keyspace" "#@name")
+        end
       end
 
       private

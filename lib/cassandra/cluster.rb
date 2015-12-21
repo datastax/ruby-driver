@@ -136,8 +136,19 @@ module Cassandra
     #   Trigger an asynchronous schema metadata refresh
     #   @return [Cassandra::Future<nil>] a future that will be fulfilled when
     #     schema metadata has been refreshed
-    def_delegator :@control_connection, :refresh_schema_async_maybe_retry, \
-                                        :refresh_schema_async
+    def refresh_schema_async
+      promise = @futures.promise
+      @control_connection.send(:refresh_maybe_retry, :schema).on_complete do |f|
+        if f.resolved?
+          promise.fulfill(nil)
+        else
+          f.on_failure do |e|
+            promise.break(e)
+          end
+        end
+      end
+      promise.future
+    end
 
     # Synchronously refresh schema metadata
     #
@@ -233,7 +244,7 @@ module Cassandra
       close_async.get
     end
 
-    # @return [String] a CLI-friendly cluster representation
+    # @private
     def inspect
       "#<#{self.class.name}:0x#{self.object_id.to_s(16)}>"
     end

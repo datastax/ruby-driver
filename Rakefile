@@ -16,14 +16,6 @@ Cucumber::Rake::Task.new(:cucumber => :compile)
 desc 'Run all tests'
 task :test => [:rspec, :integration, :cucumber]
 
-desc 'Generate documentation'
-task :docs do
-  require 'nanoc'
-  load 'nanoc/setup.rb'
-
-  Nanoc::Site.new('.').compile
-end
-
 ruby_engine = defined?(RUBY_ENGINE)? RUBY_ENGINE : 'ruby'
 
 case ruby_engine
@@ -42,7 +34,8 @@ Rake::TestTask.new(:integration => :compile) do |t|
   t.test_files = FileList['integration/*_test.rb',
                   'integration/security/*_test.rb',
                   'integration/load_balancing/*_test.rb',
-                  'integration/types/*_test.rb']
+                  'integration/types/*_test.rb',
+                  'integration/functions/*_test.rb']
   t.verbose = true
 end
 

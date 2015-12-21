@@ -23,8 +23,8 @@ module Cassandra
     describe '#to_time' do
       it 'returns a Time' do
         x = TimeUuid.new('00b69180-d0e1-11e2-8b8b-0800200c9a66')
-        x.to_time.should be > Time.utc(2013, 6, 9, 8, 45, 57)
-        x.to_time.should be < Time.utc(2013, 6, 9, 8, 45, 58)
+        x.to_time.should be > ::Time.utc(2013, 6, 9, 8, 45, 57)
+        x.to_time.should be < ::Time.utc(2013, 6, 9, 8, 45, 58)
       end
     end
 
@@ -35,12 +35,12 @@ module Cassandra
 
       let :uuids do
         [
-          generator.at(Time.utc(2014, 5,  1,  2, 3, 4, 1), 0),
-          generator.at(Time.utc(2014, 5,  1,  2, 3, 4, 2), 0),
-          generator.at(Time.utc(2014, 5,  1,  2, 3, 5, 0), 0),
-          generator.at(Time.utc(2014, 5, 11, 14, 3, 4, 0), 0),
-          generator.at(Time.utc(2014, 5, 20,  2, 3, 4, 0), 0),
-          generator.at(Time.utc(2014, 6,  7,  2, 3, 4, 0), 0),
+          generator.at(::Time.utc(2014, 5,  1,  2, 3, 4, 1), 0),
+          generator.at(::Time.utc(2014, 5,  1,  2, 3, 4, 2), 0),
+          generator.at(::Time.utc(2014, 5,  1,  2, 3, 5, 0), 0),
+          generator.at(::Time.utc(2014, 5, 11, 14, 3, 4, 0), 0),
+          generator.at(::Time.utc(2014, 5, 20,  2, 3, 4, 0), 0),
+          generator.at(::Time.utc(2014, 6,  7,  2, 3, 4, 0), 0),
         ]
       end
 

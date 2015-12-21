@@ -99,6 +99,9 @@ module Cassandra
       when ::Numeric then encode_number(object, io)
       when ::IPAddr  then encode_inet(object, io)
       when Uuid      then encode_uuid(object, io)
+      when Tuple     then encode_tuple(object, io)
+      when Time      then encode_time(object, io)
+      when UDT       then encode_udt(object, io)
       when nil       then io.print(NULL_STR)
       when false     then io.print(FALSE_STR)
       when true      then io.print(TRUE_STR)
@@ -109,6 +112,14 @@ module Cassandra
       io.string
     end
     alias :encode :encode_object
+
+    def encode_time(time, io = StringIO.new)
+      encode_string(time.to_s, io)
+    end
+
+    def encode_udt(udt, io = StringIO.new)
+      encode_hash(udt.to_h, io)
+    end
 
     def encode_timestamp(time, io = StringIO.new)
       io.print(time.to_i)
@@ -130,6 +141,22 @@ module Cassandra
       io.print(inet)
       io.putc(QUOT)
       io.string
+    end
+
+    def encode_tuple(tuple, io = StringIO.new)
+      first = true
+
+      io.putc(PRN_OPN)
+      tuple.each do |object|
+        if first
+          first = false
+        else
+          io.print(COMMA)
+        end
+
+        encode_object(object, io)
+      end
+      io.putc(PRN_CLS)
     end
 
     def escape_name(name)
@@ -282,12 +309,16 @@ module Cassandra
     # @private
     COMMA = ', '.freeze
     # @private
-    COLON = ' : '.freeze
+    COLON = ': '.freeze
     # @private
     QUOT = ?'.freeze
     # @private
     ESC_QUOT = "''".freeze
     # @private
     DBL_QUOT = ?".freeze
+    # @private
+    PRN_OPN = '('.freeze
+    # @private
+    PRN_CLS = ')'.freeze
   end
 end

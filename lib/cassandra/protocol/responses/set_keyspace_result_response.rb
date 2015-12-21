@@ -21,8 +21,8 @@ module Cassandra
     class SetKeyspaceResultResponse < ResultResponse
       attr_reader :keyspace
 
-      def initialize(keyspace, trace_id)
-        super(trace_id)
+      def initialize(custom_payload, warnings, keyspace, trace_id)
+        super(custom_payload, warnings, trace_id)
         @keyspace = keyspace
       end
 
