@@ -29,6 +29,8 @@ links:
   - title: Releases
     href:  https://github.com/datastax/ruby-driver/releases
 versions:
+  - name: v3.0.0.beta.1
+    ref:  a0a5f7a5cc308497e5e865f008130441722208e5
   - name: v2.1.5
     ref:  bbb7084d11be701ff42f298373c0255b9a3e2b7f
   - name: v2.0.1
