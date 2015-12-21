@@ -19,6 +19,7 @@
 module Cassandra
   class Cluster
     class Schema
+      # @private
       module Fetcher
         FUTURE_EMPTY_LIST = Ione::Future.resolved(EMPTY_LIST)
         REPLICATION_PACKAGE_PREFIX = 'org.apache.cassandra.locator.'.freeze
@@ -218,6 +219,7 @@ module Cassandra
         end
       end
 
+      # @private
       module Fetchers
         class V1_2_x
           SELECT_KEYSPACES        = 'SELECT * FROM system.schema_keyspaces'.freeze
