@@ -17,12 +17,27 @@
 #++
 
 require File.dirname(__FILE__) + '/../integration_test_case.rb'
+require_relative 'schema_change_listener'
 
+# noinspection RubyInstanceMethodNamingConvention
 class UserDefinedFunctionTest < IntegrationTestCase
   include Cassandra::Types
 
   def setup
-    @@ccm_cluster.setup_schema("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
+    unless CCM.cassandra_version < '2.2.0'
+      # noinspection RubyClassVariableUsageInspection
+      @@ccm_cluster.setup_schema("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}")
+      @cluster = Cassandra.cluster(
+          schema_refresh_delay: 0.1,
+          schema_refresh_timeout: 0.1
+      )
+      @listener = SchemaChangeListener.new(@cluster)
+      @session = @cluster.connect('simplex')
+    end
+  end
+
+  def teardown
+    @cluster.close
   end
 
   # Test raising error for nonexistent UDF
@@ -39,25 +54,20 @@ class UserDefinedFunctionTest < IntegrationTestCase
   # @test_category functions:udf
   #
   def test_raise_error_on_nonexisting_udf
-    skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+    skip('UDFs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster
-    session = cluster.connect("simplex")
-
-    session.execute("CREATE TABLE mytable (a int PRIMARY KEY, b text)")
+    @session.execute('CREATE TABLE mytable (a int PRIMARY KEY, b text)')
 
     assert_raises(Cassandra::Errors::InvalidError) do
-      session.execute("SELECT nonexisting(b) FROM mytable")
+      @session.execute('SELECT nonexisting(b) FROM mytable')
     end
-  ensure
-    cluster && cluster.close
   end
 
   # Test for creating a basic UDF
   #
   # test_can_create_udfs tests that a UDF can be created and its metadata is
   # populated appropriately. It first creates a simple UDF and verifies (after
-  # a 2 second sleep) that the keyspace metadata has been updated with the UDF's
+  # a max 2 second sleep) that the keyspace metadata has been updated with the UDF's
   # existence. It then verifies the UDF's metadata.
   #
   # @since 3.0.0
@@ -67,83 +77,73 @@ class UserDefinedFunctionTest < IntegrationTestCase
   # @test_category functions:udf
   #
   def test_can_create_udfs
-    skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+    skip('UDFs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    session = cluster.connect("simplex")
+    assert_empty @cluster.keyspace('simplex').functions
 
-    assert_empty cluster.keyspace("simplex").functions
-
-    session.execute("CREATE FUNCTION sum_int(key int, val int)
+    @session.execute("CREATE FUNCTION sum_int(key int, val int)
                     RETURNS NULL ON NULL INPUT
                     RETURNS int
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    sleep(2) #give time for driver to receive schema change event
-    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
-    function = cluster.keyspace("simplex").function("sum_int", int, int)
+    @listener.wait_for_function('simplex', 'sum_int', int, int)
 
-    assert_equal "sum_int", function.name
-    assert_equal "javascript", function.language
+    function = @cluster.keyspace('simplex').function('sum_int', int, int)
+
+    assert_equal 'sum_int', function.name
+    assert_equal 'javascript', function.language
     assert_equal int, function.type
     refute function.called_on_null?
-    assert function.has_argument?("key")
-    assert function.has_argument?("val")
+    assert function.has_argument?('key')
+    assert function.has_argument?('val')
     function.each_argument { |arg| assert_equal int, arg.type }
-  ensure
-    cluster && cluster.close
   end
 
-  # Test for deleting a basic UDA
+  # Test for deleting a basic UDF
   #
-  # test_can_delete_udas tests that a UDA can be deleted. It first creates
-  # a simple UDA and an override, and verifies that both appear in the keyspace metadata.
+  # test_can_delete_udfs tests that a UDF can be deleted. It first creates
+  # a simple UDF and an override, and verifies that both appear in the keyspace metadata.
   # Then it deletes one and verifies that it's gone, while the other remains.
   #
   # @since 3.0.0
   # @jira_ticket RUBY-108
-  # @expected_result A UDA should be created and unambiguously deleted.
+  # @expected_result A UDF should be created and unambiguously deleted.
   #
-  # @test_category functions:uda
+  # @test_category functions:udf
   #
   def test_can_delete_udfs
-    skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+    skip('UDFs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    session = cluster.connect("simplex")
+    assert_empty @cluster.keyspace('simplex').functions
 
-    assert_empty cluster.keyspace("simplex").functions
-
-    session.execute("CREATE FUNCTION sum_int_delete(key int, val int)
+    @session.execute("CREATE FUNCTION sum_int_delete(key int, val int)
                     RETURNS NULL ON NULL INPUT
                     RETURNS int
                     LANGUAGE javascript AS 'key + val'"
     )
-    session.execute("CREATE FUNCTION sum_int_delete(key smallint, val smallint)
+    @session.execute("CREATE FUNCTION sum_int_delete(key smallint, val smallint)
                     RETURNS NULL ON NULL INPUT
                     RETURNS smallint
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_function?("sum_int_delete", int, int)
-    assert cluster.keyspace("simplex").has_function?("sum_int_delete", smallint, smallint)
+    @listener.wait_for_function('simplex', 'sum_int_delete', int, int)
+    @listener.wait_for_function('simplex', 'sum_int_delete', smallint, smallint)
 
-    session.execute("DROP FUNCTION sum_int_delete(smallint, smallint)")
+    @session.execute('DROP FUNCTION sum_int_delete(smallint, smallint)')
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_function?("sum_int_delete", int, int)
-    assert !cluster.keyspace("simplex").has_function?("sum_int_delete", smallint, smallint)
-  ensure
-    cluster && cluster.close
+    @listener.wait_for_change('simplex', 2) do |ks|
+      !ks.has_function?('sum_int_delete', smallint, smallint)
+    end
+    assert @cluster.keyspace('simplex').has_function?('sum_int_delete', int, int)
   end
 
   # Test that varchar and text argument types are treated the same.
   #
   # test_varchar_udf tests that a UDF can be created with a varchar argtype and
   # its metadata is populated appropriately. It first creates a simple UDF and
-  # verifies (after a 2 second sleep) that the keyspace metadata has been
+  # verifies (after a max 2 second sleep) that the keyspace metadata has been
   # updated with the UDF's existence. It then verifies the UDF's metadata
   # referencing both varchar and text types.
   #
@@ -155,42 +155,37 @@ class UserDefinedFunctionTest < IntegrationTestCase
   # @test_category functions:udf
   #
   def test_varchar_udf
-    skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+    skip('UDFs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    session = cluster.connect("simplex")
+    assert_empty @cluster.keyspace('simplex').functions
 
-    assert_empty cluster.keyspace("simplex").functions
-
-    session.execute("CREATE FUNCTION varchar_or_text(key varchar)
+    @session.execute("CREATE FUNCTION varchar_or_text(key varchar)
                     RETURNS NULL ON NULL INPUT
                     RETURNS varchar
                     LANGUAGE java AS 'return key;'"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_function?("varchar_or_text", text)
-    function = cluster.keyspace("simplex").function("varchar_or_text", text)
+    @listener.wait_for_function('simplex', 'varchar_or_text', text)
 
-    assert_equal "varchar_or_text", function.name
-    assert_equal "java", function.language
+    function = @cluster.keyspace('simplex').function('varchar_or_text', text)
+
+    assert_equal 'varchar_or_text', function.name
+    assert_equal 'java', function.language
     assert_equal text, function.type
     refute function.called_on_null?
-    assert function.has_argument?("key")
+    assert function.has_argument?('key')
     function.each_argument { |arg| assert_equal text, arg.type }
 
     # Do the same checks, with varchar...
-    assert cluster.keyspace("simplex").has_function?("varchar_or_text", varchar)
-    function = cluster.keyspace("simplex").function("varchar_or_text", varchar)
+    assert @cluster.keyspace('simplex').has_function?('varchar_or_text', varchar)
+    function = @cluster.keyspace('simplex').function('varchar_or_text', varchar)
 
-    assert_equal "varchar_or_text", function.name
-    assert_equal "java", function.language
+    assert_equal 'varchar_or_text', function.name
+    assert_equal 'java', function.language
     assert_equal varchar, function.type
     refute function.called_on_null?
-    assert function.has_argument?("key")
+    assert function.has_argument?('key')
     function.each_argument { |arg| assert_equal varchar, arg.type }
-  ensure
-    cluster && cluster.close
   end
 
   # Test for creating two UDFs with the same name, but different types
@@ -207,42 +202,36 @@ class UserDefinedFunctionTest < IntegrationTestCase
   # @test_category functions:udf
   #
   def test_can_create_udf_same_name_different_types
-    skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+    skip('UDFs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    session = cluster.connect("simplex")
+    assert_empty @cluster.keyspace('simplex').functions
 
-    assert_empty cluster.keyspace("simplex").functions
-
-    session.execute("CREATE FUNCTION sum_int(key int, val int)
+    @session.execute("CREATE FUNCTION sum_int(key int, val int)
                     RETURNS NULL ON NULL INPUT
                     RETURNS int
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
-    function = cluster.keyspace("simplex").function("sum_int", int, int)
+    @listener.wait_for_function('simplex', 'sum_int', int, int)
+
+    function = @cluster.keyspace('simplex').function('sum_int', int, int)
     function.each_argument { |arg| assert_equal int, arg.type }
 
-    session.execute("CREATE FUNCTION sum_int(key smallint, val smallint)
+    @session.execute("CREATE FUNCTION sum_int(key smallint, val smallint)
                     RETURNS NULL ON NULL INPUT
                     RETURNS int
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_function?("sum_int", smallint, smallint)
-    function = cluster.keyspace("simplex").function("sum_int", smallint, smallint)
-    # keyspace#function retrieves the first UDF, so the first one is retrieved here
+    @listener.wait_for_function('simplex', 'sum_int', smallint, smallint)
+
+    function = @cluster.keyspace('simplex').function('sum_int', smallint, smallint)
     function.each_argument { |arg| assert_equal smallint, arg.type }
 
     # Make sure the original function is there, too.
-    assert cluster.keyspace("simplex").has_function?("sum_int", int, int)
-    function = cluster.keyspace("simplex").function("sum_int", int, int)
+    assert @cluster.keyspace('simplex').has_function?('sum_int', int, int)
+    function = @cluster.keyspace('simplex').function('sum_int', int, int)
     function.each_argument { |arg| assert_equal int, arg.type }
-  ensure
-    cluster && cluster.close
   end
 
   # Test for creating a UDF with no arguments
@@ -257,23 +246,18 @@ class UserDefinedFunctionTest < IntegrationTestCase
   # @test_category functions:udf
   #
   def test_can_create_function_no_argument
-    skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+    skip('UDFs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    session = cluster.connect("simplex")
-
-    session.execute("CREATE FUNCTION print_time()
+    @session.execute("CREATE FUNCTION print_time()
                     RETURNS NULL ON NULL INPUT
                     RETURNS bigint
                     LANGUAGE java AS 'return System.currentTimeMillis() / 1000L;'"
     )
 
-    sleep(2)
-    assert cluster.keyspace("simplex").has_function?("print_time")
-    function = cluster.keyspace("simplex").function("print_time")
+    @listener.wait_for_function('simplex', 'print_time')
+
+    function = @cluster.keyspace('simplex').function('print_time')
     assert_empty function.each_argument
-  ensure
-    cluster && cluster.close
   end
 
   # Test for maintaining metadata during keyspace changes
@@ -290,27 +274,31 @@ class UserDefinedFunctionTest < IntegrationTestCase
   # @test_category functions:udf
   #
   def test_functions_follow_keyspace_alter
-    skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+    skip('UDFs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    session = cluster.connect("simplex")
-
-    session.execute("CREATE FUNCTION sum_int(key int, val int)
+    @session.execute("CREATE FUNCTION sum_int(key int, val int)
                     RETURNS NULL ON NULL INPUT
                     RETURNS int
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    sleep(2)
-    original_functions = cluster.keyspace("simplex").functions
+    @listener.wait_for_function('simplex', 'sum_int', int, int)
 
-    session.execute("ALTER KEYSPACE simplex WITH durable_writes = false")
-    new_functions = cluster.keyspace("simplex").functions
+    original_functions = @cluster.keyspace('simplex').functions
+
+    @session.execute('ALTER KEYSPACE simplex WITH durable_writes = false')
+
+    # This is a little strange. We need to wait until the alter causes
+    # an event that will refresh our cluster object, but there's no really
+    # visible change other than the keyspace-changed event. So wait for that
+    # but with no real condition.
+
+    @listener.wait_for_change(@cluster.keyspace('simplex'), 2) do
+      true
+    end
+
+    new_functions = @cluster.keyspace('simplex').functions
     assert_equal original_functions, new_functions
-
-    session.execute("ALTER KEYSPACE simplex WITH durable_writes = true")
-  ensure
-    cluster && cluster.close
   end
 
   # Test for UDF null inputs
@@ -327,34 +315,35 @@ class UserDefinedFunctionTest < IntegrationTestCase
   # @test_category functions:udf
   #
   def test_cql_for_called_on_null
-    skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+    skip('UDFs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
 
-    cluster = Cassandra.cluster(schema_refresh_delay: 0.1, schema_refresh_timeout: 0.1)
-    session = cluster.connect("simplex")
-
-    session.execute("CREATE FUNCTION sum_int(key int, val int)
+    @session.execute("CREATE FUNCTION sum_int(key int, val int)
                     RETURNS NULL ON NULL INPUT
                     RETURNS int
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    sleep(2)
-    function = cluster.keyspace("simplex").function("sum_int", int, int)
+    function = @listener.wait_for_change('simplex', 2) do |ks|
+      ks.function('sum_int', int, int)
+    end
     refute function.called_on_null?
-    assert_match /RETURNS NULL ON NULL INPUT/, cluster.keyspace("simplex").function("sum_int", int, int).to_cql
+    assert_match /RETURNS NULL ON NULL INPUT/,
+                 @cluster.keyspace('simplex').
+                     function('sum_int', int, int).to_cql
 
-    session.execute("CREATE FUNCTION sum_smallint(key smallint, val smallint)
+    @session.execute("CREATE FUNCTION sum_smallint(key smallint, val smallint)
                     CALLED ON NULL INPUT
                     RETURNS int
                     LANGUAGE javascript AS 'key + val'"
     )
 
-    sleep(2)
-    function = cluster.keyspace("simplex").function("sum_smallint", smallint, smallint)
+    function = @listener.wait_for_change('simplex', 2) do |ks|
+      ks.function('sum_smallint', smallint, smallint)
+    end
     assert function.called_on_null?
-    assert_match /CALLED ON NULL INPUT/, cluster.keyspace("simplex").function("sum_smallint", smallint, smallint).to_cql
-  ensure
-    cluster && cluster.close
+    assert_match /CALLED ON NULL INPUT/,
+                 @cluster.keyspace('simplex').
+                     function('sum_smallint', smallint, smallint).to_cql
   end
 
   # Test for invalid UDFs
@@ -371,20 +360,15 @@ class UserDefinedFunctionTest < IntegrationTestCase
   # @test_category functions:udf
   #
   def test_raise_error_on_invalid_udf
-    skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
-
-    cluster = Cassandra.cluster
-    session = cluster.connect("simplex")
+    skip('UDFs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
 
     assert_raises(Cassandra::Errors::InvalidError) do
-      session.execute("CREATE FUNCTION IF NOT EXISTS sum_int (key int, val int)
+      @session.execute("CREATE FUNCTION IF NOT EXISTS sum_int (key int, val int)
                       RETURNS NULL ON NULL INPUT
                       RETURNS int
                       LANGUAGE javascript AS 'key ++ val';"
       )
     end
-  ensure
-    cluster && cluster.close
   end
 
   # Test for serialization and deserialization of UDFs
@@ -401,13 +385,10 @@ class UserDefinedFunctionTest < IntegrationTestCase
   # @test_category functions:udf
   #
   def test_udf_serialization_deserialization
-    skip("UDFs are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
-
-    cluster = Cassandra.cluster
-    session = cluster.connect("simplex")
+    skip('UDFs are only available in C* after 2.2') if CCM.cassandra_version < '2.2.0'
 
     # Create the UDF
-    session.execute("CREATE FUNCTION volume(dimensions tuple<double, double, double>)
+    @session.execute("CREATE FUNCTION volume(dimensions tuple<double, double, double>)
                     RETURNS NULL ON NULL INPUT
                     RETURNS double
                     LANGUAGE java
@@ -415,19 +396,24 @@ class UserDefinedFunctionTest < IntegrationTestCase
     )
 
     # Create the table
-    session.execute("CREATE TABLE inventory (item_id uuid PRIMARY KEY, dimensions Tuple<double,double,double>)")
+    @session.execute('CREATE TABLE inventory (
+                          item_id uuid PRIMARY KEY,
+                          dimensions Tuple<double,double,double>
+                      )'
+    )
 
     # Insert data
-    insert = session.prepare("INSERT INTO inventory (item_id, dimensions) VALUES (?, ?)")
-    session.execute(insert, arguments: [Cassandra::Uuid.new('0979dea5-5a65-446d-bad6-27d04d5dd8a5'),
+    insert = @session.prepare('INSERT INTO inventory (item_id, dimensions) VALUES (?, ?)')
+    @session.execute(insert, arguments: [Cassandra::Uuid.new('0979dea5-5a65-446d-bad6-27d04d5dd8a5'),
                                         Cassandra::Tuple.new(2.96, 0.450, 0.100)]
     )
 
     # Verify UDF
-    results = session.execute("SELECT item_id, volume(dimensions) FROM inventory WHERE item_id=0979dea5-5a65-446d-bad6-27d04d5dd8a5")
-    assert_equal 0.1332, results.first["simplex.volume(dimensions)"]
-  ensure
-    cluster && cluster.close
+    results = @session.execute(
+        'SELECT item_id, volume(dimensions)
+        FROM inventory
+        WHERE item_id=0979dea5-5a65-446d-bad6-27d04d5dd8a5'
+    )
+    assert_equal 0.1332, results.first['simplex.volume(dimensions)']
   end
-
 end
