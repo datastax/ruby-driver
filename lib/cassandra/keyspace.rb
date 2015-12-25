@@ -127,7 +127,7 @@ module Cassandra
     # @param name [String] function name
     # @param args [Array<String>] (var-args style) function argument types
     def has_function?(name, *args)
-      @functions.has_key?([name.downcase, args])
+      !@functions.get(name.downcase, args).nil?
     end
 
     # @return [Cassandra::Function, nil] a function or nil
@@ -136,7 +136,7 @@ module Cassandra
     def function(name, *args)
       # The functions_hash datastructure is a hash <[func-name, args], Function>.
       # So construct the array-key we're looking for.
-      @functions[[name.downcase, args]]
+      @functions.get(name.downcase, args)
     end
 
     # Yield or enumerate each function defined in this keyspace
@@ -147,10 +147,10 @@ module Cassandra
     #   @return [Array<Cassandra::Function>] a list of functions
     def each_function(&block)
       if block_given?
-        @functions.each_value(&block)
+        @functions.each_function(&block)
         self
       else
-        @functions.values
+        @functions.functions
       end
     end
     alias :functions :each_function
@@ -160,14 +160,14 @@ module Cassandra
     # @param name [String] aggregate name
     # @param args [Array<String>] (var-args style) aggregate function argument types
     def has_aggregate?(name, *args)
-      @aggregates.has_key?([name.downcase, args])
+      !@aggregates.get(name.downcase, args).nil?
     end
 
     # @return [Cassandra::Aggregate, nil] an aggregate or nil
     # @param name [String] aggregate name
     # @param args [Array<String>] (var-args style) aggregate function argument types
     def aggregate(name, *args)
-      @aggregates[[name.downcase, args]]
+      @aggregates.get(name.downcase, args)
     end
 
     # Yield or enumerate each aggregate defined in this keyspace
@@ -178,10 +178,10 @@ module Cassandra
     #   @return [Array<Cassandra::Aggregate>] a list of aggregates
     def each_aggregate(&block)
       if block_given?
-        @aggregates.each_value(&block)
+        @aggregates.each_function(&block)
         self
       else
-        @aggregates.values
+        @aggregates.functions
       end
     end
     alias :aggregates :each_aggregate
@@ -240,28 +240,28 @@ module Cassandra
     # @private
     def update_function(function)
       functions = @functions.dup
-      functions[[function.name, function.argument_types]] = function
+      functions.add_or_update(function)
       Keyspace.new(@name, @durable_writes, @replication, @tables, @types, functions, @aggregates)
     end
 
     # @private
     def delete_function(function_name, function_args)
       functions = @functions.dup
-      functions.delete([function_name, function_args])
+      functions.delete(function_name, function_args)
       Keyspace.new(@name, @durable_writes, @replication, @tables, @types, functions, @aggregates)
     end
 
     # @private
     def update_aggregate(aggregate)
       aggregates = @aggregates.dup
-      aggregates[[aggregate.name, aggregate.argument_types]] = aggregate
+      aggregates.add_or_update(aggregate)
       Keyspace.new(@name, @durable_writes, @replication, @tables, @types, @functions, aggregates)
     end
 
     # @private
     def delete_aggregate(aggregate_name, aggregate_args)
       aggregates = @aggregates.dup
-      aggregates.delete([aggregate_name, aggregate_args])
+      aggregates.delete(aggregate_name, aggregate_args)
       Keyspace.new(@name, @durable_writes, @replication, @tables, @types, @functions, aggregates)
     end
 
