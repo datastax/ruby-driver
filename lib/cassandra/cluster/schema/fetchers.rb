@@ -287,18 +287,16 @@ module Cassandra
                       types[row['type_name']] = create_type(row)
                     end
 
-            # We want the functions hash to be keyed on [name, arg-types-list].
-            # Similarly for the aggregates hash.
-
-            functions = rows_functions.each_with_object({}) do |row, collector|
-                          func = create_function(row)
-                          collector[[func.name, func.argument_types]] = func
+            # Create a FunctionCollection for the functions and aggregates.
+            functions = Cassandra::FunctionCollection.new
+            rows_functions.each do |row|
+              functions.add_or_update(create_function(row))
             end
 
-            aggregates = rows_aggregates.each_with_object({}) do |row, collector|
-                           agg = create_aggregate(row, functions)
-                           collector[[agg.name, agg.argument_types]] = agg
-                         end
+            aggregates = Cassandra::FunctionCollection.new
+            rows_aggregates.each do |row|
+              aggregates.add_or_update(create_aggregate(row, functions))
+            end
 
             lookup_columns = map_rows_by(rows_columns, 'columnfamily_name')
             tables = rows_tables.each_with_object({}) do |row, tables|
@@ -678,10 +676,10 @@ module Cassandra
             initial_state  = Util.encode_object(Protocol::Coder.read_value_v4(Protocol::CqlByteBuffer.new.append_bytes(aggregate_data['initcond']), state_type))
 
             # The state-function takes arguments: first the stype, then the args of the aggregate.
-            state_function = functions[[aggregate_data['state_func'], [state_type].concat(argument_types)]]
+            state_function = functions.get(aggregate_data['state_func'], [state_type].concat(argument_types))
 
             # The final-function takes an stype argument.
-            final_function = functions[[aggregate_data['final_func'], [state_type]]]
+            final_function = functions.get(aggregate_data['final_func'], [state_type])
 
             Aggregate.new(keyspace_name, aggregate_name, aggregate_type, argument_types, state_type, initial_state, state_function, final_function)
           end
@@ -877,10 +875,10 @@ module Cassandra
             initial_state  = aggregate_data['initcond'] || 'null'
 
             # The state-function takes arguments: first the stype, then the args of the aggregate.
-            state_function = functions[[aggregate_data['state_func'], [state_type].concat(argument_types)]]
+            state_function = functions.get(aggregate_data['state_func'], [state_type].concat(argument_types))
 
             # The final-function takes an stype argument.
-            final_function = functions[[aggregate_data['final_func'], [state_type]]]
+            final_function = functions.get(aggregate_data['final_func'], [state_type])
 
             Aggregate.new(keyspace_name, aggregate_name, aggregate_type, argument_types, state_type, initial_state, state_function, final_function)
           end
@@ -930,17 +928,15 @@ module Cassandra
             types = ::Hash.new
             create_types(rows_types, types)
 
-            # We want the functions hash to be keyed on [name, arg-types-list].
-            # Similarly for the aggregates hash.
-
-            functions = rows_functions.each_with_object({}) do |row, collector|
-              func = create_function(row, types)
-              collector[[func.name, func.argument_types]] = func
+            # Create a FunctionCollection for the functions and aggregates.
+            functions = Cassandra::FunctionCollection.new
+            rows_functions.each do |row|
+              functions.add_or_update(create_function(row, types))
             end
 
-            aggregates = rows_aggregates.each_with_object({}) do |row, collector|
-              agg = create_aggregate(row, functions, types)
-              collector[[agg.name, agg.argument_types]] = agg
+            aggregates = Cassandra::FunctionCollection.new
+            rows_aggregates.each do |row|
+              aggregates.add_or_update(create_aggregate(row, functions, types))
             end
 
             lookup_columns = map_rows_by(rows_columns, 'table_name')
