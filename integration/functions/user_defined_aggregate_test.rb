@@ -24,9 +24,10 @@ class UserDefinedAggregateTest < IntegrationTestCase
   include Cassandra::Types
 
   def setup
-    unless CCM.cassandra_version < '2.2.0'
-      # noinspection RubyClassVariableUsageInspection
-      @@ccm_cluster.setup_schema(<<-CQL)
+    return if CCM.cassandra_version < '2.2.0'
+
+    # noinspection RubyClassVariableUsageInspection
+    @@ccm_cluster.setup_schema(<<-CQL)
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
       USE simplex;
       CREATE FUNCTION sum_int(key int, val int)
@@ -67,19 +68,18 @@ class UserDefinedAggregateTest < IntegrationTestCase
                       RETURNS NULL ON NULL INPUT
                       RETURNS int
                       LANGUAGE javascript AS 's + i + j';
-      CQL
+    CQL
 
-      @cluster = Cassandra.cluster(
-          schema_refresh_delay: 0.1,
-          schema_refresh_timeout: 0.1
-      )
-      @listener = SchemaChangeListener.new(@cluster)
-      @session = @cluster.connect('simplex')
-    end
+    @cluster = Cassandra.cluster(
+        schema_refresh_delay: 0.1,
+        schema_refresh_timeout: 0.1
+    )
+    @listener = SchemaChangeListener.new(@cluster)
+    @session = @cluster.connect('simplex')
   end
 
   def teardown
-    @cluster.close unless CCM.cassandra_version < '2.2.0'
+    @cluster && @cluster.close
   end
 
   # Test raising error for nonexistent UDA
