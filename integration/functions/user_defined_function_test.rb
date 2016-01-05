@@ -37,7 +37,7 @@ class UserDefinedFunctionTest < IntegrationTestCase
   end
 
   def teardown
-    @cluster.close
+    @cluster.close unless CCM.cassandra_version < '2.2.0'
   end
 
   # Test raising error for nonexistent UDF
