@@ -3,6 +3,7 @@ ruby:
   - 2.0
   - 2.1
   - 2.2
+  - 2.3
   - jruby
   - rbx-2.2
 cassandra:
@@ -10,6 +11,7 @@ cassandra:
   - 2.1
   - 2.2
   - 3.0
+  - 3.1
 os:
   - ubuntu/trusty64
 build:
