@@ -26,7 +26,7 @@ build:
       export CASSANDRA_VERSION=$CCM_CASSANDRA_VERSION
 
       # Create the symlink to the .ccm directory
-      ln -s /home/jenkins/.ccm cassandra-logs
+      ln -s $HOME/.ccm cassandra-logs
 
       # Run the tests
       bundle exec rake test
