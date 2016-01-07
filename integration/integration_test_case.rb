@@ -22,6 +22,7 @@ require 'minitest/unit'
 require 'minitest/autorun'
 require 'cassandra'
 require 'delorean'
+require 'ansi/code'
 
 class IntegrationTestCase < MiniTest::Unit::TestCase
   @@ccm_cluster = nil
@@ -31,6 +32,10 @@ class IntegrationTestCase < MiniTest::Unit::TestCase
   end
 
   def self.after_suite
+  end
+
+  def before_setup
+    puts ANSI::Code.magenta("\n===== Begin #{self.__name__} ====")
   end
 end
 
