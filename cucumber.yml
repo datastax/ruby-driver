@@ -1,5 +1,14 @@
 <%
 cassandra_version = ENV['CASSANDRA_VERSION'] || '3.0.1'
+
+if ENV['DSE_VERSION']
+  if ENV['DSE_VERSION'].start_with?('4.0') || ENV['DSE_VERSION'].start_with?('4.5') || ENV['DSE_VERSION'].start_with?('4.6')
+    cassandra_version = '2.0.17'
+  elsif ENV['DSE_VERSION'].start_with?('4.7') || ENV['DSE_VERSION'].start_with?('4.8')
+    cassandra_version = '2.1.12'
+  end
+end
+
 cassandra_version_tags = ''
 
 if cassandra_version > '3.0'

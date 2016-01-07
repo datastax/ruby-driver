@@ -22,8 +22,7 @@ require 'cliver'
 require 'os'
 require 'cassandra'
 
-# Cassandra Cluster Manager integration for
-# driving a cassandra cluster from tests.
+# Cassandra Cluster Manager integration for driving a cassandra cluster from tests.
 module CCM extend self
   class SameOrderLoadBalancingPolicy < Cassandra::LoadBalancing::Policy
     class Plan
@@ -817,18 +816,47 @@ module CCM extend self
     end
   end
 
+  @raw_version = nil
+  @cassandra_version = nil
+  @dse = false
+
+  def parse_version
+    @raw_version ||= begin
+      version = ENV['CASSANDRA_VERSION'] || '3.0.1'
+      if ENV['DSE_VERSION']
+        @dse = true
+        version = ENV['DSE_VERSION']
+      end
+      version
+    end
+  end
+
   def cassandra_version
-    ENV['CASSANDRA_VERSION'] || '2.1.7'
+    @cassandra_version ||= begin
+      version = @raw_version
+      if @raw_version.start_with?('4.0') || @raw_version.start_with?('4.5') || @raw_version.start_with?('4.6')
+        version = '2.0.17'
+      elsif @raw_version.start_with?('4.7') || @raw_version.start_with?('4.8')
+        version = '2.1.12'
+      end
+      version
+    end
   end
 
   def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
-    cluster_name = 'ruby-driver-cassandra-%s-test-cluster' % cassandra_version
+    parse_version
+    if @dse
+      cluster_name = 'ruby-driver-dse-%s-test-cluster' % @raw_version
+    else
+      cluster_name = 'ruby-driver-cassandra-%s-test-cluster' % @raw_version
+    end
+
 
     if @current_cluster && @current_cluster.name == cluster_name
       unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
         @current_cluster.stop
         remove_cluster(@current_cluster.name)
-        create_cluster(cluster_name, cassandra_version, no_dc, no_nodes_per_dc)
+        create_cluster(cluster_name, @raw_version, no_dc, no_nodes_per_dc)
       end
 
       @current_cluster.start
@@ -841,11 +869,11 @@ module CCM extend self
       unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
         @current_cluster.stop
         remove_cluster(@current_cluster.name)
-        create_cluster(cluster_name, cassandra_version, no_dc, no_nodes_per_dc)
+        create_cluster(cluster_name, @raw_version, no_dc, no_nodes_per_dc)
       end
     else
       @current_cluster && @current_cluster.stop
-      create_cluster(cluster_name, cassandra_version, no_dc, no_nodes_per_dc)
+      create_cluster(cluster_name, @raw_version, no_dc, no_nodes_per_dc)
     end
 
     @current_cluster.start
@@ -911,7 +939,11 @@ module CCM extend self
   def create_cluster(name, version, datacenters, nodes_per_datacenter)
     nodes = Array.new(datacenters, nodes_per_datacenter).join(':')
 
-    ccm.exec('create', '-v', version, '-b', name)
+    if @dse
+      ccm.exec('create', '--dse', '-v', version, '-b', name)
+    else
+      ccm.exec('create', '-v', version, '-b', name)
+    end
 
     config = [
       '--rt', '1000',
