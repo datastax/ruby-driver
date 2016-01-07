@@ -19,3 +19,11 @@ matrix:
 branches:
   only:
     - master
+before_install: |
+  echo "SHELL $SHELL"
+  echo "TRAVIS_RUBY_VERSION: $TRAVIS_RUBY_VERSION"
+  if [[ k$TRAVIS_RUBY_VERSION = jruby* ]] || [[ k$TRAVIS_RUBY_VERSION = rbx* ]] ; then
+    gem install bundler -v 1.7.12
+  else
+    gem install bundler -v 1.11.2
+  fi
