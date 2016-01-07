@@ -30,3 +30,11 @@ build:
 
       # Run the tests
       bundle exec rake test
+      RC = $?
+
+      # Stop Cassandra so that log archiving will be more stable (e.g.
+      # Cassandra writes a log while we try to archive, Jenkins throws
+      # a fit).
+      echo "Shutting down Cassandra cluster"
+      ccm stop
+      exit $RC
