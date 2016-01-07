@@ -22,6 +22,7 @@ group :test do
   gem 'aruba'
   gem 'os'
   gem 'minitest', '< 5.0.0'
+  gem 'ansi'
   gem 'delorean'
 end
 
