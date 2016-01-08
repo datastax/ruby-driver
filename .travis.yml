@@ -22,6 +22,7 @@ branches:
 before_install: |
   echo "SHELL $SHELL"
   echo "TRAVIS_RUBY_VERSION: $TRAVIS_RUBY_VERSION"
+  gem uninstall bundler
   if [[ k$TRAVIS_RUBY_VERSION = kjruby ]] || [[ k$TRAVIS_RUBY_VERSION = krbx* ]] ; then
     gem install bundler -v 1.7.12
   else
