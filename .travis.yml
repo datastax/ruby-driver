@@ -21,7 +21,8 @@ branches:
     - master
 before_install: |
   gem list bundler
-  gem uninstall bundler -a
+  gem cleanup bundler
+  gem uninstall bundler -x
   if [[ k$TRAVIS_RUBY_VERSION = kjruby ]] || [[ k$TRAVIS_RUBY_VERSION = krbx* ]] ; then
     gem install bundler -v 1.7.12
   else
