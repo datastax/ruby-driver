@@ -20,7 +20,6 @@ branches:
   only:
     - master
 before_install: |
-  gem list bundler
   gem cleanup bundler
   if [[ k$TRAVIS_RUBY_VERSION = kjruby ]] ; then
     gem uninstall -i /home/travis/.rvm/gems/jruby-src-1.7.19@global bundler -x
@@ -30,5 +29,3 @@ before_install: |
   else
     gem install bundler -v 1.11.2
   fi
-  type bundle
-  bundle --version
