@@ -23,7 +23,7 @@ module Cassandra
   module Protocol
     describe CqlProtocolHandler do
       let :protocol_handler do
-        described_class.new(connection, scheduler, 1)
+        described_class.new(connection, scheduler, 1, nil, 30, 60, 36)
       end
 
       let :connection do
@@ -71,6 +71,10 @@ module Cassandra
 
           expect(connection).to receive(:close)
           scheduler.advance_time(60)
+        end
+
+        it 'configures the right number of streams' do
+          expect(protocol_handler.instance_variable_get(:@streams).length).to eq(36)
         end
       end
 
@@ -161,12 +165,12 @@ module Cassandra
 
         it 'queues the request when there are too many in flight, sending it as soon as a stream is available' do
           connection.stub(:write)
-          futures = Array.new(130) { protocol_handler.send_request(request) }
-          128.times { |i| connection.data_listener.call([0x81, 0, i, 2, 0].pack('C4N')) }
-          futures[127].should be_resolved
-          futures[128].should_not be_resolved
+          futures = Array.new(38) { protocol_handler.send_request(request) }
+          36.times { |i| connection.data_listener.call([0x81, 0, i, 2, 0].pack('C4N')) }
+          futures[35].should be_resolved
+          futures[36].should_not be_resolved
           2.times { |i| connection.data_listener.call([0x81, 0, i, 2, 0].pack('C4N')) }
-          futures[128].should be_resolved
+          futures[36].should be_resolved
         end
 
         context 'when a compressor is specified' do
@@ -287,13 +291,13 @@ module Cassandra
                 buffer << s
               end
             end
-            128.times do
+            36.times do
               protocol_handler.send_request(request)
             end
             f = protocol_handler.send_request(request, 5)
             scheduler.advance_time(5)
-            128.times { |i| connection.data_listener.call([0x81, 0, i, 2, 0].pack('C4N')) }
-            write_count.should == 128
+            36.times { |i| connection.data_listener.call([0x81, 0, i, 2, 0].pack('C4N')) }
+            write_count.should == 36
           end
         end
       end

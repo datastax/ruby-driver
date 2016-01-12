@@ -25,7 +25,8 @@ module Cassandra
                   :schema_refresh_delay, :schema_refresh_timeout
       attr_accessor :protocol_version
 
-      def initialize(protocol_version, credentials, auth_provider, compressor, port, connect_timeout, ssl, connections_per_local_node, connections_per_remote_node, heartbeat_interval, idle_timeout, synchronize_schema, schema_refresh_delay, schema_refresh_timeout, client_timestamps, nodelay)
+      def initialize(logger, protocol_version, credentials, auth_provider, compressor, port, connect_timeout, ssl, connections_per_local_node, connections_per_remote_node, heartbeat_interval, idle_timeout, synchronize_schema, schema_refresh_delay, schema_refresh_timeout, client_timestamps, nodelay, requests_per_connection)
+        @logger                 = logger
         @protocol_version       = protocol_version
         @credentials            = credentials
         @auth_provider          = auth_provider
@@ -43,6 +44,7 @@ module Cassandra
 
         @connections_per_local_node  = connections_per_local_node
         @connections_per_remote_node = connections_per_remote_node
+        @requests_per_connection = requests_per_connection
       end
 
       def synchronize_schema?
@@ -65,16 +67,45 @@ module Cassandra
         @auth_provider && @auth_provider.create_authenticator(authentication_class)
       end
 
-      # increased number of streams in native protocol v3 allow for one
-      # connections to be sufficient
       def connections_per_local_node
-        (@protocol_version > 2) ? 1 : @connections_per_local_node
+        # Return the option if set.
+        return @connections_per_local_node if @connections_per_local_node
+
+        # For v3 and later, default is 1 local connection.
+        # For v2 and earlier, default is 2 local connections.
+        # Return the default
+        (@protocol_version > 2) ? 1 : 2
       end
 
-      # increased number of streams in native protocol v3 allow for one
-      # connections to be sufficient
       def connections_per_remote_node
-        (@protocol_version > 2) ? 1 : @connections_per_remote_node
+        # Return the option if set; otherwise return the default (1).
+        @connections_per_remote_node || 1
+      end
+
+      def requests_per_connection
+        # There are a few possibilities here based on @requests_per_node:
+        # nil: default to 1024 for protocol 3 and later, 128 for < 3.
+        # we're in v2 and value too high: return 128. We don't worry
+        #   about this case for v3+ because option validation in
+        #   Cassandra::cluster_async takes care of that.
+        # good value: return it.
+        #
+        # NOTE: We can't compute and cache the result because protocol_version
+        # can change over time in theory (if all nodes are upgraded to a new
+        # version of Cassandra)
+
+        # Return the default if option wasn't specified.
+        default_requests_per_connection = @protocol_version > 2 ? 1024 : 128
+        return default_requests_per_connection unless @requests_per_connection
+
+        if @requests_per_connection > 128 && @protocol_version < 3
+          @logger.warn(
+              ":requests_per_connection setting of #{@requests_per_connection} is more " +
+                  'than the max of 128 for protocol v2. Falling back to 128.'
+          )
+          return 128
+        end
+        @requests_per_connection
       end
     end
   end
