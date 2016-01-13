@@ -121,7 +121,7 @@ module Cassandra
             connection.to_io.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 0)
           end
 
-          Protocol::CqlProtocolHandler.new(connection, @reactor, @connection_options.protocol_version, @connection_options.compressor, @connection_options.heartbeat_interval, @connection_options.idle_timeout)
+          Protocol::CqlProtocolHandler.new(connection, @reactor, @connection_options.protocol_version, @connection_options.compressor, @connection_options.heartbeat_interval, @connection_options.idle_timeout, @connection_options.requests_per_connection)
         end.flat_map do |connection|
           f = request_options(connection)
           f = f.flat_map do |options|

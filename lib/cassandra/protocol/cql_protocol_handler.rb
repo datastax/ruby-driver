@@ -34,18 +34,14 @@ module Cassandra
       # @return [String] the current keyspace for the underlying connection
       attr_reader :keyspace, :error
 
-      def initialize(connection, scheduler, protocol_version, compressor=nil, heartbeat_interval = 30, idle_timeout = 60)
+      def initialize(connection, scheduler, protocol_version, compressor=nil, heartbeat_interval = 30, idle_timeout = 60, requests_per_connection = 128)
         @connection = connection
         @scheduler = scheduler
         @compressor = compressor
         @connection.on_data(&method(:receive_data))
         @connection.on_closed(&method(:socket_closed))
 
-        if protocol_version > 2
-          @streams = Array.new(1024) {|i| i}
-        else
-          @streams = Array.new(128) {|i| i}
-        end
+        @streams = Array.new(requests_per_connection) {|i| i}
 
         @promises = Hash.new
 

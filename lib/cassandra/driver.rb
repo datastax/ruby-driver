@@ -77,6 +77,7 @@ module Cassandra
 
     let(:connection_options) do
       Cluster::Options.new(
+        logger,
         protocol_version,
         credentials,
         auth_provider,
@@ -92,7 +93,8 @@ module Cassandra
         schema_refresh_delay,
         schema_refresh_timeout,
         client_timestamps,
-        nodelay
+        nodelay,
+        requests_per_connection
       )
     end
 
@@ -123,8 +125,9 @@ module Cassandra
     let(:client_timestamps)         { false }
     let(:nodelay)                   { true }
 
-    let(:connections_per_local_node)  { 2 }
-    let(:connections_per_remote_node) { 1 }
+    let(:connections_per_local_node)  { nil }
+    let(:connections_per_remote_node) { nil }
+    let(:requests_per_connection) { nil }
 
     let(:listeners) { [] }
 

@@ -126,6 +126,22 @@ module Cassandra
   #   address resolver to use. Must be one of `:none` or
   #   `:ec2_multi_region`.
   #
+  # @option options [Integer] :connections_per_local_node (nil) Number of connections to
+  #   open to each local node; the value of this option directly correlates to the number
+  #   of requests the client can make to the local node concurrently. When `nil`, the
+  #   setting is `1` for nodes that use the v3 or later protocol, and `2` for nodes that
+  #   use the v2 or earlier protocol.
+  #
+  # @option options [Integer] :connections_per_remote_node (1) Number of connections to
+  #   open to each remote node; the value of this option directly correlates to the
+  #   number of requests the client can make to the remote node concurrently.
+  #
+  # @option options [Integer] :requests_per_connection (nil) Number of outstanding
+  #   requests to support on one connection. Depending on the types of requests, some may
+  #   get processed in parallel in the Cassandra node. When `nil`, the setting is `1024`
+  #   for nodes that use the v3 or later protocol, and `128` for nodes that use the
+  #   v2 or earlier protocol.
+  #
   # @option options [Boolean] :client_timestamps (false) whether the driver
   #   should send timestamps for each executed statement. Enabling this setting
   #   allows mitigating Cassandra cluster clock skew because the timestamp of
@@ -219,15 +235,77 @@ module Cassandra
   # @return [Cassandra::Future<Cassandra::Cluster>] a future resolving to the
   #   cluster instance.
   def self.cluster_async(options = {})
-    options = options.select do |key, value|
-      [ :credentials, :auth_provider, :compression, :hosts, :logger, :port,
-        :load_balancing_policy, :reconnection_policy, :retry_policy, :listeners,
-        :consistency, :trace, :page_size, :compressor, :username, :password,
-        :ssl, :server_cert, :client_cert, :private_key, :passphrase,
-        :connect_timeout, :futures_factory, :datacenter, :address_resolution,
-        :address_resolution_policy, :idle_timeout, :heartbeat_interval, :timeout,
-        :synchronize_schema, :schema_refresh_delay, :schema_refresh_timeout,
-        :shuffle_replicas, :client_timestamps
+    options = validate_and_massage_options(options)
+    hosts = []
+
+    Array(options.fetch(:hosts, '127.0.0.1')).each do |host|
+      case host
+      when ::IPAddr
+        hosts << host
+      when ::String # ip address or hostname
+        Resolv.each_address(host) do |ip|
+          hosts << ::IPAddr.new(ip)
+        end
+      else
+        raise ::ArgumentError, ":hosts must be String or IPAddr, #{host.inspect} given"
+      end
+    end
+
+    if hosts.empty?
+      raise ::ArgumentError, ":hosts #{options[:hosts].inspect} could not be resolved to any ip address"
+    end
+
+    hosts.shuffle!
+  rescue => e
+    futures = options.fetch(:futures_factory) { return Future::Error.new(e) }
+    futures.error(e)
+  else
+    driver = Driver.new(options)
+    driver.connect(hosts)
+  end
+
+  # @private
+  def self.validate_and_massage_options(options)
+    options = options.select do |key, _|
+      [
+          :address_resolution,
+          :address_resolution_policy,
+          :auth_provider,
+          :client_cert,
+          :client_timestamps,
+          :compression,
+          :compressor,
+          :connect_timeout,
+          :connections_per_local_node,
+          :connections_per_remote_node,
+          :consistency,
+          :credentials,
+          :datacenter,
+          :futures_factory,
+          :heartbeat_interval,
+          :hosts,
+          :idle_timeout,
+          :listeners,
+          :load_balancing_policy,
+          :logger,
+          :nodelay,
+          :reconnection_policy,
+          :retry_policy,
+          :page_size,
+          :passphrase,
+          :password,
+          :port,
+          :private_key,
+          :requests_per_connection,
+          :schema_refresh_delay,
+          :schema_refresh_timeout,
+          :server_cert,
+          :shuffle_replicas,
+          :ssl,
+          :synchronize_schema,
+          :timeout,
+          :trace,
+          :username,
       ].include?(key)
     end
 
@@ -278,6 +356,12 @@ module Cassandra
         raise ::ArgumentError, "both :client_cert and :private_key options must be specified, but only :private_key given"
       end
 
+      Util.assert_instance_of(::String, options[:client_cert]) {
+        ":client_cert must be a string, #{options[:client_cert].inspect} given"
+      }
+      Util.assert_instance_of(::String, options[:private_key]) {
+        ":client_cert must be a string, #{options[:private_key].inspect} given"
+      }
       client_cert = ::File.expand_path(options[:client_cert])
       private_key = ::File.expand_path(options[:private_key])
 
@@ -288,6 +372,9 @@ module Cassandra
     has_server_cert = options.has_key?(:server_cert)
 
     if has_server_cert
+      Util.assert_instance_of(::String, options[:server_cert]) {
+        ":server_cert must be a string, #{options[:server_cert].inspect} given"
+      }
       server_cert = ::File.expand_path(options[:server_cert])
 
       Util.assert_file_exists(server_cert) { ":server_cert #{server_cert.inspect} doesn't exist" }
@@ -341,16 +428,24 @@ module Cassandra
     end
 
     if options.has_key?(:logger)
-      logger  = options[:logger]
-      methods = [:debug, :info, :warn, :error, :fatal]
+      if options[:logger].nil?
+        # Delete the key because we want to fallback to the default logger in Driver.
+        options.delete(:logger)
+      else
+        # Validate
+        logger = options[:logger]
+        methods = [:debug, :info, :warn, :error, :fatal]
 
-      Util.assert_responds_to_all(methods, logger) { ":logger #{logger.inspect} must respond to #{methods.inspect}, but doesn't" }
+        Util.assert_responds_to_all(methods, logger) { ":logger #{logger.inspect} must respond to #{methods.inspect}, but doesn't" }
+      end
     end
 
     if options.has_key?(:port)
-      port = options[:port] = Integer(options[:port])
-
-      Util.assert_one_of(0..65536, port) { ":port must be a valid ip port, #{port} given" }
+      unless options[:port].nil?
+        port = options[:port]
+        Util.assert_instance_of(::Integer, port)
+        Util.assert_one_of(1...2**16, port) { ":port must be a valid ip port, #{port} given" }
+      end
     end
 
     if options.has_key?(:datacenter)
@@ -361,7 +456,7 @@ module Cassandra
       timeout = options[:connect_timeout]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":connect_timeout must be a number of seconds, #{timeout} given" }
+        Util.assert_instance_of(::Numeric, timeout) { ":connect_timeout must be a number of seconds, #{timeout.inspect} given" }
         Util.assert(timeout > 0) { ":connect_timeout must be greater than 0, #{timeout} given" }
       end
     end
@@ -370,7 +465,7 @@ module Cassandra
       timeout = options[:timeout]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":timeout must be a number of seconds, #{timeout} given" }
+        Util.assert_instance_of(::Numeric, timeout) { ":timeout must be a number of seconds, #{timeout.inspect} given" }
         Util.assert(timeout > 0) { ":timeout must be greater than 0, #{timeout} given" }
       end
     end
@@ -379,7 +474,7 @@ module Cassandra
       timeout = options[:heartbeat_interval]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":heartbeat_interval must be a number of seconds, #{timeout} given" }
+        Util.assert_instance_of(::Numeric, timeout) { ":heartbeat_interval must be a number of seconds, #{timeout.inspect} given" }
         Util.assert(timeout > 0) { ":heartbeat_interval must be greater than 0, #{timeout} given" }
       end
     end
@@ -388,7 +483,7 @@ module Cassandra
       timeout = options[:idle_timeout]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":idle_timeout must be a number of seconds, #{timeout} given" }
+        Util.assert_instance_of(::Numeric, timeout) { ":idle_timeout must be a number of seconds, #{timeout.inspect} given" }
         Util.assert(timeout > 0) { ":idle_timeout must be greater than 0, #{timeout} given" }
       end
     end
@@ -396,14 +491,14 @@ module Cassandra
     if options.has_key?(:schema_refresh_delay)
       timeout = options[:schema_refresh_delay]
 
-      Util.assert_instance_of(::Numeric, timeout) { ":schema_refresh_delay must be a number of seconds, #{timeout} given" }
+      Util.assert_instance_of(::Numeric, timeout) { ":schema_refresh_delay must be a number of seconds, #{timeout.inspect} given" }
       Util.assert(timeout > 0) { ":schema_refresh_delay must be greater than 0, #{timeout} given" }
     end
 
     if options.has_key?(:schema_refresh_timeout)
       timeout = options[:schema_refresh_timeout]
 
-      Util.assert_instance_of(::Numeric, timeout) { ":schema_refresh_timeout must be a number of seconds, #{timeout} given" }
+      Util.assert_instance_of(::Numeric, timeout) { ":schema_refresh_timeout must be a number of seconds, #{timeout.inspect} given" }
       Util.assert(timeout > 0) { ":schema_refresh_timeout must be greater than 0, #{timeout} given" }
     end
 
@@ -453,8 +548,9 @@ module Cassandra
       page_size = options[:page_size]
 
       unless page_size.nil?
-        page_size = options[:page_size] = Integer(page_size)
-        Util.assert(page_size > 0) { ":page_size must be a positive integer, #{page_size.inspect} given" }
+        page_size = options[:page_size]
+        Util.assert_instance_of(::Integer, page_size)
+        Util.assert_one_of(1...2**32, page_size) { ":page_size must be a positive integer, #{page_size.inspect} given" }
       end
     end
 
@@ -492,32 +588,49 @@ module Cassandra
       options[:client_timestamps] = !!options[:client_timestamps]
     end
 
-    hosts = []
+    if options.has_key?(:connections_per_local_node)
+      connections_per_node = options[:connections_per_local_node]
 
-    Array(options.fetch(:hosts, '127.0.0.1')).each do |host|
-      case host
-      when ::IPAddr
-        hosts << host
-      when ::String # ip address or hostname
-        Resolv.each_address(host) do |ip|
-          hosts << ::IPAddr.new(ip)
-        end
-      else
-        raise ::ArgumentError, ":hosts must be String or IPAddr, #{host.inspect} given"
+      unless connections_per_node.nil?
+        connections_per_node = options[:connections_per_local_node]
+        Util.assert_instance_of(::Integer, connections_per_node)
+        Util.assert_one_of(1...2**16, connections_per_node) {
+          ":connections_per_local_node must be a positive integer between " +
+              "1 and 65535, #{connections_per_node.inspect} given"
+        }
       end
     end
 
-    if hosts.empty?
-      raise ::ArgumentError, ":hosts #{options[:hosts].inspect} could not be resolved to any ip address"
+    if options.has_key?(:connections_per_remote_node)
+      connections_per_node = options[:connections_per_remote_node]
+
+      unless connections_per_node.nil?
+        connections_per_node = options[:connections_per_remote_node]
+        Util.assert_instance_of(::Integer, connections_per_node)
+        Util.assert_one_of(1...2**16, connections_per_node) {
+          ":connections_per_remote_node must be a positive integer between " +
+              "1 and 65535, #{connections_per_node.inspect} given"
+        }
+      end
     end
 
-    hosts.shuffle!
-  rescue => e
-    futures = options.fetch(:futures_factory) { return Future::Error.new(e) }
-    futures.error(e)
-  else
-    driver = Driver.new(options)
-    driver.connect(hosts)
+    if options.has_key?(:requests_per_connection)
+      requests_per_connection = options[:requests_per_connection]
+
+      unless requests_per_connection.nil?
+        requests_per_connection = options[:requests_per_connection]
+        Util.assert_instance_of(::Integer, requests_per_connection)
+
+        # v3 protocol says that max stream-id is 32767 (2^15-1). This setting might be
+        # used to talk to a v2 (or less) node, but then we'll adjust it down.
+
+        Util.assert_one_of(1...2**15, requests_per_connection) {
+          ":requests_per_connection must be a positive integer, " +
+              "#{requests_per_connection.inspect} given"
+        }
+      end
+    end
+    options
   end
 
   # @private
