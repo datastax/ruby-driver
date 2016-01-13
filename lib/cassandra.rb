@@ -428,11 +428,16 @@ module Cassandra
     end
 
     if options.has_key?(:logger)
-      options[:logger] ||= NullLogger.new
-      logger = options[:logger]
-      methods = [:debug, :info, :warn, :error, :fatal]
+      if options[:logger].nil?
+        # Delete the key because we want to fallback to the default logger in Driver.
+        options.delete(:logger)
+      else
+        # Validate
+        logger = options[:logger]
+        methods = [:debug, :info, :warn, :error, :fatal]
 
-      Util.assert_responds_to_all(methods, logger) { ":logger #{logger.inspect} must respond to #{methods.inspect}, but doesn't" }
+        Util.assert_responds_to_all(methods, logger) { ":logger #{logger.inspect} must respond to #{methods.inspect}, but doesn't" }
+      end
     end
 
     if options.has_key?(:port)

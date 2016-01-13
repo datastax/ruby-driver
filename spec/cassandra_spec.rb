@@ -146,7 +146,7 @@ describe Cassandra do
     it 'should validate :logger option' do
       logger = C::NullLogger.new
       expect(C.validate(logger: logger)).to eq({ logger: logger })
-      expect(C.validate(logger: nil)[:logger].class).to be(Cassandra::NullLogger)
+      expect(C.validate(logger: nil)).to eq({})
       expect { C.validate(logger: 'junk') }.to raise_error(ArgumentError)
     end
 
