@@ -239,7 +239,7 @@ module Cassandra
 
 
           control_connection.connect_async.value
-          logger.should have_received(:info).with("Host 127.0.0.1 doesn't support protocol version 7, downgrading")
+          expect(logger).to have_received(:info).with("Host 127.0.0.1 doesn't support protocol version 7, downgrading")
         end
 
         it 'gives up when the protocol version is zero' do
@@ -687,6 +687,138 @@ module Cassandra
             io_reactor.advance_time(reconnect_interval)
 
             connections.select(&:connected?).should be_empty
+          end
+        end
+      end
+
+      describe 'managing full schema refresh' do
+        let(:promise) { Ione::Promise.new }
+        let(:future) { Ione::CompletableFuture.new }
+        let(:schema_refresh_timer) { 'refresh_timer'}
+        let(:schema_refresh_window) { 'refresh_window'}
+        before do
+          control_connection.stub(:refresh_maybe_retry) { future }
+          io_reactor.stub(:cancel_timer)
+          io_reactor.stub(:schedule_timer) { Ione::CompletableFuture.new }
+        end
+
+        describe "#refresh_schema_async_wrapper" do
+
+          it 'should refresh schema if a refresh is not in progress' do
+            control_connection.send(:refresh_schema_async_wrapper)
+            expect(control_connection).to have_received(:refresh_maybe_retry).once
+          end
+
+          it 'should not refresh schema if a refresh is in progress' do
+            control_connection.send(:refresh_schema_async_wrapper)
+            control_connection.send(:refresh_schema_async_wrapper)
+            expect(control_connection).to have_received(:refresh_maybe_retry).once
+          end
+
+          it 'should clear pending schema changes and schema timers when starting a new refresh' do
+            # Put some junk in @schema_changes
+            control_connection.instance_variable_set(:@schema_changes, ['foo'])
+            control_connection.instance_variable_set(:@schema_refresh_window,
+                                                     schema_refresh_window)
+            control_connection.instance_variable_set(:@schema_refresh_timer,
+                                                     schema_refresh_timer)
+            control_connection.send(:refresh_schema_async_wrapper)
+
+            expect(control_connection.instance_variable_get(:@schema_changes)).to be_empty
+            expect(control_connection.instance_variable_get(:@schema_refresh_timer)).
+                to be_nil
+            expect(control_connection.instance_variable_get(:@schema_refresh_window)).
+                to be_nil
+            expect(io_reactor).to have_received(:cancel_timer).twice
+          end
+
+          it 'should not clear pending schema changes when a refresh is in progress' do
+            control_connection.send(:refresh_schema_async_wrapper)
+
+            # Put some junk in @schema_changes
+            control_connection.instance_variable_set(:@schema_changes, ['foo'])
+
+            control_connection.send(:refresh_schema_async_wrapper)
+
+            expect(control_connection.instance_variable_get(:@schema_changes)).to eq(['foo'])
+          end
+
+          it 'should launch another refresh after current one completes when needed' do
+            # A follow-on refresh is needed if we try to refresh twice: the first time
+            # starts a refresh, the second returns the cached future. However, when the
+            # future is completed, a new refresh triggers.
+
+            future1 = control_connection.send(:refresh_schema_async_wrapper)
+            future2 = control_connection.send(:refresh_schema_async_wrapper)
+            expect(future1).to be(future2)
+
+            # Upto this point, only one refresh should have fired.
+            expect(control_connection).to have_received(:refresh_maybe_retry).once
+
+            # Resolve the future and another refresh should fire.
+            future1.resolve('foo')
+
+            expect(control_connection).to have_received(:refresh_maybe_retry).twice
+          end
+
+          it 'should not launch a follow-on refresh if not needed' do
+            future1 = control_connection.send(:refresh_schema_async_wrapper)
+
+            # Upto this point, only one refresh should have fired.
+            expect(control_connection).to have_received(:refresh_maybe_retry).once
+
+            # Resolve the future and another refresh should not fire since no one asked
+            # for a refresh after the first.
+            future1.resolve('foo')
+
+            expect(control_connection).to have_received(:refresh_maybe_retry).once
+          end
+
+          it 'should not restore refresh timers if not needed after full refresh completes' do
+            future1 = control_connection.send(:refresh_schema_async_wrapper)
+
+            # Upto this point, only one refresh should have fired.
+            expect(control_connection).to have_received(:refresh_maybe_retry).once
+
+            # Resolve the future and another refresh should not fire since no one asked
+            # for a refresh after the first.
+            future1.resolve('foo')
+
+            expect(control_connection).to have_received(:refresh_maybe_retry).once
+            expect(io_reactor).to_not have_received(:schedule_timer)
+          end
+
+          it 'should restore refresh timers after refresh completes if no follow on refresh' do
+            future = control_connection.send(:refresh_schema_async_wrapper)
+
+            # Upto this point, only one refresh should have fired.
+            expect(control_connection).to have_received(:refresh_maybe_retry).once
+
+            # Create a pending schema-change
+            control_connection.instance_variable_set(:@schema_changes, ['foo'])
+
+            # Resolve the future and another refresh should not fire since no one asked
+            # for a refresh after the first.
+            future.resolve('foo')
+
+            expect(control_connection).to have_received(:refresh_maybe_retry).once
+            expect(io_reactor).to have_received(:schedule_timer).twice
+          end
+        end
+
+        describe '#handle_schema_change' do
+          it 'should not enable refresh timers if full refresh is in progress' do
+            control_connection.send(:refresh_schema_async_wrapper)
+
+            control_connection.send(:handle_schema_change, 'foo')
+
+            expect(io_reactor).to_not have_received(:schedule_timer)
+          end
+
+          it 'should enable refresh timers if a full refresh is not in progress' do
+            control_connection.send(:handle_schema_change, 'foo')
+
+            expect(io_reactor).to have_received(:schedule_timer).twice
           end
         end
       end

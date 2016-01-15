@@ -205,7 +205,7 @@ module Cassandra
                   @registry.host_up(address)
                 else
                   refresh_host_async_maybe_retry(address)
-                  refresh_maybe_retry(:schema)
+                  refresh_schema_async_wrapper
                 end
               when 'DOWN'
                 @registry.host_down(event.address)
@@ -214,11 +214,11 @@ module Cassandra
 
                 unless @registry.has_host?(address)
                   refresh_host_async_maybe_retry(address)
-                  refresh_maybe_retry(:schema)
+                  refresh_schema_async_wrapper
                 end
               when 'REMOVED_NODE'
                 @registry.host_lost(event.address)
-                refresh_maybe_retry(:schema)
+                refresh_schema_async_wrapper
               end
             end
           end
@@ -722,38 +722,101 @@ Control connection failed and is unlikely to recover.
         end
       end
 
+      def refresh_schema_async_wrapper
+        # This is kinda tricky. We want to start refreshing the schema asynchronously.
+        # However, if we're already in the process of doing so, return the future
+        # representing that result rather than starting another schema refresh.
+        #
+        # A few other nuances while a refresh is in progress:
+        # * if a new attempt is made to refresh, keep track of that and schedule another
+        #   refresh after the current one completes.
+        # * we don't want schema_change events to be processed since the full refresh
+        #   may overwrite the results of handling the schema_change events with older
+        #   data. That said, we don't want to lose track of schema_change events; just
+        #   delay processing them until after the full refresh is done.
+        #
+        # Finally, when a full refresh begins, clear out any pending changes in
+        # @schema_changes because the full refresh subsumes them. This has two benefits:
+        # 1. avoid round trips to Cassandra to get details related to those schema changes.
+        # 2. avoid race conditions where those updates may return older data than our
+        #    full refresh and might win as last writer with that potentially older data.
+        synchronize do
+          if @refresh_schema_future
+            @pending_schema_refresh = true
+            return @refresh_schema_future
+          end
+
+          # Fresh refresh; prep this connection!
+
+          # Since we're starting a new refresh, there can be no pending refresh request.
+          @pending_schema_refresh = false
+
+          # Clear outstanding schema changes and timers.
+          @schema_changes = []
+          @io_reactor.cancel_timer(@schema_refresh_timer) if @schema_refresh_timer
+          @schema_refresh_timer = nil
+          @io_reactor.cancel_timer(@schema_refresh_window) if @schema_refresh_window
+          @schema_refresh_window = nil
+
+          # Start refreshing..
+          @refresh_schema_future = refresh_maybe_retry(:schema)
+          @refresh_schema_future.on_complete do
+            pending = false
+            synchronize do
+              # We're done refreshing. If we have a pending refresh, launch it now.
+              @refresh_schema_future = nil
+              pending = @pending_schema_refresh
+              @pending_schema_refresh = false
+              unless pending
+                # Restore timers if there are pending schema changes.
+                handle_schema_change(nil)
+              end
+            end
+
+            refresh_schema_async_wrapper if pending
+          end
+
+          # Return the (now cached) future
+          @refresh_schema_future
+        end
+      end
+
       def handle_schema_change(change)
         timer = nil
         expiration_timer = nil
 
         synchronize do
-          @schema_changes << change
+          # If change is nil, it means we want to set up timers (if there are pending
+          # changes). Otherwise, we definitely have a change and want to set up timers.
+          # Also, we only want to set up timers if we're not in the middle of a full
+          # refresh.
+          @schema_changes << change if change
 
-          @io_reactor.cancel_timer(@schema_refresh_timer) if @schema_refresh_timer
-          timer = @schema_refresh_timer = @io_reactor.schedule_timer(@connection_options.schema_refresh_delay)
+          unless @schema_changes.empty? || @refresh_schema_future
+            @io_reactor.cancel_timer(@schema_refresh_timer) if @schema_refresh_timer
+            timer = @schema_refresh_timer = @io_reactor.schedule_timer(@connection_options.schema_refresh_delay)
 
-          unless @schema_refresh_window
-            expiration_timer = @schema_refresh_window = @io_reactor.schedule_timer(@connection_options.schema_refresh_timeout)
-          end
-        end
-
-        if expiration_timer
-          expiration_timer.on_value do
-            schema_changes = nil
-
-            synchronize do
-              @io_reactor.cancel_timer(@schema_refresh_timer)
-
-              @schema_refresh_window = nil
-              @schema_refresh_timer  = nil
-
-              schema_changes  = @schema_changes
-              @schema_changes = ::Array.new
+            unless @schema_refresh_window
+              expiration_timer = @schema_refresh_window = @io_reactor.schedule_timer(@connection_options.schema_refresh_timeout)
             end
-
-            process_schema_changes(schema_changes)
           end
         end
+
+        expiration_timer.on_value do
+          schema_changes = nil
+
+          synchronize do
+            @io_reactor.cancel_timer(@schema_refresh_timer)
+
+            @schema_refresh_window = nil
+            @schema_refresh_timer = nil
+
+            schema_changes = @schema_changes
+            @schema_changes = ::Array.new
+          end
+
+          process_schema_changes(schema_changes)
+        end if expiration_timer
 
         timer.on_value do
           schema_changes = nil
@@ -762,14 +825,14 @@ Control connection failed and is unlikely to recover.
             @io_reactor.cancel_timer(@schema_refresh_window)
 
             @schema_refresh_window = nil
-            @schema_refresh_timer  = nil
+            @schema_refresh_timer = nil
 
-            schema_changes  = @schema_changes
+            schema_changes = @schema_changes
             @schema_changes = ::Array.new
           end
 
           process_schema_changes(schema_changes)
-        end
+        end if timer
 
         nil
       end
