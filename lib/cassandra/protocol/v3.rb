@@ -81,7 +81,9 @@ module Cassandra
             stream_id  = (frame_header >> 8) & 0xff
             stream_id  = (stream_id & 0x7f) - (stream_id & 0x80)
 
-            @handler.complete_request(stream_id, ErrorResponse.new(nil, nil, 0x000A, "Invalid or unsupported protocol version"))
+            error_response = ErrorResponse.new(nil, nil, 0x000A,
+                                               'Invalid or unsupported protocol version')
+            @handler.complete_request(stream_id, error_response)
 
             return
           end
@@ -150,7 +152,7 @@ module Cassandra
           nil
         end
 
-        def actual_decode(buffer, fields, size, code)
+        def actual_decode(buffer, fields, frame_length, code)
           protocol_version = (fields >> 24) & 0x7f
           compression      = (fields >> 16) & 0x01
           tracing          = (fields >> 16) & 0x02
@@ -158,27 +160,45 @@ module Cassandra
           stream_id        = (stream_id & 0x7fff) - (stream_id & 0x8000)
           opcode           = code & 0xff
 
+          # If we're dealing with a compressed body, read the whole body, decompress,
+          # and treat the uncompressed body as if that's what we got in the first place.
+          # This means we must reset frame_length to that uncompressed size.
           if compression == 1
             if @compressor
-              buffer = CqlByteBuffer.new(@compressor.decompress(buffer.read(size)))
-              size   = buffer.size
+              buffer = CqlByteBuffer.new(
+                  @compressor.decompress(buffer.read(frame_length)))
+              frame_length   = buffer.size
             else
-              raise Errors::DecodingError, 'Compressed frame received, but no compressor configured'
+              raise Errors::DecodingError,
+                    'Compressed frame received, but no compressor configured'
             end
           end
 
+          # We want to read one full frame; but after we read/parse chunks of the body
+          # there may be more cruft left in the frame that we don't care about. So,
+          # we save off the current size of the buffer, do all our reads for the
+          # frame, get the final remaining size, and based on that discard possible
+          # remaining bytes in the frame. In particular, we account for the possibility
+          # that the buffer contains some/all of a subsequent frame as well, and we
+          # don't want to mess with that.
+
+          buffer_starting_length = buffer.length
+
           if tracing == 2
             trace_id = buffer.read_uuid
-            size    -= 16
           else
             trace_id = nil
           end
 
-          extra_length = buffer.length - size
-          response = decode_response(opcode, protocol_version, buffer, size, trace_id)
+          remaining_frame_length = frame_length -
+              (buffer_starting_length - buffer.length)
+          response = decode_response(opcode, protocol_version, buffer,
+                                     remaining_frame_length, trace_id)
 
-          if buffer.length > extra_length
-            buffer.discard(buffer.length - extra_length)
+          # Calculate and discard remaining cruft in the frame.
+          extra_length = frame_length - (buffer_starting_length - buffer.length)
+          if extra_length > 0
+            buffer.discard(extra_length)
           end
 
           if stream_id == -1
@@ -190,93 +210,117 @@ module Cassandra
 
         def decode_response(opcode, protocol_version, buffer, size, trace_id)
           case opcode
-          when 0x00 # ERROR
-            code    = buffer.read_int
-            message = buffer.read_string
+            when 0x00 # ERROR
+              code = buffer.read_int
+              message = buffer.read_string
 
-            case code
-            when 0x1000 then UnavailableErrorResponse.new(nil, nil, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int)
-            when 0x1100 then WriteTimeoutErrorResponse.new(nil, nil, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, buffer.read_string)
-            when 0x1200 then ReadTimeoutErrorResponse.new(nil, nil, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, (buffer.read_byte != 0))
-            when 0x2400 then AlreadyExistsErrorResponse.new(nil, nil, code, message, buffer.read_string, buffer.read_string)
-            when 0x2500 then UnpreparedErrorResponse.new(nil, nil, code, message, buffer.read_short_bytes)
-            else
-              ErrorResponse.new(nil, nil, code, message)
-            end
-          when 0x02 # READY
-            READY
-          when 0x03 # AUTHENTICATE
-            AuthenticateResponse.new(buffer.read_string)
-          when 0x06 # SUPPORTED
-            SupportedResponse.new(buffer.read_string_multimap)
-          when 0x08 # RESULT
-            result_type = buffer.read_int
-            case result_type
-            when 0x0001 # Void
-              VoidResultResponse.new(nil, nil, trace_id)
-            when 0x0002 # Rows
-              original_buffer_length = buffer.length
-              column_specs, paging_state = Coder.read_metadata_v3(buffer)
-
-              if column_specs.nil?
-                consumed_bytes  = original_buffer_length - buffer.length
-                remaining_bytes = CqlByteBuffer.new(buffer.read(size - consumed_bytes - 4))
-                RawRowsResultResponse.new(nil, nil, protocol_version, remaining_bytes, paging_state, trace_id)
-              else
-                RowsResultResponse.new(nil, nil, Coder.read_values_v3(buffer, column_specs), column_specs, paging_state, trace_id)
+              case code
+                when 0x1000
+                  UnavailableErrorResponse.new(nil, nil, code, message,
+                                               buffer.read_consistency, buffer.read_int,
+                                               buffer.read_int)
+                when 0x1100
+                  WriteTimeoutErrorResponse.new(nil, nil, code, message,
+                                                buffer.read_consistency, buffer.read_int,
+                                                buffer.read_int, buffer.read_string)
+                when 0x1200
+                  ReadTimeoutErrorResponse.new(nil, nil, code, message,
+                                               buffer.read_consistency, buffer.read_int,
+                                               buffer.read_int, (buffer.read_byte != 0))
+                when 0x2400
+                  AlreadyExistsErrorResponse.new(nil, nil, code, message,
+                                                 buffer.read_string, buffer.read_string)
+                when 0x2500
+                  UnpreparedErrorResponse.new(nil, nil, code, message,
+                                              buffer.read_short_bytes)
+                else
+                  ErrorResponse.new(nil, nil, code, message)
               end
-            when 0x0003 # SetKeyspace
-              SetKeyspaceResultResponse.new(nil, nil, buffer.read_string, trace_id)
-            when 0x0004 # Prepared
-              id              = buffer.read_short_bytes
-              params_metadata = Coder.read_metadata_v3(buffer).first
-              result_metadata = nil
-              result_metadata = Coder.read_metadata_v3(buffer).first if protocol_version > 1
+            when 0x02 # READY
+              READY
+            when 0x03 # AUTHENTICATE
+              AuthenticateResponse.new(buffer.read_string)
+            when 0x06 # SUPPORTED
+              SupportedResponse.new(buffer.read_string_multimap)
+            when 0x08 # RESULT
+              result_type = buffer.read_int
+              case result_type
+                when 0x0001 # Void
+                  VoidResultResponse.new(nil, nil, trace_id)
+                when 0x0002 # Rows
+                  original_buffer_length = buffer.length
+                  column_specs, paging_state = Coder.read_metadata_v3(buffer)
 
-              PreparedResultResponse.new(nil, nil, id, params_metadata, result_metadata, nil, trace_id)
-            when 0x0005 # SchemaChange
-              change    = buffer.read_string
-              target    = buffer.read_string
-              keyspace  = buffer.read_string
-              arguments = EMPTY_LIST
-              name      = nil
+                  if column_specs.nil?
+                    consumed_bytes = original_buffer_length - buffer.length
+                    remaining_bytes =
+                        CqlByteBuffer.new(buffer.read(size - consumed_bytes - 4))
+                    RawRowsResultResponse.new(nil, nil, protocol_version,
+                                              remaining_bytes, paging_state, trace_id)
+                  else
+                    RowsResultResponse.new(nil, nil,
+                                           Coder.read_values_v3(buffer, column_specs),
+                                           column_specs, paging_state, trace_id)
+                  end
+                when 0x0003 # SetKeyspace
+                  SetKeyspaceResultResponse.new(nil, nil, buffer.read_string, trace_id)
+                when 0x0004 # Prepared
+                  id = buffer.read_short_bytes
+                  params_metadata = Coder.read_metadata_v3(buffer).first
+                  result_metadata = nil
+                  if protocol_version > 1
+                    result_metadata = Coder.read_metadata_v3(buffer).first
+                  end
 
-              if target == Constants::SCHEMA_CHANGE_TARGET_TABLE
-                name = buffer.read_string
+                  PreparedResultResponse.new(nil, nil, id, params_metadata,
+                                             result_metadata, nil, trace_id)
+                when 0x0005 # SchemaChange
+                  change = buffer.read_string
+                  target = buffer.read_string
+                  keyspace = buffer.read_string
+                  arguments = EMPTY_LIST
+                  name = nil
+
+                  if target == Constants::SCHEMA_CHANGE_TARGET_TABLE
+                    name = buffer.read_string
+                  end
+
+                  SchemaChangeResultResponse.new(nil, nil, change, keyspace, name,
+                                                 target, arguments, nil)
+                else
+                  raise Errors::DecodingError,
+                        "Unsupported result type: #{result_type.inspect}"
               end
+            when 0x0C # EVENT
+              event_type = buffer.read_string
+              case event_type
+                when 'SCHEMA_CHANGE'
+                  change = buffer.read_string
+                  target = buffer.read_string
+                  keyspace = buffer.read_string
+                  name = nil
+                  arguments = EMPTY_LIST
 
-              SchemaChangeResultResponse.new(nil, nil, change, keyspace, name, target, arguments, nil)
-            else
-              raise Errors::DecodingError, "Unsupported result type: #{result_type.inspect}"
-            end
-          when 0x0C # EVENT
-            event_type = buffer.read_string
-            case event_type
-            when 'SCHEMA_CHANGE'
-              change    = buffer.read_string
-              target    = buffer.read_string
-              keyspace  = buffer.read_string
-              name      = nil
-              arguments = EMPTY_LIST
+                  if target == Constants::SCHEMA_CHANGE_TARGET_TABLE
+                    name = buffer.read_string
+                  end
 
-              if target == Constants::SCHEMA_CHANGE_TARGET_TABLE
-                name = buffer.read_string
+                  SchemaChangeEventResponse.new(change, keyspace, name, target, arguments)
+                when 'STATUS_CHANGE'
+                  StatusChangeEventResponse.new(buffer.read_string, *buffer.read_inet)
+                when 'TOPOLOGY_CHANGE'
+                  TopologyChangeEventResponse.new(buffer.read_string, *buffer.read_inet)
+                else
+                  raise Errors::DecodingError,
+                        "Unsupported event type: #{event_type.inspect}"
               end
-
-              SchemaChangeEventResponse.new(change, keyspace, name, target, arguments)
-            when 'STATUS_CHANGE'
-              StatusChangeEventResponse.new(buffer.read_string, *buffer.read_inet)
-            when 'TOPOLOGY_CHANGE'
-              TopologyChangeEventResponse.new(buffer.read_string, *buffer.read_inet)
+            when 0x0E # AUTH_CHALLENGE
+              AuthChallengeResponse.new(buffer.read_bytes)
+            when 0x10 # AUTH_SUCCESS
+              AuthSuccessResponse.new(buffer.read_bytes)
             else
-              raise Errors::DecodingError, "Unsupported event type: #{event_type.inspect}"
-            end
-          when 0x0E # AUTH_CHALLENGE
-            AuthChallengeResponse.new(buffer.read_bytes)
-          when 0x10 # AUTH_SUCCESS
-            AuthSuccessResponse.new(buffer.read_bytes)
-          else
-            raise Errors::DecodingError, "Unsupported response opcode: #{opcode.inspect}"
+              raise Errors::DecodingError,
+                    "Unsupported response opcode: #{opcode.inspect}"
           end
         end
       end
