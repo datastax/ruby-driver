@@ -90,7 +90,9 @@ module Cassandra
             stream_id  = (frame_header >> 8) & 0xff
             stream_id  = (stream_id & 0x7f) - (stream_id & 0x80)
 
-            @handler.complete_request(stream_id, ErrorResponse.new(nil, nil, 0x000A, "Invalid or unsupported protocol version"))
+            error_response = ErrorResponse.new(nil, nil, 0x000A,
+                                               'Invalid or unsupported protocol version')
+            @handler.complete_request(stream_id, error_response)
 
             return
           end
@@ -159,7 +161,7 @@ module Cassandra
           nil
         end
 
-        def actual_decode(buffer, fields, size, code)
+        def actual_decode(buffer, fields, frame_length, code)
           protocol_version = (fields >> 24) & 0x7f
           compression      = ((fields >> 16) & 0x01) == 0x01
           tracing          = ((fields >> 16) & 0x02) == 0x02
@@ -169,41 +171,58 @@ module Cassandra
           stream_id        = (stream_id & 0x7fff) - (stream_id & 0x8000)
           opcode           = code & 0xff
 
+          # If we're dealing with a compressed body, read the whole body, decompress,
+          # and treat the uncompressed body as if that's what we got in the first place.
+          # This means, reset frame_length to that uncompressed size.
           if compression
             if @compressor
-              buffer = CqlByteBuffer.new(@compressor.decompress(buffer.read(size)))
-              size   = buffer.size
+              buffer = CqlByteBuffer.new(
+                  @compressor.decompress(buffer.read(frame_length)))
+              frame_length   = buffer.size
             else
-              raise Errors::DecodingError, 'Compressed frame received, but no compressor configured'
+              raise Errors::DecodingError,
+                    'Compressed frame received, but no compressor configured'
             end
           end
 
+          # We want to read one full frame; but after we read/parse chunks of the body
+          # there may be more cruft left in the frame that we don't care about. So,
+          # we save off the current size of the buffer, do all our reads for the
+          # frame, get the final remaining size, and based on that discard possible
+          # remaining bytes in the frame. In particular, we account for the possibility
+          # that the buffer contains some/all of a subsequent frame as well, and we
+          # don't want to mess with that.
+
+          buffer_starting_length = buffer.length
+
           if tracing
             trace_id = buffer.read_uuid
-            size     = buffer.size
           else
             trace_id = nil
           end
 
           if payload
             custom_payload = buffer.read_bytes_map.freeze
-            size           = buffer.size
           else
             custom_payload = nil
           end
 
           if warning
             warnings = buffer.read_string_list
-            size     = buffer.size
           else
             warnings = nil
           end
 
-          extra_length = buffer.length - size
-          response = decode_response(opcode, protocol_version, buffer, size, trace_id, custom_payload, warnings)
+          remaining_frame_length = frame_length -
+              (buffer_starting_length - buffer.length)
+          response = decode_response(opcode, protocol_version, buffer,
+                                     remaining_frame_length, trace_id, custom_payload,
+                                     warnings)
 
-          if buffer.length > extra_length
-            buffer.discard(buffer.length - extra_length)
+          # Calculate and discard remaining cruft in the frame.
+          extra_length = frame_length - (buffer_starting_length - buffer.length)
+          if extra_length > 0
+            buffer.discard(extra_length)
           end
 
           if stream_id == -1
@@ -213,119 +232,161 @@ module Cassandra
           end
         end
 
-        def decode_response(opcode, protocol_version, buffer, size, trace_id, custom_payload, warnings)
+        def decode_response(opcode, protocol_version, buffer, size, trace_id,
+                            custom_payload, warnings)
           case opcode
-          when 0x00 # ERROR
-            code    = buffer.read_int
-            message = buffer.read_string
+            when 0x00 # ERROR
+              code = buffer.read_int
+              message = buffer.read_string
 
-            case code
-            when 0x1000 then UnavailableErrorResponse.new(custom_payload, warnings, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int)
-            when 0x1100 then WriteTimeoutErrorResponse.new(custom_payload, warnings, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, buffer.read_string)
-            when 0x1200 then ReadTimeoutErrorResponse.new(custom_payload, warnings, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, (buffer.read_byte != 0))
-            when 0x1300 then ReadFailureErrorResponse.new(custom_payload, warnings, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, buffer.read_int, (buffer.read_byte != 0))
-            when 0x1400 then FunctionFailureErrorResponse.new(custom_payload, warnings, code, message, buffer.read_string, buffer.read_string, buffer.read_string_list)
-            when 0x1500 then WriteFailureErrorResponse.new(custom_payload, warnings, code, message, buffer.read_consistency, buffer.read_int, buffer.read_int, buffer.read_int, buffer.read_string)
-            when 0x2400 then AlreadyExistsErrorResponse.new(custom_payload, warnings, code, message, buffer.read_string, buffer.read_string)
-            when 0x2500 then UnpreparedErrorResponse.new(custom_payload, warnings, code, message, buffer.read_short_bytes)
-            else
-              ErrorResponse.new(custom_payload, warnings, code, message)
-            end
-          when 0x02 # READY
-            READY
-          when 0x03 # AUTHENTICATE
-            AuthenticateResponse.new(buffer.read_string)
-          when 0x06 # SUPPORTED
-            SupportedResponse.new(buffer.read_string_multimap)
-          when 0x08 # RESULT
-            result_type = buffer.read_int
-            case result_type
-            when 0x0001 # Void
-              VoidResultResponse.new(custom_payload, warnings, trace_id)
-            when 0x0002 # Rows
-              original_buffer_length = buffer.length
-              column_specs, paging_state = Coder.read_metadata_v4(buffer)
-
-              if column_specs.nil?
-                consumed_bytes  = original_buffer_length - buffer.length
-                remaining_bytes = CqlByteBuffer.new(buffer.read(size - consumed_bytes - 4))
-                RawRowsResultResponse.new(custom_payload, warnings, protocol_version, remaining_bytes, paging_state, trace_id)
-              else
-                RowsResultResponse.new(custom_payload, warnings, Coder.read_values_v4(buffer, column_specs), column_specs, paging_state, trace_id)
+              case code
+                when 0x1000
+                  UnavailableErrorResponse.new(custom_payload, warnings, code, message,
+                                               buffer.read_consistency, buffer.read_int,
+                                               buffer.read_int)
+                when 0x1100
+                  WriteTimeoutErrorResponse.new(custom_payload, warnings, code, message,
+                                                buffer.read_consistency, buffer.read_int,
+                                                buffer.read_int, buffer.read_string)
+                when 0x1200
+                  ReadTimeoutErrorResponse.new(custom_payload, warnings, code, message,
+                                               buffer.read_consistency, buffer.read_int,
+                                               buffer.read_int, (buffer.read_byte != 0))
+                when 0x1300
+                  ReadFailureErrorResponse.new(custom_payload, warnings, code, message,
+                                               buffer.read_consistency, buffer.read_int,
+                                               buffer.read_int, buffer.read_int,
+                                               (buffer.read_byte != 0))
+                when 0x1400
+                  FunctionFailureErrorResponse.new(custom_payload, warnings, code,
+                                                   message, buffer.read_string,
+                                                   buffer.read_string,
+                                                   buffer.read_string_list)
+                when 0x1500
+                  WriteFailureErrorResponse.new(custom_payload, warnings, code, message,
+                                                buffer.read_consistency, buffer.read_int,
+                                                buffer.read_int, buffer.read_int,
+                                                buffer.read_string)
+                when 0x2400
+                  AlreadyExistsErrorResponse.new(custom_payload, warnings, code, message,
+                                                 buffer.read_string, buffer.read_string)
+                when 0x2500
+                  UnpreparedErrorResponse.new(custom_payload, warnings, code, message,
+                                              buffer.read_short_bytes)
+                else
+                  ErrorResponse.new(custom_payload, warnings, code, message)
               end
-            when 0x0003 # SetKeyspace
-              SetKeyspaceResultResponse.new(custom_payload, warnings, buffer.read_string, trace_id)
-            when 0x0004 # Prepared
-              id = buffer.read_short_bytes
-              pk_idx, params_metadata = Coder.read_prepared_metadata_v4(buffer)
-              result_metadata = Coder.read_metadata_v4(buffer).first
+            when 0x02 # READY
+              READY
+            when 0x03 # AUTHENTICATE
+              AuthenticateResponse.new(buffer.read_string)
+            when 0x06 # SUPPORTED
+              SupportedResponse.new(buffer.read_string_multimap)
+            when 0x08 # RESULT
+              result_type = buffer.read_int
+              case result_type
+                when 0x0001 # Void
+                  VoidResultResponse.new(custom_payload, warnings, trace_id)
+                when 0x0002 # Rows
+                  original_buffer_length = buffer.length
+                  column_specs, paging_state = Coder.read_metadata_v4(buffer)
 
-              PreparedResultResponse.new(custom_payload, warnings, id, params_metadata, result_metadata, pk_idx, trace_id)
-            when 0x0005 # SchemaChange
-              change    = buffer.read_string
-              target    = buffer.read_string
-              keyspace  = nil
-              name      = nil
-              arguments = EMPTY_LIST
+                  if column_specs.nil?
+                    consumed_bytes = original_buffer_length - buffer.length
+                    remaining_bytes =
+                        CqlByteBuffer.new(buffer.read(size - consumed_bytes - 4))
+                    RawRowsResultResponse.new(custom_payload, warnings, protocol_version,
+                                              remaining_bytes, paging_state, trace_id)
+                  else
+                    RowsResultResponse.new(custom_payload, warnings,
+                                           Coder.read_values_v4(buffer, column_specs),
+                                           column_specs, paging_state, trace_id)
+                  end
+                when 0x0003 # SetKeyspace
+                  SetKeyspaceResultResponse.new(custom_payload, warnings,
+                                                buffer.read_string, trace_id)
+                when 0x0004 # Prepared
+                  id = buffer.read_short_bytes
+                  pk_idx, params_metadata = Coder.read_prepared_metadata_v4(buffer)
+                  result_metadata = Coder.read_metadata_v4(buffer).first
 
-              case target
-              when Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
-                keyspace = buffer.read_string
-              when Protocol::Constants::SCHEMA_CHANGE_TARGET_TABLE,
-                   Protocol::Constants::SCHEMA_CHANGE_TARGET_UDT
-                keyspace = buffer.read_string
-                name     = buffer.read_string
-              when Protocol::Constants::SCHEMA_CHANGE_TARGET_FUNCTION,
-                   Protocol::Constants::SCHEMA_CHANGE_TARGET_AGGREGATE
-                keyspace  = buffer.read_string
-                name      = buffer.read_string
-                arguments = buffer.read_string_list
+                  PreparedResultResponse.new(custom_payload, warnings, id,
+                                             params_metadata, result_metadata, pk_idx,
+                                             trace_id)
+                when 0x0005 # SchemaChange
+                  change = buffer.read_string
+                  target = buffer.read_string
+                  name = nil
+                  arguments = EMPTY_LIST
+
+                  case target
+                    when Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
+                      keyspace = buffer.read_string
+                    when Protocol::Constants::SCHEMA_CHANGE_TARGET_TABLE,
+                        Protocol::Constants::SCHEMA_CHANGE_TARGET_UDT
+                      keyspace = buffer.read_string
+                      name = buffer.read_string
+                    when Protocol::Constants::SCHEMA_CHANGE_TARGET_FUNCTION,
+                        Protocol::Constants::SCHEMA_CHANGE_TARGET_AGGREGATE
+                      keyspace = buffer.read_string
+                      name = buffer.read_string
+                      arguments = buffer.read_string_list
+                    else
+                      raise Errors::DecodingError,
+                            "Unsupported event target: #{target.inspect}"
+                  end
+
+                  SchemaChangeResultResponse.new(custom_payload, warnings, change,
+                                                 keyspace, name, target, arguments,
+                                                 trace_id)
+                else
+                  raise Errors::DecodingError,
+                        "Unsupported result type: #{result_type.inspect}"
               end
+            when 0x0C # EVENT
+              event_type = buffer.read_string
+              case event_type
+                when 'SCHEMA_CHANGE'
+                  change = buffer.read_string
+                  target = buffer.read_string
+                  arguments = EMPTY_LIST
 
-              SchemaChangeResultResponse.new(custom_payload, warnings, change, keyspace, name, target, arguments, trace_id)
-            else
-              raise Errors::DecodingError, "Unsupported result type: #{result_type.inspect}"
-            end
-          when 0x0C # EVENT
-            event_type = buffer.read_string
-            case event_type
-            when 'SCHEMA_CHANGE'
-              change    = buffer.read_string
-              target    = buffer.read_string
-              keyspace  = nil
-              arguments = EMPTY_LIST
+                  case target
+                    when Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
+                      keyspace = buffer.read_string
+                      name = nil
+                    when Protocol::Constants::SCHEMA_CHANGE_TARGET_TABLE,
+                        Protocol::Constants::SCHEMA_CHANGE_TARGET_UDT,
+                        Protocol::Constants::SCHEMA_CHANGE_TARGET_FUNCTION,
+                        Protocol::Constants::SCHEMA_CHANGE_TARGET_AGGREGATE
+                      keyspace = buffer.read_string
+                      name = buffer.read_string
+                    else
+                      raise Errors::DecodingError,
+                            "Unsupported event target: #{target.inspect}"
+                  end
 
-              case target
-              when Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
-                keyspace = buffer.read_string
-                name     = nil
-              when Protocol::Constants::SCHEMA_CHANGE_TARGET_TABLE,
-                   Protocol::Constants::SCHEMA_CHANGE_TARGET_UDT,
-                   Protocol::Constants::SCHEMA_CHANGE_TARGET_FUNCTION,
-                   Protocol::Constants::SCHEMA_CHANGE_TARGET_AGGREGATE
-                keyspace = buffer.read_string
-                name     = buffer.read_string
-              end
-
-              if target == Protocol::Constants::SCHEMA_CHANGE_TARGET_FUNCTION \
+                  if target == Protocol::Constants::SCHEMA_CHANGE_TARGET_FUNCTION \
               || target == Protocol::Constants::SCHEMA_CHANGE_TARGET_AGGREGATE
-                arguments = buffer.read_string_list
-              end
+                    arguments = buffer.read_string_list
+                  end
 
-              SchemaChangeEventResponse.new(change, keyspace, name, target, arguments)
-            when 'STATUS_CHANGE'
-              StatusChangeEventResponse.new(buffer.read_string, *buffer.read_inet)
-            when 'TOPOLOGY_CHANGE'
-              TopologyChangeEventResponse.new(buffer.read_string, *buffer.read_inet)
+                  SchemaChangeEventResponse.new(change, keyspace, name, target, arguments)
+                when 'STATUS_CHANGE'
+                  StatusChangeEventResponse.new(buffer.read_string, *buffer.read_inet)
+                when 'TOPOLOGY_CHANGE'
+                  TopologyChangeEventResponse.new(buffer.read_string, *buffer.read_inet)
+                else
+                  raise Errors::DecodingError,
+                        "Unsupported event type: #{event_type.inspect}"
+              end
+            when 0x0E # AUTH_CHALLENGE
+              AuthChallengeResponse.new(buffer.read_bytes)
+            when 0x10 # AUTH_SUCCESS
+              AuthSuccessResponse.new(buffer.read_bytes)
             else
-              raise Errors::DecodingError, "Unsupported event type: #{event_type.inspect}"
-            end
-          when 0x0E # AUTH_CHALLENGE
-            AuthChallengeResponse.new(buffer.read_bytes)
-          when 0x10 # AUTH_SUCCESS
-            AuthSuccessResponse.new(buffer.read_bytes)
-          else
-            raise Errors::DecodingError, "Unsupported response opcode: #{opcode.inspect}"
+              raise Errors::DecodingError,
+                    "Unsupported response opcode: #{opcode.inspect}"
           end
         end
       end

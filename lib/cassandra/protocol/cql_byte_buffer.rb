@@ -78,13 +78,15 @@ module Cassandra
       def read_double
         read(8).unpack(Formats::DOUBLE_FORMAT).first
       rescue RangeError => e
-        raise Errors::DecodingError, "Not enough bytes available to decode a double: #{e.message}", e.backtrace
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode a double: #{e.message}", e.backtrace
       end
 
       def read_float
         read(4).unpack(Formats::FLOAT_FORMAT).first
       rescue RangeError => e
-        raise Errors::DecodingError, "Not enough bytes available to decode a float: #{e.message}", e.backtrace
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode a float: #{e.message}", e.backtrace
       end
 
       def read_signed_int
@@ -92,13 +94,15 @@ module Cassandra
         return n if n <= 0x7fffffff
         n - 0xffffffff - 1
       rescue RangeError => e
-        raise Errors::DecodingError, "Not enough bytes available to decode an int: #{e.message}", e.backtrace
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode an int: #{e.message}", e.backtrace
       end
       
       def read_unsigned_short
         read_short
       rescue RangeError => e
-        raise Errors::DecodingError, "Not enough bytes available to decode a short: #{e.message}", e.backtrace
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode a short: #{e.message}", e.backtrace
       end
 
       def read_string
@@ -107,7 +111,8 @@ module Cassandra
         string.force_encoding(::Encoding::UTF_8)
         string
       rescue RangeError => e
-        raise Errors::DecodingError, "Not enough bytes available to decode a string: #{e.message}", e.backtrace
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode a string: #{e.message}", e.backtrace
       end
 
       def read_long_string
@@ -116,13 +121,16 @@ module Cassandra
         string.force_encoding(::Encoding::UTF_8)
         string
       rescue RangeError => e
-        raise Errors::DecodingError, "Not enough bytes available to decode a long string: #{e.message}", e.backtrace
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode a long string: #{e.message}",
+              e.backtrace
       end
 
       def read_uuid(impl=Uuid)
         impl.new(read_varint(16, false))
       rescue Errors::DecodingError => e
-        raise Errors::DecodingError, "Not enough bytes available to decode a UUID: #{e.message}", e.backtrace
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode a UUID: #{e.message}", e.backtrace
       end
 
       def read_string_list
@@ -135,13 +143,16 @@ module Cassandra
         return nil if size & 0x80000000 == 0x80000000
         read(size)
       rescue RangeError => e
-        raise Errors::DecodingError, "Not enough bytes available to decode a bytes: #{e.message}", e.backtrace
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode a bytes: #{e.message}", e.backtrace
       end
 
       def read_short_bytes
         read(read_unsigned_short)
       rescue RangeError => e
-        raise Errors::DecodingError, "Not enough bytes available to decode a short bytes: #{e.message}", e.backtrace
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode a short bytes: #{e.message}",
+              e.backtrace
       end
 
       def read_option
@@ -159,12 +170,16 @@ module Cassandra
         port = read_int
         [ip_addr, port]
       rescue RangeError => e
-        raise Errors::DecodingError, "Not enough bytes available to decode an INET: #{e.message}", e.backtrace
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode an INET: #{e.message}",
+              e.backtrace
       end
 
       def read_consistency
         index = read_unsigned_short
-        raise Errors::DecodingError, "Unknown consistency index #{index}" if index >= CONSISTENCIES.size || CONSISTENCIES[index].nil?
+        if index >= CONSISTENCIES.size || CONSISTENCIES[index].nil?
+          raise Errors::DecodingError, "Unknown consistency index #{index}"
+        end
         CONSISTENCIES[index]
       end
 
@@ -203,7 +218,8 @@ module Cassandra
         return n if n <= 0x7fff
         n - 0xffff - 1
       rescue RangeError => e
-        raise Errors::DecodingError, "Not enough bytes available to decode a smallint: #{e.message}", e.backtrace
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode a smallint: #{e.message}", e.backtrace
       end
 
       def read_tinyint
@@ -211,7 +227,8 @@ module Cassandra
         return n if n <= 0x7f
         n - 0xff - 1
       rescue RangeError => e
-        raise Errors::DecodingError, "Not enough bytes available to decode a tinyint: #{e.message}", e.backtrace
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode a tinyint: #{e.message}", e.backtrace
       end
 
       def append_tinyint(n)
@@ -277,7 +294,9 @@ module Cassandra
 
       def append_consistency(consistency)
         index = CONSISTENCIES.index(consistency)
-        raise Errors::EncodingError, %(Unknown consistency "#{consistency}") if index.nil? || CONSISTENCIES[index].nil?
+        if index.nil? || CONSISTENCIES[index].nil?
+          raise Errors::EncodingError, %(Unknown consistency "#{consistency}")
+        end
         append_short(index)
       end
 
