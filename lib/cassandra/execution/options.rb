@@ -38,11 +38,11 @@ module Cassandra
       # @return [String] paging state
       #
       # @note Although this feature exists to allow web applications to store
-      #   paging state in an [HTTP cookie](http://en.wikipedia.org/wiki/HTTP_cookie), **it is not safe to
-      #   expose without encrypting or otherwise securing it**. Paging state
-      #   contains information internal to the Apache Cassandra cluster, such as
-      #   partition key and data. Additionally, if a paging state is sent with CQL
-      #   statement, different from the original, the behavior of Cassandra is
+      #   paging state in an [HTTP cookie](http://en.wikipedia.org/wiki/HTTP_cookie),
+      #   **it is not safe to expose without encrypting or otherwise securing it**.
+      #   Paging state contains information internal to the Apache Cassandra cluster,
+      #   such as partition key and data. Additionally, if a paging state is sent with
+      #   CQL statement, different from the original, the behavior of Cassandra is
       #   undefined and will likely cause a server process of the coordinator of
       #   such request to abort.
       #
@@ -63,7 +63,10 @@ module Cassandra
       attr_reader :payload
 
       # @private
-      def initialize(options)
+      # @param options [Hash] execution options to validate and encapsulate
+      # @param trusted_options [Options] (optional) base Execution::Options from which
+      #        to create this new Options object.
+      def initialize(options, trusted_options = nil)
         consistency        = options[:consistency]
         page_size          = options[:page_size]
         trace              = options[:trace]
@@ -75,61 +78,114 @@ module Cassandra
         idempotent         = options[:idempotent]
         payload            = options[:payload]
 
-        Util.assert_one_of(CONSISTENCIES, consistency) { ":consistency must be one of #{CONSISTENCIES.inspect}, #{consistency.inspect} given" }
+        # consistency is a required attribute of an Options object. If we are creating
+        # an Options object from scratch (e.g. no trusted_options as base) validate the
+        # given consistency value (even if nil). Otherwise we're overlaying and only
+        # validate the consistency option if given.
+        if trusted_options.nil? || !consistency.nil?
+          Util.assert_one_of(CONSISTENCIES, consistency) {
+            ":consistency must be one of #{CONSISTENCIES.inspect}, " +
+                "#{consistency.inspect} given"
+          }
+        end
 
         unless serial_consistency.nil?
-          Util.assert_one_of(SERIAL_CONSISTENCIES, serial_consistency) { ":serial_consistency must be one of #{SERIAL_CONSISTENCIES.inspect}, #{serial_consistency.inspect} given" }
+          Util.assert_one_of(SERIAL_CONSISTENCIES, serial_consistency) {
+            ":serial_consistency must be one of #{SERIAL_CONSISTENCIES.inspect}, " +
+                "#{serial_consistency.inspect} given"
+          }
         end
 
         unless page_size.nil?
           page_size = Integer(page_size)
-          Util.assert(page_size > 0) { ":page_size must be a positive integer, #{page_size.inspect} given" }
+          Util.assert(page_size > 0) {
+            ":page_size must be a positive integer, #{page_size.inspect} given"
+          }
         end
 
         unless timeout.nil?
-          Util.assert_instance_of(::Numeric, timeout) { ":timeout must be a number of seconds, #{timeout} given" }
+          Util.assert_instance_of(::Numeric, timeout) {
+            ":timeout must be a number of seconds, #{timeout} given"
+          }
           Util.assert(timeout > 0) { ":timeout must be greater than 0, #{timeout} given" }
         end
 
         unless paging_state.nil?
           paging_state = String(paging_state)
-          Util.assert_not_empty(paging_state) { ":paging_state must not be empty" }
-          Util.assert(!page_size.nil?) { ":page_size is required when :paging_state is given" }
+          Util.assert_not_empty(paging_state) { ':paging_state must not be empty' }
+
+          # We require page_size in either the new options or trusted options.
+          Util.assert(!page_size.nil? ||
+                          !(trusted_options.nil? || trusted_options.page_size.nil? )) {
+            ':page_size is required when :paging_state is given'
+          }
         end
 
-        if arguments.nil?
+        # :arguments defaults to empty-list, but we want to delegate to trusted_options
+        # if it's set. So the logic is as follows:
+        # If an arguments option was given, validate and use it regardless of anything
+        # else.
+        # Otherwise, if we have trusted_options, leave arguments nil for now so as not
+        # to override trusted_options. Finally, if we don't have an arguments option
+        # nor do we have trusted_options, fall back to the default empty-list.
+        #
+        # :type_hints works exactly the same way.
+        if !arguments.nil?
+          Util.assert_instance_of_one_of([::Array, ::Hash], arguments) {
+            ":arguments must be an Array or a Hash, #{arguments.inspect} given"
+          }
+        elsif trusted_options.nil?
           arguments = EMPTY_LIST
-        else
-          Util.assert_instance_of_one_of([::Array, ::Hash], arguments) { ":arguments must be an Array or a Hash, #{arguments.inspect} given" }
         end
 
-        if type_hints.nil?
+        if !type_hints.nil?
+          Util.assert_instance_of_one_of([::Array, ::Hash], type_hints) {
+            ":type_hints must be an Array or a Hash, #{type_hints.inspect} given"
+          }
+        elsif trusted_options.nil?
           type_hints = EMPTY_LIST
-        else
-          Util.assert_instance_of_one_of([::Array, ::Hash], type_hints) { ":type_hints must be an Array or a Hash, #{type_hints.inspect} given" }
         end
 
         unless payload.nil?
-          Util.assert_instance_of(::Hash, payload) { ":payload must be a Hash" }
-          Util.assert_not_empty(payload) { ":payload must not be empty" }
-          Util.assert(payload.size <= 65535) { ":payload cannot contain more than 65535 key/value pairs" }
+          Util.assert_instance_of(::Hash, payload) { ':payload must be a Hash' }
+          Util.assert_not_empty(payload) { ':payload must not be empty' }
+          Util.assert(payload.size <= 65535) {
+            ':payload cannot contain more than 65535 key/value pairs'
+          }
 
-          payload = payload.each_with_object(::Hash.new) do |(key, value), payload|
-                      payload[String(key)] = String(value)
+          payload = payload.each_with_object(::Hash.new) do |(key, value), p|
+                      p[String(key)] = String(value)
                     end
           payload.freeze
         end
 
-        @consistency        = consistency
-        @page_size          = page_size
-        @trace              = !!trace
-        @timeout            = timeout
-        @serial_consistency = serial_consistency
-        @paging_state       = paging_state
-        @arguments          = arguments
-        @type_hints         = type_hints
-        @idempotent         = !!idempotent
-        @payload            = payload
+        # Ok, validation is done. Time to save off all our values in our instance vars,
+        # merging in values from trusted_options if it's set. To keep things readable,
+        # we just put this into two branches of an if-else.
+
+        if trusted_options.nil?
+          @consistency = consistency
+          @page_size = page_size
+          @trace = !!trace
+          @timeout = timeout
+          @serial_consistency = serial_consistency
+          @arguments = arguments
+          @type_hints = type_hints
+        else
+          @consistency = consistency || trusted_options.consistency
+          @page_size = page_size || trusted_options.page_size
+          @trace = trace.nil? ? trusted_options.trace? : !!trace
+          @timeout = timeout || trusted_options.timeout
+          @serial_consistency = serial_consistency || trusted_options.serial_consistency
+          @arguments = arguments || trusted_options.arguments
+          @type_hints = type_hints || trusted_options.type_hints
+        end
+
+        # The following fields are *not* inherited from trusted_options, so we always
+        # rely on the options we were given.
+        @paging_state = paging_state
+        @idempotent = !!idempotent
+        @payload = payload
       end
 
       # @return [Boolean] whether request tracing was enabled
@@ -158,26 +214,15 @@ module Cassandra
 
       # @private
       def override(*options)
-        merged = options.unshift(to_h).inject do |base, opts|
+        merged = options.unshift(Hash.new).inject do |base, opts|
           next base unless opts
-          Util.assert_instance_of(::Hash, opts) { "options must be a Hash, #{options.inspect} given" }
+          Util.assert_instance_of(::Hash, opts) {
+            "options must be a Hash, #{options.inspect} given"
+          }
           base.merge!(opts)
         end
 
-        Options.new(merged)
-      end
-
-      # @private
-      def to_h
-        {
-          :consistency        => @consistency,
-          :page_size          => @page_size,
-          :trace              => @trace,
-          :timeout            => @timeout,
-          :serial_consistency => @serial_consistency,
-          :arguments          => @arguments || EMPTY_LIST,
-          :type_hints         => @type_hints || EMPTY_LIST
-        }
+        Options.new(merged, self)
       end
     end
   end
