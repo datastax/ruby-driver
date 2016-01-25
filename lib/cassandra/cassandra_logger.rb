@@ -54,7 +54,7 @@ module Cassandra
       end
 
       def format_datetime(time)
-        time.strftime("%Y-%m-%dT%H:%M:%S.") << "%06d " % time.usec
+        time.strftime("%H:%M:%S.") << "%06d " % time.usec
       end
 
       def msg2str(msg)
