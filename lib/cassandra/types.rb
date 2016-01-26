@@ -193,7 +193,7 @@ module Cassandra
         Util.assert_instance_of(::Time, value, message, &block)
       end
 
-      def new_uuid(value, message, &block)
+      def new_uuid(value)
         Cassandra::Uuid.new(value)
       end
 
