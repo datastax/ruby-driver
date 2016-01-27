@@ -70,6 +70,34 @@ Feature: Execution information
       number of retries: 0
       """
 
+  Scenario: execution information includes warnings
+    Given the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster   = Cassandra.cluster
+      session   = cluster.connect("simplex")
+
+      prepared_statement = session.prepare('INSERT INTO simplex.songs ' +
+                                               '(id, title, album, artist, tags) values ' +
+                                               '(?, ?, ?, ?, ?)')
+
+      query = session.unlogged_batch do |batch|
+        batch.add(prepared_statement, arguments:
+            [Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8d696488'), 't1', 'a1', 'a1', Set.new(['t1'])])
+        batch.add(prepared_statement, arguments:
+            [Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'), 't2', 'a2', 'a2', Set.new(['t2'])])
+      end
+
+      r = session.execute(query)
+      puts "warnings: #{r.execution_info.warnings.first}"
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      warnings: Unlogged batch covering 2 partitions detected against table
+      """
+
   Scenario: execution information reflects retry decision
     Given a file named "retrying_at_a_given_consistency_policy.rb" with:
       """ruby
