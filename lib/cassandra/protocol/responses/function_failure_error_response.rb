@@ -30,7 +30,18 @@ module Cassandra
       end
 
       def to_error(keyspace, statement, options, hosts, consistency, retries)
-        Errors::FunctionCallError.new(@message, @custom_payload, @warnings, keyspace, statement, options, hosts, consistency, retries, @keyspace, @name, @signature)
+        Errors::FunctionCallError.new(@message,
+                                      @custom_payload,
+                                      @warnings,
+                                      keyspace,
+                                      statement,
+                                      options,
+                                      hosts,
+                                      consistency,
+                                      retries,
+                                      @keyspace,
+                                      @name,
+                                      @signature)
       end
 
       def to_s

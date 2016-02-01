@@ -20,12 +20,30 @@ module Cassandra
   class Cluster
     # @private
     class Options
-      attr_reader :credentials, :auth_provider, :compressor, :port,
-                  :connect_timeout, :ssl, :heartbeat_interval, :idle_timeout,
-                  :schema_refresh_delay, :schema_refresh_timeout
+      attr_reader :auth_provider, :compressor, :connect_timeout, :credentials,
+                  :heartbeat_interval, :idle_timeout, :port, :schema_refresh_delay,
+                  :schema_refresh_timeout, :ssl
+
       attr_accessor :protocol_version
 
-      def initialize(logger, protocol_version, credentials, auth_provider, compressor, port, connect_timeout, ssl, connections_per_local_node, connections_per_remote_node, heartbeat_interval, idle_timeout, synchronize_schema, schema_refresh_delay, schema_refresh_timeout, client_timestamps, nodelay, requests_per_connection)
+      def initialize(logger,
+                     protocol_version,
+                     credentials,
+                     auth_provider,
+                     compressor,
+                     port,
+                     connect_timeout,
+                     ssl,
+                     connections_per_local_node,
+                     connections_per_remote_node,
+                     heartbeat_interval,
+                     idle_timeout,
+                     synchronize_schema,
+                     schema_refresh_delay,
+                     schema_refresh_timeout,
+                     client_timestamps,
+                     nodelay,
+                     requests_per_connection)
         @logger                 = logger
         @protocol_version       = protocol_version
         @credentials            = credentials
@@ -100,8 +118,8 @@ module Cassandra
 
         if @requests_per_connection > 128 && @protocol_version < 3
           @logger.warn(
-              ":requests_per_connection setting of #{@requests_per_connection} is more " +
-                  'than the max of 128 for protocol v2. Falling back to 128.'
+            ":requests_per_connection setting of #{@requests_per_connection} is more " \
+                'than the max of 128 for protocol v2. Falling back to 128.'
           )
           return 128
         end

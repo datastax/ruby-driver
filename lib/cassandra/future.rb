@@ -46,7 +46,9 @@ module Cassandra
     # @private
     class Error < Future
       def initialize(error)
-        raise ::ArgumentError, "error must be an exception, #{error.inspect} given" unless error.is_a?(::Exception)
+        unless error.is_a?(::Exception)
+          raise ::ArgumentError, "error must be an exception, #{error.inspect} given"
+        end
 
         @error = error
       end
@@ -55,41 +57,53 @@ module Cassandra
         raise(@error, @error.message, @error.backtrace)
       end
 
-      alias :join :get
+      alias join get
 
       def on_success
-        raise ::ArgumentError, "no block given" unless block_given?
+        raise ::ArgumentError, 'no block given' unless block_given?
         self
       end
 
       def on_failure
-        raise ::ArgumentError, "no block given" unless block_given?
-        yield(@error) rescue nil
+        raise ::ArgumentError, 'no block given' unless block_given?
+        begin
+          yield(@error)
+        rescue
+          nil
+        end
         self
       end
 
       def on_complete
-        raise ::ArgumentError, "no block given" unless block_given?
-        yield(nil, @error) rescue nil
+        raise ::ArgumentError, 'no block given' unless block_given?
+        begin
+          yield(nil, @error)
+        rescue
+          nil
+        end
         self
       end
 
       def add_listener(listener)
-        unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
-          raise ::ArgumentError, "listener must respond to both #success and #failure"
+        unless listener.respond_to?(:success) && listener.respond_to?(:failure)
+          raise ::ArgumentError, 'listener must respond to both #success and #failure'
         end
 
-        listener.failure(@error) rescue nil
+        begin
+          listener.failure(@error)
+        rescue
+          nil
+        end
         self
       end
 
       def then
-        raise ::ArgumentError, "no block given" unless block_given?
+        raise ::ArgumentError, 'no block given' unless block_given?
         self
       end
 
       def fallback
-        raise ::ArgumentError, "no block given" unless block_given?
+        raise ::ArgumentError, 'no block given' unless block_given?
 
         begin
           result = yield(@error)
@@ -111,31 +125,43 @@ module Cassandra
         @value
       end
 
-      alias :join :get
+      alias join get
 
       def on_success
-        raise ::ArgumentError, "no block given" unless block_given?
-        yield(@value) rescue nil
+        raise ::ArgumentError, 'no block given' unless block_given?
+        begin
+          yield(@value)
+        rescue
+          nil
+        end
         self
       end
 
       def on_failure
-        raise ::ArgumentError, "no block given" unless block_given?
+        raise ::ArgumentError, 'no block given' unless block_given?
         self
       end
 
       def on_complete
-        raise ::ArgumentError, "no block given" unless block_given?
-        yield(@value, nil) rescue nil
+        raise ::ArgumentError, 'no block given' unless block_given?
+        begin
+          yield(@value, nil)
+        rescue
+          nil
+        end
         self
       end
 
       def add_listener(listener)
-        unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
-          raise ::ArgumentError, "listener must respond to both #success and #failure"
+        unless listener.respond_to?(:success) && listener.respond_to?(:failure)
+          raise ::ArgumentError, 'listener must respond to both #success and #failure'
         end
 
-        listener.success(@value) rescue nil
+        begin
+          listener.success(@value)
+        rescue
+          nil
+        end
         self
       end
 
@@ -144,7 +170,7 @@ module Cassandra
       end
 
       def then
-        raise ::ArgumentError, "no block given" unless block_given?
+        raise ::ArgumentError, 'no block given' unless block_given?
 
         begin
           result = yield(@value)
@@ -156,7 +182,7 @@ module Cassandra
       end
 
       def fallback
-        raise ::ArgumentError, "no block given" unless block_given?
+        raise ::ArgumentError, 'no block given' unless block_given?
         self
       end
     end
@@ -252,7 +278,7 @@ module Cassandra
     # @raise [ArgumentError] if no block given
     # @return [self]
     def on_success(&block)
-      raise ::ArgumentError, "no block given" unless block_given?
+      raise ::ArgumentError, 'no block given' unless block_given?
       @signal.on_success(&block)
       self
     end
@@ -265,7 +291,7 @@ module Cassandra
     # @raise [ArgumentError] if no block given
     # @return [self]
     def on_failure(&block)
-      raise ::ArgumentError, "no block given" unless block_given?
+      raise ::ArgumentError, 'no block given' unless block_given?
       @signal.on_failure(&block)
       self
     end
@@ -281,7 +307,7 @@ module Cassandra
     # @raise [ArgumentError] if no block given
     # @return [self]
     def on_complete(&block)
-      raise ::ArgumentError, "no block given" unless block_given?
+      raise ::ArgumentError, 'no block given' unless block_given?
       @signal.on_complete(&block)
       self
     end
@@ -296,8 +322,8 @@ module Cassandra
     #   `#success` and `#failure`
     # @return [self]
     def add_listener(listener)
-      unless (listener.respond_to?(:success) && listener.respond_to?(:failure))
-        raise ::ArgumentError, "listener must respond to both #success and #failure"
+      unless listener.respond_to?(:success) && listener.respond_to?(:failure)
+        raise ::ArgumentError, 'listener must respond to both #success and #failure'
       end
 
       @signal.add_listener(listener)
@@ -325,7 +351,7 @@ module Cassandra
     # @raise [ArgumentError] if no block given
     # @return [Cassandra::Future] a new future
     def then(&block)
-      raise ::ArgumentError, "no block given" unless block_given?
+      raise ::ArgumentError, 'no block given' unless block_given?
       @signal.then(&block)
     end
 
@@ -351,7 +377,7 @@ module Cassandra
     # @raise [ArgumentError] if no block given
     # @return [Cassandra::Future] a new future
     def fallback(&block)
-      raise ::ArgumentError, "no block given" unless block_given?
+      raise ::ArgumentError, 'no block given' unless block_given?
       @signal.fallback(&block)
     end
 
@@ -372,7 +398,7 @@ module Cassandra
       @signal.get(timeout)
     end
 
-    alias :join :get
+    alias join get
   end
 
   # @private
@@ -507,12 +533,17 @@ module Cassandra
           @error = error
           @state = :broken
 
-          listeners, @listeners = @listeners, nil
+          listeners = @listeners
+          @listeners = nil
         end
 
         @executor.execute do
           listeners.each do |listener|
-            listener.failure(error) rescue nil
+            begin
+              listener.failure(error)
+            rescue
+              nil
+            end
           end
 
           synchronize do
@@ -534,12 +565,17 @@ module Cassandra
           @value = value
           @state = :fulfilled
 
-          listeners, @listeners = @listeners, nil
+          listeners = @listeners
+          @listeners = nil
         end
 
         @executor.execute do
           listeners.each do |listener|
-            listener.success(value) rescue nil
+            begin
+              listener.success(value)
+            rescue
+              nil
+            end
           end
 
           synchronize do
@@ -561,10 +597,12 @@ module Cassandra
       #
       # @return [Object] the value that the future has been resolved with
       def get(timeout = nil)
-        timeout = timeout && Float(timeout)
+        timeout &&= Float(timeout)
 
         if timeout
-          raise ::ArgumentError, "timeout cannot be negative, #{timeout.inspect} given" if timeout < 0
+          if timeout < 0
+            raise ::ArgumentError, "timeout cannot be negative, #{timeout.inspect} given"
+          end
 
           start    = ::Time.now
           now      = start
@@ -590,18 +628,18 @@ module Cassandra
 
           if @state == :pending
             total_wait = deadline - start
-            raise Errors::TimeoutError, "Future did not complete within #{timeout.inspect} seconds. Wait time: #{total_wait.inspect}"
+            raise Errors::TimeoutError,
+                  "Future did not complete within #{timeout.inspect} seconds. " \
+                      "Wait time: #{total_wait.inspect}"
           end
         end
 
-        if @state == :broken
-          raise(@error, @error.message, @error.backtrace)
-        end
+        raise(@error, @error.message, @error.backtrace) if @state == :broken
 
         @value
       end
 
-      alias :join :get
+      alias join get
 
       def add_listener(listener)
         if @state == :pending
@@ -614,8 +652,16 @@ module Cassandra
           end
         end
 
-        listener.success(@value) rescue nil if @state == :fulfilled
-        listener.failure(@error) rescue nil if @state == :broken
+        begin
+          listener.success(@value)
+        rescue
+          nil
+        end if @state == :fulfilled
+        begin
+          listener.failure(@error)
+        rescue
+          nil
+        end if @state == :broken
 
         self
       end
@@ -630,7 +676,11 @@ module Cassandra
           end
         end
 
-        yield(@value) rescue nil if @state == :fulfilled
+        begin
+          yield(@value)
+        rescue
+          nil
+        end if @state == :fulfilled
 
         self
       end
@@ -645,7 +695,11 @@ module Cassandra
           end
         end
 
-        yield(@error) rescue nil if @state == :broken
+        begin
+          yield(@error)
+        rescue
+          nil
+        end if @state == :broken
 
         self
       end
@@ -660,7 +714,11 @@ module Cassandra
           end
         end
 
-        yield(@value, @error) rescue nil
+        begin
+          yield(@value, @error)
+        rescue
+          nil
+        end
 
         self
       end

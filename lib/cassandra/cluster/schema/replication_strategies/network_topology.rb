@@ -34,7 +34,7 @@ module Cassandra
               racks[host.datacenter] ||= ::Set.new
               racks[host.datacenter].add(host.rack)
 
-              datacenter_token_rings[host.datacenter]  ||= Hash.new
+              datacenter_token_rings[host.datacenter]  ||= {}
               datacenter_token_rings[host.datacenter][i] = token
             end
 
@@ -48,8 +48,11 @@ module Cassandra
               replication_options.each do |datacenter, factor|
                 ring = datacenter_token_rings[datacenter]
                 next unless ring
-                factor = [Integer(factor), ring.size].min rescue next
-
+                factor = begin
+                           [Integer(factor), ring.size].min
+                         rescue
+                           next
+                         end
 
                 total_racks    = racks[datacenter].size
                 visited_racks  = visited[datacenter] ||= ::Set.new

@@ -39,7 +39,13 @@ module Cassandra
     attr_reader :status
 
     # @private
-    def initialize(ip, id = nil, rack = nil, datacenter = nil, release_version = nil, tokens = EMPTY_LIST, status = :up)
+    def initialize(ip,
+                   id = nil,
+                   rack = nil,
+                   datacenter = nil,
+                   release_version = nil,
+                   tokens = EMPTY_LIST,
+                   status = :up)
       @ip              = ip
       @id              = id
       @rack            = rack
@@ -72,11 +78,11 @@ module Cassandra
     def eql?(other)
       other.eql?(@ip)
     end
-    alias :== :eql?
+    alias == eql?
 
     # @private
     def inspect
-      "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @ip=#{@ip}>"
+      "#<#{self.class.name}:0x#{object_id.to_s(16)} @ip=#{@ip}>"
     end
   end
 end

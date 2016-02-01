@@ -35,11 +35,10 @@ module Cassandra
             until @hosts.empty?
               host = @hosts.shift
 
-              if @policy.distance(host) == :local
-                @seen[host] = true
-                @next = host
-                break
-              end
+              next unless @policy.distance(host) == :local
+              @seen[host] = true
+              @next = host
+              break
             end
 
             return true if @next
@@ -100,9 +99,12 @@ module Cassandra
         #   under-utilizes read caching and forces multiple replicas to cache
         #   the same read statements.
         def initialize(wrapped_policy, shuffle = true)
-          methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown, :distance, :plan]
+          methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown,
+                     :distance, :plan]
 
-          Util.assert_responds_to_all(methods, wrapped_policy) { "supplied policy must respond to #{methods.inspect}, but doesn't" }
+          Util.assert_responds_to_all(methods, wrapped_policy) do
+            "supplied policy must respond to #{methods.inspect}, but doesn't"
+          end
 
           @policy  = wrapped_policy
           @shuffle = !!shuffle
@@ -126,11 +128,11 @@ module Cassandra
           replicas = @cluster.find_replicas(keyspace, statement)
           return @policy.plan(keyspace, statement, options) if replicas.empty?
 
-          if @shuffle
-            replicas = replicas.shuffle
-          else
-            replicas = replicas.dup
-          end
+          replicas = if @shuffle
+                       replicas.shuffle
+                     else
+                       replicas.dup
+                     end
 
           Plan.new(replicas, @policy, keyspace, statement, options)
         end

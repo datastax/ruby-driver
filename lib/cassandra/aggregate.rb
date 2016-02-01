@@ -40,7 +40,14 @@ module Cassandra
     attr_reader :final_function
 
     # @private
-    def initialize(keyspace, name, type, argument_types, state_type, initial_state, state_function, final_function)
+    def initialize(keyspace,
+                   name,
+                   type,
+                   argument_types,
+                   state_type,
+                   initial_state,
+                   state_function,
+                   final_function)
       @keyspace       = keyspace
       @name           = name
       @type           = type
@@ -63,7 +70,7 @@ module Cassandra
         @state_function == other.state_function && \
         @final_function == other.final_function
     end
-    alias :== :eql?
+    alias == eql?
 
     # @private
     def hash
@@ -83,12 +90,19 @@ module Cassandra
 
     # @private
     def inspect
-      "#<Cassandra::Aggregate:0x#{self.object_id.to_s(16)} @keyspace=#{@keyspace.inspect}, @name=#{@name.inspect}, @type=#{@type.inspect}, @argument_types=#{@argument_types.inspect}, @initial_state=#{@initial_state.inspect}, @state_function=#{@state_function.inspect}, @final_function=#{@final_function.inspect}>"
+      "#<Cassandra::Aggregate:0x#{object_id.to_s(16)} " \
+          "@keyspace=#{@keyspace.inspect}, " \
+          "@name=#{@name.inspect}, " \
+          "@type=#{@type.inspect}, " \
+          "@argument_types=#{@argument_types.inspect}, " \
+          "@initial_state=#{@initial_state.inspect}, " \
+          "@state_function=#{@state_function.inspect}, " \
+          "@final_function=#{@final_function.inspect}>"
     end
 
     # @return [String] a cql representation of this aggregate
     def to_cql
-      cql = "CREATE AGGREGATE simplex.average("
+      cql = 'CREATE AGGREGATE simplex.average('
       first = true
       @argument_types.each do |type|
         if first
@@ -98,12 +112,12 @@ module Cassandra
         end
         cql << type.to_s
       end
-      cql << ")"
+      cql << ')'
       cql << "\n  SFUNC #{@state_function.name}"
       cql << "\n  STYPE #{@state_type}"
       cql << "\n  FINALFUNC #{@final_function.name}" if @final_function
       cql << "\n  INITCOND #{@initial_state}"
-      cql << ";"
+      cql << ';'
     end
   end
 end

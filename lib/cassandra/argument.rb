@@ -36,7 +36,7 @@ module Cassandra
         @name == other.name && \
         @type == other.type
     end
-    alias :== :eql?
+    alias == eql?
 
     # @private
     def hash

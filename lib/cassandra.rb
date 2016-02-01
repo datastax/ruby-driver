@@ -16,7 +16,6 @@
 # limitations under the License.
 #++
 
-
 require 'ione'
 require 'json'
 
@@ -38,8 +37,8 @@ module Cassandra
   # @see http://www.datastax.com/documentation/cassandra/2.0/cassandra/dml/dml_config_consistency_c.html Consistency levels in Apache Cassandra 2.0
   # @see http://www.datastax.com/documentation/cassandra/1.2/cassandra/dml/dml_config_consistency_c.html Consistency levels in Apache Cassandra 1.2
   # @see Cassandra::Session#execute_async
-  CONSISTENCIES = [ :any, :one, :two, :three, :quorum, :all, :local_quorum,
-                    :each_quorum, :serial, :local_serial, :local_one ].freeze
+  CONSISTENCIES = [:any, :one, :two, :three, :quorum, :all, :local_quorum,
+                   :each_quorum, :serial, :local_serial, :local_one].freeze
 
   # A list of all supported serial consistencies
   # @see Cassandra::Session#execute_async
@@ -155,7 +154,8 @@ module Cassandra
   #   automatic schema updates. Schema metadata is used by the driver to
   #   determine cluster partitioners as well as to find partition keys and
   #   replicas of prepared statements, this information makes token aware load
-  #   balancing possible. One can still {Cassandra::Cluster#refresh_schema refresh schema manually}.
+  #   balancing possible. One can still
+  #   {Cassandra::Cluster#refresh_schema refresh schema manually}.
   #
   # @option options [Numeric] :schema_refresh_delay (1) the driver will wait
   #   for `:schema_refresh_delay` before fetching metadata after receiving a
@@ -193,9 +193,15 @@ module Cassandra
   # @option options [Integer] :page_size (10000) default page size for all
   #   select queries. Set this value to `nil` to disable paging.
   #
-  # @option options [Hash{String => String}] :credentials (none) a hash of credentials - to be used with [credentials authentication in cassandra 1.2](https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L238-L250). Note that if you specified `:username` and `:password` options, those credentials are configured automatically.
+  # @option options [Hash{String => String}] :credentials (none) a hash of credentials -
+  #   to be used with [credentials authentication in cassandra 1.2](https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L238-L250).
+  #   Note that if you specified `:username` and `:password` options, those credentials
+  #   are configured automatically.
   #
-  # @option options [Cassandra::Auth::Provider] :auth_provider (none) a custom auth provider to be used with [SASL authentication in cassandra 2.0](https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v2.spec#L257-L273). Note that if you have specified `:username` and `:password`, then a {Cassandra::Auth::Providers::Password Password Provider} will be used automatically.
+  # @option options [Cassandra::Auth::Provider] :auth_provider (none) a custom auth
+  #   provider to be used with [SASL authentication in cassandra 2.0](https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v2.spec#L257-L273).
+  #   Note that if you have specified `:username` and `:password`, then a
+  #   {Cassandra::Auth::Providers::Password Password Provider} will be used automatically.
   #
   # @option options [Cassandra::Compression::Compressor] :compressor (none) a
   #   custom compressor. Note that if you have specified `:compression`, an
@@ -203,8 +209,8 @@ module Cassandra
   #
   # @option options [Cassandra::AddressResolution::Policy]
   #   :address_resolution_policy default:
-  #   {Cassandra::AddressResolution::Policies::None No Resolution Policy} a custom address resolution
-  #   policy. Note that if you have specified `:address_resolution`, an
+  #   {Cassandra::AddressResolution::Policies::None No Resolution Policy} a custom address
+  #   resolution policy. Note that if you have specified `:address_resolution`, an
   #   appropriate address resolution policy will be provided automatically.
   #
   # @option options [Object<#all, #error, #value, #promise>] :futures_factory
@@ -252,7 +258,8 @@ module Cassandra
     end
 
     if hosts.empty?
-      raise ::ArgumentError, ":hosts #{options[:hosts].inspect} could not be resolved to any ip address"
+      raise ::ArgumentError,
+            ":hosts #{options[:hosts].inspect} could not be resolved to any ip address"
     end
 
     hosts.shuffle!
@@ -265,119 +272,145 @@ module Cassandra
   end
 
   # @private
+  SSL_CLASSES = [::TrueClass, ::FalseClass, ::OpenSSL::SSL::SSLContext].freeze
+
+  # @private
   def self.validate_and_massage_options(options)
     options = options.select do |key, _|
       [
-          :address_resolution,
-          :address_resolution_policy,
-          :auth_provider,
-          :client_cert,
-          :client_timestamps,
-          :compression,
-          :compressor,
-          :connect_timeout,
-          :connections_per_local_node,
-          :connections_per_remote_node,
-          :consistency,
-          :credentials,
-          :datacenter,
-          :futures_factory,
-          :heartbeat_interval,
-          :hosts,
-          :idle_timeout,
-          :listeners,
-          :load_balancing_policy,
-          :logger,
-          :nodelay,
-          :reconnection_policy,
-          :retry_policy,
-          :page_size,
-          :passphrase,
-          :password,
-          :port,
-          :private_key,
-          :requests_per_connection,
-          :schema_refresh_delay,
-          :schema_refresh_timeout,
-          :server_cert,
-          :shuffle_replicas,
-          :ssl,
-          :synchronize_schema,
-          :timeout,
-          :trace,
-          :username,
+        :address_resolution,
+        :address_resolution_policy,
+        :auth_provider,
+        :client_cert,
+        :client_timestamps,
+        :compression,
+        :compressor,
+        :connect_timeout,
+        :connections_per_local_node,
+        :connections_per_remote_node,
+        :consistency,
+        :credentials,
+        :datacenter,
+        :futures_factory,
+        :heartbeat_interval,
+        :hosts,
+        :idle_timeout,
+        :listeners,
+        :load_balancing_policy,
+        :logger,
+        :nodelay,
+        :reconnection_policy,
+        :retry_policy,
+        :page_size,
+        :passphrase,
+        :password,
+        :port,
+        :private_key,
+        :requests_per_connection,
+        :schema_refresh_delay,
+        :schema_refresh_timeout,
+        :server_cert,
+        :shuffle_replicas,
+        :ssl,
+        :synchronize_schema,
+        :timeout,
+        :trace,
+        :username
       ].include?(key)
     end
 
-    has_username = options.has_key?(:username)
-    has_password = options.has_key?(:password)
+    has_username = options.key?(:username)
+    has_password = options.key?(:password)
     if has_username || has_password
       if has_username && !has_password
-        raise ::ArgumentError, "both :username and :password options must be specified, but only :username given"
+        raise ::ArgumentError,
+              'both :username and :password options must be specified, ' \
+                  'but only :username given'
       end
 
       if !has_username && has_password
-        raise ::ArgumentError, "both :username and :password options must be specified, but only :password given"
+        raise ::ArgumentError,
+              'both :username and :password options must be specified, ' \
+                  'but only :password given'
       end
 
       username = options.delete(:username)
       password = options.delete(:password)
 
-      Util.assert_instance_of(::String, username) { ":username must be a String, #{username.inspect} given" }
-      Util.assert_instance_of(::String, password) { ":password must be a String, #{password.inspect} given" }
-      Util.assert_not_empty(username) { ":username cannot be empty" }
-      Util.assert_not_empty(password) { ":password cannot be empty" }
+      Util.assert_instance_of(::String, username) do
+        ":username must be a String, #{username.inspect} given"
+      end
+      Util.assert_instance_of(::String, password) do
+        ":password must be a String, #{password.inspect} given"
+      end
+      Util.assert_not_empty(username) { ':username cannot be empty' }
+      Util.assert_not_empty(password) { ':password cannot be empty' }
 
-      options[:credentials]   = {:username => username, :password => password}
+      options[:credentials]   = {username: username, password: password}
       options[:auth_provider] = Auth::Providers::Password.new(username, password)
     end
 
-    if options.has_key?(:credentials)
+    if options.key?(:credentials)
       credentials = options[:credentials]
 
-      Util.assert_instance_of(::Hash, credentials) { ":credentials must be a hash, #{credentials.inspect} given" }
+      Util.assert_instance_of(::Hash, credentials) do
+        ":credentials must be a hash, #{credentials.inspect} given"
+      end
     end
 
-    if options.has_key?(:auth_provider)
+    if options.key?(:auth_provider)
       auth_provider = options[:auth_provider]
 
-      Util.assert_responds_to(:create_authenticator, auth_provider) { ":auth_provider #{auth_provider.inspect} must respond to :create_authenticator, but doesn't" }
+      Util.assert_responds_to(:create_authenticator, auth_provider) do
+        ":auth_provider #{auth_provider.inspect} must respond to " \
+            ":create_authenticator, but doesn't"
+      end
     end
 
-    has_client_cert = options.has_key?(:client_cert)
-    has_private_key = options.has_key?(:private_key)
+    has_client_cert = options.key?(:client_cert)
+    has_private_key = options.key?(:private_key)
 
     if has_client_cert || has_private_key
       if has_client_cert && !has_private_key
-        raise ::ArgumentError, "both :client_cert and :private_key options must be specified, but only :client_cert given"
+        raise ::ArgumentError,
+              'both :client_cert and :private_key options must be specified, ' \
+                  'but only :client_cert given'
       end
 
       if !has_client_cert && has_private_key
-        raise ::ArgumentError, "both :client_cert and :private_key options must be specified, but only :private_key given"
+        raise ::ArgumentError,
+              'both :client_cert and :private_key options must be specified, ' \
+                  'but only :private_key given'
       end
 
-      Util.assert_instance_of(::String, options[:client_cert]) {
+      Util.assert_instance_of(::String, options[:client_cert]) do
         ":client_cert must be a string, #{options[:client_cert].inspect} given"
-      }
-      Util.assert_instance_of(::String, options[:private_key]) {
+      end
+      Util.assert_instance_of(::String, options[:private_key]) do
         ":client_cert must be a string, #{options[:private_key].inspect} given"
-      }
+      end
       client_cert = ::File.expand_path(options[:client_cert])
       private_key = ::File.expand_path(options[:private_key])
 
-      Util.assert_file_exists(client_cert) { ":client_cert #{client_cert.inspect} doesn't exist" }
-      Util.assert_file_exists(private_key) { ":private_key #{private_key.inspect} doesn't exist" }
+      Util.assert_file_exists(client_cert) do
+        ":client_cert #{client_cert.inspect} doesn't exist"
+      end
+      Util.assert_file_exists(private_key) do
+        ":private_key #{private_key.inspect} doesn't exist"
+      end
     end
 
-    has_server_cert = options.has_key?(:server_cert)
+    has_server_cert = options.key?(:server_cert)
 
     if has_server_cert
-      Util.assert_instance_of(::String, options[:server_cert]) {
+      Util.assert_instance_of(::String, options[:server_cert]) do
         ":server_cert must be a string, #{options[:server_cert].inspect} given"
-      }
+      end
       server_cert = ::File.expand_path(options[:server_cert])
 
-      Util.assert_file_exists(server_cert) { ":server_cert #{server_cert.inspect} doesn't exist" }
+      Util.assert_file_exists(server_cert) do
+        ":server_cert #{server_cert.inspect} doesn't exist"
+      end
     end
 
     if has_client_cert || has_server_cert
@@ -391,23 +424,26 @@ module Cassandra
       if has_client_cert
         context.cert = ::OpenSSL::X509::Certificate.new(File.read(client_cert))
 
-        if options.has_key?(:passphrase)
-          context.key = ::OpenSSL::PKey::RSA.new(File.read(private_key), options[:passphrase])
-        else
-          context.key = ::OpenSSL::PKey::RSA.new(File.read(private_key))
-        end
+        context.key = if options.key?(:passphrase)
+                        ::OpenSSL::PKey::RSA.new(File.read(private_key),
+                                                 options[:passphrase])
+                      else
+                        ::OpenSSL::PKey::RSA.new(File.read(private_key))
+                      end
       end
 
       options[:ssl] = context
     end
 
-    if options.has_key?(:ssl)
+    if options.key?(:ssl)
       ssl = options[:ssl]
 
-      Util.assert_instance_of_one_of([::TrueClass, ::FalseClass, ::OpenSSL::SSL::SSLContext], ssl) { ":ssl must be a boolean or an OpenSSL::SSL::SSLContext, #{ssl.inspect} given" }
+      Util.assert_instance_of_one_of(SSL_CLASSES, ssl) do
+        ":ssl must be a boolean or an OpenSSL::SSL::SSLContext, #{ssl.inspect} given"
+      end
     end
 
-    if options.has_key?(:compression)
+    if options.key?(:compression)
       compression = options.delete(:compression)
 
       case compression
@@ -416,18 +452,22 @@ module Cassandra
       when :lz4
         options[:compressor] = Compression::Compressors::Lz4.new
       else
-        raise ::ArgumentError, ":compression must be either :snappy or :lz4, #{compression.inspect} given"
+        raise ::ArgumentError,
+              ":compression must be either :snappy or :lz4, #{compression.inspect} given"
       end
     end
 
-    if options.has_key?(:compressor)
+    if options.key?(:compressor)
       compressor = options[:compressor]
       methods    = [:algorithm, :compress?, :compress, :decompress]
 
-      Util.assert_responds_to_all(methods, compressor) { ":compressor #{compressor.inspect} must respond to #{methods.inspect}, but doesn't" }
+      Util.assert_responds_to_all(methods, compressor) do
+        ":compressor #{compressor.inspect} must respond to #{methods.inspect}, " \
+            "but doesn't"
+      end
     end
 
-    if options.has_key?(:logger)
+    if options.key?(:logger)
       if options[:logger].nil?
         # Delete the key because we want to fallback to the default logger in Driver.
         options.delete(:logger)
@@ -436,185 +476,227 @@ module Cassandra
         logger = options[:logger]
         methods = [:debug, :info, :warn, :error, :fatal]
 
-        Util.assert_responds_to_all(methods, logger) { ":logger #{logger.inspect} must respond to #{methods.inspect}, but doesn't" }
+        Util.assert_responds_to_all(methods, logger) do
+          ":logger #{logger.inspect} must respond to #{methods.inspect}, but doesn't"
+        end
       end
     end
 
-    if options.has_key?(:port)
+    if options.key?(:port)
       unless options[:port].nil?
         port = options[:port]
         Util.assert_instance_of(::Integer, port)
-        Util.assert_one_of(1...2**16, port) { ":port must be a valid ip port, #{port} given" }
+        Util.assert_one_of(1...2**16, port) do
+          ":port must be a valid ip port, #{port} given"
+        end
       end
     end
 
-    if options.has_key?(:datacenter)
-      options[:datacenter] = String(options[:datacenter])
-    end
+    options[:datacenter] = String(options[:datacenter]) if options.key?(:datacenter)
 
-    if options.has_key?(:connect_timeout)
+    if options.key?(:connect_timeout)
       timeout = options[:connect_timeout]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":connect_timeout must be a number of seconds, #{timeout.inspect} given" }
-        Util.assert(timeout > 0) { ":connect_timeout must be greater than 0, #{timeout} given" }
+        Util.assert_instance_of(::Numeric, timeout) do
+          ":connect_timeout must be a number of seconds, #{timeout.inspect} given"
+        end
+        Util.assert(timeout > 0) do
+          ":connect_timeout must be greater than 0, #{timeout} given"
+        end
       end
     end
 
-    if options.has_key?(:timeout)
+    if options.key?(:timeout)
       timeout = options[:timeout]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":timeout must be a number of seconds, #{timeout.inspect} given" }
+        Util.assert_instance_of(::Numeric, timeout) do
+          ":timeout must be a number of seconds, #{timeout.inspect} given"
+        end
         Util.assert(timeout > 0) { ":timeout must be greater than 0, #{timeout} given" }
       end
     end
 
-    if options.has_key?(:heartbeat_interval)
+    if options.key?(:heartbeat_interval)
       timeout = options[:heartbeat_interval]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":heartbeat_interval must be a number of seconds, #{timeout.inspect} given" }
-        Util.assert(timeout > 0) { ":heartbeat_interval must be greater than 0, #{timeout} given" }
+        Util.assert_instance_of(::Numeric, timeout) do
+          ":heartbeat_interval must be a number of seconds, #{timeout.inspect} given"
+        end
+        Util.assert(timeout > 0) do
+          ":heartbeat_interval must be greater than 0, #{timeout} given"
+        end
       end
     end
 
-    if options.has_key?(:idle_timeout)
+    if options.key?(:idle_timeout)
       timeout = options[:idle_timeout]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) { ":idle_timeout must be a number of seconds, #{timeout.inspect} given" }
-        Util.assert(timeout > 0) { ":idle_timeout must be greater than 0, #{timeout} given" }
+        Util.assert_instance_of(::Numeric, timeout) do
+          ":idle_timeout must be a number of seconds, #{timeout.inspect} given"
+        end
+        Util.assert(timeout > 0) do
+          ":idle_timeout must be greater than 0, #{timeout} given"
+        end
       end
     end
 
-    if options.has_key?(:schema_refresh_delay)
+    if options.key?(:schema_refresh_delay)
       timeout = options[:schema_refresh_delay]
 
-      Util.assert_instance_of(::Numeric, timeout) { ":schema_refresh_delay must be a number of seconds, #{timeout.inspect} given" }
-      Util.assert(timeout > 0) { ":schema_refresh_delay must be greater than 0, #{timeout} given" }
+      Util.assert_instance_of(::Numeric, timeout) do
+        ":schema_refresh_delay must be a number of seconds, #{timeout.inspect} given"
+      end
+      Util.assert(timeout > 0) do
+        ":schema_refresh_delay must be greater than 0, #{timeout} given"
+      end
     end
 
-    if options.has_key?(:schema_refresh_timeout)
+    if options.key?(:schema_refresh_timeout)
       timeout = options[:schema_refresh_timeout]
 
-      Util.assert_instance_of(::Numeric, timeout) { ":schema_refresh_timeout must be a number of seconds, #{timeout.inspect} given" }
-      Util.assert(timeout > 0) { ":schema_refresh_timeout must be greater than 0, #{timeout} given" }
+      Util.assert_instance_of(::Numeric, timeout) do
+        ":schema_refresh_timeout must be a number of seconds, #{timeout.inspect} given"
+      end
+      Util.assert(timeout > 0) do
+        ":schema_refresh_timeout must be greater than 0, #{timeout} given"
+      end
     end
 
-    if options.has_key?(:load_balancing_policy)
+    if options.key?(:load_balancing_policy)
       load_balancing_policy = options[:load_balancing_policy]
-      methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown, :distance, :plan]
+      methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown,
+                 :distance, :plan]
 
-      Util.assert_responds_to_all(methods, load_balancing_policy) { ":load_balancing_policy #{load_balancing_policy.inspect} must respond to #{methods.inspect}, but doesn't" }
+      Util.assert_responds_to_all(methods, load_balancing_policy) do
+        ":load_balancing_policy #{load_balancing_policy.inspect} must respond " \
+            "to #{methods.inspect}, but doesn't"
+      end
     end
 
-    if options.has_key?(:reconnection_policy)
+    if options.key?(:reconnection_policy)
       reconnection_policy = options[:reconnection_policy]
 
-      Util.assert_responds_to(:schedule, reconnection_policy) { ":reconnection_policy #{reconnection_policy.inspect} must respond to :schedule, but doesn't" }
+      Util.assert_responds_to(:schedule, reconnection_policy) do
+        ":reconnection_policy #{reconnection_policy.inspect} must respond to " \
+            ":schedule, but doesn't"
+      end
     end
 
-    if options.has_key?(:retry_policy)
+    if options.key?(:retry_policy)
       retry_policy = options[:retry_policy]
       methods = [:read_timeout, :write_timeout, :unavailable]
 
-      Util.assert_responds_to_all(methods, retry_policy) { ":retry_policy #{retry_policy.inspect} must respond to #{methods.inspect}, but doesn't" }
+      Util.assert_responds_to_all(methods, retry_policy) do
+        ":retry_policy #{retry_policy.inspect} must respond to #{methods.inspect}, " \
+            "but doesn't"
+      end
     end
 
-    if options.has_key?(:listeners)
-      options[:listeners] = Array(options[:listeners])
-    end
+    options[:listeners] = Array(options[:listeners]) if options.key?(:listeners)
 
-    if options.has_key?(:consistency)
+    if options.key?(:consistency)
       consistency = options[:consistency]
 
-      Util.assert_one_of(CONSISTENCIES, consistency) { ":consistency must be one of #{CONSISTENCIES.inspect}, #{consistency.inspect} given" }
+      Util.assert_one_of(CONSISTENCIES, consistency) do
+        ":consistency must be one of #{CONSISTENCIES.inspect}, " \
+            "#{consistency.inspect} given"
+      end
     end
 
-    if options.has_key?(:nodelay)
-      options[:nodelay] = !!options[:nodelay]
-    end
+    options[:nodelay] = !!options[:nodelay] if options.key?(:nodelay)
 
-    if options.has_key?(:trace)
-      options[:trace] = !!options[:trace]
-    end
+    options[:trace] = !!options[:trace] if options.key?(:trace)
 
-    if options.has_key?(:shuffle_replicas)
+    if options.key?(:shuffle_replicas)
       options[:shuffle_replicas] = !!options[:shuffle_replicas]
     end
 
-    if options.has_key?(:page_size)
+    if options.key?(:page_size)
       page_size = options[:page_size]
 
       unless page_size.nil?
         page_size = options[:page_size]
         Util.assert_instance_of(::Integer, page_size)
-        Util.assert_one_of(1...2**32, page_size) { ":page_size must be a positive integer, #{page_size.inspect} given" }
+        Util.assert_one_of(1...2**32, page_size) do
+          ":page_size must be a positive integer, #{page_size.inspect} given"
+        end
       end
     end
 
-    if options.has_key?(:futures_factory)
+    if options.key?(:futures_factory)
       futures_factory = options[:futures_factory]
       methods = [:error, :value, :promise, :all]
 
-      Util.assert_responds_to_all(methods, futures_factory) { ":futures_factory #{futures_factory.inspect} must respond to #{methods.inspect}, but doesn't" }
+      Util.assert_responds_to_all(methods, futures_factory) do
+        ":futures_factory #{futures_factory.inspect} must respond to " \
+            "#{methods.inspect}, but doesn't"
+      end
     end
 
-    if options.has_key?(:address_resolution)
+    if options.key?(:address_resolution)
       address_resolution = options.delete(:address_resolution)
 
       case address_resolution
       when :none
         # do nothing
       when :ec2_multi_region
-        options[:address_resolution_policy] = AddressResolution::Policies::EC2MultiRegion.new
+        options[:address_resolution_policy] =
+          AddressResolution::Policies::EC2MultiRegion.new
       else
-        raise ::ArgumentError, ":address_resolution must be either :none or :ec2_multi_region, #{address_resolution.inspect} given"
+        raise ::ArgumentError,
+              ':address_resolution must be either :none or :ec2_multi_region, ' \
+                  "#{address_resolution.inspect} given"
       end
     end
 
-    if options.has_key?(:address_resolution_policy)
+    if options.key?(:address_resolution_policy)
       address_resolver = options[:address_resolution_policy]
 
-      Util.assert_responds_to(:resolve, address_resolver) { ":address_resolution_policy must respond to :resolve, #{address_resolver.inspect} but doesn't" }
+      Util.assert_responds_to(:resolve, address_resolver) do
+        ':address_resolution_policy must respond to :resolve, ' \
+            "#{address_resolver.inspect} but doesn't"
+      end
     end
 
-    if options.has_key?(:synchronize_schema)
+    if options.key?(:synchronize_schema)
       options[:synchronize_schema] = !!options[:synchronize_schema]
     end
 
-    if options.has_key?(:client_timestamps)
+    if options.key?(:client_timestamps)
       options[:client_timestamps] = !!options[:client_timestamps]
     end
 
-    if options.has_key?(:connections_per_local_node)
+    if options.key?(:connections_per_local_node)
       connections_per_node = options[:connections_per_local_node]
 
       unless connections_per_node.nil?
         connections_per_node = options[:connections_per_local_node]
         Util.assert_instance_of(::Integer, connections_per_node)
-        Util.assert_one_of(1...2**16, connections_per_node) {
-          ":connections_per_local_node must be a positive integer between " +
+        Util.assert_one_of(1...2**16, connections_per_node) do
+          ':connections_per_local_node must be a positive integer between ' \
               "1 and 65535, #{connections_per_node.inspect} given"
-        }
+        end
       end
     end
 
-    if options.has_key?(:connections_per_remote_node)
+    if options.key?(:connections_per_remote_node)
       connections_per_node = options[:connections_per_remote_node]
 
       unless connections_per_node.nil?
         connections_per_node = options[:connections_per_remote_node]
         Util.assert_instance_of(::Integer, connections_per_node)
-        Util.assert_one_of(1...2**16, connections_per_node) {
-          ":connections_per_remote_node must be a positive integer between " +
+        Util.assert_one_of(1...2**16, connections_per_node) do
+          ':connections_per_remote_node must be a positive integer between ' \
               "1 and 65535, #{connections_per_node.inspect} given"
-        }
+        end
       end
     end
 
-    if options.has_key?(:requests_per_connection)
+    if options.key?(:requests_per_connection)
       requests_per_connection = options[:requests_per_connection]
 
       unless requests_per_connection.nil?
@@ -624,10 +706,10 @@ module Cassandra
         # v3 protocol says that max stream-id is 32767 (2^15-1). This setting might be
         # used to talk to a v2 (or less) node, but then we'll adjust it down.
 
-        Util.assert_one_of(1...2**15, requests_per_connection) {
-          ":requests_per_connection must be a positive integer, " +
+        Util.assert_one_of(1...2**15, requests_per_connection) do
+          ':requests_per_connection must be a positive integer, ' \
               "#{requests_per_connection.inspect} given"
-        }
+        end
       end
     end
     options
@@ -648,7 +730,7 @@ module Cassandra
   # => 1970-1-1
   # ::Date.jd(DATE_OFFSET + 2 ** 32, ::Date::GREGORIAN)
   # => 5881580-07-12
-  DATE_OFFSET = (::Time.utc(1970, 1, 1).to_date.jd - 2 ** 31)
+  DATE_OFFSET = (::Time.utc(1970, 1, 1).to_date.jd - 2**31)
 end
 
 require 'cassandra/uuid'
@@ -701,7 +783,7 @@ module Cassandra
   # @private
   VOID_STATEMENT = Statements::Void.new
   # @private
-  VOID_OPTIONS   = Execution::Options.new({:consistency => :one})
+  VOID_OPTIONS   = Execution::Options.new(consistency: :one)
   # @private
   NO_HOSTS       = Errors::NoHostsAvailable.new
 end

@@ -23,11 +23,13 @@ module Cassandra
 
       def initialize(custom_payload, warnings, rows, metadata, paging_state, trace_id)
         super(custom_payload, warnings, trace_id)
-        @rows, @metadata, @paging_state = rows, metadata, paging_state
+        @rows = rows
+        @metadata = metadata
+        @paging_state = paging_state
       end
 
       def to_s
-        %(RESULT ROWS #@metadata #@rows)
+        %(RESULT ROWS #{@metadata} #{@rows})
       end
 
       private

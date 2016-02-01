@@ -44,7 +44,7 @@ module Cassandra
           other == @id
         end
 
-        alias :eql? :==
+        alias eql? ==
       end
 
       include MonitorMixin
@@ -124,15 +124,15 @@ module Cassandra
 
       # @private
       def inspect
-        "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @id=#{@id.inspect}>"
+        "#<#{self.class.name}:0x#{object_id.to_s(16)} @id=#{@id.inspect}>"
       end
 
       private
 
       # @private
-      SELECT_SESSION = "SELECT * FROM system_traces.sessions WHERE session_id = %s"
+      SELECT_SESSION = 'SELECT * FROM system_traces.sessions WHERE session_id = %s'.freeze
       # @private
-      SELECT_EVENTS  = "SELECT * FROM system_traces.events WHERE session_id = %s"
+      SELECT_EVENTS  = 'SELECT * FROM system_traces.events WHERE session_id = %s'.freeze
 
       # @private
       def load
@@ -140,11 +140,13 @@ module Cassandra
           return if @loaded
 
           attempt = 1
-          data    = @client.query(Statements::Simple.new(SELECT_SESSION % @id), VOID_OPTIONS).get.first
+          data    = @client.query(Statements::Simple.new(SELECT_SESSION % @id),
+                                  VOID_OPTIONS).get.first
 
           while data.nil? && attempt <= 5
             sleep(attempt * 0.4)
-            data = @client.query(Statements::Simple.new(SELECT_SESSION % @id), VOID_OPTIONS).get.first
+            data = @client.query(Statements::Simple.new(SELECT_SESSION % @id),
+                                 VOID_OPTIONS).get.first
             break if data
             attempt += 1
           end
@@ -170,8 +172,13 @@ module Cassandra
 
           @events = []
 
-          @client.query(Statements::Simple.new(SELECT_EVENTS % @id), VOID_OPTIONS).get.each do |row|
-            @events << Event.new(row['event_id'], row['activity'], row['source'], row['source_elapsed'], row['thread'])
+          @client.query(Statements::Simple.new(SELECT_EVENTS % @id),
+                        VOID_OPTIONS).get.each do |row|
+            @events << Event.new(row['event_id'],
+                                 row['activity'],
+                                 row['source'],
+                                 row['source_elapsed'],
+                                 row['thread'])
           end
 
           @events.freeze

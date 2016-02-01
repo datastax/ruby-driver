@@ -37,7 +37,7 @@ module Cassandra
       def eql?(rq)
         self.class === rq && rq.credentials.eql?(@credentials)
       end
-      alias_method :==, :eql?
+      alias == eql?
 
       def hash
         @h ||= begin

@@ -32,7 +32,13 @@ module Cassandra
       def get_pk_idx(metadata)
         return EMPTY_LIST unless metadata
 
-        keyspace_name, table_name, _ = metadata.first
+        # metadata is an array of column-specs; each column-spec is an array
+        # of keyspace_name, tablename, other stuff. We only care about the first two.
+        # See read_prepared_metadata_v4 in coder.rb for more details.
+        # NB: sandman: I think all of the column specs have the same keyspace and
+        # table name in this context, so we can safely grab the first.
+
+        keyspace_name, table_name = metadata.first
         return EMPTY_LIST unless keyspace_name && table_name
 
         keyspace = @keyspaces[keyspace_name]
@@ -76,7 +82,7 @@ module Cassandra
           replace_keyspace(keyspace)
         end
 
-        @keyspaces.each do |name, keyspace|
+        @keyspaces.each do |name, _keyspace|
           delete_keyspace(name) unless current_keyspaces.include?(name)
         end
 
@@ -311,25 +317,37 @@ module Cassandra
           @keyspaces.values
         end
       end
-      alias :keyspaces :each_keyspace
+      alias keyspaces each_keyspace
 
       private
 
       def keyspace_created(keyspace)
         @listeners.each do |listener|
-          listener.keyspace_created(keyspace) rescue nil
+          begin
+            listener.keyspace_created(keyspace)
+          rescue
+            nil
+          end
         end
       end
 
       def keyspace_changed(keyspace)
         @listeners.each do |listener|
-          listener.keyspace_changed(keyspace) rescue nil
+          begin
+            listener.keyspace_changed(keyspace)
+          rescue
+            nil
+          end
         end
       end
 
       def keyspace_dropped(keyspace)
         @listeners.each do |listener|
-          listener.keyspace_dropped(keyspace) rescue nil
+          begin
+            listener.keyspace_dropped(keyspace)
+          rescue
+            nil
+          end
         end
       end
     end

@@ -21,7 +21,14 @@ module Cassandra
     class ReadTimeoutErrorResponse < ErrorResponse
       attr_reader :consistency, :received, :blockfor, :data_present
 
-      def initialize(custom_payload, warnings, code, message, consistency, received, blockfor, data_present)
+      def initialize(custom_payload,
+                     warnings,
+                     code,
+                     message,
+                     consistency,
+                     received,
+                     blockfor,
+                     data_present)
         super(custom_payload, warnings, code, message)
 
         @consistency  = consistency
@@ -31,7 +38,19 @@ module Cassandra
       end
 
       def to_error(keyspace, statement, options, hosts, consistency, retries)
-        Errors::ReadTimeoutError.new(@message, @custom_payload, @warnings, keyspace, statement, options, hosts, consistency, retries, @data_present, @consistency, @blockfor, @received)
+        Errors::ReadTimeoutError.new(@message,
+                                     @custom_payload,
+                                     @warnings,
+                                     keyspace,
+                                     statement,
+                                     options,
+                                     hosts,
+                                     consistency,
+                                     retries,
+                                     @data_present,
+                                     @consistency,
+                                     @blockfor,
+                                     @received)
       end
 
       def to_s

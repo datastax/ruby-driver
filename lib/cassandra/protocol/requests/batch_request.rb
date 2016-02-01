@@ -26,7 +26,12 @@ module Cassandra
       attr_reader :type, :timestamp, :payload
       attr_accessor :consistency, :retries
 
-      def initialize(type, consistency, trace=false, serial_consistency = nil, timestamp = nil, payload = nil)
+      def initialize(type,
+                     consistency,
+                     trace = false,
+                     serial_consistency = nil,
+                     timestamp = nil,
+                     payload = nil)
         super(0x0D, trace)
         @type  = type
         @parts = []
@@ -60,7 +65,11 @@ module Cassandra
         buffer.append_short(@parts.size)
 
         @parts.each do |(statement_kind, *arguments)|
-          __send__(:"write_#{statement_kind}", buffer, protocol_version, encoder, *arguments)
+          __send__(:"write_#{statement_kind}",
+                   buffer,
+                   protocol_version,
+                   encoder,
+                   *arguments)
         end
 
         buffer.append_consistency(@consistency)
@@ -80,10 +89,10 @@ module Cassandra
 
       def to_s
         type_str = case @type
-          when LOGGED_TYPE then 'LOGGED'
-          when UNLOGGED_TYPE then 'UNLOGGED'
-          when COUNTER_TYPE then 'COUNTER'
-        end
+                   when LOGGED_TYPE then 'LOGGED'
+                   when UNLOGGED_TYPE then 'UNLOGGED'
+                   when COUNTER_TYPE then 'COUNTER'
+                   end
         %(BATCH #{type_str} #{@parts.size} #{@consistency.to_s.upcase})
       end
 

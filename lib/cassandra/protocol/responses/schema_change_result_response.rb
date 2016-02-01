@@ -19,9 +19,16 @@
 module Cassandra
   module Protocol
     class SchemaChangeResultResponse < ResultResponse
-      attr_reader :change, :keyspace, :name, :type, :target, :arguments
+      attr_reader :arguments, :change, :keyspace, :name, :target, :type
 
-      def initialize(custom_payload, warnings, change, keyspace, name, target, arguments, trace_id)
+      def initialize(custom_payload,
+                     warnings,
+                     change,
+                     keyspace,
+                     name,
+                     target,
+                     arguments,
+                     trace_id)
         super(custom_payload, warnings, trace_id)
 
         @change    = change
@@ -33,12 +40,12 @@ module Cassandra
 
       def eql?(other)
         @change == other.change &&
-        @keyspace == other.keyspace &&
-        @name == other.name &&
-        @target == other.target &&
-        @arguments == other.arguments
+          @keyspace == other.keyspace &&
+          @name == other.name &&
+          @target == other.target &&
+          @arguments == other.arguments
       end
-      alias_method :==, :eql?
+      alias == eql?
 
       def hash
         @h ||= begin
@@ -53,7 +60,7 @@ module Cassandra
       end
 
       def to_s
-        %(RESULT SCHEMA_CHANGE #@change #@target "#@keyspace" "#@name")
+        %(RESULT SCHEMA_CHANGE #{@change} #{@target} "#{@keyspace}" "#{@name}")
       end
 
       private

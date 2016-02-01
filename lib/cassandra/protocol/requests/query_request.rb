@@ -19,10 +19,21 @@
 module Cassandra
   module Protocol
     class QueryRequest < Request
-      attr_reader :cql, :values, :type_hints, :serial_consistency, :page_size, :paging_state, :timestamp, :payload
+      attr_reader :cql, :page_size, :paging_state, :payload, :serial_consistency,
+                  :timestamp, :type_hints, :values
       attr_accessor :consistency, :retries
 
-      def initialize(cql, values, type_hints, consistency, serial_consistency = nil, page_size = nil, paging_state = nil, trace = false, names = EMPTY_LIST, timestamp = nil, payload = nil)
+      def initialize(cql,
+                     values,
+                     type_hints,
+                     consistency,
+                     serial_consistency = nil,
+                     page_size = nil,
+                     paging_state = nil,
+                     trace = false,
+                     names = EMPTY_LIST,
+                     timestamp = nil,
+                     payload = nil)
         super(7, trace)
         @cql = cql
         @values = values
@@ -48,14 +59,10 @@ module Cassandra
           flags |= 0x04 if @page_size
           flags |= 0x08 if @paging_state
           flags |= 0x10 if @serial_consistency
-          if protocol_version > 2
-            flags |= 0x20 if @timestamp
-          end
+          flags |= 0x20 if protocol_version > 2 && @timestamp
           if @values && @values.size > 0
             flags |= 0x01
-            if protocol_version > 2
-              flags |= 0x40 unless @names.empty?
-            end
+            flags |= 0x40 if protocol_version > 2 && !@names.empty?
             buffer.append(flags.chr)
             encoder.write_parameters(buffer, @values, @type_hints, @names)
           else
@@ -64,28 +71,26 @@ module Cassandra
           buffer.append_int(@page_size) if @page_size
           buffer.append_bytes(@paging_state) if @paging_state
           buffer.append_consistency(@serial_consistency) if @serial_consistency
-          if protocol_version > 2
-            buffer.append_timestamp(@timestamp) if @timestamp
-          end
+          buffer.append_timestamp(@timestamp) if protocol_version > 2 && @timestamp
         end
         buffer
       end
 
       def to_s
-        %(QUERY "#@cql" #{@consistency.to_s.upcase})
+        %(QUERY "#{@cql}" #{@consistency.to_s.upcase})
       end
 
       def eql?(rq)
         self.class === rq &&
-          rq.cql == self.cql &&
-          rq.values == self.values &&
-          rq.type_hints == self.type_hints &&
-          rq.consistency == self.consistency &&
-          rq.serial_consistency == self.serial_consistency &&
-          rq.page_size == self.page_size &&
-          rq.paging_state == self.paging_state
+          rq.cql == cql &&
+          rq.values == values &&
+          rq.type_hints == type_hints &&
+          rq.consistency == consistency &&
+          rq.serial_consistency == serial_consistency &&
+          rq.page_size == page_size &&
+          rq.paging_state == paging_state
       end
-      alias_method :==, :eql?
+      alias == eql?
 
       def hash
         @h ||= begin

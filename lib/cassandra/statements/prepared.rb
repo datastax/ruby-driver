@@ -29,7 +29,21 @@ module Cassandra
       attr_reader :result_metadata
 
       # @private
-      def initialize(payload, warnings, cql, params_metadata, result_metadata, partition_key, trace_id, keyspace, statement, options, hosts, consistency, retries, client, connection_options)
+      def initialize(payload,
+                     warnings,
+                     cql,
+                     params_metadata,
+                     result_metadata,
+                     partition_key,
+                     trace_id,
+                     keyspace,
+                     statement,
+                     options,
+                     hosts,
+                     consistency,
+                     retries,
+                     client,
+                     connection_options)
         @payload            = payload
         @warnings           = warnings
         @cql                = cql
@@ -59,7 +73,9 @@ module Cassandra
       # @return [Cassandra::Statements::Bound] bound statement
       def bind(args = nil)
         if args
-          Util.assert_instance_of_one_of([::Array, ::Hash], args) { "args must be an Array or a Hash, #{args.inspect} given" }
+          Util.assert_instance_of_one_of([::Array, ::Hash], args) do
+            "args must be an Array or a Hash, #{args.inspect} given"
+          end
         else
           args = EMPTY_LIST
         end
@@ -69,29 +85,38 @@ module Cassandra
 
         if args.is_a?(::Hash)
           @params_metadata.each do |(_, _, name, type)|
-            name = name.to_sym unless args.has_key?(name)
+            name = name.to_sym unless args.key?(name)
             value = args.fetch(name, NOT_SET)
 
             if NOT_SET.eql?(value)
               if @connection_options.protocol_version < 4
-                raise ::ArgumentError, "argument #{name.inspect} it not present in #{args.inspect}"
+                raise ::ArgumentError,
+                      "argument #{name.inspect} it not present in #{args.inspect}"
               end
             else
-              Util.assert_type(type, value) { "argument for #{name.inspect} must be #{type}, #{value} given" }
+              Util.assert_type(type, value) do
+                "argument for #{name.inspect} must be #{type}, #{value} given"
+              end
             end
 
             params << value
             param_types << type
           end
         else
-          Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{@params_metadata.size} bind parameters, #{args.size} given" }
+          Util.assert_equal(@params_metadata.size, args.size) do
+            "expecting exactly #{@params_metadata.size} bind parameters, " \
+                "#{args.size} given"
+          end
           @params_metadata.zip(args) do |(_, _, name, type), value|
             if NOT_SET.eql?(value)
               if @connection_options.protocol_version < 4
-                raise ::ArgumentError, "argument #{name.inspect} it not present in #{args.inspect}"
+                raise ::ArgumentError,
+                      "argument #{name.inspect} it not present in #{args.inspect}"
               end
             else
-              Util.assert_type(type, value) { "argument for #{name.inspect} must be #{type}, #{value} given" }
+              Util.assert_type(type, value) do
+                "argument for #{name.inspect} must be #{type}, #{value} given"
+              end
             end
 
             params << value
@@ -99,21 +124,40 @@ module Cassandra
           end
         end
 
-        keyspace_name, _ = @params_metadata.first
+        # params_metadata is an array of column-specs; each column-spec is an array
+        # of keyspace, tablename, other stuff. We only care about the keyspace name.
+        # See read_prepared_metadata_v4 in coder.rb for more details.
+        keyspace_name = @params_metadata.first.first unless @params_metadata.empty?
 
         partition_key = create_partition_key(params)
 
-        Bound.new(@cql, param_types, @result_metadata, params, keyspace_name, partition_key, @idempotent)
+        Bound.new(@cql,
+                  param_types,
+                  @result_metadata,
+                  params,
+                  keyspace_name,
+                  partition_key,
+                  @idempotent)
       end
 
       # @return [Cassandra::Execution::Info] execution info for PREPARE request
       def execution_info
-        @info ||= Execution::Info.new(@payload, @warnings, @keyspace, @statement, @options, @hosts, @consistency, @retries, @trace_id ? Execution::Trace.new(@trace_id, @client) : nil)
+        @info ||= Execution::Info.new(@payload,
+                                      @warnings,
+                                      @keyspace,
+                                      @statement,
+                                      @options,
+                                      @hosts,
+                                      @consistency,
+                                      @retries,
+                                      @trace_id ?
+                                          Execution::Trace.new(@trace_id, @client) :
+                                          nil)
       end
 
       # @return [String] a CLI-friendly prepared statement representation
       def inspect
-        "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @cql=#{@cql.inspect}>"
+        "#<#{self.class.name}:0x#{object_id.to_s(16)} @cql=#{@cql.inspect}>"
       end
 
       private
@@ -133,7 +177,7 @@ module Cassandra
 
           if NOT_SET.eql?(value)
             raise ::ArgumentError, "argument #{name.inspect} is a part of " \
-                                   "the partition key and must be present."
+                                   'the partition key and must be present.'
           end
 
           if @connection_options.protocol_version >= 3
@@ -153,7 +197,7 @@ module Cassandra
 
             if NOT_SET.eql?(value)
               raise ::ArgumentError, "argument #{name.inspect} is a part of " \
-                                     "the partition key and must be present."
+                                     'the partition key and must be present.'
             end
 
             if @connection_options.protocol_version >= 3

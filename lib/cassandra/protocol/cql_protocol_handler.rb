@@ -34,7 +34,13 @@ module Cassandra
       # @return [String] the current keyspace for the underlying connection
       attr_reader :keyspace, :error
 
-      def initialize(connection, scheduler, protocol_version, compressor=nil, heartbeat_interval = 30, idle_timeout = 60, requests_per_connection = 128)
+      def initialize(connection,
+                     scheduler,
+                     protocol_version,
+                     compressor = nil,
+                     heartbeat_interval = 30,
+                     idle_timeout = 60,
+                     requests_per_connection = 128)
         @connection = connection
         @scheduler = scheduler
         @compressor = compressor
@@ -43,7 +49,7 @@ module Cassandra
 
         @streams = Array.new(requests_per_connection) {|i| i}
 
-        @promises = Hash.new
+        @promises = {}
 
         if protocol_version > 3
           @frame_encoder = V4::Encoder.new(@compressor, protocol_version)
@@ -143,17 +149,17 @@ module Cassandra
       # closes the futures of all active requests will be failed with the error
       # that caused the connection to close, or nil.
       #
-      # When `timeout` is specified the future will fail with {Cassandra::Errors::TimeoutError}
-      # after that many seconds have passed. If a response arrives after that
-      # time it will be lost. If a response never arrives for the request the
-      # channel occupied by the request will _not_ be reused.
+      # When `timeout` is specified the future will fail with
+      # {Cassandra::Errors::TimeoutError} after that many seconds have passed. If a
+      # response arrives after that time it will be lost. If a response never arrives
+      # for the request the channel occupied by the request will _not_ be reused.
       #
       # @param [Cassandra::Protocol::Request] request
       # @param [Float] timeout an optional number of seconds to wait until
       #   failing the request
       # @return [Ione::Future<Cassandra::Protocol::Response>] a future that resolves to
       #   the response
-      def send_request(request, timeout=nil, with_heartbeat = true)
+      def send_request(request, timeout = nil, with_heartbeat = true)
         return Ione::Future.failed(Errors::IOError.new('Connection closed')) if closed?
         schedule_heartbeat if with_heartbeat
         promise = RequestPromise.new(request)
@@ -233,13 +239,14 @@ module Cassandra
         if response.is_a?(Protocol::SetKeyspaceResultResponse)
           @keyspace = response.keyspace
         end
-        if response.is_a?(Protocol::SchemaChangeResultResponse) && response.change == 'DROPPED' && response.keyspace == @keyspace && response.target == Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
+        if response.is_a?(Protocol::SchemaChangeResultResponse) &&
+           response.change == 'DROPPED' &&
+           response.keyspace == @keyspace &&
+           response.target == Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
           @keyspace = nil
         end
         flush_request_queue
-        unless promise.timed_out?
-          promise.fulfill(response)
-        end
+        promise.fulfill(response) unless promise.timed_out?
       end
 
       private
@@ -261,7 +268,9 @@ module Cassandra
         def time_out!
           unless future.completed?
             @timed_out = true
+            # rubocop:disable Style/SignalException
             fail(Errors::TimeoutError.new('Timed out'))
+            # rubocop:enable Style/SignalException
           end
         end
       end
@@ -281,7 +290,7 @@ module Cassandra
         ensure
           @lock.unlock
         end
-        while true
+        loop do
           id = nil
           promise = nil
           @lock.lock
@@ -380,8 +389,6 @@ module Cassandra
       def next_stream_id
         if (stream_id = @streams.shift)
           stream_id
-        else
-          nil
         end
       end
 

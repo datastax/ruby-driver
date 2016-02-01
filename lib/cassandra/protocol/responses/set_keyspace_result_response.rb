@@ -27,7 +27,7 @@ module Cassandra
       end
 
       def to_s
-        %(RESULT SET_KEYSPACE "#@keyspace")
+        %(RESULT SET_KEYSPACE "#{@keyspace}")
       end
 
       private

@@ -32,17 +32,28 @@ module Cassandra
       attr_reader :options
       # @return [Array<Cassandra::Host>] a list of attempted hosts
       attr_reader :hosts
-      # Actual consistency used, it can differ from consistency in {Cassandra::Execution::Info#options} if a retry policy modified it.
+      # Actual consistency used, it can differ from consistency in
+      #   {Cassandra::Execution::Info#options} if a retry policy modified it.
       # @return [Symbol] one of {Cassandra::CONSISTENCIES}
       attr_reader :consistency
       # @return [Integer] number of retries
       attr_reader :retries
-      # Returns {Cassandra::Execution::Trace} if `trace: true` was passed to {Cassandra::Session#execute} or {Cassandra::Session#execute_async}
-      # @return [Cassandra::Execution::Trace, nil] a Trace if it has been enabled for request
+      # Returns {Cassandra::Execution::Trace} if `trace: true` was passed to
+      #   {Cassandra::Session#execute} or {Cassandra::Session#execute_async}
+      # @return [Cassandra::Execution::Trace, nil] a Trace if it has been enabled for
+      #   request
       attr_reader :trace
 
       # @private
-      def initialize(payload, warnings, keyspace, statement, options, hosts, consistency, retries, trace)
+      def initialize(payload,
+                     warnings,
+                     keyspace,
+                     statement,
+                     options,
+                     hosts,
+                     consistency,
+                     retries,
+                     trace)
         @payload     = payload
         @warnings    = warnings
         @keyspace    = keyspace

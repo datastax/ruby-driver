@@ -30,12 +30,23 @@ module Cassandra
                   :replicate_on_write, :compaction_strategy, :compact_storage,
                   :compression_parameters
 
-      def initialize(comment, read_repair_chance, local_read_repair_chance,
-                     gc_grace_seconds, caching, bloom_filter_fp_chance,
-                     populate_io_cache_on_flush, memtable_flush_period_in_ms,
-                     default_time_to_live, speculative_retry, index_interval,
-                     replicate_on_write, min_index_interval, max_index_interval,
-                     compaction_strategy, compression_parameters, compact_storage)
+      def initialize(comment,
+                     read_repair_chance,
+                     local_read_repair_chance,
+                     gc_grace_seconds,
+                     caching,
+                     bloom_filter_fp_chance,
+                     populate_io_cache_on_flush,
+                     memtable_flush_period_in_ms,
+                     default_time_to_live,
+                     speculative_retry,
+                     index_interval,
+                     replicate_on_write,
+                     min_index_interval,
+                     max_index_interval,
+                     compaction_strategy,
+                     compression_parameters,
+                     compact_storage)
         @comment                     = comment
         @read_repair_chance          = read_repair_chance
         @local_read_repair_chance    = local_read_repair_chance
@@ -71,22 +82,53 @@ module Cassandra
         options = []
 
         options << 'COMPACT STORAGE' if @compact_storage
-        options << "bloom_filter_fp_chance = #{Util.encode_object(@bloom_filter_fp_chance)}" unless @bloom_filter_fp_chance.nil?
+        unless @bloom_filter_fp_chance.nil?
+          options <<
+            "bloom_filter_fp_chance = #{Util.encode_object(@bloom_filter_fp_chance)}"
+        end
         options << "caching = #{Util.encode_object(@caching)}" unless @caching.nil?
         options << "comment = #{Util.encode_object(@comment)}" unless @comment.nil?
-        options << "compaction = #{@compaction_strategy.to_cql}" unless @compaction_strategy.nil?
-        options << "compression = #{Util.encode_object(@compression_parameters)}" unless @compression_parameters.nil?
-        options << "dclocal_read_repair_chance = #{Util.encode_object(@local_read_repair_chance)}" unless @local_read_repair_chance.nil?
-        options << "default_time_to_live = #{Util.encode_object(@default_time_to_live)}" unless @default_time_to_live.nil?
-        options << "gc_grace_seconds = #{Util.encode_object(@gc_grace_seconds)}" unless @gc_grace_seconds.nil?
-        options << "index_interval = #{Util.encode_object(@index_interval)}" unless @index_interval.nil?
-        options << "max_index_interval = #{Util.encode_object(@max_index_interval)}" unless @max_index_interval.nil?
-        options << "memtable_flush_period_in_ms = #{Util.encode_object(@memtable_flush_period_in_ms)}" unless @memtable_flush_period_in_ms.nil?
-        options << "min_index_interval = #{Util.encode_object(@min_index_interval)}" unless @min_index_interval.nil?
-        options << "populate_io_cache_on_flush = '#{@populate_io_cache_on_flush}'" unless @populate_io_cache_on_flush.nil?
-        options << "read_repair_chance = #{Util.encode_object(@read_repair_chance)}" unless @read_repair_chance.nil?
-        options << "replicate_on_write = '#{@replicate_on_write}'" unless @replicate_on_write.nil?
-        options << "speculative_retry = #{Util.encode_object(@speculative_retry)}" unless @speculative_retry.nil?
+        unless @compaction_strategy.nil?
+          options << "compaction = #{@compaction_strategy.to_cql}"
+        end
+        unless @compression_parameters.nil?
+          options << "compression = #{Util.encode_object(@compression_parameters)}"
+        end
+        unless @local_read_repair_chance.nil?
+          options << 'dclocal_read_repair_chance = ' \
+              "#{Util.encode_object(@local_read_repair_chance)}"
+        end
+        unless @default_time_to_live.nil?
+          options << "default_time_to_live = #{Util.encode_object(@default_time_to_live)}"
+        end
+        unless @gc_grace_seconds.nil?
+          options << "gc_grace_seconds = #{Util.encode_object(@gc_grace_seconds)}"
+        end
+        unless @index_interval.nil?
+          options << "index_interval = #{Util.encode_object(@index_interval)}"
+        end
+        unless @max_index_interval.nil?
+          options << "max_index_interval = #{Util.encode_object(@max_index_interval)}"
+        end
+        unless @memtable_flush_period_in_ms.nil?
+          options << 'memtable_flush_period_in_ms = ' \
+              "#{Util.encode_object(@memtable_flush_period_in_ms)}"
+        end
+        unless @min_index_interval.nil?
+          options << "min_index_interval = #{Util.encode_object(@min_index_interval)}"
+        end
+        unless @populate_io_cache_on_flush.nil?
+          options << "populate_io_cache_on_flush = '#{@populate_io_cache_on_flush}'"
+        end
+        unless @read_repair_chance.nil?
+          options << "read_repair_chance = #{Util.encode_object(@read_repair_chance)}"
+        end
+        unless @replicate_on_write.nil?
+          options << "replicate_on_write = '#{@replicate_on_write}'"
+        end
+        unless @speculative_retry.nil?
+          options << "speculative_retry = #{Util.encode_object(@speculative_retry)}"
+        end
 
         options.join("\nAND ")
       end
@@ -109,7 +151,7 @@ module Cassandra
           @compression_parameters == other.compression_parameters &&
           @compact_storage == other.compact_storage
       end
-      alias :== :eql?
+      alias == eql?
     end
 
     # @private
@@ -133,7 +175,7 @@ module Cassandra
           @klass == other.klass &&
           @options == other.options
       end
-      alias :== :eql?
+      alias == eql?
     end
 
     # @private
@@ -146,7 +188,13 @@ module Cassandra
     attr_reader :partition_key
 
     # @private
-    def initialize(keyspace, name, partition_key, clustering_columns, columns, options, clustering_order)
+    def initialize(keyspace,
+                   name,
+                   partition_key,
+                   clustering_columns,
+                   columns,
+                   options,
+                   clustering_order)
       @keyspace           = keyspace
       @name               = name
       @partition_key      = partition_key
@@ -159,7 +207,7 @@ module Cassandra
     # @param name [String] column name
     # @return [Boolean] whether this table has a given column
     def has_column?(name)
-      @columns.has_key?(name)
+      @columns.key?(name)
     end
 
     # @param name [String] column name
@@ -182,7 +230,7 @@ module Cassandra
         @columns.values
       end
     end
-    alias :columns :each_column
+    alias columns each_column
 
     # @return [String] a cql representation of this table
     def to_cql
@@ -229,7 +277,7 @@ module Cassandra
       cql << "\n)\nWITH "
 
       if @clustering_order.any? {|o| o != :asc}
-        cql << "CLUSTERING ORDER BY ("
+        cql << 'CLUSTERING ORDER BY ('
         first = true
         @clustering_columns.zip(@clustering_order) do |column, order|
           if first
@@ -249,7 +297,8 @@ module Cassandra
 
     # @private
     def inspect
-      "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @keyspace=#{@keyspace} @name=#{@name}>"
+      "#<#{self.class.name}:0x#{object_id.to_s(16)} " \
+          "@keyspace=#{@keyspace} @name=#{@name}>"
     end
 
     # @private
@@ -263,7 +312,7 @@ module Cassandra
         @options == other.options &&
         @clustering_order == other.clustering_order
     end
-    alias :== :eql?
+    alias == eql?
 
     private
 
@@ -282,7 +331,7 @@ module Cassandra
         if is_frozen
           "frozen <#{type}>"
         else
-          "#{type}"
+          type.to_s
         end
       end
     end

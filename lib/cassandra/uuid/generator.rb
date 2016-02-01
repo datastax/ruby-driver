@@ -44,8 +44,10 @@ module Cassandra
       # @param [Object<#now>] clock used to generate timeuuid from current time
       #
       # @raise [ArgumentError] if clock doesn't respond to `now`
-      def initialize(node_id = (::SecureRandom.random_number(2**47) | 0x010000000000), clock_id = ::SecureRandom.random_number(65536), clock = ::Time)
-        raise ::ArgumentError, "invalid clock" unless clock.respond_to?(:now)
+      def initialize(node_id = (::SecureRandom.random_number(2**47) | 0x010000000000),
+                     clock_id = ::SecureRandom.random_number(65536),
+                     clock = ::Time)
+        raise ::ArgumentError, 'invalid clock' unless clock.respond_to?(:now)
 
         @node_id  = Integer(node_id)
         @clock_id = Integer(clock_id)
@@ -150,8 +152,8 @@ module Cassandra
       #
       # @see Time.at
       def at(*args)
-        raise ::ArgumentError, "not enough arguments" if args.empty?
-        raise ::ArgumentError, "too many arguments"   if args.size > 3
+        raise ::ArgumentError, 'not enough arguments' if args.empty?
+        raise ::ArgumentError, 'too many arguments'   if args.size > 3
 
         if args.first.is_a?(::Time)
           time   = args.shift

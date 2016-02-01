@@ -57,7 +57,7 @@ module Cassandra
     # @param name [String] argument name
     # @return [Boolean] whether this function has a given argument
     def has_argument?(name)
-      @arguments_hash.has_key?(name)
+      @arguments_hash.key?(name)
     end
 
     # @param name [String] argument name
@@ -82,12 +82,12 @@ module Cassandra
         @arguments.dup
       end
     end
-    alias :arguments :each_argument
+    alias arguments each_argument
 
     # Get the list of argument types for this function.
     # @return [Array<Cassandra::Type>] a list of argument types.
     def argument_types
-      @arguments.map { |argument| argument.type }
+      @arguments.map(&:type)
     end
 
     # @private
@@ -101,7 +101,7 @@ module Cassandra
         @body == other.body && \
         @called_on_null == other.called_on_null?
     end
-    alias :== :eql?
+    alias == eql?
 
     # @private
     def hash
@@ -120,7 +120,13 @@ module Cassandra
 
     # @private
     def inspect
-      "#<Cassandra::Function:0x#{self.object_id.to_s(16)} @keyspace=#{@keyspace.inspect}, @name=#{@name.inspect}, @language=#{@language.inspect}, @type=#{@type.inspect}, @arguments=#{@arguments.inspect} @body=#{@body.inspect}>"
+      "#<Cassandra::Function:0x#{object_id.to_s(16)} " \
+          "@keyspace=#{@keyspace.inspect}, " \
+          "@name=#{@name.inspect}, " \
+          "@language=#{@language.inspect}, " \
+          "@type=#{@type.inspect}, " \
+          "@arguments=#{@arguments.inspect} " \
+          "@body=#{@body.inspect}>"
     end
 
     # @return [String] a cql representation of this function
@@ -135,16 +141,16 @@ module Cassandra
         end
         cql << "#{argument.name} #{argument.type}"
       end
-      cql << ")"
-      if @called_on_null
-        cql << "\n  CALLED ON NULL INPUT"
-      else
-        cql << "\n  RETURNS NULL ON NULL INPUT"
-      end
+      cql << ')'
+      cql << if @called_on_null
+               "\n  CALLED ON NULL INPUT"
+             else
+               "\n  RETURNS NULL ON NULL INPUT"
+             end
       cql << "\n  RETURNS #{@type}"
       cql << "\n  LANGUAGE #{@language}"
       cql << "\n  AS $$#{@body}$$"
-      cql << ";"
+      cql << ';'
     end
   end
 end

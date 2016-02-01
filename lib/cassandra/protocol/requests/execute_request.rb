@@ -19,14 +19,34 @@
 module Cassandra
   module Protocol
     class ExecuteRequest < Request
-      attr_reader :metadata, :values, :request_metadata, :serial_consistency, :page_size, :paging_state, :timestamp, :payload
-      attr_accessor :consistency, :retries, :id
+      attr_reader :metadata, :request_metadata, :page_size, :paging_state, :payload,
+                  :serial_consistency, :timestamp, :values
+      attr_accessor :consistency, :id, :retries
 
-      def initialize(id, metadata, values, request_metadata, consistency, serial_consistency=nil, page_size=nil, paging_state=nil, trace=false, timestamp = nil, payload = nil)
-        raise ArgumentError, "Metadata for #{metadata.size} columns, but #{values.size} values given" if metadata.size != values.size
-        raise ArgumentError, %(No such consistency: #{consistency.inspect}) if consistency.nil? || !CONSISTENCIES.include?(consistency)
-        raise ArgumentError, %(No such consistency: #{serial_consistency.inspect}) unless serial_consistency.nil? || CONSISTENCIES.include?(serial_consistency)
-        raise ArgumentError, %(Paging state given but no page size) if paging_state && !page_size
+      def initialize(id,
+                     metadata,
+                     values,
+                     request_metadata,
+                     consistency,
+                     serial_consistency = nil,
+                     page_size = nil,
+                     paging_state = nil,
+                     trace = false,
+                     timestamp = nil,
+                     payload = nil)
+        if metadata.size != values.size
+          raise ArgumentError, "Metadata for #{metadata.size} columns, but " \
+              "#{values.size} values given"
+        end
+        if consistency.nil? || !CONSISTENCIES.include?(consistency)
+          raise ArgumentError, %(No such consistency: #{consistency.inspect})
+        end
+        unless serial_consistency.nil? || CONSISTENCIES.include?(serial_consistency)
+          raise ArgumentError, %(No such consistency: #{serial_consistency.inspect})
+        end
+        if paging_state && !page_size
+          raise ArgumentError, %(Paging state given but no page size)
+        end
         super(10, trace)
         @id = id
         @metadata = metadata
@@ -54,19 +74,13 @@ module Cassandra
           flags |= 0x04 if @page_size
           flags |= 0x08 if @paging_state
           flags |= 0x10 if @serial_consistency
-          if protocol_version > 2
-            flags |= 0x20 if @timestamp
-          end
+          flags |= 0x20 if protocol_version > 2 && @timestamp
           buffer.append(flags.chr)
-          if @values.size > 0
-            encoder.write_parameters(buffer, @values, @metadata)
-          end
+          encoder.write_parameters(buffer, @values, @metadata) if @values.size > 0
           buffer.append_int(@page_size) if @page_size
           buffer.append_bytes(@paging_state) if @paging_state
           buffer.append_consistency(@serial_consistency) if @serial_consistency
-          if protocol_version > 2
-            buffer.append_timestamp(@timestamp) if @timestamp
-          end
+          buffer.append_timestamp(@timestamp) if protocol_version > 2 && @timestamp
         else
           encoder.write_parameters(buffer, @values, @metadata)
           buffer.append_consistency(@consistency)
@@ -76,13 +90,20 @@ module Cassandra
 
       def to_s
         id = @id.each_byte.map { |x| x.to_s(16) }.join('')
-        %(EXECUTE #{id} #@values #{@consistency.to_s.upcase})
+        %(EXECUTE #{id} #{@values} #{@consistency.to_s.upcase})
       end
 
       def eql?(rq)
-        self.class === rq && rq.id == self.id && rq.metadata == self.metadata && rq.values == self.values && rq.consistency == self.consistency && rq.serial_consistency == self.serial_consistency && rq.page_size == self.page_size && rq.paging_state == self.paging_state
+        self.class === rq &&
+          rq.id == id &&
+          rq.metadata == metadata &&
+          rq.values == values &&
+          rq.consistency == consistency &&
+          rq.serial_consistency == serial_consistency &&
+          rq.page_size == page_size &&
+          rq.paging_state == paging_state
       end
-      alias_method :==, :eql?
+      alias == eql?
 
       def hash
         @h ||= begin

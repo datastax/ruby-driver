@@ -20,28 +20,33 @@ module Cassandra
   # @private
   class Driver
     def self.let(name, &block)
-      define_method(name)        { @instances.has_key?(name) ? @instances[name] : @instances[name] = instance_eval(&block) }
+      define_method(name) do
+        @instances.key?(name) ?
+            @instances[name] :
+            @instances[name] = instance_eval(&block)
+      end
       define_method(:"#{name}=") { |object| @instances[name] = object }
     end
 
     let(:io_reactor)       { Ione::Io::IoReactor.new }
     let(:cluster_registry) { Cluster::Registry.new(logger) }
     let(:cluster_schema)   { Cluster::Schema.new }
-    let(:cluster_metadata) { Cluster::Metadata.new(
-                               cluster_registry,
-                               cluster_schema,
-                               {
-                                 'org.apache.cassandra.dht.Murmur3Partitioner'     => murmur3_partitioner,
-                                 'org.apache.cassandra.dht.ByteOrderedPartitioner' => ordered_partitioner,
-                                 'org.apache.cassandra.dht.RandomPartitioner'      => random_partitioner
-                               }.freeze,
-                               {
-                                 'SimpleStrategy'          => simple_replication_strategy,
-                                 'NetworkTopologyStrategy' => network_topology_replication_strategy
-                               }.freeze,
-                               no_replication_strategy
-                              )
-                           }
+    let(:cluster_metadata) do
+      Cluster::Metadata.new(
+        cluster_registry,
+        cluster_schema,
+        {
+          'org.apache.cassandra.dht.Murmur3Partitioner' => murmur3_partitioner,
+          'org.apache.cassandra.dht.ByteOrderedPartitioner' => ordered_partitioner,
+          'org.apache.cassandra.dht.RandomPartitioner' => random_partitioner
+        }.freeze,
+        {
+          'SimpleStrategy' => simple_replication_strategy,
+          'NetworkTopologyStrategy' => network_topology_replication_strategy
+        }.freeze,
+        no_replication_strategy
+      )
+    end
 
     let(:executor)         { Executors::ThreadPool.new(thread_pool_size) }
     let(:futures_factory)  { Future::Factory.new(executor) }
@@ -49,30 +54,68 @@ module Cassandra
     let(:schema_fqcn_type_parser) { Cluster::Schema::FQCNTypeParser.new }
     let(:schema_cql_type_parser)  { Cluster::Schema::CQLTypeParser.new }
 
-    let(:simple_replication_strategy)           { Cluster::Schema::ReplicationStrategies::Simple.new }
-    let(:network_topology_replication_strategy) { Cluster::Schema::ReplicationStrategies::NetworkTopology.new }
-    let(:no_replication_strategy)               { Cluster::Schema::ReplicationStrategies::None.new }
+    let(:simple_replication_strategy) do
+      Cluster::Schema::ReplicationStrategies::Simple.new
+    end
+    let(:network_topology_replication_strategy) do
+      Cluster::Schema::ReplicationStrategies::NetworkTopology.new
+    end
+    let(:no_replication_strategy) do
+      Cluster::Schema::ReplicationStrategies::None.new
+    end
 
     let(:murmur3_partitioner) { Cluster::Schema::Partitioners::Murmur3.new }
     let(:ordered_partitioner) { Cluster::Schema::Partitioners::Ordered.new }
     let(:random_partitioner)  { Cluster::Schema::Partitioners::Random.new }
 
-    let(:connector) { Cluster::Connector.new(logger, io_reactor, cluster_registry, connection_options, execution_options) }
+    let(:connector) do
+      Cluster::Connector.new(logger,
+                             io_reactor,
+                             cluster_registry,
+                             connection_options,
+                             execution_options)
+    end
 
     let(:schema_fetcher) { create_schema_fetcher_picker }
 
-    let(:control_connection) { Cluster::ControlConnection.new(logger, io_reactor, cluster_registry, cluster_schema, cluster_metadata, load_balancing_policy, reconnection_policy, address_resolution_policy, connector, connection_options, schema_fetcher) }
+    let(:control_connection) do
+      Cluster::ControlConnection.new(logger,
+                                     io_reactor,
+                                     cluster_registry,
+                                     cluster_schema,
+                                     cluster_metadata,
+                                     load_balancing_policy,
+                                     reconnection_policy,
+                                     address_resolution_policy,
+                                     connector,
+                                     connection_options,
+                                     schema_fetcher)
+    end
 
-    let(:cluster) { Cluster.new(logger, io_reactor, executor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, address_resolution_policy, connector, futures_factory) }
+    let(:cluster) do
+      Cluster.new(logger,
+                  io_reactor,
+                  executor,
+                  control_connection,
+                  cluster_registry,
+                  cluster_schema,
+                  cluster_metadata,
+                  execution_options,
+                  connection_options,
+                  load_balancing_policy,
+                  reconnection_policy,
+                  retry_policy,
+                  address_resolution_policy,
+                  connector,
+                  futures_factory)
+    end
 
     let(:execution_options) do
-      Execution::Options.new({
-        :consistency => consistency,
-        :trace       => trace,
-        :page_size   => page_size,
-        :timeout     => timeout,
-        :idempotent  => false
-      })
+      Execution::Options.new(consistency: consistency,
+                             trace: trace,
+                             page_size: page_size,
+                             timeout: timeout,
+                             idempotent: false)
     end
 
     let(:connection_options) do
@@ -102,13 +145,19 @@ module Cassandra
     let(:protocol_version)          { 4 }
     let(:connect_timeout)           { 10 }
     let(:ssl)                       { false }
-    let(:logger)                    { NullLogger.new  }
+    let(:logger)                    { NullLogger.new }
     let(:compressor)                { nil }
     let(:credentials)               { nil }
     let(:auth_provider)             { nil }
     let(:datacenter)                { nil }
-    let(:load_balancing_policy)     { LoadBalancing::Policies::TokenAware.new(LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, 0), shuffle_replicas) }
-    let(:reconnection_policy)       { Reconnection::Policies::Exponential.new(0.5, 30, 2) }
+    let(:load_balancing_policy)     do
+      LoadBalancing::Policies::TokenAware.new(
+        LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, 0),
+        shuffle_replicas)
+    end
+    let(:reconnection_policy) do
+      Reconnection::Policies::Exponential.new(0.5, 30, 2)
+    end
     let(:retry_policy)              { Retry::Policies::Default.new }
     let(:address_resolution_policy) { AddressResolution::Policies::None.new }
     let(:consistency)               { :local_one }
@@ -169,11 +218,21 @@ module Cassandra
     def create_schema_fetcher_picker
       picker = Cluster::Schema::Fetchers::MultiVersion.new(cluster_registry)
 
-      picker.when('1.2') { Cluster::Schema::Fetchers::V1_2_x.new(schema_fqcn_type_parser, cluster_schema) }
-      picker.when('2.0') { Cluster::Schema::Fetchers::V2_0_x.new(schema_fqcn_type_parser, cluster_schema) }
-      picker.when('2.1') { Cluster::Schema::Fetchers::V2_1_x.new(schema_fqcn_type_parser, cluster_schema) }
-      picker.when('2.2') { Cluster::Schema::Fetchers::V2_2_x.new(schema_fqcn_type_parser, cluster_schema) }
-      picker.when('3.') { Cluster::Schema::Fetchers::V3_0_x.new(schema_cql_type_parser, cluster_schema) }
+      picker.when('1.2') do
+        Cluster::Schema::Fetchers::V1_2_x.new(schema_fqcn_type_parser, cluster_schema)
+      end
+      picker.when('2.0') do
+        Cluster::Schema::Fetchers::V2_0_x.new(schema_fqcn_type_parser, cluster_schema)
+      end
+      picker.when('2.1') do
+        Cluster::Schema::Fetchers::V2_1_x.new(schema_fqcn_type_parser, cluster_schema)
+      end
+      picker.when('2.2') do
+        Cluster::Schema::Fetchers::V2_2_x.new(schema_fqcn_type_parser, cluster_schema)
+      end
+      picker.when('3.') do
+        Cluster::Schema::Fetchers::V3_0_x.new(schema_cql_type_parser, cluster_schema)
+      end
 
       picker
     end

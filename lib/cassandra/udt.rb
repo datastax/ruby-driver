@@ -38,7 +38,7 @@ module Cassandra
         assign = !field.chomp!('=').nil?
 
         return super if assign && args.empty?
-        return super unless @name_to_type.has_key?(field)
+        return super unless @name_to_type.key?(field)
 
         if assign
           value = args.first
@@ -58,7 +58,7 @@ module Cassandra
         field = method.to_s
         field.chomp!('=')
 
-        return true if @name_to_type.has_key?(field)
+        return true if @name_to_type.key?(field)
         super
       end
 
@@ -94,15 +94,15 @@ module Cassandra
         when ::Integer
           if field < 0 || field >= @fields.size
             raise ::IndexError,
-              "field index #{field} is not present in UDT: " \
-              "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}" 
+                  "field index #{field} is not present in UDT: " \
+                  "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}"
           end
           @values[@fields[field][0]]
         when ::String
-          unless @name_to_type.has_key?(field)
+          unless @name_to_type.key?(field)
             raise ::KeyError,
-              "field #{field} is not defined in UDT: " \
-              "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}" 
+                  "field #{field} is not defined in UDT: " \
+                  "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}"
           end
           @values[field]
         else
@@ -127,16 +127,16 @@ module Cassandra
         when ::Integer
           if field < 0 || field >= @fields.size
             raise ::IndexError,
-              "field index #{field} is not present in UDT: " \
-              "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}" 
+                  "field index #{field} is not present in UDT: " \
+                  "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}"
           end
           Util.assert_type(@fields[field][1], value)
           @values[@fields[field][0]] = value
         when ::String
-          unless @name_to_type.has_key?(field)
+          unless @name_to_type.key?(field)
             raise ::KeyError,
-              "field #{field} is not defined in UDT: " \
-              "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}" 
+                  "field #{field} is not defined in UDT: " \
+                  "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)}"
           end
           Util.assert_type(@name_to_type[field], value)
           @values[field] = value
@@ -165,14 +165,14 @@ module Cassandra
       end
 
       def inspect
-        "#<Cassandra::UDT:0x#{self.object_id.to_s(16)} #{to_s}>"
+        "#<Cassandra::UDT:0x#{object_id.to_s(16)} #{self}>"
       end
 
       def eql?(other)
         (other.is_a?(Strict) && @values.all? {|n, v| v == other[n]}) ||
-        (other.is_a?(UDT) && other == self)
+          (other.is_a?(UDT) && other == self)
       end
-      alias :== :eql?
+      alias == eql?
     end
 
     include Enumerable
@@ -200,24 +200,24 @@ module Cassandra
       values = Array(values.first) if values.one?
 
       Util.assert_not_empty(values,
-        "user-defined type must contain at least one value"
-      )
+                            'user-defined type must contain at least one value'
+                           )
 
       if values.first.is_a?(::Array)
         @values = values.map do |pair|
           Util.assert(pair.size == 2,
-            "values of a user-defined type must be an Array of name and " \
-            "value pairs, #{pair.inspect} given"
-          )
+                      'values of a user-defined type must be an Array of name and ' \
+                      "value pairs, #{pair.inspect} given"
+                     )
           name, value = pair
 
           [String(name), value]
         end
       else
-        Util.assert((values.size % 2) == 0,
-          "values of a user-defined type must be an Array of alternating " \
-          "names and values pairs, #{values.inspect} given"
-        )
+        Util.assert(values.size.even?,
+                    'values of a user-defined type must be an Array of alternating ' \
+                    "names and values pairs, #{values.inspect} given"
+                   )
         @values = values.each_slice(2).map do |(name, value)|
           [String(name), value]
         end
@@ -321,9 +321,7 @@ module Cassandra
       when ::String
         index = @values.index {|(n, _)| field == n}
 
-        unless index
-          raise ::KeyError, "Unsupported field #{field.inspect}"
-        end
+        raise ::KeyError, "Unsupported field #{field.inspect}" unless index
 
         @values[index][1]
       else
@@ -348,7 +346,7 @@ module Cassandra
       true
     end
 
-    alias :include? :has_field?
+    alias include? has_field?
 
     # Sets value of the field.
     #
@@ -371,9 +369,7 @@ module Cassandra
       when ::String
         index = @values.index {|(n, _)| field == n}
 
-        unless index
-          raise ::KeyError, "Unsupported field #{field.inspect}"
-        end
+        raise ::KeyError, "Unsupported field #{field.inspect}" unless index
 
         @values[index][1] = value
       else
@@ -410,14 +406,14 @@ module Cassandra
 
     # @private
     def inspect
-      "#<Cassandra::UDT:0x#{self.object_id.to_s(16)} #{to_s}>"
+      "#<Cassandra::UDT:0x#{object_id.to_s(16)} #{self}>"
     end
 
     # @private
     def eql?(other)
       other.is_a?(UDT) && @values.all? {|(n, v)| v == other[n]}
     end
-    alias :== :eql?
+    alias == eql?
 
     # @private
     def hash

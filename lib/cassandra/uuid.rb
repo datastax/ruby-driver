@@ -25,19 +25,20 @@ module Cassandra
   # If you want to generate UUIDs see {Cassandra::Uuid::Generator}.
   #
   class Uuid
-    # Creates a new UUID either from a string (expected to be on the standard 8-4-4-4-12 form, or just 32 characters without hyphens), or from a 128 bit number.
+    # Creates a new UUID either from a string (expected to be on the standard 8-4-4-4-12
+    # form, or just 32 characters without hyphens), or from a 128 bit number.
     #
     # @param uuid [String] a 32 char uuid
     #
     # @raise [ArgumentError] if the string does not conform to the expected format
     #
     def initialize(uuid)
-      case uuid
-      when String
-        @n = from_s(uuid)
-      else
-        @n = uuid
-      end
+      @n = case uuid
+           when String
+             from_s(uuid)
+           else
+             uuid
+           end
     end
 
     # Returns a string representation of this UUID in the standard 8-4-4-4-12 form.
@@ -48,7 +49,7 @@ module Cassandra
         s.insert(20, HYPHEN)
         s.insert(16, HYPHEN)
         s.insert(12, HYPHEN)
-        s.insert( 8, HYPHEN)
+        s.insert(8, HYPHEN)
         s
       end
     end
@@ -69,13 +70,13 @@ module Cassandra
     def value
       @n
     end
-    alias_method :to_i, :value
+    alias to_i value
 
     # @private
     def eql?(other)
-      other.respond_to?(:value) && self.value == other.value
+      other.respond_to?(:value) && value == other.value
     end
-    alias_method :==, :eql?
+    alias == eql?
 
     private
 
@@ -93,15 +94,21 @@ module Cassandra
       # @private
       def from_s(str)
         str = str.gsub(HYPHEN, EMPTY_STRING)
-        raise ::ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}" unless str.length == 32
-        raise ::ArgumentError, "invalid value for Integer(): \"#{str}\"" unless str =~ HEX_RE
+        unless str.length == 32
+          raise ::ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}"
+        end
+        unless str =~ HEX_RE
+          raise ::ArgumentError, "invalid value for Integer(): \"#{str}\""
+        end
         Integer(str, 16)
       end
     else
       # @private
       def from_s(str)
         str = str.gsub(HYPHEN, EMPTY_STRING)
-        raise ::ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}" unless str.length == 32
+        unless str.length == 32
+          raise ::ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}"
+        end
         Integer(str, 16)
       end
     end

@@ -29,7 +29,17 @@ module Cassandra
       end
 
       def to_error(keyspace, statement, options, hosts, consistency, retries)
-        Errors::AlreadyExistsError.new(@message, @custom_payload, @warnings, keyspace, statement, options, hosts, consistency, retries, @keyspace, @table)
+        Errors::AlreadyExistsError.new(@message,
+                                       @custom_payload,
+                                       @warnings,
+                                       keyspace,
+                                       statement,
+                                       options,
+                                       hosts,
+                                       consistency,
+                                       retries,
+                                       @keyspace,
+                                       @table)
       end
 
       def to_s

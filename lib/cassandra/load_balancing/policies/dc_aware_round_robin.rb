@@ -56,16 +56,20 @@ module Cassandra
 
         include MonitorMixin
 
-        def initialize(datacenter = nil, max_remote_hosts_to_use = nil, use_remote_hosts_for_local_consistency = false)
-          datacenter              = datacenter && String(datacenter)
-          max_remote_hosts_to_use = max_remote_hosts_to_use && Integer(max_remote_hosts_to_use)
+        def initialize(datacenter = nil,
+                       max_remote_hosts_to_use = nil,
+                       use_remote_hosts_for_local_consistency = false)
+          datacenter              &&= String(datacenter)
+          max_remote_hosts_to_use &&= Integer(max_remote_hosts_to_use)
 
           unless datacenter.nil?
-            Util.assert_not_empty(datacenter) { "datacenter cannot be empty" }
+            Util.assert_not_empty(datacenter) { 'datacenter cannot be empty' }
           end
 
           unless max_remote_hosts_to_use.nil?
-            Util.assert(max_remote_hosts_to_use >= 0) { "max_remote_hosts_to_use must be nil or >= 0" }
+            Util.assert(max_remote_hosts_to_use >= 0) do
+              'max_remote_hosts_to_use must be nil or >= 0'
+            end
           end
 
           @datacenter = datacenter
@@ -80,9 +84,7 @@ module Cassandra
         end
 
         def host_up(host)
-          if !@datacenter && host.datacenter
-            @datacenter = host.datacenter
-          end
+          @datacenter = host.datacenter if !@datacenter && host.datacenter
 
           if host.datacenter.nil? || host.datacenter == @datacenter
             synchronize { @local = @local.dup.push(host) }
@@ -130,11 +132,11 @@ module Cassandra
         def plan(keyspace, statement, options)
           local = @local
 
-          if LOCAL_CONSISTENCIES.include?(options.consistency) && !@use_remote
-            remote = EMPTY_ARRAY
-          else
-            remote = @remote
-          end
+          remote = if LOCAL_CONSISTENCIES.include?(options.consistency) && !@use_remote
+                     EMPTY_ARRAY
+                   else
+                     @remote
+                   end
 
           total = local.size + remote.size
 

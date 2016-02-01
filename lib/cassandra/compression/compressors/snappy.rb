@@ -33,12 +33,13 @@ module Cassandra
 
         # @param [Integer] min_size (64) Don't compress frames smaller than
         #   this size (see {#compress?}).
-        def initialize(min_size=64)
+        def initialize(min_size = 64)
           unless defined?(::Snappy)
             begin
               require 'snappy'
             rescue LoadError => e
-              raise LoadError, %[Snappy support requires the "snappy" gem: #{e.message}], e.backtrace
+              raise LoadError, %(Snappy support requires the "snappy" gem: #{e.message}),
+                    e.backtrace
             end
           end
 

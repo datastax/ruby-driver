@@ -48,7 +48,9 @@ module Cassandra
       #
       # @raise [ArgumentError] if cql statement given is not a String
       def initialize(cql, params = nil, type_hints = nil, idempotent = false)
-        Util.assert_instance_of(::String, cql) { "cql must be a string, #{cql.inspect} given" }
+        Util.assert_instance_of(::String, cql) do
+          "cql must be a string, #{cql.inspect} given"
+        end
 
         params ||= EMPTY_LIST
 
@@ -59,10 +61,14 @@ module Cassandra
             params       << value
           end
           if type_hints && !type_hints.empty?
-            Util.assert_instance_of(::Hash, type_hints) { "type_hints must be a Hash when using named params" }
+            Util.assert_instance_of(::Hash, type_hints) do
+              'type_hints must be a Hash when using named params'
+            end
           end
         else
-          Util.assert_instance_of(::Array, params) { "params must be an Array or a Hash, #{params.inspect} given" }
+          Util.assert_instance_of(::Array, params) do
+            "params must be an Array or a Hash, #{params.inspect} given"
+          end
           params_names = EMPTY_LIST
         end
 
@@ -71,19 +77,26 @@ module Cassandra
         if type_hints.is_a?(::Hash)
           type_hints = params_names.map {|name| type_hints[name] }
         else
-          Util.assert_instance_of(::Array, type_hints) { "type_hints must be an Array or a Hash, #{type_hints.inspect} given" }
+          Util.assert_instance_of(::Array, type_hints) do
+            "type_hints must be an Array or a Hash, #{type_hints.inspect} given"
+          end
         end
 
         @cql          = cql
         @params       = params
-        @params_types = params.each_with_index.map {|value, index| (!type_hints.empty? && type_hints[index] && type_hints[index].is_a?(Type)) ? type_hints[index] : Util.guess_type(value)}
+        @params_types = params.each_with_index.map do |value, index|
+          (!type_hints.empty? && type_hints[index] && type_hints[index].is_a?(Type)) ?
+              type_hints[index] :
+              Util.guess_type(value)
+        end
         @params_names = params_names
         @idempotent   = idempotent
       end
 
       # @return [String] a CLI-friendly simple statement representation
       def inspect
-        "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @cql=#{@cql.inspect} @params=#{@params.inspect}>"
+        "#<#{self.class.name}:0x#{object_id.to_s(16)} @cql=#{@cql.inspect} " \
+            "@params=#{@params.inspect}>"
       end
 
       # @param other [Object, Cassandra::Statements::Simple] object to compare
@@ -94,7 +107,7 @@ module Cassandra
           @params == other.params
       end
 
-      alias :== :eql?
+      alias == eql?
     end
   end
 end

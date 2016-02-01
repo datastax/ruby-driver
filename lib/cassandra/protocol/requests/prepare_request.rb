@@ -22,7 +22,7 @@ module Cassandra
       attr_reader :cql, :payload
       attr_accessor :consistency, :retries
 
-      def initialize(cql, trace=false, payload = nil)
+      def initialize(cql, trace = false, payload = nil)
         raise ArgumentError, 'No CQL given!' unless cql
         super(9, trace)
         @cql = cql
@@ -39,13 +39,13 @@ module Cassandra
       end
 
       def to_s
-        %(PREPARE "#@cql")
+        %(PREPARE "#{@cql}")
       end
 
       def eql?(rq)
-        self.class === rq && rq.cql == self.cql
+        self.class === rq && rq.cql == cql
       end
-      alias_method :==, :eql?
+      alias == eql?
 
       def hash
         @h ||= begin

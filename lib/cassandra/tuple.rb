@@ -40,12 +40,16 @@ module Cassandra
 
       def fetch(i)
         i = Integer(i)
-        raise ::IndexError, "index #{i} is outside of tuple, size: #{@types.size}" if i < 0 || i >= @types.size
+        if i < 0 || i >= @types.size
+          raise ::IndexError, "index #{i} is outside of tuple, size: #{@types.size}"
+        end
         @values[i]
       end
 
       def []=(i, value)
-        raise ::IndexError, "index #{i} is outside of tuple, size: #{@types.size}" if i < 0 || i >= @types.size
+        if i < 0 || i >= @types.size
+          raise ::IndexError, "index #{i} is outside of tuple, size: #{@types.size}"
+        end
         Util.assert_type(@types[i], value)
         @values[i] = value
       end
@@ -55,7 +59,7 @@ module Cassandra
       end
 
       def inspect
-        "#<Cassandra::Tuple:0x#{self.object_id.to_s(16)} #{to_s}>"
+        "#<Cassandra::Tuple:0x#{object_id.to_s(16)} #{self}>"
       end
     end
 
@@ -86,7 +90,9 @@ module Cassandra
     # @return [Object] value of the tuple at position `i`
     def fetch(i)
       i = Integer(i)
-      raise ::IndexError, "index #{i} is outside of tuple, size: #{@values.size}" if i < 0 || i >= @values.size
+      if i < 0 || i >= @values.size
+        raise ::IndexError, "index #{i} is outside of tuple, size: #{@values.size}"
+      end
       @values[i]
     end
 
@@ -97,7 +103,9 @@ module Cassandra
     # @return [Object] value of the tuple at position `i`
     def []=(i, value)
       i = Integer(i)
-      raise ::IndexError, "index #{i} is outside of tuple, size: #{@values.size}" if i < 0 || i >= @values.size
+      if i < 0 || i >= @values.size
+        raise ::IndexError, "index #{i} is outside of tuple, size: #{@values.size}"
+      end
       @values[i] = value
     end
 
@@ -114,14 +122,14 @@ module Cassandra
 
     # @private
     def inspect
-      "#<Cassandra::Tuple:0x#{self.object_id.to_s(16)} #{to_s}>"
+      "#<Cassandra::Tuple:0x#{object_id.to_s(16)} #{self}>"
     end
 
     # @private
     def eql?(other)
       other == @values
     end
-    alias :== :eql?
+    alias == eql?
 
     # @private
     def hash

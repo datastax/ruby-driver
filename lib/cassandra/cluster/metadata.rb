@@ -24,7 +24,11 @@ module Cassandra
 
       attr_reader :name
 
-      def initialize(cluster_registry, cluster_schema, schema_partitioners, replication_strategies, default_replication_strategy)
+      def initialize(cluster_registry,
+                     cluster_schema,
+                     schema_partitioners,
+                     replication_strategies,
+                     default_replication_strategy)
         @registry         = cluster_registry
         @schema           = cluster_schema
         @partitioners     = schema_partitioners
@@ -74,7 +78,11 @@ module Cassandra
 
         @registry.each_host do |host|
           host.tokens.each do |token|
-            token = partitioner.parse_token(token) rescue next
+            token = begin
+                      partitioner.parse_token(token)
+                    rescue
+                      next
+                    end
             tokens.add(token)
             token_to_host[token] = host
           end
@@ -116,7 +124,7 @@ module Cassandra
         min = 0
         max = list.size - 1
 
-        while min <= max do
+        while min <= max
           idx = (min + max) / 2
           val = list[idx]
 

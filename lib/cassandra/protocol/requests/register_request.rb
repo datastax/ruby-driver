@@ -31,7 +31,7 @@ module Cassandra
       end
 
       def to_s
-        %(REGISTER #@events)
+        %(REGISTER #{@events})
       end
     end
   end

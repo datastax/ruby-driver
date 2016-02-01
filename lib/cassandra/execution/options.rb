@@ -83,30 +83,30 @@ module Cassandra
         # given consistency value (even if nil). Otherwise we're overlaying and only
         # validate the consistency option if given.
         if trusted_options.nil? || !consistency.nil?
-          Util.assert_one_of(CONSISTENCIES, consistency) {
-            ":consistency must be one of #{CONSISTENCIES.inspect}, " +
+          Util.assert_one_of(CONSISTENCIES, consistency) do
+            ":consistency must be one of #{CONSISTENCIES.inspect}, " \
                 "#{consistency.inspect} given"
-          }
+          end
         end
 
         unless serial_consistency.nil?
-          Util.assert_one_of(SERIAL_CONSISTENCIES, serial_consistency) {
-            ":serial_consistency must be one of #{SERIAL_CONSISTENCIES.inspect}, " +
+          Util.assert_one_of(SERIAL_CONSISTENCIES, serial_consistency) do
+            ":serial_consistency must be one of #{SERIAL_CONSISTENCIES.inspect}, " \
                 "#{serial_consistency.inspect} given"
-          }
+          end
         end
 
         unless page_size.nil?
           page_size = Integer(page_size)
-          Util.assert(page_size > 0) {
+          Util.assert(page_size > 0) do
             ":page_size must be a positive integer, #{page_size.inspect} given"
-          }
+          end
         end
 
         unless timeout.nil?
-          Util.assert_instance_of(::Numeric, timeout) {
+          Util.assert_instance_of(::Numeric, timeout) do
             ":timeout must be a number of seconds, #{timeout} given"
-          }
+          end
           Util.assert(timeout > 0) { ":timeout must be greater than 0, #{timeout} given" }
         end
 
@@ -116,9 +116,9 @@ module Cassandra
 
           # We require page_size in either the new options or trusted options.
           Util.assert(!page_size.nil? ||
-                          !(trusted_options.nil? || trusted_options.page_size.nil? )) {
+                          !(trusted_options.nil? || trusted_options.page_size.nil?)) do
             ':page_size is required when :paging_state is given'
-          }
+          end
         end
 
         # :arguments defaults to empty-list, but we want to delegate to trusted_options
@@ -131,17 +131,17 @@ module Cassandra
         #
         # :type_hints works exactly the same way.
         if !arguments.nil?
-          Util.assert_instance_of_one_of([::Array, ::Hash], arguments) {
+          Util.assert_instance_of_one_of([::Array, ::Hash], arguments) do
             ":arguments must be an Array or a Hash, #{arguments.inspect} given"
-          }
+          end
         elsif trusted_options.nil?
           arguments = EMPTY_LIST
         end
 
         if !type_hints.nil?
-          Util.assert_instance_of_one_of([::Array, ::Hash], type_hints) {
+          Util.assert_instance_of_one_of([::Array, ::Hash], type_hints) do
             ":type_hints must be an Array or a Hash, #{type_hints.inspect} given"
-          }
+          end
         elsif trusted_options.nil?
           type_hints = EMPTY_LIST
         end
@@ -149,13 +149,13 @@ module Cassandra
         unless payload.nil?
           Util.assert_instance_of(::Hash, payload) { ':payload must be a Hash' }
           Util.assert_not_empty(payload) { ':payload must not be empty' }
-          Util.assert(payload.size <= 65535) {
+          Util.assert(payload.size <= 65535) do
             ':payload cannot contain more than 65535 key/value pairs'
-          }
+          end
 
           payload = payload.each_with_object(::Hash.new) do |(key, value), p|
-                      p[String(key)] = String(value)
-                    end
+            p[String(key)] = String(value)
+          end
           payload.freeze
         end
 
@@ -210,15 +210,15 @@ module Cassandra
           other.arguments == @arguments &&
           other.type_hints == @type_hints
       end
-      alias :== :eql?
+      alias == eql?
 
       # @private
       def override(*options)
-        merged = options.unshift(Hash.new).inject do |base, opts|
+        merged = options.unshift({}).inject do |base, opts|
           next base unless opts
-          Util.assert_instance_of(::Hash, opts) {
+          Util.assert_instance_of(::Hash, opts) do
             "options must be a Hash, #{options.inspect} given"
-          }
+          end
           base.merge!(opts)
         end
 

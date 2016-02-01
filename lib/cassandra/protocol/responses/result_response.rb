@@ -22,7 +22,9 @@ module Cassandra
       attr_reader :custom_payload, :warnings, :trace_id
 
       def initialize(custom_payload, warnings, trace_id)
-        @custom_payload, @warnings, @trace_id = custom_payload, warnings, trace_id
+        @custom_payload = custom_payload
+        @warnings = warnings
+        @trace_id = trace_id
       end
 
       def void?

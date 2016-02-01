@@ -21,7 +21,7 @@ module Cassandra
     class Request
       attr_reader :opcode, :trace
 
-      def initialize(opcode, trace=false)
+      def initialize(opcode, trace = false)
         @opcode = opcode
         @trace = trace
       end
