@@ -110,5 +110,5 @@ Feature: Request tracing
     When it is executed
     Then its output should match:
       """
-      client ip: 127.0.0.1
+      client ip: 127\.0\.0\.[1-3]
       """
