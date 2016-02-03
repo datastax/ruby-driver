@@ -17,7 +17,8 @@
 #++
 
 module Cassandra
-  # Cluster represents a cassandra cluster. It serves as a {Cassandra::Session session factory} factory and a collection of metadata.
+  # Cluster represents a cassandra cluster. It serves as a
+  # {Cassandra::Session session factory} factory and a collection of metadata.
   #
   # @see Cassandra::Cluster#connect Creating a new session
   # @see Cassandra::Cluster#each_host Getting all peers in the cluster
@@ -26,7 +27,21 @@ module Cassandra
     extend Forwardable
 
     # @private
-    def initialize(logger, io_reactor, executor, control_connection, cluster_registry, cluster_schema, cluster_metadata, execution_options, connection_options, load_balancing_policy, reconnection_policy, retry_policy, address_resolution_policy, connector, futures_factory)
+    def initialize(logger,
+                   io_reactor,
+                   executor,
+                   control_connection,
+                   cluster_registry,
+                   cluster_schema,
+                   cluster_metadata,
+                   execution_options,
+                   connection_options,
+                   load_balancing_policy,
+                   reconnection_policy,
+                   retry_policy,
+                   address_resolution_policy,
+                   connector,
+                   futures_factory)
       @logger                = logger
       @io_reactor            = io_reactor
       @executor              = executor
@@ -43,8 +58,12 @@ module Cassandra
       @connector             = connector
       @futures               = futures_factory
 
-      @control_connection.on_close do |cause|
-        @load_balancing_policy.teardown(self) rescue nil
+      @control_connection.on_close do |_cause|
+        begin
+          @load_balancing_policy.teardown(self)
+        rescue
+          nil
+        end
       end
     end
 
@@ -95,7 +114,7 @@ module Cassandra
       return self if r == @registry
       r
     end
-    alias :hosts :each_host
+    alias hosts each_host
 
     # @!method host(address)
     #   Find a host by its address
@@ -119,7 +138,7 @@ module Cassandra
       return self if r == @schema
       r
     end
-    alias :keyspaces :each_keyspace
+    alias keyspaces each_keyspace
 
     # @!method keyspace(name)
     #   Find a keyspace by name
@@ -175,7 +194,17 @@ module Cassandra
         return @futures.error(::ArgumentError.new("keyspace must be a string, #{keyspace.inspect} given"))
       end
 
-      client  = Client.new(@logger, @registry, @schema, @io_reactor, @connector, @load_balancing_policy, @reconnection_policy, @retry_policy, @address_resolver, @connection_options, @futures)
+      client  = Client.new(@logger,
+                           @registry,
+                           @schema,
+                           @io_reactor,
+                           @connector,
+                           @load_balancing_policy,
+                           @reconnection_policy,
+                           @retry_policy,
+                           @address_resolver,
+                           @connection_options,
+                           @futures)
       session = Session.new(client, @execution_options, @futures)
       promise = @futures.promise
 
@@ -246,7 +275,7 @@ module Cassandra
 
     # @private
     def inspect
-      "#<#{self.class.name}:0x#{self.object_id.to_s(16)}>"
+      "#<#{self.class.name}:0x#{object_id.to_s(16)}>"
     end
   end
 end

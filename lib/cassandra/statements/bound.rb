@@ -30,7 +30,13 @@ module Cassandra
       attr_reader :params_types, :result_metadata, :keyspace, :partition_key
 
       # @private
-      def initialize(cql, params_types, result_metadata, params, keyspace = nil, partition_key = nil, idempotent = false)
+      def initialize(cql,
+                     params_types,
+                     result_metadata,
+                     params,
+                     keyspace = nil,
+                     partition_key = nil,
+                     idempotent = false)
         @cql             = cql
         @params_types    = params_types
         @result_metadata = result_metadata
@@ -42,7 +48,8 @@ module Cassandra
 
       # @return [String] a CLI-friendly bound statement representation
       def inspect
-        "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @cql=#{@cql.inspect} @params=#{@params}>"
+        "#<#{self.class.name}:0x#{object_id.to_s(16)} @cql=#{@cql.inspect} " \
+            "@params=#{@params}>"
       end
     end
   end

@@ -23,10 +23,10 @@ module Cassandra
     #   its methods. This class exists for documentation purposes only.
     module Policy
       # Decides wether to retry a read and at what consistency level.
-      # 
+      #
       # @note this method may be called even if required_responses >= received
       #   responses if data_present is false.
-      # 
+      #
       # @param statement [Cassandra::Statement] the original statement that timed out
       # @param consistency [Symbol] the original consistency level for the
       #   request, one of {Cassandra::CONSISTENCIES}
@@ -37,7 +37,7 @@ module Cassandra
       # @param retrieved [Boolean] whether actual data (as opposed to data
       #   checksum) was present in the received responses.
       # @param retries [Integer] the number of retries already performed
-      # 
+      #
       # @return [Cassandra::Policies::Retry::Decision] a retry decision
       #
       # @see Cassandra::Retry::Policy#try_again
@@ -47,7 +47,7 @@ module Cassandra
       end
 
       # Decides wether to retry a write and at what consistency level.
-      # 
+      #
       # @param statement [Cassandra::Statement] the original statement that timed out
       # @param consistency [Symbol] the original consistency level for the
       #   request, one of {Cassandra::CONSISTENCIES}
@@ -57,7 +57,7 @@ module Cassandra
       # @param received [Integer] the number of acks received by the time the
       #   query timed out
       # @param retries [Integer] the number of retries already performed
-      # 
+      #
       # @return [Cassandra::Policies::Retry::Decision] a retry decision
       #
       # @see Cassandra::Retry::Policy#try_again
@@ -68,7 +68,7 @@ module Cassandra
 
       # Decides wether to retry and at what consistency level on an Unavailable
       # exception.
-      # 
+      #
       # @param statement [Cassandra::Statement] the original Statement that timed out
       # @param consistency [Symbol] the original consistency level for the
       #   request, one of {Cassandra::CONSISTENCIES}
@@ -76,7 +76,7 @@ module Cassandra
       #   requested consistency level
       # @param alive [Integer] the number of replicas available for the request
       # @param retries [Integer] the number of retries already performed
-      # 
+      #
       # @return [Cassandra::Policies::Retry::Decision] a retry decision
       #
       # @see Cassandra::Retry::Policy#try_again

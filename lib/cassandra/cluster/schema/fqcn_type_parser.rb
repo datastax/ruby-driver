@@ -26,31 +26,31 @@ module Cassandra
         Result = Struct.new(:results, :collections)
 
         @@types = {
-          "org.apache.cassandra.db.marshal.AsciiType"         => :ascii,
-          "org.apache.cassandra.db.marshal.LongType"          => :bigint,
-          "org.apache.cassandra.db.marshal.BytesType"         => :blob,
-          "org.apache.cassandra.db.marshal.BooleanType"       => :boolean,
-          "org.apache.cassandra.db.marshal.CounterColumnType" => :counter,
-          "org.apache.cassandra.db.marshal.DecimalType"       => :decimal,
-          "org.apache.cassandra.db.marshal.DoubleType"        => :double,
-          "org.apache.cassandra.db.marshal.FloatType"         => :float,
-          "org.apache.cassandra.db.marshal.InetAddressType"   => :inet,
-          "org.apache.cassandra.db.marshal.Int32Type"         => :int,
-          "org.apache.cassandra.db.marshal.UTF8Type"          => :text,
-          "org.apache.cassandra.db.marshal.TimestampType"     => :timestamp,
-          "org.apache.cassandra.db.marshal.DateType"          => :timestamp,
-          "org.apache.cassandra.db.marshal.UUIDType"          => :uuid,
-          "org.apache.cassandra.db.marshal.IntegerType"       => :varint,
-          "org.apache.cassandra.db.marshal.TimeUUIDType"      => :timeuuid,
-          "org.apache.cassandra.db.marshal.MapType"           => :map,
-          "org.apache.cassandra.db.marshal.SetType"           => :set,
-          "org.apache.cassandra.db.marshal.ListType"          => :list,
-          "org.apache.cassandra.db.marshal.UserType"          => :udt,
-          "org.apache.cassandra.db.marshal.TupleType"         => :tuple,
-          "org.apache.cassandra.db.marshal.ShortType"         => :smallint,
-          "org.apache.cassandra.db.marshal.ByteType"          => :tinyint,
-          "org.apache.cassandra.db.marshal.TimeType"          => :time,
-          "org.apache.cassandra.db.marshal.SimpleDateType"    => :date,
+          'org.apache.cassandra.db.marshal.AsciiType'         => :ascii,
+          'org.apache.cassandra.db.marshal.LongType'          => :bigint,
+          'org.apache.cassandra.db.marshal.BytesType'         => :blob,
+          'org.apache.cassandra.db.marshal.BooleanType'       => :boolean,
+          'org.apache.cassandra.db.marshal.CounterColumnType' => :counter,
+          'org.apache.cassandra.db.marshal.DecimalType'       => :decimal,
+          'org.apache.cassandra.db.marshal.DoubleType'        => :double,
+          'org.apache.cassandra.db.marshal.FloatType'         => :float,
+          'org.apache.cassandra.db.marshal.InetAddressType'   => :inet,
+          'org.apache.cassandra.db.marshal.Int32Type'         => :int,
+          'org.apache.cassandra.db.marshal.UTF8Type'          => :text,
+          'org.apache.cassandra.db.marshal.TimestampType'     => :timestamp,
+          'org.apache.cassandra.db.marshal.DateType'          => :timestamp,
+          'org.apache.cassandra.db.marshal.UUIDType'          => :uuid,
+          'org.apache.cassandra.db.marshal.IntegerType'       => :varint,
+          'org.apache.cassandra.db.marshal.TimeUUIDType'      => :timeuuid,
+          'org.apache.cassandra.db.marshal.MapType'           => :map,
+          'org.apache.cassandra.db.marshal.SetType'           => :set,
+          'org.apache.cassandra.db.marshal.ListType'          => :list,
+          'org.apache.cassandra.db.marshal.UserType'          => :udt,
+          'org.apache.cassandra.db.marshal.TupleType'         => :tuple,
+          'org.apache.cassandra.db.marshal.ShortType'         => :smallint,
+          'org.apache.cassandra.db.marshal.ByteType'          => :tinyint,
+          'org.apache.cassandra.db.marshal.TimeType'          => :time,
+          'org.apache.cassandra.db.marshal.SimpleDateType'    => :date
         }.freeze
 
         def parse(string)
@@ -63,15 +63,16 @@ module Cassandra
           collections = nil
           results     = []
 
-          if node.name == "org.apache.cassandra.db.marshal.CompositeType"
+          if node.name == 'org.apache.cassandra.db.marshal.CompositeType'
             collections = {}
 
-            if node.children.last.name == "org.apache.cassandra.db.marshal.ColumnToCollectionType"
+            if node.children.last.name ==
+               'org.apache.cassandra.db.marshal.ColumnToCollectionType'
               node.children.pop.children.each do |child|
-                key, name  = child.name.split(":")
+                key, name  = child.name.split(':')
                 key        = [key].pack('H*').force_encoding(::Encoding::UTF_8)
 
-                if name == "org.apache.cassandra.db.marshal.ReversedType"
+                if name == 'org.apache.cassandra.db.marshal.ReversedType'
                   collections[key] = lookup_type(child.children.first)
                 else
                   child.name = name
@@ -94,12 +95,12 @@ module Cassandra
           order  = :asc
           frozen = false
 
-          if node.name == "org.apache.cassandra.db.marshal.ReversedType"
+          if node.name == 'org.apache.cassandra.db.marshal.ReversedType'
             order = :desc
             node  = node.children.first
           end
 
-          if node.name == "org.apache.cassandra.db.marshal.FrozenType"
+          if node.name == 'org.apache.cassandra.db.marshal.FrozenType'
             frozen = true
             node   = node.children.first
           end
@@ -108,11 +109,13 @@ module Cassandra
         end
 
         def lookup_type(node)
-          if node.name == "org.apache.cassandra.db.marshal.FrozenType"
+          if node.name == 'org.apache.cassandra.db.marshal.FrozenType'
             return lookup_type(node.children.first)
           end
 
-          type = @@types.fetch(node.name) { return Cassandra::Types.custom(dump_node(node)) }
+          type = @@types.fetch(node.name) do
+            return Cassandra::Types.custom(dump_node(node))
+          end
 
           case type
           when :set, :list
@@ -123,7 +126,7 @@ module Cassandra
             keyspace = node.children.shift.name
             name     = [node.children.shift.name].pack('H*')
             fields   = node.children.map do |child|
-              field_name, child_name = child.name.split(":")
+              field_name, child_name = child.name.split(':')
 
               child.name = child_name
               field_name = [field_name].pack('H*').force_encoding(::Encoding::UTF_8)
@@ -166,7 +169,9 @@ module Cassandra
 
         def dump_node(node)
           str = node.name
-          str << '(' + node.children.map {|n| dump_node(n)}.join(',') + ')' unless node.children.empty?
+          unless node.children.empty?
+            str << '(' + node.children.map { |n| dump_node(n) }.join(',') + ')'
+          end
           str
         end
       end

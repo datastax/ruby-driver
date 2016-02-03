@@ -39,9 +39,7 @@ module Cassandra
 
         # @return [Cassandra::Reconnection::Schedule] reconnection schedule
         #   with constant interval
-        def schedule
-          @schedule
-        end
+        attr_reader :schedule
       end
     end
   end

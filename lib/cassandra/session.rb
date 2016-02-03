@@ -17,7 +17,9 @@
 #++
 
 module Cassandra
-  # Sessions are used for query execution. Each session tracks its current keyspace. A session should be reused as much as possible, however it is ok to create several independent session for interacting with different keyspaces in the same application.
+  # Sessions are used for query execution. Each session tracks its current keyspace.
+  # A session should be reused as much as possible, however it is ok to create several
+  # independent session for interacting with different keyspaces in the same application.
   class Session
     extend Forwardable
 
@@ -79,15 +81,19 @@ module Cassandra
     # @see Cassandra::Session#execute A list of errors this future can be
     #   resolved with
     def execute_async(statement, options = nil)
-      if options
-        options = @options.override(options)
-      else
-        options = @options
-      end
+      options = if options
+                  @options.override(options)
+                else
+                  @options
+                end
 
       case statement
       when ::String
-        @client.query(Statements::Simple.new(statement, options.arguments, options.type_hints, options.idempotent?), options)
+        @client.query(Statements::Simple.new(statement,
+                                             options.arguments,
+                                             options.type_hints,
+                                             options.idempotent?),
+                      options)
       when Statements::Simple
         @client.query(statement, options)
       when Statements::Prepared
@@ -95,7 +101,7 @@ module Cassandra
       when Statements::Bound
         @client.execute(statement, options)
       when Statements::Batch
-        Util.assert_not_empty(statement.statements) { "batch cannot be empty" }
+        Util.assert_not_empty(statement.statements) { 'batch cannot be empty' }
         @client.batch(statement, options)
       else
         @futures.error(::ArgumentError.new("unsupported statement #{statement.inspect}"))
@@ -143,11 +149,11 @@ module Cassandra
     # @return [Cassandra::Future<Cassandra::Statements::Prepared>] future
     #   prepared statement
     def prepare_async(statement, options = nil)
-      if options.is_a?(::Hash)
-        options = @options.override(options)
-      else
-        options = @options
-      end
+      options = if options.is_a?(::Hash)
+                  @options.override(options)
+                else
+                  @options
+                end
 
       case statement
       when ::String
@@ -181,7 +187,7 @@ module Cassandra
       yield(statement) if block_given?
       statement
     end
-    alias :batch :logged_batch
+    alias batch logged_batch
 
     # Returns a unlogged {Statements::Batch} instance and optionally yields it
     # to a given block
@@ -232,7 +238,7 @@ module Cassandra
 
     # @private
     def inspect
-      "#<#{self.class.name}:0x#{self.object_id.to_s(16)}>"
+      "#<#{self.class.name}:0x#{object_id.to_s(16)}>"
     end
   end
 end

@@ -42,11 +42,10 @@ module Cassandra
   #   logger.debug("something interesting happened.")
 
   class Logger < ::Logger
-
     # @private
     # This class is mostly copied from the Ruby Logger::Format class.
     class Formatter
-      Format = "[%s#%d] %5s: %s\n"
+      Format = "[%s#%d] %5s: %s\n".freeze
 
       def call(severity, time, _, msg)
         Format % [format_datetime(time), Thread.current.object_id, severity,
@@ -54,18 +53,18 @@ module Cassandra
       end
 
       def format_datetime(time)
-        time.strftime("%H:%M:%S.") << "%06d " % time.usec
+        time.strftime('%H:%M:%S.') << '%06d ' % time.usec
       end
 
       def msg2str(msg)
         case msg
-          when ::String
-            msg
-          when ::Exception
-            "#{ msg.message } (#{ msg.class })\n" <<
-                (msg.backtrace || []).join("\n")
-          else
-            msg.inspect
+        when ::String
+          msg
+        when ::Exception
+          "#{msg.message} (#{msg.class})\n" <<
+            (msg.backtrace || []).join("\n")
+        else
+          msg.inspect
         end
       end
     end

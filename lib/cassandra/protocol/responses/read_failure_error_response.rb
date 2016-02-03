@@ -21,7 +21,15 @@ module Cassandra
     class ReadFailureErrorResponse < ErrorResponse
       attr_reader :consistency, :received, :blockfor, :numfailures, :data_present
 
-      def initialize(custom_payload, warnings, code, message, consistency, received, blockfor, numfailures, data_present)
+      def initialize(custom_payload,
+                     warnings,
+                     code,
+                     message,
+                     consistency,
+                     received,
+                     blockfor,
+                     numfailures,
+                     data_present)
         super(custom_payload, warnings, code, message)
 
         @consistency  = consistency
@@ -32,11 +40,25 @@ module Cassandra
       end
 
       def to_error(keyspace, statement, options, hosts, consistency, retries)
-        Errors::ReadError.new(@message, @custom_payload, @warnings, keyspace, statement, options, hosts, consistency, retries, @data_present, @consistency, @blockfor, @numfailures, @received)
+        Errors::ReadError.new(@message,
+                              @custom_payload,
+                              @warnings,
+                              keyspace,
+                              statement,
+                              options,
+                              hosts,
+                              consistency,
+                              retries,
+                              @data_present,
+                              @consistency,
+                              @blockfor,
+                              @numfailures,
+                              @received)
       end
 
       def to_s
-        "#{super} #{@consistency} #{@received} #{@blockfor} #{@numfailures} #{@data_present}"
+        "#{super} #{@consistency} #{@received} #{@blockfor} #{@numfailures} " \
+            "#{@data_present}"
       end
     end
   end

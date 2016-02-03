@@ -18,9 +18,9 @@
 
 module Cassandra
   module Auth
-    # An auth provider is a factory for {Cassandra::Auth::Authenticator authenticator} instances (or objects matching that interface). Its
-    # {#create_authenticator} will be called once for each connection that
-    # requires authentication.
+    # An auth provider is a factory for {Cassandra::Auth::Authenticator authenticator}
+    # instances (or objects matching that interface). Its {#create_authenticator} will
+    # be called once for each connection that requires authentication.
     #
     # If the authentication requires keeping state, keep that in the
     # authenticator instances, not in the auth provider.

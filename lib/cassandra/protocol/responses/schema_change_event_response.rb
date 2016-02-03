@@ -43,7 +43,7 @@ module Cassandra
           @target == other.target &&
           @arguments == other.arguments
       end
-      alias_method :==, :eql?
+      alias == eql?
 
       def hash
         @h ||= begin
@@ -59,9 +59,10 @@ module Cassandra
 
       def to_s
         if @arguments
-          %(EVENT SCHEMA_CHANGE #@change #@target "#@keyspace" "#@name" #@arguments)
+          %(EVENT SCHEMA_CHANGE #{@change} #{@target} "#{@keyspace}" "#{@name}" ) \
+              "#{@arguments}"
         else
-          %(EVENT SCHEMA_CHANGE #@change #@target "#@keyspace" "#@name")
+          %(EVENT SCHEMA_CHANGE #{@change} #{@target} "#{@keyspace}" "#{@name}")
         end
       end
 

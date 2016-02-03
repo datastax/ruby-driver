@@ -28,7 +28,16 @@ module Cassandra
       end
 
       def to_error(keyspace, statement, options, hosts, consistency, retries)
-        Errors::UnpreparedError.new(@message, @custom_payload, @warnings, keyspace, statement, options, hosts, consistency, retries, @id)
+        Errors::UnpreparedError.new(@message,
+                                    @custom_payload,
+                                    @warnings,
+                                    keyspace,
+                                    statement,
+                                    options,
+                                    hosts,
+                                    consistency,
+                                    retries,
+                                    @id)
       end
 
       def to_s

@@ -21,7 +21,13 @@ module Cassandra
     class PreparedResultResponse < ResultResponse
       attr_reader :id, :metadata, :result_metadata, :pk_idx
 
-      def initialize(custom_payload, warnings, id, metadata, result_metadata, pk_idx, trace_id)
+      def initialize(custom_payload,
+                     warnings,
+                     id,
+                     metadata,
+                     result_metadata,
+                     pk_idx,
+                     trace_id)
         super(custom_payload, warnings, trace_id)
         @id              = id
         @metadata        = metadata
@@ -30,9 +36,9 @@ module Cassandra
       end
 
       def eql?(other)
-        self.id == other.id && self.metadata == other.metadata && self.trace_id == other.trace_id
+        id == other.id && metadata == other.metadata && trace_id == other.trace_id
       end
-      alias_method :==, :eql?
+      alias == eql?
 
       def hash
         @h ||= begin
@@ -46,7 +52,7 @@ module Cassandra
 
       def to_s
         hex_id = @id.each_byte.map { |x| x.to_s(16).rjust(2, '0') }.join('')
-        %(RESULT PREPARED #{hex_id} #@metadata)
+        %(RESULT PREPARED #{hex_id} #{@metadata})
       end
 
       private

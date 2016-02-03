@@ -22,7 +22,7 @@ module Cassandra
       def eql?(rs)
         self.class === rs
       end
-      alias_method :==, :eql?
+      alias == eql?
 
       def hash
         @h ||= begin

@@ -58,14 +58,14 @@ module Cassandra
           @hosts.values
         end
       end
-      alias :hosts :each_host
+      alias hosts each_host
 
       def host(address)
         @hosts[address.to_s]
       end
 
       def has_host?(address)
-        @hosts.has_key?(address.to_s)
+        @hosts.key?(address.to_s)
       end
 
       def host_found(address, data = {})
@@ -82,7 +82,8 @@ module Cassandra
 
             host = toggle_up(host)
           else
-            @logger.debug("Host #{host.ip} metadata has been updated, it will be considered lost and found")
+            @logger.debug("Host #{host.ip} metadata has been updated, it will be " \
+                'considered lost and found')
 
             notify_lost(host)
 
@@ -143,7 +144,7 @@ module Cassandra
         ip   = address.to_s
         host = nil
 
-        return self unless @hosts.has_key?(ip)
+        return self unless @hosts.key?(ip)
 
         synchronize do
           hosts  = @hosts.dup
@@ -159,23 +160,49 @@ module Cassandra
       private
 
       def create_host(ip, data)
-        Host.new(ip, data['host_id'], data['rack'], data['data_center'], data['release_version'], Array(data['tokens']).freeze, :up)
+        Host.new(ip,
+                 data['host_id'],
+                 data['rack'],
+                 data['data_center'],
+                 data['release_version'],
+                 Array(data['tokens']).freeze,
+                 :up)
       end
 
       def toggle_up(host)
-        host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, host.tokens, :up)
+        host = Host.new(host.ip,
+                        host.id,
+                        host.rack,
+                        host.datacenter,
+                        host.release_version,
+                        host.tokens,
+                        :up)
         @logger.debug("Host #{host.ip} is up")
         @listeners.each do |listener|
-          listener.host_up(host) rescue nil
+          begin
+            listener.host_up(host)
+          rescue
+            nil
+          end
         end
         host
       end
 
       def toggle_down(host)
-        host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, host.tokens, :down)
+        host = Host.new(host.ip,
+                        host.id,
+                        host.rack,
+                        host.datacenter,
+                        host.release_version,
+                        host.tokens,
+                        :down)
         @logger.debug("Host #{host.ip} is down")
         @listeners.reverse_each do |listener|
-          listener.host_down(host) rescue nil
+          begin
+            listener.host_down(host)
+          rescue
+            nil
+          end
         end
         host
       end
@@ -183,15 +210,33 @@ module Cassandra
       def notify_lost(host)
         if host.up?
           @logger.debug("Host #{host.ip} is down and lost")
-          host = Host.new(host.ip, host.id, host.rack, host.datacenter, host.release_version, host.tokens, :down)
+          host = Host.new(host.ip,
+                          host.id,
+                          host.rack,
+                          host.datacenter,
+                          host.release_version,
+                          host.tokens,
+                          :down)
           @listeners.reverse_each do |listener|
-            listener.host_down(host) rescue nil
-            listener.host_lost(host) rescue nil
+            begin
+              listener.host_down(host)
+            rescue
+              nil
+            end
+            begin
+              listener.host_lost(host)
+            rescue
+              nil
+            end
           end
         else
           @logger.debug("Host #{host.ip} is lost")
           @listeners.reverse_each do |listener|
-            listener.host_lost(host) rescue nil
+            begin
+              listener.host_lost(host)
+            rescue
+              nil
+            end
           end
         end
       end
@@ -199,8 +244,16 @@ module Cassandra
       def notify_found(host)
         @logger.debug("Host #{host.ip} is found and up")
         @listeners.each do |listener|
-          listener.host_found(host) rescue nil
-          listener.host_up(host) rescue nil
+          begin
+            listener.host_found(host)
+          rescue
+            nil
+          end
+          begin
+            listener.host_up(host)
+          rescue
+            nil
+          end
         end
       end
     end

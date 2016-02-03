@@ -23,7 +23,17 @@ module Cassandra
     # Query execution information, such as number of retries and all tried hosts, etc.
     # @return [Cassandra::Execution::Info]
     def execution_info
-      @info ||= Execution::Info.new(@payload, @warnings, @keyspace, @statement, @options, @hosts, @consistency, @retries, @trace_id ? Execution::Trace.new(@trace_id, @client) : nil)
+      @info ||= Execution::Info.new(@payload,
+                                    @warnings,
+                                    @keyspace,
+                                    @statement,
+                                    @options,
+                                    @hosts,
+                                    @consistency,
+                                    @retries,
+                                    @trace_id ?
+                                        Execution::Trace.new(@trace_id, @client) :
+                                        nil)
     end
 
     # @return [Boolean] whether it has any rows
@@ -33,14 +43,14 @@ module Cassandra
     # @return [Integer] rows count
     def size
     end
-    alias :length :size
+    alias length size
 
     # @yieldparam row [Hash] current row
     # @return [Enumerator, self] returns Enumerator if no block given
     def each
     end
-    alias :rows :each
-    alias :each_row :each
+    alias rows each
+    alias each_row each
 
     # @return [Boolean] whether no more pages are available
     def last_page?
@@ -78,10 +88,10 @@ module Cassandra
     # @return [String, nil] current paging state as a `String` or `nil`.
     #
     # @note Although this feature exists to allow web applications to store
-    #   paging state in an [HTTP cookie](http://en.wikipedia.org/wiki/HTTP_cookie), **it is not safe to
-    #   expose without encrypting or otherwise securing it**. Paging state
-    #   contains information internal to the Apache Cassandra cluster, such as
-    #   partition key and data. Additionally, if a paging state is sent with CQL
+    #   paging state in an [HTTP cookie](http://en.wikipedia.org/wiki/HTTP_cookie),
+    #   **it is not safe to expose without encrypting or otherwise securing it**.
+    #   Paging state contains information internal to the Apache Cassandra cluster,
+    #   such as partition key and data. Additionally, if a paging state is sent with CQL
     #   statement, different from the original, the behavior of Cassandra is
     #   undefined and will likely cause a server process of the coordinator of
     #   such request to abort.
@@ -96,7 +106,19 @@ module Cassandra
     class Paged < Result
       attr_reader :paging_state
 
-      def initialize(payload, warnings, rows, paging_state, trace_id, keyspace, statement, options, hosts, consistency, retries, client, futures_factory)
+      def initialize(payload,
+                     warnings,
+                     rows,
+                     paging_state,
+                     trace_id,
+                     keyspace,
+                     statement,
+                     options,
+                     hosts,
+                     consistency,
+                     retries,
+                     client,
+                     futures_factory)
         @payload        = payload
         @warnings       = warnings
         @rows           = rows
@@ -121,7 +143,7 @@ module Cassandra
       def size
         @rows.size
       end
-      alias :length :size
+      alias length size
 
       def each(&block)
         if block_given?
@@ -131,8 +153,8 @@ module Cassandra
           @rows.each
         end
       end
-      alias :rows :each
-      alias :each_row :each
+      alias rows each
+      alias each_row each
 
       # Returns true when there are no more pages to load.
       def last_page?
@@ -160,12 +182,24 @@ module Cassandra
 
       # @private
       def inspect
-        "#<Cassandra::Result:0x#{self.object_id.to_s(16)} @rows=#{@rows.inspect} @last_page=#{@paging_state.nil?}>"
+        "#<Cassandra::Result:0x#{object_id.to_s(16)} " \
+            "@rows=#{@rows.inspect} " \
+            "@last_page=#{@paging_state.nil?}>"
       end
     end
 
     class Void < Result
-      def initialize(payload, warnings, trace_id, keyspace, statement, options, hosts, consistency, retries, client, futures_factory)
+      def initialize(payload,
+                     warnings,
+                     trace_id,
+                     keyspace,
+                     statement,
+                     options,
+                     hosts,
+                     consistency,
+                     retries,
+                     client,
+                     futures_factory)
         @payload     = payload
         @warnings    = warnings
         @trace_id    = trace_id
@@ -188,7 +222,7 @@ module Cassandra
       def size
         0
       end
-      alias :length :size
+      alias length size
 
       # Iterates over each row in the result set.
       #
@@ -202,8 +236,8 @@ module Cassandra
           EMPTY_LIST.each
         end
       end
-      alias :rows :each
-      alias :each_row :each
+      alias rows each
+      alias each_row each
 
       # Returns true when there are no more pages to load.
       #
@@ -234,7 +268,7 @@ module Cassandra
       end
 
       def inspect
-        "#<Cassandra::Result:0x#{self.object_id.to_s(16)} @rows=[] @last_page=true>"
+        "#<Cassandra::Result:0x#{object_id.to_s(16)} @rows=[] @last_page=true>"
       end
     end
   end

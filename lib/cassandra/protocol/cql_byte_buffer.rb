@@ -20,7 +20,7 @@ module Cassandra
   module Protocol
     class CqlByteBuffer < Ione::ByteBuffer
       def inspect
-        "#<#{self.class.name}:0x#{self.object_id.to_s(16)} #{to_str.inspect}>"
+        "#<#{self.class.name}:0x#{object_id.to_s(16)} #{to_str.inspect}>"
       end
 
       def read_unsigned_byte
@@ -28,22 +28,20 @@ module Cassandra
       rescue RangeError => e
         raise Errors::DecodingError, e.message, e.backtrace
       end
-      
-      def read_varint(len=bytesize, signed=true)
+
+      def read_varint(len = bytesize, signed = true)
         bytes = read(len)
         n = 0
         bytes.each_byte do |b|
           n = (n << 8) | b
         end
-        if signed && bytes.getbyte(0) & 0x80 == 0x80
-          n -= 2**(bytes.length * 8)
-        end
+        n -= 2**(bytes.length * 8) if signed && bytes.getbyte(0) & 0x80 == 0x80
         n
       rescue RangeError => e
         raise Errors::DecodingError, e.message, e.backtrace
       end
 
-      def read_decimal(len=bytesize)
+      def read_decimal(len = bytesize)
         size = read_signed_int
         number_string = read_varint(len - 4).to_s
         if number_string.length <= size
@@ -58,7 +56,8 @@ module Cassandra
         else
           fraction_string = number_string[0, number_string.length - size]
           fraction_string << DECIMAL_POINT
-          fraction_string << number_string[number_string.length - size, number_string.length]
+          fraction_string <<
+            number_string[number_string.length - size, number_string.length]
         end
         BigDecimal.new(fraction_string)
       rescue Errors::DecodingError => e
@@ -97,7 +96,7 @@ module Cassandra
         raise Errors::DecodingError,
               "Not enough bytes available to decode an int: #{e.message}", e.backtrace
       end
-      
+
       def read_unsigned_short
         read_short
       rescue RangeError => e
@@ -126,7 +125,7 @@ module Cassandra
               e.backtrace
       end
 
-      def read_uuid(impl=Uuid)
+      def read_uuid(impl = Uuid)
         impl.new(read_varint(16, false))
       rescue Errors::DecodingError => e
         raise Errors::DecodingError,
@@ -158,9 +157,7 @@ module Cassandra
       def read_option
         id = read_unsigned_short
         value = nil
-        if block_given?
-          value = yield id, self
-        end
+        value = yield id, self if block_given?
         [id, value]
       end
 
@@ -263,7 +260,7 @@ module Cassandra
         append_int((v >> 96) & 0xffffffff)
         append_int((v >> 64) & 0xffffffff)
         append_int((v >> 32) & 0xffffffff)
-        append_int((v >>  0) & 0xffffffff)
+        append_int((v >> 0) & 0xffffffff)
       end
 
       def append_string_list(strs)
@@ -361,7 +358,7 @@ module Cassandra
       def eql?(other)
         other.eql?(to_str)
       end
-      alias_method :==, :eql?
+      alias == eql?
 
       private
 

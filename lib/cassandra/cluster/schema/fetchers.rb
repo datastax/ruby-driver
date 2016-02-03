@@ -100,7 +100,8 @@ module Cassandra
         end
 
         def fetch_function(connection, keyspace_name, function_name, function_args)
-          select_function(connection, keyspace_name, function_name, function_args).map do |rows_functions|
+          select_function(connection, keyspace_name, function_name, function_args).
+              map do |rows_functions|
             if rows_functions.empty?
               nil
             else
@@ -110,11 +111,13 @@ module Cassandra
         end
 
         def fetch_aggregate(connection, keyspace_name, aggregate_name, aggregate_args)
-          select_aggregate(connection, keyspace_name, aggregate_name, aggregate_args).map do |rows_aggregates|
+          select_aggregate(connection, keyspace_name, aggregate_name, aggregate_args).
+              map do |rows_aggregates|
             if rows_aggregates.empty?
               nil
             else
-              create_aggregate(rows_aggregates.first, @schema.keyspace(keyspace_name).send(:raw_functions))
+              create_aggregate(rows_aggregates.first, @schema.keyspace(keyspace_name).
+                  send(:raw_functions))
             end
           end
         end
@@ -191,7 +194,8 @@ module Cassandra
 
         def send_select_request(connection, cql, params = EMPTY_LIST, types = EMPTY_LIST)
           backtrace = caller
-          connection.send_request(Protocol::QueryRequest.new(cql, params, types, :one)).map do |r|
+          connection.send_request(
+              Protocol::QueryRequest.new(cql, params, types, :one)).map do |r|
             case r
             when Protocol::RowsResultResponse
               r.rows
@@ -225,11 +229,24 @@ module Cassandra
           SELECT_KEYSPACES        = 'SELECT * FROM system.schema_keyspaces'.freeze
           SELECT_TABLES           = 'SELECT * FROM system.schema_columnfamilies'.freeze
           SELECT_COLUMNS          = 'SELECT * FROM system.schema_columns'.freeze
-          SELECT_KEYSPACE         = 'SELECT * FROM system.schema_keyspaces WHERE keyspace_name = \'%s\''.freeze
-          SELECT_KEYSPACE_TABLES  = 'SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = \'%s\''.freeze
-          SELECT_KEYSPACE_COLUMNS = 'SELECT * FROM system.schema_columns WHERE keyspace_name = \'%s\''.freeze
-          SELECT_TABLE            = 'SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = \'%s\' AND columnfamily_name = \'%s\''.freeze
-          SELECT_TABLE_COLUMNS    = 'SELECT * FROM system.schema_columns WHERE keyspace_name = \'%s\' AND columnfamily_name = \'%s\''.freeze
+          SELECT_KEYSPACE         =
+              'SELECT * ' \
+              'FROM system.schema_keyspaces ' \
+              'WHERE keyspace_name = \'%s\''.freeze
+          SELECT_KEYSPACE_TABLES  =
+              'SELECT * ' \
+              'FROM system.schema_columnfamilies ' \
+              'WHERE keyspace_name = \'%s\''.freeze
+          SELECT_KEYSPACE_COLUMNS =
+              'SELECT * FROM system.schema_columns WHERE keyspace_name = \'%s\''.freeze
+          SELECT_TABLE            =
+              'SELECT * ' \
+              'FROM system.schema_columnfamilies ' \
+              'WHERE keyspace_name = \'%s\' AND columnfamily_name = \'%s\''.freeze
+          SELECT_TABLE_COLUMNS    =
+              'SELECT * ' \
+              'FROM system.schema_columns ' \
+              'WHERE keyspace_name = \'%s\' AND columnfamily_name = \'%s\''.freeze
 
           include Fetcher
 
@@ -269,7 +286,8 @@ module Cassandra
           end
 
           def select_table_columns(connection, keyspace_name, table_name)
-            send_select_request(connection, SELECT_TABLE_COLUMNS % [keyspace_name, table_name])
+            send_select_request(connection,
+                                SELECT_TABLE_COLUMNS % [keyspace_name, table_name])
           end
 
           def create_replication(keyspace_data)
@@ -304,8 +322,13 @@ module Cassandra
               tables[table_name] = create_table(row, lookup_columns[table_name])
             end
 
-            Keyspace.new(keyspace_name, keyspace_data['durable_writes'],
-                         replication, tables, types, functions, aggregates)
+            Keyspace.new(keyspace_name,
+                         keyspace_data['durable_writes'],
+                         replication,
+                         tables,
+                         types,
+                         functions,
+                         aggregates)
           end
 
           def create_table(table_data, rows_columns)
@@ -321,7 +344,8 @@ module Cassandra
                 is_compact = false
                 has_value  = false
                 clustering_size = size - 2
-              elsif column_aliases.size == size - 1 && comparator.results.last.first == Cassandra::Types.varchar
+              elsif column_aliases.size == size - 1 &&
+                  comparator.results.last.first == Cassandra::Types.varchar
                 is_compact = false
                 has_value  = false
                 clustering_size = size - 1
@@ -346,7 +370,8 @@ module Cassandra
             clustering_order   = []
 
             compaction_strategy = create_compaction_strategy(table_data)
-            table_options = create_table_options(table_data, compaction_strategy, is_compact)
+            table_options =
+                create_table_options(table_data, compaction_strategy, is_compact)
             table_columns = {}
             other_columns = []
 
@@ -362,7 +387,8 @@ module Cassandra
               column_alias = column_aliases.fetch(i) { "column#{i + 1}" }
               type, order, is_frozen = comparator.results.fetch(i)
 
-              clustering_columns[i] = Column.new(column_alias, type, order, nil, false, is_frozen)
+              clustering_columns[i] =
+                  Column.new(column_alias, type, order, nil, false, is_frozen)
               clustering_order[i]   = order
             end
 
@@ -371,8 +397,10 @@ module Cassandra
               value_alias ||= 'value'
 
               unless value_alias.empty?
-                type, order, is_frozen = @type_parser.parse(table_data['default_validator']).results.first
-                other_columns << Column.new(value_alias, type, order, nil, false, is_frozen)
+                type, order, is_frozen =
+                    @type_parser.parse(table_data['default_validator']).results.first
+                other_columns <<
+                    Column.new(value_alias, type, order, nil, false, is_frozen)
               end
             end
 
@@ -392,22 +420,30 @@ module Cassandra
               table_columns[column.name] = column
             end
 
-            Table.new(keyspace_name, table_name, partition_key, clustering_columns,
-                      table_columns, table_options, clustering_order)
+            Table.new(keyspace_name,
+                      table_name,
+                      partition_key,
+                      clustering_columns,
+                      table_columns,
+                      table_options,
+                      clustering_order)
           end
 
           def create_column(column_data)
             name      = column_data['column_name']
             is_static = (column_data['type'] == 'STATIC')
-            type, order, is_frozen = @type_parser.parse(column_data['validator']).results.first
+            type, order, is_frozen =
+                @type_parser.parse(column_data['validator']).results.first
 
             if column_data['index_type'].nil?
               index = nil
-            elsif column_data['index_type'].to_s.upcase == 'CUSTOM' || !column_data['index_options']
+            elsif column_data['index_type'].to_s.upcase == 'CUSTOM' ||
+                !column_data['index_options']
               index = Column::Index.new(column_data['index_name'])
             else
               options = ::JSON.load(column_data['index_options'])
-              index   = Column::Index.new(column_data['index_name'], options && options['class_name'])
+              index   = Column::Index.new(column_data['index_name'],
+                                          options && options['class_name'])
             end
 
             Column.new(name, type, order, index, is_static, is_frozen)
@@ -422,7 +458,10 @@ module Cassandra
 
           def create_table_options(table_data, compaction_strategy, is_compact)
             compression_parameters = ::JSON.load(table_data['compression_parameters'])
-            compression_parameters['sstable_compression'].slice!(COMPRESSION_PACKAGE_PREFIX) if compression_parameters['sstable_compression']
+            if compression_parameters['sstable_compression']
+              compression_parameters['sstable_compression'].
+                  slice!(COMPRESSION_PACKAGE_PREFIX)
+            end
             Table::Options.new(
               table_data['comment'],
               table_data['read_repair_chance'],
@@ -446,11 +485,20 @@ module Cassandra
         end
 
         class V2_0_x < V1_2_x
-          SELECT_KEYSPACE           = 'SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?'.freeze
-          SELECT_KEYSPACE_TABLES    = 'SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ?'.freeze
-          SELECT_KEYSPACE_COLUMNS   = 'SELECT * FROM system.schema_columns WHERE keyspace_name = ?'.freeze
-          SELECT_TABLE              = 'SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ? AND columnfamily_name = ?'.freeze
-          SELECT_TABLE_COLUMNS      = 'SELECT * FROM system.schema_columns WHERE keyspace_name = ? AND columnfamily_name = ?'.freeze
+          SELECT_KEYSPACE           =
+              'SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_TABLES    =
+              'SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_COLUMNS   =
+              'SELECT * FROM system.schema_columns WHERE keyspace_name = ?'.freeze
+          SELECT_TABLE              =
+              'SELECT * ' \
+              'FROM system.schema_columnfamilies ' \
+              'WHERE keyspace_name = ? AND columnfamily_name = ?'.freeze
+          SELECT_TABLE_COLUMNS      =
+              'SELECT * ' \
+              'FROM system.schema_columns ' \
+              'WHERE keyspace_name = ? AND columnfamily_name = ?'.freeze
 
           private
 
@@ -501,11 +549,18 @@ module Cassandra
             end
 
             compaction_strategy = create_compaction_strategy(table_data)
-            is_compact    = (clustering_size != comparator.results.size - 1) || !comparator.collections
-            table_options = create_table_options(table_data, compaction_strategy, is_compact)
+            is_compact    = (clustering_size != comparator.results.size - 1) ||
+                !comparator.collections
+            table_options =
+                create_table_options(table_data, compaction_strategy, is_compact)
 
-            Table.new(keyspace_name, table_name, partition_key, clustering_columns,
-                      table_columns, table_options, clustering_order)
+            Table.new(keyspace_name,
+                      table_name,
+                      partition_key,
+                      clustering_columns,
+                      table_columns,
+                      table_options,
+                      clustering_order)
           end
 
           def select_keyspace(connection, keyspace_name)
@@ -540,7 +595,10 @@ module Cassandra
 
           def create_table_options(table_data, compaction_strategy, is_compact)
             compression_parameters = ::JSON.load(table_data['compression_parameters'])
-            compression_parameters['sstable_compression'].slice!(COMPRESSION_PACKAGE_PREFIX) if compression_parameters['sstable_compression']
+            if compression_parameters['sstable_compression']
+              compression_parameters['sstable_compression'].
+                  slice!(COMPRESSION_PACKAGE_PREFIX)
+            end
             Table::Options.new(
               table_data['comment'],
               table_data['read_repair_chance'],
@@ -565,8 +623,12 @@ module Cassandra
 
         class V2_1_x < V2_0_x
           SELECT_TYPES          = 'SELECT * FROM system.schema_usertypes'.freeze
-          SELECT_KEYSPACE_TYPES = 'SELECT * FROM system.schema_usertypes WHERE keyspace_name = ?'.freeze
-          SELECT_TYPE           = 'SELECT * FROM system.schema_usertypes WHERE keyspace_name = ? AND type_name = ?'.freeze
+          SELECT_KEYSPACE_TYPES =
+              'SELECT * FROM system.schema_usertypes WHERE keyspace_name = ?'.freeze
+          SELECT_TYPE           =
+              'SELECT * ' \
+              'FROM system.schema_usertypes ' \
+              'WHERE keyspace_name = ? AND type_name = ?'.freeze
 
           private
 
@@ -605,7 +667,10 @@ module Cassandra
 
           def create_table_options(table_data, compaction_strategy, is_compact)
             compression_parameters = ::JSON.load(table_data['compression_parameters'])
-            compression_parameters['sstable_compression'].slice!(COMPRESSION_PACKAGE_PREFIX) if compression_parameters['sstable_compression']
+            if compression_parameters['sstable_compression']
+              compression_parameters['sstable_compression'].
+                  slice!(COMPRESSION_PACKAGE_PREFIX)
+            end
             Table::Options.new(
               table_data['comment'],
               table_data['read_repair_chance'],
@@ -631,12 +696,23 @@ module Cassandra
         class V2_2_x < V2_1_x
           SELECT_FUNCTIONS           = 'SELECT * FROM system.schema_functions'.freeze
           SELECT_AGGREGATES          = 'SELECT * FROM system.schema_aggregates'.freeze
-          SELECT_KEYSPACE_FUNCTIONS  = 'SELECT * FROM system.schema_functions WHERE keyspace_name = ?'.freeze
-          SELECT_KEYSPACE_AGGREGATES = 'SELECT * FROM system.schema_aggregates WHERE keyspace_name = ?'.freeze
-          SELECT_FUNCTION            = 'SELECT * FROM system.schema_functions WHERE keyspace_name = ? AND function_name = ? AND argument_types = ?'.freeze
-          SELECT_AGGREGATE           = 'SELECT * FROM system.schema_aggregates WHERE keyspace_name = ? AND aggregate_name = ? AND argument_types = ?'.freeze
+          SELECT_KEYSPACE_FUNCTIONS  =
+              'SELECT * FROM system.schema_functions WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_AGGREGATES =
+              'SELECT * FROM system.schema_aggregates WHERE keyspace_name = ?'.freeze
+          SELECT_FUNCTION            =
+              'SELECT * ' \
+              'FROM system.schema_functions ' \
+              'WHERE keyspace_name = ? AND function_name = ? ' \
+              'AND argument_types = ?'.freeze
+          SELECT_AGGREGATE           =
+              'SELECT * ' \
+              'FROM system.schema_aggregates ' \
+              'WHERE keyspace_name = ? AND aggregate_name = ? ' \
+              'AND argument_types = ?'.freeze
 
-          # parse an array of string argument types and return an array of [Cassandra::Type]s.
+          # parse an array of string argument types and return an array of
+          # [Cassandra::Type]s.
           # @param connection a connection to a Cassandra node.
           # @param keyspace_name [String] name of the keyspace.
           # @param argument_types [Array<String>] array of argument types.
@@ -653,35 +729,59 @@ module Cassandra
             keyspace_name  = function_data['keyspace_name']
             function_name  = function_data['function_name']
             function_lang  = function_data['language']
-            function_type  = @type_parser.parse(function_data['return_type']).results.first.first
+            function_type  =
+                @type_parser.parse(function_data['return_type']).results.first.first
             function_body  = function_data['body']
             called_on_null = function_data['called_on_null_input']
 
             arguments = []
 
-            Array(function_data['argument_names']).zip(Array(function_data['argument_types'])) do |argument_name, fqcn|
+            Array(function_data['argument_names']).
+                zip(Array(function_data['argument_types'])) do |argument_name, fqcn|
               argument_type = @type_parser.parse(fqcn).results.first.first
               arguments << Argument.new(argument_name, argument_type)
             end
 
-            Function.new(keyspace_name, function_name, function_lang, function_type, arguments, function_body, called_on_null)
+            Function.new(keyspace_name,
+                         function_name,
+                         function_lang,
+                         function_type,
+                         arguments,
+                         function_body,
+                         called_on_null)
           end
 
           def create_aggregate(aggregate_data, functions)
             keyspace_name  = aggregate_data['keyspace_name']
             aggregate_name = aggregate_data['aggregate_name']
-            aggregate_type = @type_parser.parse(aggregate_data['return_type']).results.first.first
-            argument_types = aggregate_data['argument_types'].map {|fqcn| @type_parser.parse(fqcn).results.first.first}.freeze
-            state_type     = @type_parser.parse(aggregate_data['state_type']).results.first.first
-            initial_state  = Util.encode_object(Protocol::Coder.read_value_v4(Protocol::CqlByteBuffer.new.append_bytes(aggregate_data['initcond']), state_type))
+            aggregate_type =
+                @type_parser.parse(aggregate_data['return_type']).results.first.first
+            argument_types = aggregate_data['argument_types'].map do |fqcn|
+              @type_parser.parse(fqcn).results.first.first
+            end.freeze
+            state_type     =
+                @type_parser.parse(aggregate_data['state_type']).results.first.first
+            initial_state  = Util.encode_object(
+                Protocol::Coder.read_value_v4(
+                    Protocol::CqlByteBuffer.new.append_bytes(aggregate_data['initcond']),
+                    state_type))
 
             # The state-function takes arguments: first the stype, then the args of the aggregate.
-            state_function = functions.get(aggregate_data['state_func'], [state_type].concat(argument_types))
+            state_function = functions.get(aggregate_data['state_func'],
+                                           [state_type].concat(argument_types))
 
             # The final-function takes an stype argument.
-            final_function = functions.get(aggregate_data['final_func'], [state_type])
+            final_function = functions.get(aggregate_data['final_func'],
+                                           [state_type])
 
-            Aggregate.new(keyspace_name, aggregate_name, aggregate_type, argument_types, state_type, initial_state, state_function, final_function)
+            Aggregate.new(keyspace_name,
+                          aggregate_name,
+                          aggregate_type,
+                          argument_types,
+                          state_type,
+                          initial_state,
+                          state_function,
+                          final_function)
           end
 
           def select_functions(connection)
@@ -727,23 +827,47 @@ module Cassandra
           SELECT_INDEXES    = "SELECT * FROM system_schema.indexes".freeze
           SELECT_VIEWS      = "SELECT * FROM system_schema.materialized_views".freeze
 
-          SELECT_KEYSPACE            = 'SELECT * FROM system_schema.keyspaces WHERE keyspace_name = ?'.freeze
-          SELECT_KEYSPACE_TABLES     = 'SELECT * FROM system_schema.tables WHERE keyspace_name = ?'.freeze
-          SELECT_KEYSPACE_COLUMNS    = 'SELECT * FROM system_schema.columns WHERE keyspace_name = ?'.freeze
-          SELECT_KEYSPACE_TYPES      = "SELECT * FROM system_schema.types WHERE keyspace_name = ?".freeze
-          SELECT_KEYSPACE_FUNCTIONS  = 'SELECT * FROM system_schema.functions WHERE keyspace_name = ?'.freeze
-          SELECT_KEYSPACE_AGGREGATES = 'SELECT * FROM system_schema.aggregates WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE            =
+              'SELECT * FROM system_schema.keyspaces WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_TABLES     =
+              'SELECT * FROM system_schema.tables WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_COLUMNS    =
+              'SELECT * FROM system_schema.columns WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_TYPES      =
+              "SELECT * FROM system_schema.types WHERE keyspace_name = ?".freeze
+          SELECT_KEYSPACE_FUNCTIONS  =
+              'SELECT * FROM system_schema.functions WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_AGGREGATES =
+              'SELECT * FROM system_schema.aggregates WHERE keyspace_name = ?'.freeze
 
-          SELECT_TABLE         = 'SELECT * FROM system_schema.tables WHERE keyspace_name = ? AND table_name = ?'.freeze
-          SELECT_TABLE_COLUMNS = 'SELECT * FROM system_schema.columns WHERE keyspace_name = ? AND table_name = ?'.freeze
+          SELECT_TABLE         =
+              'SELECT * ' \
+              'FROM system_schema.tables ' \
+              'WHERE keyspace_name = ? AND table_name = ?'.freeze
+          SELECT_TABLE_COLUMNS =
+              'SELECT * ' \
+              'FROM system_schema.columns ' \
+              'WHERE keyspace_name = ? AND table_name = ?'.freeze
 
-          SELECT_TYPE = 'SELECT * FROM system_schema.types WHERE keyspace_name = ? AND type_name = ?'.freeze
+          SELECT_TYPE =
+              'SELECT * ' \
+              'FROM system_schema.types ' \
+              'WHERE keyspace_name = ? AND type_name = ?'.freeze
 
-          SELECT_FUNCTION = 'SELECT * FROM system_schema.functions WHERE keyspace_name = ? AND function_name = ? AND argument_types = ?'.freeze
+          SELECT_FUNCTION =
+              'SELECT * ' \
+              'FROM system_schema.functions ' \
+              'WHERE keyspace_name = ? AND function_name = ? ' \
+              'AND argument_types = ?'.freeze
 
-          SELECT_AGGREGATE = 'SELECT * FROM system_schema.aggregates WHERE keyspace_name = ? AND aggregate_name = ? AND argument_types = ?'.freeze
+          SELECT_AGGREGATE =
+              'SELECT * ' \
+              'FROM system_schema.aggregates ' \
+              'WHERE keyspace_name = ? AND aggregate_name = ? ' \
+              'AND argument_types = ?'.freeze
 
-          # parse an array of string argument types and return an array of [Cassandra::Type]s.
+          # parse an array of string argument types and return an array of
+          # [Cassandra::Type]s.
           # @param connection a connection to a Cassandra node.
           # @param keyspace_name [String] name of the keyspace.
           # @param argument_types [Array<String>] array of argument types.
@@ -858,29 +982,50 @@ module Cassandra
 
             arguments = []
 
-            function_data['argument_names'].zip(function_data['argument_types']) do |argument_name, argument_type|
-              arguments << Argument.new(argument_name, @type_parser.parse(argument_type, types).first)
+            function_data['argument_names'].
+                zip(function_data['argument_types']) do |argument_name, argument_type|
+              arguments << Argument.new(argument_name,
+                                        @type_parser.parse(argument_type, types).first)
             end
 
-            Function.new(keyspace_name, function_name, function_lang, function_type, arguments, function_body, called_on_null)
+            Function.new(keyspace_name,
+                         function_name,
+                         function_lang,
+                         function_type,
+                         arguments,
+                         function_body,
+                         called_on_null)
           end
 
           def create_aggregate(aggregate_data, functions, types = nil)
             keyspace_name  = aggregate_data['keyspace_name']
             aggregate_name = aggregate_data['aggregate_name']
             types        ||= @schema.keyspace(keyspace_name).send(:raw_types)
-            aggregate_type = @type_parser.parse(aggregate_data['return_type'], types).first
-            argument_types = aggregate_data['argument_types'].map {|argument_type| @type_parser.parse(argument_type, types).first}.freeze
+            aggregate_type =
+                @type_parser.parse(aggregate_data['return_type'], types).first
+            argument_types = aggregate_data['argument_types'].map do |argument_type|
+              @type_parser.parse(argument_type, types).first
+            end.freeze
             state_type     = @type_parser.parse(aggregate_data['state_type'], types).first
             initial_state  = aggregate_data['initcond'] || 'null'
 
-            # The state-function takes arguments: first the stype, then the args of the aggregate.
-            state_function = functions.get(aggregate_data['state_func'], [state_type].concat(argument_types))
+            # The state-function takes arguments: first the stype, then the args of the
+            # aggregate.
+            state_function = functions.get(aggregate_data['state_func'],
+                                           [state_type].concat(argument_types))
 
             # The final-function takes an stype argument.
-            final_function = functions.get(aggregate_data['final_func'], [state_type])
+            final_function = functions.get(aggregate_data['final_func'],
+                                           [state_type])
 
-            Aggregate.new(keyspace_name, aggregate_name, aggregate_type, argument_types, state_type, initial_state, state_function, final_function)
+            Aggregate.new(keyspace_name,
+                          aggregate_name,
+                          aggregate_type,
+                          argument_types,
+                          state_type,
+                          initial_state,
+                          state_function,
+                          final_function)
           end
 
           def create_types(rows_types, types)
@@ -945,8 +1090,13 @@ module Cassandra
               tables[table_name] = create_table(row, lookup_columns[table_name], types)
             end
 
-            Keyspace.new(keyspace_name, keyspace_data['durable_writes'],
-                         replication, tables, types, functions, aggregates)
+            Keyspace.new(keyspace_name,
+                         keyspace_data['durable_writes'],
+                         replication,
+                         tables,
+                         types,
+                         functions,
+                         aggregates)
           end
 
           def create_replication(keyspace_data)
@@ -965,7 +1115,9 @@ module Cassandra
 
           def create_table_options(table_data, compaction_strategy, is_compact)
             compression = table_data['compression']
-            compression['class'].slice!(COMPRESSION_PACKAGE_PREFIX) if compression['class']
+            if compression['class']
+              compression['class'].slice!(COMPRESSION_PACKAGE_PREFIX)
+            end
 
             Table::Options.new(
               table_data['comment'],
@@ -1050,10 +1202,16 @@ module Cassandra
             end
 
             compaction_strategy = create_compaction_strategy(table_data)
-            table_options = create_table_options(table_data, compaction_strategy, is_compact)
+            table_options =
+                create_table_options(table_data, compaction_strategy, is_compact)
 
-            Table.new(keyspace_name, table_name, partition_key, clustering_columns,
-                      table_columns, table_options, clustering_order)
+            Table.new(keyspace_name,
+                      table_name,
+                      partition_key,
+                      clustering_columns,
+                      table_columns,
+                      table_options,
+                      clustering_order)
           end
         end
 
@@ -1126,13 +1284,16 @@ module Cassandra
             return Ione::Future.failed(e)
           end
 
-          # parse an array of string argument types and return an array of [Cassandra::Type]s.
+          # parse an array of string argument types and return an array of
+          # [Cassandra::Type]s.
           # @param connection a connection to a Cassandra node.
           # @param keyspace_name [String] name of the keyspace.
           # @param argument_types [Array<String>] array of argument types.
           # @return [Array<Cassandra::Type>] array of parsed types.
           def parse_argument_types(connection, keyspace_name, argument_types)
-            find_fetcher(connection).parse_argument_types(connection, keyspace_name, argument_types)
+            find_fetcher(connection).parse_argument_types(connection,
+                                                          keyspace_name,
+                                                          argument_types)
           end
 
           private

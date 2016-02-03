@@ -83,7 +83,7 @@ module Cassandra
 
       # @private
       def inspect
-        "#<#{self.class.name}:0x#{self.object_id.to_s(16)}>"
+        "#<#{self.class.name}:0x#{object_id.to_s(16)}>"
       end
     end
 

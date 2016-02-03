@@ -28,8 +28,8 @@ module Cassandra
     # @return [Time]
     def to_time
       t = time_bits - GREGORIAN_OFFSET
-      seconds = t/10_000_000
-      microseconds = (t - seconds * 10_000_000)/10.0
+      seconds = t / 10_000_000
+      microseconds = (t - seconds * 10_000_000) / 10.0
 
       ::Time.at(seconds, microseconds).utc
     end
@@ -52,10 +52,10 @@ module Cassandra
     # @return [Integer] `-1` when less than `other`, `0` when equal to `other`
     #   and `1` when greater than `other`
     def <=>(other)
-      return nil unless other.kind_of?(Cassandra::Uuid)
-      c = self.value <=> other.value
+      return nil unless other.is_a?(Cassandra::Uuid)
+      c = value <=> other.value
       return c if c == 0 || !other.is_a?(Cassandra::TimeUuid)
-      self.time_bits <=> other.time_bits
+      time_bits <=> other.time_bits
     end
 
     protected

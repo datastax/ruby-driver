@@ -45,9 +45,9 @@ module Cassandra
     # @return [Boolean] whether this FunctionCollection is equal to the other
     def eql?(other)
       other.is_a?(FunctionCollection) &&
-          @function_hash == other.raw_functions
+        @function_hash == other.raw_functions
     end
-    alias :== :eql?
+    alias == eql?
 
     def hash
       @function_hash.hash
@@ -69,10 +69,11 @@ module Cassandra
         @function_hash.values
       end
     end
-    alias :functions :each_function
+    alias functions each_function
 
     def inspect
-      "#<Cassandra::FunctionCollection:0x#{self.object_id.to_s(16)} @function_hash=#{@function_hash.inspect}>"
+      "#<Cassandra::FunctionCollection:0x#{object_id.to_s(16)} " \
+          "@function_hash=#{@function_hash.inspect}>"
     end
 
     protected

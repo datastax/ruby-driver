@@ -37,9 +37,9 @@ module Cassandra
           private
 
           # @private
-          LONG_MIN = -2 ** 63
+          LONG_MIN = -2**63
           # @private
-          LONG_MAX = 2 ** 63 - 1
+          LONG_MAX = 2**63 - 1
         end
       end
     end

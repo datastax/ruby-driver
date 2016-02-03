@@ -21,7 +21,15 @@ module Cassandra
     class WriteFailureErrorResponse < ErrorResponse
       attr_reader :consistency, :received, :blockfor, :numfailures, :write_type
 
-      def initialize(custom_payload, warnings, code, message, consistency, received, blockfor, numfailures, write_type)
+      def initialize(custom_payload,
+                     warnings,
+                     code,
+                     message,
+                     consistency,
+                     received,
+                     blockfor,
+                     numfailures,
+                     write_type)
         super(custom_payload, warnings, code, message)
 
         write_type.downcase!
@@ -34,11 +42,25 @@ module Cassandra
       end
 
       def to_error(keyspace, statement, options, hosts, consistency, retries)
-        Errors::WriteError.new(@message, @custom_payload, @warnings, keyspace, statement, options, hosts, consistency, retries, @write_type, @consistency, @blockfor, @numfailures, @received)
+        Errors::WriteError.new(@message,
+                               @custom_payload,
+                               @warnings,
+                               keyspace,
+                               statement,
+                               options,
+                               hosts,
+                               consistency,
+                               retries,
+                               @write_type,
+                               @consistency,
+                               @blockfor,
+                               @numfailures,
+                               @received)
       end
 
       def to_s
-        "#{super} #{@write_type} #{@consistency} #{@blockfor} #{@numfailures} #{@received}"
+        "#{super} #{@write_type} #{@consistency} #{@blockfor} " \
+            "#{@numfailures} #{@received}"
       end
     end
   end

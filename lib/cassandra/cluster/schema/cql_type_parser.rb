@@ -40,9 +40,7 @@ module Cassandra
         private
 
         def lookup_type(node, types)
-          if node.name == 'frozen'
-            return lookup_type(node.children.first, types)
-          end
+          return lookup_type(node.children.first, types) if node.name == 'frozen'
 
           case node.name
           when 'text'              then Cassandra::Types.text
@@ -64,13 +62,20 @@ module Cassandra
           when 'smallint'          then Cassandra::Types.smallint
           when 'time'              then Cassandra::Types.time
           when 'tinyint'           then Cassandra::Types.tinyint
-          when 'map'               then Cassandra::Types.map(*node.children.map { |t| lookup_type(t, types)})
-          when 'set'               then Cassandra::Types.set(lookup_type(node.children.first, types))
-          when 'list'              then Cassandra::Types.list(lookup_type(node.children.first, types))
-          when 'tuple'             then Cassandra::Types.tuple(*node.children.map { |t| lookup_type(t, types)})
-          when 'empty'             then Cassandra::Types.custom('org.apache.cassandra.db.marshal.EmptyType')
+          when 'map'               then
+            Cassandra::Types.map(*node.children.map { |t| lookup_type(t, types)})
+          when 'set'               then
+            Cassandra::Types.set(lookup_type(node.children.first, types))
+          when 'list'              then
+            Cassandra::Types.list(lookup_type(node.children.first, types))
+          when 'tuple'             then
+            Cassandra::Types.tuple(*node.children.map { |t| lookup_type(t, types)})
+          when 'empty'             then
+            Cassandra::Types.custom('org.apache.cassandra.db.marshal.EmptyType')
           else
-            types.fetch(node.name) { raise IncompleteTypeError, "unable to lookup type #{node.name.inspect}" }
+            types.fetch(node.name) do
+              raise IncompleteTypeError, "unable to lookup type #{node.name.inspect}"
+            end
           end
         end
 

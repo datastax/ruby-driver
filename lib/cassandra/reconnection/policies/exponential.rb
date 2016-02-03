@@ -39,11 +39,11 @@ module Cassandra
           def backoff
             new_interval = @interval * @exponent
 
-            if new_interval >= @max
-              @interval = @max
-            else
-              @interval = new_interval
-            end
+            @interval = if new_interval >= @max
+                          @max
+                        else
+                          new_interval
+                        end
           end
         end
 

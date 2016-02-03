@@ -53,9 +53,12 @@ module Cassandra
           @password = password
         end
 
-        # Returns a Password Authenticator only if `org.apache.cassandra.auth.PasswordAuthenticator` is given.
-        # @param authentication_class [String] must equal to `org.apache.cassandra.auth.PasswordAuthenticator`
-        # @return [Cassandra::Auth::Authenticator] when `authentication_class == "org.apache.cassandra.auth.PasswordAuthenticator"`
+        # Returns a Password Authenticator only if
+        # `org.apache.cassandra.auth.PasswordAuthenticator` is given.
+        # @param authentication_class [String] must equal to
+        #   `org.apache.cassandra.auth.PasswordAuthenticator`
+        # @return [Cassandra::Auth::Authenticator] when `authentication_class ==
+        #    "org.apache.cassandra.auth.PasswordAuthenticator"`
         # @return [nil] for all other values of `authentication_class`
         def create_authenticator(authentication_class)
           if authentication_class == PASSWORD_AUTHENTICATOR_FQCN
@@ -66,7 +69,8 @@ module Cassandra
         private
 
         # @private
-        PASSWORD_AUTHENTICATOR_FQCN = 'org.apache.cassandra.auth.PasswordAuthenticator'.freeze
+        PASSWORD_AUTHENTICATOR_FQCN =
+          'org.apache.cassandra.auth.PasswordAuthenticator'.freeze
       end
     end
   end

@@ -88,21 +88,26 @@ module Cassandra
       #
       # @return [self]
       def add(statement, options = nil)
-        if options.is_a?(::Hash)
-          options = @options.override(options)
-        else
-          options = @options
-        end
+        options = if options.is_a?(::Hash)
+                    @options.override(options)
+                  else
+                    @options
+                  end
 
         case statement
         when String
-          @statements << Simple.new(statement, options.arguments, options.type_hints, options.idempotent?)
+          @statements << Simple.new(statement,
+                                    options.arguments,
+                                    options.type_hints,
+                                    options.idempotent?)
         when Prepared
           @statements << statement.bind(options.arguments)
         when Bound, Simple
           @statements << statement
         else
-          raise ::ArgumentError, "a batch can only consist of simple or prepared statements, #{statement.inspect} given"
+          raise ::ArgumentError,
+                'a batch can only consist of simple or prepared statements, ' \
+                    "#{statement.inspect} given"
         end
 
         self
@@ -115,7 +120,8 @@ module Cassandra
         @statements.all?(&:idempotent?)
       end
 
-      # A batch statement doesn't really have any cql of its own as it is composed of multiple different statements
+      # A batch statement doesn't really have any cql of its own as it is composed of
+      # multiple different statements
       # @return [nil] nothing
       def cql
         nil
@@ -127,7 +133,7 @@ module Cassandra
 
       # @return [String] a CLI-friendly batch statement representation
       def inspect
-        "#<#{self.class.name}:0x#{self.object_id.to_s(16)} @type=#{type.inspect}>"
+        "#<#{self.class.name}:0x#{object_id.to_s(16)} @type=#{type.inspect}>"
       end
     end
   end

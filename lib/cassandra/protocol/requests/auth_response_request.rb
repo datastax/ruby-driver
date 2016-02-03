@@ -35,9 +35,9 @@ module Cassandra
       end
 
       def eql?(other)
-        self.token == other.token
+        token == other.token
       end
-      alias_method :==, :eql?
+      alias == eql?
 
       def hash
         @h ||= begin

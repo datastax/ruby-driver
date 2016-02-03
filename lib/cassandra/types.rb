@@ -144,7 +144,10 @@ module Cassandra
       end
 
       def assert_boolean(value, message, &block)
-        Util.assert_instance_of_one_of([::TrueClass, ::FalseClass], value, message, &block)
+        Util.assert_instance_of_one_of([::TrueClass, ::FalseClass],
+                                       value,
+                                       message,
+                                       &block)
       end
 
       def new_decimal(value)
@@ -1042,7 +1045,9 @@ module Cassandra
       #
       #   tuple(varchar, varchar, int).new('Jane', 'Smith', 38) # => (Jane, Smith, 38)
       def new(*values)
-        Util.assert(values.size <= @members.size) { "too many values: #{values.size} out of max #{@members.size}" }
+        Util.assert(values.size <= @members.size) do
+          "too many values: #{values.size} out of max #{@members.size}"
+        end
         values.each_with_index do |v, i|
           Util.assert_type(@members[i], v)
         end
@@ -1240,7 +1245,9 @@ module Cassandra
         value = value.first if value.one?
         value = Array(value) unless value.is_a?(::Hash)
 
-        Util.assert(value.size <= @fields.size) { "too many values: #{value.size} out of #{@fields.size}" }
+        Util.assert(value.size <= @fields.size) do
+          "too many values: #{value.size} out of #{@fields.size}"
+        end
 
         case value
         when ::Array
@@ -1282,7 +1289,8 @@ module Cassandra
       # @return [String] `"keyspace.name"`
       # @see Cassandra::Type#to_s
       def to_s
-        "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} {#{@fields.join(', ')}}"
+        "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} " \
+            "{#{@fields.join(', ')}}"
       end
 
       def hash
@@ -1306,7 +1314,8 @@ module Cassandra
 
       # Output this type in CQL
       def to_cql
-        cql   = "CREATE TYPE #{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} (\n"
+        cql   = "CREATE TYPE #{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} " \
+            "(\n"
         first = true
 
         @fields.each do |field|
@@ -1355,7 +1364,8 @@ module Cassandra
       # @param value [*Object] value to be coerced
       # @return [Object] a value of this type
       def new(*value)
-        raise ::NotImplementedError, "unable to create a value for custom type: #{@name.inspect}"
+        raise ::NotImplementedError,
+              "unable to create a value for custom type: #{@name.inspect}"
       end
 
       # Asserts that a given value is of this type
@@ -1365,7 +1375,8 @@ module Cassandra
       # @raise [ArgumentError] if the value is invalid
       # @return [void]
       def assert(value, message = nil, &block)
-        raise ::NotImplementedError, "unable to assert a value for custom type: #{@name.inspect}"
+        raise ::NotImplementedError,
+              "unable to assert a value for custom type: #{@name.inspect}"
       end
 
       # @return [String] a cassandra representation of this type

@@ -72,7 +72,7 @@ module Cassandra
           @connections.each(&callback)
         end
       end
-      alias_method :each, :each_connection
+      alias each each_connection
     end
   end
 end

@@ -29,7 +29,7 @@ module Cassandra
       end
 
       def to_s
-        %(EVENT #@type #@change #@address:#@port)
+        %(EVENT #{@type} #{@change} #{@address}:#{@port})
       end
 
       private

@@ -18,7 +18,9 @@
 
 module Cassandra
   module Protocol
-    module Coder; extend self
+    module Coder
+      extend self
+
       GLOBAL_TABLES_SPEC_FLAG = 0x01
       HAS_MORE_PAGES_FLAG     = 0x02
       NO_METADATA_FLAG        = 0x04
@@ -109,7 +111,9 @@ module Cassandra
         when :time             then write_time(buffer, value)
         when :date             then write_date(buffer, value)
         when :list, :set       then write_list_v4(buffer, value, type.value_type)
-        when :map              then write_map_v4(buffer, value, type.key_type, type.value_type)
+        when :map              then write_map_v4(buffer, value,
+                                                 type.key_type,
+                                                 type.value_type)
         when :udt              then write_udt_v4(buffer, value, type.fields)
         when :tuple            then write_tuple_v4(buffer, value, type.members)
         else
@@ -121,18 +125,23 @@ module Cassandra
         flags         = buffer.read_int
         columns_count = buffer.read_int
         pk_count      = buffer.read_int
-        pk_specs      = ::Array.new(pk_count) {|i| buffer.read_short}
+        pk_specs      = ::Array.new(pk_count) {|_i| buffer.read_short}
 
         if flags & GLOBAL_TABLES_SPEC_FLAG == GLOBAL_TABLES_SPEC_FLAG
           keyspace_name = buffer.read_string
           table_name    = buffer.read_string
 
-          column_specs = ::Array.new(columns_count) do |i|
+          column_specs = ::Array.new(columns_count) do |_i|
             [keyspace_name, table_name, buffer.read_string, read_type_v4(buffer)]
           end
         else
-          column_specs = ::Array.new(columns_count) do |i|
-            [buffer.read_string, buffer.read_string, buffer.read_string, read_type_v4(buffer)]
+          column_specs = ::Array.new(columns_count) do |_i|
+            [
+              buffer.read_string,
+              buffer.read_string,
+              buffer.read_string,
+              read_type_v4(buffer)
+            ]
           end
         end
 
@@ -152,12 +161,17 @@ module Cassandra
             keyspace_name = buffer.read_string
             table_name    = buffer.read_string
 
-            column_specs = ::Array.new(count) do |i|
+            column_specs = ::Array.new(count) do |_i|
               [keyspace_name, table_name, buffer.read_string, read_type_v4(buffer)]
             end
           else
-            column_specs = ::Array.new(count) do |i|
-              [buffer.read_string, buffer.read_string, buffer.read_string, read_type_v4(buffer)]
+            column_specs = ::Array.new(count) do |_i|
+              [
+                buffer.read_string,
+                buffer.read_string,
+                buffer.read_string,
+                read_type_v4(buffer)
+              ]
             end
           end
         end
@@ -194,17 +208,21 @@ module Cassandra
         when 0x0030
           keyspace = buffer.read_string
           name     = buffer.read_string
-          fields   = ::Array.new(buffer.read_short) { [buffer.read_string, read_type_v4(buffer)] }
+          fields   = ::Array.new(buffer.read_short) do
+            [buffer.read_string, read_type_v4(buffer)]
+          end
 
           Types.udt(keyspace, name, fields)
-        when 0x0031 then Types.tuple(*::Array.new(buffer.read_short) { read_type_v4(buffer) })
+        when 0x0031 then Types.tuple(
+          *::Array.new(buffer.read_short) { read_type_v4(buffer) }
+        )
         else
           raise Errors::DecodingError, %(Unsupported column type: #{id})
         end
       end
 
       def read_values_v4(buffer, column_metadata)
-        ::Array.new(buffer.read_int) do |i|
+        ::Array.new(buffer.read_int) do |_i|
           row = ::Hash.new
 
           column_metadata.each do |(_, _, column, type)|
@@ -274,11 +292,11 @@ module Cassandra
           values   = ::Hash.new
 
           fields.each do |field|
-            if length - buffer.length >= size
-              values[field.name] = nil
-            else
-              values[field.name] = read_value_v4(buffer, field.type)
-            end
+            values[field.name] = if length - buffer.length >= size
+                                   nil
+                                 else
+                                   read_value_v4(buffer, field.type)
+                                 end
           end
 
           Cassandra::UDT::Strict.new(keyspace, name, fields, values)
@@ -378,7 +396,10 @@ module Cassandra
         when :text             then write_text(buffer, value)
         when :varint           then write_varint(buffer, value)
         when :list, :set       then write_list_v3(buffer, value, type.value_type)
-        when :map              then write_map_v3(buffer, value, type.key_type, type.value_type)
+        when :map              then write_map_v3(buffer,
+                                                 value,
+                                                 type.key_type,
+                                                 type.value_type)
         when :udt              then write_udt_v3(buffer, value, type.fields)
         when :tuple            then write_tuple_v3(buffer, value, type.members)
         else
@@ -387,7 +408,7 @@ module Cassandra
       end
 
       def read_values_v3(buffer, column_metadata)
-        ::Array.new(buffer.read_int) do |i|
+        ::Array.new(buffer.read_int) do |_i|
           row = ::Hash.new
 
           column_metadata.each do |(_, _, column, type)|
@@ -453,11 +474,11 @@ module Cassandra
           values   = ::Hash.new
 
           fields.each do |field|
-            if length - buffer.length >= size
-              values[field.name] = nil
-            else
-              values[field.name] = read_value_v3(buffer, field.type)
-            end
+            values[field.name] = if length - buffer.length >= size
+                                   nil
+                                 else
+                                   read_value_v3(buffer, field.type)
+                                 end
           end
 
           Cassandra::UDT::Strict.new(keyspace, name, fields, values)
@@ -493,12 +514,17 @@ module Cassandra
             keyspace_name = buffer.read_string
             table_name    = buffer.read_string
 
-            column_specs = ::Array.new(count) do |i|
+            column_specs = ::Array.new(count) do |_i|
               [keyspace_name, table_name, buffer.read_string, read_type_v3(buffer)]
             end
           else
-            column_specs = ::Array.new(count) do |i|
-              [buffer.read_string, buffer.read_string, buffer.read_string, read_type_v3(buffer)]
+            column_specs = ::Array.new(count) do |_i|
+              [
+                buffer.read_string,
+                buffer.read_string,
+                buffer.read_string,
+                read_type_v3(buffer)
+              ]
             end
           end
         end
@@ -531,10 +557,14 @@ module Cassandra
         when 0x0030
           keyspace = buffer.read_string
           name     = buffer.read_string
-          fields   = ::Array.new(buffer.read_short) { [buffer.read_string, read_type_v3(buffer)] }
+          fields   = ::Array.new(buffer.read_short) do
+            [buffer.read_string, read_type_v3(buffer)]
+          end
 
           Types.udt(keyspace, name, fields)
-        when 0x0031 then Types.tuple(*::Array.new(buffer.read_short) { read_type_v3(buffer) })
+        when 0x0031 then Types.tuple(
+          *::Array.new(buffer.read_short) { read_type_v3(buffer) }
+        )
         else
           raise Errors::DecodingError, %(Unsupported column type: #{id})
         end
@@ -596,14 +626,17 @@ module Cassandra
         when :timeuuid, :uuid  then write_uuid(buffer, value)
         when :varint           then write_varint(buffer, value)
         when :list, :set       then write_list_v1(buffer, value, type.value_type)
-        when :map              then write_map_v1(buffer, value, type.key_type, type.value_type)
+        when :map              then write_map_v1(buffer,
+                                                 value,
+                                                 type.key_type,
+                                                 type.value_type)
         else
           raise Errors::EncodingError, %(Unsupported value type: #{type})
         end
       end
 
       def read_values_v1(buffer, column_metadata)
-        ::Array.new(buffer.read_int) do |i|
+        ::Array.new(buffer.read_int) do |_i|
           row = ::Hash.new
 
           column_metadata.each do |(_, _, column, type)|
@@ -644,7 +677,8 @@ module Cassandra
           value = ::Hash.new
 
           buffer.read_short.times do
-            value[read_short_value(buffer, key_type)] = read_short_value(buffer, value_type)
+            value[read_short_value(buffer, key_type)] =
+              read_short_value(buffer, value_type)
           end
 
           value
@@ -678,12 +712,17 @@ module Cassandra
             keyspace_name = buffer.read_string
             table_name    = buffer.read_string
 
-            column_specs = ::Array.new(count) do |i|
+            column_specs = ::Array.new(count) do |_i|
               [keyspace_name, table_name, buffer.read_string, read_type_v1(buffer)]
             end
           else
-            column_specs = ::Array.new(count) do |i|
-              [buffer.read_string, buffer.read_string, buffer.read_string, read_type_v1(buffer)]
+            column_specs = ::Array.new(count) do |_i|
+              [
+                buffer.read_string,
+                buffer.read_string,
+                buffer.read_string,
+                read_type_v1(buffer)
+              ]
             end
           end
         end
@@ -721,7 +760,7 @@ module Cassandra
       end
 
       def read_ascii(buffer)
-        value  = buffer.read_bytes
+        value = buffer.read_bytes
         value && value.force_encoding(::Encoding::ASCII)
       end
 
@@ -729,7 +768,7 @@ module Cassandra
         read_size(buffer) && buffer.read_long
       end
 
-      alias :read_counter :read_bigint
+      alias read_counter read_bigint
 
       def read_boolean(buffer)
         read_size(buffer) && buffer.read(1) == Constants::TRUE_BYTE
@@ -810,7 +849,7 @@ module Cassandra
         buffer.append_long(value)
       end
 
-      alias :write_counter :write_bigint
+      alias write_counter write_bigint
 
       def write_blob(buffer, value)
         buffer.append_bytes(value.encode(::Encoding::BINARY))

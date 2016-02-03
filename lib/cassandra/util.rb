@@ -18,7 +18,9 @@
 
 module Cassandra
   # @private
-  module Util extend self
+  module Util
+    extend self
+
     def encode_hash(hash, io = StringIO.new)
       first = true
 
@@ -111,7 +113,7 @@ module Cassandra
 
       io.string
     end
-    alias :encode :encode_object
+    alias encode encode_object
 
     def encode_time(time, io = StringIO.new)
       encode_string(time.to_s, io)
@@ -190,7 +192,8 @@ module Cassandra
       when UDT
         Types.udt('unknown', 'unknown', object.map {|k, v| [k, guess_type(v)]})
       else
-        raise ::ArgumentError, "Unable to guess the type of the argument: #{object.inspect}"
+        raise ::ArgumentError,
+              "Unable to guess the type of the argument: #{object.inspect}"
       end
     end
 
@@ -212,7 +215,8 @@ module Cassandra
     def assert_instance_of_one_of(kinds, value, message = nil, &block)
       unless kinds.any? {|kind| value.is_a?(kind)}
         message   = yield if block_given?
-        message ||= "value must be an instance of one of #{kinds.inspect}, #{value.inspect} given"
+        message ||= "value must be an instance of one of #{kinds.inspect}, " \
+            "#{value.inspect} given"
 
         raise ::ArgumentError, message
       end
@@ -221,7 +225,8 @@ module Cassandra
     def assert_responds_to(method, value, message = nil, &block)
       unless value.respond_to?(method)
         message   = yield if block_given?
-        message ||= "value #{value.inspect} must respond to #{method.inspect}, but doesn't"
+        message ||= "value #{value.inspect} must respond to #{method.inspect}, " \
+            "but doesn't"
 
         raise ::ArgumentError, message
       end
@@ -230,7 +235,8 @@ module Cassandra
     def assert_responds_to_all(methods, value, message = nil, &block)
       unless methods.all? {|method| value.respond_to?(method)}
         message   = yield if block_given?
-        message ||= "value #{value.inspect} must respond to all methods #{methods.inspect}, but doesn't"
+        message ||= "value #{value.inspect} must respond to all methods " \
+            "#{methods.inspect}, but doesn't"
 
         raise ::ArgumentError, message
       end
@@ -239,14 +245,14 @@ module Cassandra
     def assert_not_empty(value, message = nil, &block)
       if value.empty?
         message   = yield if block_given?
-        message ||= "value cannot be empty"
+        message ||= 'value cannot be empty'
 
         raise ::ArgumentError, message
       end
     end
 
     def assert_file_exists(path, message = nil, &block)
-      unless ::File.exists?(path)
+      unless ::File.exist?(path)
         message   = yield if block_given?
         message ||= "expected file at #{path.inspect} to exist, but it doesn't"
 
@@ -266,7 +272,8 @@ module Cassandra
     def assert_size(size, value, message = nil, &block)
       unless value.size == size
         message   = yield if block_given?
-        message ||= "value #{value.inspect} must have size equal to #{size.inspect}, but doesn't"
+        message ||= "value #{value.inspect} must have size equal to " \
+            "#{size.inspect}, but doesn't"
 
         raise ::ArgumentError, message
       end
@@ -275,7 +282,7 @@ module Cassandra
     def assert(condition, message = nil, &block)
       unless condition
         message   = yield if block_given?
-        message ||= "assertion failed"
+        message ||= 'assertion failed'
 
         raise ::ArgumentError, message
       end
@@ -311,11 +318,11 @@ module Cassandra
     # @private
     COLON = ': '.freeze
     # @private
-    QUOT = ?'.freeze
+    QUOT = "'".freeze
     # @private
     ESC_QUOT = "''".freeze
     # @private
-    DBL_QUOT = ?".freeze
+    DBL_QUOT = '"'.freeze
     # @private
     PRN_OPN = '('.freeze
     # @private

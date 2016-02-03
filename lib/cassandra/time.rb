@@ -35,7 +35,7 @@ module Cassandra
     # @private
     def initialize(nanoseconds = 0)
       if nanoseconds < 0 && nanoseconds > NANOSECONDS_IN_DAY - 1
-        raise ::ArgumentError, "value must be between 0 and " \
+        raise ::ArgumentError, 'value must be between 0 and ' \
                                "#{NANOSECONDS_IN_DAY}, #{value.inspect} given"
       end
 
@@ -57,13 +57,18 @@ module Cassandra
     # @return [Integer] an integer between 0 and 60, the number of full seconds
     #   since the last full minutes that this time represents
     def seconds
-      (@nanoseconds - (hours * NANOSECONDS_IN_HOUR) - (minutes * NANOSECONDS_IN_MINUTE)) / NANOSECONDS_IN_SECOND
+      (@nanoseconds -
+          (hours * NANOSECONDS_IN_HOUR) -
+          (minutes * NANOSECONDS_IN_MINUTE)) / NANOSECONDS_IN_SECOND
     end
 
     # @return [Integer] an integer between 0 and 60, the number of full
     #   miliseconds since the last full second that this time represents
     def miliseconds
-      (@nanoseconds - (hours * NANOSECONDS_IN_HOUR) - (minutes * NANOSECONDS_IN_MINUTE) - (seconds * NANOSECONDS_IN_SECOND)) / NANOSECONDS_IN_MILISECOND
+      (@nanoseconds -
+          (hours * NANOSECONDS_IN_HOUR) -
+          (minutes * NANOSECONDS_IN_MINUTE) -
+          (seconds * NANOSECONDS_IN_SECOND)) / NANOSECONDS_IN_MILISECOND
     end
 
     # @return [String] a "%H:%M%S.%3N" formatted time string
@@ -81,7 +86,7 @@ module Cassandra
     def eql?(other)
       other.is_a?(Time) && other.to_nanoseconds == @nanoseconds
     end
-    alias :== :eql?
+    alias == eql?
 
     # @private
     def <=>(other)
