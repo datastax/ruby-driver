@@ -127,6 +127,10 @@ class FakeIoReactor
     self
   end
 
+  def timer_count
+    @timers.size
+  end
+
   def execute
     Ione::Future.resolved(yield)
   rescue => e
