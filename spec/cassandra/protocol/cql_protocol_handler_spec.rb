@@ -281,7 +281,7 @@ module Cassandra
             expect { connection.data_listener.call([0x81, 0, 0, 2, 0].pack('C4N')) }.to_not raise_error
           end
 
-          it 'never sends a request when it has already timed out' do
+          it 'start the timer for a queued request when it is ready to send' do
             write_count = 0
             connection.stub(:write) do |s, &h|
               write_count += 1
@@ -292,12 +292,26 @@ module Cassandra
               end
             end
             36.times do
-              protocol_handler.send_request(request)
+              protocol_handler.send_request(request, nil)
             end
+
+            # Ok, we've saturated stream-id's. Send one more request, which will queue.
+            orig_schedule_count = scheduler.timer_count
+
             f = protocol_handler.send_request(request, 5)
+
+            expect(scheduler.timer_count).to eq(orig_schedule_count)
+
+            # Move time forwards and then send the responses for the previous requests.
             scheduler.advance_time(5)
             36.times { |i| connection.data_listener.call([0x81, 0, i, 2, 0].pack('C4N')) }
-            write_count.should == 36
+
+            # The final request should be sent since the timer hasn't come into play yet.
+            expect(write_count).to eq(37)
+
+            # Two timers should have activated at this point: 1 is the idle connection
+            # termination timer, and the other is our request timeout.
+            expect(scheduler.timer_count).to eq(orig_schedule_count + 2)
           end
         end
       end

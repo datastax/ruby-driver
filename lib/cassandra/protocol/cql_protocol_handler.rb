@@ -162,7 +162,7 @@ module Cassandra
       def send_request(request, timeout = nil, with_heartbeat = true)
         return Ione::Future.failed(Errors::IOError.new('Connection closed')) if closed?
         schedule_heartbeat if with_heartbeat
-        promise = RequestPromise.new(request)
+        promise = RequestPromise.new(request, timeout)
         id = nil
         @lock.lock
         begin
@@ -173,20 +173,13 @@ module Cassandra
           @lock.unlock
         end
         if id
-          @connection.write do |buffer|
-            @frame_encoder.encode(buffer, request, id)
-          end
+          write_request(id, promise)
         else
           @lock.lock
           begin
             @request_queue_in << promise
           ensure
             @lock.unlock
-          end
-        end
-        if timeout
-          @scheduler.schedule_timer(timeout).on_value do
-            promise.time_out!
           end
         end
         promise.future
@@ -253,10 +246,11 @@ module Cassandra
 
       # @private
       class RequestPromise < Ione::Promise
-        attr_reader :request
+        attr_reader :request, :timeout
 
-        def initialize(request)
+        def initialize(request, timeout)
           @request = request
+          @timeout = timeout
           @timed_out = false
           super()
         end
@@ -307,11 +301,20 @@ module Cassandra
             @lock.unlock
           end
           if id
-            @connection.write do |buffer|
-              @frame_encoder.encode(buffer, promise.request, id)
-            end
+            write_request(id, promise)
           else
             break
+          end
+        end
+      end
+
+      def write_request(id, request_promise)
+        @connection.write do |buffer|
+          @frame_encoder.encode(buffer, request_promise.request, id)
+        end
+        if request_promise.timeout
+          @scheduler.schedule_timer(request_promise.timeout).on_value do
+            request_promise.time_out!
           end
         end
       end
