@@ -20,7 +20,7 @@ module Cassandra
   module Protocol
     class ReadyResponse < Response
       def eql?(rs)
-        self.class === rs
+        rs.is_a?(self.class)
       end
       alias == eql?
 

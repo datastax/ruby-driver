@@ -329,10 +329,11 @@ module Cassandra
       def append_varint(n)
         num = n
         bytes = []
-        begin
+        loop do
           bytes << (num & 0xff)
           num >>= 8
-        end until (num == 0 || num == -1) && (bytes.last[7] == num[7])
+          break if (num == 0 || num == -1) && (bytes.last[7] == num[7])
+        end
         append(bytes.reverse.pack(Formats::BYTES_FORMAT))
       end
 

@@ -81,7 +81,7 @@ module Cassandra
       end
 
       def eql?(rq)
-        self.class === rq &&
+        rq.is_a?(self.class) &&
           rq.cql == cql &&
           rq.values == values &&
           rq.type_hints == type_hints &&

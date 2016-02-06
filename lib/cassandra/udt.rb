@@ -419,7 +419,7 @@ module Cassandra
     def hash
       @values.inject(17) do |h, (n, v)|
         h = 31 * h + n.hash
-        h = 31 * h + v.hash
+        31 * h + v.hash
       end
     end
   end

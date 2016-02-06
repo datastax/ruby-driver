@@ -291,20 +291,15 @@ module Cassandra
           begin
             if @request_queue_out.any? && (id = next_stream_id)
               promise = @request_queue_out.shift
-              if promise.timed_out?
-                next
-              else
-                @promises[id] = promise
-              end
+              next if promise.timed_out?
+              @promises[id] = promise
             end
           ensure
             @lock.unlock
           end
-          if id
-            write_request(id, promise)
-          else
-            break
-          end
+
+          break unless id
+          write_request(id, promise)
         end
       end
 
@@ -390,9 +385,7 @@ module Cassandra
       end
 
       def next_stream_id
-        if (stream_id = @streams.shift)
-          stream_id
-        end
+        @streams.shift
       end
 
       HEARTBEAT  = OptionsRequest.new

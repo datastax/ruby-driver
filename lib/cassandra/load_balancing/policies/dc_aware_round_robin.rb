@@ -88,10 +88,8 @@ module Cassandra
 
           if host.datacenter.nil? || host.datacenter == @datacenter
             synchronize { @local = @local.dup.push(host) }
-          else
-            if @max_remote.nil? || @remote.size < @max_remote
-              synchronize { @remote = @remote.dup.push(host) }
-            end
+          elsif @max_remote.nil? || @remote.size < @max_remote
+            synchronize { @remote = @remote.dup.push(host) }
           end
 
           self

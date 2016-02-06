@@ -56,9 +56,9 @@ module Cassandra
 
         if params.is_a?(::Hash)
           params_names = []
-          params = params.each_with_object([]) do |(name, value), params|
+          params = params.each_with_object([]) do |(name, value), collector|
             params_names << name
-            params       << value
+            collector    << value
           end
           if type_hints && !type_hints.empty?
             Util.assert_instance_of(::Hash, type_hints) do

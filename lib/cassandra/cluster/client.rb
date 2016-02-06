@@ -802,7 +802,7 @@ module Cassandra
                                          connection,
                                          promise,
                                          keyspace,
-                                         statement,
+                                         batch_statement,
                                          request,
                                          options,
                                          plan,
@@ -812,7 +812,7 @@ module Cassandra
         request.clear
         unprepared = Hash.new {|hash, cql| hash[cql] = []}
 
-        statement.statements.each do |statement|
+        batch_statement.statements.each do |statement|
           cql = statement.cql
 
           if statement.is_a?(Statements::Bound)
@@ -833,7 +833,7 @@ module Cassandra
                                   connection,
                                   promise,
                                   keyspace,
-                                  statement,
+                                  batch_statement,
                                   options,
                                   request,
                                   plan,
@@ -861,7 +861,7 @@ module Cassandra
                                       connection,
                                       promise,
                                       keyspace,
-                                      statement,
+                                      batch_statement,
                                       options,
                                       request,
                                       plan,
@@ -871,12 +871,12 @@ module Cassandra
             else
               f.on_failure do |e|
                 if e.is_a?(Errors::HostError) ||
-                   (e.is_a?(Errors::TimeoutError) && statement.idempotent?)
+                   (e.is_a?(Errors::TimeoutError) && batch_statement.idempotent?)
                   errors ||= {}
                   errors[host] = e
                   batch_by_plan(promise,
                                 keyspace,
-                                statement,
+                                batch_statement,
                                 options,
                                 request,
                                 plan,
@@ -1004,9 +1004,9 @@ module Cassandra
         request.retries = retries
 
         f = connection.send_request(request, timeout)
-        f.on_complete do |f|
+        f.on_complete do |response_future|
           errors ||= {}
-          handle_response(f,
+          handle_response(response_future,
                           host,
                           connection,
                           promise,
@@ -1024,7 +1024,7 @@ module Cassandra
         promise.break(e)
       end
 
-      def handle_response(f,
+      def handle_response(response_future,
                           host,
                           connection,
                           promise,
@@ -1037,8 +1037,8 @@ module Cassandra
                           errors,
                           hosts,
                           retries)
-        if f.resolved?
-          r = f.value
+        if response_future.resolved?
+          r = response_future.value
 
           begin
             decision = nil
@@ -1359,8 +1359,8 @@ module Cassandra
             promise.break(e)
           end
         else
-          f.on_failure do |e|
-            errors[host] = e
+          response_future.on_failure do |ex|
+            errors[host] = ex
             case request
             when Protocol::QueryRequest, Protocol::PrepareRequest
               send_request_by_plan(promise,
@@ -1393,17 +1393,17 @@ module Cassandra
                             errors,
                             hosts)
             else
-              promise.break(e)
+              promise.break(ex)
             end
           end
         end
       end
 
       def wait_for_schema_agreement(connection, schedule)
-        peers = send_select_request(connection, SELECT_SCHEMA_PEERS)
-        local = send_select_request(connection, SELECT_SCHEMA_LOCAL)
+        peers_future = send_select_request(connection, SELECT_SCHEMA_PEERS)
+        local_future = send_select_request(connection, SELECT_SCHEMA_LOCAL)
 
-        Ione::Future.all(peers, local).flat_map do |(peers, local)|
+        Ione::Future.all(peers_future, local_future).flat_map do |(peers, local)|
           versions = ::Set.new
 
           unless local.empty?

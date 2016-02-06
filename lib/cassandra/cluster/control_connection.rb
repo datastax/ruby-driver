@@ -181,11 +181,10 @@ module Cassandra
         f.fallback do |e|
           @logger.error("Control connection failed (#{e.class.name}: #{e.message})")
 
-          if synchronize { @status == :reconnecting }
-            reconnect_async(schedule)
-          else
-            return Ione::Future.resolved
-          end
+          return Ione::Future.resolved unless synchronize { @status == :reconnecting }
+
+          # We're reconnecting...
+          reconnect_async(schedule)
         end
       end
 
@@ -216,7 +215,7 @@ module Cassandra
             raise Errors::InternalError, "Unexpected response #{r.inspect}"
           end
         end
-        f = f.map do
+        f.map do
           connection.on_event do |event|
             @logger.debug("Event received #{event}")
 
@@ -665,8 +664,8 @@ Control connection failed and is unlikely to recover.
           end
         end
 
-        f.on_complete do |f|
-          @logger.info('Control connection established') if f.resolved?
+        f.on_complete do |connection_future|
+          @logger.info('Control connection established') if connection_future.resolved?
         end
 
         f

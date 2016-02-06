@@ -736,7 +736,7 @@ module Cassandra
         if errors
           first   = true
           message = 'All attempted hosts failed'
-          details = errors.each do |(host, error)|
+          errors.each do |(host, error)|
             if first
               first = false
               message << ': '
