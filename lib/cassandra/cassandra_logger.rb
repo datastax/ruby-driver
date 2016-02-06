@@ -48,12 +48,15 @@ module Cassandra
       Format = "[%s#%d] %5s: %s\n".freeze
 
       def call(severity, time, _, msg)
-        Format % [format_datetime(time), Thread.current.object_id, severity,
-                  msg2str(msg)]
+        format(Format,
+               format_datetime(time),
+               Thread.current.object_id,
+               severity,
+               msg2str(msg))
       end
 
       def format_datetime(time)
-        time.strftime('%H:%M:%S.') << '%06d ' % time.usec
+        time.strftime('%H:%M:%S.') << format('%06d ', time.usec)
       end
 
       def msg2str(msg)

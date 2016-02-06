@@ -71,21 +71,19 @@ module Cassandra
                   if rack.nil? || visited_racks.size == total_racks
                     replicas << host
                     added_replicas << host
+                  elsif visited_racks.include?(rack)
+                    skipped_hosts << host
                   else
-                    if visited_racks.include?(rack)
-                      skipped_hosts << host
-                    else
-                      replicas << host
-                      visited_racks << rack
-                      added_replicas << host
+                    replicas << host
+                    visited_racks << rack
+                    added_replicas << host
 
-                      if visited_racks.size == total_racks
-                        skipped_hosts.each do |skipped_host|
-                          break if added_replicas.size >= factor
+                    if visited_racks.size == total_racks
+                      skipped_hosts.each do |skipped_host|
+                        break if added_replicas.size >= factor
 
-                          replicas << skipped_host
-                          added_replicas << host
-                        end
+                        replicas << skipped_host
+                        added_replicas << host
                       end
                     end
                   end

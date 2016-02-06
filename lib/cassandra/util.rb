@@ -19,7 +19,7 @@
 module Cassandra
   # @private
   module Util
-    extend self
+    module_function
 
     def encode_hash(hash, io = StringIO.new)
       first = true

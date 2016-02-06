@@ -73,7 +73,7 @@ module Cassandra
 
     # @return [String] a "%H:%M%S.%3N" formatted time string
     def to_s
-      '%.2d:%.2d:%.2d.%.3d' % [hours, minutes, seconds, miliseconds]
+      format('%.2d:%.2d:%.2d.%.3d', hours, minutes, seconds, miliseconds)
     end
 
     # @return [Integer] an integer between 0 and 86400000000000, the number of

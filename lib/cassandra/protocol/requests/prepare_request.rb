@@ -43,7 +43,7 @@ module Cassandra
       end
 
       def eql?(rq)
-        self.class === rq && rq.cql == cql
+        rq.is_a?(self.class) && rq.cql == cql
       end
       alias == eql?
 

@@ -19,7 +19,7 @@
 module Cassandra
   module Protocol
     module Coder
-      extend self
+      module_function
 
       GLOBAL_TABLES_SPEC_FLAG = 0x01
       HAS_MORE_PAGES_FLAG     = 0x02

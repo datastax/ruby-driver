@@ -94,7 +94,7 @@ module Cassandra
       end
 
       def eql?(rq)
-        self.class === rq &&
+        rq.is_a?(self.class) &&
           rq.id == id &&
           rq.metadata == metadata &&
           rq.values == values &&
