@@ -745,6 +745,7 @@ require 'cassandra/errors'
 require 'cassandra/compression'
 require 'cassandra/protocol'
 require 'cassandra/auth'
+require 'cassandra/cassandra_logger'
 require 'cassandra/null_logger'
 
 require 'cassandra/executors'
