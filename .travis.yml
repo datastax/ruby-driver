@@ -14,7 +14,7 @@ env:
     - COVERAGE=no
 matrix:
   allow_failures:
-    - rvm: rbx-2
+    - rvm: rbx
   fast_finish: true
 branches:
   only:
