@@ -70,6 +70,7 @@ Feature: Execution information
       number of retries: 0
       """
 
+  @cassandra-version-specific @cassandra-version-2.2
   Scenario: execution information includes warnings
     Given the following example:
       """ruby

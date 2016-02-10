@@ -197,9 +197,9 @@ module Cassandra
 
           trace_id = (buffer.read_uuid if tracing)
 
-          custom_payload = (buffer.read_bytes_map.freeze if payload)
-
           warnings = (buffer.read_string_list if warning)
+
+          custom_payload = (buffer.read_bytes_map.freeze if payload)
 
           remaining_frame_length = frame_length -
                                    (buffer_starting_length - buffer.length)
