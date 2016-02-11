@@ -79,24 +79,22 @@ Feature: Execution information
       cluster   = Cassandra.cluster
       session   = cluster.connect("simplex")
 
-      prepared_statement = session.prepare('INSERT INTO simplex.songs ' +
+      insert = session.prepare('INSERT INTO simplex.songs ' +
                                                '(id, title, album, artist, tags) values ' +
                                                '(?, ?, ?, ?, ?)')
 
-      query = session.unlogged_batch do |batch|
-        batch.add(prepared_statement, arguments:
-            [Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8d696488'), 't1', 'a1', 'a1', Set.new(['t1'])])
-        batch.add(prepared_statement, arguments:
-            [Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'), 't2', 'a2', 'a2', Set.new(['t2'])])
+      args = [Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8d696488'), 'a' * 5 * 1025, 'a1', 'a1', Set.new(['t1'])]
+      batch = session.unlogged_batch do |b|
+        b.add(insert, arguments: args)
       end
+      execution_info = session.execute(batch).execution_info
 
-      r = session.execute(query)
-      puts "warnings: #{r.execution_info.warnings.first}"
+      puts "warnings: #{execution_info.warnings.first}"
       """
     When it is executed
-    Then its output should contain:
+    Then its output should match:
       """
-      warnings: Unlogged batch covering 2 partitions detected against table
+      warnings: Batch of prepared statements for .* is of size .*, exceeding specified threshold of 5120
       """
 
   Scenario: execution information reflects retry decision
