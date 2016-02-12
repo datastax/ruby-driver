@@ -432,5 +432,5 @@ In read-heavy applications requests are often small, and need no compression, bu
 Compression works best for large requests, so if you use batching you should benchmark if compression gives you a speed boost.
 
   [1]: https://github.com/apache/cassandra/blob/cassandra-2.0/doc/cql3/CQL.textile
-  [2]: http://www.datastax.com/documentation/cql/3.1/webhelp/index.html
-  [3]: https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec
+  [2]: http://docs.datastax.com/en/cql/3.3
+  [3]: https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v4.spec

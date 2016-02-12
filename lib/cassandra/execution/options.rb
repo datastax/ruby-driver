@@ -53,7 +53,7 @@ module Cassandra
       # string and byte buffers.
       #
       # @see https://github.com/apache/cassandra/blob/33f1edcce97779c971d4f78712a9a8bf014ffbbc/doc/native_protocol_v4.spec#L127-L133 Description of custom payload in Cassandra native protocol v4.
-      # @see https://datastax.github.io/java-driver/features/custom_payloads/#enabling-custom-payloads-on-c-nodes Enabling custom payloads on Cassandra nodes.
+      # @see https://datastax.github.io/java-driver/manual/custom_payloads/#enabling-custom-payloads-on-c-nodes Enabling custom payloads on Cassandra nodes.
       #
       # @example Sending a custom payload
       #   result = session.execute(payload: {

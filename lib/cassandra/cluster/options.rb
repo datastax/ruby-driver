@@ -101,7 +101,7 @@ module Cassandra
       end
 
       def requests_per_connection
-        # There are a few possibilities here based on @requests_per_node:
+        # There are a few possibilities here based on @requests_per_connection:
         # nil: default to 1024 for protocol 3 and later, 128 for < 3.
         # we're in v2 and value too high: return 128. We don't worry
         #   about this case for v3+ because option validation in

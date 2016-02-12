@@ -1,6 +1,10 @@
 # Retry Policies
 
-Retry policies allow Ruby Driver to retry a request upon encountering specific types of server errors, namely, [write timeout](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L760-L785), [read timeout](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L786-L803) or [unavailable](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v2.spec#L744-L754).
+Retry policies allow Ruby Driver to retry a request upon encountering specific types of
+server errors, namely,
+[write timeout](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v4.spec#L1041-L1066),
+[read timeout](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v4.spec#L1067-L1083)
+or [unavailable](https://github.com/apache/cassandra/blob/trunk/doc/native_protocol_v4.spec#L1025-L1035).
 
 ```ditaa
       /-----------+                        /-----------+

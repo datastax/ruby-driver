@@ -12,7 +12,7 @@ the Cassandra Query Language version 3 (CQL3) and Cassandra's native protocol.
 - Jira: https://datastax-oss.atlassian.net/browse/RUBY
 - Mailing List: https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user
 - IRC: #datastax-drivers on [irc.freenode.net](http://freenode.net>)
-- Twitter: Follow the latest news about DataStax Drivers - [@avalanche123](http://twitter.com/avalanche123), [@mfiguiere](http://twitter.com/mfiguiere), [@al3xandru](https://twitter.com/al3xandru)
+- Twitter: Follow the latest news about DataStax Drivers - [@avalanche123](http://twitter.com/avalanche123), [@stamhankar999](http://twitter.com/stamhankar999), [@al3xandru](https://twitter.com/al3xandru)
 
 This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [Theo Hultberg](https://github.com/iconara) and we added support for:
 
@@ -27,15 +27,14 @@ This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [
 
 [Check out the slides from Ruby Driver Explained](https://speakerdeck.com/avalanche123/ruby-driver-explained) for a detailed overview of the Ruby Driver architecture.
 
-## Compability
+## Compatibility
 
 This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. The current version works with:
 
 * Apache Cassandra versions 1.2, 2.0, 2.1, 3.0, and 3.1.
 * DataStax Enterprise 3.1, 3.2, 4.0, 4.5, and 5.0
-* Ruby (MRI) 1.9.3, 2.0, 2.1 and 2.2
+* Ruby (MRI) 1.9.3, 2.2, 2.3
 * JRuby 1.7
-* Rubinius 2.2
 
 __Note__: JRuby 1.6 is not officially supported, although 1.6.8 should work.
 
@@ -53,10 +52,10 @@ end
 keyspace = 'system'
 session  = cluster.connect(keyspace) # create session, optionally scoped to a keyspace, to execute queries
 
-future = session.execute_async('SELECT keyspace_name, columnfamily_name FROM schema_columnfamilies') # fully asynchronous api
+future = session.execute_async('SELECT keyspace_name, table_name FROM system_schema.tables') # fully asynchronous api
 future.on_success do |rows|
   rows.each do |row|
-    puts "The keyspace #{row['keyspace_name']} has a table called #{row['columnfamily_name']}"
+    puts "The keyspace #{row['keyspace_name']} has a table called #{row['table_name']}"
   end
 end
 future.join
@@ -91,23 +90,40 @@ __Note__: if you want to use compression you should also install [snappy](http:/
 
 Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API. In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/master/examples/cql-rb-wrapper.rb) to assist you with gradual upgrade.
 
-## What's new in v2.1.3
+## What's new in v3.0.0
 
 Features:
 
-* Apache Cassandra native protocol v3
-* [User-defined types](http://datastax.github.io/ruby-driver/features/basics/user_defined_types/) and [tuples](http://datastax.github.io/ruby-driver/features/basics/datatypes/#using-tuples)
-* [Schema metadata includes user-defined types](http://datastax.github.io/ruby-driver/api/keyspace/#type-instance_method)
-* [Named arguments](http://datastax.github.io/ruby-driver/features/basics/prepared_statements/#an-insert-statement-is-prepared-with-named-parameters)
-* [Public types api for type definition and introspection](http://datastax.github.io/ruby-driver/api/types/)
+* Apache Cassandra native protocol v4
+* Add support for smallint, tinyint, date (Cassandra::Date) and time (Cassandra::Time) data types.
+* Include schema metadata for User Defined Functions and User Defined Aggregates.
+* Include client ip addresses in request traces, only on Cassandra 3.x.
+* Add new retry policy decision Cassandra::Retry::Policy#try_next_host.
+* Support specifying statement idempotence with the new :idempotent option when executing.
+* Support sending custom payloads when preparing or executing statements using the new :payload option.
+* Expose custom payloads received with responses on server exceptions and Cassandra::Execution::Info instances.
+* Expose server warnings on server exceptions and Cassandra::Execution::Info instances.
 
 Breaking Changes:
 
-* Splat style positional arguments support, deprecated in 2.0.0, has been dropped
+* Cassandra::Future#join is now an alias to Cassandra::Future#get and will raise an error if the future is resolved with one.
+* Default consistency level is now LOCAL_ONE.
+* Enable tcp no-delay by default.
+* Unavailable errors are retried on the next host in the load balancing plan by default.
+* Statement execution no longer retried on timeouts, unless :idempotent => true has been specified when executing.
 
 Bug Fixes:
 
 * [[RUBY-93](https://datastax-oss.atlassian.net/browse/RUBY-93)] Reconnection can overflow the stack
+* [[RUBY-143](https://datastax-oss.atlassian.net/browse/RUBY-143)] Retry querying system table for metadata of new hosts when prior attempts fail, ultimately enabling use of new hosts.
+* [[RUBY-150](https://datastax-oss.atlassian.net/browse/RUBY-150)] Fixed a protocol decoding error that occurred when multiple messages are available in a stream.
+* [[RUBY-151](https://datastax-oss.atlassian.net/browse/RUBY-151)] Decode incomplete UDTs properly.
+* [[RUBY-120](https://datastax-oss.atlassian.net/browse/RUBY-120)] Tuples and UDTs can be used in sets and hash keys.
+
+## Feedback Requested
+
+*Help us focus our efforts!* [Provide your input](http://goo.gl/forms/pCs8PTpHLf)
+on the Ruby Driver Platform and Runtime Survey (we kept it short).
 
 ## Code examples
 
@@ -127,26 +143,37 @@ bundle install --without docs
 
 * [Install ccm](http://www.datastax.com/dev/blog/ccm-a-development-tool-for-creating-local-cassandra-clusters)
 
-* Run tests:
+* Run tests against different versions of Cassandra:
 
 ```bash
-bundle exec cucumber # runs end-to-end tests (or bundle exec rake cucumber)
-bundle exec rspec # runs unit tests (or bundle exec rake rspec)
-bundle exec rake integration # run integration tests
-bundle exec rake test # run both as well as integration tests
+CASSANDRA_VERSION=3.1.1 bundle exec cucumber # runs end-to-end tests (or bundle exec rake cucumber)
+CASSANDRA_VERSION=3.0.0 bundle exec rspec # runs unit tests (or bundle exec rake rspec)
+CASSANDRA_VERSION=2.1.12 bundle exec rake integration # run integration tests
+CASSANDRA_VERSION=2.0.17 bundle exec rake test # run both as well as integration tests
 ```
 
 ## Changelog & versioning
 
-Check out the [releases on GitHub](https://github.com/datastax/ruby-driver/releases) and [changelog](https://github.com/datastax/ruby-driver/blob/master/CHANGELOG.md). Version numbering follows the [semantic versioning](http://semver.org/) scheme.
+Check out the [releases on GitHub](https://github.com/datastax/ruby-driver/releases) and
+[changelog](https://github.com/datastax/ruby-driver/blob/master/CHANGELOG.md). Version
+numbering follows the [semantic versioning](http://semver.org/) scheme.
 
-Private and experimental APIs, defined as whatever is not in the [public API documentation][1], i.e. classes and methods marked as `@private`, will change without warning. If you've been recommended to try an experimental API by the maintainers, please let them know if you depend on that API. Experimental APIs will eventually become public, and knowing how they are used helps in determining their maturity.
+Private and experimental APIs, defined as whatever is not in the
+[public API documentation][1], i.e. classes and methods marked as `@private`, will change
+without warning. If you've been recommended to try an experimental API by the maintainers,
+please let them know if you depend on that API. Experimental APIs will eventually become
+public, and knowing how they are used helps in determining their maturity.
 
-Prereleases will be stable, in the sense that they will have finished and properly tested features only, but may introduce APIs that will change before the final release. Please use the prereleases and report bugs, but don't deploy them to production without consulting the maintainers, or doing extensive testing yourself. If you do deploy to production please let the maintainers know as this helps determining the maturity of the release.
+Prereleases will be stable, in the sense that they will have finished and properly tested
+features only, but may introduce APIs that will change before the final release. Please
+use the prereleases and report bugs, but don't deploy them to production without
+consulting the maintainers, or doing extensive testing yourself. If you do deploy to
+production please let the maintainers know as this helps in determining the maturity of
+the release.
 
 ## Known bugs & limitations
 
-* JRuby 1.6 is not officially supported, although 1.6.8 should work, if you're stuck in JRuby 1.6.8 try and see if it works for you.
+* JRuby 1.6 is not officially supported, although 1.6.8 should work.
 * Because the driver reactor is using `IO.select`, the maximum number of tcp connections allowed is 1024.
 * Because the driver uses `IO#write_nonblock`, Windows is not supported.
 
@@ -158,19 +185,26 @@ For contributing read [CONTRIBUTING.md](https://github.com/datastax/ruby-driver/
 
 ## Credits
 
-This driver is based on the original work of [Theo Hultberg](https://github.com/iconara) on [cql-rb](https://github.com/iconara/cql-rb/) and adds a series of advanced features that are common across all other DataStax drivers for Apache Cassandra.
+This driver is based on the original work of [Theo Hultberg](https://github.com/iconara)
+on [cql-rb](https://github.com/iconara/cql-rb/) and adds a series of advanced features
+that are common across all other DataStax drivers for Apache Cassandra.
 
-The development effort to provide an up to date, high performance, fully featured Ruby Driver for Apache Cassandra will continue on this project, while [cql-rb](https://github.com/iconara/cql-rb/) will be discontinued.
-
+The development effort to provide an up to date, high performance, fully featured Ruby
+Driver for Apache Cassandra will continue on this project, while
+[cql-rb](https://github.com/iconara/cql-rb/) will be discontinued.
 
 ## Copyright
 
 Copyright 2013-2016 DataStax, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+except in compliance with the License. You may obtain a copy of the License at
 
 [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
 
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+Unless required by applicable law or agreed to in writing, software distributed under the
+License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+either express or implied. See the License for the specific language governing permissions
+and limitations under the License.
 
   [1]: http://datastax.github.io/ruby-driver/api
