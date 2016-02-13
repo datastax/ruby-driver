@@ -31,12 +31,14 @@ This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [
 
 This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. The current version works with:
 
-* Apache Cassandra versions 1.2, 2.0, 2.1, 3.0, and 3.1.
-* DataStax Enterprise 3.1, 3.2, 4.0, 4.5, and 5.0
-* Ruby (MRI) 1.9.3, 2.2, 2.3
+* Apache Cassandra versions 1.2, 2.0, 2.1, and 3.x
+* DataStax Enterprise 4.0, 4.5, 4.6, 4.7, and 4.8
+* Ruby (MRI) 2.2, 2.3
 * JRuby 1.7
 
-__Note__: JRuby 1.6 is not officially supported, although 1.6.8 should work.
+__Note__: JRuby 1.6 is not officially supported, although 1.6.8 should work. Similarly,
+MRI 2.0 and 2.1 are not officially supported, but they should work. 1.9.3 is deprecated
+and is likely to break in the release following 3.0.
 
 ## Quick start
 
@@ -92,7 +94,7 @@ Some of the new features added to the driver have unfortunately led to changes i
 
 ## What's new in v3.0.0
 
-Features:
+### Features:
 
 * Apache Cassandra native protocol v4
 * Add support for smallint, tinyint, date (Cassandra::Date) and time (Cassandra::Time) data types.
@@ -103,22 +105,34 @@ Features:
 * Support sending custom payloads when preparing or executing statements using the new :payload option.
 * Expose custom payloads received with responses on server exceptions and Cassandra::Execution::Info instances.
 * Expose server warnings on server exceptions and Cassandra::Execution::Info instances.
+* Add connections_per_local_node, connections_per_remote_node, requests_per_connection cluster configuration options to tune parallel query execution and resource usage.
+* Add Cassandra::Logger class to make it easy for users to enable debug logging in the client.
 
-Breaking Changes:
+### Breaking Changes:
 
 * Cassandra::Future#join is now an alias to Cassandra::Future#get and will raise an error if the future is resolved with one.
 * Default consistency level is now LOCAL_ONE.
 * Enable tcp no-delay by default.
 * Unavailable errors are retried on the next host in the load balancing plan by default.
 * Statement execution no longer retried on timeouts, unless :idempotent => true has been specified when executing.
+* Cassandra::Statements::Batch#add signature has changed in how one specifies query parameters. Specify the query parameters array as the value of the arguments key:
+ 
+```ruby
+batch.add(query, ['val1', 'val2'])
+# becomes
+batch.add(query, arguments: ['val1', 'val2'])
 
-Bug Fixes:
+batch.add(query, {p1: 'val1'})
+# becomes
+batch.add(query, arguments: {p1: 'val1'})
+```
 
-* [[RUBY-93](https://datastax-oss.atlassian.net/browse/RUBY-93)] Reconnection can overflow the stack
+### Bug Fixes:
+
+* [[RUBY-120](https://datastax-oss.atlassian.net/browse/RUBY-120)] Tuples and UDTs can be used in sets and hash keys.
 * [[RUBY-143](https://datastax-oss.atlassian.net/browse/RUBY-143)] Retry querying system table for metadata of new hosts when prior attempts fail, ultimately enabling use of new hosts.
 * [[RUBY-150](https://datastax-oss.atlassian.net/browse/RUBY-150)] Fixed a protocol decoding error that occurred when multiple messages are available in a stream.
 * [[RUBY-151](https://datastax-oss.atlassian.net/browse/RUBY-151)] Decode incomplete UDTs properly.
-* [[RUBY-120](https://datastax-oss.atlassian.net/browse/RUBY-120)] Tuples and UDTs can be used in sets and hash keys.
 
 ## Feedback Requested
 
@@ -127,11 +141,15 @@ on the Ruby Driver Platform and Runtime Survey (we kept it short).
 
 ## Code examples
 
-The DataStax Ruby Driver uses the awesome [Cucumber Framework](http://cukes.info/) for both end-to-end, or acceptance, testing and constructing documentation. All of the features supported by the driver have appropriate acceptance tests with easy-to-copy code examples in the `features/` directory.
+The DataStax Ruby Driver uses the awesome [Cucumber Framework](http://cukes.info/) for
+both end-to-end, or acceptance, testing and constructing documentation. All of the
+features supported by the driver have appropriate acceptance tests with easy-to-copy code
+examples in the `features/` directory.
 
 ## Running tests
 
-If you don't feel like reading through the following instructions on how to run ruby-driver tests, feel free to [check out .travis.yml for the entire build code](https://github.com/datastax/ruby-driver/blob/master/.travis.yml).
+If you don't feel like reading through the following instructions on how to run
+ruby-driver tests, feel free to [check out .travis.yml for the entire build code](https://github.com/datastax/ruby-driver/blob/master/.travis.yml).
 
 * Check out the driver codebase and install test dependencies:
 
