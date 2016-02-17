@@ -1,3 +1,14 @@
+# 3.0.0 rc1
+
+Features:
+* Add connections_per_local_node, connections_per_remote_node, requests_per_connection cluster configuration options to tune parallel query execution and resource usage.
+* Add Cassandra::Logger class to make it easy for users to enable debug logging in the client.
+
+Bug Fixes:
+* [RUBY-154] Improve batch request performance, which had regressed in 3.0.0 beta1.
+* [RUBY-155] Request timeout timer should not include request queuing time.
+* [RUBY-156] Do not drop response frames that follow a frame containing a warning.
+
 # 3.0.0 beta1
 
 Features:
