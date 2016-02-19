@@ -7,8 +7,8 @@ require 'cassandra/version'
 Gem::Specification.new do |s|
   s.name          = 'cassandra-driver'
   s.version       = Cassandra::VERSION.dup
-  s.authors       = ['Theo Hultberg', 'Bulat Shakirzyanov']
-  s.email         = ['theo@iconara.net', 'bulat.shakirzyanov@datastax.com']
+  s.authors       = ['Theo Hultberg', 'Bulat Shakirzyanov', 'Sandeep Tamhankar']
+  s.email         = ['theo@iconara.net', 'bulat.shakirzyanov@datastax.com', 'sandeep.tamhankar@datastax.com']
   s.homepage      = 'http://datastax.github.io/ruby-driver'
   s.summary       = %q{Datastax Ruby Driver for Apache Cassandra}
   s.description   = %q{A pure Ruby driver for Apache Cassandra}
