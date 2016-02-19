@@ -377,6 +377,7 @@ class StubIoReactor
   end
 
   attr_reader :connections
+  attr_accessor :connection_options
 
   def initialize
     @enabled_nodes = ::Set.new

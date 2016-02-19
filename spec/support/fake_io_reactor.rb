@@ -40,6 +40,7 @@ class FakeIoReactor
   end
 
   attr_reader :connections, :last_used_connection
+  attr_accessor :connection_options
 
   def initialize
     @running = false
@@ -71,7 +72,16 @@ class FakeIoReactor
     elsif @down_nodes.include?(host)
       Ione::Future.failed(Ione::Io::ConnectionError.new('Node down'))
     else
-      connection = FakeConnection.new(host, port, timeout)
+      # It's very easy for a test to not set up the io-reactor with the driver's
+      # connection options and then error out with a confusing message about
+      # dereferencing nil. So, let's yell more intelligently.
+
+      unless @connection_options
+        raise "Your test needs to configure the fake io-reactor to have the driver " \
+        "connection options in a before block! Something like\n" \
+        "   io_reactor.connection_options = driver.connection_options"
+      end
+      connection = FakeConnection.new(host, port, timeout, @connection_options.protocol_version)
       @connections << connection
       @connection_listeners.each do |listener|
         listener.call(connection)
@@ -139,12 +149,13 @@ class FakeIoReactor
 end
 
 class FakeConnection
-  attr_reader :host, :port, :timeout, :requests, :keyspace
+  attr_reader :host, :port, :timeout, :requests, :keyspace, :protocol_version
 
-  def initialize(host, port, timeout, data={})
+  def initialize(host, port, timeout, protocol_version, data={})
     @host = host
     @port = port
     @timeout = timeout
+    @protocol_version = protocol_version
     @requests = []
     @responses = []
     @closed = false

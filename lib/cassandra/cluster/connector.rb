@@ -136,6 +136,7 @@ module Cassandra
                                            @connection_options.idle_timeout,
                                            @connection_options.requests_per_connection)
         end.flat_map do |connection|
+          # connection is a CqlProtocolHandler
           f = request_options(connection)
           f = f.flat_map do |options|
             compression = @connection_options.compression
@@ -159,10 +160,19 @@ module Cassandra
             case error
             when Errors::ProtocolError
               synchronize do
-                if @connection_options.protocol_version > 1
+                current_version = connection.protocol_version
+                if current_version > 1
                   @logger.info("Host #{host.ip} doesn't support protocol version " \
-                    "#{@connection_options.protocol_version}, downgrading")
-                  @connection_options.protocol_version -= 1
+                    "#{current_version}, downgrading")
+
+                  # This is tricky. We want to try with the next lower protocol version.
+                  # However, the connection_options used for all connections may have
+                  # already been updated due to other node connection failures. So,
+                  # it may already have a lower protocol-version than our current-1. We
+                  # don't want to accidentally raise it, so we update it to the min
+                  # of itself and current-1.
+                  @connection_options.protocol_version =
+                      [@connection_options.protocol_version, current_version - 1].min
                   do_connect(host)
                 else
                   Ione::Future.failed(error)
@@ -170,7 +180,7 @@ module Cassandra
               end
             when Errors::TimeoutError
               future = Ione::CompletableFuture.new
-              connection.close(error).on_complete do |_f|
+              connection.close(error).on_complete do |_|
                 future.fail(error)
               end
               future

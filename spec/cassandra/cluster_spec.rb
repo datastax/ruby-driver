@@ -35,6 +35,10 @@ module Cassandra
 
     let(:cluster) { Cluster.new(driver.logger, io_reactor, executor, control_connection, cluster_registry, driver.cluster_schema, driver.cluster_metadata, driver.execution_options, driver.connection_options, load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.address_resolution_policy, driver.connector, driver.futures_factory) }
 
+    before do
+      io_reactor.connection_options = driver.connection_options
+    end
+
     describe('#hosts') do
       it 'uses State#hosts' do
         expect(cluster.hosts).to eq(cluster_registry.hosts)
