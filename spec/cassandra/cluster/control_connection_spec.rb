@@ -142,7 +142,7 @@ module Cassandra
         cluster_registry.add_listener(driver.load_balancing_policy)
         cluster_registry.add_listener(control_connection)
         cluster_registry.host_found('127.0.0.1')
-
+        io_reactor.connection_options = connection_options
         io_reactor.on_connection do |connection|
           connection[:spec_rack]            = racks[connection.host]
           connection[:spec_data_center]     = data_centers[connection.host]
@@ -221,7 +221,7 @@ module Cassandra
 
           control_connection.connect_async.value
 
-          connection_options.protocol_version.should == 4
+          expect(connection_options.protocol_version).to eq(4)
         end
 
         it 'logs when it tries the next protocol version' do
@@ -236,7 +236,6 @@ module Cassandra
               Protocol::SupportedResponse.new('CQL_VERSION' => %w[3.0.0], 'COMPRESSION' => %w[lz4 snappy])
             end
           end
-
 
           control_connection.connect_async.value
           expect(logger).to have_received(:info).with("Host 127.0.0.1 doesn't support protocol version 7, downgrading")

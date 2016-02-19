@@ -32,7 +32,13 @@ module Cassandra
     #   puts "These options are supported: #{response.options}"
     class CqlProtocolHandler
       # @return [String] the current keyspace for the underlying connection
-      attr_reader :keyspace, :error
+      attr_reader :keyspace
+
+      # @return [Exception] outstanding error, from a failed connection.
+      attr_reader :error
+
+      # @return [Integer] the version of the protocol to use in communicating with C*.
+      attr_reader :protocol_version
 
       def initialize(connection,
                      scheduler,
@@ -41,6 +47,7 @@ module Cassandra
                      heartbeat_interval = 30,
                      idle_timeout = 60,
                      requests_per_connection = 128)
+        @protocol_version = protocol_version
         @connection = connection
         @scheduler = scheduler
         @compressor = compressor
