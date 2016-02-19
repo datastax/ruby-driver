@@ -2,6 +2,7 @@
 Features:
 
 Bug Fixes:
+* [RUBY-161] Protocol version negotiation in mixed version clusters should not fall back to v1 unless it is truly warranted.    
 
 Breaking Changes:
 
