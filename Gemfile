@@ -12,7 +12,6 @@ group :development do
     gem 'perftools.rb'
   end
   gem 'rubocop', '~> 0.36', require: false
-#  gem 'rubocop', require: false, git: 'https://github.com/bbatsov/rubocop.git', ref: '1665ff2573dc1412096af775d03ccf1163f783df'
 end
 
 group :test do
