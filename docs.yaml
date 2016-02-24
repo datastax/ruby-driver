@@ -15,6 +15,17 @@ sections:
     type:      yard
     directory: ['lib', 'spec']
     namespace: Cassandra
+url_rewrite_rules:
+  - pattern: api/
+    replace: api/cassandra/
+  - pattern: cassandra/cassandra
+    replace: cassandra
+  - pattern: trunk/doc/native_protocol_v([12])\.spec
+    replace: cassandra-2.2/doc/native_protocol_v\1.spec
+  - pattern: http://www.datastax.com/documentation/cql/3.1/webhelp/index.html
+    replace: http://docs.datastax.com/en/cql/3.3/cql/cql_using/useAboutCQL.html
+  - pattern: java-driver/features
+    replace: java-driver/manual
 links:
   - title: Code
     href:  https://github.com/datastax/ruby-driver/
