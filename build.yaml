@@ -18,8 +18,12 @@ build:
       export JAVA_HOME=$CCM_JAVA_HOME
       export PATH=$JAVA_HOME/bin:$PATH
 
-      # Define Cassandra runtime
-      export CASSANDRA_VERSION=$CCM_CASSANDRA_VERSION
+      # Define Cassandra or DSE runtime
+      if [ "$CCM_IS_DSE" == "true" ]; then
+        export DSE_VERSION=$CCM_VERSION
+      else
+        export CASSANDRA_VERSION=$CCM_VERSION
+      fi
 
       # Run the tests
       bundle exec rake test

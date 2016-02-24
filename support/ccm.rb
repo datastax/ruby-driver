@@ -379,12 +379,13 @@ module CCM extend self
 
     attr_reader :name
 
-    def initialize(name, ccm, firewall, nodes_count = nil, datacenters = nil, keyspaces = nil)
+    def initialize(name, ccm, firewall, nodes_count = nil, datacenters = nil, keyspaces = nil, dse = false)
       @name        = name
       @ccm         = ccm
       @firewall    = firewall
       @datacenters = datacenters
       @keyspaces   = keyspaces
+      @dse = dse
 
       @nodes = []
 
@@ -458,12 +459,7 @@ module CCM extend self
         attempts = 1
 
         begin
-          if jvm_arg
-            @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto', "--jvm_arg=#{jvm_arg}")
-          else
-            @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
-          end
-
+          @ccm.exec('start', '--wait-for-binary-proto', jvm_arg ? "--jvm_arg=#{jvm_arg}" : '')
           refresh_status
         rescue => e
           @ccm.exec('stop') rescue nil
@@ -521,12 +517,8 @@ module CCM extend self
         attempts = 1
 
         begin
-          if jvm_arg
-            @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto', "--jvm_arg=#{jvm_arg}")
-          else
-            @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto')
-          end
-
+          @ccm.exec(node.name, 'start', '--wait-other-notice', '--wait-for-binary-proto',
+                    jvm_arg ? "--jvm_arg=#{jvm_arg}" : '')
           refresh_status
         rescue => e
           @ccm.exec(node.name, 'stop') rescue nil
@@ -600,7 +592,10 @@ module CCM extend self
 
       i = name.sub('node', '')
 
-      @ccm.exec('add', '-b', "-t 127.0.0.#{i}:9160", "-l 127.0.0.#{i}:7000", "--binary-itf=127.0.0.#{i}:9042", name)
+      add_args = ['-b', "-t 127.0.0.#{i}:9160", "-l 127.0.0.#{i}:7000", "--binary-itf=127.0.0.#{i}:9042", name]
+      add_args << '--dse' if @dse
+
+      @ccm.exec('add', *add_args)
       @nodes << Node.new(name, 'DOWN', self)
 
       nil
@@ -845,12 +840,7 @@ module CCM extend self
 
   def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
     parse_version
-    if @dse
-      cluster_name = 'ruby-driver-dse-%s-test-cluster' % @raw_version
-    else
-      cluster_name = 'ruby-driver-cassandra-%s-test-cluster' % @raw_version
-    end
-
+    cluster_name = 'ruby-driver-' + "#{@dse ? 'dse' : 'cassandra'}" + "-#{@raw_version}" + '-test-cluster'
 
     if @current_cluster && @current_cluster.name == cluster_name
       unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
@@ -939,11 +929,10 @@ module CCM extend self
   def create_cluster(name, version, datacenters, nodes_per_datacenter)
     nodes = Array.new(datacenters, nodes_per_datacenter).join(':')
 
-    if @dse
-      ccm.exec('create', '--dse', '-v', version, '-b', name)
-    else
-      ccm.exec('create', '-v', version, '-b', name)
-    end
+    create_args = ['-v', version, name]
+    create_args << '--dse' if @dse
+
+    ccm.exec('create', *create_args)
 
     config = [
       '--rt', '1000',
@@ -993,7 +982,8 @@ module CCM extend self
     ccm.exec('updateconf', *config)
     ccm.exec('populate', '-n', nodes, '-i', '127.0.0.')
 
-    clusters << @current_cluster = Cluster.new(name, ccm, firewall, nodes_per_datacenter * datacenters, datacenters, [])
+    clusters << @current_cluster = Cluster.new(name, ccm, firewall, nodes_per_datacenter * datacenters, datacenters,
+                                               [], @dse)
 
     nil
   end
