@@ -579,7 +579,10 @@ class DatatypeTest < IntegrationTestCase
       alpha_type_list.push("#{letter} frozen<#{nested_tuples_schema_helper(depth)}>")
     end
 
-    session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
+    # Occasionally returns Cassandra::Errors::ServerError, Invalid definition for comparator org.apache.cassandra.db.marshal.TupleType
+    Retry.with_attempts(5, Cassandra::Errors::NoHostsAvailable) do
+      session.execute("CREATE TABLE mytable (#{alpha_type_list.join(",")})")
+    end
 
     # Insert into table
     lengths.zip('a'..'z') do |depth, letter|
