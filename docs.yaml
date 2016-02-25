@@ -21,7 +21,7 @@ rewrites:
   - 'trunk/doc/native_protocol_v([12])\.spec': cassandra-2.2/doc/native_protocol_v\1.spec
   - search: http://www.datastax.com/documentation/cql/3.1/webhelp/index.html
     replace: http://docs.datastax.com/en/cql/3.3/cql/cql_using/useAboutCQL.html
-  - java-driver/features: java-driver/manual
+  - 'https://datastax.github.io/java-driver/features': https://datastax.github.io/java-driver/manual
 links:
   - title: Code
     href:  https://github.com/datastax/ruby-driver/
