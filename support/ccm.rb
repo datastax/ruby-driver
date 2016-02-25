@@ -827,6 +827,7 @@ module CCM extend self
   end
 
   def cassandra_version
+    parse_version
     @cassandra_version ||= begin
       version = @raw_version
       if @raw_version.start_with?('4.0') || @raw_version.start_with?('4.5') || @raw_version.start_with?('4.6')

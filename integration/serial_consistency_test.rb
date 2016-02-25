@@ -276,7 +276,9 @@ class SerialConsistencyTest < IntegrationTestCase
         b.add("UPDATE users SET first = 'Joss', last = 'Fillion', age = 41 WHERE user_id = 0 IF first = 'John'")
       end
       begin
-        session.execute(simple_batch, consistency: :local_one, serial_consistency: :local_serial)
+        Retry.with_attempts(5, Cassandra::Errors::WriteTimeoutError) do
+          session.execute(simple_batch, consistency: :local_one, serial_consistency: :local_serial)
+        end
       rescue Cassandra::Errors::NoHostsAvailable => e
         raise e unless e.errors.first.last.is_a?(Cassandra::Errors::UnavailableError)
       end

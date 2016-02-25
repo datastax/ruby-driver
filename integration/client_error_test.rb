@@ -72,11 +72,11 @@ class ClientErrorTest < IntegrationTestCase
     begin
       skip("Client failure errors are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-      cluster = Cassandra.cluster
+      cluster = Retry.with_attempts(5, Cassandra::Errors::NoHostsAvailable) { Cassandra.cluster }
       session = cluster.connect
 
       session.execute("CREATE KEYSPACE testwritefail WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3'}",
-                      consistency: :all)
+                      consistency: :all) rescue nil
       session.execute("CREATE TABLE testwritefail.test (k int PRIMARY KEY, v int)", consistency: :all)
 
       # Disable one node
@@ -92,8 +92,6 @@ class ClientErrorTest < IntegrationTestCase
 
       # Restart the node to clear jvm settings
       set_failing_nodes([], "testwritefail")
-
-      session.execute("DROP KEYSPACE testwritefail")
     ensure
       cluster && cluster.close
     end
@@ -120,11 +118,11 @@ class ClientErrorTest < IntegrationTestCase
     skip("Client failure errors are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     begin
-      cluster = Cassandra.cluster
+      cluster = Retry.with_attempts(5, Cassandra::Errors::NoHostsAvailable) { Cassandra.cluster }
       session = cluster.connect
 
       session.execute("CREATE KEYSPACE testreadfail WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3'}",
-                      consistency: :all)
+                      consistency: :all) rescue nil
       session.execute("CREATE TABLE testreadfail.test2 (k int, v0 int, v1 int, PRIMARY KEY (k, v0))", consistency: :all)
 
       # Insert wide rows
@@ -143,8 +141,6 @@ class ClientErrorTest < IntegrationTestCase
       assert_raises(Cassandra::Errors::ReadError) do
         session.execute("SELECT * FROM testreadfail.test2 WHERE k = 1")
       end
-
-      session.execute("DROP KEYSPACE testreadfail")
     ensure
       cluster && cluster.close
     end
@@ -170,11 +166,11 @@ class ClientErrorTest < IntegrationTestCase
     skip("Client failure errors are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
     begin
-      cluster = Cassandra.cluster
+      cluster = Retry.with_attempts(5, Cassandra::Errors::NoHostsAvailable) { Cassandra.cluster }
       session = cluster.connect
 
       session.execute("CREATE KEYSPACE testfunctionfail WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3'}",
-                      consistency: :all)
+                      consistency: :all) rescue nil
       session.execute("CREATE TABLE testfunctionfail.d (k int PRIMARY KEY , d double)", consistency: :all)
 
       # Create a UDF that throws an exception
@@ -191,8 +187,6 @@ class ClientErrorTest < IntegrationTestCase
       assert_raises(Cassandra::Errors::FunctionCallError) do
         session.execute("SELECT test_failure(d) FROM testfunctionfail.d WHERE k = 0")
       end
-
-      session.execute("DROP KEYSPACE testfunctionfail")
     ensure
       cluster && cluster.close
     end
