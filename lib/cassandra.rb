@@ -50,6 +50,47 @@ module Cassandra
   # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v2.spec#L872-L887 Description of possible types of writes in Apache Cassandra native protocol spec v1
   WRITE_TYPES = [:simple, :batch, :unlogged_batch, :counter, :batch_log].freeze
 
+  CLUSTER_OPTIONS = [
+    :address_resolution,
+    :address_resolution_policy,
+    :auth_provider,
+    :client_cert,
+    :client_timestamps,
+    :compression,
+    :compressor,
+    :connect_timeout,
+    :connections_per_local_node,
+    :connections_per_remote_node,
+    :consistency,
+    :credentials,
+    :datacenter,
+    :futures_factory,
+    :heartbeat_interval,
+    :hosts,
+    :idle_timeout,
+    :listeners,
+    :load_balancing_policy,
+    :logger,
+    :nodelay,
+    :reconnection_policy,
+    :retry_policy,
+    :page_size,
+    :passphrase,
+    :password,
+    :port,
+    :private_key,
+    :requests_per_connection,
+    :schema_refresh_delay,
+    :schema_refresh_timeout,
+    :server_cert,
+    :shuffle_replicas,
+    :ssl,
+    :synchronize_schema,
+    :timeout,
+    :trace,
+    :username
+  ].freeze
+
   # Creates a {Cassandra::Cluster Cluster instance}.
   #
   # @option options [Array<String, IPAddr>] :hosts (['127.0.0.1']) a list of
@@ -277,46 +318,7 @@ module Cassandra
   # @private
   def self.validate_and_massage_options(options)
     options = options.select do |key, _|
-      [
-        :address_resolution,
-        :address_resolution_policy,
-        :auth_provider,
-        :client_cert,
-        :client_timestamps,
-        :compression,
-        :compressor,
-        :connect_timeout,
-        :connections_per_local_node,
-        :connections_per_remote_node,
-        :consistency,
-        :credentials,
-        :datacenter,
-        :futures_factory,
-        :heartbeat_interval,
-        :hosts,
-        :idle_timeout,
-        :listeners,
-        :load_balancing_policy,
-        :logger,
-        :nodelay,
-        :reconnection_policy,
-        :retry_policy,
-        :page_size,
-        :passphrase,
-        :password,
-        :port,
-        :private_key,
-        :requests_per_connection,
-        :schema_refresh_delay,
-        :schema_refresh_timeout,
-        :server_cert,
-        :shuffle_replicas,
-        :ssl,
-        :synchronize_schema,
-        :timeout,
-        :trace,
-        :username
-      ].include?(key)
+      CLUSTER_OPTIONS.include?(key)
     end
 
     has_username = options.key?(:username)
