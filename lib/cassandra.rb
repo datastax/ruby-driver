@@ -735,6 +735,7 @@ module Cassandra
   DATE_OFFSET = (::Time.utc(1970, 1, 1).to_date.jd - 2**31)
 end
 
+require 'cassandra/version'
 require 'cassandra/uuid'
 require 'cassandra/time_uuid'
 require 'cassandra/tuple'
