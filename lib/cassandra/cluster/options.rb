@@ -63,6 +63,18 @@ module Cassandra
         @connections_per_local_node  = connections_per_local_node
         @connections_per_remote_node = connections_per_remote_node
         @requests_per_connection = requests_per_connection
+
+        # If @protocol_version is nil, it means we want the driver to negotiate the
+        # protocol starting with our known max (4). If @protocol_version is not nil,
+        # it means the user wants us to use a particular version, so we should not
+        # support negotiation.
+
+        @protocol_negotiable = @protocol_version.nil?
+        @protocol_version ||= 4
+      end
+
+      def protocol_negotiable?
+        @protocol_negotiable
       end
 
       def synchronize_schema?

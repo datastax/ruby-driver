@@ -44,7 +44,7 @@ module Cassandra
       end
 
       let :driver do
-        Driver.new(protocol_version: 7, io_reactor: io_reactor)
+        Driver.new(protocol_version: nil, io_reactor: io_reactor)
       end
 
       let :load_balancing_policy do
@@ -139,6 +139,7 @@ module Cassandra
       end
 
       before do
+        driver.connection_options.protocol_version = 7
         cluster_registry.add_listener(driver.load_balancing_policy)
         cluster_registry.add_listener(control_connection)
         cluster_registry.host_found('127.0.0.1')
@@ -249,6 +250,35 @@ module Cassandra
           end
           expect { control_connection.connect_async.value }.to raise_error(Cassandra::Errors::ProtocolError, 'Bork version, dummy!')
           counter.should == 7
+        end
+
+        it 'gives up when the protocol version is non-negotiable' do
+
+          driver = Driver.new(protocol_version: 3, io_reactor: io_reactor)
+          io_reactor.connection_options = driver.connection_options
+          control_conn = ControlConnection.new(driver.logger,
+                                               driver.io_reactor,
+                                               driver.cluster_registry,
+                                               driver.cluster_schema,
+                                               driver.cluster_metadata,
+                                               driver.load_balancing_policy,
+                                               driver.reconnection_policy,
+                                               driver.address_resolution_policy,
+                                               driver.connector,
+                                               driver.connection_options,
+                                               driver.schema_fetcher)
+
+          driver.cluster_registry.add_listener(driver.load_balancing_policy)
+          driver.cluster_registry.add_listener(control_conn)
+          driver.cluster_registry.host_found('127.0.0.1')
+
+          counter = 0
+          handle_request do |request|
+            counter += 1
+            Protocol::ErrorResponse.new(nil, nil, 0x0a, 'Bork version, dummy!')
+          end
+          expect { control_conn.connect_async.value }.to raise_error(Cassandra::Errors::ProtocolError, 'Bork version, dummy!')
+          expect(counter).to eq(1)
         end
 
         it 'gives up when a non-protocol version related error is raised' do

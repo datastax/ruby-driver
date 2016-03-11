@@ -79,6 +79,7 @@ module Cassandra
     :password,
     :port,
     :private_key,
+    :protocol_version,
     :requests_per_connection,
     :schema_refresh_delay,
     :schema_refresh_timeout,
@@ -181,6 +182,10 @@ module Cassandra
   #   get processed in parallel in the Cassandra node. When `nil`, the setting is `1024`
   #   for nodes that use the v3 or later protocol, and `128` for nodes that use the
   #   v2 or earlier protocol.
+  #
+  # @option options [Integer] :protocol_version (nil) Version of protocol to speak to
+  #   nodes. By default, this is auto-negotiated to the lowest common protocol version
+  #   that all nodes in `:hosts` speak.
   #
   # @option options [Boolean] :client_timestamps (false) whether the driver
   #   should send timestamps for each executed statement. Enabling this setting

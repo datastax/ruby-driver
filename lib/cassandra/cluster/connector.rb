@@ -161,7 +161,7 @@ module Cassandra
             when Errors::ProtocolError
               synchronize do
                 current_version = connection.protocol_version
-                if current_version > 1
+                if current_version > 1 && @connection_options.protocol_negotiable?
                   @logger.info("Host #{host.ip} doesn't support protocol version " \
                     "#{current_version}, downgrading")
 
