@@ -43,19 +43,19 @@ class UserDefinedAggregateTest < IntegrationTestCase
                       RETURNS map<int, int>
                       LANGUAGE java
                       AS 'if (state.get(star_rating) == null) state.put(star_rating, 1); else state.put(star_rating, ((Integer) state.get(star_rating)) + 1); return state;';
-      CREATE FUNCTION state_group_and_sum(state map<int, smallint>, star_rating smallint)
+      CREATE FUNCTION state_group_and_sum(state map<smallint, int>, star_rating smallint)
                       CALLED ON NULL INPUT
-                      RETURNS map<int, smallint>
+                      RETURNS map<smallint, int>
                       LANGUAGE java
                       AS 'if (state.get(star_rating) == null) state.put(star_rating, 1); else state.put(star_rating, ((Integer) state.get(star_rating)) + 1); return state;';
       CREATE FUNCTION percent_stars(state map<int,int>)
                       RETURNS NULL ON NULL INPUT
                       RETURNS map<int, int>
                       LANGUAGE java AS 'Integer sum = 0; for(Object k : state.keySet()) { sum = sum + (Integer) state.get((Integer) k); } java.util.Map<Integer, Integer> results = new java.util.HashMap<Integer, Integer>(); for(Object k : state.keySet()) { results.put((Integer) k, ((Integer) state.get((Integer) k))*100 / sum); } return results;';
-      CREATE FUNCTION percent_stars(state map<int,smallint>)
+      CREATE FUNCTION percent_stars(state map<smallint,int>)
                       RETURNS NULL ON NULL INPUT
-                      RETURNS map<int, smallint>
-                      LANGUAGE java AS 'Integer sum = 0; for(Object k : state.keySet()) { sum = sum + (Integer) state.get((Integer) k); } java.util.Map<Integer, Integer> results = new java.util.HashMap<Integer, Integer>(); for(Object k : state.keySet()) { results.put((Integer) k, ((Integer) state.get((Integer) k))*100 / sum); } return results;';
+                      RETURNS map<smallint,int>
+                      LANGUAGE java AS 'Integer sum = 0; for(Object k : state.keySet()) { sum = sum + (Integer) state.get((Short) k); } java.util.Map<Short, Integer> results = new java.util.HashMap<Short, Integer>(); for(Object k : state.keySet()) { results.put((Short) k, ((Integer) state.get((Short) k))*100 / sum); } return results;';
       CREATE FUNCTION extend_list(s list<text>, i int)
                       CALLED ON NULL INPUT
                       RETURNS list<text>
@@ -244,17 +244,17 @@ class UserDefinedAggregateTest < IntegrationTestCase
     # verify that we pick the right final func.
     @session.execute('CREATE OR REPLACE AGGREGATE group_and_sum2(smallint)
                     SFUNC state_group_and_sum
-                    STYPE map<int, smallint>
+                    STYPE map<smallint, int>
                     FINALFUNC percent_stars
                     INITCOND NULL'
     )
 
     @listener.wait_for_aggregate('simplex', 'group_and_sum2', smallint)
     aggregate = @cluster.keyspace('simplex').aggregate('group_and_sum2', smallint)
-    assert @cluster.keyspace('simplex').has_function?('state_group_and_sum', map(int, smallint), smallint)
-    state_function = @cluster.keyspace('simplex').function('state_group_and_sum', map(int, smallint), smallint)
-    assert @cluster.keyspace('simplex').has_function?('percent_stars', map(int, smallint))
-    final_function = @cluster.keyspace('simplex').function('percent_stars', map(int, smallint))
+    assert @cluster.keyspace('simplex').has_function?('state_group_and_sum', map(smallint, int), smallint)
+    state_function = @cluster.keyspace('simplex').function('state_group_and_sum', map(smallint, int), smallint)
+    assert @cluster.keyspace('simplex').has_function?('percent_stars', map(smallint, int))
+    final_function = @cluster.keyspace('simplex').function('percent_stars', map(smallint, int))
     assert_equal state_function, aggregate.state_function
     assert_equal final_function, aggregate.final_function
 
