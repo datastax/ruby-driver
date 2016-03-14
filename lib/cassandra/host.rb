@@ -18,7 +18,7 @@
 
 module Cassandra
   class Host
-    # @return [IPAddr] host ip
+    # @return [IPAddr] host ip that clients use to connect to this host.
     attr_reader :ip
     # @note Host id can be `nil` before cluster has connected.
     # @return [Cassandra::Uuid, nil] host id.
@@ -37,6 +37,12 @@ module Cassandra
     attr_reader :tokens
     # @return [Symbol] host status. Must be `:up` or `:down`
     attr_reader :status
+    # @note This is the public IP address of the host if the cluster is deployed across multiple Amazon EC2 regions (or equivalently multiple networks). Cassandra nodes in other EC2 regions use this address to connect to this host.
+    # @return [IPAddr, String] broadcast address, if available.
+    attr_reader :broadcast_address
+    # @note This is the address that other Cassandra nodes use to connect to this host.
+    # @return [IPAddr, String] listen address, if available.
+    attr_reader :listen_address
 
     # @private
     def initialize(ip,
@@ -45,7 +51,9 @@ module Cassandra
                    datacenter = nil,
                    release_version = nil,
                    tokens = EMPTY_LIST,
-                   status = :up)
+                   status = :up,
+                   broadcast_address = nil,
+                   listen_address = nil)
       @ip              = ip
       @id              = id
       @rack            = rack
@@ -53,6 +61,10 @@ module Cassandra
       @release_version = release_version
       @tokens          = tokens
       @status          = status
+      @broadcast_address = broadcast_address.is_a?(String) ?
+          ::IPAddr.new(broadcast_address) : broadcast_address
+      @listen_address = listen_address.is_a?(String) ?
+          ::IPAddr.new(listen_address) : listen_address
     end
 
     # @return [Boolean] whether this host's status is `:up`

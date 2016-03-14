@@ -1,6 +1,7 @@
 # master
 Features:
 * Add protocol_version configuration option to allow the user to force the protocol version to use for communication with nodes.
+* Expose listen_address and broadcast_address in `Cassandra::Host` if available.
 
 Bug Fixes:
 * [RUBY-161] Protocol version negotiation in mixed version clusters should not fall back to v1 unless it is truly warranted.    
