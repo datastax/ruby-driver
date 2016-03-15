@@ -54,9 +54,9 @@ module Cassandra
         end
 
         # Returns a Password Authenticator
-        # @param authentication_class [String] ignored and deprecated
+        # @param authentication_class [String] ignored
         # @return [Cassandra::Auth::Authenticator]
-        def create_authenticator(authentication_class = nil)
+        def create_authenticator(authentication_class)
           Authenticator.new(@username, @password)
         end
 
