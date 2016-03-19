@@ -31,15 +31,18 @@ module Cassandra
                            select_columns(connection),
                            select_types(connection),
                            select_functions(connection),
-                           select_aggregates(connection))
+                           select_aggregates(connection),
+                           select_materialized_views(connection))
                       .map do |(rows_keyspaces, rows_tables, rows_columns,
-                                rows_types, rows_functions, rows_aggregates)|
+                                rows_types, rows_functions, rows_aggregates,
+                                rows_views)|
 
                         lookup_tables     = map_rows_by(rows_tables, 'keyspace_name')
                         lookup_columns    = map_rows_by(rows_columns, 'keyspace_name')
                         lookup_types      = map_rows_by(rows_types, 'keyspace_name')
                         lookup_functions  = map_rows_by(rows_functions, 'keyspace_name')
                         lookup_aggregates = map_rows_by(rows_aggregates, 'keyspace_name')
+                        lookup_views      = map_rows_by(rows_views, 'keyspace_name')
 
                         rows_keyspaces.map do |keyspace_data|
                           name = keyspace_data['keyspace_name']
@@ -49,7 +52,8 @@ module Cassandra
                                           lookup_columns[name],
                                           lookup_types[name],
                                           lookup_functions[name],
-                                          lookup_aggregates[name])
+                                          lookup_aggregates[name],
+                                          lookup_views[name])
                         end
                       end
         end
@@ -60,9 +64,11 @@ module Cassandra
                            select_keyspace_columns(connection, keyspace_name),
                            select_keyspace_types(connection, keyspace_name),
                            select_keyspace_functions(connection, keyspace_name),
-                           select_keyspace_aggregates(connection, keyspace_name))
+                           select_keyspace_aggregates(connection, keyspace_name),
+                           select_keyspace_materialized_views(connection, keyspace_name))
                       .map do |(rows_keyspaces, rows_tables, rows_columns,
-                                rows_types, rows_functions, rows_aggregates)|
+                                rows_types, rows_functions, rows_aggregates,
+                                rows_views)|
                         if rows_keyspaces.empty?
                           nil
                         else
@@ -71,7 +77,8 @@ module Cassandra
                                           rows_columns,
                                           rows_types,
                                           rows_functions,
-                                          rows_aggregates)
+                                          rows_aggregates,
+                                          rows_views)
                         end
                       end
         end
@@ -85,6 +92,22 @@ module Cassandra
             else
               create_table(rows_tables.first,
                            rows_columns)
+            end
+          end
+        end
+
+        def fetch_materialized_view(connection, keyspace_name, view_name)
+          Ione::Future.all(select_materialized_view(connection, keyspace_name, view_name),
+                           select_table_columns(connection, keyspace_name, view_name))
+              .map do |(rows_views, rows_columns)|
+            if rows_views.empty?
+              nil
+            else
+              view_row = rows_views.first
+              base_table = @schema.keyspace(keyspace_name).table(view_row['base_table_name'])
+              create_materialized_view(view_row,
+                          rows_columns,
+                          base_table)
             end
           end
         end
@@ -132,6 +155,10 @@ module Cassandra
           FUTURE_EMPTY_LIST
         end
 
+        def select_materialized_views(connection)
+          FUTURE_EMPTY_LIST
+        end
+
         def select_columns(connection)
           FUTURE_EMPTY_LIST
         end
@@ -156,6 +183,10 @@ module Cassandra
           FUTURE_EMPTY_LIST
         end
 
+        def select_keyspace_materialized_views(connection, keyspace_name)
+          FUTURE_EMPTY_LIST
+        end
+
         def select_keyspace_columns(connection, keyspace_name)
           FUTURE_EMPTY_LIST
         end
@@ -173,6 +204,10 @@ module Cassandra
         end
 
         def select_table(connection, keyspace_name, table_name)
+          FUTURE_EMPTY_LIST
+        end
+
+        def select_materialized_view(connection, keyspace_name, view_name)
           FUTURE_EMPTY_LIST
         end
 
@@ -248,7 +283,7 @@ module Cassandra
               'FROM system.schema_columns ' \
               'WHERE keyspace_name = \'%s\' AND columnfamily_name = \'%s\''.freeze
 
-          include Fetcher
+          include Cassandra::Cluster::Schema::Fetcher
 
           def initialize(type_parser, schema)
             @type_parser = type_parser
@@ -298,7 +333,8 @@ module Cassandra
           end
 
           def create_keyspace(keyspace_data, rows_tables, rows_columns,
-                              rows_types, rows_functions, rows_aggregates)
+                              rows_types, rows_functions, rows_aggregates,
+                              rows_views)
             keyspace_name = keyspace_data['keyspace_name']
             replication   = create_replication(keyspace_data)
             types = rows_types.each_with_object({}) do |row, types|
@@ -328,7 +364,8 @@ module Cassandra
                          tables,
                          types,
                          functions,
-                         aggregates)
+                         aggregates,
+                         {})
           end
 
           def create_table(table_data, rows_columns)
@@ -338,7 +375,16 @@ module Cassandra
             comparator      = @type_parser.parse(table_data['comparator'])
             column_aliases  = ::JSON.load(table_data['column_aliases'])
 
-            if !comparator.collections.nil?
+            if comparator.collections.nil?
+              is_compact = true
+              if !column_aliases.empty? || rows_columns.empty?
+                has_value = true
+                clustering_size = comparator.results.size
+              else
+                has_value = false
+                clustering_size = 0
+              end
+            else
               size = comparator.results.size
               if !comparator.collections.empty?
                 is_compact = false
@@ -354,26 +400,17 @@ module Cassandra
                 has_value  = (!column_aliases.empty? || rows_columns.empty?)
                 clustering_size = size
               end
-            else
-              is_compact = true
-              if (!column_aliases.empty? || rows_columns.empty?)
-                has_value = true
-                clustering_size = comparator.results.size
-              else
-                has_value = false
-                clustering_size = 0
-              end
             end
 
+            # Separate out the partition-key, clustering-columns, and other-columns
             partition_key      = []
             clustering_columns = []
             clustering_order   = []
+            other_columns = []
 
             compaction_strategy = create_compaction_strategy(table_data)
             table_options =
                 create_table_options(table_data, compaction_strategy, is_compact)
-            table_columns = {}
-            other_columns = []
 
             key_aliases = ::JSON.load(table_data['key_aliases'])
 
@@ -408,23 +445,11 @@ module Cassandra
               other_columns << create_column(row)
             end
 
-            partition_key.each do |column|
-              table_columns[column.name] = column
-            end
-
-            clustering_columns.each do |column|
-              table_columns[column.name] = column
-            end
-
-            other_columns.each do |column|
-              table_columns[column.name] = column
-            end
-
-            Table.new(keyspace_name,
+            Cassandra::Table.new(keyspace_name,
                       table_name,
                       partition_key,
                       clustering_columns,
-                      table_columns,
+                      other_columns,
                       table_options,
                       clustering_order)
           end
@@ -453,7 +478,7 @@ module Cassandra
             klass = table_data['compaction_strategy_class']
             klass.slice!('org.apache.cassandra.db.compaction.')
             options = ::JSON.load(table_data['compaction_strategy_options'])
-            Table::Compaction.new(klass, options)
+            ColumnContainer::Compaction.new(klass, options)
           end
 
           def create_table_options(table_data, compaction_strategy, is_compact)
@@ -462,7 +487,7 @@ module Cassandra
               compression_parameters['sstable_compression'].
                   slice!(COMPRESSION_PACKAGE_PREFIX)
             end
-            Table::Options.new(
+            Cassandra::ColumnContainer::Options.new(
               table_data['comment'],
               table_data['read_repair_chance'],
               table_data['local_read_repair_chance'],
@@ -479,7 +504,8 @@ module Cassandra
               nil,
               compaction_strategy,
               compression_parameters,
-              is_compact
+              is_compact,
+              table_data['crc_check_chance']
             )
           end
         end
@@ -506,13 +532,13 @@ module Cassandra
             keyspace_name   = table_data['keyspace_name']
             table_name      = table_data['columnfamily_name']
             comparator      = @type_parser.parse(table_data['comparator'])
-            table_columns   = {}
-            other_columns   = []
             clustering_size = 0
 
+            # Separate out partition-key, clustering columns, other columns.
             partition_key      = []
             clustering_columns = []
             clustering_order   = []
+            other_columns   = []
 
             rows_columns.each do |row|
               next if row['column_name'].empty?
@@ -536,29 +562,17 @@ module Cassandra
               end
             end
 
-            partition_key.each do |column|
-              table_columns[column.name] = column
-            end
-
-            clustering_columns.each do |column|
-              table_columns[column.name] = column
-            end
-
-            other_columns.each do |column|
-              table_columns[column.name] = column
-            end
-
             compaction_strategy = create_compaction_strategy(table_data)
             is_compact    = (clustering_size != comparator.results.size - 1) ||
                 !comparator.collections
             table_options =
                 create_table_options(table_data, compaction_strategy, is_compact)
 
-            Table.new(keyspace_name,
+            Cassandra::Table.new(keyspace_name,
                       table_name,
                       partition_key,
                       clustering_columns,
-                      table_columns,
+                      other_columns,
                       table_options,
                       clustering_order)
           end
@@ -599,7 +613,7 @@ module Cassandra
               compression_parameters['sstable_compression'].
                   slice!(COMPRESSION_PACKAGE_PREFIX)
             end
-            Table::Options.new(
+            Cassandra::ColumnContainer::Options.new(
               table_data['comment'],
               table_data['read_repair_chance'],
               table_data['local_read_repair_chance'],
@@ -616,7 +630,8 @@ module Cassandra
               nil,
               compaction_strategy,
               compression_parameters,
-              is_compact
+              is_compact,
+              table_data['crc_check_chance'],
             )
           end
         end
@@ -671,7 +686,7 @@ module Cassandra
               compression_parameters['sstable_compression'].
                   slice!(COMPRESSION_PACKAGE_PREFIX)
             end
-            Table::Options.new(
+            Cassandra::ColumnContainer::Options.new(
               table_data['comment'],
               table_data['read_repair_chance'],
               table_data['local_read_repair_chance'],
@@ -688,7 +703,8 @@ module Cassandra
               table_data['max_index_interval'],
               compaction_strategy,
               compression_parameters,
-              is_compact
+              is_compact,
+              table_data['crc_check_chance']
             )
           end
         end
@@ -742,7 +758,7 @@ module Cassandra
               arguments << Argument.new(argument_name, argument_type)
             end
 
-            Function.new(keyspace_name,
+            Cassandra::Function.new(keyspace_name,
                          function_name,
                          function_lang,
                          function_type,
@@ -825,7 +841,7 @@ module Cassandra
           SELECT_FUNCTIONS  = "SELECT * FROM system_schema.functions".freeze
           SELECT_AGGREGATES = "SELECT * FROM system_schema.aggregates".freeze
           SELECT_INDEXES    = "SELECT * FROM system_schema.indexes".freeze
-          SELECT_VIEWS      = "SELECT * FROM system_schema.materialized_views".freeze
+          SELECT_VIEWS      = "SELECT * FROM system_schema.views".freeze
 
           SELECT_KEYSPACE            =
               'SELECT * FROM system_schema.keyspaces WHERE keyspace_name = ?'.freeze
@@ -833,6 +849,8 @@ module Cassandra
               'SELECT * FROM system_schema.tables WHERE keyspace_name = ?'.freeze
           SELECT_KEYSPACE_COLUMNS    =
               'SELECT * FROM system_schema.columns WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_VIEWS     =
+              'SELECT * FROM system_schema.views WHERE keyspace_name = ?'.freeze
           SELECT_KEYSPACE_TYPES      =
               "SELECT * FROM system_schema.types WHERE keyspace_name = ?".freeze
           SELECT_KEYSPACE_FUNCTIONS  =
@@ -848,6 +866,11 @@ module Cassandra
               'SELECT * ' \
               'FROM system_schema.columns ' \
               'WHERE keyspace_name = ? AND table_name = ?'.freeze
+
+          SELECT_VIEW         =
+              'SELECT * ' \
+              'FROM system_schema.views ' \
+              'WHERE keyspace_name = ? AND view_name = ?'.freeze
 
           SELECT_TYPE =
               'SELECT * ' \
@@ -889,6 +912,10 @@ module Cassandra
             send_select_request(connection, SELECT_TABLES)
           end
 
+          def select_materialized_views(connection)
+            send_select_request(connection, SELECT_VIEWS)
+          end
+
           def select_columns(connection)
             send_select_request(connection, SELECT_COLUMNS)
           end
@@ -923,6 +950,12 @@ module Cassandra
             send_select_request(connection, SELECT_KEYSPACE_COLUMNS, params, hints)
           end
 
+          def select_keyspace_materialized_views(connection, keyspace_name)
+            params = [keyspace_name]
+            hints  = [Types.varchar]
+            send_select_request(connection, SELECT_KEYSPACE_VIEWS, params, hints)
+          end
+
           def select_keyspace_types(connection, keyspace_name)
             params = [keyspace_name]
             hints  = [Types.varchar]
@@ -948,9 +981,18 @@ module Cassandra
           end
 
           def select_table_columns(connection, keyspace_name, table_name)
+            # This is identical to the 2.0 impl, but the SELECT_TABLE_COLUMNS query
+            # is different between the two, so we need two impls. :(
+            # Also, this method works fine for finding view columns as well.
             params         = [keyspace_name, table_name]
             hints          = [Types.varchar, Types.varchar]
             send_select_request(connection, SELECT_TABLE_COLUMNS, params, hints)
+          end
+
+          def select_materialized_view(connection, keyspace_name, view_name)
+            params         = [keyspace_name, view_name]
+            hints          = [Types.varchar, Types.varchar]
+            send_select_request(connection, SELECT_VIEW, params, hints)
           end
 
           def select_type(connection, keyspace_name, type_name)
@@ -988,7 +1030,7 @@ module Cassandra
                                         @type_parser.parse(argument_type, types).first)
             end
 
-            Function.new(keyspace_name,
+            Cassandra::Function.new(keyspace_name,
                          function_name,
                          function_lang,
                          function_type,
@@ -1066,7 +1108,7 @@ module Cassandra
           end
 
           def create_keyspace(keyspace_data, rows_tables, rows_columns,
-                              rows_types, rows_functions, rows_aggregates)
+                              rows_types, rows_functions, rows_aggregates, rows_views)
             keyspace_name = keyspace_data['keyspace_name']
             replication   = create_replication(keyspace_data)
 
@@ -1084,10 +1126,23 @@ module Cassandra
               aggregates.add_or_update(create_aggregate(row, functions, types))
             end
 
+            # lookup_columns is a hash of <table-name, rows_columns for that table>.
+            # However, views are analogous to tables in this context, so we get
+            # view columns organized by view-name also.
+
             lookup_columns = map_rows_by(rows_columns, 'table_name')
             tables = rows_tables.each_with_object({}) do |row, tables|
               table_name = row['table_name']
               tables[table_name] = create_table(row, lookup_columns[table_name], types)
+            end
+
+            views = rows_views.each_with_object({}) do |row, views|
+              view_name = row['view_name']
+              base_table = tables[row['base_table_name']]
+              views[view_name] = create_materialized_view(row,
+                                             lookup_columns[view_name],
+                                             base_table,
+                                             types)
             end
 
             Keyspace.new(keyspace_name,
@@ -1096,7 +1151,8 @@ module Cassandra
                          tables,
                          types,
                          functions,
-                         aggregates)
+                         aggregates,
+                         views)
           end
 
           def create_replication(keyspace_data)
@@ -1110,7 +1166,7 @@ module Cassandra
             options = table_data['compaction']
             klass   = options.delete('class')
             klass.slice!('org.apache.cassandra.db.compaction.')
-            Table::Compaction.new(klass, options)
+            ColumnContainer::Compaction.new(klass, options)
           end
 
           def create_table_options(table_data, compaction_strategy, is_compact)
@@ -1119,7 +1175,7 @@ module Cassandra
               compression['class'].slice!(COMPRESSION_PACKAGE_PREFIX)
             end
 
-            Table::Options.new(
+            Cassandra::ColumnContainer::Options.new(
               table_data['comment'],
               table_data['read_repair_chance'],
               table_data['dclocal_read_repair_chance'],
@@ -1136,7 +1192,8 @@ module Cassandra
               table_data['max_index_interval'],
               compaction_strategy,
               compression,
-              is_compact
+              is_compact,
+              table_data['crc_check_chance']
             )
           end
 
@@ -1153,18 +1210,17 @@ module Cassandra
             keyspace_name   = table_data['keyspace_name']
             table_name      = table_data['table_name']
             table_flags     = table_data['flags']
-            table_columns   = {}
-            other_columns   = []
-            clustering_size = 0
 
             is_dense    = table_flags.include?('dense')
             is_super    = table_flags.include?('super')
             is_compound = table_flags.include?('compound')
             is_compact  = is_super || is_dense || !is_compound
 
+            # Separate out partition-key, clustering columns, other columns.
             partition_key      = []
             clustering_columns = []
             clustering_order   = []
+            other_columns   = []
             types            ||= @schema.keyspace(keyspace_name).send(:raw_types)
 
             rows_columns.each do |row|
@@ -1180,38 +1236,68 @@ module Cassandra
               when 'CLUSTERING'
                 clustering_columns[index] = column
                 clustering_order[index]   = column.order
-
-                if clustering_size.zero? || index == clustering_size
-                  clustering_size = index + 1
-                end
               else
                 other_columns << column
               end
             end
 
-            partition_key.each do |column|
-              table_columns[column.name] = column
-            end
-
-            clustering_columns.each do |column|
-              table_columns[column.name] = column
-            end
-
-            other_columns.each do |column|
-              table_columns[column.name] = column
-            end
-
+            # Default the crc_check_chance to 1.0 (Java driver does this, so we
+            # should, too).
+            table_data['crc_check_chance'] ||= 1.0
             compaction_strategy = create_compaction_strategy(table_data)
             table_options =
                 create_table_options(table_data, compaction_strategy, is_compact)
 
-            Table.new(keyspace_name,
+            Cassandra::Table.new(keyspace_name,
                       table_name,
                       partition_key,
                       clustering_columns,
-                      table_columns,
+                      other_columns,
                       table_options,
                       clustering_order)
+          end
+
+          def create_materialized_view(view_data, rows_columns, base_table, types = nil)
+            keyspace_name   = view_data['keyspace_name']
+            view_name       = view_data['view_name']
+            include_all_columns = view_data['include_all_columns']
+            where_clause    = view_data['where_clause']
+
+            # Separate out partition key, clustering columns, other columns
+            partition_key      = []
+            clustering_columns = []
+            other_columns   = []
+            types            ||= @schema.keyspace(keyspace_name).send(:raw_types)
+
+            rows_columns.each do |row|
+              next if row['column_name'].empty?
+
+              column = create_column(row, types)
+              kind   = row['kind'].to_s
+              index  = row['position'] || 0
+
+              case kind.upcase
+              when 'PARTITION_KEY'
+                partition_key[index] = column
+              when 'CLUSTERING'
+                clustering_columns[index] = column
+              else
+                other_columns << column
+              end
+            end
+
+            compaction_strategy = create_compaction_strategy(view_data)
+            view_options = create_table_options(view_data, compaction_strategy, false)
+
+            MaterializedView.new(keyspace_name,
+                                 view_name,
+                                 partition_key,
+                                 clustering_columns,
+                                 other_columns,
+                                 view_options,
+                                 include_all_columns,
+                                 where_clause,
+                                 base_table)
           end
         end
 
@@ -1259,6 +1345,13 @@ module Cassandra
           def fetch_table(connection, keyspace_name, table_name)
             find_fetcher(connection)
               .fetch_table(connection, keyspace_name, table_name)
+          rescue => e
+            return Ione::Future.failed(e)
+          end
+
+          def fetch_materialized_view(connection, keyspace_name, view_name)
+            find_fetcher(connection)
+                .fetch_materialized_view(connection, keyspace_name, view_name)
           rescue => e
             return Ione::Future.failed(e)
           end

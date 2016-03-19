@@ -57,7 +57,8 @@ module Cassandra
                    tables,
                    types,
                    functions,
-                   aggregates)
+                   aggregates,
+                   views)
       @name           = name
       @durable_writes = durable_writes
       @replication    = replication
@@ -65,6 +66,7 @@ module Cassandra
       @types          = types
       @functions      = functions
       @aggregates     = aggregates
+      @views          = views
     end
 
     # @return [Boolean] whether durables writes are enabled for this keyspace
@@ -99,6 +101,34 @@ module Cassandra
       end
     end
     alias tables each_table
+
+    # @return [Boolean] whether this keyspace has a materialized view with the given name
+    # @param name [String] materialized view name
+    def has_materialized_view?(name)
+      @views.key?(name)
+    end
+
+    # @return [Cassandra::MaterializedView, nil] a materialized view or nil
+    # @param name [String] materialized view name
+    def materialized_view(name)
+      @views[name]
+    end
+
+    # Yield or enumerate each materialized view defined in this keyspace
+    # @overload each_materialized_view
+    #   @yieldparam view [Cassandra::MaterializedView] current materialized view
+    #   @return [Cassandra::Keyspace] self
+    # @overload each_materialized_view
+    #   @return [Array<Cassandra::MaterializedView>] a list of materialized views
+    def each_materialized_view(&block)
+      if block_given?
+        @views.each_value(&block)
+        self
+      else
+        @views.values
+      end
+    end
+    alias materialized_views each_materialized_view
 
     # @return [Boolean] whether this keyspace has a user-defined type with the
     #   given name
@@ -228,7 +258,8 @@ module Cassandra
                    tables,
                    @types,
                    @functions,
-                   @aggregates)
+                   @aggregates,
+                   @views)
     end
 
     # @private
@@ -241,7 +272,36 @@ module Cassandra
                    tables,
                    @types,
                    @functions,
-                   @aggregates)
+                   @aggregates,
+                   @views)
+    end
+
+    # @private
+    def update_materialized_view(view)
+      views = @views.dup
+      views[view.name] = view
+      Keyspace.new(@name,
+                   @durable_writes,
+                   @replication,
+                   @tables,
+                   @types,
+                   @functions,
+                   @aggregates,
+                   views)
+    end
+
+    # @private
+    def delete_materialized_view(view_name)
+      views = @views.dup
+      views.delete(view_name)
+      Keyspace.new(@name,
+                   @durable_writes,
+                   @replication,
+                   @tables,
+                   @types,
+                   @functions,
+                   @aggregates,
+                   views)
     end
 
     # @private
@@ -254,7 +314,8 @@ module Cassandra
                    @tables,
                    types,
                    @functions,
-                   @aggregates)
+                   @aggregates,
+                   @views)
     end
 
     # @private
@@ -267,7 +328,8 @@ module Cassandra
                    @tables,
                    types,
                    @functions,
-                   @aggregates)
+                   @aggregates,
+                   @views)
     end
 
     # @private
@@ -280,7 +342,8 @@ module Cassandra
                    @tables,
                    @types,
                    functions,
-                   @aggregates)
+                   @aggregates,
+                   @views)
     end
 
     # @private
@@ -293,7 +356,8 @@ module Cassandra
                    @tables,
                    @types,
                    functions,
-                   @aggregates)
+                   @aggregates,
+                   @views)
     end
 
     # @private
@@ -306,7 +370,8 @@ module Cassandra
                    @tables,
                    @types,
                    @functions,
-                   aggregates)
+                   aggregates,
+                   @views)
     end
 
     # @private
@@ -319,7 +384,8 @@ module Cassandra
                    @tables,
                    @types,
                    @functions,
-                   aggregates)
+                   aggregates,
+                   @views)
     end
 
     # @private
@@ -333,6 +399,11 @@ module Cassandra
       @tables
     end
 
+    # @private
+    def raw_materialized_views
+      @views
+    end
+    
     # @private
     def raw_types
       @types

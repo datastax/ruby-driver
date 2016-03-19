@@ -284,7 +284,7 @@ module Cassandra
             @schema.delete_keyspace(keyspace_name)
           end
 
-          @logger.info("Refreshed keyspace \"#{keyspace_name}\"")
+          @logger.info("Completed refreshing keyspace \"#{keyspace_name}\"")
         end
       end
 
@@ -304,7 +304,27 @@ module Cassandra
             @schema.delete_table(keyspace_name, table_name)
           end
 
-          @logger.info("Refreshed table \"#{keyspace_name}.#{table_name}\"")
+          @logger.info("Completed refreshing table \"#{keyspace_name}.#{table_name}\"")
+        end
+      end
+
+      def refresh_materialized_view_async(keyspace_name, view_name)
+        connection = @connection
+
+        if connection.nil?
+          return Ione::Future.failed(Errors::ClientError.new('Not connected'))
+        end
+
+        @logger.info("Refreshing materialized view \"#{keyspace_name}.#{view_name}\"")
+
+        @schema_fetcher.fetch_materialized_view(connection, keyspace_name, view_name).map do |view|
+          if view
+            @schema.replace_materialized_view(view)
+          else
+            @schema.delete_materialized_view(keyspace_name, view_name)
+          end
+
+          @logger.info("Completed refreshing materialized view \"#{keyspace_name}.#{view_name}\"")
         end
       end
 
@@ -324,7 +344,7 @@ module Cassandra
             @schema.delete_type(keyspace_name, type_name)
           end
 
-          @logger.info("Refreshed user-defined type \"#{keyspace_name}.#{type_name}\"")
+          @logger.info("Completed refreshing user-defined type \"#{keyspace_name}.#{type_name}\"")
         end
       end
 
@@ -351,7 +371,7 @@ module Cassandra
             @schema.delete_function(keyspace_name, function_name, parsed_function_args)
           end
 
-          @logger.info('Refreshed user-defined function ' \
+          @logger.info('Completed refreshing user-defined function ' \
             "\"#{keyspace_name}.#{function_name}(#{function_args.join(',')})\"")
         end
       end
@@ -380,7 +400,7 @@ module Cassandra
             @schema.delete_aggregate(keyspace_name, aggregate_name, parsed_aggregate_args)
           end
 
-          @logger.info('Refreshed user-defined aggregate ' \
+          @logger.info('Completed refreshing user-defined aggregate ' \
             "\"#{keyspace_name}.#{aggregate_name}(#{aggregate_args.join(',')})\"")
         end
       end
@@ -456,7 +476,7 @@ module Cassandra
             @registry.host_lost(host.ip) unless ips.include?(host.ip)
           end
 
-          @logger.info('Refreshed peers metadata')
+          @logger.info('Completed refreshing peers metadata')
 
           nil
         end
@@ -480,7 +500,7 @@ module Cassandra
             @metadata.update(data)
           end
 
-          @logger.info("Refreshed connected host's metadata")
+          @logger.info("Completed refreshing connected host's metadata")
 
           nil
         end
@@ -580,7 +600,7 @@ module Cassandra
           if rows.empty?
             raise Errors::InternalError, "Unable to find host metadata: #{ip}"
           else
-            @logger.info("Refreshed host metadata: #{ip}")
+            @logger.info("Completed refreshing host metadata: #{ip}")
             @registry.host_found(address, rows.first)
           end
 
@@ -684,7 +704,7 @@ Control connection failed and is unlikely to recover.
 
       def process_schema_changes(schema_changes)
         refresh_keyspaces  = ::Hash.new
-        refresh_tables     = ::Hash.new
+        refresh_tables_and_views = ::Hash.new
         refresh_types      = ::Hash.new
 
         # This hash is of the form <keyspace, [Change (for function changes)]>
@@ -700,14 +720,15 @@ Control connection failed and is unlikely to recover.
 
           case change.target
           when Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
-            refresh_tables.delete(keyspace)
+            refresh_tables_and_views.delete(keyspace)
             refresh_types.delete(keyspace)
             refresh_functions.delete(keyspace)
             refresh_aggregates.delete(keyspace)
             refresh_keyspaces[keyspace] = true
           when Protocol::Constants::SCHEMA_CHANGE_TARGET_TABLE
-            tables = refresh_tables[keyspace] ||= ::Hash.new
-            tables[change.name] = true
+            # We can't distinguish between table and view change events, so refresh both.
+            tables_and_views = refresh_tables_and_views[keyspace] ||= ::Hash.new
+            tables_and_views[change.name] = true
           when Protocol::Constants::SCHEMA_CHANGE_TARGET_UDT
             types = refresh_types[keyspace] ||= ::Hash.new
             types[change.name] = true
@@ -726,9 +747,10 @@ Control connection failed and is unlikely to recover.
           futures << refresh_maybe_retry(:keyspace, keyspace)
         end
 
-        refresh_tables.each do |(keyspace, tables)|
-          tables.each_key do |table|
-            futures << refresh_maybe_retry(:table, keyspace, table)
+        refresh_tables_and_views.each do |(keyspace, tables_and_views)|
+          tables_and_views.each_key do |table_or_view|
+            futures << refresh_maybe_retry(:table, keyspace, table_or_view)
+            futures << refresh_maybe_retry(:materialized_view, keyspace, table_or_view)
           end
         end
 
