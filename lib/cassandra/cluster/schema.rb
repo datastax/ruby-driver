@@ -126,7 +126,7 @@ module Cassandra
       end
 
       def replace_table(table)
-        keyspace = @keyspaces[table.keyspace]
+        keyspace = table.keyspace
 
         return self unless keyspace
 
@@ -157,6 +157,50 @@ module Cassandra
         return self unless table
 
         keyspace = keyspace.delete_table(table_name)
+
+        synchronize do
+          keyspaces = @keyspaces.dup
+          keyspaces[keyspace_name] = keyspace
+          @keyspaces = keyspaces
+        end
+
+        keyspace_changed(keyspace)
+
+        self
+      end
+
+      def replace_materialized_view(view)
+        keyspace = view.keyspace
+
+        return self unless keyspace
+
+        old_view = keyspace.materialized_view(view.name)
+
+        return self if old_view == view
+
+        keyspace = keyspace.update_materialized_view(view)
+
+        synchronize do
+          keyspaces = @keyspaces.dup
+          keyspaces[keyspace.name] = keyspace
+          @keyspaces = keyspaces
+        end
+
+        keyspace_changed(keyspace)
+
+        self
+      end
+
+      def delete_materialized_view(keyspace_name, view_name)
+        keyspace = @keyspaces[keyspace_name]
+
+        return self unless keyspace
+
+        view = keyspace.materialized_view(view_name)
+
+        return self unless view
+
+        keyspace = keyspace.delete_materialized_view(view_name)
 
         synchronize do
           keyspaces = @keyspaces.dup

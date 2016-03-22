@@ -107,6 +107,8 @@ Some of the new features added to the driver have unfortunately led to changes i
 * Expose server warnings on server exceptions and Cassandra::Execution::Info instances.
 * Add connections_per_local_node, connections_per_remote_node, requests_per_connection cluster configuration options to tune parallel query execution and resource usage.
 * Add Cassandra::Logger class to make it easy for users to enable debug logging in the client.
+* Add protocol_version configuration option to allow the user to force the protocol version to use for communication with nodes.
+* Add support for materialized views in the schema metadata.
 
 ### Breaking Changes:
 
@@ -133,6 +135,7 @@ batch.add(query, arguments: {p1: 'val1'})
 * [[RUBY-143](https://datastax-oss.atlassian.net/browse/RUBY-143)] Retry querying system table for metadata of new hosts when prior attempts fail, ultimately enabling use of new hosts.
 * [[RUBY-150](https://datastax-oss.atlassian.net/browse/RUBY-150)] Fixed a protocol decoding error that occurred when multiple messages are available in a stream.
 * [[RUBY-151](https://datastax-oss.atlassian.net/browse/RUBY-151)] Decode incomplete UDTs properly.
+* [[RUBY-161](https://datastax-oss.atlassian.net/browse/RUBY-161)] Protocol version negotiation in mixed version clusters should not fall back to v1 unless it is truly warranted.    
 
 ## Feedback Requested
 

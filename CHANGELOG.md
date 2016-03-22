@@ -2,9 +2,13 @@
 Features:
 * Add protocol_version configuration option to allow the user to force the protocol version to use for communication with nodes.
 * Expose listen_address and broadcast_address in `Cassandra::Host` if available.
+* Add support for materialized views in the schema metadata.
+* Add or expose the id, options, keyspace, partition_key, clustering_columns, and clustering_order attributes to table and view schema objects.
+* Add crc_check_chance and extensions attributes to ColumnContainer options.
 
 Bug Fixes:
 * [RUBY-161] Protocol version negotiation in mixed version clusters should not fall back to v1 unless it is truly warranted.    
+* [RUBY-180] Column ordering is not deterministic in Table metadata.
 
 Breaking Changes:
 
