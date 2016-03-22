@@ -37,6 +37,10 @@ module Cassandra
             let(:cluster_schema)     { double('schema') }
             subject { klass.new(schema_type_parser, cluster_schema) }
 
+            before do
+              allow(cluster_schema).to receive(:keyspace).and_return(nil)
+            end
+
             describe('#fetch') do
               before do
                 allow(connection).to receive(:send_request) do |r|
