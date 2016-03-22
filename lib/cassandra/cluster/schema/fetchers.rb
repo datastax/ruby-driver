@@ -445,13 +445,14 @@ module Cassandra
               other_columns << create_column(row)
             end
 
-            Cassandra::Table.new(keyspace_name,
+            Cassandra::Table.new(@schema.keyspace(keyspace_name),
                       table_name,
                       partition_key,
                       clustering_columns,
                       other_columns,
                       table_options,
-                      clustering_order)
+                      clustering_order,
+                      table_data['id'])
           end
 
           def create_column(column_data)
@@ -505,7 +506,8 @@ module Cassandra
               compaction_strategy,
               compression_parameters,
               is_compact,
-              table_data['crc_check_chance']
+              table_data['crc_check_chance'],
+              table_data['extensions']
             )
           end
         end
@@ -568,13 +570,14 @@ module Cassandra
             table_options =
                 create_table_options(table_data, compaction_strategy, is_compact)
 
-            Cassandra::Table.new(keyspace_name,
+            Cassandra::Table.new(@schema.keyspace(keyspace_name),
                       table_name,
                       partition_key,
                       clustering_columns,
                       other_columns,
                       table_options,
-                      clustering_order)
+                      clustering_order,
+                      table_data['id'])
           end
 
           def select_keyspace(connection, keyspace_name)
@@ -632,6 +635,7 @@ module Cassandra
               compression_parameters,
               is_compact,
               table_data['crc_check_chance'],
+              table_data['extensions']
             )
           end
         end
@@ -704,7 +708,8 @@ module Cassandra
               compaction_strategy,
               compression_parameters,
               is_compact,
-              table_data['crc_check_chance']
+              table_data['crc_check_chance'],
+              table_data['extensions']
             )
           end
         end
@@ -1193,7 +1198,8 @@ module Cassandra
               compaction_strategy,
               compression,
               is_compact,
-              table_data['crc_check_chance']
+              table_data['crc_check_chance'],
+              table_data['extensions']
             )
           end
 
@@ -1248,13 +1254,14 @@ module Cassandra
             table_options =
                 create_table_options(table_data, compaction_strategy, is_compact)
 
-            Cassandra::Table.new(keyspace_name,
+            Cassandra::Table.new(@schema.keyspace(keyspace_name),
                       table_name,
                       partition_key,
                       clustering_columns,
                       other_columns,
                       table_options,
-                      clustering_order)
+                      clustering_order,
+                      table_data['id'])
           end
 
           def create_materialized_view(view_data, rows_columns, base_table, types = nil)
@@ -1289,7 +1296,7 @@ module Cassandra
             compaction_strategy = create_compaction_strategy(view_data)
             view_options = create_table_options(view_data, compaction_strategy, false)
 
-            MaterializedView.new(keyspace_name,
+            MaterializedView.new(@schema.keyspace(keyspace_name),
                                  view_name,
                                  partition_key,
                                  clustering_columns,
@@ -1297,7 +1304,8 @@ module Cassandra
                                  view_options,
                                  include_all_columns,
                                  where_clause,
-                                 base_table)
+                                 base_table,
+                                 view_data['id'])
           end
         end
 

@@ -67,6 +67,14 @@ module Cassandra
       @functions      = functions
       @aggregates     = aggregates
       @views          = views
+
+      # Set the keyspace attribute on the tables and views.
+      @tables.each_value do |t|
+        t.set_keyspace(self)
+      end
+      @views.each_value do |v|
+        v.set_keyspace(self)
+      end
     end
 
     # @return [Boolean] whether durables writes are enabled for this keyspace

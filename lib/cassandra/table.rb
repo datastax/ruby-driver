@@ -16,14 +16,14 @@
 # limitations under the License.
 #++
 
-require 'forwardable'
-
 module Cassandra
   # Represents a cassandra table
   # @see Cassandra::Keyspace#each_table
   # @see Cassandra::Keyspace#table
-  class Table
-    extend Forwardable
+  class Table < ColumnContainer
+    # @return [Array<Symbol>] an array of order values (`:asc` or `:desc`) that apply to the
+    #   `clustering_columns` array.
+    attr_reader :clustering_order
 
     # @private
     def initialize(keyspace,
@@ -32,48 +32,26 @@ module Cassandra
                    clustering_columns,
                    other_columns,
                    options,
-                   clustering_order)
-      @column_container = ColumnContainer.new(keyspace, name, partition_key, clustering_columns, other_columns, options)
+                   clustering_order,
+                   id)
+      super(keyspace, name, partition_key, clustering_columns, other_columns, options, id)
       @clustering_order   = clustering_order
     end
 
-    # @!method name
-    #   @return [String] table name
-    #
-    # @!method has_column?(name)
-    #   @param name [String] column name
-    #   @return [Boolean] whether this table has a given column
-    #
-    # @!method column(name)
-    #   @param name [String] column name
-    #   @return [Cassandra::Column, nil] a column or nil
-    #
-    # @!method each_column(&block)
-    #   Yield or enumerate each column defined in this table
-    #   @overload each_column
-    #     @yieldparam column [Cassandra::Column] current column
-    #     @return [Cassandra::Table] self
-    #   @overload each_column
-    #     @return [Array<Cassandra::Column>] a list of columns
-    #
-    # @!method columns
-    #   @return [Array<Cassandra::Column>] a list of columns
-    def_delegators :@column_container, :name, 'has_column?', :column, :each_column, :columns
-
     # @return [String] a cql representation of this table
     def to_cql
-      cql = "CREATE TABLE #{Util.escape_name(keyspace)}.#{Util.escape_name(name)} (\n"
+      cql = "CREATE TABLE #{Util.escape_name(@keyspace.name)}.#{Util.escape_name(@name)} (\n"
       primary_key = nil
-      if partition_key.one? && clustering_columns.empty?
-        primary_key = partition_key.first.name
+      if @partition_key.one? && @clustering_columns.empty?
+        primary_key = @partition_key.first.name
       end
 
       first = true
-      @column_container.raw_columns.each do |column|
+      @columns.each do |column|
         if first
           first = false
         else
-          cql << ",\n" unless first
+          cql << ",\n"
         end
         cql << "  #{column.name} #{type_to_cql(column.type, column.frozen?)}"
         cql << ' PRIMARY KEY' if primary_key && column.name == primary_key
@@ -81,12 +59,12 @@ module Cassandra
 
       unless primary_key
         cql << ",\n  PRIMARY KEY ("
-        if partition_key.one?
-          cql << partition_key.first.name
+        if @partition_key.one?
+          cql << @partition_key.first.name
         else
           cql << '('
           first = true
-          partition_key.each do |column|
+          @partition_key.each do |column|
             if first
               first = false
             else
@@ -96,7 +74,7 @@ module Cassandra
           end
           cql << ')'
         end
-        clustering_columns.each do |column|
+        @clustering_columns.each do |column|
           cql << ", #{column.name}"
         end
         cql << ')'
@@ -107,7 +85,7 @@ module Cassandra
       if @clustering_order.any? {|o| o != :asc}
         cql << 'CLUSTERING ORDER BY ('
         first = true
-        clustering_columns.zip(@clustering_order) do |column, order|
+        @clustering_columns.zip(@clustering_order) do |column, order|
           if first
             first = false
           else
@@ -118,7 +96,7 @@ module Cassandra
         cql << ")\n AND "
       end
 
-      cql << options.to_cql.split("\n").join("\n ")
+      cql << @options.to_cql.split("\n").join("\n ")
 
       cql << ';'
     end
@@ -126,21 +104,18 @@ module Cassandra
     # @private
     def inspect
       "#<#{self.class.name}:0x#{object_id.to_s(16)} " \
-          "@keyspace=#{keyspace} @name=#{name}>"
+          "@keyspace=#{@keyspace.name} @name=#{@name}>"
     end
 
     # @private
     def eql?(other)
       other.is_a?(Table) &&
-        @column_container == other.column_container &&
+        super.eql?(other) &&
         @clustering_order == other.clustering_order
     end
     alias == eql?
 
     private
-
-    # Delegators to easily get to other attributes for use within our class (for to_cql).
-    def_delegators :@column_container, :keyspace, :partition_key, :clustering_columns, :options
 
     # @private
     def type_to_cql(type, is_frozen)
@@ -148,7 +123,7 @@ module Cassandra
       when :tuple
         "frozen <#{type}>"
       when :udt
-        if keyspace == type.keyspace
+        if @keyspace.name == type.keyspace
           "frozen <#{Util.escape_name(type.name)}>"
         else
           "frozen <#{Util.escape_name(type.keyspace)}.#{Util.escape_name(type.name)}>"
@@ -161,12 +136,5 @@ module Cassandra
         end
       end
     end
-
-    # We need these accessors for eql? to work, but we don't want random users to
-    # get these.
-
-    # @private
-    attr_reader :column_container, :clustering_order
-    protected :column_container, :clustering_order
   end
 end
