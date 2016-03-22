@@ -76,7 +76,9 @@ module Cassandra
           if host.id              == data['host_id']         &&
              host.release_version == data['release_version'] &&
              host.rack            == data['rack']            &&
-             host.datacenter      == data['data_center']
+             host.datacenter      == data['data_center']     &&
+             host.broadcast_address == data['broadcast_address'] &&
+             host.listen_address == data['listen_address']
 
             return self if host.up?
 
@@ -166,7 +168,10 @@ module Cassandra
                  data['data_center'],
                  data['release_version'],
                  Array(data['tokens']).freeze,
-                 :up)
+                 :up,
+                 data['broadcast_address'],
+                 data['listen_address']
+        )
       end
 
       def toggle_up(host)
@@ -176,7 +181,9 @@ module Cassandra
                         host.datacenter,
                         host.release_version,
                         host.tokens,
-                        :up)
+                        :up,
+                        host.broadcast_address,
+                        host.listen_address)
         @logger.debug("Host #{host.ip} is up")
         @listeners.each do |listener|
           begin
@@ -195,7 +202,9 @@ module Cassandra
                         host.datacenter,
                         host.release_version,
                         host.tokens,
-                        :down)
+                        :down,
+                        host.broadcast_address,
+                        host.listen_address)
         @logger.debug("Host #{host.ip} is down")
         @listeners.reverse_each do |listener|
           begin
@@ -216,7 +225,9 @@ module Cassandra
                           host.datacenter,
                           host.release_version,
                           host.tokens,
-                          :down)
+                          :down,
+                          host.broadcast_address,
+                          host.listen_address)
           @listeners.reverse_each do |listener|
             begin
               listener.host_down(host)

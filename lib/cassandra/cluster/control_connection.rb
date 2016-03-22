@@ -147,20 +147,20 @@ module Cassandra
       private
 
       SELECT_LOCAL  = Protocol::QueryRequest.new(
-        'SELECT rack, data_center, host_id, release_version, tokens, partitioner ' \
+        'SELECT * ' \
           'FROM system.local',
         EMPTY_LIST,
         EMPTY_LIST,
         :one)
       SELECT_PEERS  = Protocol::QueryRequest.new(
-        'SELECT peer, rack, data_center, host_id, rpc_address, release_version, tokens ' \
+        'SELECT * ' \
           'FROM system.peers',
         EMPTY_LIST,
         EMPTY_LIST,
         :one)
 
       SELECT_PEER_QUERY =
-        'SELECT rack, data_center, host_id, rpc_address, release_version, tokens ' \
+        'SELECT * ' \
         'FROM system.peers ' \
         "WHERE peer = '%s'".freeze
 
