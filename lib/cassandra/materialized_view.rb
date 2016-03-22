@@ -70,12 +70,6 @@ module Cassandra
     end
 
     # @private
-    def inspect
-      "#<#{self.class.name}:0x#{object_id.to_s(16)} " \
-          "@keyspace=#{@keyspace.name} @name=#{@name}>"
-    end
-
-    # @private
     def eql?(other)
       other.is_a?(MaterializedView) &&
           super.eql?(other) &&

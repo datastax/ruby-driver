@@ -126,7 +126,7 @@ module Cassandra
       end
 
       def replace_table(table)
-        keyspace = @keyspaces[table.keyspace]
+        keyspace = table.keyspace
 
         return self unless keyspace
 
@@ -170,7 +170,7 @@ module Cassandra
       end
 
       def replace_materialized_view(view)
-        keyspace = @keyspaces[view.keyspace]
+        keyspace = view.keyspace
 
         return self unless keyspace
 

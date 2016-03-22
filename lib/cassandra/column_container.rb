@@ -270,7 +270,7 @@ module Cassandra
       # is partition-key + clustering-columns) while we're at it.
 
       @primary_key = @partition_key.dup.concat(@clustering_columns).freeze
-      @columns = @partition_key.dup.concat(other_columns).freeze
+      @columns = @primary_key.dup.concat(other_columns).freeze
       @columns_hash = @columns.each_with_object({}) do |col, h|
         h[col.name] = col
       end
@@ -317,7 +317,7 @@ module Cassandra
     # @private
     def inspect
       "#<#{self.class.name}:0x#{object_id.to_s(16)} " \
-          "@keyspace=#{@keyspace} @name=#{@name}>"
+          "@keyspace=#{@keyspace.name} @name=#{@name}>"
     end
 
     # @private
