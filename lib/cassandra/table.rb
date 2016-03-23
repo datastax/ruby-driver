@@ -33,15 +33,11 @@ module Cassandra
                    other_columns,
                    options,
                    clustering_order,
-                   id,
-                   indexes)
+                   id)
       super(keyspace, name, partition_key, clustering_columns, other_columns, options, id)
       @clustering_order   = clustering_order.freeze
-      @indexes = indexes.freeze
-      @indexes_hash = @indexes.each_with_object({}) do |ind, h|
-        h[ind.name] = ind
-        ind.set_table(self)
-      end
+      @indexes = []
+      @indexes_hash = {}
     end
 
     # @param name [String] index name
@@ -67,7 +63,7 @@ module Cassandra
         @indexes.each(&block)
         self
       else
-        @indexes
+        @indexes.freeze
       end
     end
     alias indexes each_index
@@ -133,6 +129,12 @@ module Cassandra
       cql << @options.to_cql.split("\n").join("\n ")
 
       cql << ';'
+    end
+
+    # @private
+    def add_index(index)
+      @indexes << index
+      @indexes_hash[index.name] = index
     end
 
     # @private

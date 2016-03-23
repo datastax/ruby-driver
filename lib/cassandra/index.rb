@@ -31,10 +31,12 @@ module Cassandra
     attr_reader :options
 
     # @private
-    def initialize(name,
+    def initialize(table,
+                   name,
                    kind,
                    target,
                    options)
+      @table = table
       @name = name.freeze
       @kind = kind
       @target = target.freeze
@@ -63,15 +65,6 @@ module Cassandra
       else
         "CREATE INDEX #{index_name} ON #{keyspace_name}.#{table_name} (#{target});"
       end
-    end
-
-    # @private
-    # table attribute is nil when this object is constructed because its table isn't constructed
-    # yet. So allow updating @table if it's nil, thus allowing fetchers to create
-    # table and index and then hook them together without worrying about chickens and eggs.
-    # NOTE: Ignore the set request if @table is already set.
-    def set_table(table)
-      @table = table unless @table
     end
 
     # @private

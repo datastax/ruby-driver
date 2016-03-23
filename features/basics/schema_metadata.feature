@@ -46,7 +46,32 @@ Feature: Schema Metadata
       )
       """
 
+  @cassandra-version-specific @cassandra-version-less-3.0
   Scenario: Getting index metadata
+    Given the following schema:
+      """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      CREATE TABLE simplex.test_table (f1 int primary key, f2 int);
+      CREATE INDEX ind1 ON simplex.test_table (f2);
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+
+      cluster.keyspace('simplex').table('test_table').each_index do |index|
+        puts index.to_cql
+      end
+      """
+    When it is executed
+    Then its output should contain:
+      """cql
+      CREATE INDEX "ind1" ON simplex.test_table ("f2");
+      """
+
+  @cassandra-version-specific @cassandra-version-3.0
+  Scenario: Getting index metadata on 3.0
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};

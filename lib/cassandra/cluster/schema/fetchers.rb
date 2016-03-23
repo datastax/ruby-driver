@@ -461,29 +461,32 @@ module Cassandra
               end
             end
 
-            # In C* 1.2.x, index info is in the column metadata; rows_indexes is nil.
-            indexes = []
+            index_rows = []
             rows_columns.each do |row|
               column = create_column(row)
               other_columns << column
 
-              unless row['index_type'].nil?
-                indexes << create_index(column, row)
-              end
+              # In C* 1.2.x, index info is in the column metadata; rows_indexes is nil.
+              index_rows << [column, row] unless row['index_type'].nil?
             end
 
-            Cassandra::Table.new(@schema.keyspace(keyspace_name),
+            table = Cassandra::Table.new(@schema.keyspace(keyspace_name),
                       table_name,
                       partition_key,
                       clustering_columns,
                       other_columns,
                       table_options,
                       clustering_order,
-                      table_data['id'],
-                      indexes)
+                      table_data['id'])
+
+            # Create Index objects and add them to the table.
+            index_rows.each do |column, row|
+              create_index(table, column, row)
+            end
+            table
           end
 
-          def create_index(column, row_column)
+          def create_index(table, column, row_column)
             # Most of this logic was taken from the Java driver.
             options = {}
             # For some versions of C*, this field could have a literal string 'null' value.
@@ -503,7 +506,11 @@ module Cassandra
                        column_name
                      end
 
-            Cassandra::Index.new(row_column['index_name'], row_column['index_type'].downcase.to_sym, target, options)
+            table.add_index(Cassandra::Index.new(table,
+                                 row_column['index_name'],
+                                 row_column['index_type'].downcase.to_sym,
+                                 target,
+                                 options))
           end
 
           def create_column(column_data)
@@ -581,8 +588,7 @@ module Cassandra
             clustering_order   = []
             other_columns   = []
 
-            # In C* 2.0.x, index info is in the column metadata; rows_indexes is nil.
-            indexes = []
+            index_rows = []
             rows_columns.each do |row|
               next if row['column_name'].empty?
 
@@ -604,9 +610,8 @@ module Cassandra
                 other_columns << column
               end
 
-              unless row['index_type'].nil?
-                indexes << create_index(column, row)
-              end
+              # In C* 2.0.x, index info is in the column metadata; rows_indexes is nil.
+              index_rows << [column, row] unless row['index_type'].nil?
             end
 
             compaction_strategy = create_compaction_strategy(table_data)
@@ -615,15 +620,20 @@ module Cassandra
             table_options =
                 create_table_options(table_data, compaction_strategy, is_compact)
 
-            Cassandra::Table.new(@schema.keyspace(keyspace_name),
+            table = Cassandra::Table.new(@schema.keyspace(keyspace_name),
                       table_name,
                       partition_key,
                       clustering_columns,
                       other_columns,
                       table_options,
                       clustering_order,
-                      table_data['id'],
-                      indexes)
+                      table_data['id'])
+
+            # Create Index objects and add them to the table.
+            index_rows.each do |column, row|
+              create_index(table, column, row)
+            end
+            table
           end
 
           def select_keyspace(connection, keyspace_name)
@@ -1324,26 +1334,25 @@ module Cassandra
             table_options =
                 create_table_options(table_data, compaction_strategy, is_compact)
 
-            indexes = rows_indexes.map do |row|
-              create_index(row)
-            end
-
-            Cassandra::Table.new(@schema.keyspace(keyspace_name),
+            table = Cassandra::Table.new(@schema.keyspace(keyspace_name),
                       table_name,
                       partition_key,
                       clustering_columns,
                       other_columns,
                       table_options,
                       clustering_order,
-                      table_data['id'],
-                      indexes)
+                      table_data['id'])
+            rows_indexes.each do |row|
+              create_index(table, row)
+            end
+            table
           end
 
-          def create_index(row_index)
+          def create_index(table, row_index)
             options = row_index['options']
-            Cassandra::Index.new(row_index['index_name'],
+            table.add_index(Cassandra::Index.new(table, row_index['index_name'],
                                  row_index['kind'].downcase.to_sym,
-                                 options['target'], options)
+                                 options['target'], options))
           end
 
           def create_materialized_view(view_data, rows_columns, base_table, types = nil)
