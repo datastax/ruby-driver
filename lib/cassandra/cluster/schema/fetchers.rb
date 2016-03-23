@@ -32,10 +32,11 @@ module Cassandra
                            select_types(connection),
                            select_functions(connection),
                            select_aggregates(connection),
-                           select_materialized_views(connection))
+                           select_materialized_views(connection),
+                           select_indexes(connection))
                       .map do |(rows_keyspaces, rows_tables, rows_columns,
                                 rows_types, rows_functions, rows_aggregates,
-                                rows_views)|
+                                rows_views, rows_indexes)|
 
                         lookup_tables     = map_rows_by(rows_tables, 'keyspace_name')
                         lookup_columns    = map_rows_by(rows_columns, 'keyspace_name')
@@ -43,6 +44,7 @@ module Cassandra
                         lookup_functions  = map_rows_by(rows_functions, 'keyspace_name')
                         lookup_aggregates = map_rows_by(rows_aggregates, 'keyspace_name')
                         lookup_views      = map_rows_by(rows_views, 'keyspace_name')
+                        lookup_indexes    = map_rows_by(rows_indexes, 'keyspace_name')
 
                         rows_keyspaces.map do |keyspace_data|
                           name = keyspace_data['keyspace_name']
@@ -53,7 +55,8 @@ module Cassandra
                                           lookup_types[name],
                                           lookup_functions[name],
                                           lookup_aggregates[name],
-                                          lookup_views[name])
+                                          lookup_views[name],
+                                          lookup_indexes[name])
                         end
                       end
         end
@@ -65,10 +68,11 @@ module Cassandra
                            select_keyspace_types(connection, keyspace_name),
                            select_keyspace_functions(connection, keyspace_name),
                            select_keyspace_aggregates(connection, keyspace_name),
-                           select_keyspace_materialized_views(connection, keyspace_name))
+                           select_keyspace_materialized_views(connection, keyspace_name),
+                           select_keyspace_indexes(connection, keyspace_name))
                       .map do |(rows_keyspaces, rows_tables, rows_columns,
                                 rows_types, rows_functions, rows_aggregates,
-                                rows_views)|
+                                rows_views, rows_indexes)|
                         if rows_keyspaces.empty?
                           nil
                         else
@@ -78,20 +82,23 @@ module Cassandra
                                           rows_types,
                                           rows_functions,
                                           rows_aggregates,
-                                          rows_views)
+                                          rows_views,
+                                          rows_indexes)
                         end
                       end
         end
 
         def fetch_table(connection, keyspace_name, table_name)
           Ione::Future.all(select_table(connection, keyspace_name, table_name),
-                           select_table_columns(connection, keyspace_name, table_name))
-                      .map do |(rows_tables, rows_columns)|
+                           select_table_columns(connection, keyspace_name, table_name),
+                           select_table_indexes(connection, keyspace_name, table_name))
+                      .map do |(rows_tables, rows_columns, rows_indexes)|
             if rows_tables.empty?
               nil
             else
               create_table(rows_tables.first,
-                           rows_columns)
+                           rows_columns,
+                           rows_indexes)
             end
           end
         end
@@ -163,6 +170,10 @@ module Cassandra
           FUTURE_EMPTY_LIST
         end
 
+        def select_indexes(connection)
+          FUTURE_EMPTY_LIST
+        end
+
         def select_types(connection)
           FUTURE_EMPTY_LIST
         end
@@ -191,6 +202,10 @@ module Cassandra
           FUTURE_EMPTY_LIST
         end
 
+        def select_keyspace_indexes(connection, keyspace_name)
+          FUTURE_EMPTY_LIST
+        end
+
         def select_keyspace_types(connection, keyspace_name)
           FUTURE_EMPTY_LIST
         end
@@ -212,6 +227,10 @@ module Cassandra
         end
 
         def select_table_columns(connection, keyspace_name, table_name)
+          FUTURE_EMPTY_LIST
+        end
+
+        def select_table_indexes(connection, keyspace_name, table_name)
           FUTURE_EMPTY_LIST
         end
 
@@ -334,7 +353,7 @@ module Cassandra
 
           def create_keyspace(keyspace_data, rows_tables, rows_columns,
                               rows_types, rows_functions, rows_aggregates,
-                              rows_views)
+                              rows_views, rows_indexes)
             keyspace_name = keyspace_data['keyspace_name']
             replication   = create_replication(keyspace_data)
             types = rows_types.each_with_object({}) do |row, types|
@@ -355,7 +374,8 @@ module Cassandra
             lookup_columns = map_rows_by(rows_columns, 'columnfamily_name')
             tables = rows_tables.each_with_object({}) do |row, tables|
               table_name = row['columnfamily_name']
-              tables[table_name] = create_table(row, lookup_columns[table_name])
+              # rows_indexes is nil for C* < 3.0.
+              tables[table_name] = create_table(row, lookup_columns[table_name], nil)
             end
 
             Keyspace.new(keyspace_name,
@@ -368,7 +388,7 @@ module Cassandra
                          {})
           end
 
-          def create_table(table_data, rows_columns)
+          def create_table(table_data, rows_columns, rows_indexes)
             keyspace_name   = table_data['keyspace_name']
             table_name      = table_data['columnfamily_name']
             key_validator   = @type_parser.parse(table_data['key_validator'])
@@ -417,7 +437,7 @@ module Cassandra
             key_validator.results.each_with_index do |(type, order, is_frozen), i|
               key_alias = key_aliases.fetch(i) { i.zero? ? "key" : "key#{i + 1}" }
 
-              partition_key[i] = Column.new(key_alias, type, order, nil, false, is_frozen)
+              partition_key[i] = Column.new(key_alias, type, order, false, is_frozen)
             end
 
             clustering_size.times do |i|
@@ -425,7 +445,7 @@ module Cassandra
               type, order, is_frozen = comparator.results.fetch(i)
 
               clustering_columns[i] =
-                  Column.new(column_alias, type, order, nil, false, is_frozen)
+                  Column.new(column_alias, type, order, false, is_frozen)
               clustering_order[i]   = order
             end
 
@@ -437,12 +457,19 @@ module Cassandra
                 type, order, is_frozen =
                     @type_parser.parse(table_data['default_validator']).results.first
                 other_columns <<
-                    Column.new(value_alias, type, order, nil, false, is_frozen)
+                    Column.new(value_alias, type, order, false, is_frozen)
               end
             end
 
+            # In C* 1.2.x, index info is in the column metadata; rows_indexes is nil.
+            indexes = []
             rows_columns.each do |row|
-              other_columns << create_column(row)
+              column = create_column(row)
+              other_columns << column
+
+              unless row['index_type'].nil?
+                indexes << create_index(column, row)
+              end
             end
 
             Cassandra::Table.new(@schema.keyspace(keyspace_name),
@@ -452,7 +479,31 @@ module Cassandra
                       other_columns,
                       table_options,
                       clustering_order,
-                      table_data['id'])
+                      table_data['id'],
+                      indexes)
+          end
+
+          def create_index(column, row_column)
+            # Most of this logic was taken from the Java driver.
+            options = {}
+            # For some versions of C*, this field could have a literal string 'null' value.
+            if !row_column['index_options'].nil? && row_column['index_options'] != 'null' && !row_column['index_options'].empty?
+              options = ::JSON.load(row_column['index_options'])
+            end
+            column_name = Util.escape_name(column.name)
+            target = if options.has_key?('index_keys')
+                       "keys(#{column_name})"
+                     elsif options.has_key?('index_keys_and_values')
+                       "entries(#{column_name})"
+                     elsif column.frozen? && (column.type == Cassandra::Types::Set ||
+                         column.type == Cassandra::Types::List ||
+                         column.type == Cassandra::Types::Map)
+                       "full(#{column_name})"
+                     else
+                       column_name
+                     end
+
+            Cassandra::Index.new(row_column['index_name'], row_column['index_type'].downcase.to_sym, target, options)
           end
 
           def create_column(column_data)
@@ -460,19 +511,7 @@ module Cassandra
             is_static = (column_data['type'] == 'STATIC')
             type, order, is_frozen =
                 @type_parser.parse(column_data['validator']).results.first
-
-            if column_data['index_type'].nil?
-              index = nil
-            elsif column_data['index_type'].to_s.upcase == 'CUSTOM' ||
-                !column_data['index_options']
-              index = Column::Index.new(column_data['index_name'])
-            else
-              options = ::JSON.load(column_data['index_options'])
-              index   = Column::Index.new(column_data['index_name'],
-                                          options && options['class_name'])
-            end
-
-            Column.new(name, type, order, index, is_static, is_frozen)
+            Column.new(name, type, order, is_static, is_frozen)
           end
 
           def create_compaction_strategy(table_data)
@@ -530,7 +569,7 @@ module Cassandra
 
           private
 
-          def create_table(table_data, rows_columns)
+          def create_table(table_data, rows_columns, rows_indexes)
             keyspace_name   = table_data['keyspace_name']
             table_name      = table_data['columnfamily_name']
             comparator      = @type_parser.parse(table_data['comparator'])
@@ -542,25 +581,31 @@ module Cassandra
             clustering_order   = []
             other_columns   = []
 
+            # In C* 2.0.x, index info is in the column metadata; rows_indexes is nil.
+            indexes = []
             rows_columns.each do |row|
               next if row['column_name'].empty?
 
               column = create_column(row)
               type   = row['type'].to_s
-              index  = row['component_index'] || 0
+              ind = row['component_index'] || 0
 
               case type.upcase
               when 'PARTITION_KEY'
-                partition_key[index] = column
+                partition_key[ind] = column
               when 'CLUSTERING_KEY'
-                clustering_columns[index] = column
-                clustering_order[index]   = column.order
+                clustering_columns[ind] = column
+                clustering_order[ind]   = column.order
 
-                if clustering_size.zero? || index == clustering_size
-                  clustering_size = index + 1
+                if clustering_size.zero? || ind == clustering_size
+                  clustering_size = ind + 1
                 end
               else
                 other_columns << column
+              end
+
+              unless row['index_type'].nil?
+                indexes << create_index(column, row)
               end
             end
 
@@ -577,7 +622,8 @@ module Cassandra
                       other_columns,
                       table_options,
                       clustering_order,
-                      table_data['id'])
+                      table_data['id'],
+                      indexes)
           end
 
           def select_keyspace(connection, keyspace_name)
@@ -852,6 +898,8 @@ module Cassandra
               'SELECT * FROM system_schema.keyspaces WHERE keyspace_name = ?'.freeze
           SELECT_KEYSPACE_TABLES     =
               'SELECT * FROM system_schema.tables WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_INDEXES    =
+              'SELECT * FROM system_schema.indexes WHERE keyspace_name = ?'.freeze
           SELECT_KEYSPACE_COLUMNS    =
               'SELECT * FROM system_schema.columns WHERE keyspace_name = ?'.freeze
           SELECT_KEYSPACE_VIEWS     =
@@ -870,6 +918,10 @@ module Cassandra
           SELECT_TABLE_COLUMNS =
               'SELECT * ' \
               'FROM system_schema.columns ' \
+              'WHERE keyspace_name = ? AND table_name = ?'.freeze
+          SELECT_TABLE_INDEXES =
+              'SELECT * ' \
+              'FROM system_schema.indexes ' \
               'WHERE keyspace_name = ? AND table_name = ?'.freeze
 
           SELECT_VIEW         =
@@ -917,6 +969,10 @@ module Cassandra
             send_select_request(connection, SELECT_TABLES)
           end
 
+          def select_indexes(connection)
+            send_select_request(connection, SELECT_INDEXES)
+          end
+
           def select_materialized_views(connection)
             send_select_request(connection, SELECT_VIEWS)
           end
@@ -953,6 +1009,12 @@ module Cassandra
             params = [keyspace_name]
             hints  = [Types.varchar]
             send_select_request(connection, SELECT_KEYSPACE_COLUMNS, params, hints)
+          end
+
+          def select_keyspace_indexes(connection, keyspace_name)
+            params = [keyspace_name]
+            hints  = [Types.varchar]
+            send_select_request(connection, SELECT_KEYSPACE_INDEXES, params, hints)
           end
 
           def select_keyspace_materialized_views(connection, keyspace_name)
@@ -992,6 +1054,12 @@ module Cassandra
             params         = [keyspace_name, table_name]
             hints          = [Types.varchar, Types.varchar]
             send_select_request(connection, SELECT_TABLE_COLUMNS, params, hints)
+          end
+
+          def select_table_indexes(connection, keyspace_name, table_name)
+            params         = [keyspace_name, table_name]
+            hints          = [Types.varchar, Types.varchar]
+            send_select_request(connection, SELECT_TABLE_INDEXES, params, hints)
           end
 
           def select_materialized_view(connection, keyspace_name, view_name)
@@ -1112,8 +1180,8 @@ module Cassandra
             end
           end
 
-          def create_keyspace(keyspace_data, rows_tables, rows_columns,
-                              rows_types, rows_functions, rows_aggregates, rows_views)
+          def create_keyspace(keyspace_data, rows_tables, rows_columns, rows_types,
+                              rows_functions, rows_aggregates, rows_views, rows_indexes)
             keyspace_name = keyspace_data['keyspace_name']
             replication   = create_replication(keyspace_data)
 
@@ -1136,9 +1204,11 @@ module Cassandra
             # view columns organized by view-name also.
 
             lookup_columns = map_rows_by(rows_columns, 'table_name')
+            lookup_indexes = map_rows_by(rows_indexes, 'table_name')
             tables = rows_tables.each_with_object({}) do |row, tables|
               table_name = row['table_name']
-              tables[table_name] = create_table(row, lookup_columns[table_name], types)
+              tables[table_name] = create_table(row, lookup_columns[table_name],
+                                                lookup_indexes[table_name], types)
             end
 
             views = rows_views.each_with_object({}) do |row, views|
@@ -1209,10 +1279,10 @@ module Cassandra
             order     = column_data['clustering_order'] == 'desc' ? :desc : :asc
             type, is_frozen = @type_parser.parse(column_data['type'], types)
 
-            Column.new(name, type, order, nil, is_static, is_frozen)
+            Column.new(name, type, order, is_static, is_frozen)
           end
 
-          def create_table(table_data, rows_columns, types = nil)
+          def create_table(table_data, rows_columns, rows_indexes, types = nil)
             keyspace_name   = table_data['keyspace_name']
             table_name      = table_data['table_name']
             table_flags     = table_data['flags']
@@ -1254,6 +1324,10 @@ module Cassandra
             table_options =
                 create_table_options(table_data, compaction_strategy, is_compact)
 
+            indexes = rows_indexes.map do |row|
+              create_index(row)
+            end
+
             Cassandra::Table.new(@schema.keyspace(keyspace_name),
                       table_name,
                       partition_key,
@@ -1261,7 +1335,15 @@ module Cassandra
                       other_columns,
                       table_options,
                       clustering_order,
-                      table_data['id'])
+                      table_data['id'],
+                      indexes)
+          end
+
+          def create_index(row_index)
+            options = row_index['options']
+            Cassandra::Index.new(row_index['index_name'],
+                                 row_index['kind'].downcase.to_sym,
+                                 options['target'], options)
           end
 
           def create_materialized_view(view_data, rows_columns, base_table, types = nil)

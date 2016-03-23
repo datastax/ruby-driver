@@ -33,10 +33,44 @@ module Cassandra
                    other_columns,
                    options,
                    clustering_order,
-                   id)
+                   id,
+                   indexes)
       super(keyspace, name, partition_key, clustering_columns, other_columns, options, id)
-      @clustering_order   = clustering_order
+      @clustering_order   = clustering_order.freeze
+      @indexes = indexes.freeze
+      @indexes_hash = @indexes.each_with_object({}) do |ind, h|
+        h[ind.name] = ind
+        ind.set_table(self)
+      end
     end
+
+    # @param name [String] index name
+    # @return [Boolean] whether this table has a given index
+    def has_index?(name)
+      @indexes_hash.key?(name)
+    end
+
+    # @param name [String] index name
+    # @return [Cassandra::Index, nil] an index or nil
+    def index(name)
+      @indexes_hash[name]
+    end
+
+    # Yield or enumerate each index bound to this table
+    # @overload each_index
+    #   @yieldparam index [Cassandra::Index] current index
+    #   @return [Cassandra::Table] self
+    # @overload each_index
+    #   @return [Array<Cassandra::Index>] a list of indexes
+    def each_index(&block)
+      if block_given?
+        @indexes.each(&block)
+        self
+      else
+        @indexes
+      end
+    end
+    alias indexes each_index
 
     # @return [String] a cql representation of this table
     def to_cql
@@ -105,7 +139,8 @@ module Cassandra
     def eql?(other)
       other.is_a?(Table) &&
         super.eql?(other) &&
-        @clustering_order == other.clustering_order
+        @clustering_order == other.clustering_order &&
+        @indexes == other.indexes
     end
     alias == eql?
 
