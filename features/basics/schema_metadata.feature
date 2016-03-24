@@ -46,6 +46,97 @@ Feature: Schema Metadata
       )
       """
 
+  @cassandra-version-specific @cassandra-version-less-3.0
+  Scenario: Getting index metadata
+    Given the following schema:
+      """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      CREATE TABLE simplex.test_table (f1 int primary key, f2 int);
+      CREATE INDEX ind1 ON simplex.test_table (f2);
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+
+      cluster.keyspace('simplex').table('test_table').each_index do |index|
+        puts index.to_cql
+      end
+      """
+    When it is executed
+    Then its output should contain:
+      """cql
+      CREATE INDEX "ind1" ON simplex.test_table ("f2");
+      """
+
+  @cassandra-version-specific @cassandra-version-3.0
+  Scenario: Getting index metadata on 3.0
+    Given the following schema:
+      """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      CREATE TABLE simplex.test_table (f1 int primary key, f2 int);
+      CREATE INDEX ind1 ON simplex.test_table (f2);
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+
+      cluster.keyspace('simplex').table('test_table').each_index do |index|
+        puts index.to_cql
+      end
+      """
+    When it is executed
+    Then its output should contain:
+      """cql
+      CREATE INDEX "ind1" ON simplex.test_table (f2);
+      """
+
+  @cassandra-version-specific @cassandra-version-3.0
+  Scenario: Getting materialized view metadata
+    Given the following schema:
+      """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      CREATE TABLE simplex.test_table (f1 int PRIMARY KEY, f2 int, f3 int) ;
+      CREATE MATERIALIZED VIEW simplex.test_view AS
+       SELECT f1, f2 FROM simplex.test_table WHERE f2 IS NOT NULL
+       PRIMARY KEY (f1, f2);
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+
+      view = cluster.keyspace('simplex').materialized_view('test_view')
+      puts view.to_cql
+      """
+    When it is executed
+    Then its output should contain:
+      """cql
+      CREATE MATERIALIZED VIEW simplex.test_view AS
+      SELECT "f1", "f2"
+      FROM simplex.test_table
+      WHERE f2 IS NOT NULL
+      PRIMARY KEY(("f1"),"f2")
+      WITH bloom_filter_fp_chance = 0.01
+      AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
+      AND comment = ''
+      AND compaction = {'class': 'SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
+      AND compression = {'chunk_length_in_kb': '64', 'class': 'LZ4Compressor'}
+      AND dclocal_read_repair_chance = 0.1
+      AND default_time_to_live = 0
+      AND gc_grace_seconds = 864000
+      AND max_index_interval = 2048
+      AND memtable_flush_period_in_ms = 0
+      AND min_index_interval = 128
+      AND read_repair_chance = 0.0
+      AND speculative_retry = '99PERCENTILE'
+      AND crc_check_chance = 1.0;
+      """
+
   @cassandra-version-specific @cassandra-version-2.1
   Scenario: Getting user-defined type metadata
     Given the following schema:

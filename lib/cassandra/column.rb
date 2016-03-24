@@ -21,36 +21,18 @@ module Cassandra
   # @see Cassandra::Table#each_column
   # @see Cassandra::Table#column
   class Column
-    # @private
-    class Index
-      # @return [String] index name
-      attr_reader :name
-      # @return [String] custom index class name
-      attr_reader :custom_class_name
-
-      # @private
-      def initialize(name, custom_class_name = nil)
-        @name              = name
-        @custom_class_name = custom_class_name
-      end
-    end
-
     # @return [String] column name
     attr_reader :name
     # @return [Cassandra::Type] column type
     attr_reader :type
     # @return [Symbol] column order (`:asc` or `:desc`)
     attr_reader :order
-    # @private
-    # @return [Cassandra::Column::Index, nil] column index
-    attr_reader :index
 
     # @private
-    def initialize(name, type, order, index = nil, is_static = false, is_frozen = false)
+    def initialize(name, type, order, is_static = false, is_frozen = false)
       @name     = name
       @type     = type
       @order    = order
-      @index    = index
       @static   = is_static
       @frozen   = is_frozen
     end
@@ -76,7 +58,6 @@ module Cassandra
         @name == other.name &&
         @type == other.type &&
         @order == other.order &&
-        @index == other.index &&
         @static == other.static? &&
         @frozen == other.frozen?
     end
