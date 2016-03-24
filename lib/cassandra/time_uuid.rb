@@ -23,6 +23,11 @@ module Cassandra
   class TimeUuid < Uuid
     include Comparable
 
+    # @private
+    LOWER_HALF_MASK = 0xffffffff_ffffffff
+    # @private
+    GREGORIAN_OFFSET = 122192928000000000
+
     # Returns the time component from this UUID as a Time.
     #
     # @return [Time]
@@ -69,12 +74,5 @@ module Cassandra
       t |= (n & 0xffffffff00000000) >> 32
       t
     end
-
-    private
-
-    # @private
-    LOWER_HALF_MASK = 0xffffffff_ffffffff
-    # @private
-    GREGORIAN_OFFSET = 122192928000000000
   end
 end

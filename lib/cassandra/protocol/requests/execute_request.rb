@@ -44,9 +44,7 @@ module Cassandra
         unless serial_consistency.nil? || CONSISTENCIES.include?(serial_consistency)
           raise ArgumentError, %(No such consistency: #{serial_consistency.inspect})
         end
-        if paging_state && !page_size
-          raise ArgumentError, %(Paging state given but no page size)
-        end
+        raise ArgumentError, %(Paging state given but no page size) if paging_state && !page_size
         super(10, trace)
         @id = id
         @metadata = metadata
@@ -69,14 +67,14 @@ module Cassandra
         if protocol_version > 1
           buffer.append_consistency(@consistency)
           flags  = 0
-          flags |= 0x01 if @values.size > 0
+          flags |= 0x01 unless @values.empty?
           flags |= 0x02 unless @request_metadata
           flags |= 0x04 if @page_size
           flags |= 0x08 if @paging_state
           flags |= 0x10 if @serial_consistency
           flags |= 0x20 if protocol_version > 2 && @timestamp
           buffer.append(flags.chr)
-          encoder.write_parameters(buffer, @values, @metadata) if @values.size > 0
+          encoder.write_parameters(buffer, @values, @metadata) unless @values.empty?
           buffer.append_int(@page_size) if @page_size
           buffer.append_bytes(@paging_state) if @paging_state
           buffer.append_consistency(@serial_consistency) if @serial_consistency

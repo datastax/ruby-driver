@@ -19,6 +19,9 @@
 module Cassandra
   module Protocol
     class SupportedResponse < Response
+      # @private
+      RESPONSE_TYPES[0x06] = self
+
       attr_reader :options
 
       def initialize(options)
@@ -28,10 +31,6 @@ module Cassandra
       def to_s
         %(SUPPORTED #{options})
       end
-
-      private
-
-      RESPONSE_TYPES[0x06] = self
     end
   end
 end

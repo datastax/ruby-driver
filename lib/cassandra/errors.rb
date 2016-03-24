@@ -43,7 +43,8 @@ module Cassandra
     # Raised when something unexpected happened. This indicates a server-side
     # bug.
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L654-L655 Description of Server Error in Apache Cassandra native protocol spec v1
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L654-L655 Description
+    #   of Server Error in Apache Cassandra native protocol spec v1
     class ServerError < ::StandardError
       include Error, HostError
 
@@ -155,7 +156,8 @@ module Cassandra
     # @note This error can be handled by a {Cassandra::Retry::Policy} to
     #   determine the desired outcome.
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L662-L672 Description of Unavailable Error in Apache Cassandra native protocol spec v1
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L662-L672 Description
+    #   of Unavailable Error in Apache Cassandra native protocol spec v1
     class UnavailableError < ::StandardError
       include ExecutionError
       # Consistency level that triggered the error.
@@ -202,7 +204,8 @@ module Cassandra
     # Raised when the request cannot be processed because the coordinator node
     # is overloaded
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L673-L674 Description of Overloaded Error in Apache Cassandra native protocol spec v1
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L673-L674 Description
+    #   of Overloaded Error in Apache Cassandra native protocol spec v1
     class OverloadedError < ::StandardError
       include ExecutionError, HostError
     end
@@ -210,21 +213,24 @@ module Cassandra
     # Raise when the request was a read request but the coordinator node is
     # bootstrapping
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L675-L676 Description of Is Bootstrapping Error in Apache Cassandra native protocol spec v1
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L675-L676 Description
+    #   of Is Bootstrapping Error in Apache Cassandra native protocol spec v1
     class IsBootstrappingError < ::StandardError
       include ExecutionError, HostError
     end
 
     # Raised when truncation failed.
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L677 Description of Truncate Error in Apache Cassandra native protocol spec v1
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L677 Description of
+    #   Truncate Error in Apache Cassandra native protocol spec v1
     class TruncateError < ::StandardError
       include ExecutionError
     end
 
     # Raised when a write request timed out.
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L678-L703 Description of Write Timeout Error in Apache Cassandra native protocol spec v1
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L678-L703 Description
+    #   of Write Timeout Error in Apache Cassandra native protocol spec v1
     class WriteTimeoutError < ::StandardError
       include ExecutionError
 
@@ -273,7 +279,8 @@ module Cassandra
 
     # Raised when a read request timed out.
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L704-L721 Description of Read Timeout Error in Apache Cassandra native protocol spec v1
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L704-L721 Description
+    #   of Read Timeout Error in Apache Cassandra native protocol spec v1
     class ReadTimeoutError < ::StandardError
       include ExecutionError
 
@@ -326,7 +333,8 @@ module Cassandra
 
     # Raised when a write request fails.
     #
-    # @see https://github.com/apache/cassandra/blob/33f1edcce97779c971d4f78712a9a8bf014ffbbc/doc/native_protocol_v4.spec#L1111-L1138 Description of Write Failure Error in Apache Cassandra native protocol spec v4
+    # @see https://github.com/apache/cassandra/blob/cassandra-3.4/doc/native_protocol_v4.spec#L1106-L1134 Description
+    #   of Write Failure Error in Apache Cassandra native protocol spec v4
     class WriteError < ::StandardError
       include ExecutionError
 
@@ -377,7 +385,8 @@ module Cassandra
 
     # Raised when a read request fails.
     #
-    # @see https://github.com/apache/cassandra/blob/33f1edcce97779c971d4f78712a9a8bf014ffbbc/doc/native_protocol_v4.spec#L1089-L1103 Description of Read Failure Error in Apache Cassandra native protocol spec v4
+    # @see https://github.com/apache/cassandra/blob/cassandra-3.4/doc/native_protocol_v4.spec#L1084-L1098 Description
+    #   of Read Failure Error in Apache Cassandra native protocol spec v4
     class ReadError < ::StandardError
       include ExecutionError
 
@@ -432,7 +441,8 @@ module Cassandra
 
     # Raised when function execution fails.
     #
-    # @see https://github.com/apache/cassandra/blob/33f1edcce97779c971d4f78712a9a8bf014ffbbc/doc/native_protocol_v4.spec#L1104-L1110 Description of Function Failure Error in Apache Cassandra native protocol spec v4
+    # @see https://github.com/apache/cassandra/blob/cassandra-3.4/doc/native_protocol_v4.spec#L1099-L1105 Description
+    #   of Function Failure Error in Apache Cassandra native protocol spec v4
     class FunctionCallError < ::StandardError
       include ExecutionError
 
@@ -479,7 +489,8 @@ module Cassandra
     # Raised when some client message triggered a protocol violation (for
     # instance a QUERY message is sent before a STARTUP one has been sent)
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L656-L658 Description of Protocol Error in Apache Cassandra native protocol spec v1
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L656-L658 Description
+    #   of Protocol Error in Apache Cassandra native protocol spec v1
     class ProtocolError < ClientError
       # @private
       def initialize(message,
@@ -519,7 +530,8 @@ module Cassandra
 
     # Raised when cannot authenticate to Cassandra
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L659-L660 Description of Bad Credentials Error in Apache Cassandra native protocol spec v1
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L659-L660 Description
+    #   of Bad Credentials Error in Apache Cassandra native protocol spec v1
     class AuthenticationError < ClientError
       # @private
       def initialize(message,
@@ -603,7 +615,8 @@ module Cassandra
     # @note Seeing this error can be considered a Ruby Driver bug as it should
     #   handle automatic re-preparing internally.
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L738-L741 Description of Unprepared Error in Apache Cassandra native protocol spec v1
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L738-L741 Description
+    #   of Unprepared Error in Apache Cassandra native protocol spec v1
     class UnpreparedError < ::StandardError
       include ValidationError
       # @return [String] prepared statement id that triggered the error
@@ -635,14 +648,16 @@ module Cassandra
 
     # Raised when the submitted query has a syntax error.
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L723 Description of Syntax Error in Apache Cassandra native protocol spec v1
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L723 Description of
+    #   Syntax Error in Apache Cassandra native protocol spec v1
     class SyntaxError < ::StandardError
       include ValidationError
     end
 
     # Raised when the logged user doesn't have the right to perform the query.
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L724-L725 Description of Unauthorized Error in Apache Cassandra native protocol spec v1
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L724-L725 Description
+    #   of Unauthorized Error in Apache Cassandra native protocol spec v1
     class UnauthorizedError < ::StandardError
       include ValidationError
     end
@@ -655,7 +670,8 @@ module Cassandra
     #   rescue Cassandra::Errors::InvalidError
     #   end
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L726 Description of Invalid Error in Apache Cassandra native protocol spec v1
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L726 Description
+    #   of Invalid Error in Apache Cassandra native protocol spec v1
     class InvalidError < ::StandardError
       include ValidationError
     end
@@ -668,7 +684,8 @@ module Cassandra
     #   rescue Cassandra::Errors::ConfigurationError
     #   end
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L727 Description of Config Error in Apache Cassandra native protocol spec v1
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L727 Description of
+    #   Config Error in Apache Cassandra native protocol spec v1
     class ConfigurationError < ::StandardError
       include ValidationError
     end
@@ -685,7 +702,8 @@ module Cassandra
     #     p ['already exists', e.keyspace, e.table]
     #   end
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L728-L737 Description of Already Exists Error in Apache Cassandra native protocol spec v1
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v1.spec#L728-L737 Description
+    #   of Already Exists Error in Apache Cassandra native protocol spec v1
     class AlreadyExistsError < ConfigurationError
       # @return [String] keyspace
       attr_reader :keyspace

@@ -313,9 +313,7 @@ module Cassandra
     def fetch(field)
       case field
       when ::Integer
-        if field >= 0 && field < @values.size
-          raise ::IndexError, "Field index #{field.inspect} is not present"
-        end
+        raise ::IndexError, "Field index #{field.inspect} is not present" if field >= 0 && field < @values.size
 
         @values[field][1]
       when ::String
@@ -361,9 +359,7 @@ module Cassandra
     def []=(field, value)
       case field
       when ::Integer
-        if field < 0 || field >= @values.size
-          raise ::IndexError, "Field index #{field.inspect} is not present"
-        end
+        raise ::IndexError, "Field index #{field.inspect} is not present" if field < 0 || field >= @values.size
 
         @values[field][1] = value
       when ::String

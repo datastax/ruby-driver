@@ -46,9 +46,7 @@ module Cassandra
     # @private
     class Error < Future
       def initialize(error)
-        unless error.is_a?(::Exception)
-          raise ::ArgumentError, "error must be an exception, #{error.inspect} given"
-        end
+        raise ::ArgumentError, "error must be an exception, #{error.inspect} given" unless error.is_a?(::Exception)
 
         @error = error
       end
@@ -519,9 +517,7 @@ module Cassandra
       end
 
       def failure(error)
-        unless error.is_a?(::Exception)
-          raise ::ArgumentError, "error must be an exception, #{error.inspect} given"
-        end
+        raise ::ArgumentError, "error must be an exception, #{error.inspect} given" unless error.is_a?(::Exception)
 
         return unless @state == :pending
 
@@ -600,9 +596,7 @@ module Cassandra
         timeout &&= Float(timeout)
 
         if timeout
-          if timeout < 0
-            raise ::ArgumentError, "timeout cannot be negative, #{timeout.inspect} given"
-          end
+          raise ::ArgumentError, "timeout cannot be negative, #{timeout.inspect} given" if timeout < 0
 
           start    = ::Time.now
           now      = start

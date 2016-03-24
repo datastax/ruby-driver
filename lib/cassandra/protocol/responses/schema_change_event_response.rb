@@ -21,6 +21,9 @@ module Cassandra
     class SchemaChangeEventResponse < EventResponse
       TYPE = 'SCHEMA_CHANGE'.freeze
 
+      # @private
+      EVENT_TYPES[TYPE] = self
+
       attr_reader :change, :keyspace, :name, :target, :arguments
 
       def initialize(change, keyspace, name, target, arguments)
@@ -65,10 +68,6 @@ module Cassandra
           %(EVENT SCHEMA_CHANGE #{@change} #{@target} "#{@keyspace}" "#{@name}")
         end
       end
-
-      private
-
-      EVENT_TYPES[TYPE] = self
     end
   end
 end

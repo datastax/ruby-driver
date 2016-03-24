@@ -155,8 +155,6 @@ module Cassandra
           end
         end
 
-        private
-
         CODE_ERROR          = 0x00
         CODE_READY          = 0x02
         CODE_AUTHENTICATE   = 0x03
@@ -258,9 +256,7 @@ module Cassandra
               id = buffer.read_short_bytes
               params_metadata = Coder.read_metadata_v1(buffer).first
               result_metadata = nil
-              if protocol_version > 1
-                result_metadata = Coder.read_metadata_v1(buffer).first
-              end
+              result_metadata = Coder.read_metadata_v1(buffer).first if protocol_version > 1
 
               PreparedResultResponse.new(nil,
                                          nil,

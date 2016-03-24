@@ -19,6 +19,9 @@
 module Cassandra
   module Protocol
     class AuthSuccessResponse < Response
+      # @private
+      RESPONSE_TYPES[0x10] = self
+
       attr_reader :token
 
       def initialize(token)
@@ -28,10 +31,6 @@ module Cassandra
       def to_s
         %(AUTH_SUCCESS #{@token && @token.bytesize})
       end
-
-      private
-
-      RESPONSE_TYPES[0x10] = self
     end
   end
 end

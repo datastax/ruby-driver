@@ -21,6 +21,9 @@ module Cassandra
     class StatusChangeEventResponse < EventResponse
       TYPE = 'STATUS_CHANGE'.freeze
 
+      # @private
+      EVENT_TYPES[TYPE] = self
+
       attr_reader :type, :change, :address, :port
 
       def initialize(*args)
@@ -31,10 +34,6 @@ module Cassandra
       def to_s
         %(EVENT #{@type} #{@change} #{@address}:#{@port})
       end
-
-      private
-
-      EVENT_TYPES[TYPE] = self
     end
   end
 end

@@ -19,6 +19,9 @@
 module Cassandra
   module Protocol
     class VoidResultResponse < ResultResponse
+      # @private
+      RESULT_TYPES[0x01] = self
+
       def to_s
         %(RESULT VOID)
       end
@@ -26,10 +29,6 @@ module Cassandra
       def void?
         true
       end
-
-      private
-
-      RESULT_TYPES[0x01] = self
     end
   end
 end

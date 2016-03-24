@@ -109,9 +109,7 @@ module Cassandra
         end
 
         def lookup_type(node)
-          if node.name == 'org.apache.cassandra.db.marshal.FrozenType'
-            return lookup_type(node.children.first)
-          end
+          return lookup_type(node.children.first) if node.name == 'org.apache.cassandra.db.marshal.FrozenType'
 
           type = @@types.fetch(node.name) do
             return Cassandra::Types.custom(dump_node(node))
@@ -169,9 +167,7 @@ module Cassandra
 
         def dump_node(node)
           str = node.name
-          unless node.children.empty?
-            str << '(' + node.children.map { |n| dump_node(n) }.join(',') + ')'
-          end
+          str << '(' + node.children.map { |n| dump_node(n) }.join(',') + ')' unless node.children.empty?
           str
         end
       end

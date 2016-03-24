@@ -19,6 +19,9 @@
 module Cassandra
   module Protocol
     class ReadyResponse < Response
+      # @private
+      RESPONSE_TYPES[0x02] = self
+
       def eql?(rs)
         rs.is_a?(self.class)
       end
@@ -35,10 +38,6 @@ module Cassandra
       def to_s
         'READY'
       end
-
-      private
-
-      RESPONSE_TYPES[0x02] = self
     end
   end
 end

@@ -19,6 +19,9 @@
 module Cassandra
   module Protocol
     class ErrorResponse < Response
+      # @private
+      RESPONSE_TYPES[0x00] = self
+
       attr_reader :code, :message, :custom_payload, :warnings
 
       def initialize(*args)
@@ -134,10 +137,6 @@ module Cassandra
                                   retries)
         end
       end
-
-      private
-
-      RESPONSE_TYPES[0x00] = self
     end
   end
 end

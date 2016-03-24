@@ -40,16 +40,12 @@ module Cassandra
 
       def fetch(i)
         i = Integer(i)
-        if i < 0 || i >= @types.size
-          raise ::IndexError, "index #{i} is outside of tuple, size: #{@types.size}"
-        end
+        raise ::IndexError, "index #{i} is outside of tuple, size: #{@types.size}" if i < 0 || i >= @types.size
         @values[i]
       end
 
       def []=(i, value)
-        if i < 0 || i >= @types.size
-          raise ::IndexError, "index #{i} is outside of tuple, size: #{@types.size}"
-        end
+        raise ::IndexError, "index #{i} is outside of tuple, size: #{@types.size}" if i < 0 || i >= @types.size
         Util.assert_type(@types[i], value)
         @values[i] = value
       end
@@ -90,9 +86,7 @@ module Cassandra
     # @return [Object] value of the tuple at position `i`
     def fetch(i)
       i = Integer(i)
-      if i < 0 || i >= @values.size
-        raise ::IndexError, "index #{i} is outside of tuple, size: #{@values.size}"
-      end
+      raise ::IndexError, "index #{i} is outside of tuple, size: #{@values.size}" if i < 0 || i >= @values.size
       @values[i]
     end
 
@@ -103,9 +97,7 @@ module Cassandra
     # @return [Object] value of the tuple at position `i`
     def []=(i, value)
       i = Integer(i)
-      if i < 0 || i >= @values.size
-        raise ::IndexError, "index #{i} is outside of tuple, size: #{@values.size}"
-      end
+      raise ::IndexError, "index #{i} is outside of tuple, size: #{@values.size}" if i < 0 || i >= @values.size
       @values[i] = value
     end
 

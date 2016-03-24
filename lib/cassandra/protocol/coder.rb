@@ -26,7 +26,7 @@ module Cassandra
       NO_METADATA_FLAG        = 0x04
 
       def write_values_v4(buffer, values, types, names = EMPTY_LIST)
-        if values && values.size > 0
+        if values && !values.empty?
           buffer.append_short(values.size)
           values.zip(types, names) do |(value, type, name)|
             buffer.append_string(name) if name
@@ -320,7 +320,7 @@ module Cassandra
       end
 
       def write_values_v3(buffer, values, types, names = EMPTY_LIST)
-        if values && values.size > 0
+        if values && !values.empty?
           buffer.append_short(values.size)
           values.zip(types, names) do |(value, type, name)|
             buffer.append_string(name) if name
@@ -571,7 +571,7 @@ module Cassandra
       end
 
       def write_values_v1(buffer, values, types)
-        if values && values.size > 0
+        if values && !values.empty?
           buffer.append_short(values.size)
           values.each_with_index do |value, index|
             write_value_v1(buffer, value, types[index])

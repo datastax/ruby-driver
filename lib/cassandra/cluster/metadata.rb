@@ -39,9 +39,7 @@ module Cassandra
       end
 
       def find_replicas(keyspace, statement)
-        unless statement.respond_to?(:partition_key) && statement.respond_to?(:keyspace)
-          return EMPTY_LIST
-        end
+        return EMPTY_LIST unless statement.respond_to?(:partition_key) && statement.respond_to?(:keyspace)
 
         keyspace      = String(statement.keyspace || keyspace)
         partition_key = statement.partition_key

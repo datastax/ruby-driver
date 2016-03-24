@@ -290,9 +290,7 @@ module Cassandra
               id = buffer.read_short_bytes
               params_metadata = Coder.read_metadata_v3(buffer).first
               result_metadata = nil
-              if protocol_version > 1
-                result_metadata = Coder.read_metadata_v3(buffer).first
-              end
+              result_metadata = Coder.read_metadata_v3(buffer).first if protocol_version > 1
 
               PreparedResultResponse.new(nil,
                                          nil,

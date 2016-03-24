@@ -60,7 +60,7 @@ module Cassandra
           flags |= 0x08 if @paging_state
           flags |= 0x10 if @serial_consistency
           flags |= 0x20 if protocol_version > 2 && @timestamp
-          if @values && @values.size > 0
+          if @values && !@values.empty?
             flags |= 0x01
             flags |= 0x40 if protocol_version > 2 && !@names.empty?
             buffer.append(flags.chr)

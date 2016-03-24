@@ -28,6 +28,9 @@ module Cassandra
       #   :lz4` option when calling {Cassandra.cluster} and one will be created
       #   automatically for you.
       class Lz4 < Compressor
+        # @private
+        BUFFER_FORMAT = 'Na*'.freeze
+
         # @return [String] `'lz4'`
         attr_reader :algorithm
 
@@ -64,11 +67,6 @@ module Cassandra
           decompressed_size, compressed_data = str.to_s.unpack(BUFFER_FORMAT)
           ::LZ4::Raw.decompress(compressed_data, decompressed_size).first
         end
-
-        private
-
-        # @private
-        BUFFER_FORMAT = 'Na*'.freeze
       end
     end
   end

@@ -21,6 +21,11 @@ module Cassandra
     module Policies
       class DCAwareRoundRobin < Policy
         # @private
+        LOCAL_CONSISTENCIES = [:local_quorum, :local_one].freeze
+        # @private
+        EMPTY_ARRAY         = [].freeze
+
+        # @private
         class Plan
           def initialize(local, remote, index)
             @local  = local
@@ -62,9 +67,7 @@ module Cassandra
           datacenter              &&= String(datacenter)
           max_remote_hosts_to_use &&= Integer(max_remote_hosts_to_use)
 
-          unless datacenter.nil?
-            Util.assert_not_empty(datacenter) { 'datacenter cannot be empty' }
-          end
+          Util.assert_not_empty(datacenter) { 'datacenter cannot be empty' } unless datacenter.nil?
 
           unless max_remote_hosts_to_use.nil?
             Util.assert(max_remote_hosts_to_use >= 0) do
@@ -145,13 +148,6 @@ module Cassandra
 
           Plan.new(local, remote, position)
         end
-
-        private
-
-        # @private
-        LOCAL_CONSISTENCIES = [:local_quorum, :local_one].freeze
-        # @private
-        EMPTY_ARRAY         = [].freeze
       end
     end
   end

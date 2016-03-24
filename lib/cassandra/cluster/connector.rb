@@ -172,7 +172,7 @@ module Cassandra
                   # don't want to accidentally raise it, so we update it to the min
                   # of itself and current-1.
                   @connection_options.protocol_version =
-                      [@connection_options.protocol_version, current_version - 1].min
+                    [@connection_options.protocol_version, current_version - 1].min
                   do_connect(host)
                 else
                   Ione::Future.failed(error)

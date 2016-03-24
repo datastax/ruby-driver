@@ -19,6 +19,9 @@
 module Cassandra
   module Protocol
     class RowsResultResponse < ResultResponse
+      # @private
+      RESULT_TYPES[0x02] = self
+
       attr_reader :rows, :metadata, :paging_state
 
       def initialize(custom_payload, warnings, rows, metadata, paging_state, trace_id)
@@ -31,10 +34,6 @@ module Cassandra
       def to_s
         %(RESULT ROWS #{@metadata} #{@rows})
       end
-
-      private
-
-      RESULT_TYPES[0x02] = self
     end
   end
 end

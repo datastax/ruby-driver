@@ -23,6 +23,7 @@ module Cassandra
       attr_reader :auth_provider, :compressor, :connect_timeout, :credentials,
                   :heartbeat_interval, :idle_timeout, :port, :schema_refresh_delay,
                   :schema_refresh_timeout, :ssl
+      attr_boolean :protocol_negotiable, :synchronize_schema, :client_timestamps, :nodelay
 
       attr_accessor :protocol_version
 
@@ -71,22 +72,6 @@ module Cassandra
 
         @protocol_negotiable = @protocol_version.nil?
         @protocol_version ||= 4
-      end
-
-      def protocol_negotiable?
-        @protocol_negotiable
-      end
-
-      def synchronize_schema?
-        @synchronize_schema
-      end
-
-      def client_timestamps?
-        @client_timestamps
-      end
-
-      def nodelay?
-        @nodelay
       end
 
       def compression

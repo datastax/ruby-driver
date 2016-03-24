@@ -71,10 +71,10 @@ module Cassandra
     def eql?(other)
       other.is_a?(Index) &&
         @table == other.table &&
-          @name == other.name &&
-          @kind == other.kind &&
-          @target == other.target &&
-          @options == other.options
+        @name == other.name &&
+        @kind == other.kind &&
+        @target == other.target &&
+        @options == other.options
     end
     alias == eql?
 
