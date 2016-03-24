@@ -287,6 +287,8 @@ module Cassandra
       # @return [Boolean] whether actual data (as opposed to data checksum) was
       #   present in the received responses.
       attr_reader :retrieved
+      alias retrieved? retrieved
+
       # @return [Symbol] the original consistency level for the request, one of
       #   {Cassandra::CONSISTENCIES}
       attr_reader :consistency
@@ -324,10 +326,6 @@ module Cassandra
         @consistency = consistency
         @required    = required
         @received    = received
-      end
-
-      def retrieved?
-        @retrieved
       end
     end
 
