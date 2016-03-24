@@ -19,13 +19,14 @@
 # This file monkey-patches Module to have an attr_boolean method to make it easy
 # for classes to define boolean instance variables with "foo?" reader methods.
 # Inspired by http://stackoverflow.com/questions/4013591/attr-reader-with-question-mark-in-a-name
-
-class Module
-  def attr_boolean(*names)
-    names.each do |name|
-      define_method(:"#{name}?") do
-        res = instance_variable_get(:"@#{name}")
-        !res.nil? && res
+module Cassandra
+  module AttrBoolean
+    def attr_boolean(*names)
+      names.each do |name|
+        define_method(:"#{name}?") do
+          res = instance_variable_get(:"@#{name}")
+          !res.nil? && res
+        end
       end
     end
   end

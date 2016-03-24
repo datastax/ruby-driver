@@ -19,15 +19,14 @@
 module Cassandra
   module Protocol
     class Request
-      attr_reader :opcode, :trace
+      extend AttrBoolean
+
+      attr_reader :opcode
+      attr_boolean :trace
 
       def initialize(opcode, trace = false)
         @opcode = opcode
         @trace = trace
-      end
-
-      def trace?
-        @trace
       end
 
       def compressable?

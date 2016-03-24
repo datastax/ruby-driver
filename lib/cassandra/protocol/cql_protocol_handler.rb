@@ -251,17 +251,16 @@ module Cassandra
 
       # @private
       class RequestPromise < Ione::Promise
+        extend AttrBoolean
+
         attr_reader :request, :timeout
+        attr_boolean :timed_out
 
         def initialize(request, timeout)
           @request = request
           @timeout = timeout
           @timed_out = false
           super()
-        end
-
-        def timed_out?
-          @timed_out
         end
 
         def time_out!

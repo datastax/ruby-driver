@@ -20,6 +20,8 @@ module Cassandra
   class Cluster
     # @private
     class Options
+      extend AttrBoolean
+
       attr_reader :auth_provider, :compressor, :connect_timeout, :credentials,
                   :heartbeat_interval, :idle_timeout, :port, :schema_refresh_delay,
                   :schema_refresh_timeout, :ssl
