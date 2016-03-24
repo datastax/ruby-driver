@@ -191,18 +191,14 @@ module Cassandra
       def register_async
         connection = @connection
 
-        if connection.nil?
-          return Ione::Future.failed(Errors::ClientError.new('Not connected'))
-        end
+        return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         request = Protocol::RegisterRequest.new(
           Protocol::TopologyChangeEventResponse::TYPE,
           Protocol::StatusChangeEventResponse::TYPE
         )
 
-        if @connection_options.synchronize_schema?
-          request.events << Protocol::SchemaChangeEventResponse::TYPE
-        end
+        request.events << Protocol::SchemaChangeEventResponse::TYPE if @connection_options.synchronize_schema?
 
         f = connection.send_request(request)
         f = f.map do |r|
@@ -257,9 +253,7 @@ module Cassandra
 
         @logger.info('Refreshing schema')
 
-        if connection.nil?
-          return Ione::Future.failed(Errors::ClientError.new('Not connected'))
-        end
+        return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         @schema_fetcher.fetch(connection).map do |keyspaces|
           @schema.replace(keyspaces)
@@ -271,9 +265,7 @@ module Cassandra
       def refresh_keyspace_async(keyspace_name)
         connection = @connection
 
-        if connection.nil?
-          return Ione::Future.failed(Errors::ClientError.new('Not connected'))
-        end
+        return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         @logger.info("Refreshing keyspace \"#{keyspace_name}\"")
 
@@ -291,9 +283,7 @@ module Cassandra
       def refresh_table_async(keyspace_name, table_name)
         connection = @connection
 
-        if connection.nil?
-          return Ione::Future.failed(Errors::ClientError.new('Not connected'))
-        end
+        return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         @logger.info("Refreshing table \"#{keyspace_name}.#{table_name}\"")
 
@@ -311,9 +301,7 @@ module Cassandra
       def refresh_materialized_view_async(keyspace_name, view_name)
         connection = @connection
 
-        if connection.nil?
-          return Ione::Future.failed(Errors::ClientError.new('Not connected'))
-        end
+        return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         @logger.info("Refreshing materialized view \"#{keyspace_name}.#{view_name}\"")
 
@@ -331,9 +319,7 @@ module Cassandra
       def refresh_type_async(keyspace_name, type_name)
         connection = @connection
 
-        if connection.nil?
-          return Ione::Future.failed(Errors::ClientError.new('Not connected'))
-        end
+        return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         @logger.info("Refreshing user-defined type \"#{keyspace_name}.#{type_name}\"")
 
@@ -351,9 +337,7 @@ module Cassandra
       def refresh_function_async(keyspace_name, function_name, function_args)
         connection = @connection
 
-        if connection.nil?
-          return Ione::Future.failed(Errors::ClientError.new('Not connected'))
-        end
+        return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         @logger.info('Refreshing user-defined function ' \
           "\"#{keyspace_name}.#{function_name}\"")
@@ -379,9 +363,7 @@ module Cassandra
       def refresh_aggregate_async(keyspace_name, aggregate_name, aggregate_args)
         connection = @connection
 
-        if connection.nil?
-          return Ione::Future.failed(Errors::ClientError.new('Not connected'))
-        end
+        return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         @logger.info('Refreshing user-defined aggregate ' \
           "\"#{keyspace_name}.#{aggregate_name}\"")
@@ -452,9 +434,7 @@ module Cassandra
       def refresh_peers_async
         connection = @connection
 
-        if connection.nil?
-          return Ione::Future.failed(Errors::ClientError.new('Not connected'))
-        end
+        return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         @logger.info('Refreshing peers metadata')
 
@@ -485,20 +465,16 @@ module Cassandra
       def refresh_metadata_async
         connection = @connection
 
-        if connection.nil?
-          return Ione::Future.failed(Errors::ClientError.new('Not connected'))
-        end
+        return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         @logger.info("Refreshing connected host's metadata")
 
         send_select_request(connection, SELECT_LOCAL).map do |local|
-          if local.empty?
-            raise Errors::InternalError, "Unable to fetch connected host's metadata"
-          else
-            data = local.first
-            @registry.host_found(IPAddr.new(connection.host), data)
-            @metadata.update(data)
-          end
+          raise Errors::InternalError, "Unable to fetch connected host's metadata" if local.empty?
+
+          data = local.first
+          @registry.host_found(IPAddr.new(connection.host), data)
+          @metadata.update(data)
 
           @logger.info("Completed refreshing connected host's metadata")
 
@@ -579,9 +555,7 @@ module Cassandra
 
       def refresh_host_async(address)
         connection = @connection
-        if connection.nil?
-          return Ione::Future.failed(Errors::ClientError.new('Not connected'))
-        end
+        return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
 
         ip = address.to_s
 
@@ -597,12 +571,10 @@ module Cassandra
                   end
 
         send_select_request(connection, request).map do |rows|
-          if rows.empty?
-            raise Errors::InternalError, "Unable to find host metadata: #{ip}"
-          else
-            @logger.info("Completed refreshing host metadata: #{ip}")
-            @registry.host_found(address, rows.first)
-          end
+          raise Errors::InternalError, "Unable to find host metadata: #{ip}" if rows.empty?
+
+          @logger.info("Completed refreshing host metadata: #{ip}")
+          @registry.host_found(address, rows.first)
 
           self
         end
@@ -667,9 +639,7 @@ Control connection failed and is unlikely to recover.
         end
         f = f.flat_map { register_async }
         f = f.flat_map { refresh_peers_async_maybe_retry }
-        if @connection_options.synchronize_schema?
-          f = f.flat_map { refresh_maybe_retry(:schema) }
-        end
+        f = f.flat_map { refresh_maybe_retry(:schema) } if @connection_options.synchronize_schema?
         f = f.fallback do |error|
           @logger.debug("Connection to #{host.ip} failed " \
             "(#{error.class.name}: #{error.message})")
@@ -703,7 +673,7 @@ Control connection failed and is unlikely to recover.
       end
 
       def process_schema_changes(schema_changes)
-        refresh_keyspaces  = ::Hash.new
+        refresh_keyspaces = ::Hash.new
         refresh_tables_and_views = ::Hash.new
         refresh_types      = ::Hash.new
 

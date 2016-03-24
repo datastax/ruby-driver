@@ -44,7 +44,8 @@ module Cassandra
       # exceeded the Nth percentile of read response times for this object" (e.g. 99percentile).
       # @return [String] the speculative retry setting of this column-container.
       attr_reader :speculative_retry
-      # Return the index interval of this column-container; Cassandra will hold `1/index_interval` of row keys in memory.
+      # Return the index interval of this column-container; Cassandra will hold `1/index_interval` of row keys in
+      # memory.
       # @return [Integer] the index interval of this column-container. May be nil, indicating a default value of 128.
       attr_reader :index_interval
       # @return [Hash] compression settings
@@ -60,6 +61,7 @@ module Cassandra
       attr_reader :compaction_strategy
 
       # @private
+      # rubocop:disable Metrics/ParameterLists
       def initialize(comment,
                      read_repair_chance,
                      local_read_repair_chance,
@@ -130,12 +132,8 @@ module Cassandra
         end
         options << "caching = #{Util.encode_object(@caching)}" unless @caching.nil?
         options << "comment = #{Util.encode_object(@comment)}" unless @comment.nil?
-        unless @compaction_strategy.nil?
-          options << "compaction = #{@compaction_strategy.to_cql}"
-        end
-        unless @compression.nil?
-          options << "compression = #{Util.encode_object(@compression)}"
-        end
+        options << "compaction = #{@compaction_strategy.to_cql}" unless @compaction_strategy.nil?
+        options << "compression = #{Util.encode_object(@compression)}" unless @compression.nil?
         unless @local_read_repair_chance.nil?
           options << 'dclocal_read_repair_chance = ' \
               "#{Util.encode_object(@local_read_repair_chance)}"
@@ -143,34 +141,20 @@ module Cassandra
         unless @default_time_to_live.nil?
           options << "default_time_to_live = #{Util.encode_object(@default_time_to_live)}"
         end
-        unless @gc_grace_seconds.nil?
-          options << "gc_grace_seconds = #{Util.encode_object(@gc_grace_seconds)}"
-        end
-        unless @index_interval.nil?
-          options << "index_interval = #{Util.encode_object(@index_interval)}"
-        end
-        unless @max_index_interval.nil?
-          options << "max_index_interval = #{Util.encode_object(@max_index_interval)}"
-        end
+        options << "gc_grace_seconds = #{Util.encode_object(@gc_grace_seconds)}" unless @gc_grace_seconds.nil?
+        options << "index_interval = #{Util.encode_object(@index_interval)}" unless @index_interval.nil?
+        options << "max_index_interval = #{Util.encode_object(@max_index_interval)}" unless @max_index_interval.nil?
         unless @memtable_flush_period_in_ms.nil?
           options << 'memtable_flush_period_in_ms = ' \
               "#{Util.encode_object(@memtable_flush_period_in_ms)}"
         end
-        unless @min_index_interval.nil?
-          options << "min_index_interval = #{Util.encode_object(@min_index_interval)}"
-        end
+        options << "min_index_interval = #{Util.encode_object(@min_index_interval)}" unless @min_index_interval.nil?
         unless @populate_io_cache_on_flush.nil?
           options << "populate_io_cache_on_flush = '#{@populate_io_cache_on_flush}'"
         end
-        unless @read_repair_chance.nil?
-          options << "read_repair_chance = #{Util.encode_object(@read_repair_chance)}"
-        end
-        unless @replicate_on_write.nil?
-          options << "replicate_on_write = '#{@replicate_on_write}'"
-        end
-        unless @speculative_retry.nil?
-          options << "speculative_retry = #{Util.encode_object(@speculative_retry)}"
-        end
+        options << "read_repair_chance = #{Util.encode_object(@read_repair_chance)}" unless @read_repair_chance.nil?
+        options << "replicate_on_write = '#{@replicate_on_write}'" unless @replicate_on_write.nil?
+        options << "speculative_retry = #{Util.encode_object(@speculative_retry)}" unless @speculative_retry.nil?
         unless @crc_check_chance.nil?
           options << 'crc_check_chance = ' \
               "#{Util.encode_object(@crc_check_chance)}"
@@ -212,7 +196,7 @@ module Cassandra
 
       # @private
       def initialize(class_name, options)
-        @class_name   = class_name
+        @class_name = class_name
         @options = options
       end
 
@@ -245,8 +229,10 @@ module Cassandra
     attr_reader :partition_key
     # @return [Array<Cassandra::Column>] ordered list of column-names that make up the clustering-columns.
     attr_reader :clustering_columns
-    # @return [Array<Cassandra::Column>] primary key of this column-container. It's the combination of `partition_key` and `clustering_columns`.
-    # @note This composition produces a flat list, so it will not be possible for the caller to distinguish partition-key columns from clustering-columns.
+    # @return [Array<Cassandra::Column>] primary key of this column-container. It's the combination of
+    #   `partition_key` and `clustering_columns`.
+    # @note This composition produces a flat list, so it will not be possible for the caller to distinguish
+    #   partition-key columns from clustering-columns.
     attr_reader :primary_key
 
     # @private

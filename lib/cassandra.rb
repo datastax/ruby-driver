@@ -34,8 +34,10 @@ require 'date'
 
 module Cassandra
   # A list of all supported request consistencies
-  # @see http://www.datastax.com/documentation/cassandra/2.0/cassandra/dml/dml_config_consistency_c.html Consistency levels in Apache Cassandra 2.0
-  # @see http://www.datastax.com/documentation/cassandra/1.2/cassandra/dml/dml_config_consistency_c.html Consistency levels in Apache Cassandra 1.2
+  # @see http://www.datastax.com/documentation/cassandra/2.0/cassandra/dml/dml_config_consistency_c.html Consistency
+  #   levels in Apache Cassandra 2.0
+  # @see http://www.datastax.com/documentation/cassandra/1.2/cassandra/dml/dml_config_consistency_c.html Consistency
+  #   levels in Apache Cassandra 1.2
   # @see Cassandra::Session#execute_async
   CONSISTENCIES = [:any, :one, :two, :three, :quorum, :all, :local_quorum,
                    :each_quorum, :serial, :local_serial, :local_one].freeze
@@ -47,7 +49,8 @@ module Cassandra
   # A list of all possible write types that a
   # {Cassandra::Errors::WriteTimeoutError} can have.
   #
-  # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v2.spec#L872-L887 Description of possible types of writes in Apache Cassandra native protocol spec v1
+  # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v2.spec#L872-L887 Description of
+  #   possible types of writes in Apache Cassandra native protocol spec v1
   WRITE_TYPES = [:simple, :batch, :unlogged_batch, :counter, :batch_log].freeze
 
   CLUSTER_OPTIONS = [
@@ -615,12 +618,8 @@ module Cassandra
     end
 
     options[:nodelay] = !!options[:nodelay] if options.key?(:nodelay)
-
     options[:trace] = !!options[:trace] if options.key?(:trace)
-
-    if options.key?(:shuffle_replicas)
-      options[:shuffle_replicas] = !!options[:shuffle_replicas]
-    end
+    options[:shuffle_replicas] = !!options[:shuffle_replicas] if options.key?(:shuffle_replicas)
 
     if options.key?(:page_size)
       page_size = options[:page_size]
@@ -669,13 +668,8 @@ module Cassandra
       end
     end
 
-    if options.key?(:synchronize_schema)
-      options[:synchronize_schema] = !!options[:synchronize_schema]
-    end
-
-    if options.key?(:client_timestamps)
-      options[:client_timestamps] = !!options[:client_timestamps]
-    end
+    options[:synchronize_schema] = !!options[:synchronize_schema] if options.key?(:synchronize_schema)
+    options[:client_timestamps] = !!options[:client_timestamps] if options.key?(:client_timestamps)
 
     if options.key?(:connections_per_local_node)
       connections_per_node = options[:connections_per_local_node]
@@ -740,6 +734,7 @@ module Cassandra
   DATE_OFFSET = (::Time.utc(1970, 1, 1).to_date.jd - 2**31)
 end
 
+require 'cassandra/attr_boolean'
 require 'cassandra/version'
 require 'cassandra/uuid'
 require 'cassandra/time_uuid'

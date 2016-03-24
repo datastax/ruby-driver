@@ -21,14 +21,13 @@ module Cassandra
     class TopologyChangeEventResponse < StatusChangeEventResponse
       TYPE = 'TOPOLOGY_CHANGE'.freeze
 
+      # @private
+      EVENT_TYPES[TYPE] = self
+
       def initialize(*args)
         super
         @type = TYPE
       end
-
-      private
-
-      EVENT_TYPES[TYPE] = self
     end
   end
 end

@@ -23,6 +23,11 @@ module Cassandra
       module Partitioners
         # @private
         class Murmur3
+          # @private
+          LONG_MIN = -2**63
+          # @private
+          LONG_MAX = 2**63 - 1
+
           def create_token(partition_key)
             token = Cassandra::Murmur3.hash(partition_key)
             token = LONG_MAX if token == LONG_MIN
@@ -33,13 +38,6 @@ module Cassandra
           def parse_token(token_string)
             token_string.to_i
           end
-
-          private
-
-          # @private
-          LONG_MIN = -2**63
-          # @private
-          LONG_MAX = 2**63 - 1
         end
       end
     end

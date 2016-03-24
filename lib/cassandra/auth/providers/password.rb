@@ -59,12 +59,6 @@ module Cassandra
         def create_authenticator(authentication_class)
           Authenticator.new(@username, @password)
         end
-
-        private
-
-        # @private
-        PASSWORD_AUTHENTICATOR_FQCN =
-          'org.apache.cassandra.auth.PasswordAuthenticator'.freeze
       end
     end
   end

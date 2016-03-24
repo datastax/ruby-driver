@@ -35,7 +35,7 @@ module Cassandra
                    clustering_order,
                    id)
       super(keyspace, name, partition_key, clustering_columns, other_columns, options, id)
-      @clustering_order   = clustering_order.freeze
+      @clustering_order = clustering_order.freeze
       @indexes = []
       @indexes_hash = {}
     end
@@ -72,9 +72,7 @@ module Cassandra
     def to_cql
       cql = "CREATE TABLE #{Util.escape_name(@keyspace.name)}.#{Util.escape_name(@name)} (\n"
       primary_key = nil
-      if @partition_key.one? && @clustering_columns.empty?
-        primary_key = @partition_key.first.name
-      end
+      primary_key = @partition_key.first.name if @partition_key.one? && @clustering_columns.empty?
 
       first = true
       @columns.each do |column|

@@ -37,7 +37,9 @@ module Cassandra
     attr_reader :tokens
     # @return [Symbol] host status. Must be `:up` or `:down`
     attr_reader :status
-    # @note This is the public IP address of the host if the cluster is deployed across multiple Amazon EC2 regions (or equivalently multiple networks). Cassandra nodes in other EC2 regions use this address to connect to this host.
+    # @note This is the public IP address of the host if the cluster is deployed across multiple Amazon EC2 regions
+    #   (or equivalently multiple networks). Cassandra nodes in other EC2 regions use this address to connect to this
+    #   host.
     # @return [IPAddr, String] broadcast address, if available.
     attr_reader :broadcast_address
     # @note This is the address that other Cassandra nodes use to connect to this host.

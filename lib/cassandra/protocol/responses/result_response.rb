@@ -19,6 +19,13 @@
 module Cassandra
   module Protocol
     class ResultResponse < Response
+      # @private
+      RESPONSE_TYPES[0x08] = self
+      # @private
+      RESULT_TYPES = [
+        # populated by subclasses
+      ]
+
       attr_reader :custom_payload, :warnings, :trace_id
 
       def initialize(custom_payload, warnings, trace_id)
@@ -30,14 +37,6 @@ module Cassandra
       def void?
         false
       end
-
-      private
-
-      RESPONSE_TYPES[0x08] = self
-
-      RESULT_TYPES = [
-        # populated by subclasses
-      ]
     end
   end
 end

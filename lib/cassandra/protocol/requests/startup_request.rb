@@ -19,13 +19,16 @@
 module Cassandra
   module Protocol
     class StartupRequest < Request
+      # @private
+      CQL_VERSION = 'CQL_VERSION'.freeze
+      # @private
+      COMPRESSION = 'COMPRESSION'.freeze
+
       attr_reader :options
 
       def initialize(cql_version, compression = nil)
         super(1)
-        unless cql_version
-          raise ArgumentError, "Invalid CQL version: #{cql_version.inspect}"
-        end
+        raise ArgumentError, "Invalid CQL version: #{cql_version.inspect}" unless cql_version
         @options = {CQL_VERSION => cql_version}
         @options[COMPRESSION] = compression if compression
       end
@@ -41,11 +44,6 @@ module Cassandra
       def to_s
         %(STARTUP #{@options})
       end
-
-      private
-
-      CQL_VERSION = 'CQL_VERSION'.freeze
-      COMPRESSION = 'COMPRESSION'.freeze
     end
   end
 end

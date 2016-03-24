@@ -19,8 +19,7 @@
 module Cassandra
   module Protocol
     class Response
-      private
-
+      # @private
       RESPONSE_TYPES = [
         # populated by subclasses
       ]

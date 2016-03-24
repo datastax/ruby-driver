@@ -190,29 +190,6 @@ Style/OpMethod:
     - 'lib/cassandra/protocol/requests/query_request.rb'
     - 'lib/cassandra/protocol/responses/ready_response.rb'
 
-# Offense count: 14
-# Configuration parameters: NamePrefix, NamePrefixBlacklist, NameWhitelist.
-# NamePrefix: is_, has_, have_
-# NamePrefixBlacklist: is_, has_, have_
-# NameWhitelist: is_a?
-Style/PredicateName:
-  Exclude:
-    - 'lib/cassandra/cluster/registry.rb'
-    - 'lib/cassandra/cluster/schema.rb'
-    - 'lib/cassandra/function.rb'
-    - 'lib/cassandra/keyspace.rb'
-    - 'lib/cassandra/load_balancing.rb'
-    - 'lib/cassandra/load_balancing/policies/dc_aware_round_robin.rb'
-    - 'lib/cassandra/load_balancing/policies/round_robin.rb'
-    - 'lib/cassandra/load_balancing/policies/token_aware.rb'
-    - 'lib/cassandra/table.rb'
-    - 'lib/cassandra/udt.rb'
-
-# Offense count: 2
-# Configuration parameters: EnforcedStyle, SupportedStyles.
-# SupportedStyles: compact, exploded
-#Style/RaiseArgs:
-#  Enabled: false
 
 # Offense count: 46
 # Cop supports --auto-correct.

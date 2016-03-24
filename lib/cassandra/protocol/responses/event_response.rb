@@ -19,10 +19,9 @@
 module Cassandra
   module Protocol
     class EventResponse < ResultResponse
-      private
-
+      # @private
       RESPONSE_TYPES[0x0c] = self
-
+      # @private
       EVENT_TYPES = {
         # populated by subclasses
       }

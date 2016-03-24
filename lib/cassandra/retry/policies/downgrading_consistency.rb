@@ -24,9 +24,7 @@ module Cassandra
 
         def read_timeout(statement, consistency, required, received, retrieved, retries)
           return reraise if retries > 0 || SERIAL_CONSISTENCIES.include?(consistency)
-          if received < required
-            return max_likely_to_work(consistency, required, received)
-          end
+          return max_likely_to_work(consistency, required, received) if received < required
 
           retrieved ? reraise : try_again(consistency)
         end

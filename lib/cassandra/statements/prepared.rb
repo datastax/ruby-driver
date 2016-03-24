@@ -189,9 +189,9 @@ module Cassandra
           buffer.discard(4) # discard size
         else
           buf = Protocol::CqlByteBuffer.new
-          partition_key.each do |i|
-            value    = values[i]
-            metadata = params_metadata[i]
+          partition_key.each do |ind|
+            value    = values[ind]
+            metadata = params_metadata[ind]
             name     = metadata[2]
             type     = metadata[3]
 

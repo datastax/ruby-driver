@@ -411,7 +411,7 @@ module Cassandra
     def raw_materialized_views
       @views
     end
-    
+
     # @private
     def raw_types
       @types

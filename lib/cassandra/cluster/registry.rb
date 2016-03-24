@@ -171,7 +171,7 @@ module Cassandra
                  :up,
                  data['broadcast_address'],
                  data['listen_address']
-        )
+                )
       end
 
       def toggle_up(host)

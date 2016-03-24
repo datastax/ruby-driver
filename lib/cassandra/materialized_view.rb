@@ -21,7 +21,6 @@ module Cassandra
   # @see Cassandra::Keyspace#each_materialized_view
   # @see Cassandra::Keyspace#materialized_view
   class MaterializedView < ColumnContainer
-
     # @return [Table] the table that this materialized view applies to.
     attr_reader :base_table
 
@@ -46,22 +45,22 @@ module Cassandra
     def to_cql
       keyspace_name = Util.escape_name(@keyspace.name)
       cql = "CREATE MATERIALIZED VIEW #{keyspace_name}.#{Util.escape_name(@name)} AS\nSELECT "
-      if @include_all_columns
-        cql << '*'
-      else
-        cql << @columns.map do |column|
-          Util.escape_name(column.name)
-        end.join(', ')
-      end
+      cql << if @include_all_columns
+               '*'
+             else
+               @columns.map do |column|
+                 Util.escape_name(column.name)
+               end.join(', ')
+             end
       cql << "\nFROM #{keyspace_name}.#{Util.escape_name(@base_table.name)}"
       cql << "\nWHERE #{@where_clause}" if @where_clause
       cql << "\nPRIMARY KEY(("
       cql << @partition_key.map do |column|
         Util.escape_name(column.name)
       end.join(', ')
-      cql << ")"
+      cql << ')'
       unless @clustering_columns.empty?
-        cql << ","
+        cql << ','
         cql << @clustering_columns.map do |column|
           Util.escape_name(column.name)
         end.join(', ')
@@ -72,10 +71,10 @@ module Cassandra
     # @private
     def eql?(other)
       other.is_a?(MaterializedView) &&
-          super.eql?(other) &&
-          @include_all_columns == other.include_all_columns &&
-          @where_clause == other.where_clause &&
-          @base_table == other.base_table
+        super.eql?(other) &&
+        @include_all_columns == other.include_all_columns &&
+        @where_clause == other.where_clause &&
+        @base_table == other.base_table
     end
     alias == eql?
 

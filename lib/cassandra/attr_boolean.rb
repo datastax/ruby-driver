@@ -16,20 +16,16 @@
 # limitations under the License.
 #++
 
-module Cassandra
-  module Protocol
-    class AuthChallengeResponse < Response
-      # @private
-      RESPONSE_TYPES[0x0e] = self
+# This file monkey-patches Module to have an attr_boolean method to make it easy
+# for classes to define boolean instance variables with "foo?" reader methods.
+# Inspired by http://stackoverflow.com/questions/4013591/attr-reader-with-question-mark-in-a-name
 
-      attr_reader :token
-
-      def initialize(token)
-        @token = token
-      end
-
-      def to_s
-        %(AUTH_CHALLENGE #{@token.bytesize})
+class Module
+  def attr_boolean(*names)
+    names.each do |name|
+      define_method(:"#{name}?") do
+        res = instance_variable_get(:"@#{name}")
+        !res.nil? && res
       end
     end
   end

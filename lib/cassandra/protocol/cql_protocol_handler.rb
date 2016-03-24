@@ -236,9 +236,7 @@ module Cassandra
         ensure
           @lock.unlock
         end
-        if response.is_a?(Protocol::SetKeyspaceResultResponse)
-          @keyspace = response.keyspace
-        end
+        @keyspace = response.keyspace if response.is_a?(Protocol::SetKeyspaceResultResponse)
         if response.is_a?(Protocol::SchemaChangeResultResponse) &&
            response.change == 'DROPPED' &&
            response.keyspace == @keyspace &&

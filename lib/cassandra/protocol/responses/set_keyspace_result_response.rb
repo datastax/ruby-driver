@@ -19,6 +19,9 @@
 module Cassandra
   module Protocol
     class SetKeyspaceResultResponse < ResultResponse
+      # @private
+      RESULT_TYPES[0x03] = self
+
       attr_reader :keyspace
 
       def initialize(custom_payload, warnings, keyspace, trace_id)
@@ -29,10 +32,6 @@ module Cassandra
       def to_s
         %(RESULT SET_KEYSPACE "#{@keyspace}")
       end
-
-      private
-
-      RESULT_TYPES[0x03] = self
     end
   end
 end

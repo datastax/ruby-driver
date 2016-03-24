@@ -19,6 +19,17 @@
 module Cassandra
   module Protocol
     class CqlByteBuffer < Ione::ByteBuffer
+      # @private
+      MINUS = '-'.freeze
+      # @private
+      ZERO = '0'.freeze
+      # @private
+      DECIMAL_POINT = '.'.freeze
+      # @private
+      FLOAT_STRING_FORMAT = 'F'.freeze
+      # @private
+      NO_CHAR = ''.freeze
+
       def inspect
         "#<#{self.class.name}:0x#{object_id.to_s(16)} #{to_str.inspect}>"
       end
@@ -291,9 +302,7 @@ module Cassandra
 
       def append_consistency(consistency)
         index = CONSISTENCIES.index(consistency)
-        if index.nil? || CONSISTENCIES[index].nil?
-          raise Errors::EncodingError, %(Unknown consistency "#{consistency}")
-        end
+        raise Errors::EncodingError, %(Unknown consistency "#{consistency}") if index.nil? || CONSISTENCIES[index].nil?
         append_short(index)
       end
 
@@ -360,14 +369,6 @@ module Cassandra
         other.eql?(to_str)
       end
       alias == eql?
-
-      private
-
-      MINUS = '-'.freeze
-      ZERO = '0'.freeze
-      DECIMAL_POINT = '.'.freeze
-      FLOAT_STRING_FORMAT = 'F'.freeze
-      NO_CHAR = ''.freeze
     end
   end
 end

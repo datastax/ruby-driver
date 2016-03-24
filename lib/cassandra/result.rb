@@ -96,7 +96,8 @@ module Cassandra
     #   undefined and will likely cause a server process of the coordinator of
     #   such request to abort.
     #
-    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v2.spec#L482-L487 Paging State description in Cassandra Native Protocol v2 specification
+    # @see https://github.com/apache/cassandra/blob/cassandra-2.0.16/doc/native_protocol_v2.spec#L482-L487 Paging State
+    #   description in Cassandra Native Protocol v2 specification
     def paging_state
     end
   end

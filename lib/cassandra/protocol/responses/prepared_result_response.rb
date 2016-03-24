@@ -19,6 +19,9 @@
 module Cassandra
   module Protocol
     class PreparedResultResponse < ResultResponse
+      # @private
+      RESULT_TYPES[0x04] = self
+
       attr_reader :id, :metadata, :result_metadata, :pk_idx
 
       def initialize(custom_payload,
@@ -54,10 +57,6 @@ module Cassandra
         hex_id = @id.each_byte.map { |x| x.to_s(16).rjust(2, '0') }.join('')
         %(RESULT PREPARED #{hex_id} #{@metadata})
       end
-
-      private
-
-      RESULT_TYPES[0x04] = self
     end
   end
 end

@@ -19,6 +19,9 @@
 module Cassandra
   module Protocol
     class AuthenticateResponse < Response
+      # @private
+      RESPONSE_TYPES[0x03] = self
+
       attr_reader :authentication_class
 
       def initialize(authentication_class)
@@ -28,10 +31,6 @@ module Cassandra
       def to_s
         %(AUTHENTICATE #{authentication_class})
       end
-
-      private
-
-      RESPONSE_TYPES[0x03] = self
     end
   end
 end

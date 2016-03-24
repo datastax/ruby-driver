@@ -25,6 +25,13 @@ module Cassandra
   # If you want to generate UUIDs see {Cassandra::Uuid::Generator}.
   #
   class Uuid
+    # @private
+    RAW_FORMAT = '%032x'.force_encoding(Encoding::ASCII).freeze
+    # @private
+    HYPHEN = '-'.force_encoding(Encoding::ASCII).freeze
+    # @private
+    EMPTY_STRING = ''.freeze
+
     # Creates a new UUID either from a string (expected to be on the standard 8-4-4-4-12
     # form, or just 32 characters without hyphens), or from a 128 bit number.
     #
@@ -78,15 +85,6 @@ module Cassandra
     end
     alias == eql?
 
-    private
-
-    # @private
-    RAW_FORMAT = '%032x'.force_encoding(Encoding::ASCII).freeze
-    # @private
-    HYPHEN = '-'.force_encoding(Encoding::ASCII).freeze
-    # @private
-    EMPTY_STRING = ''.freeze
-
     if RUBY_ENGINE == 'jruby'
       # @private
       HEX_RE = /^[A-Fa-f0-9]+$/
@@ -94,21 +92,15 @@ module Cassandra
       # @private
       def from_s(str)
         str = str.gsub(HYPHEN, EMPTY_STRING)
-        unless str.length == 32
-          raise ::ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}"
-        end
-        unless str =~ HEX_RE
-          raise ::ArgumentError, "invalid value for Integer(): \"#{str}\""
-        end
+        raise ::ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}" unless str.length == 32
+        raise ::ArgumentError, "invalid value for Integer(): \"#{str}\"" unless str =~ HEX_RE
         Integer(str, 16)
       end
     else
       # @private
       def from_s(str)
         str = str.gsub(HYPHEN, EMPTY_STRING)
-        unless str.length == 32
-          raise ::ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}"
-        end
+        raise ::ArgumentError, "Expected 32 hexadecimal digits but got #{str.length}" unless str.length == 32
         Integer(str, 16)
       end
     end
