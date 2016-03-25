@@ -2,13 +2,8 @@ inherit_from: .rubocop_todo.yml
 
 #### The following group of customizations is questionable. ####
 
-# We currently exclude types.rb and fetchers.rb because auto-correct results in an
-# infinite loop in RuboCop.
 AllCops:
   TargetRubyVersion: 1.9
-  Exclude:
-    - 'lib/cassandra/types.rb'
-    - 'lib/cassandra/cluster/schema/fetchers.rb'
 
 # We shouldn't rescue Exception!
 Lint/RescueException:
