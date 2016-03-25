@@ -25,7 +25,7 @@ module Cassandra
       names.each do |name|
         define_method(:"#{name}?") do
           res = instance_variable_get(:"@#{name}")
-          !res.nil? && res
+          !res.nil? && res != false
         end
       end
     end

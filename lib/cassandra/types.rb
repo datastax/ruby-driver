@@ -48,7 +48,13 @@ module Cassandra
     end
   end
 
-  module Types; extend self
+  module Types
+    # If we use module_function, the yard docs end up showing duplicates of all
+    # methods: one for self, the other as instance methods.
+    #
+    # rubocop:disable Style/ModuleFunction
+    extend self
+
     # @private
     class Simple < Type
       def new(value)
@@ -71,12 +77,13 @@ module Cassandra
       def eql?(other)
         other.is_a?(Simple) && @kind == other.kind
       end
-      alias :== :eql?
+
+      alias == eql?
 
       private
 
       def new_varchar(value)
-       String(value)
+        String(value)
       end
 
       def assert_varchar(value, message, &block)
@@ -140,7 +147,7 @@ module Cassandra
       end
 
       def new_boolean(value)
-        !!value
+        !value.nil? && value != false
       end
 
       def assert_boolean(value, message, &block)
@@ -652,7 +659,7 @@ module Cassandra
       # @return [String] `"list<type>"`
       # @see Cassandra::Type#to_s
       def to_s
-        "list<#{@value_type.to_s}>"
+        "list<#{@value_type}>"
       end
 
       def hash
@@ -667,7 +674,8 @@ module Cassandra
       def eql?(other)
         other.is_a?(List) && @value_type == other.value_type
       end
-      alias :== :eql?
+
+      alias == eql?
     end
 
     class Map < Type
@@ -677,7 +685,7 @@ module Cassandra
       # @private
       def initialize(key_type, value_type)
         super(:map)
-        @key_type   = key_type
+        @key_type = key_type
         @value_type = value_type
       end
 
@@ -704,7 +712,7 @@ module Cassandra
           end
           result
         else
-          raise ::ArgumentError, "cannot convert #{value.inspect} to #{to_s}"
+          raise ::ArgumentError, "cannot convert #{value.inspect} to #{self}"
         end
       end
 
@@ -727,7 +735,7 @@ module Cassandra
       # @return [String] `"map<type, type>"`
       # @see Cassandra::Type#to_s
       def to_s
-        "map<#{@key_type.to_s}, #{@value_type.to_s}>"
+        "map<#{@key_type}, #{@value_type}>"
       end
 
       def hash
@@ -745,7 +753,8 @@ module Cassandra
           @key_type == other.key_type &&
           @value_type == other.value_type
       end
-      alias :== :eql?
+
+      alias == eql?
     end
 
     class Set < Type
@@ -816,7 +825,7 @@ module Cassandra
       # @return [String] `"set<type>"`
       # @see Cassandra::Type#to_s
       def to_s
-        "set<#{@value_type.to_s}>"
+        "set<#{@value_type}>"
       end
 
       def hash
@@ -831,7 +840,8 @@ module Cassandra
       def eql?(other)
         other.is_a?(Set) && @value_type == other.value_type
       end
-      alias :== :eql?
+
+      alias == eql?
     end
 
     # @!parse
@@ -1088,7 +1098,8 @@ module Cassandra
       def eql?(other)
         other.is_a?(Tuple) && @members == other.members
       end
-      alias :== :eql?
+
+      alias == eql?
     end
 
     # @!parse
@@ -1188,7 +1199,8 @@ module Cassandra
             @name == other.name &&
             @type == other.type
         end
-        alias :== :eql?
+
+        alias == eql?
       end
 
       # @return [String] keyspace where this type is defined
@@ -1203,15 +1215,15 @@ module Cassandra
       # @private
       def initialize(keyspace, name, fields)
         super(:udt)
-        @keyspace  = keyspace
-        @name      = name
-        @fields    = fields
+        @keyspace = keyspace
+        @name = name
+        @fields = fields
       end
 
       # @param name [String] field name
       # @return [Boolean] whether this type has a given field
       def has_field?(name)
-        @fields.any? {|f| f.name == name}
+        @fields.any? { |f| f.name == name }
       end
 
       # Yield or enumerate each field defined in this type
@@ -1228,13 +1240,14 @@ module Cassandra
           @fields.dup
         end
       end
-      alias :fields :each_field
+
+      alias fields each_field
 
       # @param name [String] field name
       # @return [Cassandra::UserDefined::Field, nil] a field with this name or
       #   nil
       def field(name)
-        @fields.find {|f| f.name == name}
+        @fields.find { |f| f.name == name }
       end
 
       # Coerces the value to Cassandra::UDT
@@ -1290,7 +1303,7 @@ module Cassandra
       # @see Cassandra::Type#to_s
       def to_s
         "#{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} " \
-            "{#{@fields.join(', ')}}"
+                        "{#{@fields.join(', ')}}"
       end
 
       def hash
@@ -1310,12 +1323,13 @@ module Cassandra
           @name == other.name &&
           @fields == other.fields
       end
-      alias :== :eql?
+
+      alias == eql?
 
       # Output this type in CQL
       def to_cql
-        cql   = "CREATE TYPE #{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} " \
-            "(\n"
+        cql = "CREATE TYPE #{Util.escape_name(@keyspace)}.#{Util.escape_name(@name)} " \
+                        "(\n"
         first = true
 
         @fields.each do |field|
@@ -1346,7 +1360,7 @@ module Cassandra
             "frozen <#{Util.escape_name(type.keyspace)}.#{Util.escape_name(type.name)}>"
           end
         else
-          "#{type}"
+          type.to_s
         end
       end
     end
@@ -1396,7 +1410,8 @@ module Cassandra
       def eql?(other)
         other.is_a?(Custom) && @name == other.name
       end
-      alias :== :eql?
+
+      alias == eql?
     end
 
     # @return [Cassandra::Types::Text] text type since varchar is an alias for text
@@ -1503,8 +1518,8 @@ module Cassandra
     # @return [Cassandra::Types::List] list type
     def list(value_type)
       Util.assert_instance_of(Cassandra::Type, value_type,
-        "list type must be a Cassandra::Type, #{value_type.inspect} given"
-      )
+                              "list type must be a Cassandra::Type, #{value_type.inspect} given"
+                             )
 
       List.new(value_type)
     end
@@ -1514,11 +1529,11 @@ module Cassandra
     # @return [Cassandra::Types::Map] map type
     def map(key_type, value_type)
       Util.assert_instance_of(Cassandra::Type, key_type,
-        "map key type must be a Cassandra::Type, #{key_type.inspect} given"
-      )
+                              "map key type must be a Cassandra::Type, #{key_type.inspect} given"
+                             )
       Util.assert_instance_of(Cassandra::Type, value_type,
-        "map value type must be a Cassandra::Type, #{value_type.inspect} given"
-      )
+                              "map value type must be a Cassandra::Type, #{value_type.inspect} given"
+                             )
 
       Map.new(key_type, value_type)
     end
@@ -1527,8 +1542,8 @@ module Cassandra
     # @return [Cassandra::Types::Set] set type
     def set(value_type)
       Util.assert_instance_of(Cassandra::Type, value_type,
-        "set type must be a Cassandra::Type, #{value_type.inspect} given"
-      )
+                              "set type must be a Cassandra::Type, #{value_type.inspect} given"
+                             )
 
       Set.new(value_type)
     end
@@ -1536,12 +1551,12 @@ module Cassandra
     # @param members [*Cassandra::Type] types of members of this tuple
     # @return [Cassandra::Types::Tuple] tuple type
     def tuple(*members)
-      Util.assert_not_empty(members, "tuple must contain at least one member")
+      Util.assert_not_empty(members, 'tuple must contain at least one member')
       members.each do |member|
         Util.assert_instance_of(Cassandra::Type, member,
-          "each tuple member must be a Cassandra::Type, " \
-          "#{member.inspect} given"
-        )
+                                'each tuple member must be a Cassandra::Type, ' \
+                                            "#{member.inspect} given"
+                               )
       end
 
       Tuple.new(*members)
@@ -1551,13 +1566,25 @@ module Cassandra
     # @example Various ways of defining the same UDT
     #   include Cassandra::Types
     #
-    #   udt('simplex', 'address', {'street' => varchar, 'city' => varchar, 'state' => varchar, 'zip' => varchar}) #=> simplex.address
+    #   udt('simplex', 'address', {'street' => varchar,
+    #                              'city' => varchar,
+    #                              'state' => varchar,
+    #                              'zip' => varchar}) #=> simplex.address
     #
-    #   udt('simplex', 'address', [['street', varchar], ['city', varchar], ['state', varchar], ['zip', varchar]]) #=> simplex.address
+    #   udt('simplex', 'address', [['street', varchar],
+    #                              ['city', varchar],
+    #                              ['state', varchar],
+    #                              ['zip', varchar]]) #=> simplex.address
     #
-    #   udt('simplex', 'address', ['street', varchar], ['city', varchar], ['state', varchar], ['zip', varchar]) #=> simplex.address
+    #   udt('simplex', 'address', ['street', varchar],
+    #                             ['city', varchar],
+    #                             ['state', varchar],
+    #                             ['zip', varchar]) #=> simplex.address
     #
-    #   udt('simplex', 'address', 'street', varchar, 'city', varchar, 'state', varchar, 'zip', varchar) #=> simplex.address
+    #   udt('simplex', 'address', 'street', varchar,
+    #                             'city', varchar,
+    #                             'state', varchar,
+    #                             'zip', varchar) #=> simplex.address
     # @param keyspace [String] name of the keyspace that this UDT is defined in
     # @param name     [String] name of this UDT
     # @param fields   [Hash<String, Cassandra::Type>,
@@ -1567,44 +1594,44 @@ module Cassandra
     # @return [Cassandra::Types::UserDefined] user defined type
     def udt(keyspace, name, *fields)
       keyspace = String(keyspace)
-      name     = String(name)
-      fields   = Array(fields.first) if fields.one?
+      name = String(name)
+      fields = Array(fields.first) if fields.one?
 
       Util.assert_not_empty(fields,
-        "user-defined type must contain at least one field"
-      )
+                            'user-defined type must contain at least one field'
+                           )
 
       if fields.first.is_a?(::Array)
         fields = fields.map do |pair|
           Util.assert(pair.size == 2,
-            "fields of a user-defined type must be an Array of name and " \
-            "value pairs, #{pair.inspect} given"
-          )
+                      'fields of a user-defined type must be an Array of name and ' \
+                                  "value pairs, #{pair.inspect} given"
+                     )
           Util.assert_instance_of(::String, pair[0],
-            "each field name for a user-defined type must be a String, " \
-            "#{pair[0].inspect} given"
-          )
+                                  'each field name for a user-defined type must be a String, ' \
+                                              "#{pair[0].inspect} given"
+                                 )
           Util.assert_instance_of(Cassandra::Type, pair[1],
-            "each field type for a user-defined type must be a " \
-            "Cassandra::Type, #{pair[1].inspect} given"
-          )
+                                  'each field type for a user-defined type must be a ' \
+                                              "Cassandra::Type, #{pair[1].inspect} given"
+                                 )
 
           UserDefined::Field.new(*pair)
         end
       else
-        Util.assert((fields.size % 2) == 0,
-          "fields of a user-defined type must be an Array of alternating " \
-          "names and values pairs, #{fields.inspect} given"
-        )
+        Util.assert(fields.size.even?,
+                    'fields of a user-defined type must be an Array of alternating ' \
+                                "names and values pairs, #{fields.inspect} given"
+                   )
         fields = fields.each_slice(2).map do |field_name, field_type|
           Util.assert_instance_of(::String, field_name,
-            "each field name for a user-defined type must be a String, " \
-            "#{field_name.inspect} given"
-          )
+                                  'each field name for a user-defined type must be a String, ' \
+                                              "#{field_name.inspect} given"
+                                 )
           Util.assert_instance_of(Cassandra::Type, field_type,
-            "each field type for a user-defined type must be a " \
-            "Cassandra::Type, #{field_type.inspect} given"
-          )
+                                  'each field type for a user-defined type must be a ' \
+                                              "Cassandra::Type, #{field_type.inspect} given"
+                                 )
 
           UserDefined::Field.new(field_name, field_type)
         end
