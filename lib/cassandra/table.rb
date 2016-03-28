@@ -71,7 +71,6 @@ module Cassandra
     # @return [String] a cql representation of this table
     def to_cql
       cql = "CREATE TABLE #{Util.escape_name(@keyspace.name)}.#{Util.escape_name(@name)} (\n"
-      primary_key = nil
       primary_key = @partition_key.first.name if @partition_key.one? && @clustering_columns.empty?
 
       first = true

@@ -127,16 +127,15 @@ module Cassandra
 
         options << 'COMPACT STORAGE' if @compact_storage
         unless @bloom_filter_fp_chance.nil?
-          options <<
-            "bloom_filter_fp_chance = #{Util.encode_object(@bloom_filter_fp_chance)}"
+          options << "bloom_filter_fp_chance = #{Util.encode_object(@bloom_filter_fp_chance)}"
         end
         options << "caching = #{Util.encode_object(@caching)}" unless @caching.nil?
         options << "comment = #{Util.encode_object(@comment)}" unless @comment.nil?
         options << "compaction = #{@compaction_strategy.to_cql}" unless @compaction_strategy.nil?
         options << "compression = #{Util.encode_object(@compression)}" unless @compression.nil?
+        options << "crc_check_chance = #{Util.encode_object(@crc_check_chance)}" unless @crc_check_chance.nil?
         unless @local_read_repair_chance.nil?
-          options << 'dclocal_read_repair_chance = ' \
-              "#{Util.encode_object(@local_read_repair_chance)}"
+          options << "dclocal_read_repair_chance = #{Util.encode_object(@local_read_repair_chance)}"
         end
         unless @default_time_to_live.nil?
           options << "default_time_to_live = #{Util.encode_object(@default_time_to_live)}"
@@ -145,8 +144,7 @@ module Cassandra
         options << "index_interval = #{Util.encode_object(@index_interval)}" unless @index_interval.nil?
         options << "max_index_interval = #{Util.encode_object(@max_index_interval)}" unless @max_index_interval.nil?
         unless @memtable_flush_period_in_ms.nil?
-          options << 'memtable_flush_period_in_ms = ' \
-              "#{Util.encode_object(@memtable_flush_period_in_ms)}"
+          options << "memtable_flush_period_in_ms = #{Util.encode_object(@memtable_flush_period_in_ms)}"
         end
         options << "min_index_interval = #{Util.encode_object(@min_index_interval)}" unless @min_index_interval.nil?
         unless @populate_io_cache_on_flush.nil?
@@ -155,10 +153,6 @@ module Cassandra
         options << "read_repair_chance = #{Util.encode_object(@read_repair_chance)}" unless @read_repair_chance.nil?
         options << "replicate_on_write = '#{@replicate_on_write}'" unless @replicate_on_write.nil?
         options << "speculative_retry = #{Util.encode_object(@speculative_retry)}" unless @speculative_retry.nil?
-        unless @crc_check_chance.nil?
-          options << 'crc_check_chance = ' \
-              "#{Util.encode_object(@crc_check_chance)}"
-        end
 
         options.join("\nAND ")
       end
