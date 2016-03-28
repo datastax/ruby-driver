@@ -54,18 +54,18 @@ module Cassandra
              end
       cql << "\nFROM #{keyspace_name}.#{Util.escape_name(@base_table.name)}"
       cql << "\nWHERE #{@where_clause}" if @where_clause
-      cql << "\nPRIMARY KEY(("
+      cql << "\nPRIMARY KEY (("
       cql << @partition_key.map do |column|
         Util.escape_name(column.name)
       end.join(', ')
       cql << ')'
       unless @clustering_columns.empty?
-        cql << ','
+        cql << ', '
         cql << @clustering_columns.map do |column|
           Util.escape_name(column.name)
         end.join(', ')
       end
-      cql << ")\nWITH #{@options.to_cql};"
+      cql << ")\nWITH #{@options.to_cql.split("\n").join("\n ")};"
     end
 
     # @private

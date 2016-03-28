@@ -1,0 +1,402 @@
+{
+  "SELECT * FROM system_schema.keyspaces": [
+    {
+      "keyspace_name": "simplex",
+      "durable_writes": true,
+      "replication": {
+        "class": "org.apache.cassandra.locator.SimpleStrategy",
+        "replication_factor": "1"
+      }
+    }
+  ],
+  "SELECT * FROM system_schema.tables": [
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t1",
+      "bloom_filter_fp_chance": 0.01,
+      "caching": {
+        "keys": "ALL",
+        "rows_per_partition": "NONE"
+      },
+      "comment": "test table for unit tests",
+      "compaction": {
+        "class": "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy",
+        "max_threshold": "32",
+        "min_threshold": "4"
+      },
+      "compression": {
+        "chunk_length_in_kb": "64",
+        "class": "org.apache.cassandra.io.compress.LZ4Compressor"
+      },
+      "crc_check_chance": 1.0,
+      "dclocal_read_repair_chance": 0.1,
+      "default_time_to_live": 0,
+      "extensions": {
+        "object_type": "ext table"
+      },
+      "flags": [
+        "compound"
+      ],
+      "gc_grace_seconds": 7776000,
+      "id": "5f2fbdad-91f1-3946-bd25-d5da3a5c35ec",
+      "max_index_interval": 2048,
+      "memtable_flush_period_in_ms": 42,
+      "min_index_interval": 128,
+      "read_repair_chance": 0.0,
+      "speculative_retry": "99PERCENTILE"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t2",
+      "bloom_filter_fp_chance": 0.01,
+      "caching": {
+        "keys": "ALL",
+        "rows_per_partition": "NONE"
+      },
+      "comment": "compact (dense) test table for unit tests",
+      "compaction": {
+        "class": "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy",
+        "max_threshold": "32",
+        "min_threshold": "4"
+      },
+      "compression": {
+        "chunk_length_in_kb": "64",
+        "class": "org.apache.cassandra.io.compress.LZ4Compressor"
+      },
+      "crc_check_chance": 1.0,
+      "dclocal_read_repair_chance": 0.1,
+      "default_time_to_live": 0,
+      "extensions": {
+        "object_type": "ext table"
+      },
+      "flags": ["dense"],
+      "gc_grace_seconds": 7776000,
+      "id": "5f2fbdad-01f1-3946-bd25-d5da3a5c35ec",
+      "max_index_interval": 2048,
+      "memtable_flush_period_in_ms": 42,
+      "min_index_interval": 128,
+      "read_repair_chance": 0.0,
+      "speculative_retry": "99PERCENTILE"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t3",
+      "bloom_filter_fp_chance": 0.01,
+      "caching": {
+        "keys": "ALL",
+        "rows_per_partition": "NONE"
+      },
+      "comment": "compact test table for unit tests",
+      "compaction": {
+        "class": "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy",
+        "max_threshold": "32",
+        "min_threshold": "4"
+      },
+      "compression": {
+        "chunk_length_in_kb": "64",
+        "class": "org.apache.cassandra.io.compress.LZ4Compressor"
+      },
+      "crc_check_chance": 1.0,
+      "dclocal_read_repair_chance": 0.1,
+      "default_time_to_live": 0,
+      "extensions": {
+        "object_type": "ext table"
+      },
+      "flags": [],
+      "gc_grace_seconds": 7776000,
+      "id": "5f2fbdad-91f1-4946-bd25-d5da3a5c35ec",
+      "max_index_interval": 2048,
+      "memtable_flush_period_in_ms": 42,
+      "min_index_interval": 128,
+      "read_repair_chance": 0.0,
+      "speculative_retry": "99PERCENTILE"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t4",
+      "bloom_filter_fp_chance": 0.01,
+      "caching": {
+        "keys": "ALL",
+        "rows_per_partition": "NONE"
+      },
+      "comment": "compact (dense) test table for unit tests",
+      "compaction": {
+        "class": "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy",
+        "max_threshold": "32",
+        "min_threshold": "4"
+      },
+      "compression": {
+        "chunk_length_in_kb": "64",
+        "class": "org.apache.cassandra.io.compress.LZ4Compressor"
+      },
+      "crc_check_chance": 1.0,
+      "dclocal_read_repair_chance": 0.1,
+      "default_time_to_live": 0,
+      "extensions": {
+        "object_type": "ext table"
+      },
+      "flags": ["dense"],
+      "gc_grace_seconds": 7776000,
+      "id": "5f2fbdad-91f1-4946-bd35-d5da3a5c35ec",
+      "max_index_interval": 2048,
+      "memtable_flush_period_in_ms": 42,
+      "min_index_interval": 128,
+      "read_repair_chance": 0.0,
+      "speculative_retry": "99PERCENTILE"
+    }
+  ],
+  "SELECT * FROM system_schema.columns": [
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t1",
+      "column_name": "f1",
+      "clustering_order": "none",
+      "column_name_bytes": "f1",
+      "kind": "partition_key",
+      "position": 0,
+      "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t1",
+      "column_name": "f2",
+      "clustering_order": "asc",
+      "column_name_bytes": "f2",
+      "kind": "clustering",
+      "position": 0,
+      "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t1",
+      "column_name": "f3",
+      "clustering_order": "none",
+      "column_name_bytes": "f3",
+      "kind": "regular",
+      "position": -1,
+      "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "v1",
+      "column_name": "f1",
+      "clustering_order": "none",
+      "column_name_bytes": "f1",
+      "kind": "partition_key",
+      "position": 0,
+      "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "v1",
+      "column_name": "f2",
+      "clustering_order": "asc",
+      "column_name_bytes": "f2",
+      "kind": "clustering",
+      "position": 0,
+      "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "v2",
+      "column_name": "f1",
+      "clustering_order": "none",
+      "column_name_bytes": "f1",
+      "kind": "partition_key",
+      "position": 0,
+      "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "v2",
+      "column_name": "f2",
+      "clustering_order": "asc",
+      "column_name_bytes": "f2",
+      "kind": "clustering",
+      "position": 0,
+      "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "v2",
+      "column_name": "f3",
+      "clustering_order": "none",
+      "column_name_bytes": "f3",
+      "kind": "regular",
+      "position": -1,
+      "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t2",
+      "column_name": "f1",
+      "clustering_order": "none",
+      "column_name_bytes": "f1",
+      "kind": "partition_key",
+      "position": 0,
+      "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t2",
+      "column_name": "f2",
+      "clustering_order": "asc",
+      "column_name_bytes": "f2",
+      "kind": "clustering",
+      "position": 0,
+      "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t2",
+      "column_name": "f3",
+      "clustering_order": "none",
+      "column_name_bytes": "f3",
+      "kind": "regular",
+      "position": -1,
+      "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t3",
+      "column_name": "f1",
+      "clustering_order": "none",
+      "column_name_bytes": "f1",
+      "kind": "partition_key",
+      "position": 0,
+      "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t3",
+      "column_name": "f2",
+      "clustering_order": "none",
+      "column_name_bytes": "f2",
+      "kind": "regular",
+      "position": -1,
+      "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t4",
+      "column_name": "f1",
+      "clustering_order": "none",
+      "column_name_bytes": "f1",
+      "kind": "partition_key",
+      "position": 0,
+      "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t4",
+      "column_name": "f2",
+      "clustering_order": "desc",
+      "column_name_bytes": "f2",
+      "kind": "clustering",
+      "position": 0,
+      "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t4",
+      "column_name": "f3",
+      "clustering_order": "none",
+      "column_name_bytes": "f3",
+      "kind": "regular",
+      "position": -1,
+      "type": "int"
+    }
+  ],
+  "SELECT * FROM system_schema.types": [
+
+  ],
+  "SELECT * FROM system_schema.functions": [
+
+  ],
+  "SELECT * FROM system_schema.aggregates": [
+
+  ],
+  "SELECT * FROM system_schema.indexes": [
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t1",
+      "index_name": "ind1",
+      "kind": "COMPOSITES",
+      "options": {"target": "f2"}
+    }
+  ],
+  "SELECT * FROM system_schema.views": [
+    {
+      "keyspace_name": "simplex",
+      "view_name": "v1",
+      "base_table_id": "5f2fbdad-91f1-3946-bd25-d5da3a5c35ec",
+      "base_table_name": "t1",
+      "bloom_filter_fp_chance": 0.01,
+      "caching": {
+        "keys": "ALL",
+        "rows_per_partition": "NONE"
+      },
+      "comment": "test view for unit tests",
+      "compaction": {
+        "class": "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy",
+        "max_threshold": "32",
+        "min_threshold": "4"
+      },
+      "compression": {
+        "chunk_length_in_kb": "64",
+        "class": "org.apache.cassandra.io.compress.LZ4Compressor"
+      },
+      "crc_check_chance": 1.0,
+      "dclocal_read_repair_chance": 0.1,
+      "default_time_to_live": 0,
+      "extensions": {
+        "object_type": "ext view"
+      },
+      "gc_grace_seconds": 7776000,
+      "id": "4f2fbdad-91f1-3946-bd25-d5da3a5c35ec",
+      "include_all_columns": false,
+      "max_index_interval": 2048,
+      "memtable_flush_period_in_ms": 42,
+      "min_index_interval": 128,
+      "read_repair_chance": 0.0,
+      "speculative_retry": "99PERCENTILE",
+      "where_clause": "f2 IS NOT NULL"
+    },
+    {
+      "keyspace_name": "simplex",
+      "view_name": "v2",
+      "base_table_id": "5f2fbdad-91f1-3946-bd25-d5da3a5c35ec",
+      "base_table_name": "t1",
+      "bloom_filter_fp_chance": 0.01,
+      "caching": {
+        "keys": "ALL",
+        "rows_per_partition": "NONE"
+      },
+      "comment": "test view for unit tests",
+      "compaction": {
+        "class": "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy",
+        "max_threshold": "32",
+        "min_threshold": "4"
+      },
+      "compression": {
+        "chunk_length_in_kb": "64",
+        "class": "org.apache.cassandra.io.compress.LZ4Compressor"
+      },
+      "crc_check_chance": 1.0,
+      "dclocal_read_repair_chance": 0.1,
+      "default_time_to_live": 42,
+      "extensions": {
+        "object_type": "ext view"
+      },
+      "gc_grace_seconds": 7776000,
+      "id": "4f2fbdad-91f1-3946-bd25-d5da3a5c35ed",
+      "include_all_columns": true,
+      "max_index_interval": 2048,
+      "memtable_flush_period_in_ms": 42,
+      "min_index_interval": 128,
+      "read_repair_chance": 0.2,
+      "speculative_retry": "99PERCENTILE",
+      "where_clause": "f2 IS NOT NULL"
+    }
+  ]
+}

@@ -443,3 +443,70 @@ WITH bloom_filter_fp_chance = 0.01
  AND read_repair_chance = 0.0
  AND replicate_on_write = 'true'
  AND speculative_retry = '99.0PERCENTILE';
+
+CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND durable_writes = true;
+
+CREATE TABLE simplex."t1" (
+  f1 int,
+  f2 int,
+  f3 int,
+  PRIMARY KEY (f1, f2)
+)
+WITH bloom_filter_fp_chance = 0.01
+ AND caching = 'KEYS_ONLY'
+ AND comment = 'test table'
+ AND compaction = {'class': 'SizeTieredCompactionStrategy'}
+ AND compression = {'sstable_compression': 'LZ4Compressor'}
+ AND dclocal_read_repair_chance = 0.1
+ AND default_time_to_live = 1
+ AND gc_grace_seconds = 2
+ AND index_interval = 128
+ AND memtable_flush_period_in_ms = 3600000
+ AND populate_io_cache_on_flush = 'false'
+ AND read_repair_chance = 0.1
+ AND replicate_on_write = 'true'
+ AND speculative_retry = '99.0PERCENTILE';
+
+CREATE INDEX "ind1" ON simplex."t1" ("f2");
+
+CREATE TABLE simplex."t2" (
+  f1 int,
+  f2 int,
+  f3 int,
+  PRIMARY KEY (f1, f2)
+)
+WITH CLUSTERING ORDER BY (f2 DESC)
+ AND COMPACT STORAGE
+ AND bloom_filter_fp_chance = 0.01
+ AND caching = 'KEYS_ONLY'
+ AND comment = 'compact test table'
+ AND compaction = {'class': 'SizeTieredCompactionStrategy'}
+ AND compression = {'sstable_compression': 'LZ4Compressor'}
+ AND dclocal_read_repair_chance = 0.1
+ AND default_time_to_live = 1
+ AND gc_grace_seconds = 2
+ AND index_interval = 128
+ AND memtable_flush_period_in_ms = 3600000
+ AND populate_io_cache_on_flush = 'false'
+ AND read_repair_chance = 0.1
+ AND replicate_on_write = 'true'
+ AND speculative_retry = '99.0PERCENTILE';
+
+CREATE TABLE simplex."t3" (
+  f1 int PRIMARY KEY,
+  f2 int
+)
+WITH bloom_filter_fp_chance = 0.01
+ AND caching = 'KEYS_ONLY'
+ AND comment = 'test table one column key'
+ AND compaction = {'class': 'SizeTieredCompactionStrategy'}
+ AND compression = {'sstable_compression': 'LZ4Compressor'}
+ AND dclocal_read_repair_chance = 0.1
+ AND default_time_to_live = 1
+ AND gc_grace_seconds = 2
+ AND index_interval = 128
+ AND memtable_flush_period_in_ms = 3600000
+ AND populate_io_cache_on_flush = 'false'
+ AND read_repair_chance = 0.1
+ AND replicate_on_write = 'true'
+ AND speculative_retry = '99.0PERCENTILE';
