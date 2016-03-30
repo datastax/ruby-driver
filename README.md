@@ -194,6 +194,8 @@ the release.
 
 ## Known bugs & limitations
 
+* Specifying a `protocol_version` option of 1 or 2 in cluster options will fail with a
+  `NoHostsAvailable` error rather than a `ProtocolError` against Cassandra node versions 3.0-3.4.
 * JRuby 1.6 is not officially supported, although 1.6.8 should work.
 * Because the driver reactor is using `IO.select`, the maximum number of tcp connections allowed is 1024.
 * Because the driver uses `IO#write_nonblock`, Windows is not supported.
