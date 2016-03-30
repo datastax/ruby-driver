@@ -633,6 +633,16 @@ module Cassandra
       end
     end
 
+    if options.key?(:protocol_version)
+      protocol_version = options[:protocol_version]
+      unless protocol_version.nil?
+        Util.assert_instance_of(::Integer, protocol_version)
+        Util.assert_one_of(1..4, protocol_version) do
+          ":protocol_version must be a positive integer, #{protocol_version.inspect} given"
+        end
+      end
+    end
+
     if options.key?(:futures_factory)
       futures_factory = options[:futures_factory]
       methods = [:error, :value, :promise, :all]
