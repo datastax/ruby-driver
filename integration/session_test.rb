@@ -751,4 +751,25 @@ class SessionTest < IntegrationTestCase
     cluster && cluster.close
   end
 
+  # Test for host broadcast_address and listen_address
+  #
+  # test_host_broadcast_listen_address tests that broadcast_address and listen_address metadata are able to be retrieved
+  # from a host, when they are available.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-168
+  # @expected_result broadcast_address and listen_address should be retrieved
+  #
+  # @test_category host:metadata
+  #
+  def test_host_broadcast_listen_address
+    cluster = Cassandra.cluster
+    cluster.hosts.each do |host|
+      assert_equal '127.0.0.1', host.broadcast_address.to_s
+      assert_equal '127.0.0.1', host.listen_address.to_s
+    end
+  ensure
+    cluster && cluster.close
+  end
+
 end
