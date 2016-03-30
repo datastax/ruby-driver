@@ -772,4 +772,62 @@ class SessionTest < IntegrationTestCase
     cluster && cluster.close
   end
 
+  # Test for setting the protocol_version
+  #
+  # test_can_set_protocol_version_explicitly tests that the protocol_version for a cluster object can be set, such that
+  # this version is used explicitly when connecting to the Cassandra cluster, rather than automatically negotiating it.
+  # It first tests that a valid protocol version can be set. It then tests that setting a protocol version lower than
+  # the Cassandra cluster supports throws a Cassandra::Errors::NoHostsAvailable, or ArgumentError if invalid. Finally,
+  # it tests that setting a protocol version higher than the Cassandra cluster supports throws a
+  # Cassandra::Errors::ProtocolError, or ArgumentError if invalid.
+  #
+  # @expected_errors [ArgumentError] When an invalid protocol version (< 1 or > 4) is specified.
+  # @expected_errors [Cassandra::Errors::NoHostsAvailable] When a protocol version lower than supported is specified.
+  # @expected_errors [Cassandra::Errors::ProtocolError] When a protocol version higher than supported is specified.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-165
+  # @expected_result protocol versions specified should be honored when connecting to the Cassandra cluster.
+  #
+  # @test_category connection
+  #
+  def test_can_set_protocol_version_explicitly
+    ## Setting a valid protocol version
+    if CCM.cassandra_version < '3.0.0'
+      cluster = Cassandra.cluster(protocol_version: 1)
+      assert_equal 1, cluster.instance_variable_get(:@connection_options).protocol_version
+    else
+      cluster = Cassandra.cluster(protocol_version: 3)
+      assert_equal 3,  cluster.instance_variable_get(:@connection_options).protocol_version
+    end
+
+    ## Setting protocol version lower than supported
+    # Protocol version 0 is invalid
+    assert_raises(ArgumentError) do
+      Cassandra.cluster(protocol_version: 0)
+    end
+
+    # C* 3.0+ does not support protocol version < 3
+    if CCM.cassandra_version >= '3.0.0'
+      assert_raises(Cassandra::Errors::NoHostsAvailable) do
+        Cassandra.cluster(protocol_version: 2)
+      end
+    end
+
+    ## Setting protocol version higher than supported
+    # Protocol version > 4 is invalid
+    assert_raises(ArgumentError) do
+      Cassandra.cluster(protocol_version: 10)
+    end
+
+    # C* < 2.2 does not support protocol version 4
+    if CCM.cassandra_version < '2.2.0'
+      assert_raises(Cassandra::Errors::ProtocolError) do
+        Cassandra.cluster(protocol_version: 4)
+      end
+    end
+  ensure
+    cluster && cluster.close
+  end
+
 end
