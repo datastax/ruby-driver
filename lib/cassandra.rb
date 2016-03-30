@@ -323,6 +323,9 @@ module Cassandra
   # @private
   SSL_CLASSES = [::TrueClass, ::FalseClass, ::OpenSSL::SSL::SSLContext].freeze
 
+  # rubocop:disable Metrics/AbcSize
+  # rubocop:disable Metrics/CyclomaticComplexity
+  # rubocop:disable Metrics/PerceivedComplexity
   # @private
   def self.validate_and_massage_options(options)
     options = options.select do |key, _|
