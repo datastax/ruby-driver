@@ -323,6 +323,9 @@ module Cassandra
   # @private
   SSL_CLASSES = [::TrueClass, ::FalseClass, ::OpenSSL::SSL::SSLContext].freeze
 
+  # rubocop:disable Metrics/AbcSize
+  # rubocop:disable Metrics/CyclomaticComplexity
+  # rubocop:disable Metrics/PerceivedComplexity
   # @private
   def self.validate_and_massage_options(options)
     options = options.select do |key, _|
@@ -629,6 +632,16 @@ module Cassandra
         Util.assert_instance_of(::Integer, page_size)
         Util.assert_one_of(1...2**32, page_size) do
           ":page_size must be a positive integer, #{page_size.inspect} given"
+        end
+      end
+    end
+
+    if options.key?(:protocol_version)
+      protocol_version = options[:protocol_version]
+      unless protocol_version.nil?
+        Util.assert_instance_of(::Integer, protocol_version)
+        Util.assert_one_of(1..4, protocol_version) do
+          ":protocol_version must be a positive integer, #{protocol_version.inspect} given"
         end
       end
     end

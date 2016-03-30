@@ -317,6 +317,16 @@ describe Cassandra do
       expect(C.validate(page_size: nil)).to eq({ page_size: nil })
     end
 
+    it 'should validate :protocol_version' do
+      expect { C.validate(protocol_version: 'a') }.to raise_error(ArgumentError)
+      expect { C.validate(protocol_version: 0) }.to raise_error(ArgumentError)
+      expect { C.validate(protocol_version: 1.5) }.to raise_error(ArgumentError)
+      expect { C.validate(protocol_version: 5) }.to raise_error(ArgumentError)
+      expect(C.validate(protocol_version: 1)).to eq({ protocol_version: 1 })
+      expect(C.validate(protocol_version: 4)).to eq({ protocol_version: 4 })
+      expect(C.validate(protocol_version: nil)).to eq({ protocol_version: nil })
+    end
+
     it 'should validate :futures_factory option' do
       class GoodFactory
         def error
