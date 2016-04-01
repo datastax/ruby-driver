@@ -17,7 +17,6 @@
 #++
 
 require File.dirname(__FILE__) + '/../integration_test_case.rb'
-require_relative 'schema_change_listener'
 
 # noinspection RubyInstanceMethodNamingConvention
 class UserDefinedFunctionTest < IntegrationTestCase
