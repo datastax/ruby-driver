@@ -38,7 +38,7 @@ class IndexesTest < IntegrationTestCase
   # Test for creating indexes
   #
   # test_can_create_index tests that indexes can be created using the driver. It first creates a simple table and a
-  # simplex index on that table. It then verifies that the index metadata is being properly retrieved.
+  # simple index on that table. It then verifies that the index metadata is being properly retrieved.
   #
   # @since 3.0.0
   # @jira_ticket RUBY-178
