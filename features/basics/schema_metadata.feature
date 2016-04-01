@@ -46,13 +46,12 @@ Feature: Schema Metadata
       )
       """
 
-  @cassandra-version-specific @cassandra-version-less-3.0
   Scenario: Getting index metadata
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      CREATE TABLE simplex.test_table (f1 int primary key, f2 int);
-      CREATE INDEX ind1 ON simplex.test_table (f2);
+      CREATE TABLE simplex.test_table (a int primary key, b int);
+      CREATE INDEX ind1 ON simplex.test_table (b);
       """
     And the following example:
       """ruby
@@ -60,23 +59,33 @@ Feature: Schema Metadata
 
       cluster = Cassandra.cluster
 
-      cluster.keyspace('simplex').table('test_table').each_index do |index|
-        puts index.to_cql
-      end
+      index = cluster.keyspace('simplex').table('test_table').index('ind1')
+      puts index.to_cql
+
+      puts ""
+      puts "Name: #{index.name}"
+      puts "Table name: #{index.table.name}"
+      puts "Kind: #{index.kind}"
+      puts "Target: #{index.target}"
       """
     When it is executed
     Then its output should contain:
       """cql
-      CREATE INDEX "ind1" ON simplex.test_table ("f2");
+      CREATE INDEX "ind1" ON simplex.test_table (b);
+
+      Name: ind1
+      Table name: test_table
+      Kind: composites
+      Target: b
       """
 
   @cassandra-version-specific @cassandra-version-3.0
-  Scenario: Getting index metadata on 3.0
+  Scenario: Getting index metadata on full collections
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      CREATE TABLE simplex.test_table (f1 int primary key, f2 int);
-      CREATE INDEX ind1 ON simplex.test_table (f2);
+      CREATE TABLE simplex.test_table (a int PRIMARY KEY, b frozen<map<text, text>>);
+      CREATE INDEX ind1 ON simplex.test_table (full(b));
       """
     And the following example:
       """ruby
@@ -84,25 +93,34 @@ Feature: Schema Metadata
 
       cluster = Cassandra.cluster
 
-      cluster.keyspace('simplex').table('test_table').each_index do |index|
-        puts index.to_cql
-      end
+      index = cluster.keyspace('simplex').table('test_table').index('ind1')
+      puts index.to_cql
+
+      puts ""
+      puts "Name: #{index.name}"
+      puts "Table name: #{index.table.name}"
+      puts "Kind: #{index.kind}"
+      puts "Target: #{index.target}"
       """
     When it is executed
     Then its output should contain:
       """cql
-      CREATE INDEX "ind1" ON simplex.test_table (f2);
+      CREATE INDEX "ind1" ON simplex.test_table (full(b));
+
+      Name: ind1
+      Table name: test_table
+      Kind: composites
+      Target: full(b)
       """
 
   @cassandra-version-specific @cassandra-version-3.0
-  Scenario: Getting materialized view metadata
+  Scenario: Getting multiple index metadata on same column
     Given the following schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
-      CREATE TABLE simplex.test_table (f1 int PRIMARY KEY, f2 int, f3 int) ;
-      CREATE MATERIALIZED VIEW simplex.test_view AS
-       SELECT f1, f2 FROM simplex.test_table WHERE f2 IS NOT NULL
-       PRIMARY KEY (f1, f2);
+      CREATE TABLE simplex.test_table (a int PRIMARY KEY, b map<text, text>);
+      CREATE INDEX ind1 ON simplex.test_table (keys(b));
+      CREATE INDEX ind2 ON simplex.test_table (values(b));
       """
     And the following example:
       """ruby
@@ -110,31 +128,33 @@ Feature: Schema Metadata
 
       cluster = Cassandra.cluster
 
-      view = cluster.keyspace('simplex').materialized_view('test_view')
-      puts view.to_cql
+      index = cluster.keyspace('simplex').table('test_table').index('ind1')
+      puts index.to_cql
+
+      puts ""
+      puts "Name: #{index.name}"
+      puts "Target: #{index.target}"
+
+      puts ""
+      index = cluster.keyspace('simplex').table('test_table').index('ind2')
+      puts index.to_cql
+
+      puts ""
+      puts "Name: #{index.name}"
+      puts "Target: #{index.target}"
       """
     When it is executed
     Then its output should contain:
       """cql
-      CREATE MATERIALIZED VIEW simplex.test_view AS
-      SELECT "f1", "f2"
-      FROM simplex.test_table
-      WHERE f2 IS NOT NULL
-      PRIMARY KEY (("f1"), "f2")
-      WITH bloom_filter_fp_chance = 0.01
-       AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
-       AND comment = ''
-       AND compaction = {'class': 'SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
-       AND compression = {'chunk_length_in_kb': '64', 'class': 'LZ4Compressor'}
-       AND crc_check_chance = 1.0
-       AND dclocal_read_repair_chance = 0.1
-       AND default_time_to_live = 0
-       AND gc_grace_seconds = 864000
-       AND max_index_interval = 2048
-       AND memtable_flush_period_in_ms = 0
-       AND min_index_interval = 128
-       AND read_repair_chance = 0.0
-       AND speculative_retry = '99PERCENTILE';
+      CREATE INDEX "ind1" ON simplex.test_table (keys(b));
+
+      Name: ind1
+      Target: keys(b)
+
+      CREATE INDEX "ind2" ON simplex.test_table (values(b));
+
+      Name: ind2
+      Target: values(b)
       """
 
   @cassandra-version-specific @cassandra-version-2.1
@@ -275,4 +295,47 @@ Feature: Schema Metadata
       Initial condition: (0, 0)
       State function: avgstate
       Final function: avgfinal
+      """
+
+  @cassandra-version-specific @cassandra-version-3.0
+  Scenario: Getting materialized view metadata
+    Given the following schema:
+      """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      CREATE TABLE simplex.test_table (f1 int PRIMARY KEY, f2 int, f3 int) ;
+      CREATE MATERIALIZED VIEW simplex.test_view AS
+       SELECT f1, f2 FROM simplex.test_table WHERE f2 IS NOT NULL
+       PRIMARY KEY (f1, f2);
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+
+      view = cluster.keyspace('simplex').materialized_view('test_view')
+      puts view.to_cql
+      """
+    When it is executed
+    Then its output should contain:
+      """cql
+      CREATE MATERIALIZED VIEW simplex.test_view AS
+      SELECT "f1", "f2"
+      FROM simplex.test_table
+      WHERE f2 IS NOT NULL
+      PRIMARY KEY (("f1"), "f2")
+      WITH bloom_filter_fp_chance = 0.01
+       AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
+       AND comment = ''
+       AND compaction = {'class': 'SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
+       AND compression = {'chunk_length_in_kb': '64', 'class': 'LZ4Compressor'}
+       AND crc_check_chance = 1.0
+       AND dclocal_read_repair_chance = 0.1
+       AND default_time_to_live = 0
+       AND gc_grace_seconds = 864000
+       AND max_index_interval = 2048
+       AND memtable_flush_period_in_ms = 0
+       AND min_index_interval = 128
+       AND read_repair_chance = 0.0
+       AND speculative_retry = '99PERCENTILE';
       """
