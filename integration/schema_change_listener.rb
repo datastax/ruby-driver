@@ -54,6 +54,12 @@ class SchemaChangeListener
     end
   end
 
+  def wait_for_table(keyspace_name, table_name, *args)
+    wait_for_change(keyspace_name, 2) do |ks|
+      ks.has_table?(table_name, *args)
+    end
+  end
+
   def wait_for_index(keyspace_name, table_name, index_name, *args)
     wait_for_change(keyspace_name, 2) do |ks|
       ks.table(table_name).has_index?(index_name, *args)
