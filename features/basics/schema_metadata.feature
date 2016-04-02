@@ -5,44 +5,45 @@ Feature: Schema Metadata
   Background:
     Given a running cassandra cluster
 
-  @cassandra-version-specific @cassandra-version-less-3.0
   Scenario: Getting table metadata
-    Given the following example:
+    Given the following schema:
+      """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      CREATE TABLE simplex.users (user_id bigint, first text, last text, age int, PRIMARY KEY (user_id, last))
+      """
+    And the following example:
       """ruby
       require 'cassandra'
 
       cluster = Cassandra.cluster
 
-      puts cluster.keyspace('system').table("IndexInfo").to_cql
+      table_meta = cluster.keyspace('simplex').table('users')
+      puts "Name: #{table_meta.name}"
+      puts "Keyspace: #{table_meta.keyspace.name}"
+      puts "Partition key: #{table_meta.partition_key[0].name}"
+      puts "Clustering column: #{table_meta.clustering_columns[0].name}"
+      puts "Clustering order: #{table_meta.clustering_order.first}"
+      puts "Num columns: #{table_meta.columns.size}"
+
+      puts ""
+      puts table_meta.to_cql
       """
     When it is executed
     Then its output should contain:
       """cql
-      CREATE TABLE system."IndexInfo" (
-        table_name text,
-        index_name text,
-        PRIMARY KEY (table_name, index_name)
-      )
-      """
+      Name: users
+      Keyspace: simplex
+      Partition key: user_id
+      Clustering column: last
+      Clustering order: asc
+      Num columns: 4
 
-  @cassandra-version-specific @cassandra-version-3.0
-  Scenario: Getting table metadata on 3.0
-    Given the following example:
-      """ruby
-      require 'cassandra'
-
-      cluster = Cassandra.cluster
-
-      puts cluster.keyspace('system').table("IndexInfo").to_cql
-      """
-    When it is executed
-    Then its output should contain:
-      """cql
-      CREATE TABLE system."IndexInfo" (
-        table_name text,
-        index_name text,
-        value 'org.apache.cassandra.db.marshal.EmptyType',
-        PRIMARY KEY (table_name, index_name)
+      CREATE TABLE simplex.users (
+        user_id bigint,
+        last text,
+        age int,
+        first text,
+        PRIMARY KEY (user_id, last)
       )
       """
 
