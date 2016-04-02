@@ -37,6 +37,32 @@ class MetadataTest < IntegrationTestCase
     @cluster && @cluster.close
   end
 
+  # Test for retrieving keyspace metadata
+  #
+  # test_can_retrieve_keyspace_metadata tests that all pieces of keyspace metadata can be retrieved. It goes through
+  # each piece of keyspace metadata and verifies that each piece is as expected.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-181
+  # @expected_result keyspace metadata should be retrieved.
+  #
+  # @test_category metadata
+  #
+  def test_can_retrieve_keyspace_metadata
+    ks_meta = @cluster.keyspace('simplex')
+    assert_equal 'simplex', ks_meta.name
+    assert_equal 'SimpleStrategy', ks_meta.replication.klass
+    assert_equal 1, ks_meta.replication.options['replication_factor'].to_i
+    assert ks_meta.durable_writes?
+    assert ks_meta.has_table?('users')
+    assert_equal 1, ks_meta.tables.size
+
+    ks_cql = Regexp.new(/CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', \
+'replication_factor': '1'} AND durable_writes = true;/)
+
+    assert_match ks_cql, ks_meta.to_cql
+  end
+
   # Test for retrieving table metadata
   #
   # test_can_retrieve_table_metadata tests that all pieces of table metadata can be retrieved. It goes through each piece
