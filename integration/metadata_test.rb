@@ -31,6 +31,10 @@ class MetadataTest < IntegrationTestCase
     @session = @cluster.connect('simplex')
     @session.execute("CREATE TABLE simplex.users (user_id bigint, first text, last text, age int, PRIMARY KEY (user_id, last))")
     @listener.wait_for_table('simplex', 'users')
+    @session.execute("CREATE TABLE simplex.blobby (key blob PRIMARY KEY, f1 blob, f2 blob) WITH COMPACT STORAGE")
+    @listener.wait_for_table('simplex', 'blobby')
+    @session.execute("CREATE TABLE simplex.dense (f1 int, f2 int, f3 int, PRIMARY KEY (f1, f2)) WITH COMPACT STORAGE")
+    @listener.wait_for_table('simplex', 'dense')
   end
 
   def teardown
@@ -55,7 +59,7 @@ class MetadataTest < IntegrationTestCase
     assert_equal 1, ks_meta.replication.options['replication_factor'].to_i
     assert ks_meta.durable_writes?
     assert ks_meta.has_table?('users')
-    assert_equal 1, ks_meta.tables.size
+    assert_equal 3, ks_meta.tables.size
 
     ks_cql = Regexp.new(/CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', \
 'replication_factor': '1'} AND durable_writes = true;/)
@@ -132,6 +136,72 @@ class MetadataTest < IntegrationTestCase
     table_meta.each_column do |column|
       assert_equal col_names[0], column.name
       col_names.delete_at(0)
+    end
+  end
+
+  # Test for skipping internal columns in static-compact tables
+  #
+  # test_skip_internal_columns_for_static_compact_table tests that the "column1 text" clustering
+  # column and "value blob" regular columns are excluded from table metadata for static-compact tables.
+  # It also coerces columns marked static to be regular instead.
+  #
+  # @jira_ticket RUBY-185
+  # @expected_result the metadata should only report columns we've consciously added to the table.
+  #
+  # @test_category metadata
+  #
+  def test_skip_internal_columns_for_static_compact_table
+    assert @cluster.keyspace('simplex').has_table?('blobby')
+    table_meta = @cluster.keyspace('simplex').table('blobby')
+    table_cql = Regexp.new(/CREATE TABLE simplex\.blobby \(
+  key blob PRIMARY KEY,
+  f1 blob,
+  f2 blob
+\)/)
+
+    assert_equal 0, table_meta.to_cql =~ table_cql, "actual cql: #{table_meta.to_cql}"
+    assert_equal 3, table_meta.columns.size
+
+    table_meta.each_column do |column|
+      assert ['key', 'f1', 'f2'].any? { |name| name == column.name }
+      assert_equal :blob, column.type.kind
+      refute column.static?
+    end
+  end
+
+  # Test for skipping internal columns in dense tables
+  #
+  # test_skip_internal_columns_for_dense_table tests that "value <empty-type>" column is excluded from table metadata
+  # for dense tables.
+  #
+  # @jira_ticket RUBY-185
+  # @expected_result the metadata should only report columns we've consciously added to the table.
+  #
+  # @test_category metadata
+  #
+  def test_skip_internal_columns_for_dense_table
+    # NOTE: It seems that the dense table does not have an empty-type column. The Java driver has logic to
+    # handle that, but maybe it's outdated and unnecessary. This test serves the purpose of keeping us on guard,
+    # in case some version of C* does create the internal column; if we encounter such a C*, the test will fail and
+    # we'll go to the effort of fixing the issue.
+
+    assert @cluster.keyspace('simplex').has_table?('dense')
+    table_meta = @cluster.keyspace('simplex').table('dense')
+    table_cql = Regexp.new(/CREATE TABLE simplex\.dense \(
+  f1 int,
+  f2 int,
+  f3 int,
+  PRIMARY KEY \(f1, f2\)
+\)
+WITH COMPACT STORAGE/)
+
+    assert_equal 0, table_meta.to_cql =~ table_cql, "actual cql: #{table_meta.to_cql}"
+    assert_equal 3, table_meta.columns.size
+
+    table_meta.each_column do |column|
+      assert ['f1', 'f2', 'f3'].any? { |name| name == column.name }
+      assert_equal :int, column.type.kind
+      refute column.static?
     end
   end
 
