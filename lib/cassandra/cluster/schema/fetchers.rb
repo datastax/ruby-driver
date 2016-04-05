@@ -1292,6 +1292,7 @@ module Cassandra
             is_super    = table_flags.include?('super')
             is_compound = table_flags.include?('compound')
             is_compact  = is_super || is_dense || !is_compound
+            is_static_compact = !is_super && !is_dense && !is_compound
 
             # Separate out partition-key, clustering columns, other columns.
             partition_key      = []
@@ -1303,10 +1304,23 @@ module Cassandra
             rows_columns.each do |row|
               next if row['column_name'].empty?
 
-              column = create_column(row, types)
               kind   = row['kind'].to_s
               index  = row['position'] || 0
 
+              if is_static_compact
+                if kind.casecmp('CLUSTERING').zero? || kind.casecmp('REGULAR').zero?
+                  # Skip clustering columns in static-compact tables; they are internal to C*.
+                  # Oddly so are regular columns.
+                  next
+                end
+                if kind.casecmp('STATIC').zero?
+                  # Coerce static type to regular.
+                  kind = 'REGULAR'
+                  row['kind'] = 'regular'
+                end
+              end
+
+              column = create_column(row, types)
               case kind.upcase
               when 'PARTITION_KEY'
                 partition_key[index] = column
