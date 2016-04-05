@@ -1280,7 +1280,7 @@ module Cassandra
             order     = column_data['clustering_order'] == 'desc' ? :desc : :asc
             if column_data['type'][0] == "'"
               # This is a custom column type.
-              type = Types.custom(column_data['type'].slice(1..-1).chomp("'"))
+              type = Types.custom(column_data['type'].slice(1, column_data['type'].length - 2))
               is_frozen = false
             else
               type, is_frozen = @type_parser.parse(column_data['type'], types)
