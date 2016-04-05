@@ -10,6 +10,8 @@ Features:
 Bug Fixes:
 * [RUBY-161] Protocol version negotiation in mixed version clusters should not fall back to v1 unless it is truly warranted.    
 * [RUBY-180] Column ordering is not deterministic in Table metadata.
+* [RUBY-185] Internal columns in static-compact and dense tables should be ignored.
+* [RUBY-186] Custom type column metadata should be parsed properly for C* 3.x schemas. 
 
 Breaking Changes:
 

@@ -272,7 +272,7 @@
       "column_name": "f2",
       "clustering_order": "none",
       "column_name_bytes": "f2",
-      "kind": "regular",
+      "kind": "static",
       "position": -1,
       "type": "int"
     },

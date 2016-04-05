@@ -35,6 +35,9 @@ class MetadataTest < IntegrationTestCase
     @listener.wait_for_table('simplex', 'blobby')
     @session.execute("CREATE TABLE simplex.dense (f1 int, f2 int, f3 int, PRIMARY KEY (f1, f2)) WITH COMPACT STORAGE")
     @listener.wait_for_table('simplex', 'dense')
+    @session.execute("CREATE TABLE simplex.custom (f1 int PRIMARY KEY," \
+    " f2 'org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.UUIDType,org.apache.cassandra.db.marshal.UTF8Type)')")
+    @listener.wait_for_table('simplex', 'custom')
   end
 
   def teardown
@@ -59,7 +62,7 @@ class MetadataTest < IntegrationTestCase
     assert_equal 1, ks_meta.replication.options['replication_factor'].to_i
     assert ks_meta.durable_writes?
     assert ks_meta.has_table?('users')
-    assert_equal 3, ks_meta.tables.size
+    assert_equal 4, ks_meta.tables.size
 
     ks_cql = Regexp.new(/CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', \
 'replication_factor': '1'} AND durable_writes = true;/)
@@ -203,6 +206,38 @@ WITH COMPACT STORAGE/)
       assert_equal :int, column.type.kind
       refute column.static?
     end
+  end
+
+  # Test for handling custom type columns in table metadata
+  #
+  # test_custom_type_column_in_table tests that a custom type column in a table is processed properly
+  # when collecting table metadata.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-186
+  # @expected_result the metadata should correctly report the custom type column.
+  #
+  # @test_category metadata
+  #
+  def test_custom_type_column_in_table
+    skip("Custom type representation was changed in Cassandra 3.0 to be a single-quoted string") if CCM.cassandra_version < '3.0.0'
+    assert @cluster.keyspace('simplex').has_table?('custom')
+    table_meta = @cluster.keyspace('simplex').table('custom')
+    table_cql = Regexp.new(/CREATE TABLE simplex\.custom \(
+  f1 int PRIMARY KEY,
+  f2 'org.apache.cassandra.db.marshal.CompositeType\(org.apache.cassandra.db.marshal.UUIDType,org.apache.cassandra.db.marshal.UTF8Type\)'
+\)/)
+
+    assert_equal 0, table_meta.to_cql =~ table_cql, "actual cql: #{table_meta.to_cql}"
+    assert_equal 2, table_meta.columns.size
+    column = table_meta.columns[0]
+    assert_equal 'f1', column.name
+    assert_equal :int, column.type.kind
+    column = table_meta.columns[1]
+    assert_equal 'f2', column.name
+    assert_equal :custom, column.type.kind
+    assert_equal 'org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.UUIDType,org.apache.cassandra.db.marshal.UTF8Type)',
+                 column.type.name
   end
 
   # Test for retrieving crc_check_balance property
