@@ -66,6 +66,12 @@ class SchemaChangeListener
     end
   end
 
+  def wait_for_materialized_view(keyspace_name, view_name, *args)
+    wait_for_change(keyspace_name, 2) do |ks|
+      ks.has_materialized_view?(view_name, *args)
+    end
+  end
+
   def keyspace_changed(keyspace)
     # This looks a little strange, but here's the idea: if we don't have
     # Condition's for this keyspace, immediately return. Otherwise, for each

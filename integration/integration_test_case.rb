@@ -38,6 +38,15 @@ class IntegrationTestCase < MiniTest::Unit::TestCase
   def before_setup
     puts ANSI::Code.magenta("\n===== Begin #{self.__name__} ====")
   end
+
+  def assert_columns(expected_names_and_types, actual_columns)
+    assert_equal(expected_names_and_types.size, actual_columns.size)
+
+    expected_names_and_types.zip(actual_columns) do |expected, actual_column|
+      assert_equal expected[0], actual_column.name
+      assert_equal expected[1], actual_column.type.kind
+    end
+  end
 end
 
 class IntegrationUnit < MiniTest::Unit
