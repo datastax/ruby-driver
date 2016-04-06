@@ -8,8 +8,10 @@ C = Cassandra
 # noinspection RubyClassModuleNamingConvention
 module C
   class << self
-    # noinspection RubyResolve
-    alias :validate :validate_and_massage_options
+    def validate(*args)
+      # Actually, we only care about option-validation, and the method returns options + hosts.
+      validate_and_massage_options(*args).first
+    end
   end
 end
 
