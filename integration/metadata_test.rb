@@ -90,18 +90,9 @@ class MetadataTest < IntegrationTestCase
     refute_nil table_meta.id unless CCM.cassandra_version < '3.0.0'
     refute_nil table_meta.options
 
-    assert_equal 2, table_meta.primary_key.size
-    assert_equal 'user_id', table_meta.primary_key[0].name
-    assert_equal :bigint, table_meta.primary_key[0].type.kind
-    assert_equal 'last', table_meta.primary_key[1].name
-    assert_equal :text, table_meta.primary_key[1].type.kind
-
-    assert_equal 1, table_meta.partition_key.size
-    assert_equal 'user_id', table_meta.partition_key[0].name
-    assert_equal :bigint, table_meta.partition_key[0].type.kind
-    assert_equal 1, table_meta.clustering_columns.size
-    assert_equal 'last', table_meta.clustering_columns[0].name
-    assert_equal :text, table_meta.clustering_columns[0].type.kind
+    assert_columns([['user_id', :bigint], ['last', :text]], table_meta.primary_key)
+    assert_columns([['user_id', :bigint]], table_meta.partition_key)
+    assert_columns([ ['last', :text]], table_meta.clustering_columns)
     assert_equal :asc, table_meta.clustering_order.first
 
     assert_equal 4, table_meta.columns.size
@@ -148,6 +139,7 @@ class MetadataTest < IntegrationTestCase
   # column and "value blob" regular columns are excluded from table metadata for static-compact tables.
   # It also coerces columns marked static to be regular instead.
   #
+  # @since 3.0.0
   # @jira_ticket RUBY-185
   # @expected_result the metadata should only report columns we've consciously added to the table.
   #
@@ -177,6 +169,7 @@ class MetadataTest < IntegrationTestCase
   # test_skip_internal_columns_for_dense_table tests that "value <empty-type>" column is excluded from table metadata
   # for dense tables.
   #
+  # @since 3.0.0
   # @jira_ticket RUBY-185
   # @expected_result the metadata should only report columns we've consciously added to the table.
   #
@@ -221,6 +214,7 @@ WITH COMPACT STORAGE/)
   #
   def test_custom_type_column_in_table
     skip("Custom type representation was changed in Cassandra 3.0 to be a single-quoted string") if CCM.cassandra_version < '3.0.0'
+
     assert @cluster.keyspace('simplex').has_table?('custom')
     table_meta = @cluster.keyspace('simplex').table('custom')
     table_cql = Regexp.new(/CREATE TABLE simplex\.custom \(

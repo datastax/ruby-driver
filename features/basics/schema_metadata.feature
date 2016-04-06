@@ -347,12 +347,27 @@ Feature: Schema Metadata
 
       cluster = Cassandra.cluster
 
-      view = cluster.keyspace('simplex').materialized_view('test_view')
-      puts view.to_cql
+      mv_meta = cluster.keyspace('simplex').materialized_view('test_view')
+      puts "Name: #{mv_meta.name}"
+      puts "Base table: #{mv_meta.base_table.name}"
+      puts "Keyspace: #{mv_meta.keyspace.name}"
+      puts "Partition key: #{mv_meta.partition_key[0].name}"
+      puts "Clustering column: #{mv_meta.clustering_columns[0].name}"
+      puts "Num columns: #{mv_meta.columns.size}"
+
+      puts ""
+      puts mv_meta.to_cql
       """
     When it is executed
     Then its output should contain:
       """cql
+      Name: test_view
+      Base table: test_table
+      Keyspace: simplex
+      Partition key: f1
+      Clustering column: f2
+      Num columns: 2
+
       CREATE MATERIALIZED VIEW simplex.test_view AS
       SELECT "f1", "f2"
       FROM simplex.test_table
