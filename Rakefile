@@ -35,7 +35,8 @@ Rake::TestTask.new(:integration => :compile) do |t|
                   'integration/security/*_test.rb',
                   'integration/load_balancing/*_test.rb',
                   'integration/types/*_test.rb',
-                  'integration/functions/*_test.rb']
+                  'integration/functions/*_test.rb',
+                  'integration/indexes/*_test.rb']
   t.verbose = true
 end
 
