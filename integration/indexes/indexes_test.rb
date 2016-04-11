@@ -89,6 +89,7 @@ class IndexesTest < IntegrationTestCase
     assert_equal 'keys(b)', index.target
 
     @session.execute("DROP INDEX b_index")
+    @cluster.refresh_schema
     @session.execute("CREATE INDEX b_index ON simplex.collection_test (b)")
 
     @listener.wait_for_index('simplex', 'collection_test', 'b_index')
@@ -118,7 +119,7 @@ class IndexesTest < IntegrationTestCase
   # @test_category indexes
   #
   def test_can_create_index_on_full_collections
-    skip("Secondary index on full collections were introduced in Cassandra 2.1.3") if CCM.cassandra_version.to_i < '2.1.3'.to_i
+    skip("Secondary index on full collections were introduced in Cassandra 2.1.3") if Gem::Version.new(CCM.cassandra_version) < Gem::Version.new('2.1.3')
 
     @session.execute("CREATE TABLE simplex.collection_test (a int PRIMARY KEY, b frozen<map<text, text>>)")
     @session.execute("CREATE INDEX b_index ON simplex.collection_test (full(b))")

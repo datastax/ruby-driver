@@ -61,6 +61,7 @@ class SchemaChangeListener
   end
 
   def wait_for_index(keyspace_name, table_name, index_name, *args)
+    self.wait_for_table(keyspace_name, table_name)
     wait_for_change(keyspace_name, 2) do |ks|
       ks.table(table_name).has_index?(index_name, *args)
     end
@@ -80,3 +81,4 @@ class SchemaChangeListener
     nil
   end
 end
+
