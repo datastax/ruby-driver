@@ -1,3 +1,8 @@
+# master
+Features:
+
+Bug Fixes:
+
 # 3.0.0 rc2
 Features:
 * Add protocol_version configuration option to allow the user to force the protocol version to use for communication with nodes.
@@ -13,8 +18,6 @@ Bug Fixes:
 * [RUBY-180] Column ordering is not deterministic in Table metadata.
 * [RUBY-185] Internal columns in static-compact and dense tables should be ignored.
 * [RUBY-186] Custom type column metadata should be parsed properly for C* 3.x schemas. 
-
-Breaking Changes:
 
 # 3.0.0 rc1
 
