@@ -1,6 +1,6 @@
 # Datastax Ruby Driver for Apache Cassandra
 
-*If you're reading this on GitHub, please note that this is the readme for the development version and that some features described here might not yet have been released. You can [find the documentation for latest version through ruby driver docs](http://datastax.github.io/ruby-driver/) or via the release tags, [e.g. v1.0.0-beta.3](https://github.com/datastax/ruby-driver/tree/v1.0.0-beta.3).*
+*If you're reading this on GitHub, please note that this is the readme for the development version and that some features described here might not yet have been released. You can [find the documentation for latest version through ruby driver docs](http://datastax.github.io/ruby-driver/) or via the release tags, [e.g. v3.0.0-rc.2](https://github.com/datastax/ruby-driver/tree/v3.0.0-rc.2).*
 
 [![Build Status](https://travis-ci.org/datastax/ruby-driver.svg?branch=master)](https://travis-ci.org/datastax/ruby-driver)
 
@@ -108,7 +108,7 @@ Some of the new features added to the driver have unfortunately led to changes i
 * Add connections_per_local_node, connections_per_remote_node, requests_per_connection cluster configuration options to tune parallel query execution and resource usage.
 * Add Cassandra::Logger class to make it easy for users to enable debug logging in the client.
 * Add protocol_version configuration option to allow the user to force the protocol version to use for communication with nodes.
-* Add support for materialized views in the schema metadata.
+* Add support for materialized views and indexes in the schema metadata.
 
 ### Breaking Changes:
 
