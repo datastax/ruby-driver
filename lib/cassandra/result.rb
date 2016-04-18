@@ -76,8 +76,8 @@ module Cassandra
     #
     # @note `:paging_state` option will be ignored.
     #
-    # @return [Cassandra::Future<Cassandra::Result, nil>] `nil` if last
-    #   page
+    # @return [Cassandra::Future<Cassandra::Result>] a future that resolves to a new Result if there is a new page,
+    #   `nil` otherwise.
     #
     # @see Cassandra::Session#execute
     def next_page_async(options = nil)
