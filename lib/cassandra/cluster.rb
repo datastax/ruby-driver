@@ -205,7 +205,7 @@ module Cassandra
                            @address_resolver,
                            @connection_options,
                            @futures)
-      session = new_session(client)
+      session = Session.new(client, @execution_options, @futures)
       promise = @futures.promise
 
       client.connect.on_complete do |f|
@@ -276,12 +276,6 @@ module Cassandra
     # @private
     def inspect
       "#<#{self.class.name}:0x#{object_id.to_s(16)}>"
-    end
-
-    protected
-
-    def new_session(client)
-      Cassandra::Session.new(client, @execution_options, @futures)
     end
   end
 end
