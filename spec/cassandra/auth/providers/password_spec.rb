@@ -39,7 +39,7 @@ module Cassandra
 
           it 'returns nil when the authentication class is not org.apache.cassandra.auth.PasswordAuthenticator' do
             authenticator = auth_provider.create_authenticator('org.acme.Foo')
-            authenticator.should be_nil
+            authenticator.initial_response.should == "\x00foo\x00bar"
           end
         end
       end

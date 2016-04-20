@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cassandra-driver (2.1.4)
+    cassandra-driver (2.1.6.rc.1)
       ione (~> 1.2)
 
 GEM
@@ -66,7 +66,7 @@ GEM
       nanoc (>= 3.6.3)
     hitimes (1.2.2)
     htmlbeautifier (0.0.9)
-    ione (1.2.0)
+    ione (1.2.3)
     jsmin (1.0.1)
     listen (2.7.9)
       celluloid (>= 0.15.2)
@@ -171,3 +171,6 @@ DEPENDENCIES
   simplecov
   snappy
   yard
+
+BUNDLED WITH
+   1.11.2
