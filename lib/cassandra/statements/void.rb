@@ -23,6 +23,11 @@ module Cassandra
     class Void
       include Statement
 
+      # @private
+      def accept(client, options)
+        nil
+      end
+
       # Returns nothing
       # @return [nil] there is no cql for the void statement
       def cql

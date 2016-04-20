@@ -23,5 +23,10 @@ module Cassandra
     def idempotent?
       !!@idempotent
     end
+
+    # @private
+    def accept(client, options)
+      raise NotImplementedError, "#{self.class} must implement :accept method"
+    end
   end
 end

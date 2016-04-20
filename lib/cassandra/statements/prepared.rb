@@ -155,6 +155,11 @@ module Cassandra
                                           nil)
       end
 
+      # @private
+      def accept(client, options)
+        client.execute(bind(options.arguments), options)
+      end
+
       # @return [String] a CLI-friendly prepared statement representation
       def inspect
         "#<#{self.class.name}:0x#{object_id.to_s(16)} @cql=#{@cql.inspect}>"

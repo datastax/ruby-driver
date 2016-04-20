@@ -35,7 +35,7 @@ module Cassandra
             statement = double('simple statement')
 
             expect(Statements::Simple).to receive(:new).once.with(cql, EMPTY_LIST, EMPTY_LIST, false).and_return(statement)
-            expect(client).to receive(:query).once.with(statement, session_options).and_return(promise)
+            expect(statement).to receive(:accept).once.with(client, session_options).and_return(promise)
             expect(session.execute_async(cql)).to eq(promise)
           end
         end
@@ -48,7 +48,7 @@ module Cassandra
             statement = double('simple statement')
 
             expect(Statements::Simple).to receive(:new).once.with(cql, [1], [], false).and_return(statement)
-            expect(client).to receive(:query).once.with(statement, session_options.override(arguments: [1])).and_return(promise)
+            expect(statement).to receive(:accept).once.with(client, session_options.override(arguments: [1])).and_return(promise)
             expect(session.execute_async(cql, arguments: [1])).to eq(promise)
           end
         end
@@ -61,7 +61,7 @@ module Cassandra
             statement = double('simple statement')
 
             expect(Statements::Simple).to receive(:new).once.with(cql, [1], [:int], false).and_return(statement)
-            expect(client).to receive(:query).once.with(statement, session_options.override(arguments: [1], type_hints: [:int])).and_return(promise)
+            expect(statement).to receive(:accept).once.with(client, session_options.override(arguments: [1], type_hints: [:int])).and_return(promise)
             expect(session.execute_async(cql, arguments: [1], type_hints: [:int])).to eq(promise)
           end
         end
@@ -75,7 +75,7 @@ module Cassandra
             statement = double('simple statement')
 
             expect(Statements::Simple).to receive(:new).once.with(cql, EMPTY_LIST, EMPTY_LIST, false).and_return(statement)
-            expect(client).to receive(:query).once.with(statement, session_options.override(options)).and_return(promise)
+            expect(statement).to receive(:accept).once.with(client, session_options.override(options)).and_return(promise)
             expect(session.execute_async(cql, options)).to eq(promise)
           end
         end
