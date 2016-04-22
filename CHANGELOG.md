@@ -1,3 +1,9 @@
+# 2.1.6
+Bug Fixes:
+
+* [RUBY-202] Allow password authenticator to be used for LDAP authentication. This is actually a backport of
+     RUBY-169 for the 3.0.0 release.
+
 # 2.1.5
 
 Features:
