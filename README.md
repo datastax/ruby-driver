@@ -27,7 +27,7 @@ This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [
 
 [Check out the slides from Ruby Driver Explained](https://speakerdeck.com/avalanche123/ruby-driver-explained) for a detailed overview of the Ruby Driver architecture.
 
-## Compability
+## Compatibility
 
 This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. The current version works with:
 

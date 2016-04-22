@@ -1,7 +1,7 @@
 # 2.1.6
 Bug Fixes:
 
-* [RUBY-202] Allow password authenticator to be used for LDAP authentication. This is actually a backport of
+* [RUBY-202](https://datastax-oss.atlassian.net/browse/RUBY-202) Allow password authenticator to be used for LDAP authentication. This is actually a backport of
      RUBY-169 for the 3.0.0 release.
 
 # 2.1.5
@@ -12,25 +12,25 @@ Features:
 
 Bug Fixes:
 
-* [RUBY-128] Fix decoding of large values in maps, sets and lists.
+* [RUBY-128](https://datastax-oss.atlassian.net/browse/RUBY-128) Fix decoding of large values in maps, sets and lists.
 
 # 2.1.4
 
 Features:
 
-* [RUBY-119] Use `require 'datastax/cassandra'` to avoid namespace conflicts
-* [RUBY-90] Add support for disabling nagle algorithm (tcp nodelay), enabled by default.
-* [RUBY-70] Add support for client-side timestamps, disabled by default.
-* [RUBY-114] Add support for serial consistency in batch requests.
+* [RUBY-119](https://datastax-oss.atlassian.net/browse/RUBY-119) Use `require 'datastax/cassandra'` to avoid namespace conflicts
+* [RUBY-90](https://datastax-oss.atlassian.net/browse/RUBY-90) Add support for disabling nagle algorithm (tcp nodelay), enabled by default.
+* [RUBY-70](https://datastax-oss.atlassian.net/browse/RUBY-70) Add support for client-side timestamps, disabled by default.
+* [RUBY-114](https://datastax-oss.atlassian.net/browse/RUBY-114) Add support for serial consistency in batch requests.
 
 Bug Fixes:
 
-* [RUBY-103] Don't regenerate schema metadata for the same replication
+* [RUBY-103](https://datastax-oss.atlassian.net/browse/RUBY-103) Don't regenerate schema metadata for the same replication
   strategies and options
-* [RUBY-102] Allow custom types in schema metadata
-* [RUBY-97] Allow disabling of the initial population of schema metadata
-* [RUBY-95] Speed up generation of large token maps
-* [RUBY-116] fix thread leak on connection error
+* [RUBY-102](https://datastax-oss.atlassian.net/browse/RUBY-102) Allow custom types in schema metadata
+* [RUBY-97](https://datastax-oss.atlassian.net/browse/RUBY-97) Allow disabling of the initial population of schema metadata
+* [RUBY-95](https://datastax-oss.atlassian.net/browse/RUBY-95) Speed up generation of large token maps
+* [RUBY-116](https://datastax-oss.atlassian.net/browse/RUBY-116) fix thread leak on connection error
 
 Breaking Changes:
 
@@ -49,7 +49,7 @@ Release removing accidental debug code from 2.1.1.
 
 Bug Fixes:
 
-* [RUBY-98] Use of undefined class variable in `Table#create_partition_key`
+* [RUBY-98](https://datastax-oss.atlassian.net/browse/RUBY-98) Use of undefined class variable in `Table#create_partition_key`
 
 # 2.1.0
 
@@ -67,13 +67,13 @@ Breaking Changes:
 
 Bug Fixes:
 
-* [RUBY-93] Reconnection can overflow the stack
+* [RUBY-93](https://datastax-oss.atlassian.net/browse/RUBY-93) Reconnection can overflow the stack
 
 # 2.0.1
 
 Bug Fixes:
 
-* [RUBY-87] Decoder corrupts incomplete response buffer
+* [RUBY-87](https://datastax-oss.atlassian.net/browse/RUBY-87) Decoder corrupts incomplete response buffer
 
 # 2.0.0
 
