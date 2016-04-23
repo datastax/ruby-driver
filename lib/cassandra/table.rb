@@ -80,14 +80,14 @@ module Cassandra
         else
           cql << ",\n"
         end
-        cql << "  #{column.name} #{type_to_cql(column.type, column.frozen?)}"
+        cql << "  #{Util.escape_name(column.name)} #{type_to_cql(column.type, column.frozen?)}"
         cql << ' PRIMARY KEY' if primary_key && column.name == primary_key
       end
 
       unless primary_key
         cql << ",\n  PRIMARY KEY ("
         if @partition_key.one?
-          cql << @partition_key.first.name
+          cql << Util.escape_name(@partition_key.first.name)
         else
           cql << '('
           first = true
@@ -97,12 +97,12 @@ module Cassandra
             else
               cql << ', '
             end
-            cql << column.name
+            cql << Util.escape_name(column.name)
           end
           cql << ')'
         end
         @clustering_columns.each do |column|
-          cql << ", #{column.name}"
+          cql << ", #{Util.escape_name(column.name)}"
         end
         cql << ')'
       end
@@ -118,7 +118,7 @@ module Cassandra
           else
             cql << ', '
           end
-          cql << "#{column.name} #{order.to_s.upcase}"
+          cql << "#{Util.escape_name(column.name)} #{order.to_s.upcase}"
         end
         cql << ")\n AND "
       end
