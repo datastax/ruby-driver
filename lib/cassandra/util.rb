@@ -162,7 +162,9 @@ module Cassandra
     end
 
     def escape_name(name)
-      return name if name[LOWERCASE_REGEXP] == name
+      # If name only contains lower-case chars and it's not a reserved word, return it
+      # as-is. Otherwise, quote.
+      return name if name[LOWERCASE_REGEXP] == name && !RESERVED_WORDS.include?(name)
       DBL_QUOT + name + DBL_QUOT
     end
 
@@ -327,5 +329,133 @@ module Cassandra
     PRN_OPN = '('.freeze
     # @private
     PRN_CLS = ')'.freeze
+    RESERVED_WORDS = Set.new(%w(
+        add
+        aggregate
+        all
+        allow
+        alter
+        and
+        apply
+        as
+        asc
+        ascii
+        authorize
+        batch
+        begin
+        bigint
+        blob
+        boolean
+        by
+        called
+        clustering
+        columnfamily
+        compact
+        contains
+        count
+        counter
+        create
+        custom
+        date
+        decimal
+        delete
+        desc
+        describe
+        distinct
+        double
+        drop
+        entries
+        execute
+        exists
+        filtering
+        finalfunc
+        float
+        from
+        frozen
+        full
+        function
+        functions
+        grant
+        if
+        in
+        index
+        inet
+        infinity
+        initcond
+        input
+        insert
+        int
+        into
+        is
+        json
+        key
+        keys
+        keyspace
+        keyspaces
+        language
+        limit
+        list
+        login
+        map
+        materialized
+        modify
+        nan
+        nologin
+        norecursive
+        nosuperuser
+        not
+        null
+        of
+        on
+        options
+        or
+        order
+        password
+        permission
+        permissions
+        primary
+        rename
+        replace
+        returns
+        revoke
+        role
+        roles
+        schema
+        select
+        set
+        sfunc
+        smallint
+        static
+        storage
+        stype
+        superuser
+        table
+        text
+        time
+        timestamp
+        timeuuid
+        tinyint
+        to
+        token
+        trigger
+        truncate
+        ttl
+        tuple
+        type
+        unlogged
+        update
+        use
+        user
+        users
+        using
+        uuid
+        values
+        varchar
+        varint
+        view
+        where
+        with
+        writetime
+    )).freeze
   end
 end

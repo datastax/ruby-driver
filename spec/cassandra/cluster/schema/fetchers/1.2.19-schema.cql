@@ -1,10 +1,10 @@
 CREATE KEYSPACE system WITH replication = {'class': 'LocalStrategy'} AND durable_writes = true;
 
 CREATE TABLE system."HintsColumnFamily" (
-  key blob,
-  column1 blob,
+  "key" blob,
+  "column1" blob,
   value blob,
-  PRIMARY KEY (key, column1)
+  PRIMARY KEY ("key", "column1")
 )
 WITH COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
@@ -36,10 +36,10 @@ WITH COMPACT STORAGE
  AND replicate_on_write = 'true';
 
 CREATE TABLE system."LocationInfo" (
-  key blob,
-  column1 blob,
+  "key" blob,
+  "column1" blob,
   value blob,
-  PRIMARY KEY (key, column1)
+  PRIMARY KEY ("key", "column1")
 )
 WITH COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
@@ -54,10 +54,10 @@ WITH COMPACT STORAGE
  AND replicate_on_write = 'true';
 
 CREATE TABLE system."Migrations" (
-  key blob,
-  column1 timeuuid,
+  "key" blob,
+  "column1" timeuuid,
   value blob,
-  PRIMARY KEY (key, column1)
+  PRIMARY KEY ("key", "column1")
 )
 WITH COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
@@ -72,9 +72,9 @@ WITH COMPACT STORAGE
  AND replicate_on_write = 'true';
 
 CREATE TABLE system."NodeIdInfo" (
-  key text,
+  "key" text,
   id timeuuid,
-  PRIMARY KEY (key, id)
+  PRIMARY KEY ("key", id)
 )
 WITH COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
@@ -89,10 +89,10 @@ WITH COMPACT STORAGE
  AND replicate_on_write = 'true';
 
 CREATE TABLE system."Schema" (
-  key blob,
-  column1 text,
+  "key" blob,
+  "column1" text,
   value blob,
-  PRIMARY KEY (key, column1)
+  PRIMARY KEY ("key", "column1")
 )
 WITH COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
@@ -142,7 +142,7 @@ WITH COMPACT STORAGE
  AND replicate_on_write = 'true';
 
 CREATE TABLE system.local (
-  key text PRIMARY KEY,
+  "key" text PRIMARY KEY,
   bootstrapped text,
   cluster_name text,
   cql_version text,
@@ -243,7 +243,7 @@ CREATE TABLE system.schema_columnfamilies (
   read_repair_chance double,
   replicate_on_write boolean,
   subcomparator text,
-  type text,
+  "type" text,
   value_alias text,
   PRIMARY KEY (keyspace_name, columnfamily_name)
 )
@@ -342,10 +342,10 @@ WITH bloom_filter_fp_chance = 0.01
 CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND durable_writes = true;
 
 CREATE TABLE simplex."t1" (
-  f1 int,
-  f2 int,
-  f3 int,
-  PRIMARY KEY (f1, f2)
+  "f1" int,
+  "f2" int,
+  "f3" int,
+  PRIMARY KEY ("f1", "f2")
 )
 WITH bloom_filter_fp_chance = 0.01
  AND caching = 'KEYS_ONLY'
@@ -361,12 +361,12 @@ WITH bloom_filter_fp_chance = 0.01
 CREATE INDEX "ind1" ON simplex."t1" ("f3");
 
 CREATE TABLE simplex."t2" (
-  f1 int,
-  f2 int,
-  f3 int,
-  PRIMARY KEY (f1, f2)
+  "f1" int,
+  "f2" int,
+  "f3" int,
+  PRIMARY KEY ("f1", "f2")
 )
-WITH CLUSTERING ORDER BY (f2 DESC)
+WITH CLUSTERING ORDER BY ("f2" DESC)
  AND COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
  AND caching = 'KEYS_ONLY'
@@ -380,8 +380,8 @@ WITH CLUSTERING ORDER BY (f2 DESC)
  AND replicate_on_write = 'true';
 
 CREATE TABLE simplex."t3" (
-  f1 int PRIMARY KEY,
-  f2 int
+  "f1" int PRIMARY KEY,
+  "f2" int
 )
 WITH bloom_filter_fp_chance = 0.01
  AND caching = 'KEYS_ONLY'

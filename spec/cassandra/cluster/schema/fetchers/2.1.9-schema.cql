@@ -106,7 +106,7 @@ WITH COMPACT STORAGE
  AND speculative_retry = '99.0PERCENTILE';
 
 CREATE TABLE system.local (
-  key text PRIMARY KEY,
+  "key" text PRIMARY KEY,
   bootstrapped text,
   broadcast_address inet,
   cluster_name text,
@@ -253,7 +253,7 @@ CREATE TABLE system.schema_columnfamilies (
   read_repair_chance double,
   speculative_retry text,
   subcomparator text,
-  type text,
+  "type" text,
   value_alias text,
   PRIMARY KEY (keyspace_name, columnfamily_name)
 )
@@ -279,7 +279,7 @@ CREATE TABLE system.schema_columns (
   index_name text,
   index_options text,
   index_type text,
-  type text,
+  "type" text,
   validator text,
   PRIMARY KEY (keyspace_name, columnfamily_name, column_name)
 )
@@ -387,8 +387,8 @@ CREATE TABLE system.sstable_activity (
   keyspace_name text,
   columnfamily_name text,
   generation int,
-  rate_120m double,
-  rate_15m double,
+  "rate_120m" double,
+  "rate_15m" double,
   PRIMARY KEY ((keyspace_name, columnfamily_name, generation))
 )
 WITH bloom_filter_fp_chance = 0.01
@@ -455,10 +455,10 @@ WITH bloom_filter_fp_chance = 0.01
 CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND durable_writes = true;
 
 CREATE TABLE simplex."t1" (
-  f1 int,
-  f2 int,
-  f3 int,
-  PRIMARY KEY (f1, f2)
+  "f1" int,
+  "f2" int,
+  "f3" int,
+  PRIMARY KEY ("f1", "f2")
 )
 WITH bloom_filter_fp_chance = 0.01
  AND caching = '{"keys":"ALL", "rows_per_partition":"NONE"}'
@@ -477,12 +477,12 @@ WITH bloom_filter_fp_chance = 0.01
 CREATE INDEX "ind1" ON simplex."t1" ("f2");
 
 CREATE TABLE simplex."t2" (
-  f1 int,
-  f2 int,
-  f3 int,
-  PRIMARY KEY (f1, f2)
+  "f1" int,
+  "f2" int,
+  "f3" int,
+  PRIMARY KEY ("f1", "f2")
 )
-WITH CLUSTERING ORDER BY (f2 DESC)
+WITH CLUSTERING ORDER BY ("f2" DESC)
  AND COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
  AND caching = '{"keys":"ALL", "rows_per_partition":"NONE"}'
@@ -499,8 +499,8 @@ WITH CLUSTERING ORDER BY (f2 DESC)
  AND speculative_retry = '99.0PERCENTILE';
 
 CREATE TABLE simplex."t3" (
-  f1 int PRIMARY KEY,
-  f2 int
+  "f1" int PRIMARY KEY,
+  "f2" int
 )
 WITH bloom_filter_fp_chance = 0.01
  AND caching = '{"keys":"ALL", "rows_per_partition":"NONE"}'
