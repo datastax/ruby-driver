@@ -644,12 +644,13 @@ module Cassandra
                                            errors,
                                            hosts)
         cql = statement.cql
-
-        id, host_is_up  = synchronize {
+        id = nil
+        host_is_up = true
+        synchronize {
           if @prepared_statements[host].nil?
-            [nil, false]
+            host_is_up = false
           else
-            [@prepared_statements[host][cql], true]
+            id = @prepared_statements[host][cql]
           end
         }
 
@@ -836,11 +837,13 @@ module Cassandra
           cql = statement.cql
 
           if statement.is_a?(Statements::Bound)
-            id, host_is_up  = synchronize {
+            host_is_up = true
+            id = nil
+            synchronize {
               if @prepared_statements[host].nil?
-                [nil, false]
+                host_is_up = false
               else
-                [@prepared_statements[host][cql], true]
+                id = @prepared_statements[host][cql]
               end
             }
 
