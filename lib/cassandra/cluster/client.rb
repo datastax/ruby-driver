@@ -644,7 +644,14 @@ module Cassandra
                                            errors,
                                            hosts)
         cql = statement.cql
-        id  = synchronize { @prepared_statements[host][cql] }
+
+        id, host_is_up  = synchronize {
+          if @prepared_statements[host].nil?
+            [nil, false]
+          else
+            [@prepared_statements[host][cql], true]
+          end
+        }
 
         if id
           request.id = id
@@ -659,6 +666,19 @@ module Cassandra
                                   timeout,
                                   errors,
                                   hosts)
+        elsif !host_is_up
+          # We've hit a race condition where the plan says we can query this host, but the host has gone
+          # down in the mean time. Just execute the plan again on the next host.
+          @logger.debug("#{host} is down; executing plan on next host")
+          execute_by_plan(promise,
+                          keyspace,
+                          statement,
+                          options,
+                          request,
+                          plan,
+                          timeout,
+                          errors,
+                          hosts)
         else
           prepare = prepare_statement(host, connection, cql, timeout)
           prepare.on_complete do |_|
@@ -816,10 +836,27 @@ module Cassandra
           cql = statement.cql
 
           if statement.is_a?(Statements::Bound)
-            id = synchronize { @prepared_statements[host][cql] }
+            id, host_is_up  = synchronize {
+              if @prepared_statements[host].nil?
+                [nil, false]
+              else
+                [@prepared_statements[host][cql], true]
+              end
+            }
 
             if id
               request.add_prepared(id, statement.params, statement.params_types)
+            elsif !host_is_up
+              @logger.debug("#{host} is down; executing on next host in plan")
+              return batch_by_plan(promise,
+                                   keyspace,
+                                   statement,
+                                   options,
+                                   request,
+                                   plan,
+                                   timeout,
+                                   errors,
+                                   hosts)
             else
               unprepared[cql] << statement
             end
@@ -1156,7 +1193,7 @@ module Cassandra
               end
             when Protocol::SetKeyspaceResultResponse
               @keyspace = r.keyspace
-              promise.fulfill(Results::Void.new(r.custom_payload,
+              promise.fulfill(Cassandra::Results::Void.new(r.custom_payload,
                                                 r.warnings,
                                                 r.trace_id,
                                                 keyspace,
