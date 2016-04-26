@@ -67,13 +67,17 @@ module Cassandra
       keyspace_name = Util.escape_name(@table.keyspace.name)
       table_name = Util.escape_name(@table.name)
       index_name = Util.escape_name(@name)
-      column_name = Util.escape_name(@target)
+
+      # Target is interesting in that it's not necessarily a column name,
+      # so we can't simply escape it. If it contains a paren, we take it as is,
+      # otherwise assume it's a column name and escape accordingly.
+      escaped_target = @target.include?('(') ? @target : Util.escape_name(@target)
 
       if custom_index?
-        "CREATE CUSTOM INDEX #{index_name} ON #{keyspace_name}.#{table_name} (#{column_name}) " \
+        "CREATE CUSTOM INDEX #{index_name} ON #{keyspace_name}.#{table_name} (#{escaped_target}) " \
         "USING '#{@options['class_name']}'#{options_cql};"
       else
-        "CREATE INDEX #{index_name} ON #{keyspace_name}.#{table_name} (#{column_name});"
+        "CREATE INDEX #{index_name} ON #{keyspace_name}.#{table_name} (#{escaped_target});"
       end
     end
 

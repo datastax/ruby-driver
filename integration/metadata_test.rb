@@ -116,7 +116,7 @@ class MetadataTest < IntegrationTestCase
   def test_column_ordering_is_deterministic
     assert @cluster.keyspace('simplex').has_table?('users')
     table_meta = @cluster.keyspace('simplex').table('users')
-    table_cql = Regexp.new(/CREATE TABLE simplex\.users \(
+    table_cql = Regexp.new(/CREATE TABLE simplex\."users" \(
   user_id bigint,
   last text,
   age int,
@@ -149,9 +149,9 @@ class MetadataTest < IntegrationTestCase
     assert @cluster.keyspace('simplex').has_table?('blobby')
     table_meta = @cluster.keyspace('simplex').table('blobby')
     table_cql = Regexp.new(/CREATE TABLE simplex\.blobby \(
-  key blob PRIMARY KEY,
-  f1 blob,
-  f2 blob
+  "key" blob PRIMARY KEY,
+  "f1" blob,
+  "f2" blob
 \)/)
 
     assert_equal 0, table_meta.to_cql =~ table_cql, "actual cql: #{table_meta.to_cql}"
@@ -184,10 +184,10 @@ class MetadataTest < IntegrationTestCase
     assert @cluster.keyspace('simplex').has_table?('dense')
     table_meta = @cluster.keyspace('simplex').table('dense')
     table_cql = Regexp.new(/CREATE TABLE simplex\.dense \(
-  f1 int,
-  f2 int,
-  f3 int,
-  PRIMARY KEY \(f1, f2\)
+  "f1" int,
+  "f2" int,
+  "f3" int,
+  PRIMARY KEY \("f1", "f2"\)
 \)
 WITH COMPACT STORAGE/)
 
@@ -217,9 +217,9 @@ WITH COMPACT STORAGE/)
 
     assert @cluster.keyspace('simplex').has_table?('custom')
     table_meta = @cluster.keyspace('simplex').table('custom')
-    table_cql = Regexp.new(/CREATE TABLE simplex\.custom \(
-  f1 int PRIMARY KEY,
-  f2 'org.apache.cassandra.db.marshal.CompositeType\(org.apache.cassandra.db.marshal.UUIDType,org.apache.cassandra.db.marshal.UTF8Type\)'
+    table_cql = Regexp.new(/CREATE TABLE simplex\."custom" \(
+  "f1" int PRIMARY KEY,
+  "f2" 'org.apache.cassandra.db.marshal.CompositeType\(org.apache.cassandra.db.marshal.UUIDType,org.apache.cassandra.db.marshal.UTF8Type\)'
 \)/)
 
     assert_equal 0, table_meta.to_cql =~ table_cql, "actual cql: #{table_meta.to_cql}"

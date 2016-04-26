@@ -71,7 +71,7 @@ Feature: Schema Metadata
       Clustering order: asc
       Num columns: 4
 
-      CREATE TABLE simplex.users (
+      CREATE TABLE simplex."users" (
         user_id bigint,
         last text,
         age int,

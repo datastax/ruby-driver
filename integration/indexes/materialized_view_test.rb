@@ -152,10 +152,10 @@ class MaterializedViewTest < IntegrationTestCase
 
     assert @cluster.keyspace('simplex').has_materialized_view?('monthlyhigh')
     mv_cql = Regexp.new(/CREATE MATERIALIZED VIEW simplex.monthlyhigh AS
-SELECT game, year, month, score, user, day
+SELECT game, year, month, score, "user", day
 FROM simplex.scores
 WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL AND day IS NOT NULL
-PRIMARY KEY \(\(game, year, month\), score, user, day\)
+PRIMARY KEY \(\(game, year, month\), score, "user", day\)
 WITH bloom_filter_fp_chance = 0.01
  AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
  AND comment = ''
