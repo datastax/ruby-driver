@@ -642,6 +642,39 @@ module Cassandra
           expect(count).to eq(2)
         end
 
+        it 'RUBY-189 - handles node down after prepare' do
+          promise = double('promise')
+          plan = double('plan')
+          connection = double('connection')
+          options = {}
+          errors = {}
+          hosts = []
+          statement = double('statement')
+          expect(promise).to_not receive(:break)
+          expect(statement).to receive(:cql).and_return('select * from foo')
+          expect(client).to receive(:execute_by_plan).with(promise,
+                                                           'keyspace',
+                                                           statement,
+                                                           options,
+                                                           'request',
+                                                           plan,
+                                                           12,
+                                                           errors,
+                                                           hosts)
+          client.send(:prepare_and_send_request_by_plan,
+                      'down_host',
+                      connection,
+                      promise,
+                      'keyspace',
+                      statement,
+                      options,
+                      'request',
+                      plan,
+                      12,
+                      errors,
+                      hosts)
+        end
+
         it 're-prepares a statement on unprepared error' do
           count = 0
           error = true
@@ -907,6 +940,44 @@ module Cassandra
 
           expect(attempts).to have(2).items
           expect(attempts).to eq(hosts)
+        end
+
+        it 'RUBY-189 - handles node down after prepare in batch' do
+          promise = double('promise')
+          plan = double('plan')
+          connection = double('connection')
+          options = {}
+          errors = {}
+          hosts = []
+          request = double('request')
+          batch_statement = double('statement')
+          bound_statement = double('bound_statement')
+          expect(request).to receive(:clear)
+          expect(bound_statement).to receive(:is_a?).and_return(true)
+          expect(bound_statement).to receive(:cql).and_return('select * from foo')
+          expect(batch_statement).to receive(:statements).and_return([bound_statement])
+          expect(promise).to_not receive(:break)
+          expect(client).to receive(:batch_by_plan).with(promise,
+                                                         'keyspace',
+                                                         batch_statement,
+                                                         options,
+                                                         request,
+                                                         plan,
+                                                         12,
+                                                         errors,
+                                                         hosts)
+          client.send(:batch_and_send_request_by_plan,
+                      'down_host',
+                      connection,
+                      promise,
+                      'keyspace',
+                      batch_statement,
+                      request,
+                      options,
+                      plan,
+                      12,
+                      errors,
+                      hosts)
         end
 
         it 'raises if all hosts failed' do

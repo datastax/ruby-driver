@@ -853,7 +853,7 @@ module Cassandra
               @logger.debug("#{host} is down; executing on next host in plan")
               return batch_by_plan(promise,
                                    keyspace,
-                                   statement,
+                                   batch_statement,
                                    options,
                                    request,
                                    plan,
