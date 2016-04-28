@@ -275,7 +275,10 @@ module Cassandra
 
     # @private
     def inspect
-      "#<#{self.class.name}:0x#{object_id.to_s(16)}>"
+      "#<#{self.class.name}:0x#{object_id.to_s(16)} " \
+      "name=#{name.inspect}, " \
+      "hosts=#{hosts.inspect}, " \
+      "keyspaces=#{keyspaces.inspect}>"
     end
   end
 end
