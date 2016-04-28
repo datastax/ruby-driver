@@ -646,13 +646,13 @@ module Cassandra
         cql = statement.cql
         id = nil
         host_is_up = true
-        synchronize {
+        synchronize do
           if @prepared_statements[host].nil?
             host_is_up = false
           else
             id = @prepared_statements[host][cql]
           end
-        }
+        end
 
         if id
           request.id = id
@@ -839,13 +839,13 @@ module Cassandra
           if statement.is_a?(Statements::Bound)
             host_is_up = true
             id = nil
-            synchronize {
+            synchronize do
               if @prepared_statements[host].nil?
                 host_is_up = false
               else
                 id = @prepared_statements[host][cql]
               end
-            }
+            end
 
             if id
               request.add_prepared(id, statement.params, statement.params_types)
@@ -1197,16 +1197,16 @@ module Cassandra
             when Protocol::SetKeyspaceResultResponse
               @keyspace = r.keyspace
               promise.fulfill(Cassandra::Results::Void.new(r.custom_payload,
-                                                r.warnings,
-                                                r.trace_id,
-                                                keyspace,
-                                                statement,
-                                                options,
-                                                hosts,
-                                                request.consistency,
-                                                retries,
-                                                self,
-                                                @futures))
+                                                           r.warnings,
+                                                           r.trace_id,
+                                                           keyspace,
+                                                           statement,
+                                                           options,
+                                                           hosts,
+                                                           request.consistency,
+                                                           retries,
+                                                           self,
+                                                           @futures))
             when Protocol::PreparedResultResponse
               cql = request.cql
               synchronize do
