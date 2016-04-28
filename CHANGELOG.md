@@ -1,5 +1,8 @@
 # master
 Features:
+* Increased default request timeout (the `timeout` option to `Cassandra.cluster`), from 10 seconds to 12 seconds 
+  because C* defaults to a 10 second timeout internally. The extra two seconds is buffer so that the client can
+  report the timeout in the server. This is also consistent with the Java driver.
 
 Bug Fixes:
 

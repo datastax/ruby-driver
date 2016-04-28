@@ -165,7 +165,7 @@ module Cassandra
     let(:page_size)                 { 10000 }
     let(:heartbeat_interval)        { 30 }
     let(:idle_timeout)              { 60 }
-    let(:timeout)                   { 10 }
+    let(:timeout)                   { 12 }
     let(:synchronize_schema)        { true }
     let(:schema_refresh_delay)      { 1 }
     let(:schema_refresh_timeout)    { 10 }
