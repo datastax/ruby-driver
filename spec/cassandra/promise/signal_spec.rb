@@ -129,7 +129,7 @@ module Cassandra
             signal
             Thread.new { resolved = true; sleep(0.02); signal.success(value) }
             expect { signal.get(0) }.to raise_error(Errors::TimeoutError)
-            expect(signal.get(0.03)).to eq(value)
+            expect(signal.get(0.05)).to eq(value)
             expect(resolved).to be_truthy
           end
         end
