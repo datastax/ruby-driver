@@ -43,7 +43,7 @@ module Cassandra
       let(:client) {
         Client.new(driver.logger, driver.cluster_registry, driver.cluster_schema, driver.io_reactor, driver.connector,
                    driver.load_balancing_policy, driver.reconnection_policy, driver.retry_policy,
-                   driver.address_resolution_policy, driver.connection_options, driver.futures_factory, driver.timestamp_generator)
+                   driver.address_resolution_policy, driver.connection_options, driver.futures_factory)
       }
 
       let(:promise) { double('promise') }

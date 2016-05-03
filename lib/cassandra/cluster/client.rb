@@ -34,8 +34,7 @@ module Cassandra
                      retry_policy,
                      address_resolution_policy,
                      connection_options,
-                     futures_factory,
-                     timestamp_generator)
+                     futures_factory)
         @logger                      = logger
         @registry                    = cluster_registry
         @schema                      = cluster_schema
@@ -53,7 +52,6 @@ module Cassandra
         @pending_connections         = ::Hash.new
         @keyspace                    = nil
         @state                       = :idle
-        @timestamp_generator         = timestamp_generator
 
         mon_initialize
       end
@@ -233,7 +231,7 @@ module Cassandra
         timestamp = nil
         if @connection_options.client_timestamps? &&
            @connection_options.protocol_version > 2
-          timestamp = @timestamp_generator.next
+          timestamp = @connection_options.client_timestamps.next
         end
         payload   = nil
         payload   = options.payload if @connection_options.protocol_version >= 4
@@ -291,7 +289,7 @@ module Cassandra
         timestamp = nil
         if @connection_options.client_timestamps? &&
            @connection_options.protocol_version > 2
-          timestamp = @timestamp_generator.next
+          timestamp = @connection_options.client_timestamps.next
         end
         payload         = nil
         payload         = options.payload if @connection_options.protocol_version >= 4
@@ -329,7 +327,7 @@ module Cassandra
         timestamp = nil
         if @connection_options.client_timestamps? &&
            @connection_options.protocol_version > 2
-          timestamp = @timestamp_generator.next
+          timestamp = @connection_options.client_timestamps.next
         end
         payload   = nil
         payload   = options.payload if @connection_options.protocol_version >= 4

@@ -107,8 +107,7 @@ module Cassandra
                   retry_policy,
                   address_resolution_policy,
                   connector,
-                  futures_factory,
-                  timestamp_generator)
+                  futures_factory)
     end
 
     let(:execution_options) do
@@ -174,13 +173,6 @@ module Cassandra
     let(:shuffle_replicas)          { true }
     let(:client_timestamps)         { false }
     let(:nodelay)                   { true }
-    let(:timestamp_generator) do
-      if RUBY_ENGINE == 'jruby'
-        Cassandra::TimestampGenerator::TickingOnDuplicate.new
-      else
-        Cassandra::TimestampGenerator::Simple.new
-      end
-    end
     let(:connections_per_local_node)  { nil }
     let(:connections_per_remote_node) { nil }
     let(:requests_per_connection) { nil }

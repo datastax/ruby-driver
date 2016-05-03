@@ -1,6 +1,6 @@
 # master
 Features:
-* Add timestamp_generator cluster configuration option to allow user to specify his own generator for client timestamps.
+* Expand :client_timestamps cluster configuration option to allow user to specify his own generator for client timestamps.
 
 Bug Fixes:
 * [RUBY-214](https://datastax-oss.atlassian.net/browse/RUBY-214) Client timestamps in JRuby are not fine-grained enough, causing timestamp collisions and lost rows in C*.
