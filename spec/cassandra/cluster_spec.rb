@@ -33,7 +33,7 @@ module Cassandra
                                })
                              }
 
-    let(:cluster) { Cluster.new(driver.logger, io_reactor, executor, control_connection, cluster_registry, driver.cluster_schema, driver.cluster_metadata, driver.execution_options, driver.connection_options, load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.address_resolution_policy, driver.connector, driver.futures_factory) }
+    let(:cluster) { Cluster.new(driver.logger, io_reactor, executor, control_connection, cluster_registry, driver.cluster_schema, driver.cluster_metadata, driver.execution_options, driver.connection_options, load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.address_resolution_policy, driver.connector, driver.futures_factory, driver.timestamp_generator) }
 
     before do
       io_reactor.connection_options = driver.connection_options

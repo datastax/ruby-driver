@@ -379,6 +379,16 @@ describe Cassandra do
       expect(C.validate(client_timestamps: 0)).to eq({client_timestamps: true})
     end
 
+    it 'should validate :timestamp_generator' do
+      valid_generator = Object.new
+      def valid_generator.next
+        42
+      end
+      expect { C.validate(timestamp_generator: Object.new) }.to raise_error(ArgumentError)
+      expect(C.validate(timestamp_generator: valid_generator)).
+          to eq({ timestamp_generator: valid_generator })
+    end
+
     it 'should validate :connections_per_local_node' do
       expect { C.validate(connections_per_local_node: 'a') }.to raise_error(ArgumentError)
       expect { C.validate(connections_per_local_node: 0) }.to raise_error(ArgumentError)

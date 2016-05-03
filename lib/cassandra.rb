@@ -91,6 +91,7 @@ module Cassandra
     :ssl,
     :synchronize_schema,
     :timeout,
+    :timestamp_generator,
     :trace,
     :username
   ].freeze
@@ -192,9 +193,14 @@ module Cassandra
   #
   # @option options [Boolean] :client_timestamps (false) whether the driver
   #   should send timestamps for each executed statement. Enabling this setting
-  #   allows mitigating Cassandra cluster clock skew because the timestamp of
+  #   helps mitigate Cassandra cluster clock skew because the timestamp of
   #   the client machine will be used. This does not help mitigate application
   #   cluster clock skew.
+  #
+  # @option options [Cassandra::Protocol::Timestamp::Generator] :timestamp_generator the timestamp generator to use for
+  #   client timestamps (if :client_timestamps is true). Defaults to
+  #   {Cassandra::Protocol::Timestamp::TimeBasedGenerator} for all Ruby flavors
+  #   except JRuby. On JRuby, it defaults to {Cassandra::Protocol::Timestamp::JRubyTimeBasedGenerator}.
   #
   # @option options [Boolean] :synchronize_schema (true) whether the driver
   #   should automatically keep schema metadata synchronized. When enabled, the
@@ -683,6 +689,15 @@ module Cassandra
 
     options[:synchronize_schema] = !!options[:synchronize_schema] if options.key?(:synchronize_schema)
     options[:client_timestamps] = !!options[:client_timestamps] if options.key?(:client_timestamps)
+
+    if options.key?(:timestamp_generator)
+      timestamp_generator = options[:timestamp_generator]
+
+      Util.assert_responds_to(:next, timestamp_generator) do
+        ":timestamp_generator #{timestamp_generator.inspect} must respond to " \
+            ":next, but doesn't"
+      end
+    end
 
     if options.key?(:connections_per_local_node)
       connections_per_node = options[:connections_per_local_node]
