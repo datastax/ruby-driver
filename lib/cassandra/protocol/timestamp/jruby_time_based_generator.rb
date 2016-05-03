@@ -41,45 +41,17 @@ module Cassandra
         def next
           now = ::Time.now
           now_millis = now.tv_sec * 1000 + now.tv_usec / 1000
-          last = @last
-          last_millis = last / 1000
-          if last_millis < now_millis
-            # Since milliseconds changed, we don't need to do the special counter logic to avoid collisions.
-            new_last = now_millis * 1000
-
-            synchronize do
-              if last == @last
-                # last didn't change beneath us while we did the above calculations, so we can set it with our new value.
-                @last = new_last
-              else
-                # Since last did change, it means our calculations above are now out-of-date and we need to
-                # recalculate and update. Now that we're under the lock, no one else can pull the rug out from
-                # under us and the calculation is stable.
-                update_last(now_millis)
-              end
-              return @last
-            end
-          end
-
-          # If we get here, it means we're in the same millisecond as 'last', so we need to grab the lock,
-          # re-check that we're still in the same ms as 'last', and update last appropriately.
           synchronize do
-            update_last(now_millis)
+            millis = @last / 1000
+            counter = @last % 1000
+            if millis >= now_millis
+              counter += 1
+            else
+              millis = now_millis
+              counter = 0
+            end
+            @last = millis * 1000 + counter
           end
-        end
-
-        private
-        # @private
-        def update_last(now_millis)
-          millis = @last / 1000
-          counter = @last % 1000
-          if millis >= now_millis
-            counter += 1
-          else
-            millis = now_millis
-            counter = 0
-          end
-          @last = millis * 1000 + counter
         end
       end
     end
