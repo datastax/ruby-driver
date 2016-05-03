@@ -197,10 +197,10 @@ module Cassandra
   #   the client machine will be used. This does not help mitigate application
   #   cluster clock skew.
   #
-  # @option options [Cassandra::Protocol::Timestamp::Generator] :timestamp_generator the timestamp generator to use for
+  # @option options [Cassandra::TimestampGenerator] :timestamp_generator the timestamp generator to use for
   #   client timestamps (if :client_timestamps is true). Defaults to
-  #   {Cassandra::Protocol::Timestamp::TimeBasedGenerator} for all Ruby flavors
-  #   except JRuby. On JRuby, it defaults to {Cassandra::Protocol::Timestamp::JRubyTimeBasedGenerator}.
+  #   {Cassandra::TimestampGenerator::Simple} for all Ruby flavors
+  #   except JRuby. On JRuby, it defaults to {Cassandra::TimestampGenerator::TickingOnDuplicate}.
   #
   # @option options [Boolean] :synchronize_schema (true) whether the driver
   #   should automatically keep schema metadata synchronized. When enabled, the
@@ -808,6 +808,7 @@ require 'cassandra/load_balancing'
 require 'cassandra/reconnection'
 require 'cassandra/retry'
 require 'cassandra/address_resolution'
+require 'cassandra/timestamp_generator'
 
 require 'cassandra/util'
 

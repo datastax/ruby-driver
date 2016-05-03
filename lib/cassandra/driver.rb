@@ -176,9 +176,9 @@ module Cassandra
     let(:nodelay)                   { true }
     let(:timestamp_generator) do
       if RUBY_ENGINE == 'jruby'
-        Cassandra::Protocol::Timestamp::JRubyTimeBasedGenerator.new
+        Cassandra::TimestampGenerator::TickingOnDuplicate.new
       else
-        Cassandra::Protocol::Timestamp::TimeBasedGenerator.new
+        Cassandra::TimestampGenerator::Simple.new
       end
     end
     let(:connections_per_local_node)  { nil }
