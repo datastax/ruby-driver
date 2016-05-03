@@ -37,7 +37,7 @@ module Cassandra
 
         # Create a new timestamp, as a 64-bit integer.
         #
-        # @return [Integer] an integer representing a timestamp.
+        # @return [Integer] an integer representing a timestamp in microseconds.
         def next
           now = ::Time.now
           now_millis = now.tv_sec * 1000 + now.tv_usec / 1000

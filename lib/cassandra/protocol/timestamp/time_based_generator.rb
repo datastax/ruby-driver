@@ -25,7 +25,7 @@ module Cassandra
       class TimeBasedGenerator
         # Create a new timestamp, as a 64-bit integer. This is just a wrapper around Time::now.
         #
-        # @return [Integer] an integer representing a timestamp.
+        # @return [Integer] an integer representing a timestamp in microseconds.
         def next
           # Use Time.now, which has microsecond precision on MRI (and probably Rubinius) to make an int representing
           # client timestamp in protocol requests.
