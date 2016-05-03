@@ -23,13 +23,15 @@ module Cassandra
   # @abstract A timestamp generator given to {Cassandra.cluster} doesn't need to include this module, but needs to
   #   implement the same methods. This module exists only for documentation purposes.
   module TimestampGenerator
-    # @!method next
-    #
     # Create a new timestamp, as a 64-bit integer. Calls must return monotonically increasing values.
     #
     # @return [Integer] an integer representing a timestamp in microseconds.
+    # @raise [NotImplementedError] if a class including this module does not define this method.
+    def next
+      raise NotImplementedError, "#{self.class} class must implement the 'next' method"
+    end
   end
 end
 
-require 'cassandra/timestamp_generator/ticking_on_duplicate_generator'
+require 'cassandra/timestamp_generator/ticking_on_duplicate'
 require 'cassandra/timestamp_generator/simple'
