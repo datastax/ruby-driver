@@ -136,7 +136,6 @@ module Cassandra
         synchronize_schema,
         schema_refresh_delay,
         schema_refresh_timeout,
-        !timestamp_generator.nil?,
         nodelay,
         requests_per_connection
       )

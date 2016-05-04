@@ -17,22 +17,22 @@
 #++
 
 module Cassandra
-    module TimestampGenerator
-      # Generate long integer timestamps from current time. This implementation relies on the {::Time} class to return
-      # microsecond precision time.
-      # @note It is not appropriate for use with JRuby because its {::Time#now} returns millisecond precision time.
-      class Simple
-        include TimestampGenerator
+  module TimestampGenerator
+    # Generate long integer timestamps from current time. This implementation relies on the {::Time} class to return
+    # microsecond precision time.
+    # @note It is not appropriate for use with JRuby because its {::Time#now} returns millisecond precision time.
+    class Simple
+      include TimestampGenerator
 
-        # Create a new timestamp, as a 64-bit integer. This is just a wrapper around Time::now.
-        #
-        # @return [Integer] an integer representing a timestamp in microseconds.
-        def next
-          # Use Time.now, which has microsecond precision on MRI (and probably Rubinius) to make an int representing
-          # client timestamp in protocol requests.
-          timestamp = ::Time.now
-          timestamp.tv_sec * 1000000 + timestamp.tv_usec
-        end
+      # Create a new timestamp, as a 64-bit integer. This is just a wrapper around Time::now.
+      #
+      # @return [Integer] an integer representing a timestamp in microseconds.
+      def next
+        # Use Time.now, which has microsecond precision on MRI (and probably Rubinius) to make an int representing
+        # client timestamp in protocol requests.
+        timestamp = ::Time.now
+        timestamp.tv_sec * 1000000 + timestamp.tv_usec
       end
     end
+  end
 end

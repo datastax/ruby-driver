@@ -25,7 +25,7 @@ module Cassandra
       attr_reader :auth_provider, :compressor, :connect_timeout, :credentials,
                   :heartbeat_interval, :idle_timeout, :port, :schema_refresh_delay,
                   :schema_refresh_timeout, :ssl
-      attr_boolean :protocol_negotiable, :synchronize_schema, :client_timestamps, :nodelay
+      attr_boolean :protocol_negotiable, :synchronize_schema, :nodelay
 
       attr_accessor :protocol_version
 
@@ -44,7 +44,6 @@ module Cassandra
                      synchronize_schema,
                      schema_refresh_delay,
                      schema_refresh_timeout,
-                     client_timestamps,
                      nodelay,
                      requests_per_connection)
         @logger                 = logger
@@ -60,7 +59,6 @@ module Cassandra
         @synchronize_schema     = synchronize_schema
         @schema_refresh_delay   = schema_refresh_delay
         @schema_refresh_timeout = schema_refresh_timeout
-        @client_timestamps      = client_timestamps
         @nodelay                = nodelay
 
         @connections_per_local_node  = connections_per_local_node

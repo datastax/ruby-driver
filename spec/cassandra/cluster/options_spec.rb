@@ -26,7 +26,7 @@ def make_options(logger,
   Cassandra::Cluster::Options.new(
       logger, protocol_version, nil, nil, nil, nil, nil, false,
       connections_per_local_node, connections_per_remote_node, 60, 30, true, 1, 10,
-      true, true, requests_per_connection)
+      true, requests_per_connection)
 end
 
 module Cassandra
