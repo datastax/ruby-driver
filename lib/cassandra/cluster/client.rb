@@ -1358,7 +1358,7 @@ module Cassandra
                 promise.fulfill(
                   Results::Void.new(r.custom_payload,
                                     r.warnings,
-                                    r.trace_id,
+                                    nil,
                                     keyspace,
                                     statement,
                                     options,

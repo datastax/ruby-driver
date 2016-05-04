@@ -733,6 +733,31 @@ module Cassandra
           end.to raise_error(Cassandra::Errors::InvalidError, 'blargh')
         end
 
+        it 'returns a Void result when there is a write-timeout with downgrading-consistency policy' do
+          driver_settings[:retry_policy] = Retry::Policies::DowngradingConsistency.new
+          io_reactor.on_connection do |connection|
+            connection.handle_request do |request|
+              case request
+                when Cassandra::Protocol::OptionsRequest
+                  Cassandra::Protocol::SupportedResponse.new({})
+                when Cassandra::Protocol::StartupRequest
+                  Cassandra::Protocol::ReadyResponse.new
+                when Cassandra::Protocol::PrepareRequest
+                  Protocol::PreparedResultResponse.new(nil, nil, 123, [], [], nil, nil)
+                when Cassandra::Protocol::ExecuteRequest
+                  Protocol::WriteTimeoutErrorResponse.new(nil, nil, 123, 'write timeout', :one, 'x', 'y', 'simple')
+              end
+            end
+          end
+
+          client.connect.value
+
+          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
+
+          expect(client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get)
+              .to be_instance_of(Results::Void)
+        end
+
         it 'raises if all hosts failed' do
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
