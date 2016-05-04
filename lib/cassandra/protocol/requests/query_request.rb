@@ -71,7 +71,7 @@ module Cassandra
           buffer.append_int(@page_size) if @page_size
           buffer.append_bytes(@paging_state) if @paging_state
           buffer.append_consistency(@serial_consistency) if @serial_consistency
-          buffer.append_timestamp(@timestamp) if protocol_version > 2 && @timestamp
+          buffer.append_long(@timestamp) if protocol_version > 2 && @timestamp
         end
         buffer
       end
