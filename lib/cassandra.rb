@@ -687,27 +687,31 @@ module Cassandra
     options[:synchronize_schema] = !!options[:synchronize_schema] if options.key?(:synchronize_schema)
 
     if options.key?(:client_timestamps)
-      options[:client_timestamps] = case options[:client_timestamps]
+      options[:timestamp_generator] = case options[:client_timestamps]
                                       when true
                                         if RUBY_ENGINE == 'jruby'
                                           Cassandra::TimestampGenerator::TickingOnDuplicate.new
                                         else
                                           Cassandra::TimestampGenerator::Simple.new
                                         end
+				      when false
+				        nil
                                       when :simple
                                         Cassandra::TimestampGenerator::Simple.new
                                       when :monotonic
                                         Cassandra::TimestampGenerator::TickingOnDuplicate.new
                                       else
+				        # The value must be a generator instance.
                                         options[:client_timestamps]
                                     end
 
-      if options[:client_timestamps]
-        Util.assert_responds_to(:next, options[:client_timestamps]) do
+      if options[:timestamp_generator]
+        Util.assert_responds_to(:next, options[:timestamp_generator]) do
           ":client_timestamps #{options[:client_timestamps].inspect} must be a boolean, :simple, :monotonic, or " \
           "an object that responds to :next"
         end
       end
+      options.delete(:client_timestamps)
     end
 
     if options.key?(:connections_per_local_node)

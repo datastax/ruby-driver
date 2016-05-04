@@ -107,7 +107,8 @@ module Cassandra
                   retry_policy,
                   address_resolution_policy,
                   connector,
-                  futures_factory)
+                  futures_factory,
+                  timestamp_generator)
     end
 
     let(:execution_options) do
@@ -135,7 +136,7 @@ module Cassandra
         synchronize_schema,
         schema_refresh_delay,
         schema_refresh_timeout,
-        client_timestamps,
+        !timestamp_generator.nil?,
         nodelay,
         requests_per_connection
       )
@@ -171,8 +172,8 @@ module Cassandra
     let(:schema_refresh_timeout)    { 10 }
     let(:thread_pool_size)          { 4 }
     let(:shuffle_replicas)          { true }
-    let(:client_timestamps)         { false }
     let(:nodelay)                   { true }
+    let(:timestamp_generator)       { nil }
     let(:connections_per_local_node)  { nil }
     let(:connections_per_remote_node) { nil }
     let(:requests_per_connection) { nil }

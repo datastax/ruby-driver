@@ -22,10 +22,10 @@ module Cassandra
     class Options
       extend AttrBoolean
 
-      attr_reader :auth_provider, :client_timestamps, :compressor, :connect_timeout, :credentials,
+      attr_reader :auth_provider, :compressor, :connect_timeout, :credentials,
                   :heartbeat_interval, :idle_timeout, :port, :schema_refresh_delay,
                   :schema_refresh_timeout, :ssl
-      attr_boolean :protocol_negotiable, :synchronize_schema, :nodelay
+      attr_boolean :protocol_negotiable, :synchronize_schema, :client_timestamps, :nodelay
 
       attr_accessor :protocol_version
 
@@ -74,10 +74,6 @@ module Cassandra
 
         @protocol_negotiable = @protocol_version.nil?
         @protocol_version ||= 4
-      end
-
-      def client_timestamps?
-        !@client_timestamps.nil? && @client_timestamps
       end
 
       def compression
