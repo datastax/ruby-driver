@@ -292,7 +292,6 @@ module Cassandra
         if @connection_options.client_timestamps? &&
            @connection_options.protocol_version > 2
           timestamp = @timestamp_generator.next
-          Thread.current[:timestamps] << timestamp
         end
         payload         = nil
         payload         = options.payload if @connection_options.protocol_version >= 4
