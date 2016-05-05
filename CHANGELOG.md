@@ -3,6 +3,7 @@ Features:
 * Expand :client_timestamps cluster configuration option to allow user to specify his own generator for client timestamps.
 
 Bug Fixes:
+* [RUBY-207](https://datastax-oss.atlassian.net/browse/RUBY-207) Get NoMethodError when handling a write-timeout error using a downgrading consistency retry policy.
 * [RUBY-214](https://datastax-oss.atlassian.net/browse/RUBY-214) Client timestamps in JRuby are not fine-grained enough, causing timestamp collisions and lost rows in C*.
 
 # 3.0.0 rc2
