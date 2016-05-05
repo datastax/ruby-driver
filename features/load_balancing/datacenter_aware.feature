@@ -6,9 +6,10 @@ Feature: Datacenter-aware Round Robin Policy
   datacenter if necessary. The name of the local datacenter must be supplied by
   the user.
 
-  All known remote hosts will be tried when local nodes are not available.
-  However, you can configure the exact number of remote hosts that will be used
-  by passing that number when constructing a policy instance.
+  By default, this policy will not actually fall back to nodes of a remote datacenter.
+  You must configure the exact number of remote hosts that will be used
+  by passing that number when constructing a policy instance. A nil value means there
+  is no limit on remote hosts to be potentially used.
 
   By default, this policy will not attempt to use remote hosts for local
   consistencies (`:local_one` or `:local_quorum`), however, it is possible to
@@ -107,7 +108,8 @@ Feature: Datacenter-aware Round Robin Policy
       require 'cassandra'
 
       datacenter = "dc2"
-      policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
+      # NOTE: second arg to policy constructor, indicating any number of remote nodes may be used.
+      policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, nil)
       cluster    = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
       session    = cluster.connect('simplex')
 
@@ -159,7 +161,7 @@ Feature: Datacenter-aware Round Robin Policy
       require 'cassandra'
 
       datacenter = "dc2"
-      policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
+      policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, nil)
       cluster    = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
       session    = cluster.connect('simplex')
 

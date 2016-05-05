@@ -87,7 +87,7 @@ class TokenAwareTest < IntegrationTestCase
 
   def test_token_aware_routes_to_next_replica_if_primary_down
     setup_schema
-    base_policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new('dc1')
+    base_policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new('dc1', nil)
     policy = Cassandra::LoadBalancing::Policies::TokenAware.new(base_policy)
     cluster = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
@@ -169,7 +169,7 @@ class TokenAwareTest < IntegrationTestCase
   def test_token_aware_routes_to_secondary_replica_if_primary_dc_down
     setup_schema
     datacenter = "dc2"
-    base_policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
+    base_policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, nil)
     policy = Cassandra::LoadBalancing::Policies::TokenAware.new(base_policy)
     cluster = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
