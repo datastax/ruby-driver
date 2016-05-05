@@ -580,7 +580,7 @@ class SessionTest < IntegrationTestCase
 
     setup_schema
     begin
-      cluster = Cassandra.cluster(client_timestamps: true)
+      cluster = Cassandra.cluster(client_timestamps: :simple)
       session = cluster.connect("simplex")
 
       # Insert in the present

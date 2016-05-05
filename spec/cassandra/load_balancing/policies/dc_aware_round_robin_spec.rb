@@ -23,7 +23,7 @@ module Cassandra
     module Policies
       describe(DCAwareRoundRobin) do
         let(:datacenter)                             { 'DC1' }
-        let(:max_remote_hosts_to_use)                { nil }
+        let(:max_remote_hosts_to_use)                { 0 }
         let(:use_remote_hosts_for_local_consistency) { false }
 
         let(:policy) { DCAwareRoundRobin.new(datacenter, max_remote_hosts_to_use, use_remote_hosts_for_local_consistency) }
@@ -33,6 +33,15 @@ module Cassandra
         let(:host) { Host.new('127.0.0.1', nil, nil, host_datacenter) }
 
         let(:distance) { policy.distance(host) }
+
+        describe '#constructor' do
+          let(:use_remote_hosts_for_local_consistency) { true }
+          it 'should error out if use_remmote_hosts_for_local_consistency is true and max_remote_hosts_to_use is 0' do
+            expect {
+              policy
+            }.to raise_error(ArgumentError)
+          end
+        end
 
         describe('#host_up') do
           before do
@@ -49,6 +58,7 @@ module Cassandra
             end
 
             context('and another host in remote datacenter is up') do
+              let(:max_remote_hosts_to_use)                { nil }
               let(:another_host) { Host.new('127.0.0.2', nil, nil, host_datacenter) }
 
               before do

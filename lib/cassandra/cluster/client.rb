@@ -34,7 +34,8 @@ module Cassandra
                      retry_policy,
                      address_resolution_policy,
                      connection_options,
-                     futures_factory)
+                     futures_factory,
+                     timestamp_generator)
         @logger                      = logger
         @registry                    = cluster_registry
         @schema                      = cluster_schema
@@ -52,6 +53,7 @@ module Cassandra
         @pending_connections         = ::Hash.new
         @keyspace                    = nil
         @state                       = :idle
+        @timestamp_generator         = timestamp_generator
 
         mon_initialize
       end
@@ -228,11 +230,7 @@ module Cassandra
               'Apache Cassandra'))
         end
 
-        timestamp = nil
-        if @connection_options.client_timestamps? &&
-           @connection_options.protocol_version > 2
-          timestamp = ::Time.now
-        end
+        timestamp = @timestamp_generator.next if @timestamp_generator && @connection_options.protocol_version > 2
         payload   = nil
         payload   = options.payload if @connection_options.protocol_version >= 4
         request   = Protocol::QueryRequest.new(statement.cql,
@@ -286,11 +284,7 @@ module Cassandra
       end
 
       def execute(statement, options)
-        timestamp = nil
-        if @connection_options.client_timestamps? &&
-           @connection_options.protocol_version > 2
-          timestamp = ::Time.now
-        end
+        timestamp = @timestamp_generator.next if @timestamp_generator && @connection_options.protocol_version > 2
         payload         = nil
         payload         = options.payload if @connection_options.protocol_version >= 4
         timeout         = options.timeout
@@ -324,11 +318,7 @@ module Cassandra
               'Apache Cassandra'))
         end
 
-        timestamp = nil
-        if @connection_options.client_timestamps? &&
-           @connection_options.protocol_version > 2
-          timestamp = ::Time.now
-        end
+        timestamp = @timestamp_generator.next if @timestamp_generator && @connection_options.protocol_version > 2
         payload   = nil
         payload   = options.payload if @connection_options.protocol_version >= 4
         timeout   = options.timeout
@@ -646,13 +636,13 @@ module Cassandra
         cql = statement.cql
         id = nil
         host_is_up = true
-        synchronize {
+        synchronize do
           if @prepared_statements[host].nil?
             host_is_up = false
           else
             id = @prepared_statements[host][cql]
           end
-        }
+        end
 
         if id
           request.id = id
@@ -839,13 +829,13 @@ module Cassandra
           if statement.is_a?(Statements::Bound)
             host_is_up = true
             id = nil
-            synchronize {
+            synchronize do
               if @prepared_statements[host].nil?
                 host_is_up = false
               else
                 id = @prepared_statements[host][cql]
               end
-            }
+            end
 
             if id
               request.add_prepared(id, statement.params, statement.params_types)
@@ -1197,16 +1187,16 @@ module Cassandra
             when Protocol::SetKeyspaceResultResponse
               @keyspace = r.keyspace
               promise.fulfill(Cassandra::Results::Void.new(r.custom_payload,
-                                                r.warnings,
-                                                r.trace_id,
-                                                keyspace,
-                                                statement,
-                                                options,
-                                                hosts,
-                                                request.consistency,
-                                                retries,
-                                                self,
-                                                @futures))
+                                                           r.warnings,
+                                                           r.trace_id,
+                                                           keyspace,
+                                                           statement,
+                                                           options,
+                                                           hosts,
+                                                           request.consistency,
+                                                           retries,
+                                                           self,
+                                                           @futures))
             when Protocol::PreparedResultResponse
               cql = request.cql
               synchronize do
@@ -1368,7 +1358,7 @@ module Cassandra
                 promise.fulfill(
                   Results::Void.new(r.custom_payload,
                                     r.warnings,
-                                    r.trace_id,
+                                    nil,
                                     keyspace,
                                     statement,
                                     options,

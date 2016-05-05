@@ -62,7 +62,7 @@ module Cassandra
         include MonitorMixin
 
         def initialize(datacenter = nil,
-                       max_remote_hosts_to_use = nil,
+                       max_remote_hosts_to_use = 0,
                        use_remote_hosts_for_local_consistency = false)
           datacenter              &&= String(datacenter)
           max_remote_hosts_to_use &&= Integer(max_remote_hosts_to_use)
@@ -73,6 +73,13 @@ module Cassandra
             Util.assert(max_remote_hosts_to_use >= 0) do
               'max_remote_hosts_to_use must be nil or >= 0'
             end
+          end
+
+          # If use_remote* is true, max_remote* must be > 0
+          if use_remote_hosts_for_local_consistency
+            Util.assert(max_remote_hosts_to_use.nil? || max_remote_hosts_to_use > 0,
+                        'max_remote_hosts_to_use must be nil (meaning unlimited) or > 0 when ' \
+                        'use_remote_hosts_for_local_consistency is true')
           end
 
           @datacenter = datacenter

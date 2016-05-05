@@ -118,7 +118,7 @@ class RoundRobinTest < IntegrationTestCase
   def test_dc_aware_round_robin_queries_to_remote_dc_if_local_down
     setup_schema
     datacenter = "dc2"
-    policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
+    policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, nil)
     cluster = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
 
@@ -138,7 +138,7 @@ class RoundRobinTest < IntegrationTestCase
   def test_raise_error_on_dc_aware_round_robin_unable_to_query_to_required_dc
     setup_schema
     datacenter = "dc1"
-    policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
+    policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, nil)
     cluster = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
     session = cluster.connect("simplex")
 

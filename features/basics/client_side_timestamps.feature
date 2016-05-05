@@ -23,7 +23,15 @@ Feature: Client-side Timestamps
       require 'cassandra'
       require 'delorean'
 
-      cluster = Cassandra.cluster(client_timestamps: true)
+      # Enable client-side timestamps. Valid values:
+      # nil / false : don't enable client-side timestamps. This is the default.
+      # true : enable client-side timestamps and use the default timestamp generator for the Ruby flavor being used:
+      #     JRuby - Cassandra::TimestampGenerator::TickingOnDuplicate
+      #     MRI/Rubinius - Cassandra::TimestampGenerator::Simple
+      # :simple : enable client-side timestamps and use a Cassandra::TimestampGenerator::Simple generator.
+      # :monotonic : enable client-side timestamps and use a Cassandra::TimestampGenerator::TickingOnDuplicate generator.
+
+      cluster = Cassandra.cluster(client_timestamps: :simple)
       session = cluster.connect("simplex")
 
       # Insert in the present

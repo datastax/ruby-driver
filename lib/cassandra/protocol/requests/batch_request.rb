@@ -81,7 +81,7 @@ module Cassandra
 
           buffer.append(flags.chr)
           buffer.append_consistency(@serial_consistency) if @serial_consistency
-          buffer.append_timestamp(@timestamp) if @timestamp
+          buffer.append_long(@timestamp) if @timestamp
         end
 
         buffer

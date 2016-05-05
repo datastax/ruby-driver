@@ -190,11 +190,14 @@ module Cassandra
   #   nodes. By default, this is auto-negotiated to the lowest common protocol version
   #   that all nodes in `:hosts` speak.
   #
-  # @option options [Boolean] :client_timestamps (false) whether the driver
-  #   should send timestamps for each executed statement. Enabling this setting
-  #   allows mitigating Cassandra cluster clock skew because the timestamp of
-  #   the client machine will be used. This does not help mitigate application
-  #   cluster clock skew.
+  # @option options [Boolean, Cassandra::TimestampGenerator] :client_timestamps (false) whether the driver
+  #   should send timestamps for each executed statement and possibly which timestamp generator to use. Enabling this
+  #   setting helps mitigate Cassandra cluster clock skew because the timestamp of the client machine will be used.
+  #   This does not help mitigate application cluster clock skew. Also accepts an initialized
+  #   {Cassandra::TimestampGenerator}, `:simple` (indicating an instance of {Cassandra::TimestampGenerator::Simple}),
+  #   or `:monotonic` (indicating an instance of {Cassandra::TimestampGenerator::TickingOnDuplicate}). If set to true,
+  #   it defaults to {Cassandra::TimestampGenerator::Simple} for all Ruby flavors except JRuby. On JRuby, it defaults to
+  #   {Cassandra::TimestampGenerator::TickingOnDuplicate}.
   #
   # @option options [Boolean] :synchronize_schema (true) whether the driver
   #   should automatically keep schema metadata synchronized. When enabled, the
@@ -682,7 +685,35 @@ module Cassandra
     end
 
     options[:synchronize_schema] = !!options[:synchronize_schema] if options.key?(:synchronize_schema)
-    options[:client_timestamps] = !!options[:client_timestamps] if options.key?(:client_timestamps)
+
+    if options.key?(:client_timestamps)
+      timestamp_generator = case options[:client_timestamps]
+                            when true
+                              if RUBY_ENGINE == 'jruby'
+                                Cassandra::TimestampGenerator::TickingOnDuplicate.new
+                              else
+                                Cassandra::TimestampGenerator::Simple.new
+                              end
+                            when false
+                              nil
+                            when :simple
+                              Cassandra::TimestampGenerator::Simple.new
+                            when :monotonic
+                              Cassandra::TimestampGenerator::TickingOnDuplicate.new
+                            else
+                              # The value must be a generator instance.
+                              options[:client_timestamps]
+                            end
+
+      if timestamp_generator
+        Util.assert_responds_to(:next, timestamp_generator) do
+          ":client_timestamps #{options[:client_timestamps].inspect} must be a boolean, :simple, :monotonic, or " \
+          'an object that responds to :next'
+        end
+      end
+      options.delete(:client_timestamps)
+      options[:timestamp_generator] = timestamp_generator
+    end
 
     if options.key?(:connections_per_local_node)
       connections_per_node = options[:connections_per_local_node]
@@ -793,6 +824,7 @@ require 'cassandra/load_balancing'
 require 'cassandra/reconnection'
 require 'cassandra/retry'
 require 'cassandra/address_resolution'
+require 'cassandra/timestamp_generator'
 
 require 'cassandra/util'
 
