@@ -1,5 +1,8 @@
 # master
 Features:
+* Increased default request timeout (the `timeout` option to `Cassandra.cluster`), from 10 seconds to 12 seconds 
+  because C* defaults to a 10 second timeout internally. The extra two seconds is buffer so that the client can
+  report the timeout in the server. This is also consistent with the Java driver.
 * Expand :client_timestamps cluster configuration option to allow user to specify his own generator for client timestamps.
 
 Bug Fixes:
@@ -7,10 +10,9 @@ Bug Fixes:
 * [RUBY-214](https://datastax-oss.atlassian.net/browse/RUBY-214) Client timestamps in JRuby are not fine-grained enough, causing timestamp collisions and lost rows in C*.
 
 Breaking Changes:
-
 * The Datacenter-aware load balancing policy (Cassandra::LoadBalancing::Policies::DCAwareRoundRobin) defaults to using
   nodes in the local DC only. In prior releases, the policy would fall back to remote nodes after exhausting local nodes.
-  Specify a positive value for `max_remote_hosts_to_use` when initializing the policy to allow remote node use. 
+  Specify a positive value (or nil for unlimited) for `max_remote_hosts_to_use` when initializing the policy to allow remote node use. 
 
 
 # 3.0.0 rc2
