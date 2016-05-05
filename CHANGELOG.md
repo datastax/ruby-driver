@@ -6,6 +6,13 @@ Bug Fixes:
 * [RUBY-207](https://datastax-oss.atlassian.net/browse/RUBY-207) Get NoMethodError when handling a write-timeout error using a downgrading consistency retry policy.
 * [RUBY-214](https://datastax-oss.atlassian.net/browse/RUBY-214) Client timestamps in JRuby are not fine-grained enough, causing timestamp collisions and lost rows in C*.
 
+Breaking Changes:
+
+* The Datacenter-aware load balancing policy (Cassandra::LoadBalancing::Policies::DCAwareRoundRobin) defaults to using
+  nodes in the local DC only. In prior releases, the policy would fall back to remote nodes after exhausting local nodes.
+  Specify a positive value for `max_remote_hosts_to_use` when initializing the policy to allow remote node use. 
+
+
 # 3.0.0 rc2
 Features:
 * Add protocol_version configuration option to allow the user to force the protocol version to use for communication with nodes.
