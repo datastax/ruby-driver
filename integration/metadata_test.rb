@@ -17,6 +17,7 @@
 #++
 
 require File.dirname(__FILE__) + '/integration_test_case.rb'
+require File.dirname(__FILE__) + '/datatype_utils.rb'
 
 class MetadataTest < IntegrationTestCase
 
@@ -131,6 +132,75 @@ class MetadataTest < IntegrationTestCase
       assert_equal col_names[0], column.name
       col_names.delete_at(0)
     end
+  end
+
+  # Test for retrieving table metadata with quoted identifiers
+  #
+  # test_can_retrieve_quoted_table_metadata tests that all pieces of table metadata can be retrieved, when the
+  # table has quoted identifiers. It goes through each piece of table view metadata and verifies that each piece
+  # is as expected.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-175
+  # @expected_result table metadata with quoted identifiers should be retrieved.
+  #
+  # @test_category metadata
+  #
+  def test_can_retrieve_quoted_table_metadata
+    # Check upper-case chars, unescaped upper-case chars, quoted numbers, quoted identifier with single quote,
+    # quoted identifier with double quotes
+    @session.execute("CREATE TABLE roles (\"FOO\" text, BAR ascii, \"10\" int, \"'20'\" int, \"\"\"30\"\"\" int,
+                     \"f00\"\"b4r\" text, PRIMARY KEY (\"FOO\", BAR, \"10\", \"'20'\", \"\"\"30\"\"\", \"f00\"\"b4r\"))")
+    @listener.wait_for_table('simplex', 'roles')
+
+    assert @cluster.keyspace('simplex').has_table?('roles')
+    table_meta = @cluster.keyspace('simplex').table('roles')
+
+    assert_equal 'roles', table_meta.name
+    assert_equal 'simplex', table_meta.keyspace.name
+    assert_empty table_meta.indexes
+    refute_nil table_meta.id unless CCM.cassandra_version < '3.0.0'
+    refute_nil table_meta.options
+
+    assert_columns([['FOO', :text], ['bar', :ascii], ['10', :int], ["'20'", :int], ["\"30\"", :int], ["f00\"b4r", :text]],
+                   table_meta.primary_key)
+    assert_columns([['FOO', :text]], table_meta.partition_key)
+    assert_columns([['bar', :ascii], ['10', :int], ["'20'", :int], ["\"30\"", :int], ["f00\"b4r", :text]],
+                   table_meta.clustering_columns)
+    assert_equal :asc, table_meta.clustering_order.first
+
+    assert_equal 6, table_meta.columns.size
+    table_meta.each_column do |column|
+      assert ['FOO', 'bar', '10', "'20'", "\"30\"", "f00\"b4r"].any? { |name| name == column.name }
+      assert [:text, :ascii, :int].any? { |type| type == column.type.kind }
+    end
+
+    table_cql = Regexp.new(/CREATE TABLE simplex\."roles" \(
+  "FOO" text,
+  bar ascii,
+  "10" int,
+  "'20'" int,
+  """30""" int,
+  "f00""b4r" text,
+  PRIMARY KEY \("FOO", bar, "10", "'20'", """30""", "f00""b4r"\)
+\)/)
+
+    assert_equal 0, table_meta.to_cql =~ table_cql
+    @session.execute("DROP TABLE roles")
+
+    # Check all the reserved words
+    reserved_word_int_list = ["zz int PRIMARY KEY"]
+    DatatypeUtils.reserved_words.each do |word|
+      reserved_word_int_list.push("\"#{word}\" int")
+    end
+
+    @session.execute("CREATE TABLE reserved_words (#{reserved_word_int_list.join(',')})")
+    @listener.wait_for_table('simplex', 'reserved_words')
+
+    assert @cluster.keyspace('simplex').has_table?('reserved_words')
+    table_meta = @cluster.keyspace('simplex').table('reserved_words')
+    refute_nil table_meta.to_cql
+    @session.execute("DROP TABLE reserved_words")
   end
 
   # Test for skipping internal columns in static-compact tables
