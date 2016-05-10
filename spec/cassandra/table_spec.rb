@@ -27,6 +27,7 @@ module Cassandra
       let(:col) { double('col')}
       let(:col2) { double('col2')}
       let(:col3) { double('from')}
+      let(:quote_column) { double('"my"col"')}
       let(:options) { double('options')}
       let(:id) { 1234 }
       before do
@@ -37,16 +38,19 @@ module Cassandra
         allow(col2).to receive(:type).and_return(int)
         allow(col3).to receive(:name).and_return('from')
         allow(col3).to receive(:type).and_return(varchar)
+        allow(quote_column).to receive(:name).and_return('"my"col"')
+        allow(quote_column).to receive(:type).and_return(varchar)
         allow(options).to receive(:to_cql).and_return('opt1=value1')
       end
 
       it 'should quote keyspace, table, columns properly' do
-        t = Table.new(ks, 'mytable1', [col], [], [col2, col3], options, [], id)
+        t = Table.new(ks, 'mytable1', [col], [], [col2, col3, quote_column], options, [], id)
         expected_cql = <<-EOF
 CREATE TABLE "myks1"."mytable1" (
   col int PRIMARY KEY,
   "col2" int,
-  "from" text
+  "from" text,
+  """my""col""" text
 )
 WITH opt1=value1;
         EOF

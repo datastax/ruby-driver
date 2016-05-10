@@ -165,7 +165,10 @@ module Cassandra
       # If name only contains lower-case chars and it's not a reserved word, return it
       # as-is. Otherwise, quote.
       return name if name[LOWERCASE_REGEXP] == name && !RESERVED_WORDS.include?(name)
-      DBL_QUOT + name + DBL_QUOT
+
+      # Replace double-quotes within name with two double-quotes (if any) and surround the whole
+      # thing with double-quotes
+      DBL_QUOT + name.gsub('"', '""') + DBL_QUOT
     end
 
     def guess_type(object)
