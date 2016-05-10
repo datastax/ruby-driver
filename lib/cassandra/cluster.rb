@@ -280,6 +280,11 @@ module Cassandra
     def inspect
       "#<#{self.class.name}:0x#{object_id.to_s(16)} " \
       "name=#{name.inspect}, " \
+      "port=#{@connection_options.port}, " \
+      "protocol_version=#{@connection_options.protocol_version}, " \
+      "load_balancing_policy=#{@load_balancing_policy.inspect}, " \
+      "consistency=#{@execution_options.consistency.inspect}, " \
+      "timeout=#{@execution_options.timeout.inspect}, " \
       "hosts=#{hosts.inspect}, " \
       "keyspaces=#{keyspaces.inspect}>"
     end
