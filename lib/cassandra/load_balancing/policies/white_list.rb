@@ -87,6 +87,13 @@ module Cassandra
         def host_down(host)
           @policy.host_down(host) if @ips.include?(host.ip)
         end
+
+        # @private
+        def inspect
+          "#<#{self.class.name}:0x#{object_id.to_s(16)} " \
+          "policy=#{@policy.inspect}, " \
+          "ips=#{@ips.inspect}>"
+        end
       end
     end
   end
