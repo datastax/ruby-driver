@@ -61,7 +61,7 @@ module Cassandra
       end
 
       def update(data)
-        @name        = data['name']
+        @name        = data['cluster_name']
         @partitioner = @partitioners[data['partitioner']]
 
         self

@@ -637,11 +637,11 @@ class SessionTest < IntegrationTestCase
       @@ccm_cluster.block_node("node1")
 
       future = session.execute_async("SELECT * FROM users")
-      start_time = Time.now.to_i
+      start_time = Time.now
       assert_raises(Cassandra::Errors::TimeoutError) do
         future.get(2)
       end
-      assert_equal 2, Time.now.to_i - start_time
+      assert_in_delta(2, Time.now - start_time, 0.5)
     ensure
       @@ccm_cluster.unblock_nodes
       cluster && cluster.close

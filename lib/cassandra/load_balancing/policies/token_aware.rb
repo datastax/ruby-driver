@@ -136,6 +136,13 @@ module Cassandra
 
           Plan.new(replicas, @policy, keyspace, statement, options)
         end
+
+        # @private
+        def inspect
+          "#<#{self.class.name}:0x#{object_id.to_s(16)} " \
+          "policy=#{@policy.inspect}, " \
+          "shuffle=#{@shuffle.inspect}>"
+        end
       end
     end
   end

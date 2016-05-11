@@ -155,6 +155,17 @@ module Cassandra
 
           Plan.new(local, remote, position)
         end
+
+        # @private
+        def inspect
+          "#<#{self.class.name}:0x#{object_id.to_s(16)} " \
+          "datacenter=#{@datacenter.inspect}, " \
+          "use_remote=#{@use_remote.inspect}, " \
+          "max_remote=#{@max_remote.inspect}, " \
+          "local=#{@local.inspect}, " \
+          "remote=#{@remote.inspect}, " \
+          "position=#{@position.inspect}>"
+        end
       end
     end
   end
