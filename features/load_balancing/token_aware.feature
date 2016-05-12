@@ -8,7 +8,7 @@ Feature: Token-aware Load Balancing Policy
   the right partitioners and replication strategies for a given keyspace and
   locate replicas for a given statement.
 
-  In case replica node(s) cannot be found or reached, this policy fallsback
+  In case replica node(s) cannot be found or reached, this policy falls back
   onto the wrapped policy plan.
 
   Background:
@@ -95,11 +95,11 @@ Feature: Token-aware Load Balancing Policy
       """ruby
       require 'cassandra'
 
-      policy    = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new
-      policy    = Cassandra::LoadBalancing::Policies::TokenAware.new(policy)
-      cluster   = Cassandra.cluster(load_balancing_policy: policy)
-      session   = cluster.connect('simplex')
-      statement = session.prepare("SELECT token(id) FROM songs WHERE id = ?")
+      base_policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new('dc2')
+      policy      = Cassandra::LoadBalancing::Policies::TokenAware.new(base_policy)
+      cluster     = Cassandra.cluster(load_balancing_policy: policy)
+      session     = cluster.connect('simplex')
+      statement   = session.prepare("SELECT token(id) FROM songs WHERE id = ?")
 
       [
         Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
@@ -115,9 +115,9 @@ Feature: Token-aware Load Balancing Policy
     When it is executed
     Then its output should contain:
       """
-      uuid=756716f7-2e54-4715-9f00-91dcbea6cf50 token=-4565826248849633211 replica=127.0.0.2 total=1
-      uuid=f6071e72-48ec-4fcb-bf3e-379c8a696488 token=-1176857621403111796 replica=127.0.0.2 total=1
-      uuid=fbdf82ed-0063-4796-9c7c-a3d4f47b4b25 token=2440231132048646025 replica=127.0.0.1 total=1
+      uuid=756716f7-2e54-4715-9f00-91dcbea6cf50 token=-4565826248849633211 replica=127.0.0.4 total=1
+      uuid=f6071e72-48ec-4fcb-bf3e-379c8a696488 token=-1176857621403111796 replica=127.0.0.4 total=1
+      uuid=fbdf82ed-0063-4796-9c7c-a3d4f47b4b25 token=2440231132048646025 replica=127.0.0.3 total=1
       """
 
   Scenario: Requests are routed according to wrapped policy plan when primary replica is down
@@ -125,13 +125,14 @@ Feature: Token-aware Load Balancing Policy
       """ruby
       require 'cassandra'
 
-      policy    = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new
-      policy    = Cassandra::LoadBalancing::Policies::TokenAware.new(policy)
-      cluster   = Cassandra.cluster(load_balancing_policy: policy)
-      session   = cluster.connect('simplex')
-      statement = session.prepare("SELECT token(id) FROM songs WHERE id = ?")
+      base_policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new('dc2')
+      policy      = Cassandra::LoadBalancing::Policies::TokenAware.new(base_policy)
+      cluster     = Cassandra.cluster(load_balancing_policy: policy)
+      session     = cluster.connect('simplex')
+      statement   = session.prepare("SELECT token(id) FROM songs WHERE id = ?")
 
       [
+        Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
         Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488'),
         Cassandra::Uuid.new('fbdf82ed-0063-4796-9c7c-a3d4f47b4b25')
       ].each do |uuid|
@@ -141,12 +142,13 @@ Feature: Token-aware Load Balancing Policy
         puts "uuid=#{uuid} token=#{result.first.values.first} replica=#{replica.ip} total=#{total}"
       end
       """
-    And node 2 is stopped
+    And node 4 is stopped
     When it is executed
     Then its output should contain:
       """
-      uuid=f6071e72-48ec-4fcb-bf3e-379c8a696488 token=-1176857621403111796 replica=127.0.0.1 total=1
-      uuid=fbdf82ed-0063-4796-9c7c-a3d4f47b4b25 token=2440231132048646025 replica=127.0.0.1 total=1
+      uuid=756716f7-2e54-4715-9f00-91dcbea6cf50 token=-4565826248849633211 replica=127.0.0.3 total=1
+      uuid=f6071e72-48ec-4fcb-bf3e-379c8a696488 token=-1176857621403111796 replica=127.0.0.3 total=1
+      uuid=fbdf82ed-0063-4796-9c7c-a3d4f47b4b25 token=2440231132048646025 replica=127.0.0.3 total=1
       """
 
   Scenario: Requests with compound partition keys are routed to the primary replica
@@ -154,7 +156,7 @@ Feature: Token-aware Load Balancing Policy
       """ruby
       require 'cassandra'
 
-      policy    = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new
+      policy    = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new('dc2')
       policy    = Cassandra::LoadBalancing::Policies::TokenAware.new(policy)
       cluster   = Cassandra.cluster(load_balancing_policy: policy)
       session   = cluster.connect('simplex')
@@ -175,8 +177,42 @@ Feature: Token-aware Load Balancing Policy
     When it is executed
     Then its output should contain:
       """
-      uuid=2cc9ccb7-6221-4ccb-8387-f22b6a1b354d title=2cc9ccb7-6221-4ccb-8387-f22b6a1b354d token=6231549073425362204 replica=127.0.0.1 total=1
-      uuid=2cc9ccb7-6221-4ccb-8387-f22b6a1b354d title=2cc9ccb7-6221-4ccb-8387-f22b6a1b354d token=-115815985718975675 replica=127.0.0.2 total=1
-      uuid=3fd2bedf-a8c8-455a-a462-0cd3a4353c54 title=3fd2bedf-a8c8-455a-a462-0cd3a4353c54 token=-463065628644986368 replica=127.0.0.2 total=1
-      uuid=3fd2bedf-a8c8-455a-a462-0cd3a4353c54 title=3fd2bedf-a8c8-455a-a462-0cd3a4353c54 token=-8087998491924709995 replica=127.0.0.2 total=1
+      uuid=2cc9ccb7-6221-4ccb-8387-f22b6a1b354d title=2cc9ccb7-6221-4ccb-8387-f22b6a1b354d token=6231549073425362204 replica=127.0.0.3 total=1
+      uuid=2cc9ccb7-6221-4ccb-8387-f22b6a1b354d title=2cc9ccb7-6221-4ccb-8387-f22b6a1b354d token=-115815985718975675 replica=127.0.0.4 total=1
+      uuid=3fd2bedf-a8c8-455a-a462-0cd3a4353c54 title=3fd2bedf-a8c8-455a-a462-0cd3a4353c54 token=-463065628644986368 replica=127.0.0.4 total=1
+      uuid=3fd2bedf-a8c8-455a-a462-0cd3a4353c54 title=3fd2bedf-a8c8-455a-a462-0cd3a4353c54 token=-8087998491924709995 replica=127.0.0.4 total=1
+      """
+
+  Scenario: Requests with local consistencies are routed to a remote datacenter when primary replica is down
+    Given the following example:
+      """ruby
+      require 'cassandra'
+
+      max_remote_hosts_to_use = nil
+      use_remote_hosts_for_local_consistency = true
+      base_policy = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new('dc2',
+                                                                               max_remote_hosts_to_use,
+                                                                               use_remote_hosts_for_local_consistency)
+      policy      = Cassandra::LoadBalancing::Policies::TokenAware.new(base_policy)
+      cluster     = Cassandra.cluster(load_balancing_policy: policy)
+      session     = cluster.connect('simplex')
+      statement   = session.prepare("SELECT token(id) FROM songs WHERE id = ?")
+
+      [
+        Cassandra::Uuid.new('756716f7-2e54-4715-9f00-91dcbea6cf50'),
+        Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8a696488')
+      ].each do |uuid|
+        result  = session.execute(statement, arguments: [uuid], consistency: :local_one)
+        replica = result.execution_info.hosts.first
+        total   = result.execution_info.hosts.size
+        puts "uuid=#{uuid} token=#{result.first.values.first} replica=#{replica.ip} total=#{total}"
+      end
+      """
+    And node 3 is stopped
+    And node 4 is stopped
+    When it is executed
+    Then its output should contain:
+      """
+      uuid=756716f7-2e54-4715-9f00-91dcbea6cf50 token=-4565826248849633211 replica=127.0.0.2 total=1
+      uuid=f6071e72-48ec-4fcb-bf3e-379c8a696488 token=-1176857621403111796 replica=127.0.0.1 total=1
       """
