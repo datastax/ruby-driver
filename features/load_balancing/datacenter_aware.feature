@@ -8,12 +8,12 @@ Feature: Datacenter-aware Round Robin Policy
 
   By default, this policy will not actually fall back to nodes of a remote datacenter.
   You must configure the exact number of remote hosts that will be used
-  by passing that number when constructing a policy instance. A nil value means there
-  is no limit on remote hosts to be potentially used.
+  by passing that number when constructing a policy instance. A nil value means an
+  unlimited number of remote hosts can be potentially used.
 
   By default, this policy will not attempt to use remote hosts for local
   consistencies (`:local_one` or `:local_quorum`), however, it is possible to
-  change that behavior via constructor.
+  change that behavior via the constructor.
 
   Background:
     Given a running cassandra cluster in 2 datacenters with 2 nodes in each
@@ -85,7 +85,7 @@ Feature: Datacenter-aware Round Robin Policy
 
       datacenter = "dc2"
       policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter)
-      cluster    = Cassandra.cluster(load_balancing_policy: policy)
+      cluster    = Cassandra.cluster(load_balancing_policy: policy, consistency: :one)
       session    = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
@@ -107,11 +107,11 @@ Feature: Datacenter-aware Round Robin Policy
       """ruby
       require 'cassandra'
 
-      datacenter = "dc2"
-      # NOTE: second arg to policy constructor, indicating any number of remote nodes may be used.
-      policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, nil)
-      cluster    = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
-      session    = cluster.connect('simplex')
+      datacenter     = "dc2"
+      remotes_to_try = nil
+      policy         = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, remotes_to_try)
+      cluster        = Cassandra.cluster(load_balancing_policy: policy, consistency: :one)
+      session        = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
         info = session.execute("SELECT * FROM songs").execution_info
@@ -137,7 +137,7 @@ Feature: Datacenter-aware Round Robin Policy
       datacenter     = "dc2"
       remotes_to_try = 1
       policy         = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, remotes_to_try)
-      cluster        = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
+      cluster        = Cassandra.cluster(load_balancing_policy: policy, consistency: :one)
       session        = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
@@ -155,15 +155,16 @@ Feature: Datacenter-aware Round Robin Policy
       Used 1 host, with ip 127\.0\.0\.(1|2)
       """
 
-  Scenario: Requests with local consistencies are not routed to remote datacenters
+  Scenario: Requests with local consistencies are not routed to remote datacenters by default
     Given the following example:
       """ruby
       require 'cassandra'
 
-      datacenter = "dc2"
-      policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, nil)
-      cluster    = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
-      session    = cluster.connect('simplex')
+      datacenter     = "dc2"
+      remotes_to_try = nil
+      policy         = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, remotes_to_try)
+      cluster        = Cassandra.cluster(load_balancing_policy: policy, consistency: :one)
+      session        = cluster.connect('simplex')
 
       begin
         session.execute("SELECT * FROM songs", consistency: :local_one)
@@ -185,14 +186,15 @@ Feature: Datacenter-aware Round Robin Policy
       """ruby
       require 'cassandra'
 
-      datacenter = "dc2"
-      use_remote = true
-      policy     = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, nil, use_remote)
-      cluster    = Cassandra.cluster(consistency: :one, load_balancing_policy: policy)
-      session    = cluster.connect('simplex')
+      datacenter     = "dc2"
+      remotes_to_try = nil
+      use_remote     = true
+      policy         = Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, remotes_to_try, use_remote)
+      cluster        = Cassandra.cluster(load_balancing_policy: policy)
+      session        = cluster.connect('simplex')
 
       hosts_used = 4.times.map do
-        info = session.execute("SELECT * FROM songs").execution_info
+        info = session.execute("SELECT * FROM songs", consistency: :local_one).execution_info
         info.hosts.last.ip
       end.sort.uniq
 
