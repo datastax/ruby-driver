@@ -187,7 +187,7 @@ module Cassandra
   #   v2 or earlier protocol.
   #
   # @option options [Integer] :protocol_version (nil) Version of protocol to speak to
-  #   nodes. By default, this is auto-negotiated to the lowest common protocol version
+  #   nodes. By default, this is auto-negotiated to the highest common protocol version
   #   that all nodes in `:hosts` speak.
   #
   # @option options [Boolean, Cassandra::TimestampGenerator] :client_timestamps (false) whether the driver
