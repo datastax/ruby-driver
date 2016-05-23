@@ -1,3 +1,9 @@
+# master
+Features:
+
+Bug Fixes:
+
+
 # 3.0.0 GA
 Features:
 * Increased default request timeout (the `timeout` option to `Cassandra.cluster`), from 10 seconds to 12 seconds 
@@ -13,7 +19,6 @@ Breaking Changes:
 * The Datacenter-aware load balancing policy (Cassandra::LoadBalancing::Policies::DCAwareRoundRobin) defaults to using
   nodes in the local DC only. In prior releases, the policy would fall back to remote nodes after exhausting local nodes.
   Specify a positive value (or nil for unlimited) for `max_remote_hosts_to_use` when initializing the policy to allow remote node use. 
-
 
 # 3.0.0 rc2
 Features:
