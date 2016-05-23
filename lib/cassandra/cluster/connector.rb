@@ -283,7 +283,7 @@ module Cassandra
           case r
           when Protocol::AuthChallengeResponse
             token = authenticator.challenge_response(r.token)
-            challenge_response_cycle(pending_connection, authenticator, token)
+            challenge_response_cycle(connection, authenticator, token)
           when Protocol::AuthSuccessResponse
             begin
               authenticator.authentication_successful(r.token)
