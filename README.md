@@ -1,3 +1,129 @@
+## How to test the Backupify fork of the datastax driver
+
+### To see the difference between our fork and mainline, look at this URL:
+
+[The diff](https://github.com/datastax/ruby-driver/compare/v3.0.0-rc.2...backupify:3.0.0-rc.2-port_support)
+
+### A few notes for context:
+
+Using binding.pry, I saw that `lib/cassandra/cluster/control_connection.rb`'s `refresh_metadata_async`
+method gets called when a cluster is created:
+
+```ruby
+cluster = Cassandra.cluster(client_config)
+```
+
+Without our patch, after `refresh_metadata_async` is called, it's possible for a 
+`Backupify::Stunnel::IPAddrWithPort` to become a regular `IPAddr` and therefore lose 
+its port number.
+
+Following through the code in `backupify/` that creates CQL/Cass2 connections, 
+this is the series of events:
+
+```ruby
+datastore_config = Backupify::DatastoreConfig.new('cass_datastores').for_datastore('storage_metadata');
+
+cluster_config = datastore_config[:cluster_config];
+
+client_config = { :synchronize_schema => false, };
+client_config[:port] = cluster_config[:port] if cluster_config[:port];
+
+if cluster_config[:address_resolution_policy]
+  client_config[:address_resolution_policy] = cluster_config[:address_resolution_policy].constantize
+end;
+
+if cluster_config[:use_resolved_addresses]
+  client_config[:hosts] = client_config[:address_resolution_policy].resolved_addresses
+else
+  client_config[:hosts] = cluster_config[:hosts]
+end;
+
+[:connections_per_local_node, :connections_per_remote_node].each do |opt_name|
+  next unless value = cluster_config[opt_name]
+  client_config[opt_name] = value
+end;
+
+if cluster_config.keys.include?(:idle_timeout.to_s)
+  client_config[:idle_timeout] = cluster_config[:idle_timeout]
+end;
+
+load_balancing = Cassandra::LoadBalancing::Policies::WhiteList.new(
+  client_config[:hosts].sample(3),
+  Cassandra::LoadBalancing::Policies::RoundRobin.new)
+client_config[:load_balancing_policy] = load_balancing;
+client_config[:consistency] = :quorum;
+
+# this is where refresh_metadata_async gets called
+cluster = Cassandra.cluster(client_config);
+```
+
+So that's the series of calls.
+
+### Testing our patch
+
+Put a worker in maintenance mode.
+
+Make a branch of backupify and change the Gemfile so that this version of the
+datastax driver gets used:
+
+```
+# Our fork of the Datastax Cassandra Gem. The Datastax Cassandra Gem assumes that
+# if you are using a different port for Cassandra, you are using that different
+# port for all hosts. Our fork allows a different port for each Cassandra host.
+gem 'cassandra-driver', :git => 'git@github.com:backupify/ruby-driver.git', :branch => '3.0.0-rc.2-port_support'
+```
+
+Deploy your branch to the worker you put in maintenance mode.
+
+Get a Rails console going on the worker you put into maintenance mode.
+
+To see the list of IPs in the registry, do this:
+
+```ruby
+control_connection = cluster.instance_variable_get(:@control_connection);
+registry = control_connection.instance_variable_get(:@registry);
+```
+
+To prove that existing ips didn't get replaced with IPAddr, run this:
+
+```ruby
+registry.hosts.each do |h|
+  port = if h.ip.class == Backupify::Stunnel::IPAddrWithPort
+    h.ip.port
+  else
+    0
+  end
+  puts "#{h.ip.class} #{h.ip.to_s}:#{port}"
+end;
+
+You will see this:
+
+```
+Backupify::Stunnel::IPAddrWithPort 127.0.0.81:27526
+Backupify::Stunnel::IPAddrWithPort 127.0.0.58:27474
+Backupify::Stunnel::IPAddrWithPort 127.0.0.67:27494
+...
+```
+
+YOU SHOULD NOT SEE THIS:
+
+```
+Backupify::Stunnel::IPAddrWithPort 127.0.0.54:27468
+Backupify::Stunnel::IPAddrWithPort 127.0.0.7:27538
+IPAddr 127.0.0.67:0 ## <--- oops!
+Backupify::Stunnel::IPAddrWithPort 127.0.0.82:27528
+Backupify::Stunnel::IPAddrWithPort 127.0.0.66:27492
+...
+```
+
+### The three files we changed from the Datastax ones:
+
+lib/cassandra/host.rb
+lib/cassandra/cluster/connector.rb
+lib/cassandra/cluster/control_connection.rb
+
+The original Datastax README begins here:
+
 # Datastax Ruby Driver for Apache Cassandra
 
 *If you're reading this on GitHub, please note that this is the readme for the development version and that some features described here might not yet have been released. You can [find the documentation for latest version through ruby driver docs](http://datastax.github.io/ruby-driver/) or via the release tags, [e.g. v3.0.0](https://github.com/datastax/ruby-driver/tree/v3.0.0).*

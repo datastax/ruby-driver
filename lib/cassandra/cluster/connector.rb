@@ -117,7 +117,9 @@ module Cassandra
 
       def do_connect(host)
         @reactor.connect(host.ip.to_s,
-                         @connection_options.port,
+                         # Backupify: unlike mainline cass driver,
+                         # use the port if it is already defined with the host
+                         host.port || @connection_options.port,
                          timeout: @connection_options.connect_timeout,
                          ssl: @connection_options.ssl) do |connection|
           raise Errors::ClientError, 'Not connected, reactor stopped' unless connection

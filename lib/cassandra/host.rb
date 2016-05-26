@@ -20,6 +20,8 @@ module Cassandra
   class Host
     # @return [IPAddr] host ip that clients use to connect to this host.
     attr_reader :ip
+    # @return [Fixnum] host native transport protocol port.
+    attr_reader :port
     # @note Host id can be `nil` before cluster has connected.
     # @return [Cassandra::Uuid, nil] host id.
     attr_reader :id
@@ -57,6 +59,7 @@ module Cassandra
                    broadcast_address = nil,
                    listen_address = nil)
       @ip              = ip
+      @port            = ip.port if ip.respond_to?(:port)
       @id              = id
       @rack            = rack
       @datacenter      = datacenter
