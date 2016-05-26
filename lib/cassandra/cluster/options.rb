@@ -80,8 +80,17 @@ module Cassandra
         @compressor && @compressor.algorithm
       end
 
-      def create_authenticator(authentication_class)
-        @auth_provider && @auth_provider.create_authenticator(authentication_class)
+      def create_authenticator(authentication_class, host)
+        if @auth_provider
+          # Auth providers should take an auth-class and host, but they used to not, so for backward compatibility
+          # we figure out if this provider does, and if so send both args, otherwise just send the auth-class.
+
+          if @auth_provider.method(:create_authenticator).arity == 1
+            @auth_provider.create_authenticator(authentication_class)
+          else
+            @auth_provider.create_authenticator(authentication_class, host)
+          end
+        end
       end
 
       def connections_per_local_node
