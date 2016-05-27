@@ -18,7 +18,7 @@ Without our patch, after `refresh_metadata_async` is called, it's possible for a
 its port number.
 
 Following through the code in `backupify/` that creates CQL/Cass2 connections, 
-this is the series of events:
+this is the series of events (cut and paste this into your Rails console):
 
 ```ruby
 datastore_config = Backupify::DatastoreConfig.new('cass_datastores').for_datastore('storage_metadata');
@@ -77,7 +77,8 @@ Deploy your branch to the worker you put in maintenance mode.
 
 Get a Rails console going on the worker you put into maintenance mode.
 
-To see the list of IPs in the registry, do this:
+To see the list of IPs in the registry, do this (after having cut and
+pasted all the code above into your console):
 
 ```ruby
 control_connection = cluster.instance_variable_get(:@control_connection);
@@ -115,6 +116,22 @@ IPAddr 127.0.0.67:0 ## <--- oops!
 Backupify::Stunnel::IPAddrWithPort 127.0.0.82:27528
 Backupify::Stunnel::IPAddrWithPort 127.0.0.66:27492
 ...
+```
+
+HOWEVER, the `IPAddr`s with `:0` as the port at the very end of the list
+is fine:
+
+```
+Backupify::Stunnel::IPAddrWithPort 127.0.0.50:27421
+Backupify::Stunnel::IPAddrWithPort 127.0.0.14:27291
+Backupify::Stunnel::IPAddrWithPort 127.0.0.28:27277
+Backupify::Stunnel::IPAddrWithPort 127.0.0.62:27482
+Backupify::Stunnel::IPAddrWithPort 127.0.0.82:27528
+IPAddr 10.40.126.148:0
+IPAddr 10.40.126.114:0
+IPAddr 10.40.126.111:0
+IPAddr 10.40.126.112:0
+[25] pry(main)> # These last 4 guys are OK
 ```
 
 ### The three files we changed from the Datastax ones:
