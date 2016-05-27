@@ -2,7 +2,7 @@
 
 ### To see the difference between our fork and mainline, look at this URL:
 
-[The diff](https://github.com/datastax/ruby-driver/compare/v3.0.0-rc.2...backupify:3.0.0-rc.2-port_support)
+[The diff](https://github.com/datastax/ruby-driver/compare/v3.0.0...backupify:3.0.0-port_support)
 
 ### A few notes for context:
 
