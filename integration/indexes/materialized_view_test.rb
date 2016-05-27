@@ -152,10 +152,10 @@ class MaterializedViewTest < IntegrationTestCase
 
     assert @cluster.keyspace('simplex').has_materialized_view?('monthlyhigh')
     mv_cql = Regexp.new(/CREATE MATERIALIZED VIEW simplex.monthlyhigh AS
-SELECT game, year, month, score, user, day
+SELECT game, year, month, score, "user", day
 FROM simplex.scores
 WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL AND day IS NOT NULL
-PRIMARY KEY \(\(game, year, month\), score, user, day\)
+PRIMARY KEY \(\(game, year, month\), score, "user", day\)
 WITH bloom_filter_fp_chance = 0.01
  AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
  AND comment = ''
@@ -207,7 +207,7 @@ WITH bloom_filter_fp_chance = 0.01
     assert_equal 'SizeTieredCompactionStrategy', mv_meta.options.compaction_strategy.class_name
 
     @session.execute("ALTER MATERIALIZED VIEW simplex.mv1 WITH compaction = { 'class' : 'LeveledCompactionStrategy' }")
-    sleep(2)
+    @cluster.refresh_schema
     mv_meta = @cluster.keyspace('simplex').materialized_view('mv1')
     assert_equal 'LeveledCompactionStrategy', mv_meta.options.compaction_strategy.class_name
   end
@@ -234,7 +234,7 @@ WITH bloom_filter_fp_chance = 0.01
     assert @cluster.keyspace('simplex').has_materialized_view?('mv1')
 
     @session.execute("DROP MATERIALIZED VIEW simplex.mv1")
-    sleep(2)
+    @cluster.refresh_schema
     refute @cluster.keyspace('simplex').has_materialized_view?('mv1')
   end
 
@@ -276,6 +276,7 @@ WITH bloom_filter_fp_chance = 0.01
     refute mv_meta.has_column?('fouls')
 
     @session.execute("ALTER TABLE simplex.scores2 ADD fouls INT")
+    @cluster.refresh_schema
 
     table_meta = @cluster.keyspace('simplex').table('scores2')
     assert table_meta.has_column?('fouls')

@@ -41,7 +41,8 @@ module Cassandra
                    retry_policy,
                    address_resolution_policy,
                    connector,
-                   futures_factory)
+                   futures_factory,
+                   timestamp_generator)
       @logger                = logger
       @io_reactor            = io_reactor
       @executor              = executor
@@ -57,6 +58,7 @@ module Cassandra
       @address_resolver      = address_resolution_policy
       @connector             = connector
       @futures               = futures_factory
+      @timestamp_generator   = timestamp_generator
 
       @control_connection.on_close do |_cause|
         begin
@@ -204,7 +206,8 @@ module Cassandra
                            @retry_policy,
                            @address_resolver,
                            @connection_options,
-                           @futures)
+                           @futures,
+                           @timestamp_generator)
       session = Session.new(client, @execution_options, @futures)
       promise = @futures.promise
 
@@ -275,7 +278,15 @@ module Cassandra
 
     # @private
     def inspect
-      "#<#{self.class.name}:0x#{object_id.to_s(16)}>"
+      "#<#{self.class.name}:0x#{object_id.to_s(16)} " \
+      "name=#{name.inspect}, " \
+      "port=#{@connection_options.port}, " \
+      "protocol_version=#{@connection_options.protocol_version}, " \
+      "load_balancing_policy=#{@load_balancing_policy.inspect}, " \
+      "consistency=#{@execution_options.consistency.inspect}, " \
+      "timeout=#{@execution_options.timeout.inspect}, " \
+      "hosts=#{hosts.inspect}, " \
+      "keyspaces=#{keyspaces.inspect}>"
     end
   end
 end

@@ -1,6 +1,6 @@
 # Datastax Ruby Driver for Apache Cassandra
 
-*If you're reading this on GitHub, please note that this is the readme for the development version and that some features described here might not yet have been released. You can [find the documentation for latest version through ruby driver docs](http://datastax.github.io/ruby-driver/) or via the release tags, [e.g. v1.0.0-beta.3](https://github.com/datastax/ruby-driver/tree/v1.0.0-beta.3).*
+*If you're reading this on GitHub, please note that this is the readme for the development version and that some features described here might not yet have been released. You can [find the documentation for latest version through ruby driver docs](http://datastax.github.io/ruby-driver/) or via the release tags, [e.g. v3.0.0](https://github.com/datastax/ruby-driver/tree/v3.0.0).*
 
 [![Build Status](https://travis-ci.org/datastax/ruby-driver.svg?branch=master)](https://travis-ci.org/datastax/ruby-driver)
 
@@ -31,8 +31,8 @@ This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [
 
 This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. The current version works with:
 
-* Apache Cassandra versions 1.2, 2.0, 2.1, and 3.x
-* DataStax Enterprise 4.0, 4.5, 4.6, 4.7, and 4.8
+* Apache Cassandra versions 1.2, 2.0, 2.1, 2.2, and 3.x
+* DataStax Enterprise 4.0 and above.
 * Ruby (MRI) 2.2, 2.3
 * JRuby 1.7
 
@@ -96,28 +96,33 @@ Some of the new features added to the driver have unfortunately led to changes i
 
 ### Features:
 
-* Apache Cassandra native protocol v4
-* Add support for smallint, tinyint, date (Cassandra::Date) and time (Cassandra::Time) data types.
+* Add support for Apache Cassandra native protocol v4
+* Add support for smallint, tinyint, date (`Cassandra::Date`) and time (`Cassandra::Time`) data types.
 * Include schema metadata for User Defined Functions and User Defined Aggregates.
+* Augment the `Cassandra::Table` object to expose many more attributes: `id`, `options`, `keyspace`, `partition_key`, `clustering_columns`, and `clustering_order`. This makes it significantly easier to write administration scripts that report various attributes of your schema, which may help to highlight areas for improvement.
 * Include client ip addresses in request traces, only on Cassandra 3.x.
-* Add new retry policy decision Cassandra::Retry::Policy#try_next_host.
-* Support specifying statement idempotence with the new :idempotent option when executing.
-* Support sending custom payloads when preparing or executing statements using the new :payload option.
-* Expose custom payloads received with responses on server exceptions and Cassandra::Execution::Info instances.
-* Expose server warnings on server exceptions and Cassandra::Execution::Info instances.
-* Add connections_per_local_node, connections_per_remote_node, requests_per_connection cluster configuration options to tune parallel query execution and resource usage.
-* Add Cassandra::Logger class to make it easy for users to enable debug logging in the client.
-* Add protocol_version configuration option to allow the user to force the protocol version to use for communication with nodes.
-* Add support for materialized views in the schema metadata.
+* Add new retry policy decision `Cassandra::Retry::Policy#try_next_host`.
+* Support specifying statement idempotence with the new `idempotent` option when executing.
+* Support sending custom payloads when preparing or executing statements using the new `payload` option.
+* Expose custom payloads received with responses on server exceptions and `Cassandra::Execution::Info` instances.
+* Expose server warnings on server exceptions and `Cassandra::Execution::Info` instances.
+* Add `connections_per_local_node`, `connections_per_remote_node`, `requests_per_connection` cluster configuration options to tune parallel query execution and resource usage.
+* Add `Cassandra::Logger` class to make it easy for users to enable debug logging in the client.
+* Add `protocol_version` configuration option to allow the user to force the protocol version to use for communication with nodes.
+* Add support for materialized views and indexes in the schema metadata.
+* Support the `ReadError`, `WriteError`, and `FunctionCallError` Cassandra error responses introduced in Cassandra 2.2.
+* Add support for unset variables in bound statements.
+* Support DSE security (`DseAuthenticator`, configured for LDAP).
+* Add a timeout option to `Cassandra::Future#get`.
 
-### Breaking Changes:
+### Breaking Changes from 2.x:
 
-* Cassandra::Future#join is now an alias to Cassandra::Future#get and will raise an error if the future is resolved with one.
+* `Cassandra::Future#join` is now an alias to Cassandra::Future#get and will raise an error if the future is resolved with one.
 * Default consistency level is now LOCAL_ONE.
 * Enable tcp no-delay by default.
 * Unavailable errors are retried on the next host in the load balancing plan by default.
-* Statement execution no longer retried on timeouts, unless :idempotent => true has been specified when executing.
-* Cassandra::Statements::Batch#add signature has changed in how one specifies query parameters. Specify the query parameters array as the value of the arguments key:
+* Statement execution no longer retried on timeouts, unless the statement is marked as idempotent in the call to `Cassandra::Session#execute*` or when creating a `Cassandra::Statement` object. 
+* `Cassandra::Statements::Batch#add` and `Cassandra::Session#execute*` signatures have changed in how one specifies query parameters. Specify the query parameters array as the value of the arguments key:
  
 ```ruby
 batch.add(query, ['val1', 'val2'])
@@ -128,6 +133,10 @@ batch.add(query, {p1: 'val1'})
 # becomes
 batch.add(query, arguments: {p1: 'val1'})
 ```
+* The Datacenter-aware load balancing policy (`Cassandra::LoadBalancing::Policies::DCAwareRoundRobin`) defaults to using
+  nodes in the local DC only. In prior releases, the policy would fall back to remote nodes after exhausting local nodes.
+  Specify a positive value (or nil for unlimited) for `max_remote_hosts_to_use` when initializing the policy to allow remote node use.
+* Unspecified variables in statements previously resulted in an exception. Now they are essentially ignored or treated as null.
 
 ### Bug Fixes:
 
@@ -135,12 +144,13 @@ batch.add(query, arguments: {p1: 'val1'})
 * [[RUBY-143](https://datastax-oss.atlassian.net/browse/RUBY-143)] Retry querying system table for metadata of new hosts when prior attempts fail, ultimately enabling use of new hosts.
 * [[RUBY-150](https://datastax-oss.atlassian.net/browse/RUBY-150)] Fixed a protocol decoding error that occurred when multiple messages are available in a stream.
 * [[RUBY-151](https://datastax-oss.atlassian.net/browse/RUBY-151)] Decode incomplete UDTs properly.
-* [[RUBY-161](https://datastax-oss.atlassian.net/browse/RUBY-161)] Protocol version negotiation in mixed version clusters should not fall back to v1 unless it is truly warranted.    
+* [[RUBY-155](https://datastax-oss.atlassian.net/browse/RUBY-155)] Request timeout timer should not include request queuing time.
+* [[RUBY-161](https://datastax-oss.atlassian.net/browse/RUBY-161)] Protocol version negotiation in mixed version clusters should not fall back to v1 unless it is truly warranted.
+* [[RUBY-214](https://datastax-oss.atlassian.net/browse/RUBY-214)] Ensure client timestamps have microsecond precision in JRuby. Previously, some row updates would get lost in high transaction environments.
 
 ## Feedback Requested
 
-*Help us focus our efforts!* [Provide your input](http://goo.gl/forms/pCs8PTpHLf)
-on the Ruby Driver Platform and Runtime Survey (we kept it short).
+*Help us focus our efforts!* [Provide your input](http://goo.gl/forms/pCs8PTpHLf) on the Ruby Driver Platform and Runtime Survey (we kept it short).
 
 ## Code examples
 

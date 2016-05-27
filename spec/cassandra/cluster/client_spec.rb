@@ -40,7 +40,7 @@ module Cassandra
                                } }
 
       let(:driver) { Driver.new(driver_settings) }
-      let(:client) { Client.new(driver.logger, driver.cluster_registry, driver.cluster_schema, driver.io_reactor, driver.connector, driver.load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.address_resolution_policy, driver.connection_options, driver.futures_factory) }
+      let(:client) { Client.new(driver.logger, driver.cluster_registry, driver.cluster_schema, driver.io_reactor, driver.connector, driver.load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.address_resolution_policy, driver.connection_options, driver.futures_factory, driver.timestamp_generator) }
 
       before do
         io_reactor.connection_options = driver.connection_options
@@ -731,6 +731,31 @@ module Cassandra
           expect do
             client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
           end.to raise_error(Cassandra::Errors::InvalidError, 'blargh')
+        end
+
+        it 'returns a Void result when there is a write-timeout with downgrading-consistency policy' do
+          driver_settings[:retry_policy] = Retry::Policies::DowngradingConsistency.new
+          io_reactor.on_connection do |connection|
+            connection.handle_request do |request|
+              case request
+                when Cassandra::Protocol::OptionsRequest
+                  Cassandra::Protocol::SupportedResponse.new({})
+                when Cassandra::Protocol::StartupRequest
+                  Cassandra::Protocol::ReadyResponse.new
+                when Cassandra::Protocol::PrepareRequest
+                  Protocol::PreparedResultResponse.new(nil, nil, 123, [], [], nil, nil)
+                when Cassandra::Protocol::ExecuteRequest
+                  Protocol::WriteTimeoutErrorResponse.new(nil, nil, 123, 'write timeout', :one, 'x', 'y', 'simple')
+              end
+            end
+          end
+
+          client.connect.value
+
+          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
+
+          expect(client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get)
+              .to be_instance_of(Results::Void)
         end
 
         it 'raises if all hosts failed' do

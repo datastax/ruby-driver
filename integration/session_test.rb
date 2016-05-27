@@ -580,7 +580,7 @@ class SessionTest < IntegrationTestCase
 
     setup_schema
     begin
-      cluster = Cassandra.cluster(client_timestamps: true)
+      cluster = Cassandra.cluster(client_timestamps: :simple)
       session = cluster.connect("simplex")
 
       # Insert in the present
@@ -637,11 +637,11 @@ class SessionTest < IntegrationTestCase
       @@ccm_cluster.block_node("node1")
 
       future = session.execute_async("SELECT * FROM users")
-      start_time = Time.now.to_i
+      start_time = Time.now
       assert_raises(Cassandra::Errors::TimeoutError) do
         future.get(2)
       end
-      assert_equal 2, Time.now.to_i - start_time
+      assert_in_delta(2, Time.now - start_time, 0.5)
     ensure
       @@ccm_cluster.unblock_nodes
       cluster && cluster.close
@@ -828,6 +828,46 @@ class SessionTest < IntegrationTestCase
     end
   ensure
     cluster && cluster.close
+  end
+
+  # Test for cluster and session object inspection
+  #
+  # test_cluster_session_inspect tests that cluster and session objects can be inspected, and their stored options can
+  # be retrieved in the inspect string. It first creates a simple cluster and session object with some options defined.
+  # It then inspects these objects and verifies that the options set are visible in the inspect string.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-162
+  # @expected_result cluster and object options should be visible in the inspect string
+  #
+  # @test_category connection
+  #
+  def test_cluster_session_inspect
+    cluster = Cassandra.cluster(hosts: ['127.0.0.1'], consistency: :quorum, page_size: 10)
+    session = cluster.connect('simplex')
+
+    cluster_inspect = cluster.inspect
+    assert_match(/name="ruby-driver-.*"/, cluster_inspect)
+    assert_match(/hosts=\[.* @ip=127\.0\.0\.1>\]/, cluster_inspect)
+    assert_match(/port=9042/, cluster_inspect)
+    assert_match(/protocol_version=[1-4]/, cluster_inspect)
+    assert_match(/keyspaces=\[.* @name=simplex>\]/, cluster_inspect)
+    assert_match(/load_balancing_policy=#<Cassandra::LoadBalancing::Policies::TokenAware.*\
+policy=#<Cassandra::LoadBalancing::Policies::DCAwareRoundRobin.*\
+datacenter="datacenter1", use_remote=false, max_remote=0.*shuffle=true/, cluster_inspect)
+    assert_match(/consistency=:quorum/, cluster_inspect)
+    assert_match(/timeout=12/, cluster_inspect)
+
+    session_inspect = session.inspect
+    assert_match(/@keyspace="simplex"/, session_inspect)
+    assert_match(/@consistency=:quorum/, session_inspect)
+    assert_match(/@page_size=10/, session_inspect)
+    assert_match(/@trace=false/, session_inspect)
+    assert_match(/@timeout=12/, session_inspect)
+    assert_match(/@serial_consistency=nil/, session_inspect)
+    assert_match(/@paging_state=nil/, session_inspect)
+    assert_match(/@idempotent=false/, session_inspect)
+    assert_match(/@payload=nil/, session_inspect)
   end
 
 end

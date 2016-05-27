@@ -375,10 +375,22 @@ describe Cassandra do
       expect(C.validate(synchronize_schema: 0)).to eq({synchronize_schema: true})
     end
 
-    it 'should massage :client_timestamps to a boolean' do
-      expect(C.validate(client_timestamps: nil)).to eq({client_timestamps: false})
-      expect(C.validate(client_timestamps: 1)).to eq({client_timestamps: true})
-      expect(C.validate(client_timestamps: 0)).to eq({client_timestamps: true})
+    it 'should map :client_timestamps to a generator class or nil' do
+      expect(C.validate(client_timestamps: nil)).to eq({timestamp_generator: nil})
+      expect(C.validate(client_timestamps: false)).to eq({timestamp_generator: nil})
+      expect(C.validate({})).to eq({})
+
+      expected_class = RUBY_ENGINE == 'jruby' ?
+          Cassandra::TimestampGenerator::TickingOnDuplicate :
+          Cassandra::TimestampGenerator::Simple
+      expect(C.validate(client_timestamps: true)[:timestamp_generator]).to be_instance_of(expected_class)
+      expect { C.validate(client_timestamps: Object.new) }.to raise_error(ArgumentError)
+
+      valid_generator = Object.new
+      def valid_generator.next
+        42
+      end
+      expect(C.validate(client_timestamps: valid_generator)).to eq({ timestamp_generator: valid_generator })
     end
 
     it 'should validate :connections_per_local_node' do

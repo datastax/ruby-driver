@@ -1,10 +1,10 @@
 CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND durable_writes = true;
 
 CREATE TABLE simplex."t1" (
-  f1 int,
-  f2 int,
-  f3 int,
-  PRIMARY KEY (f1, f2)
+  "f1" int,
+  "f2" int,
+  "f3" int,
+  PRIMARY KEY ("f1", "f2")
 )
 WITH bloom_filter_fp_chance = 0.01
  AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
@@ -21,13 +21,13 @@ WITH bloom_filter_fp_chance = 0.01
  AND read_repair_chance = 0.0
  AND speculative_retry = '99PERCENTILE';
 
-CREATE INDEX "ind1" ON simplex."t1" (f2);
+CREATE INDEX "ind1" ON simplex."t1" ("f2");
 
 CREATE TABLE simplex."t2" (
-  f1 int,
-  f2 int,
-  f3 int,
-  PRIMARY KEY (f1, f2)
+  "f1" int,
+  "f2" int,
+  "f3" int,
+  PRIMARY KEY ("f1", "f2")
 )
 WITH COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
@@ -46,8 +46,8 @@ WITH COMPACT STORAGE
  AND speculative_retry = '99PERCENTILE';
 
 CREATE TABLE simplex."t3" (
-  f1 int PRIMARY KEY,
-  f2 int
+  "f1" int PRIMARY KEY,
+  "f2" int
 )
 WITH COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
@@ -66,12 +66,12 @@ WITH COMPACT STORAGE
  AND speculative_retry = '99PERCENTILE';
 
 CREATE TABLE simplex."t4" (
-  f1 int,
-  f2 int,
-  f3 int,
-  PRIMARY KEY (f1, f2)
+  "f1" int,
+  "f2" int,
+  "f3" int,
+  PRIMARY KEY ("f1", "f2")
 )
-WITH CLUSTERING ORDER BY (f2 DESC)
+WITH CLUSTERING ORDER BY ("f2" DESC)
  AND COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
  AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}

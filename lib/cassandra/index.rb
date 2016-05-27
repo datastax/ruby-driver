@@ -39,8 +39,17 @@ module Cassandra
       @table = table
       @name = name.freeze
       @kind = kind
-      @target = target.freeze
       @options = options.freeze
+
+      # Target is a bit tricky; it may be an escaped name or not
+      # depending on C* version. Unify to be unescaped since a user
+      # who wants to know the target would want the bare column name.
+
+      @target = if target[0] == '"'
+                  target[1..-2]
+                else
+                  target
+                end.freeze
     end
 
     # @return [Boolean] whether or not this index uses a custom class.
@@ -57,13 +66,18 @@ module Cassandra
     def to_cql
       keyspace_name = Util.escape_name(@table.keyspace.name)
       table_name = Util.escape_name(@table.name)
-      index_name = Util.escape_name(name)
+      index_name = Util.escape_name(@name)
+
+      # Target is interesting in that it's not necessarily a column name,
+      # so we can't simply escape it. If it contains a paren, we take it as is,
+      # otherwise assume it's a column name and escape accordingly.
+      escaped_target = @target.include?('(') ? @target : Util.escape_name(@target)
 
       if custom_index?
-        "CREATE CUSTOM INDEX #{index_name} ON #{keyspace_name}.#{table_name} (#{target}) " \
-        "USING '#{@options['class_name']}' #{options_cql};"
+        "CREATE CUSTOM INDEX #{index_name} ON #{keyspace_name}.#{table_name} (#{escaped_target}) " \
+        "USING '#{@options['class_name']}'#{options_cql};"
       else
-        "CREATE INDEX #{index_name} ON #{keyspace_name}.#{table_name} (#{target});"
+        "CREATE INDEX #{index_name} ON #{keyspace_name}.#{table_name} (#{escaped_target});"
       end
     end
 
@@ -81,7 +95,7 @@ module Cassandra
     # @private
     def inspect
       "#<#{self.class.name}:0x#{object_id.to_s(16)} " \
-          "@name=#{@name} table_name=#{@table.name} kind=#{@kind} target=#{@target}>"
+          "@name=#{@name.inspect} @table=#{@table.inspect} @kind=#{@kind.inspect} @target=#{@target.inspect}>"
     end
 
     private
@@ -93,9 +107,9 @@ module Cassandra
       end
       return '' if filtered_options.empty?
 
-      result = 'WITH OPTIONS = {'
+      result = ' WITH OPTIONS = {'
       result << filtered_options.map do |key, value|
-        "'#{key}':'#{value}'"
+        "'#{key}': '#{value}'"
       end.join(', ')
       result << '}'
       result

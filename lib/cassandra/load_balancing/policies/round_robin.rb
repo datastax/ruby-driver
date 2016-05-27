@@ -128,6 +128,13 @@ module Cassandra
 
           Plan.new(hosts, position)
         end
+
+        # @private
+        def inspect
+          "#<#{self.class.name}:0x#{object_id.to_s(16)} " \
+          "hosts=#{@hosts.inspect}, " \
+          "position=#{@position.inspect}>"
+        end
       end
     end
   end

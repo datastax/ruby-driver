@@ -1,19 +1,40 @@
 # master
 Features:
+
+Bug Fixes:
+
+
+# 3.0.0 GA
+Features:
+* Increased default request timeout (the `timeout` option to `Cassandra.cluster`), from 10 seconds to 12 seconds 
+  because C* defaults to a 10 second timeout internally. The extra two seconds is buffer so that the client can
+  report the timeout in the server. This is also consistent with the Java driver.
+* Expand :client_timestamps cluster configuration option to allow user to specify his own generator for client timestamps.
+
+Bug Fixes:
+* [RUBY-207](https://datastax-oss.atlassian.net/browse/RUBY-207) Get NoMethodError when handling a write-timeout error using a downgrading consistency retry policy.
+* [RUBY-214](https://datastax-oss.atlassian.net/browse/RUBY-214) Client timestamps in JRuby are not fine-grained enough, causing timestamp collisions and lost rows in C*.
+
+Breaking Changes:
+* The Datacenter-aware load balancing policy (Cassandra::LoadBalancing::Policies::DCAwareRoundRobin) defaults to using
+  nodes in the local DC only. In prior releases, the policy would fall back to remote nodes after exhausting local nodes.
+  Specify a positive value (or nil for unlimited) for `max_remote_hosts_to_use` when initializing the policy to allow remote node use. 
+
+# 3.0.0 rc2
+Features:
 * Add protocol_version configuration option to allow the user to force the protocol version to use for communication with nodes.
 * Expose listen_address and broadcast_address in `Cassandra::Host` if available.
 * Add support for materialized views in the schema metadata.
 * Add support for Cassandra indexes in the schema metadata.
 * Add or expose the id, options, keyspace, partition_key, clustering_columns, and clustering_order attributes to table and view schema objects.
 * Add crc_check_chance and extensions attributes to ColumnContainer options.
+* Make cluster configuration options list publicly available. (Thanks, Evan Prothro!)
 
 Bug Fixes:
-* [RUBY-161] Protocol version negotiation in mixed version clusters should not fall back to v1 unless it is truly warranted.    
-* [RUBY-180] Column ordering is not deterministic in Table metadata.
-* [RUBY-185] Internal columns in static-compact and dense tables should be ignored.
-* [RUBY-186] Custom type column metadata should be parsed properly for C* 3.x schemas. 
-
-Breaking Changes:
+* [RUBY-161](https://datastax-oss.atlassian.net/browse/RUBY-161) Protocol version negotiation in mixed version clusters should not fall back to v1 unless it is truly warranted.    
+* [RUBY-180](https://datastax-oss.atlassian.net/browse/RUBY-180) Column ordering is not deterministic in Table metadata.
+* [RUBY-185](https://datastax-oss.atlassian.net/browse/RUBY-185) Internal columns in static-compact and dense tables should be ignored.
+* [RUBY-186](https://datastax-oss.atlassian.net/browse/RUBY-186) Custom type column metadata should be parsed properly for C* 3.x schemas. 
 
 # 3.0.0 rc1
 
@@ -22,9 +43,9 @@ Features:
 * Add Cassandra::Logger class to make it easy for users to enable debug logging in the client.
 
 Bug Fixes:
-* [RUBY-154] Improve batch request performance, which had regressed in 3.0.0 beta1.
-* [RUBY-155] Request timeout timer should not include request queuing time.
-* [RUBY-156] Do not drop response frames that follow a frame containing a warning.
+* [RUBY-154](https://datastax-oss.atlassian.net/browse/RUBY-154) Improve batch request performance, which had regressed in 3.0.0 beta1.
+* [RUBY-155](https://datastax-oss.atlassian.net/browse/RUBY-155) Request timeout timer should not include request queuing time.
+* [RUBY-156](https://datastax-oss.atlassian.net/browse/RUBY-156) Do not drop response frames that follow a frame containing a warning.
 
 # 3.0.0 beta1
 
@@ -44,10 +65,10 @@ Features:
 
 Bug Fixes:
 
-* [RUBY-143] Retry querying system table for metadata of new hosts when prior attempts fail, ultimately enabling use of new hosts.
-* [RUBY-150] Fixed a protocol decoding error that occurred when multiple messages are available in a stream.
-* [RUBY-151] Decode incomplete UDTs properly.
-* [RUBY-120] Tuples and UDTs can be used in sets and hash keys.
+* [RUBY-143](https://datastax-oss.atlassian.net/browse/RUBY-143) Retry querying system table for metadata of new hosts when prior attempts fail, ultimately enabling use of new hosts.
+* [RUBY-150](https://datastax-oss.atlassian.net/browse/RUBY-150) Fixed a protocol decoding error that occurred when multiple messages are available in a stream.
+* [RUBY-151](https://datastax-oss.atlassian.net/browse/RUBY-151) Decode incomplete UDTs properly.
+* [RUBY-120](https://datastax-oss.atlassian.net/browse/RUBY-120) Tuples and UDTs can be used in sets and hash keys.
 
 Breaking Changes:
 
@@ -57,6 +78,12 @@ Breaking Changes:
 * Unavailable errors are retried on the next host in the load balancing plan by default.
 * Statement execution no longer retried on timeouts, unless `:idempotent => true` has been specified when executing.
 
+# 2.1.6
+Bug Fixes:
+
+* [RUBY-202](https://datastax-oss.atlassian.net/browse/RUBY-202) Allow password authenticator to be used for LDAP authentication. This is actually a backport of
+     RUBY-169 for the 3.0.0 release.
+
 # 2.1.5
 
 Features:
@@ -65,25 +92,25 @@ Features:
 
 Bug Fixes:
 
-* [RUBY-128] Fix decoding of large values in maps, sets and lists.
+* [RUBY-128](https://datastax-oss.atlassian.net/browse/RUBY-128) Fix decoding of large values in maps, sets and lists.
 
 # 2.1.4
 
 Features:
 
-* [RUBY-119] Use `require 'datastax/cassandra'` to avoid namespace conflicts
-* [RUBY-90] Add support for disabling nagle algorithm (tcp nodelay), enabled by default.
-* [RUBY-70] Add support for client-side timestamps, disabled by default.
-* [RUBY-114] Add support for serial consistency in batch requests.
+* [RUBY-119](https://datastax-oss.atlassian.net/browse/RUBY-119) Use `require 'datastax/cassandra'` to avoid namespace conflicts
+* [RUBY-90](https://datastax-oss.atlassian.net/browse/RUBY-90) Add support for disabling nagle algorithm (tcp nodelay), enabled by default.
+* [RUBY-70](https://datastax-oss.atlassian.net/browse/RUBY-70) Add support for client-side timestamps, disabled by default.
+* [RUBY-114](https://datastax-oss.atlassian.net/browse/RUBY-114) Add support for serial consistency in batch requests.
 
 Bug Fixes:
 
-* [RUBY-103] Don't regenerate schema metadata for the same replication
+* [RUBY-103](https://datastax-oss.atlassian.net/browse/RUBY-103) Don't regenerate schema metadata for the same replication
   strategies and options
-* [RUBY-102] Allow custom types in schema metadata
-* [RUBY-97] Allow disabling of the initial population of schema metadata
-* [RUBY-95] Speed up generation of large token maps
-* [RUBY-116] fix thread leak on connection error
+* [RUBY-102](https://datastax-oss.atlassian.net/browse/RUBY-102) Allow custom types in schema metadata
+* [RUBY-97](https://datastax-oss.atlassian.net/browse/RUBY-97) Allow disabling of the initial population of schema metadata
+* [RUBY-95](https://datastax-oss.atlassian.net/browse/RUBY-95) Speed up generation of large token maps
+* [RUBY-116](https://datastax-oss.atlassian.net/browse/RUBY-116) fix thread leak on connection error
 
 Breaking Changes:
 
@@ -102,7 +129,7 @@ Release removing accidental debug code from 2.1.1.
 
 Bug Fixes:
 
-* [RUBY-98] Use of undefined class variable in `Table#create_partition_key`
+* [RUBY-98](https://datastax-oss.atlassian.net/browse/RUBY-98) Use of undefined class variable in `Table#create_partition_key`
 
 # 2.1.0
 
@@ -120,13 +147,13 @@ Breaking Changes:
 
 Bug Fixes:
 
-* [RUBY-93] Reconnection can overflow the stack
+* [RUBY-93](https://datastax-oss.atlassian.net/browse/RUBY-93) Reconnection can overflow the stack
 
 # 2.0.1
 
 Bug Fixes:
 
-* [RUBY-87] Decoder corrupts incomplete response buffer
+* [RUBY-87](https://datastax-oss.atlassian.net/browse/RUBY-87) Decoder corrupts incomplete response buffer
 
 # 2.0.0
 
