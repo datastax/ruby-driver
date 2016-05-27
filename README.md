@@ -70,7 +70,7 @@ datastax driver gets used:
 # Our fork of the Datastax Cassandra Gem. The Datastax Cassandra Gem assumes that
 # if you are using a different port for Cassandra, you are using that different
 # port for all hosts. Our fork allows a different port for each Cassandra host.
-gem 'cassandra-driver', :git => 'git@github.com:backupify/ruby-driver.git', :branch => '3.0.0-rc.2-port_support'
+gem 'cassandra-driver', :git => 'git@github.com:backupify/ruby-driver.git', :branch => '3.0.0-port_support'
 ```
 
 Deploy your branch to the worker you put in maintenance mode.
