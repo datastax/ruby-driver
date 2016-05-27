@@ -95,6 +95,7 @@ registry.hosts.each do |h|
   end
   puts "#{h.ip.class} #{h.ip.to_s}:#{port}"
 end;
+```
 
 You will see this:
 
