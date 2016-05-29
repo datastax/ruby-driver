@@ -92,23 +92,25 @@ module Cassandra
                                      schema_fetcher)
     end
 
+    let(:cluster_klass) { Cluster }
+
     let(:cluster) do
-      Cluster.new(logger,
-                  io_reactor,
-                  executor,
-                  control_connection,
-                  cluster_registry,
-                  cluster_schema,
-                  cluster_metadata,
-                  execution_options,
-                  connection_options,
-                  load_balancing_policy,
-                  reconnection_policy,
-                  retry_policy,
-                  address_resolution_policy,
-                  connector,
-                  futures_factory,
-                  timestamp_generator)
+      cluster_klass.new(logger,
+                        io_reactor,
+                        executor,
+                        control_connection,
+                        cluster_registry,
+                        cluster_schema,
+                        cluster_metadata,
+                        execution_options,
+                        connection_options,
+                        load_balancing_policy,
+                        reconnection_policy,
+                        retry_policy,
+                        address_resolution_policy,
+                        connector,
+                        futures_factory,
+			timestamp_generator)
     end
 
     let(:execution_options) do

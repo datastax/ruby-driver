@@ -293,28 +293,7 @@ module Cassandra
   # @return [Cassandra::Future<Cassandra::Cluster>] a future resolving to the
   #   cluster instance.
   def self.cluster_async(options = {})
-    options = validate_and_massage_options(options)
-    hosts = []
-
-    Array(options.fetch(:hosts, '127.0.0.1')).each do |host|
-      case host
-      when ::IPAddr
-        hosts << host
-      when ::String # ip address or hostname
-        Resolv.each_address(host) do |ip|
-          hosts << ::IPAddr.new(ip)
-        end
-      else
-        raise ::ArgumentError, ":hosts must be String or IPAddr, #{host.inspect} given"
-      end
-    end
-
-    if hosts.empty?
-      raise ::ArgumentError,
-            ":hosts #{options[:hosts].inspect} could not be resolved to any ip address"
-    end
-
-    hosts.shuffle!
+    options, hosts = validate_and_massage_options(options)
   rescue => e
     futures = options.fetch(:futures_factory) { return Future::Error.new(e) }
     futures.error(e)
@@ -664,14 +643,14 @@ module Cassandra
 
       case address_resolution
       when :none
-        # do nothing
+      # do nothing
       when :ec2_multi_region
         options[:address_resolution_policy] =
           AddressResolution::Policies::EC2MultiRegion.new
       else
         raise ::ArgumentError,
               ':address_resolution must be either :none or :ec2_multi_region, ' \
-                  "#{address_resolution.inspect} given"
+                "#{address_resolution.inspect} given"
       end
     end
 
@@ -757,7 +736,31 @@ module Cassandra
         end
       end
     end
-    options
+
+    # Get host addresses.
+    hosts = []
+
+    Array(options.fetch(:hosts, '127.0.0.1')).each do |host|
+      case host
+      when ::IPAddr
+        hosts << host
+      when ::String # ip address or hostname
+        Resolv.each_address(host) do |ip|
+          hosts << ::IPAddr.new(ip)
+        end
+      else
+        raise ::ArgumentError, ":hosts must be String or IPAddr, #{host.inspect} given"
+      end
+    end
+
+    if hosts.empty?
+      raise ::ArgumentError,
+            ":hosts #{options[:hosts].inspect} could not be resolved to any ip address"
+    end
+
+    hosts.shuffle!
+
+    [options, hosts]
   end
 
   # @private

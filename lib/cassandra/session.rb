@@ -89,20 +89,13 @@ module Cassandra
 
       case statement
       when ::String
-        @client.query(Statements::Simple.new(statement,
-                                             options.arguments,
-                                             options.type_hints,
-                                             options.idempotent?),
-                      options)
-      when Statements::Simple
-        @client.query(statement, options)
-      when Statements::Prepared
-        @client.execute(statement.bind(options.arguments), options)
-      when Statements::Bound
-        @client.execute(statement, options)
-      when Statements::Batch
-        Util.assert_not_empty(statement.statements) { 'batch cannot be empty' }
-        @client.batch(statement, options)
+        Statements::Simple.new(statement,
+                               options.arguments,
+                               options.type_hints,
+                               options.idempotent?).accept(@client,
+                                                           options)
+      when Statement
+        statement.accept(@client, options)
       else
         @futures.error(::ArgumentError.new("unsupported statement #{statement.inspect}"))
       end

@@ -34,7 +34,7 @@ module Cassandra
     #
     # @see Cassandra::Auth::Providers
     class Provider
-      # @!method create_authenticator(authentication_class, protocol_version)
+      # @!method create_authenticator(authentication_class, host)
       #
       # Create a new authenticator object. This method will be called once per
       # connection that requires authentication. The auth provider can create
@@ -45,6 +45,8 @@ module Cassandra
       #
       # @param authentication_class [String] the authentication class used by
       #   the server.
+      # @param host [Cassandra::Host] the node to whom we're authenticating.
+      #
       # @return [Cassandra::Auth::Authenticator, nil] an object with an
       #   interface matching {Cassandra::Auth::Authenticator} or `nil` if the
       #   authentication class is not supported.
