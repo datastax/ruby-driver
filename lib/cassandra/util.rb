@@ -196,6 +196,7 @@ module Cassandra
         Types.udt(object.keyspace, object.name, object.types)
       when UDT
         Types.udt('unknown', 'unknown', object.map {|k, v| [k, guess_type(v)]})
+      when Cassandra::CustomData then object.class.type
       else
         raise ::ArgumentError,
               "Unable to guess the type of the argument: #{object.inspect}"

@@ -241,7 +241,8 @@ module Cassandra
                                           protocol_version,
                                           remaining_bytes,
                                           paging_state,
-                                          trace_id)
+                                          trace_id,
+                                          nil)
               else
                 RowsResultResponse.new(nil,
                                        nil,

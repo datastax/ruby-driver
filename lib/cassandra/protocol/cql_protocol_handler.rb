@@ -46,7 +46,8 @@ module Cassandra
                      compressor = nil,
                      heartbeat_interval = 30,
                      idle_timeout = 60,
-                     requests_per_connection = 128)
+                     requests_per_connection = 128,
+                     custom_type_handlers = {})
         @protocol_version = protocol_version
         @connection = connection
         @scheduler = scheduler
@@ -60,7 +61,7 @@ module Cassandra
 
         if protocol_version > 3
           @frame_encoder = V4::Encoder.new(@compressor, protocol_version)
-          @frame_decoder = V4::Decoder.new(self, @compressor)
+          @frame_decoder = V4::Decoder.new(self, @compressor, custom_type_handlers)
         elsif protocol_version > 2
           @frame_encoder = V3::Encoder.new(@compressor, protocol_version)
           @frame_decoder = V3::Decoder.new(self, @compressor)
