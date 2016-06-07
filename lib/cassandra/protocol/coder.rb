@@ -782,7 +782,7 @@ module Cassandra
           raise Errors::DecodingError, %(Unsupported custom column type: #{type.name})
         end
         num_bytes = read_size(buffer)
-        custom_type_handlers[type].deserialize(buffer.read(num_bytes)) if num_bytes > 0
+        custom_type_handlers[type].deserialize(buffer.read(num_bytes)) if num_bytes && num_bytes > 0
       end
 
       def read_decimal(buffer)
