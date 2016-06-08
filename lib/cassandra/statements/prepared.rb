@@ -208,7 +208,7 @@ module Cassandra
             end
 
             if @connection_options.protocol_version >= 4
-              Protocol::Coder.write_value_v4(buffer, value, type)
+              Protocol::Coder.write_value_v4(buf, value, type)
             elsif @connection_options.protocol_version >= 3
               Protocol::Coder.write_value_v3(buf, value, type)
             else
