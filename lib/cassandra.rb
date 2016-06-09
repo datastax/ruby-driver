@@ -834,6 +834,11 @@ require 'cassandra/util'
 # murmur3 hash extension
 require 'cassandra_murmur3'
 
+# SortedSet has a race condition where it does some class/global initialization when the first instance is created.
+# If this is done in a multi-threaded environment, bad things can happen. So force the initialization here,
+# when loading the C* module.
+::SortedSet.new
+
 module Cassandra
   # @private
   VOID_STATEMENT = Statements::Void.new
