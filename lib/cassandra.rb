@@ -66,6 +66,7 @@ module Cassandra
     :connections_per_remote_node,
     :consistency,
     :credentials,
+    :custom_types,
     :datacenter,
     :futures_factory,
     :heartbeat_interval,
@@ -801,6 +802,7 @@ require 'cassandra/null_logger'
 require 'cassandra/executors'
 require 'cassandra/future'
 require 'cassandra/cluster'
+require 'cassandra/custom_data'
 require 'cassandra/driver'
 require 'cassandra/host'
 require 'cassandra/session'

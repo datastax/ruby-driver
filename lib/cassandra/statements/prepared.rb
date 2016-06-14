@@ -185,7 +185,9 @@ module Cassandra
                                    'the partition key and must be present.'
           end
 
-          if @connection_options.protocol_version >= 3
+          if @connection_options.protocol_version >= 4
+            Protocol::Coder.write_value_v4(buffer, value, type)
+          elsif @connection_options.protocol_version >= 3
             Protocol::Coder.write_value_v3(buffer, value, type)
           else
             Protocol::Coder.write_value_v1(buffer, value, type)
@@ -205,7 +207,9 @@ module Cassandra
                                      'the partition key and must be present.'
             end
 
-            if @connection_options.protocol_version >= 3
+            if @connection_options.protocol_version >= 4
+              Protocol::Coder.write_value_v4(buf, value, type)
+            elsif @connection_options.protocol_version >= 3
               Protocol::Coder.write_value_v3(buf, value, type)
             else
               Protocol::Coder.write_value_v1(buf, value, type)

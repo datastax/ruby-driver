@@ -836,7 +836,7 @@ module Cassandra
             initial_state  = Util.encode_object(
               Protocol::Coder.read_value_v4(
                 Protocol::CqlByteBuffer.new.append_bytes(aggregate_data['initcond']),
-                state_type))
+                state_type, nil))
 
             # The state-function takes arguments: first the stype, then the args of the aggregate.
             state_function = functions.get(aggregate_data['state_func'],

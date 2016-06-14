@@ -28,6 +28,13 @@ module Cassandra
 
       BYTES_FORMAT = 'C*'.freeze
       TWO_INTS_FORMAT = 'NN'.freeze
+
+      # All of the formats above are big-endian (e.g. network-byte-order). Some payloads (custom types) may have
+      # little-endian components.
+
+      DOUBLE_FORMAT_LE = 'E'.freeze
+      INT_FORMAT_LE = 'V'.freeze
+      SHORT_FORMAT_LE = 'v'.freeze
     end
 
     module Constants

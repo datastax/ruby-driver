@@ -55,7 +55,7 @@ module Cassandra
       end
 
       def inspect
-        "#<Cassandra::Tuple:0x#{object_id.to_s(16)} #{self}>"
+        "#<Cassandra::Tuple:0x#{object_id.to_s(16)} types=#{@types.inspect}, []=#{@values.inspect}>"
       end
     end
 
@@ -114,7 +114,7 @@ module Cassandra
 
     # @private
     def inspect
-      "#<Cassandra::Tuple:0x#{object_id.to_s(16)} #{self}>"
+      "#<Cassandra::Tuple:0x#{object_id.to_s(16)} []=#{@values.inspect}>"
     end
 
     # @private

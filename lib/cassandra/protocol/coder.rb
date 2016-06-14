@@ -97,6 +97,7 @@ module Cassandra
         when :bigint, :counter then write_bigint(buffer, value)
         when :blob             then write_blob(buffer, value)
         when :boolean          then write_boolean(buffer, value)
+        when :custom           then write_custom(buffer, value, type)
         when :decimal          then write_decimal(buffer, value)
         when :double           then write_double(buffer, value)
         when :float            then write_float(buffer, value)
@@ -221,19 +222,19 @@ module Cassandra
         end
       end
 
-      def read_values_v4(buffer, column_metadata)
+      def read_values_v4(buffer, column_metadata, custom_type_handlers)
         ::Array.new(buffer.read_int) do |_i|
           row = ::Hash.new
 
           column_metadata.each do |(_, _, column, type)|
-            row[column] = read_value_v4(buffer, type)
+            row[column] = read_value_v4(buffer, type, custom_type_handlers)
           end
 
           row
         end
       end
 
-      def read_value_v4(buffer, type)
+      def read_value_v4(buffer, type, custom_type_handlers)
         case type.kind
         when :ascii            then read_ascii(buffer)
         when :bigint, :counter then read_bigint(buffer)
@@ -253,11 +254,12 @@ module Cassandra
         when :smallint         then read_smallint(buffer)
         when :time             then read_time(buffer)
         when :date             then read_date(buffer)
+        when :custom           then read_custom(buffer, type, custom_type_handlers)
         when :list
           return nil unless read_size(buffer)
 
           value_type = type.value_type
-          ::Array.new(buffer.read_signed_int) { read_value_v4(buffer, value_type) }
+          ::Array.new(buffer.read_signed_int) { read_value_v4(buffer, value_type, custom_type_handlers) }
         when :map
           return nil unless read_size(buffer)
 
@@ -266,7 +268,7 @@ module Cassandra
           value      = ::Hash.new
 
           buffer.read_signed_int.times do
-            value[read_value_v4(buffer, key_type)] = read_value_v4(buffer, value_type)
+            value[read_value_v4(buffer, key_type, custom_type_handlers)] = read_value_v4(buffer, value_type, custom_type_handlers)
           end
 
           value
@@ -277,7 +279,7 @@ module Cassandra
           value      = ::Set.new
 
           buffer.read_signed_int.times do
-            value << read_value_v4(buffer, value_type)
+            value << read_value_v4(buffer, value_type, custom_type_handlers)
           end
 
           value
@@ -295,7 +297,7 @@ module Cassandra
             values[field.name] = if length - buffer.length >= size
                                    nil
                                  else
-                                   read_value_v4(buffer, field.type)
+                                   read_value_v4(buffer, field.type, custom_type_handlers)
                                  end
           end
 
@@ -308,7 +310,7 @@ module Cassandra
 
           members.each do |member_type|
             break if buffer.empty?
-            values << read_value_v4(buffer, member_type)
+            values << read_value_v4(buffer, member_type, custom_type_handlers)
           end
 
           values.fill(nil, values.length, (members.length - values.length))
@@ -774,6 +776,15 @@ module Cassandra
         read_size(buffer) && buffer.read(1) == Constants::TRUE_BYTE
       end
 
+      def read_custom(buffer, type, custom_type_handlers)
+        # Lookup the type-name to get the Class that can deserialize buffer data into a custom domain object.
+        unless custom_type_handlers && custom_type_handlers.key?(type)
+          raise Errors::DecodingError, %(Unsupported custom column type: #{type.name})
+        end
+        num_bytes = read_size(buffer)
+        custom_type_handlers[type].deserialize(buffer.read(num_bytes)) if num_bytes && num_bytes > 0
+      end
+
       def read_decimal(buffer)
         size = read_size(buffer)
         size && buffer.read_decimal(size)
@@ -858,6 +869,15 @@ module Cassandra
       def write_boolean(buffer, value)
         buffer.append_int(1)
         buffer.append(value ? Constants::TRUE_BYTE : Constants::FALSE_BYTE)
+      end
+
+      def write_custom(buffer, value, type)
+        # Verify that the given type-name matches the value's cql type name.
+        if value.class.type != type
+          raise Errors::EncodingError, "type mismatch: value is a #{value.type} and column is a #{type}"
+        end
+
+        buffer.append_bytes(value.serialize)
       end
 
       def write_decimal(buffer, value)

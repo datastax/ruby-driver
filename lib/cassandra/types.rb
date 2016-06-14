@@ -1389,8 +1389,8 @@ module Cassandra
       # @raise [ArgumentError] if the value is invalid
       # @return [void]
       def assert(value, message = nil, &block)
-        raise ::NotImplementedError,
-              "unable to assert a value for custom type: #{@name.inspect}"
+        Util.assert_instance_of(CustomData, value, message, &block)
+        Util.assert_equal(self, value.class.type, message, &block)
       end
 
       # @return [String] a cassandra representation of this type

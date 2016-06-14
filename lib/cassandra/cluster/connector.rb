@@ -134,7 +134,8 @@ module Cassandra
                                            @connection_options.compressor,
                                            @connection_options.heartbeat_interval,
                                            @connection_options.idle_timeout,
-                                           @connection_options.requests_per_connection)
+                                           @connection_options.requests_per_connection,
+                                           @connection_options.custom_type_handlers)
         end.flat_map do |connection|
           # connection is a CqlProtocolHandler
           f = request_options(connection)

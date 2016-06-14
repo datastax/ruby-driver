@@ -72,6 +72,9 @@ module Cassandra
             Cassandra::Types.tuple(*node.children.map { |t| lookup_type(t, types)})
           when 'empty'             then
             Cassandra::Types.custom('org.apache.cassandra.db.marshal.EmptyType')
+          when /\A'/ then
+            # Custom type.
+            Cassandra::Types.custom(node.name[1..-2])
           else
             types.fetch(node.name) do
               raise IncompleteTypeError, "unable to lookup type #{node.name.inspect}"

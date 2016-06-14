@@ -92,6 +92,13 @@ module Cassandra
               "Not enough bytes available to decode a double: #{e.message}", e.backtrace
       end
 
+      def read_double_le
+        read(8).unpack(Formats::DOUBLE_FORMAT_LE).first
+      rescue RangeError => e
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode a double: #{e.message}", e.backtrace
+      end
+
       def read_float
         read(4).unpack(Formats::FLOAT_FORMAT).first
       rescue RangeError => e
@@ -108,8 +115,22 @@ module Cassandra
               "Not enough bytes available to decode an int: #{e.message}", e.backtrace
       end
 
+      def read_unsigned_int_le
+        read(4).unpack(Formats::INT_FORMAT_LE).first
+      rescue RangeError => e
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode an int: #{e.message}", e.backtrace
+      end
+
       def read_unsigned_short
         read_short
+      rescue RangeError => e
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode a short: #{e.message}", e.backtrace
+      end
+
+      def read_unsigned_short_le
+        read(2).unpack(Formats::SHORT_FORMAT_LE).first
       rescue RangeError => e
         raise Errors::DecodingError,
               "Not enough bytes available to decode a short: #{e.message}", e.backtrace

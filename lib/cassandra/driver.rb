@@ -139,10 +139,12 @@ module Cassandra
         schema_refresh_delay,
         schema_refresh_timeout,
         nodelay,
-        requests_per_connection
+        requests_per_connection,
+        custom_types
       )
     end
 
+    let(:custom_types)      { [] }
     let(:port)                      { 9042 }
     let(:protocol_version)          { nil }
     let(:connect_timeout)           { 10 }
