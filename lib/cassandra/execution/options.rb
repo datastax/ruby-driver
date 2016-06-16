@@ -177,7 +177,7 @@ module Cassandra
           @consistency = consistency || trusted_options.consistency
           @page_size = page_size || trusted_options.page_size
           @trace = trace.nil? ? trusted_options.trace? : !!trace
-          @timeout = timeout || trusted_options.timeout
+          @timeout = options.key?(:timeout) ? timeout : trusted_options.timeout
           @serial_consistency = serial_consistency || trusted_options.serial_consistency
           @arguments = arguments || trusted_options.arguments
           @type_hints = type_hints || trusted_options.type_hints
