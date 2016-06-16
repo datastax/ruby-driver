@@ -3,7 +3,8 @@ Features:
 
 Bug Fixes:
 * [RUBY-219](https://datastax-oss.atlassian.net/browse/RUBY-219) Sometimes get stack trace in metadata.rb due to failure in SortedSet initialization.
-
+* [RUBY-231](https://datastax-oss.atlassian.net/browse/RUBY-231) Driver ignores explicitly specified nil timeout (to indicate no time limit on query execution).
+* [RUBY-233](https://datastax-oss.atlassian.net/browse/RUBY-233) Client timeout errors are retried for non-idempotent statements. 
 
 # 3.0.0 GA
 Features:

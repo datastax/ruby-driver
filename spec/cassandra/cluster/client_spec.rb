@@ -458,7 +458,7 @@ module Cassandra
                   attempts << connection.host
                   if count == 0
                     count += 1
-                    raise Cassandra::Errors::ClientError.new
+                    raise Cassandra::Errors::InternalError.new
                   else
                     Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
                   end
@@ -474,6 +474,72 @@ module Cassandra
           expect(attempts).to eq(hosts)
         end
 
+        it 'does not retry on client timeout error if statement is not idempotent' do
+          attempts = []
+          io_reactor.on_connection do |connection|
+            connection.handle_request do |request|
+              case request
+                when Cassandra::Protocol::OptionsRequest
+                  Cassandra::Protocol::SupportedResponse.new({})
+                when Cassandra::Protocol::StartupRequest
+                  Cassandra::Protocol::ReadyResponse.new
+                when Cassandra::Protocol::QueryRequest
+                  case request.cql
+                    when 'SELECT * FROM songs'
+                      attempts << connection.host
+                        raise Cassandra::Errors::TimeoutError.new
+                    else
+                      Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
+                  end
+              end
+            end
+          end
+          client.connect.value
+          future = client.query(Statements::Simple.new('SELECT * FROM songs'),
+                                Execution::Options.new(:consistency => :one))
+          got_excp = false
+          future.on_failure do |ex|
+            got_excp = true
+            expect(ex).to be_a(Cassandra::Errors::TimeoutError)
+          end
+          expect(got_excp)
+          expect(attempts).to have(1).items
+          expect(attempts.first).to eq(hosts.first)
+        end
+
+        it 'retries on client timeout error if statement is idempotent' do
+          count    = 0
+          attempts = []
+          io_reactor.on_connection do |connection|
+            connection.handle_request do |request|
+              case request
+                when Cassandra::Protocol::OptionsRequest
+                  Cassandra::Protocol::SupportedResponse.new({})
+                when Cassandra::Protocol::StartupRequest
+                  Cassandra::Protocol::ReadyResponse.new
+                when Cassandra::Protocol::QueryRequest
+                  case request.cql
+                    when 'SELECT * FROM songs'
+                      attempts << connection.host
+                      if count == 0
+                        count += 1
+                        raise raise Cassandra::Errors::TimeoutError.new
+                      else
+                        Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
+                      end
+                    else
+                      Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
+                  end
+              end
+            end
+          end
+          client.connect.value
+          client.query(Statements::Simple.new('SELECT * FROM songs', nil, nil, true),
+                       Execution::Options.new(:consistency => :one)).get
+          expect(attempts).to have(2).items
+          expect(attempts).to eq(hosts)
+        end
+
         it 'raises if all hosts failed' do
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
@@ -485,7 +551,7 @@ module Cassandra
               when Cassandra::Protocol::QueryRequest
                 case request.cql
                 when 'SELECT * FROM songs'
-                  raise Cassandra::Errors::ClientError.new
+                  raise Cassandra::Errors::InternalError.new
                 else
                   Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
                 end
@@ -692,7 +758,7 @@ module Cassandra
                 attempts << connection.host
                 if count == 0
                   count += 1
-                  raise Cassandra::Errors::ClientError.new
+                  raise Cassandra::Errors::InternalError.new
                 end
                 Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
               end
@@ -769,7 +835,7 @@ module Cassandra
               when Cassandra::Protocol::PrepareRequest
                 Protocol::PreparedResultResponse.new(nil, nil, 123, [], [], nil, nil)
               when Cassandra::Protocol::ExecuteRequest
-                raise Cassandra::Errors::ClientError.new
+                raise Cassandra::Errors::InternalError.new
               end
             end
           end
@@ -918,7 +984,7 @@ module Cassandra
                 attempts << connection.host
                 if count == 0
                   count += 1
-                  raise Cassandra::Errors::ClientError.new
+                  raise Cassandra::Errors::InternalError.new
                 end
                 Cassandra::Protocol::RowsResultResponse.new(nil, nil, [], [], nil, nil)
               end
@@ -943,7 +1009,7 @@ module Cassandra
               when Cassandra::Protocol::StartupRequest
                 Cassandra::Protocol::ReadyResponse.new
               when Cassandra::Protocol::BatchRequest
-                raise Cassandra::Errors::ClientError.new
+                raise Cassandra::Errors::InternalError.new
               end
             end
           end
