@@ -29,7 +29,7 @@ class IntegrationTestCase < MiniTest::Unit::TestCase
   @@ccm_cluster = nil
 
   def self.before_suite
-    @@ccm_cluster = CCM.setup_cluster(1, 1)
+    @@ccm_cluster = CCM.setup_cluster(1, 1) unless self == IntegrationTestCase
   end
 
   def self.after_suite
