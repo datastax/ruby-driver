@@ -37,10 +37,13 @@ class ClientWarningsTest < IntegrationTestCase
       CREATE TABLE test (k int, v text, PRIMARY KEY (k, v));
       CQL
 
-      @query = "BEGIN UNLOGGED BATCH INSERT INTO test (k, v) VALUES (0, '#{'a' * 5 * 1025}') APPLY BATCH"
-      @exceeding_warning = Regexp.new(/Batch of prepared statements for .* is of size .*, exceeding specified threshold of 5120/)
-      @partition_warning = Regexp.new(/Unlogged batch covering 2 partitions detected against table .* You should use a logged \
-batch for atomicity, or asynchronous writes for performance/)
+      @query = "BEGIN UNLOGGED BATCH
+                INSERT INTO test (k, v) VALUES (0, '#{'a' * 5 * 1025}')
+                INSERT INTO test (k, v) VALUES (1, '#{'a' * 5 * 1025}')
+                APPLY BATCH"
+      @exceeding_warning = Regexp.new(/Batch.* for .* is of size .*, exceeding specified threshold of 5120/)
+      @partition_warning = Regexp.new(/Unlogged batch covering 2 partitions detected against table .* You should use a \
+logged batch for atomicity, or asynchronous writes for performance/)
     end
   end
 
