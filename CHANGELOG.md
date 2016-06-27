@@ -1,5 +1,4 @@
-# master
-Features:
+# 3.0.1
 
 Bug Fixes:
 * [RUBY-219](https://datastax-oss.atlassian.net/browse/RUBY-219) Sometimes get stack trace in metadata.rb due to failure in SortedSet initialization.
