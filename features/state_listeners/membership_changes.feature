@@ -1,4 +1,4 @@
-Feature: membership change detection
+Feature: Membership change detection
 
   Cluster object allows registering state listeners. It then guarantees that
   they will be notifies on cluster membership changes.
