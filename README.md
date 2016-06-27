@@ -1,6 +1,6 @@
 # Datastax Ruby Driver for Apache Cassandra
 
-*If you're reading this on GitHub, please note that this is the readme for the development version and that some features described here might not yet have been released. You can [find the documentation for the latest version through ruby driver docs](http://docs.datastax.com/en/latest-ruby-driver/ruby-driver/whatsNew.html) or via the release tags, [e.g. v3.0.1](https://github.com/datastax/ruby-driver/tree/v3.0.1).*
+*If you're reading this on GitHub, please note that this is the readme for the development version and that some features described here might not yet have been released. You can [find the documentation for the latest version through ruby driver docs](http://docs.datastax.com/en/latest-ruby-driver/ruby-driver/whatsNew.html) or via the release tags, [e.g. v3.0.2](https://github.com/datastax/ruby-driver/tree/v3.0.2).*
 
 [![Build Status](https://travis-ci.org/datastax/ruby-driver.svg?branch=master)](https://travis-ci.org/datastax/ruby-driver)
 
@@ -90,11 +90,11 @@ __Note__: if you want to use compression you should also install [snappy](http:/
 
 ## Upgrading from cql-rb
 
-Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API. In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/v3.0.1/examples/cql-rb-wrapper.rb) to assist you with gradual upgrade.
+Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API. In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/v3.0.2/examples/cql-rb-wrapper.rb) to assist you with gradual upgrade.
 
 ## What's new in v3.0
 
-See the [changelog](https://github.com/datastax/ruby-driver/blob/v3.0.1/CHANGELOG.md) for details on patch versions.
+See the [changelog](https://github.com/datastax/ruby-driver/blob/v3.0.2/CHANGELOG.md) for details on patch versions.
 
 ### Features:
 
@@ -164,7 +164,7 @@ examples in the `features/` directory.
 ## Running tests
 
 If you don't feel like reading through the following instructions on how to run
-ruby-driver tests, feel free to [check out .travis.yml for the entire build code](https://github.com/datastax/ruby-driver/blob/v3.0.1/.travis.yml).
+ruby-driver tests, feel free to [check out .travis.yml for the entire build code](https://github.com/datastax/ruby-driver/blob/v3.0.2/.travis.yml).
 
 * Check out the driver codebase and install test dependencies:
 
@@ -188,7 +188,7 @@ CASSANDRA_VERSION=2.0.17 bundle exec rake test # run both as well as integration
 ## Changelog & versioning
 
 Check out the [releases on GitHub](https://github.com/datastax/ruby-driver/releases) and
-[changelog](https://github.com/datastax/ruby-driver/blob/v3.0.1/CHANGELOG.md). Version
+[changelog](https://github.com/datastax/ruby-driver/blob/v3.0.2/CHANGELOG.md). Version
 numbering follows the [semantic versioning](http://semver.org/) scheme.
 
 Private and experimental APIs, defined as whatever is not in the
