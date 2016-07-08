@@ -12,7 +12,7 @@ cassandra:
   - 2.2
   - 3.0
   - 3.1
-os:
+os:asd
   - ubuntu/trusty64
 build:
   - type: bundler
