@@ -3,6 +3,10 @@
 Features:
 
 Bug Fixes:
+# 3.0.3
+
+Bug Fixes:
+* [RUBY-241](https://datastax-oss.atlassian.net/browse/RUBY-241) Materialied views sometimes have nil ref to base-table.
 
 # 3.0.2
 

@@ -113,13 +113,15 @@ module Cassandra
     # @return [Boolean] whether this keyspace has a materialized view with the given name
     # @param name [String] materialized view name
     def has_materialized_view?(name)
-      @views.key?(name)
+      # We check if the view exists *and* that its base-table is set. If base-table isn't available,
+      # it will be soon, so the user can poll on this method until we return a fully-baked materialized view.
+      @views.key?(name) && @views[name].base_table
     end
 
     # @return [Cassandra::MaterializedView, nil] a materialized view or nil
     # @param name [String] materialized view name
     def materialized_view(name)
-      @views[name]
+      @views[name] if has_materialized_view?(name)
     end
 
     # Yield or enumerate each materialized view defined in this keyspace
@@ -130,10 +132,16 @@ module Cassandra
     #   @return [Array<Cassandra::MaterializedView>] a list of materialized views
     def each_materialized_view(&block)
       if block_given?
-        @views.each_value(&block)
+        @views.each_value do |v|
+          block.call(v) if v.base_table
+        end
         self
       else
-        @views.values
+        result = []
+        @views.each_value do |v|
+          result << v if v.base_table
+        end
+        result
       end
     end
     alias materialized_views each_materialized_view

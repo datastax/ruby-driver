@@ -34,6 +34,7 @@ module Cassandra
 
       before do
         allow(ks).to receive(:name).and_return('myks1')
+        allow(ks).to receive(:table).with('table1').and_return(table)
         allow(table).to receive(:name).and_return('table1')
         allow(col).to receive(:name).and_return('col')
         allow(col).to receive(:type).and_return(Cassandra::Types.int)
@@ -45,7 +46,7 @@ module Cassandra
       end
 
       it 'should quote keyspace, view name, table name, columns properly' do
-        t = MaterializedView.new(ks, 'myview1', [col], [], [col2, col3], options, false, where, table,id)
+        t = MaterializedView.new(ks, 'myview1', [col], [], [col2, col3], options, false, where, 'table1', id)
         expected_cql = <<-EOF
 CREATE MATERIALIZED VIEW "myks1"."myview1" AS
 SELECT col, "col2", "from"
@@ -58,7 +59,7 @@ WITH opt1=value1;
       end
 
       it 'should quote primary key properly for simple partition key' do
-        t = MaterializedView.new(ks, 'myview1', [col], [col2], [col3], options, false, where, table,id)
+        t = MaterializedView.new(ks, 'myview1', [col], [col2], [col3], options, false, where, 'table1', id)
         expected_cql = <<-EOF
 CREATE MATERIALIZED VIEW "myks1"."myview1" AS
 SELECT col, "col2", "from"
@@ -71,7 +72,7 @@ WITH opt1=value1;
       end
 
       it 'should quote primary key properly for composite partition key' do
-        t = MaterializedView.new(ks, 'myview1', [col, col2], [col3], [], options, false, where, table,id)
+        t = MaterializedView.new(ks, 'myview1', [col, col2], [col3], [], options, false, where, 'table1', id)
         expected_cql = <<-EOF
 CREATE MATERIALIZED VIEW "myks1"."myview1" AS
 SELECT col, "col2", "from"
@@ -84,7 +85,7 @@ WITH opt1=value1;
       end
 
       it 'should handle no where-clause properly' do
-        t = MaterializedView.new(ks, 'myview1', [col, col2], [col3], [], options, false, nil, table,id)
+        t = MaterializedView.new(ks, 'myview1', [col, col2], [col3], [], options, false, nil, 'table1', id)
         expected_cql = <<-EOF
 CREATE MATERIALIZED VIEW "myks1"."myview1" AS
 SELECT col, "col2", "from"
@@ -96,7 +97,7 @@ WITH opt1=value1;
       end
 
       it 'should handle include-all-columns properly' do
-        t = MaterializedView.new(ks, 'myview1', [col, col2], [col3], [], options, true, nil, table,id)
+        t = MaterializedView.new(ks, 'myview1', [col, col2], [col3], [], options, true, nil, 'table1', id)
         expected_cql = <<-EOF
 CREATE MATERIALIZED VIEW "myks1"."myview1" AS
 SELECT *
