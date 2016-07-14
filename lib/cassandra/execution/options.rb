@@ -54,7 +54,7 @@ module Cassandra
       #
       # @see https://github.com/apache/cassandra/blob/cassandra-3.4/doc/native_protocol_v4.spec#L125-L131 Description
       #   of custom payload in Cassandra native protocol v4.
-      # @see https://datastax.github.io/java-driver/manual/custom_payloads/#enabling-custom-payloads-on-c-nodes
+      # @see http://docs.datastax.com/en/developer/java-driver/3.0/supplemental/manual/custom_payloads/?local=true&nav=toc#enabling-custom-payloads-on-c-nodes
       #   Enabling custom payloads on Cassandra nodes.
       #
       # @example Sending a custom payload
