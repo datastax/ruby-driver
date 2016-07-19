@@ -115,7 +115,7 @@ module Cassandra
     def has_materialized_view?(name)
       # We check if the view exists *and* that its base-table is set. If base-table isn't available,
       # it will be soon, so the user can poll on this method until we return a fully-baked materialized view.
-      @views.key?(name) && @views[name].base_table
+      @views.key?(name) && !@views[name].base_table.nil?
     end
 
     # @return [Cassandra::MaterializedView, nil] a materialized view or nil

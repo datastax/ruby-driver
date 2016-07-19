@@ -286,13 +286,12 @@ module Cassandra
 
     # @private
     # keyspace attribute may be nil because when this object was constructed, we didn't have
-    # its keyspace constructed yet. So allow updating @keyspace if it's nil, thus
+    # its keyspace constructed yet. So allow updating @keyspace, thus
     # allowing fetchers to create keyspace, table/view, and hook them together without
     # worrying about chickens and eggs.
-    # NOTE: Ignore the set request if the @keyspace is already set.
     # rubocop:disable Style/AccessorMethodName
     def set_keyspace(keyspace)
-      @keyspace = keyspace unless @keyspace
+      @keyspace = keyspace
     end
 
     # @private
