@@ -90,11 +90,11 @@ __Note__: if you want to use compression you should also install [snappy](http:/
 
 ## Upgrading from cql-rb
 
-Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API. In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/v3.0.3/examples/cql-rb-wrapper.rb) to assist you with gradual upgrade.
+Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API. In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/master/examples/cql-rb-wrapper.rb) to assist you with gradual upgrade.
 
 ## What's new in v3.0
 
-See the [changelog](https://github.com/datastax/ruby-driver/blob/v3.0.3/CHANGELOG.md) for details on patch versions.
+See the [changelog](https://github.com/datastax/ruby-driver/blob/master/CHANGELOG.md) for details on patch versions.
 
 ### Features:
 
@@ -164,7 +164,7 @@ examples in the `features/` directory.
 ## Running tests
 
 If you don't feel like reading through the following instructions on how to run
-ruby-driver tests, feel free to [check out .travis.yml for the entire build code](https://github.com/datastax/ruby-driver/blob/v3.0.3/.travis.yml).
+ruby-driver tests, feel free to [check out .travis.yml for the entire build code](https://github.com/datastax/ruby-driver/blob/master/.travis.yml).
 
 * Check out the driver codebase and install test dependencies:
 
@@ -188,7 +188,7 @@ CASSANDRA_VERSION=2.0.17 bundle exec rake test # run both as well as integration
 ## Changelog & versioning
 
 Check out the [releases on GitHub](https://github.com/datastax/ruby-driver/releases) and
-[changelog](https://github.com/datastax/ruby-driver/blob/v3.0.3/CHANGELOG.md). Version
+[changelog](https://github.com/datastax/ruby-driver/blob/master/CHANGELOG.md). Version
 numbering follows the [semantic versioning](http://semver.org/) scheme.
 
 Private and experimental APIs, defined as whatever is not in the
