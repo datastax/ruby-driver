@@ -668,6 +668,7 @@ Control connection failed and is unlikely to recover.
       def peer_ip(data)
         ip = data['rpc_address']
         ip = data['peer'] if ip == '0.0.0.0'
+        return nil if ip.nil? == true
 
         @address_resolver.resolve(ip)
       end
