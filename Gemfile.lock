@@ -126,10 +126,7 @@ GEM
       simplecov-html (~> 0.8.0)
     simplecov-html (0.8.0)
     slop (3.6.0)
-    snappy (0.0.15)
-    snappy (0.0.15-java)
-      snappy-jars (~> 1.1.0)
-    snappy-jars (1.1.0.1.2-java)
+    snappy (0.0.14)
     thor (0.19.1)
     timers (4.0.1)
       hitimes
@@ -169,7 +166,7 @@ DEPENDENCIES
   rspec-wait
   rubypants
   simplecov
-  snappy
+  snappy (= 0.0.14)
   yard
 
 BUNDLED WITH
