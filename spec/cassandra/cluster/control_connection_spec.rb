@@ -325,12 +325,22 @@ module Cassandra
           it 'skips empty peers' do
             additional_rpc_addresses = additional_nodes.dup
 
+            expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[0]).and_return(additional_rpc_addresses[0])
+            expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[1]).and_return(additional_rpc_addresses[1])
+
+            # RUBY-255: We should never try to do address resolution of nil.
+            expect(address_resolution_policy).to_not receive(:resolve).with(nil)
+
+            # We should give up on a peer if 'peer' is empty. This is indicated by *not* doing
+            # an address resolution of rpc-address.
+            expect(address_resolution_policy).to_not receive(:resolve).with('127.1.2.3')
+
             handle_request do |request|
               case request
               when Protocol::QueryRequest
                 case request.cql
                 when /FROM system\.peers/
-                  rows = min_peers[0].times.map do |host_id|
+                  rows = min_peers[0].times.map do
                     ip = additional_rpc_addresses.shift
                     {
                       'peer'            => ip,
@@ -347,11 +357,161 @@ module Cassandra
                     'rack'            => nil,
                     'data_center'     => nil,
                     'host_id'         => nil,
-                    'rpc_address'     => nil,
+                    'rpc_address'     => '127.1.2.3',
                     'release_version' => nil
                   }
                   Protocol::RowsResultResponse.new(nil, nil, rows, peer_metadata, nil, nil)
                 end
+              end
+            end
+
+            control_connection.connect_async.value
+
+            expect(cluster_registry).to have(3).hosts
+          end
+        end
+
+        context 'with empty rpc_address' do
+          it 'skips empty rpc_address' do
+            additional_rpc_addresses = additional_nodes.dup
+
+            expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[0]).and_return(additional_rpc_addresses[0])
+            expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[1]).and_return(additional_rpc_addresses[1])
+
+            # RUBY-255: We should never try to do address resolution of nil.
+            expect(address_resolution_policy).to_not receive(:resolve).with(nil)
+
+            # We should give up on a peer if 'rpc-address' is empty. This is indicated by *not* doing
+            # an address resolution of peer.
+            expect(address_resolution_policy).to_not receive(:resolve).with('127.1.2.3')
+
+            handle_request do |request|
+              case request
+                when Protocol::QueryRequest
+                  case request.cql
+                    when /FROM system\.peers/
+                      rows = min_peers[0].times.map do
+                        ip = additional_rpc_addresses.shift
+                        {
+                            'peer'            => ip,
+                            'rack'            => racks[ip],
+                            'data_center'     => data_centers[ip],
+                            'host_id'         => host_ids[ip],
+                            'rpc_address'     => bind_all_rpc_addresses ? ::IPAddr.new('0.0.0.0') : ip,
+                            'release_version' => release_versions[ip]
+                        }
+                      end
+
+                      rows << {
+                          'peer'            => '127.1.2.3',
+                          'rack'            => nil,
+                          'data_center'     => nil,
+                          'host_id'         => nil,
+                          'rpc_address'     => nil,
+                          'release_version' => nil
+                      }
+                      Protocol::RowsResultResponse.new(nil, nil, rows, peer_metadata, nil, nil)
+                  end
+              end
+            end
+
+            control_connection.connect_async.value
+
+            expect(cluster_registry).to have(3).hosts
+          end
+        end
+
+        context 'with local node' do
+          it 'skips matching peer' do
+            additional_rpc_addresses = additional_nodes.dup
+
+            expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[0]).and_return(additional_rpc_addresses[0])
+            expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[1]).and_return(additional_rpc_addresses[1])
+
+            # RUBY-255: We should never try to do address resolution of nil.
+            expect(address_resolution_policy).to_not receive(:resolve).with(nil)
+
+            # We should give up on a peer if its rpc_address is the local host. This is indicated by *not* doing
+            # an address resolution of it.
+            expect(address_resolution_policy).to_not receive(:resolve).with('127.0.0.9')
+            expect(address_resolution_policy).to_not receive(:resolve).with('127.0.0.1')
+
+            handle_request do |request|
+              case request
+                when Protocol::QueryRequest
+                  case request.cql
+                    when /FROM system\.peers/
+                      rows = min_peers[0].times.map do
+                        ip = additional_rpc_addresses.shift
+                        {
+                            'peer'            => ip,
+                            'rack'            => racks[ip],
+                            'data_center'     => data_centers[ip],
+                            'host_id'         => host_ids[ip],
+                            'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
+                            'release_version' => release_versions[ip]
+                        }
+                      end
+
+                      rows << {
+                          'peer'            => connections.first.host,
+                          'rack'            => nil,
+                          'data_center'     => nil,
+                          'host_id'         => nil,
+                          'rpc_address'     => '127.0.0.9',
+                          'release_version' => nil
+                      }
+                      Protocol::RowsResultResponse.new(nil, nil, rows, peer_metadata, nil, nil)
+                  end
+              end
+            end
+
+            control_connection.connect_async.value
+
+            expect(cluster_registry).to have(3).hosts
+          end
+
+          it 'skips matching rpc_address' do
+            additional_rpc_addresses = additional_nodes.dup
+
+            expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[0]).and_return(additional_rpc_addresses[0])
+            expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[1]).and_return(additional_rpc_addresses[1])
+
+            # RUBY-255: We should never try to do address resolution of nil.
+            expect(address_resolution_policy).to_not receive(:resolve).with(nil)
+
+            # We should give up on a peer if its rpc_address is the local host. This is indicated by *not* doing
+            # an address resolution of it.
+            expect(address_resolution_policy).to_not receive(:resolve).with('127.0.0.9')
+            expect(address_resolution_policy).to_not receive(:resolve).with('127.0.0.1')
+
+            handle_request do |request|
+              case request
+                when Protocol::QueryRequest
+                  case request.cql
+                    when /FROM system\.peers/
+                      rows = min_peers[0].times.map do
+                        ip = additional_rpc_addresses.shift
+                        {
+                            'peer'            => ip,
+                            'rack'            => racks[ip],
+                            'data_center'     => data_centers[ip],
+                            'host_id'         => host_ids[ip],
+                            'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
+                            'release_version' => release_versions[ip]
+                        }
+                      end
+
+                      rows << {
+                          'peer'            => '127.0.0.9',
+                          'rack'            => nil,
+                          'data_center'     => nil,
+                          'host_id'         => nil,
+                          'rpc_address'     => connections.first.host,
+                          'release_version' => nil
+                      }
+                      Protocol::RowsResultResponse.new(nil, nil, rows, peer_metadata, nil, nil)
+                  end
               end
             end
 

@@ -445,7 +445,7 @@ module Cassandra
 
           peers.shuffle!
           peers.each do |data|
-            ip = peer_ip(data)
+            ip = peer_ip(data, connection.host)
             next unless ip
             ips << ip
             @registry.host_found(ip, data)
@@ -665,9 +665,30 @@ Control connection failed and is unlikely to recover.
         @connector.connect(host)
       end
 
-      def peer_ip(data)
-        ip = data['rpc_address']
-        ip = data['peer'] if ip == '0.0.0.0'
+      def peer_ip(data, host_address)
+        peer = data['peer']
+
+        return nil unless peer
+
+        rpc_address = data['rpc_address']
+
+        if rpc_address.nil?
+          @logger.info("The system.peers row for '#{data['peer']}' has no rpc_address. This is likely " +
+                           'a gossip or snitch issue. This host will be ignored.')
+          return nil
+        end
+
+        if peer == host_address || rpc_address == host_address
+          # Some DSE versions were inserting a line for the local node in peers (with mostly null values).
+          # This has been fixed, but if we detect that's the case, ignore it as it's not really a big deal.
+
+          @logger.debug("System.peers on node #{host_address} has a line for itself. This is not normal but is a " +
+                            'known problem of some DSE versions. Ignoring the entry.')
+          return nil
+        end
+
+        ip = rpc_address
+        ip = peer if ip == '0.0.0.0'
 
         @address_resolver.resolve(ip)
       end
