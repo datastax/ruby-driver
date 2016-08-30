@@ -115,7 +115,7 @@ module Cassandra
       end
 
       let :tokens do
-        Hash.new('token1')
+        Hash.new(['token1'])
       end
 
       let :release_versions do
@@ -153,6 +153,7 @@ module Cassandra
           connection[:spec_data_center]     = data_centers[connection.host]
           connection[:spec_host_id]         = host_ids[connection.host]
           connection[:spec_release_version] = release_versions[connection.host]
+          connection[:spec_tokens]          = tokens[connection.host]
 
           connection.handle_request do |request, timeout|
             additional_rpc_addresses = additional_nodes.dup
@@ -172,7 +173,8 @@ module Cassandra
                   'rack'            => connection[:spec_rack],
                   'data_center'     => connection[:spec_data_center],
                   'host_id'         => connection[:spec_host_id],
-                  'release_version' => connection[:spec_release_version]
+                  'release_version' => connection[:spec_release_version],
+                  'tokens'          => connection[:spec_tokens]
                 }
                 Protocol::RowsResultResponse.new(nil, nil, [row], local_metadata, nil, nil)
               when /FROM system\.peers WHERE peer = '?(\S+)'/
@@ -324,6 +326,7 @@ module Cassandra
             host.rack.should == racks[ip]
             host.datacenter.should == data_centers[ip]
             host.release_version.should == release_versions[ip]
+            host.tokens.should == tokens[ip]
           end
         end
 
@@ -757,6 +760,7 @@ module Cassandra
               host.rack.should == racks[ip]
               host.datacenter.should == data_centers[ip]
               host.release_version.should == release_versions[ip]
+              host.tokens.should == tokens[ip]
             end
           end
         end
