@@ -113,7 +113,7 @@ module Cassandra
       end
 
       let :tokens do
-        Hash.new('token1')
+        Hash.new(['token1'])
       end
       let :release_versions do
         Hash.new('2.0.7-SNAPSHOT')
@@ -149,6 +149,7 @@ module Cassandra
           connection[:spec_data_center]     = data_centers[connection.host]
           connection[:spec_host_id]         = host_ids[connection.host]
           connection[:spec_release_version] = release_versions[connection.host]
+          connection[:spec_tokens]          = tokens[connection.host]
 
           connection.handle_request do |request, timeout|
             additional_rpc_addresses = additional_nodes.dup
@@ -168,7 +169,8 @@ module Cassandra
                   'rack'            => connection[:spec_rack],
                   'data_center'     => connection[:spec_data_center],
                   'host_id'         => connection[:spec_host_id],
-                  'release_version' => connection[:spec_release_version]
+                  'release_version' => connection[:spec_release_version],
+                  'tokens'          => connection[:spec_tokens]
                 }
                 Protocol::RowsResultResponse.new([row], local_metadata, nil, nil)
               when /FROM system\.peers WHERE peer = '?(\S+)'/
@@ -292,6 +294,7 @@ module Cassandra
             host.rack.should == racks[ip]
             host.datacenter.should == data_centers[ip]
             host.release_version.should == release_versions[ip]
+            host.tokens.should == tokens[ip]
           end
         end
 
@@ -333,7 +336,8 @@ module Cassandra
                     'data_center'     => data_centers['127.1.2.3'],
                     'host_id'         => host_ids['127.1.2.3'],
                     'rpc_address'     => '127.1.2.3',
-                    'release_version' => release_versions['127.1.2.3']
+                    'release_version' => release_versions['127.1.2.3'],
+                    'tokens'          => tokens['127.1.2.3']
                   }
                   Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
                 end
@@ -384,7 +388,8 @@ module Cassandra
                           'data_center'     => data_centers['127.1.2.3'],
                           'host_id'         => host_ids['127.1.2.3'],
                           'rpc_address'     => '127.1.2.3',
-                          'release_version' => release_versions['127.1.2.3']
+                          'release_version' => release_versions['127.1.2.3'],
+                          'tokens'          => tokens['127.1.2.3']
                       }
                       Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
                   end
@@ -435,7 +440,8 @@ module Cassandra
                           'data_center'     => nil,
                           'host_id'         => host_ids['127.1.2.3'],
                           'rpc_address'     => '127.1.2.3',
-                          'release_version' => release_versions['127.1.2.3']
+                          'release_version' => release_versions['127.1.2.3'],
+                          'tokens'          => tokens['127.1.2.3']
                       }
                       Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
                   end
@@ -486,7 +492,8 @@ module Cassandra
                           'data_center'     => data_centers['127.1.2.3'],
                           'host_id'         => nil,
                           'rpc_address'     => '127.1.2.3',
-                          'release_version' => release_versions['127.1.2.3']
+                          'release_version' => release_versions['127.1.2.3'],
+                          'tokens'          => tokens['127.1.2.3']
                       }
                       Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
                   end
@@ -537,7 +544,60 @@ module Cassandra
                           'data_center'     => data_centers['127.1.2.3'],
                           'host_id'         => host_ids['127.1.2.3'],
                           'rpc_address'     => nil,
-                          'release_version' => release_versions['127.1.2.3']
+                          'release_version' => release_versions['127.1.2.3'],
+                          'tokens'          => tokens['127.1.2.3']
+                      }
+                      Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
+                  end
+              end
+            end
+
+            control_connection.connect_async.value
+
+            expect(cluster_registry).to have(3).hosts
+          end
+        end
+
+        context 'with empty tokens' do
+          it 'skips empty tokens' do
+            additional_rpc_addresses = additional_nodes.dup
+
+            expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[0]).and_return(additional_rpc_addresses[0])
+            expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[1]).and_return(additional_rpc_addresses[1])
+
+            # RUBY-255: We should never try to do address resolution of nil.
+            expect(address_resolution_policy).to_not receive(:resolve).with(nil)
+
+            # We should give up on a peer if 'rpc-address' is empty. This is indicated by *not* doing
+            # an address resolution of peer.
+            expect(address_resolution_policy).to_not receive(:resolve).with('127.1.2.3')
+
+            handle_request do |request|
+              case request
+                when Protocol::QueryRequest
+                  case request.cql
+                    when /FROM system\.peers/
+                      rows = min_peers[0].times.map do
+                        ip = additional_rpc_addresses.shift
+                        {
+                            'peer'            => ip,
+                            'rack'            => racks[ip],
+                            'data_center'     => data_centers[ip],
+                            'host_id'         => host_ids[ip],
+                            'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
+                            'release_version' => release_versions[ip],
+                            'tokens'          => tokens[ip]
+                        }
+                      end
+
+                      rows << {
+                          'peer'            => '127.1.2.3',
+                          'rack'            => racks['127.1.2.3'],
+                          'data_center'     => data_centers['127.1.2.3'],
+                          'host_id'         => host_ids['127.1.2.3'],
+                          'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : '127.1.2.3',
+                          'release_version' => release_versions['127.1.2.3'],
+                          'tokens'          => nil
                       }
                       Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
                   end
@@ -589,7 +649,8 @@ module Cassandra
                           'data_center'     => data_centers['127.0.0.9'],
                           'host_id'         => host_ids['127.0.0.9'],
                           'rpc_address'     => '127.0.0.9',
-                          'release_version' => release_versions['127.0.0.9']
+                          'release_version' => release_versions['127.0.0.9'],
+                          'tokens'          => tokens['127.0.0.9']
                       }
                       Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
                   end
@@ -639,7 +700,8 @@ module Cassandra
                           'data_center'     => data_centers['127.0.0.9'],
                           'host_id'         => host_ids['127.0.0.9'],
                           'rpc_address'     => connections.first.host,
-                          'release_version' => release_versions['127.0.0.9']
+                          'release_version' => release_versions['127.0.0.9'],
+                          'tokens'          => tokens['127.0.0.9']
                       }
                       Protocol::RowsResultResponse.new(rows, peer_metadata, nil, nil)
                   end
@@ -666,6 +728,7 @@ module Cassandra
               host.rack.should == racks[ip]
               host.datacenter.should == data_centers[ip]
               host.release_version.should == release_versions[ip]
+              host.tokens.should == tokens[ip]
             end
           end
         end
