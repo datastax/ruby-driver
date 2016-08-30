@@ -705,6 +705,15 @@ module CCM extend self
     @current_cluster
   end
 
+  def remove_cluster(name)
+    cluster = clusters.find {|c| c.name == name}
+    return unless cluster
+    ccm.exec('remove', cluster.name)
+    clusters.delete(cluster)
+    @current_cluster = nil if @current_cluster.name == name
+    nil
+  end
+
   private
 
   def ccm
@@ -753,15 +762,6 @@ module CCM extend self
     ccm.exec('switch', @current_cluster.name)
 
     @current_cluster.start
-
-    nil
-  end
-
-  def remove_cluster(name)
-    cluster = clusters.find {|c| c.name == name}
-    return unless cluster
-    ccm.exec('remove', cluster.name)
-    clusters.delete(cluster)
 
     nil
   end
