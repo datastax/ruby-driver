@@ -455,6 +455,7 @@ module CCM extend self
 
       options[:load_balancing_policy] = SameOrderLoadBalancingPolicy.new
 
+      total_attempts = 1
       until @nodes.all?(&:up?) && @cluster && @cluster.hosts.select(&:up?).count == @nodes.size
         attempts = 1
 
@@ -492,6 +493,11 @@ module CCM extend self
         until @cluster.hosts.all?(&:up?)
           $stderr.puts "not all hosts are up yet, retrying in 1s..."
           sleep(1)
+        end
+
+        total_attempts += 1
+        if total_attempts >= 20
+          raise "Cluster hosts did not match node count. nodes:#{@nodes.size}, hosts:#{@cluster.hosts.select(&:up?).count}"
         end
       end
 
@@ -871,6 +877,15 @@ module CCM extend self
     @current_cluster
   end
 
+  def remove_cluster(name)
+    cluster = clusters.find {|c| c.name == name}
+    return unless cluster
+    ccm.exec('remove', cluster.name)
+    clusters.delete(cluster)
+    @current_cluster = nil if @current_cluster.name == name
+    nil
+  end
+
   private
 
   def ccm
@@ -914,15 +929,6 @@ module CCM extend self
     ccm.exec('switch', @current_cluster.name)
 
     @current_cluster.start
-
-    nil
-  end
-
-  def remove_cluster(name)
-    cluster = clusters.find {|c| c.name == name}
-    return unless cluster
-    ccm.exec('remove', cluster.name)
-    clusters.delete(cluster)
 
     nil
   end
