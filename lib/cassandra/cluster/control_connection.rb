@@ -702,7 +702,7 @@ Control connection failed and is unlikely to recover.
       def peer_ip(data, host_address)
         peer = data['peer']
 
-        return nil unless peer
+        return nil unless peer && data['host_id'] && data['data_center'] && data['rack'] && data['tokens']
 
         rpc_address = data['rpc_address']
 
