@@ -682,6 +682,8 @@ WITH bloom_filter_fp_chance = 0.01
 
 CREATE INDEX "ind1" ON simplex."t1" ("f2");
 
+CREATE TRIGGER mytrigger ON simplex."t1" USING 'org.apache.cassandra.triggers.AuditTrigger';
+
 CREATE TABLE simplex."t2" (
   "f1" int,
   "f2" int,

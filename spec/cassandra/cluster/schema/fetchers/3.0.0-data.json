@@ -398,5 +398,13 @@
       "speculative_retry": "99PERCENTILE",
       "where_clause": "f2 IS NOT NULL"
     }
+  ],
+  "SELECT * FROM system_schema.triggers": [
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t1",
+      "trigger_name": "mytrigger",
+      "options": { "class": "org.apache.cassandra.triggers.AuditTrigger"}
+    }
   ]
 }

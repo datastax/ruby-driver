@@ -37,7 +37,7 @@ module Cassandra
 
     # @return [String] name of the trigger class
     def custom_class_name
-      @options['class_name']
+      @options['class']
     end
 
     # @return [String] a cql representation of this trigger
@@ -46,7 +46,7 @@ module Cassandra
       table_name = Util.escape_name(@table.name)
       trigger_name = Util.escape_name(@name)
 
-      "CREATE TRIGGER #{trigger_name} ON #{keyspace_name}.#{table_name} USING '#{@options['class_name']}';"
+      "CREATE TRIGGER #{trigger_name} ON #{keyspace_name}.#{table_name} USING '#{@options['class']}';"
     end
 
     # @private
