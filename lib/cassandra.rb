@@ -820,6 +820,7 @@ require 'cassandra/table'
 require 'cassandra/materialized_view'
 require 'cassandra/keyspace'
 require 'cassandra/index'
+require 'cassandra/trigger'
 
 require 'cassandra/execution/info'
 require 'cassandra/execution/options'

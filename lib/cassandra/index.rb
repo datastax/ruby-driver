@@ -62,7 +62,7 @@ module Cassandra
       @options['class_name']
     end
 
-    # @return [String] a cql representation of this table
+    # @return [String] a cql representation of this index
     def to_cql
       keyspace_name = Util.escape_name(@table.keyspace.name)
       table_name = Util.escape_name(@table.name)

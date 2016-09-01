@@ -70,12 +70,17 @@ module Cassandra
                     table.each_index do |index|
                       parts << index.to_cql
                     end
+
+                    table.each_trigger do |trigger|
+                      parts << trigger.to_cql
+                    end
                   end
                   keyspace.each_materialized_view do |view|
                     parts << view.to_cql
                   end
                 end
                 cql = parts.join("\n\n")
+                cql += "\n"
                 expect(cql).to eq(File.read(File.dirname(__FILE__) + '/fetchers/' + version + '-schema.cql'))
               end
 

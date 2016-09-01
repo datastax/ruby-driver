@@ -70,6 +70,10 @@ class MaterializedViewTest < IntegrationTestCase
     assert @cluster.keyspace('simplex').has_materialized_view?('monthlyhigh')
     mv_meta = @cluster.keyspace('simplex').materialized_view('monthlyhigh')
 
+    table = @cluster.keyspace('simplex').table('scores')
+    assert table.has_materialized_view?('monthlyhigh')
+    assert_same(mv_meta, table.materialized_view('monthlyhigh'))
+
     assert_equal 'monthlyhigh', mv_meta.name
     refute_nil mv_meta.id
     assert_equal 'scores', mv_meta.base_table.name

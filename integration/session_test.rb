@@ -843,6 +843,8 @@ class SessionTest < IntegrationTestCase
   # @test_category connection
   #
   def test_cluster_session_inspect
+    setup_schema
+
     cluster = Cassandra.cluster(hosts: ['127.0.0.1'], consistency: :quorum, page_size: 10)
     session = cluster.connect('simplex')
 

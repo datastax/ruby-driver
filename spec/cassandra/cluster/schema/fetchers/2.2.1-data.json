@@ -3045,5 +3045,13 @@
   ],
   "SELECT * FROM system.schema_aggregates": [
 
+  ],
+  "SELECT * FROM system.schema_triggers": [
+    {
+      "keyspace_name": "simplex",
+      "columnfamily_name": "t1",
+      "trigger_name": "mytrigger",
+      "trigger_options": { "class": "org.apache.cassandra.triggers.AuditTrigger"}
+    }
   ]
 }
