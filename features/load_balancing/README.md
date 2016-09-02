@@ -29,4 +29,3 @@ Here is a high level diagram of how a load balancing policy is used during query
       |                  |                 |
 ```
 
-[Check out the Ruby Driver - Load Balancing Screencast](https://academy.datastax.com/demos/datastax-ruby-driver-load-balancing-policies) for a quick and in-depth guide to load balancing with the Ruby Driver.
