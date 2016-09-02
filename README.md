@@ -1,6 +1,6 @@
 # Datastax Ruby Driver for Apache Cassandra
 
-*If you're reading this on GitHub, please note that this is the readme for the development version and that some features described here might not yet have been released. You can [find the documentation for the latest version through ruby driver docs](http://docs.datastax.com/en/latest-ruby-driver/ruby-driver/whatsNew.html) or via the release tags, [e.g. v3.0.3](https://github.com/datastax/ruby-driver/tree/v3.0.3).*
+*If you're reading this on GitHub, please note that this is the readme for the development version and that some features described here might not yet have been released. You can [find the documentation for the latest version through ruby driver docs](http://docs.datastax.com/en/developer/ruby-driver/latest) or via the release tags, [e.g. v3.0.3](https://github.com/datastax/ruby-driver/tree/v3.0.3).*
 
 [![Build Status](https://travis-ci.org/datastax/ruby-driver.svg?branch=master)](https://travis-ci.org/datastax/ruby-driver)
 
@@ -8,7 +8,7 @@ A Ruby client driver for Apache Cassandra. This driver works exclusively with
 the Cassandra Query Language version 3 (CQL3) and Cassandra's native protocol.
 
 - Code: https://github.com/datastax/ruby-driver
-- Docs: http://docs.datastax.com/en/latest-ruby-driver/ruby-driver/whatsNew.html
+- Docs: http://docs.datastax.com/en/developer/ruby-driver/latest
 - Jira: https://datastax-oss.atlassian.net/browse/RUBY
 - Mailing List: https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user
 - IRC: #datastax-drivers on [irc.freenode.net](http://freenode.net>)
