@@ -2,8 +2,7 @@
 
 *If you're reading this on GitHub, please note that this is the readme for the development version and that some
 features described here might not yet have been released. You can view the documentation for the latest released
-version [here](http://docs.datastax.com/en/developer/ruby-driver/latest) or a particular version
-[here](http://docs.datastax.com/en/developer/ruby-driver).*
+version [here](http://docs.datastax.com/en/developer/ruby-driver/latest).*
 
 [![Build Status](https://travis-ci.org/datastax/ruby-driver.svg?branch=master)](https://travis-ci.org/datastax/ruby-driver)
 
@@ -35,12 +34,12 @@ This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [
 This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. The current version works with:
 
 * Apache Cassandra versions 1.2, 2.0 and 2.1
-* DataStax Enterprise 3.1, 3.2, 4.0 and 4.5
-* Ruby (MRI) 1.9.3, 2.0, 2.1 and 2.2
+* DataStax Enterprise 3.1-4.8
+* Ruby (MRI) 2.2, 2.3
 * JRuby 1.7
-* Rubinius 2.2
 
-__Note__: JRuby 1.6 is not officially supported, although 1.6.8 should work.
+__Note__: JRuby 1.6 is not officially supported, although 1.6.8 should work. Rubinius is not supported.
+MRI 1.9.3, 2.0, 2.1, and JRuby 9k are not officially supported, but they should work.
 
 ## Quick start
 
@@ -92,7 +91,10 @@ __Note__: if you want to use compression you should also install [snappy](http:/
 
 ## Upgrading from cql-rb
 
-Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API. In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/master/examples/cql-rb-wrapper.rb) to assist you with gradual upgrade.
+Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API.
+In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete
+interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/v2.1.7/examples/cql-rb-wrapper.rb)
+to assist you with gradual upgrade.
 
 ## What's new in v2.1
 See the [changelog](https://github.com/datastax/ruby-driver/blob/master/CHANGELOG.md) for details on patch releases.
@@ -167,7 +169,6 @@ Prereleases will be stable, in the sense that they will have finished and proper
 
 ## Known bugs & limitations
 
-* JRuby 1.6 is not officially supported, although 1.6.8 should work, if you're stuck in JRuby 1.6.8 try and see if it works for you.
 * Because the driver reactor is using `IO.select`, the maximum number of tcp connections allowed is 1024.
 * Because the driver uses `IO#write_nonblock`, Windows is not supported.
 
