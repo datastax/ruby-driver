@@ -1,6 +1,6 @@
 title:    Ruby Driver for Apache Cassandra
 summary:  A pure Ruby client for Apache Cassandra
-homepage: http://datastax.github.io/ruby-driver/
+homepage: http://docs.datastax.com/en/developer/ruby-driver/
 sections:
   - title:     Features
     prefix:    /features
@@ -27,7 +27,7 @@ links:
   - title: Code
     href:  https://github.com/datastax/ruby-driver/
   - title: Docs
-    href:  http://datastax.github.io/ruby-driver/
+    href:  http://docs.datastax.com/en/developer/ruby-driver/
   - title: Issues
     href:  https://datastax-oss.atlassian.net/browse/RUBY/
   - title: Mailing List
@@ -37,15 +37,15 @@ links:
   - title: Releases
     href:  https://github.com/datastax/ruby-driver/releases
 versions:
-  - name: v3.0.3
+  - name: 3.0
     ref:  6ec356a9c2082a4d1ae687e16385f34a56269f46
-  - name: v2.1.6
+  - name: 2.1
     ref:  474568501e5ef771a496c3a901f3cbdc3854f512
-  - name: v2.0.1
+  - name: 2.0
     ref:  80cab0ad188511ec16eb39111c0b67329c754729
-  - name: v1.2.0
+  - name: 1.2
     ref:  6c398cb3dbc5218f6a77177dcc2130d11bf0158a
-  - name: v1.1.1
+  - name: 1.1
     ref:  1763066e2f70db8889799aa0af4a8eb63ad9ab74
-  - name: v1.0.0
+  - name: 1.0
     ref:  72bfc9609f94e904c0186b061a02404fb2c0d22e
