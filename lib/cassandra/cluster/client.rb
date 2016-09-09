@@ -196,7 +196,11 @@ module Cassandra
         pool = nil
 
         synchronize do
-          return Ione::Future.resolved unless @connections.key?(host)
+          # RUBY-164: Ignore the host-down message if we have no connection-pool for the host or if the pool
+          # has good connections. The idea is that there may be been a network glitch and we don't want to
+          # kill all active connections and possibly overreact.
+
+          return Ione::Future.resolved if !@connections.key?(host) || @connections[host].size > 0
 
           @pending_connections.delete(host) unless @pending_connections[host] > 0
           @prepared_statements.delete(host)
