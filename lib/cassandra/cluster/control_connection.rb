@@ -229,7 +229,9 @@ module Cassandra
                   refresh_schema_async_wrapper
                 end
               when 'DOWN'
-                @registry.host_down(event.address)
+                # RUBY-164: Don't mark host down if there are active connections. We have
+                # logic in connector.rb to call host_down when all connections to a node are lost,
+                # so that covers the requirement.
               when 'NEW_NODE'
                 address = event.address
 
