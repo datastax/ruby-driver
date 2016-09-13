@@ -895,9 +895,8 @@ module Cassandra
                 logger.should have_received(:debug).with(/Event received EVENT STATUS_CHANGE DOWN/)
               end
 
-              it 'notifies registry' do
-                ip = address.to_s
-                expect(cluster_registry).to receive(:host_down).once.with(ip)
+              it 'does not notify registry' do
+                expect(cluster_registry).to_not receive(:host_down)
                 connections.first.trigger_event(event)
               end
             end

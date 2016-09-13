@@ -1,7 +1,11 @@
 # master
 Features:
+* Do not mark a host as down if there are active connections.
+* Update Keyspace metadata to include collection of indexes defined in the keyspace.
+* Update Table metadata to include trigger-collection and view-collection metadata.
 
 Bug Fixes:
+* [RUBY-255](https://datastax-oss.atlassian.net/browse/RUBY-255) ControlConnection.peer_ip ignores peers that are missing critical information in system.peers.
 
 # 3.0.3
 
