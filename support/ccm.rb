@@ -455,6 +455,8 @@ module CCM extend self
 
       options[:load_balancing_policy] = SameOrderLoadBalancingPolicy.new
 
+      enable_triggers
+
       total_attempts = 1
       until @nodes.all?(&:up?) && @cluster && @cluster.hosts.select(&:up?).count == @nodes.size
         attempts = 1
@@ -712,6 +714,17 @@ module CCM extend self
                 'tombstone_warn_threshold: 1000'
       )
       start
+    end
+
+    def enable_triggers
+      trigger_root = File.expand_path(File.dirname(__FILE__) + '/../support/triggers')
+      ccm_node_conf_dir = "~/.ccm/ruby-driver-cassandra-#{CCM.cassandra_version}-test-cluster"
+
+      (1..@nodes.size).each do |n|
+        `mkdir #{ccm_node_conf_dir}/node#{n}/conf/triggers`
+        `cp #{trigger_root}/AuditTrigger.properties #{ccm_node_conf_dir}/node#{n}/conf`
+        `cp #{trigger_root}/trigger-example.jar #{ccm_node_conf_dir}/node#{n}/conf/triggers`
+      end
     end
 
     def setup_schema(schema)

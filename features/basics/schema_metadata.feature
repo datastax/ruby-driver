@@ -80,6 +80,39 @@ Feature: Schema Metadata
       )
       """
 
+  Scenario: Getting trigger metadata
+    Given the following schema:
+      """cql
+      CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+      CREATE TABLE simplex.test_table (a text primary key, b text);
+      CREATE TABLE simplex.audit (key timeuuid, keyspace_name text, table_name text, primary_key text, PRIMARY KEY(key));
+      CREATE TRIGGER trigger1 ON simplex.test_table USING 'org.apache.cassandra.triggers.AuditTrigger';
+      """
+    And the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+
+      # AuditTrigger is available in cassandra/conf/triggers. See cassandra/examples/triggers in Cassandra
+      trigger = cluster.keyspace('simplex').table('test_table').trigger('trigger1')
+      puts trigger.to_cql
+
+      puts ""
+      puts "Name: #{trigger.name}"
+      puts "Table name: #{trigger.table.name}"
+      puts "Class: #{trigger.options['class']}"
+      """
+    When it is executed
+    Then its output should contain:
+      """cql
+      CREATE TRIGGER "trigger1" ON simplex.test_table USING 'org.apache.cassandra.triggers.AuditTrigger';
+
+      Name: trigger1
+      Table name: test_table
+      Class: org.apache.cassandra.triggers.AuditTrigger
+      """
+
   Scenario: Getting index metadata
     Given the following schema:
       """cql
