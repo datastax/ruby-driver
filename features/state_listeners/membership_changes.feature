@@ -1,7 +1,7 @@
 Feature: Membership change detection
 
   Cluster object allows registering state listeners. It then guarantees that
-  they will be notifies on cluster membership changes.
+  they will be notified on cluster membership changes.
 
   Background:
     Given a running cassandra cluster
@@ -38,6 +38,8 @@ Feature: Membership change detection
       cluster  = Cassandra.cluster
 
       cluster.register(listener)
+
+      session = cluster.connect
 
       $stdout.puts("=== START ===")
       $stdout.flush
