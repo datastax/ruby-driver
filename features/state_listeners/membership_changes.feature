@@ -71,6 +71,9 @@ Feature: Membership change detection
       """
       Host 127.0.0.4 is found
       Host 127.0.0.4 is up
+      """
+    And its output should contain:
+      """
       Host 127.0.0.4 is down
       Host 127.0.0.4 is lost
       """
