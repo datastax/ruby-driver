@@ -73,6 +73,13 @@ class SchemaChangeListener
     end
   end
 
+  def wait_for_trigger(keyspace_name, table_name, trigger_name, *args)
+    self.wait_for_table(keyspace_name, table_name)
+    wait_for_change(keyspace_name, 2) do |ks|
+      ks.table(table_name).has_trigger?(trigger_name, *args)
+    end
+  end
+
   def keyspace_changed(keyspace)
     # This looks a little strange, but here's the idea: if we don't have
     # Condition's for this keyspace, immediately return. Otherwise, for each
