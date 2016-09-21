@@ -1,8 +1,33 @@
+schedules:
+  commit:
+    schedule: per_commit
+    matrix:
+      exclude:
+        - ruby: ['2.2', 'jruby9k']
+        - cassandra: ['1.2', '2.0', '2.2', '3.0']
+  nightly:
+    schedule: nightly
+    branches:
+      include: [master]
+    matrix:
+      exclude:
+        - ruby: jruby9k
+        - cassandra: 1.2
+  weekly:
+    schedule: weekly
+    branches:
+      include: [master]
+    matrix:
+      exclude:
+        - ruby: jruby9k
+
 ruby:
   - 2.2
   - 2.3
   - jruby1.7
+  - jruby9k
 cassandra:
+  - 1.2
   - 2.0
   - 2.1
   - 2.2
