@@ -84,7 +84,7 @@ module Cassandra
                                      cluster_registry,
                                      cluster_schema,
                                      cluster_metadata,
-                                     load_balancing_policy,
+                                     profile_manager.default_profile.load_balancing_policy,
                                      reconnection_policy,
                                      address_resolution_policy,
                                      connector,
@@ -104,21 +104,22 @@ module Cassandra
                         cluster_metadata,
                         execution_options,
                         connection_options,
-                        load_balancing_policy,
+                        profile_manager,
                         reconnection_policy,
-                        retry_policy,
                         address_resolution_policy,
                         connector,
                         futures_factory,
-			timestamp_generator)
+			                  timestamp_generator)
     end
 
     let(:execution_options) do
-      Execution::Options.new(consistency: consistency,
+      Execution::Options.new(consistency: profile_manager.default_profile.consistency,
                              trace: trace,
                              page_size: page_size,
-                             timeout: timeout,
-                             idempotent: false)
+                             timeout: profile_manager.default_profile.timeout,
+                             idempotent: false,
+                             load_balancing_policy: profile_manager.default_profile.load_balancing_policy,
+                             retry_policy: profile_manager.default_profile.retry_policy)
     end
 
     let(:connection_options) do
@@ -180,7 +181,18 @@ module Cassandra
     let(:connections_per_local_node)  { nil }
     let(:connections_per_remote_node) { nil }
     let(:requests_per_connection) { nil }
-
+    let(:default_execution_profile) {
+      Cassandra::Execution::Profile.new(load_balancing_policy: load_balancing_policy,
+                                        retry_policy: retry_policy,
+                                        consistency: consistency,
+                                        timeout: timeout)
+    }
+    let(:execution_profiles) { {} }
+    let(:profile_manager) {
+      Cassandra::Execution::ProfileManager.new(
+          {Cassandra::DEFAULT_EXECUTION_PROFILE => default_execution_profile}.merge(execution_profiles)
+      )
+    }
     let(:listeners) { [] }
 
     def initialize(defaults = {})
@@ -188,8 +200,8 @@ module Cassandra
     end
 
     def connect(addresses)
-      load_balancing_policy.setup(cluster)
-      cluster_registry.add_listener(load_balancing_policy)
+      profile_manager.setup(cluster)
+      cluster_registry.add_listener(profile_manager)
       cluster_registry.add_listener(control_connection)
       listeners.each do |listener|
         cluster.register(listener)

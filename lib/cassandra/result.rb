@@ -32,7 +32,7 @@ module Cassandra
                                     @consistency,
                                     @retries,
                                     @trace_id ?
-                                        Execution::Trace.new(@trace_id, @client) :
+                                        Execution::Trace.new(@trace_id, @client, @options.load_balancing_policy) :
                                         nil)
     end
 

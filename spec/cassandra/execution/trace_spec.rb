@@ -23,7 +23,20 @@ module Cassandra
     describe(Trace) do
       let(:id)     { Uuid::Generator.new.now }
       let(:client) { double('client') }
-      let(:trace)  { Trace.new(id, client) }
+      let(:load_balancing_policy) { double('lbp') }
+      let(:trace)  { Trace.new(id, client, load_balancing_policy) }
+      let(:execution_options) { VOID_OPTIONS.override(load_balancing_policy: load_balancing_policy) }
+
+      before do
+        allow(load_balancing_policy).to receive(:host_up)
+        allow(load_balancing_policy).to receive(:host_down)
+        allow(load_balancing_policy).to receive(:host_found)
+        allow(load_balancing_policy).to receive(:host_lost)
+        allow(load_balancing_policy).to receive(:setup)
+        allow(load_balancing_policy).to receive(:teardown)
+        allow(load_balancing_policy).to receive(:distance)
+        allow(load_balancing_policy).to receive(:plan)
+      end
 
       [:coordinator, :duration, :parameters, :request, :started_at, :client].each do |method|
         describe("##{method}") do
@@ -41,12 +54,12 @@ module Cassandra
           let(:future_rows) { Future::Value.new(rows) }
 
           it "loads #{method} from system_traces.sessions" do
-            expect(client).to receive(:query).once.with(statement, VOID_OPTIONS).and_return(future_rows)
+            expect(client).to receive(:query).once.with(statement, execution_options).and_return(future_rows)
             expect(trace.__send__(method)).to eq(data[method.to_s])
           end
 
           it "loads #{method} only once" do
-            expect(client).to receive(:query).once.with(statement, VOID_OPTIONS).and_return(future_rows)
+            expect(client).to receive(:query).once.with(statement, execution_options).and_return(future_rows)
             10.times { expect(trace.__send__(method)).to eq(data[method.to_s]) }
           end
         end
@@ -70,12 +83,12 @@ module Cassandra
         let(:future_rows) { Future::Value.new(rows) }
 
         it "loads events from system_traces.events" do
-          expect(client).to receive(:query).once.with(statement, VOID_OPTIONS).and_return(future_rows)
+          expect(client).to receive(:query).once.with(statement, execution_options).and_return(future_rows)
           expect(trace.events).to have(5).events
         end
 
         it "loads events only once" do
-          expect(client).to receive(:query).once.with(statement, VOID_OPTIONS).and_return(future_rows)
+          expect(client).to receive(:query).once.with(statement, execution_options).and_return(future_rows)
           10.times { expect(trace.events).to have(5).events }
         end
       end

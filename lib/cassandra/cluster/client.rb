@@ -29,9 +29,8 @@ module Cassandra
                      cluster_schema,
                      io_reactor,
                      connector,
-                     load_balancing_policy,
+                     profile_manager,
                      reconnection_policy,
-                     retry_policy,
                      address_resolution_policy,
                      connection_options,
                      futures_factory,
@@ -41,9 +40,8 @@ module Cassandra
         @schema                      = cluster_schema
         @reactor                     = io_reactor
         @connector                   = connector
-        @load_balancing_policy       = load_balancing_policy
+        @profile_manager             = profile_manager
         @reconnection_policy         = reconnection_policy
-        @retry_policy                = retry_policy
         @address_resolver            = address_resolution_policy
         @connection_options          = connection_options
         @futures                     = futures_factory
@@ -67,7 +65,7 @@ module Cassandra
 
           @state = :connecting
           @registry.each_host do |host|
-            distance = @load_balancing_policy.distance(host)
+            distance = @profile_manager.distance(host)
 
             case distance
             when :ignore
@@ -168,7 +166,7 @@ module Cassandra
         pool_size = 0
 
         synchronize do
-          distance = @load_balancing_policy.distance(host)
+          distance = @profile_manager.distance(host)
           case distance
           when :ignore
             return Ione::Future.resolved
@@ -248,7 +246,7 @@ module Cassandra
         promise   = @futures.promise
 
         keyspace = @keyspace
-        plan     = @load_balancing_policy.plan(keyspace, statement, options)
+        plan = options.load_balancing_policy.plan(keyspace, statement, options)
 
         send_request_by_plan(promise,
                              keyspace,
@@ -270,7 +268,7 @@ module Cassandra
 
         keyspace  = @keyspace
         statement = VOID_STATEMENT
-        plan      = @load_balancing_policy.plan(keyspace, statement, options)
+        plan      = options.load_balancing_policy.plan(keyspace, statement, options)
 
         send_request_by_plan(promise,
                              keyspace,
@@ -303,7 +301,7 @@ module Cassandra
         promise         = @futures.promise
 
         keyspace = @keyspace
-        plan     = @load_balancing_policy.plan(keyspace, statement, options)
+        plan     = options.load_balancing_policy.plan(keyspace, statement, options)
 
         execute_by_plan(promise, keyspace, statement, options, request, plan, timeout)
 
@@ -329,7 +327,7 @@ module Cassandra
                                                timestamp,
                                                payload)
         keyspace  = @keyspace
-        plan      = @load_balancing_policy.plan(keyspace, statement, options)
+        plan      = options.load_balancing_policy.plan(keyspace, statement, options)
         promise   = @futures.promise
 
         batch_by_plan(promise, keyspace, statement, options, request, plan, timeout)
@@ -1075,20 +1073,20 @@ module Cassandra
 
             case r
             when Protocol::UnavailableErrorResponse
-              decision = @retry_policy.unavailable(statement,
+              decision = options.retry_policy.unavailable(statement,
                                                    r.consistency,
                                                    r.required,
                                                    r.alive,
                                                    retries)
             when Protocol::WriteTimeoutErrorResponse
-              decision = @retry_policy.write_timeout(statement,
+              decision = options.retry_policy.write_timeout(statement,
                                                      r.consistency,
                                                      r.write_type,
                                                      r.blockfor,
                                                      r.received,
                                                      retries)
             when Protocol::ReadTimeoutErrorResponse
-              decision = @retry_policy.read_timeout(statement,
+              decision = options.retry_policy.read_timeout(statement,
                                                     r.consistency,
                                                     r.blockfor,
                                                     r.received,
@@ -1445,7 +1443,7 @@ module Cassandra
           unless local.empty?
             host = @registry.host(connection.host)
 
-            if host && @load_balancing_policy.distance(host) != :ignore
+            if host && @profile_manager.distance(host) != :ignore
               versions << version = local.first['schema_version']
               @logger.debug("Host #{host.ip} schema version is #{version}")
             end
@@ -1453,7 +1451,7 @@ module Cassandra
 
           peers.each do |row|
             host = @registry.host(peer_ip(row))
-            next unless host && @load_balancing_policy.distance(host) != :ignore
+            next unless host && @profile_manager.distance(host) != :ignore
 
             versions << version = row['schema_version']
             @logger.debug("Host #{host.ip} schema version is #{version}")

@@ -71,6 +71,24 @@ class FakeLoadBalancingPolicy
     @index    = -1
   end
 
+  def host_up(*args)
+  end
+
+  def host_down(*args)
+  end
+
+  def host_found(*args)
+  end
+
+  def host_lost(*args)
+  end
+
+  def setup(*args)
+  end
+
+  def teardown(*args)
+  end
+
   def distance(host)
     @registry.hosts.include?(host) ? :local : :ignore
   end
