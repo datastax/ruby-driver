@@ -271,13 +271,13 @@ module Cassandra
 
     describe('#prepare') do
       let(:promise)   { double('promise') }
-      let(:args)      { [double('statement to prepare')] }
+      let(:statement)      { double('statement to prepare') }
 
       it "resolves a promise returned by #prepare_async" do
-        expect(session).to receive(:prepare_async).with(*args).and_return(promise)
+        expect(session).to receive(:prepare_async).with(statement, nil).and_return(promise)
         expect(promise).to receive(:get).once
 
-        session.prepare(*args)
+        session.prepare(statement)
       end
     end
 
