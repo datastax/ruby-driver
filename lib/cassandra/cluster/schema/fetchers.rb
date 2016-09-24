@@ -572,7 +572,8 @@ module Cassandra
               compression_parameters,
               is_compact,
               table_data['crc_check_chance'],
-              table_data['extensions']
+              table_data['extensions'],
+              nil
             )
           end
         end
@@ -741,7 +742,8 @@ module Cassandra
               compression_parameters,
               is_compact,
               table_data['crc_check_chance'],
-              table_data['extensions']
+              table_data['extensions'],
+              nil
             )
           end
         end
@@ -815,7 +817,8 @@ module Cassandra
               compression_parameters,
               is_compact,
               table_data['crc_check_chance'],
-              table_data['extensions']
+              table_data['extensions'],
+              nil
             )
           end
         end
@@ -1347,7 +1350,8 @@ module Cassandra
               compression,
               is_compact,
               table_data['crc_check_chance'],
-              table_data['extensions']
+              table_data['extensions'],
+              table_data['cdc']
             )
           end
 

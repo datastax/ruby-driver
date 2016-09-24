@@ -60,6 +60,9 @@ module Cassandra
       # @return [ColumnContainer::Compaction] the compaction strategy of this column-container.
       attr_reader :compaction_strategy
 
+      # @return whether or not change data capture is enabled on this table.
+      attr_reader :cdc
+
       # @private
       # rubocop:disable Metrics/ParameterLists
       def initialize(comment,
@@ -80,7 +83,8 @@ module Cassandra
                      compression,
                      compact_storage,
                      crc_check_chance,
-                     extensions)
+                     extensions,
+                     cdc)
         @comment                     = comment
         @read_repair_chance          = read_repair_chance
         @local_read_repair_chance    = local_read_repair_chance
@@ -100,6 +104,7 @@ module Cassandra
         @compact_storage             = compact_storage
         @crc_check_chance            = crc_check_chance
         @extensions                  = extensions
+        @cdc                         = cdc
       end
 
       # Return whether to replicate counter updates to other replicas. It is *strongly* recommended
@@ -130,6 +135,7 @@ module Cassandra
           options << "bloom_filter_fp_chance = #{Util.encode_object(@bloom_filter_fp_chance)}"
         end
         options << "caching = #{Util.encode_object(@caching)}" unless @caching.nil?
+        options << "cdc = true" if @cdc
         options << "comment = #{Util.encode_object(@comment)}" unless @comment.nil?
         options << "compaction = #{@compaction_strategy.to_cql}" unless @compaction_strategy.nil?
         options << "compression = #{Util.encode_object(@compression)}" unless @compression.nil?
@@ -153,7 +159,6 @@ module Cassandra
         options << "read_repair_chance = #{Util.encode_object(@read_repair_chance)}" unless @read_repair_chance.nil?
         options << "replicate_on_write = '#{@replicate_on_write}'" unless @replicate_on_write.nil?
         options << "speculative_retry = #{Util.encode_object(@speculative_retry)}" unless @speculative_retry.nil?
-
         options.join("\nAND ")
       end
 
@@ -177,6 +182,7 @@ module Cassandra
           @compact_storage == other.compact_storage? &&
           @crc_check_chance == other.crc_check_chance &&
           @extensions == other.extensions
+          @cdc == other.cdc
       end
       alias == eql?
     end

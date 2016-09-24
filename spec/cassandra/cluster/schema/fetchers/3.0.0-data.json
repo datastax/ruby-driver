@@ -18,6 +18,7 @@
         "keys": "ALL",
         "rows_per_partition": "NONE"
       },
+      "cdc": true,
       "comment": "test table for unit tests",
       "compaction": {
         "class": "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy",
