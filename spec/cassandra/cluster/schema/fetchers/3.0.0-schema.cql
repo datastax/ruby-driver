@@ -8,6 +8,7 @@ CREATE TABLE simplex."t1" (
 )
 WITH bloom_filter_fp_chance = 0.01
  AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
+ AND cdc = true
  AND comment = 'test table for unit tests'
  AND compaction = {'class': 'SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
  AND compression = {'chunk_length_in_kb': '64', 'class': 'LZ4Compressor'}
