@@ -61,16 +61,6 @@ describe Cassandra do
         expect(C.validate(execution_profiles: profiles)).to eq({ execution_profiles: profiles })
         expect { C.validate(execution_profiles: []) }.to raise_error(ArgumentError)
       end
-
-      { timeout: 7,
-        retry_policy: Cassandra::Retry::Policies::Default.new,
-        load_balancing_policy: GoodLBP.new,
-        consistency: :one
-      }.each do |attr, val|
-        it "should validate that #{attr.inspect} and :execution_profiles are not both specified" do
-          expect { C.validate(execution_profiles: profiles, attr => val) }.to raise_error(ArgumentError)
-        end
-      end
     end
 
     context 'for username and password' do

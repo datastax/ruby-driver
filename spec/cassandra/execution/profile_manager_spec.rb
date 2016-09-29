@@ -27,35 +27,36 @@ module Cassandra
       let(:lbp1) { FakeLoadBalancingPolicy.new(registry) }
       let(:lbp2) { FakeLoadBalancingPolicy.new(registry) }
       let(:lbp3) { FakeLoadBalancingPolicy.new(registry) }
+      let(:retry_policy) { double('retry_policy') }
       let(:profile1) { Profile.new(load_balancing_policy: lbp1) }
       let(:profile2) { Profile.new(load_balancing_policy: lbp2) }
       let(:profile3) { Profile.new(load_balancing_policy: lbp3) }
       let(:profile4) { Profile.new }
+      let(:profile5) { Profile.new(load_balancing_policy: lbp1) }
+      let(:default_profile) {
+        Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy, consistency: :quorum)
+      }
       let(:subject) {
-        ProfileManager.new(p1: profile1, p2: profile2, p3: profile3, p4: profile4)
+        ProfileManager.new(default_profile, {p1: profile1, p2: profile2, p3: profile3, p4: profile4, p5: profile5})
       }
 
-      it 'should delegate :setup to underlying load-balancing policies' do
-        expect(lbp1).to receive(:setup).with(cluster)
-        expect(lbp2).to receive(:setup).with(cluster)
-        expect(lbp3).to receive(:setup).with(cluster)
-        subject.setup(cluster)
+      it 'should fill out profiles with values from default profile' do
+        subject
+        expect(profile1).to eq(Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy,
+                                     consistency: :quorum, timeout: Profile::DEFAULT_TIMEOUT))
+        expect(profile2).to eq(Profile.new(load_balancing_policy: lbp2, retry_policy: retry_policy,
+                                           consistency: :quorum, timeout: Profile::DEFAULT_TIMEOUT))
+        expect(profile3).to eq(Profile.new(load_balancing_policy: lbp3, retry_policy: retry_policy,
+                                           consistency: :quorum, timeout: Profile::DEFAULT_TIMEOUT))
+        expect(profile4).to eq(Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy,
+                                           consistency: :quorum, timeout: Profile::DEFAULT_TIMEOUT))
+        expect(profile5).to eq(Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy,
+                                           consistency: :quorum, timeout: Profile::DEFAULT_TIMEOUT))
       end
 
-      it 'should delegate :teardown to underlying load-balancing policies' do
-        expect(lbp1).to receive(:teardown).with(cluster)
-        expect(lbp2).to receive(:teardown).with(cluster)
-        expect(lbp3).to receive(:teardown).with(cluster)
-        subject.teardown(cluster)
-      end
-
-      [:host_up, :host_down, :host_found, :host_lost].each do |event|
-        it "should delegate :#{event} to underlying load-balancing policies" do
-          expect(lbp1).to receive(event).with(host)
-          expect(lbp2).to receive(event).with(host)
-          expect(lbp3).to receive(event).with(host)
-          subject.send(event, host)
-        end
+      it 'should return unique list of lbps' do
+        lbps = Set.new([lbp1, lbp2, lbp3])
+        expect(subject.load_balancing_policies).to eq(lbps)
       end
 
       context :distance do

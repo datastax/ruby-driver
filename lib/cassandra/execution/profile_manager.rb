@@ -21,28 +21,36 @@ module Cassandra
     # @private
     class ProfileManager
       attr_reader :profiles
+      attr_reader :load_balancing_policies
 
-      def initialize(profiles)
-        @profiles = profiles
+      # Name of the default execution profile. Use this constant as the key for an execution profile when initializing
+      # a {Cluster} to override the default execution profile with your own.
+      DEFAULT_EXECUTION_PROFILE = '__DEFAULT_EXECUTION_PROFILE__'
+
+      def initialize(default_profile, profiles)
+        # Walk through the profiles and fill them out with attributes from the default profile when they're not
+        # set. Also, save off all of the load-balancing policies for easy access.
+
+        @load_balancing_policies = Set.new
+        @load_balancing_policies << default_profile.load_balancing_policy if default_profile.load_balancing_policy
+
+        profiles.each_value do |profile|
+          @load_balancing_policies << profile.load_balancing_policy if profile.load_balancing_policy
+          profile.merge_from(default_profile)
+        end
+
+        @profiles = profiles.merge({DEFAULT_EXECUTION_PROFILE => default_profile})
       end
 
       def default_profile
-        @profiles[Cassandra::DEFAULT_EXECUTION_PROFILE]
-      end
-
-      def setup(cluster)
-        lbp_broadcast(:setup, cluster)
-      end
-
-      def teardown(cluster)
-        lbp_broadcast(:teardown, cluster)
+        @profiles[DEFAULT_EXECUTION_PROFILE]
       end
 
       def distance(host)
         # Return the min distance to the host, as per each lbp.
         distances = Set.new
-        @profiles.each_value do |profile|
-          distances.add(profile.load_balancing_policy.distance(host)) if profile.load_balancing_policy
+        @load_balancing_policies.each do |lbp|
+          distances.add(lbp.distance(host))
         end
         return :local if distances.include?(:local)
         return :remote if distances.include?(:remote)
@@ -51,34 +59,10 @@ module Cassandra
         return :ignore
       end
 
-      def host_up(host)
-        lbp_broadcast(:host_up, host)
-      end
-
-      def host_down(host)
-        lbp_broadcast(:host_down, host)
-      end
-
-      def host_found(host)
-        lbp_broadcast(:host_found, host)
-      end
-
-      def host_lost(host)
-        lbp_broadcast(:host_lost, host)
-      end
-
       # @private
       def inspect
         "#<#{self.class.name}:0x#{object_id.to_s(16)} " \
       "profiles=#{@profiles.inspect}>"
-      end
-
-      private
-
-      def lbp_broadcast(method, *args)
-        @profiles.each_value do |profile|
-          profile.load_balancing_policy.send(method, *args) if profile.load_balancing_policy
-        end
       end
     end
   end

@@ -41,11 +41,14 @@ module Cassandra
       # @return [Numeric] request execution timeout in seconds. `nil` means there is no timeout.
       attr_reader :timeout
 
-      #@private
+      # @private
       DEFAULT_OPTIONS={load_balancing_policy: nil,
                        retry_policy: nil,
                        consistency: nil,
-                       timeout: 12}
+                       timeout: :unspecified}
+
+      # @private
+      DEFAULT_TIMEOUT = 12
 
       # @param options [Hash] hash of attributes. Unspecified attributes or attributes with nil values effectively
       #   fall back to the attributes in the default execution profile.
@@ -65,14 +68,40 @@ module Cassandra
         @timeout = options[:timeout]
       end
 
+      def timeout
+        @timeout == :unspecified ? DEFAULT_TIMEOUT : @timeout
+      end
+
       # @private
       def to_h
         {
             load_balancing_policy: @load_balancing_policy,
             retry_policy: @retry_policy,
             consistency: @consistency,
-            timeout: @timeout
+            timeout: timeout
         }
+      end
+
+      # @private
+      def eql?(other)
+        other.is_a?(Profile) && \
+        @load_balancing_policy == other.load_balancing_policy && \
+        @retry_policy == other.retry_policy && \
+        @consistency == other.consistency && \
+        @timeout == other.instance_variable_get(:@timeout)
+      end
+      alias == eql?
+
+      # @private
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + @load_balancing_policy.hash
+          h = 31 * h + @retry_policy.hash
+          h = 31 * h + @consistency.hash
+          h = 31 * h + @timeout.hash
+          h
+        end
       end
 
       # @private
@@ -82,6 +111,15 @@ module Cassandra
       "retry_policy=#{@retry_policy.inspect}, " \
       "consistency=#{@consistency.inspect}, " \
       "timeout=#{@timeout.inspect}>"
+      end
+
+      # @private
+      def merge_from(parent_profile)
+        @load_balancing_policy = parent_profile.load_balancing_policy if @load_balancing_policy.nil?
+        @retry_policy = parent_profile.retry_policy if @retry_policy.nil?
+        @consistency = parent_profile.consistency if @consistency.nil?
+        @timeout = parent_profile.timeout if @timeout == :unspecified
+        self
       end
     end
   end

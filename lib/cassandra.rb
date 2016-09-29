@@ -46,10 +46,6 @@ module Cassandra
   # @see Cassandra::Session#execute_async
   SERIAL_CONSISTENCIES = [:serial, :local_serial].freeze
 
-  # Name of the default execution profile. Use this constant as the key for an execution profile when initializing
-  # a {Cluster} to override the default execution profile with your own.
-  DEFAULT_EXECUTION_PROFILE = '__DEFAULT_EXECUTION_PROFILE__'
-
   # A list of all possible write types that a
   # {Cassandra::Errors::WriteTimeoutError} can have.
   #
@@ -521,7 +517,6 @@ module Cassandra
       timeout = options[:timeout]
 
       unless timeout.nil?
-        Util.assert(options[:execution_profiles].nil?, ":timeout cannot be specified when using execution profiles")
         Util.assert_instance_of(::Numeric, timeout, ":timeout must be a number of seconds, #{timeout.inspect} given")
         Util.assert(timeout > 0, ":timeout must be greater than 0, #{timeout} given")
       end
@@ -588,7 +583,6 @@ module Cassandra
 
     if options.key?(:load_balancing_policy)
       load_balancing_policy = options[:load_balancing_policy]
-      Util.assert(options[:execution_profiles].nil?, ":load_balancing_policy cannot be specified when using execution profiles")
       methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown,
                  :distance, :plan]
       Util.assert_responds_to_all(methods, load_balancing_policy) do
@@ -621,7 +615,6 @@ module Cassandra
 
     if options.key?(:retry_policy)
       retry_policy = options[:retry_policy]
-      Util.assert(options[:execution_profiles].nil?, ":retry_policy cannot be specified when using execution profiles")
       methods = [:read_timeout, :write_timeout, :unavailable]
       Util.assert_responds_to_all(methods, retry_policy) do
         ":retry_policy #{retry_policy.inspect} must respond to #{methods.inspect}, " \
@@ -645,8 +638,6 @@ module Cassandra
 
     if options.key?(:consistency)
       consistency = options[:consistency]
-      Util.assert(options[:execution_profiles].nil?, ":consistency cannot be specified when using execution profiles")
-
       Util.assert_one_of(CONSISTENCIES, consistency,
         ":consistency must be one of #{CONSISTENCIES.inspect}, " \
             "#{consistency.inspect} given"

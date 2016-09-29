@@ -170,7 +170,7 @@ module Cassandra
     let(:page_size)                 { 10000 }
     let(:heartbeat_interval)        { 30 }
     let(:idle_timeout)              { 60 }
-    let(:timeout)                   { 12 }
+    let(:timeout)                   { Cassandra::Execution::Profile::DEFAULT_TIMEOUT }
     let(:synchronize_schema)        { true }
     let(:schema_refresh_delay)      { 1 }
     let(:schema_refresh_timeout)    { 10 }
@@ -188,11 +188,7 @@ module Cassandra
                                         timeout: timeout)
     }
     let(:execution_profiles) { {} }
-    let(:profile_manager) {
-      Cassandra::Execution::ProfileManager.new(
-          {Cassandra::DEFAULT_EXECUTION_PROFILE => default_execution_profile}.merge(execution_profiles)
-      )
-    }
+    let(:profile_manager) { Cassandra::Execution::ProfileManager.new(default_execution_profile, execution_profiles) }
     let(:listeners) { [] }
 
     def initialize(defaults = {})
@@ -200,8 +196,11 @@ module Cassandra
     end
 
     def connect(addresses)
-      profile_manager.setup(cluster)
-      cluster_registry.add_listener(profile_manager)
+      profile_manager.load_balancing_policies.each do |lbp|
+        lbp.setup(cluster)
+        cluster_registry.add_listener(lbp)
+      end
+
       cluster_registry.add_listener(control_connection)
       listeners.each do |listener|
         cluster.register(listener)
