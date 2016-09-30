@@ -20,12 +20,49 @@ require 'spec_helper'
 
 module Cassandra
   describe(Session) do
-    let(:default_options) { {:consistency => :one, :timeout => 5, :trace => false} }
+    let(:load_balancing_policy) { double('load_balancing_policy')}
+    let(:retry_policy) { double('retry_policy')}
+    let(:default_options) {
+      {
+          consistency: :one,
+          timeout: 5,
+          trace: false,
+          load_balancing_policy: load_balancing_policy,
+          retry_policy: retry_policy
+      }
+    }
+    let(:profile_manager) { double('profile_manager') }
+    let(:profile) { Execution::Profile.new }
     let(:session_options) { Execution::Options.new(default_options) }
     let(:client)          { double('cassandra-driver') }
-    let(:session)         { Session.new(client, session_options, Future::Factory.new(Executors::SameThread.new)) }
+    let(:session)         {
+      Session.new(client, session_options, Future::Factory.new(Executors::SameThread.new), profile_manager)
+    }
+
+    before do
+      allow(load_balancing_policy).to receive(:host_up)
+      allow(load_balancing_policy).to receive(:host_down)
+      allow(load_balancing_policy).to receive(:host_found)
+      allow(load_balancing_policy).to receive(:host_lost)
+      allow(load_balancing_policy).to receive(:setup)
+      allow(load_balancing_policy).to receive(:teardown)
+      allow(load_balancing_policy).to receive(:distance)
+      allow(load_balancing_policy).to receive(:plan)
+
+      allow(retry_policy).to receive(:read_timeout)
+      allow(retry_policy).to receive(:write_timeout)
+      allow(retry_policy).to receive(:unavailable)
+
+      allow(profile_manager).to receive(:profiles).and_return({good_profile: profile})
+    end
 
     describe('#execute_async') do
+      it 'should error out if a bad profile name is provided' do
+        expect {
+          session.execute_async('SELECT * FROM songs', execution_profile: :bad_profile).get
+        }.to raise_error(ArgumentError)
+      end
+
       context 'cql string' do
         context 'without arguments' do
           let(:cql) { 'SELECT * FROM songs' }
@@ -78,6 +115,15 @@ module Cassandra
             expect(statement).to receive(:accept).once.with(client, session_options.override(options)).and_return(promise)
             expect(session.execute_async(cql, options)).to eq(promise)
           end
+
+          it 'should handle execution profile' do
+            promise   = double('promise')
+            statement = double('simple statement')
+
+            expect(Statements::Simple).to receive(:new).once.with(cql, EMPTY_LIST, EMPTY_LIST, false).and_return(statement)
+            expect(statement).to receive(:accept).once.with(client, session_options.override(profile)).and_return(promise)
+            expect(session.execute_async(cql, {execution_profile: :good_profile})).to eq(promise)
+          end
         end
       end
 
@@ -92,7 +138,7 @@ module Cassandra
           bound_statement = double('bound statement')
           options         = double('options')
 
-          expect(session_options).to receive(:override).once.with(arguments: [1, 2, 3, 4, 5]).and_return(options)
+          expect(session_options).to receive(:override).once.with(nil, arguments: [1, 2, 3, 4, 5]).and_return(options)
           allow(options).to receive(:arguments).and_return([1, 2, 3, 4, 5])
           expect(statement).to receive(:bind).with([1, 2, 3, 4, 5]).and_return(bound_statement)
           expect(client).to receive(:execute).once.with(bound_statement, options).and_return(promise)
@@ -131,6 +177,12 @@ module Cassandra
     describe('#prepare_async') do
       let(:cql) { 'SELECT * FROM songs' }
 
+      it 'should error out if a bad profile name is provided' do
+        expect {
+          session.prepare_async('SELECT * FROM songs', execution_profile: :bad_profile).get
+        }.to raise_error(ArgumentError)
+      end
+
       context 'without options' do
         it 'prepares cql with the client' do
           promise = double('promise')
@@ -147,7 +199,16 @@ module Cassandra
           promise = double('promise')
           opts    = double('options')
 
-          expect(session_options).to receive(:override).once.with(options).and_return(opts)
+          expect(session_options).to receive(:override).once.with(nil, options).and_return(opts)
+          expect(client).to receive(:prepare).once.with(cql, opts).and_return(promise)
+          expect(session.prepare_async(cql, options)).to eq(promise)
+        end
+
+        it 'should handle execution profile' do
+          promise = double('promise')
+          opts    = double('options')
+          options = {execution_profile: :good_profile}
+          expect(session_options).to receive(:override).once.with(profile, options).and_return(opts)
           expect(client).to receive(:prepare).once.with(cql, opts).and_return(promise)
           expect(session.prepare_async(cql, options)).to eq(promise)
         end
@@ -210,13 +271,13 @@ module Cassandra
 
     describe('#prepare') do
       let(:promise)   { double('promise') }
-      let(:args)      { [double('statement to prepare')] }
+      let(:statement)      { double('statement to prepare') }
 
       it "resolves a promise returned by #prepare_async" do
-        expect(session).to receive(:prepare_async).with(*args).and_return(promise)
+        expect(session).to receive(:prepare_async).with(statement, nil).and_return(promise)
         expect(promise).to receive(:get).once
 
-        session.prepare(*args)
+        session.prepare(statement)
       end
     end
 

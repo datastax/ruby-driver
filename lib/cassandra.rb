@@ -68,6 +68,7 @@ module Cassandra
     :credentials,
     :custom_types,
     :datacenter,
+    :execution_profiles,
     :futures_factory,
     :heartbeat_interval,
     :hosts,
@@ -117,10 +118,14 @@ module Cassandra
   #   found by the default Token-Aware Load Balancing Policy should be
   #   shuffled. See {Cassandra::LoadBalancing::Policies::TokenAware#initialize Token-Aware Load Balancing Policy}.
   #
+  # @option options [Hash<String|Symbol, ExecutionProfile>] :execution_profiles (nil)
+  #   Hash of {Cassandra::Execution::Profile}s that are available for client use (e.g.
+  #   {Session#execute}, {Session#execute_async}, {Session#prepare}, and {Session#prepare_async}).
+  #
   # @option options [Numeric] :connect_timeout (10) connection timeout in
   #   seconds. Setting value to `nil` will reset it to 5 seconds.
   #
-  # @option options [Numeric] :timeout (10) request execution timeout in
+  # @option options [Numeric] :timeout (12) request execution timeout in
   #   seconds. Setting value to `nil` will remove request timeout.
   #
   # @option options [Numeric] :heartbeat_interval (30) how often should a
@@ -503,14 +508,28 @@ module Cassandra
       end
     end
 
+    if options.key?(:execution_profiles)
+      Util.assert_instance_of(::Hash, options[:execution_profiles],
+                              ':execution_profiles must be a hash of <name,ExecutionProfile> entries.')
+    end
+
     if options.key?(:timeout)
       timeout = options[:timeout]
 
       unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) do
-          ":timeout must be a number of seconds, #{timeout.inspect} given"
+        Util.assert_instance_of(::Numeric, timeout, ":timeout must be a number of seconds, #{timeout.inspect} given")
+        Util.assert(timeout > 0, ":timeout must be greater than 0, #{timeout} given")
+      end
+    end
+    if options.key?(:execution_profiles)
+      options[:execution_profiles].each do |name, profile|
+        timeout = profile.timeout
+        unless timeout.nil?
+          Util.assert_instance_of(::Numeric, timeout,
+                                  ":timeout of execution profile #{name} must be a number of seconds, " \
+                                "#{timeout.inspect} given")
+          Util.assert(timeout > 0, ":timeout of execution profile #{name} must be greater than 0, #{timeout} given")
         end
-        Util.assert(timeout > 0) { ":timeout must be greater than 0, #{timeout} given" }
       end
     end
 
@@ -566,10 +585,22 @@ module Cassandra
       load_balancing_policy = options[:load_balancing_policy]
       methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown,
                  :distance, :plan]
-
       Util.assert_responds_to_all(methods, load_balancing_policy) do
         ":load_balancing_policy #{load_balancing_policy.inspect} must respond " \
             "to #{methods.inspect}, but doesn't"
+      end
+    end
+    if options.key?(:execution_profiles)
+      methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown,
+                 :distance, :plan]
+      options[:execution_profiles].each do |name, profile|
+        load_balancing_policy = profile.load_balancing_policy
+        unless load_balancing_policy.nil?
+          Util.assert_responds_to_all(methods, load_balancing_policy,
+            ":load_balancing_policy in execution profile #{name} #{load_balancing_policy.inspect} must respond " \
+            "to #{methods.inspect}, but doesn't"
+          )
+        end
       end
     end
 
@@ -585,10 +616,21 @@ module Cassandra
     if options.key?(:retry_policy)
       retry_policy = options[:retry_policy]
       methods = [:read_timeout, :write_timeout, :unavailable]
-
       Util.assert_responds_to_all(methods, retry_policy) do
         ":retry_policy #{retry_policy.inspect} must respond to #{methods.inspect}, " \
             "but doesn't"
+      end
+    end
+    if options.key?(:execution_profiles)
+      methods = [:read_timeout, :write_timeout, :unavailable]
+      options[:execution_profiles].each do |name, profile|
+        retry_policy = profile.retry_policy
+        unless retry_policy.nil?
+          Util.assert_responds_to_all(methods, retry_policy,
+                                      ":retry_policy in execution profile #{name} #{retry_policy.inspect} must " \
+                                      "respond to #{methods.inspect}, but doesn't"
+          )
+        end
       end
     end
 
@@ -596,10 +638,20 @@ module Cassandra
 
     if options.key?(:consistency)
       consistency = options[:consistency]
-
-      Util.assert_one_of(CONSISTENCIES, consistency) do
+      Util.assert_one_of(CONSISTENCIES, consistency,
         ":consistency must be one of #{CONSISTENCIES.inspect}, " \
             "#{consistency.inspect} given"
+      )
+    end
+    if options.key?(:execution_profiles)
+      options[:execution_profiles].each do |name, profile|
+        consistency = profile.consistency
+        unless consistency.nil?
+          Util.assert_one_of(CONSISTENCIES, consistency,
+            ":consistency in execution profile #{name} must be one of #{CONSISTENCIES.inspect}, " \
+            "#{consistency.inspect} given"
+          )
+        end
       end
     end
 
@@ -824,6 +876,8 @@ require 'cassandra/trigger'
 
 require 'cassandra/execution/info'
 require 'cassandra/execution/options'
+require 'cassandra/execution/profile'
+require 'cassandra/execution/profile_manager'
 require 'cassandra/execution/trace'
 
 require 'cassandra/load_balancing'
@@ -846,7 +900,9 @@ module Cassandra
   # @private
   VOID_STATEMENT = Statements::Void.new
   # @private
-  VOID_OPTIONS   = Execution::Options.new(consistency: :one)
+  VOID_OPTIONS   = Execution::Options.new(consistency: :one,
+                                          load_balancing_policy: LoadBalancing::Policies::RoundRobin.new,
+                                          retry_policy: Retry::Policies::Default.new)
   # @private
   NO_HOSTS       = Errors::NoHostsAvailable.new
 end

@@ -36,9 +36,8 @@ module Cassandra
                    cluster_metadata,
                    execution_options,
                    connection_options,
-                   load_balancing_policy,
+                   profile_manager,
                    reconnection_policy,
-                   retry_policy,
                    address_resolution_policy,
                    connector,
                    futures_factory,
@@ -52,9 +51,8 @@ module Cassandra
       @metadata              = cluster_metadata
       @execution_options     = execution_options
       @connection_options    = connection_options
-      @load_balancing_policy = load_balancing_policy
+      @profile_manager       = profile_manager
       @reconnection_policy   = reconnection_policy
-      @retry_policy          = retry_policy
       @address_resolver      = address_resolution_policy
       @connector             = connector
       @futures               = futures_factory
@@ -62,7 +60,7 @@ module Cassandra
 
       @control_connection.on_close do |_cause|
         begin
-          @load_balancing_policy.teardown(self)
+          @profile_manager.teardown(self)
         rescue
           nil
         end
@@ -201,14 +199,13 @@ module Cassandra
                            @schema,
                            @io_reactor,
                            @connector,
-                           @load_balancing_policy,
+                           @profile_manager,
                            @reconnection_policy,
-                           @retry_policy,
                            @address_resolver,
                            @connection_options,
                            @futures,
                            @timestamp_generator)
-      session = Session.new(client, @execution_options, @futures)
+      session = Session.new(client, @execution_options, @futures, @profile_manager)
       promise = @futures.promise
 
       client.connect.on_complete do |f|
@@ -282,9 +279,7 @@ module Cassandra
       "name=#{name.inspect}, " \
       "port=#{@connection_options.port}, " \
       "protocol_version=#{@connection_options.protocol_version}, " \
-      "load_balancing_policy=#{@load_balancing_policy.inspect}, " \
-      "consistency=#{@execution_options.consistency.inspect}, " \
-      "timeout=#{@execution_options.timeout.inspect}, " \
+      "profile_manager=#{@profile_manager.inspect}, " \
       "hosts=#{hosts.inspect}, " \
       "keyspaces=#{keyspaces.inspect}>"
     end
