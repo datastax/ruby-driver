@@ -56,6 +56,7 @@ module Cassandra
   CLUSTER_OPTIONS = [
     :address_resolution,
     :address_resolution_policy,
+    :allow_beta_protocol,
     :auth_provider,
     :client_cert,
     :client_timestamps,
@@ -195,6 +196,9 @@ module Cassandra
   # @option options [Integer] :protocol_version (nil) Version of protocol to speak to
   #   nodes. By default, this is auto-negotiated to the highest common protocol version
   #   that all nodes in `:hosts` speak.
+  #
+  # @option options [Boolean] :allow_beta_protocol (false) whether the driver should attempt to speak to nodes
+  #   with a beta version of the newest protocol (which is still under development). USE WITH CAUTION!
   #
   # @option options [Boolean, Cassandra::TimestampGenerator] :client_timestamps (false) whether the driver
   #   should send timestamps for each executed statement and possibly which timestamp generator to use. Enabling this
@@ -658,6 +662,7 @@ module Cassandra
     options[:nodelay] = !!options[:nodelay] if options.key?(:nodelay)
     options[:trace] = !!options[:trace] if options.key?(:trace)
     options[:shuffle_replicas] = !!options[:shuffle_replicas] if options.key?(:shuffle_replicas)
+    options[:allow_beta_protocol] = !!options[:allow_beta_protocol] if options.key?(:allow_beta_protocol)
 
     if options.key?(:page_size)
       page_size = options[:page_size]
@@ -675,11 +680,15 @@ module Cassandra
       protocol_version = options[:protocol_version]
       unless protocol_version.nil?
         Util.assert_instance_of(::Integer, protocol_version)
-        Util.assert_one_of(1..4, protocol_version) do
-          ":protocol_version must be a positive integer, #{protocol_version.inspect} given"
-        end
+        Util.assert_one_of(1..Cassandra::Protocol::Versions::MAX_SUPPORTED_VERSION, protocol_version,
+          ':protocol_version must be a positive integer between 1 and ' \
+          "#{Cassandra::Protocol::Versions::MAX_SUPPORTED_VERSION}, #{protocol_version.inspect} given"
+        )
       end
     end
+
+    Util.assert(!(options[:allow_beta_protocol] && options[:protocol_version]),
+                'only one of :allow_beta_protocol and :protocol_version may be specified, both given')
 
     if options.key?(:futures_factory)
       futures_factory = options[:futures_factory]

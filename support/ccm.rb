@@ -721,7 +721,7 @@ module CCM extend self
       ccm_node_conf_dir = "~/.ccm/ruby-driver-cassandra-#{CCM.cassandra_version}-test-cluster"
 
       (1..@nodes.size).each do |n|
-        `mkdir #{ccm_node_conf_dir}/node#{n}/conf/triggers`
+        `mkdir -p #{ccm_node_conf_dir}/node#{n}/conf/triggers`
         `cp #{trigger_root}/AuditTrigger.properties #{ccm_node_conf_dir}/node#{n}/conf`
         `cp #{trigger_root}/trigger-example.jar #{ccm_node_conf_dir}/node#{n}/conf/triggers`
       end
@@ -949,10 +949,13 @@ module CCM extend self
   def create_cluster(name, version, datacenters, nodes_per_datacenter)
     nodes = Array.new(datacenters, nodes_per_datacenter).join(':')
 
-    create_args = ['-v', version, name]
-    create_args << '--dse' if @dse
-
-    ccm.exec('create', *create_args)
+    if !@dse && ENV['CASSANDRA_DIR'] && !ENV['CASSANDRA_DIR'].empty?
+      ccm.exec('create', name, '--install-dir', ENV['CASSANDRA_DIR'])
+    else
+      create_args = ['-v', version, name]
+      create_args << '--dse' if @dse
+      ccm.exec('create', *create_args)
+    end
 
     config = [
       '--rt', '1000',

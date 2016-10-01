@@ -348,6 +348,9 @@ module Cassandra
       attr_reader :received
       # @return [Integer] the number of writes failed
       attr_reader :failed
+      # @return [Hash<IPAddr, Integer>] map of <ip, error-code>. This is new in v5 and is nil in previous versions
+      #    of the Casssandra protocol.
+      attr_reader :failures_by_node
 
       # @private
       def initialize(message,
@@ -363,7 +366,8 @@ module Cassandra
                      consistency,
                      required,
                      failed,
-                     received)
+                     received,
+                     failures_by_node)
         super(message,
               payload,
               warnings,
@@ -378,6 +382,7 @@ module Cassandra
         @required    = required
         @failed      = failed
         @received    = received
+        @failures_by_node = failures_by_node
       end
     end
 
@@ -400,6 +405,9 @@ module Cassandra
       attr_reader :received
       # @return [Integer] the number of reads failed
       attr_reader :failed
+      # @return [Hash<IPaddr, Integer>] map of <ip, error-code>. This is new in v5 and is nil in previous versions
+      #    of the Casssandra protocol.
+      attr_reader :failures_by_node
 
       # @private
       def initialize(message,
@@ -415,7 +423,8 @@ module Cassandra
                      consistency,
                      required,
                      failed,
-                     received)
+                     received,
+                     failures_by_node)
         super(message,
               payload,
               warnings,
@@ -430,6 +439,7 @@ module Cassandra
         @required    = required
         @failed      = failed
         @received    = received
+        @failures_by_node = failures_by_node
       end
 
       def retrieved?

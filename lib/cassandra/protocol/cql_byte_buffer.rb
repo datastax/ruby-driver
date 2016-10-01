@@ -204,6 +204,15 @@ module Cassandra
               e.backtrace
       end
 
+      def read_inet_addr
+        size = read_byte
+        IPAddr.new_ntoh(read(size))
+      rescue RangeError => e
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode an INET addr: #{e.message}",
+              e.backtrace
+      end
+
       def read_consistency
         index = read_unsigned_short
         if index >= CONSISTENCIES.size || CONSISTENCIES[index].nil?
@@ -228,6 +237,18 @@ module Cassandra
         map_size.times do
           key = read_string
           map[key] = read_bytes
+        end
+        map
+      end
+
+      def read_reason_map
+        # reason_map is new in v5. Starts with an int indicating the number of key-value pairs, followed by
+        # the key-value pairs. Keys are inet's, values are short int's.
+        map = {}
+        map_size = read_int
+        map_size.times do
+          key = read_inet_addr
+          map[key] = read_short
         end
         map
       end

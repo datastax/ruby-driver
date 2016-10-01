@@ -23,7 +23,7 @@ module Cassandra
       class Encoder
         HEADER_FORMAT = 'c2ncN'.freeze
 
-        def initialize(compressor = nil, protocol_version = 4)
+        def initialize(compressor, protocol_version)
           @compressor       = compressor
           @protocol_version = protocol_version
         end
@@ -31,6 +31,7 @@ module Cassandra
         def encode(buffer, request, stream_id)
           flags  = 0
           flags |= 0x02 if request.trace?
+          flags |= 0x10 if @protocol_version == Cassandra::Protocol::Versions::BETA_VERSION
 
           body = CqlByteBuffer.new
 
@@ -259,15 +260,33 @@ module Cassandra
                                            buffer.read_int,
                                            (buffer.read_byte != 0))
             when 0x1300
-              ReadFailureErrorResponse.new(custom_payload,
-                                           warnings,
-                                           code,
-                                           message,
-                                           buffer.read_consistency,
-                                           buffer.read_int,
-                                           buffer.read_int,
-                                           buffer.read_int,
-                                           (buffer.read_byte != 0))
+              cl = buffer.read_consistency
+              received = buffer.read_int
+              block_for = buffer.read_int
+              if protocol_version < 5
+                ReadFailureErrorResponse.new(custom_payload,
+                                             warnings,
+                                             code,
+                                             message,
+                                             cl,
+                                             received,
+                                             block_for,
+                                             buffer.read_int,
+                                             (buffer.read_byte != 0),
+                                             nil)
+              else
+                failures_by_node = buffer.read_reason_map
+                ReadFailureErrorResponse.new(custom_payload,
+                                             warnings,
+                                             code,
+                                             message,
+                                             cl,
+                                             received,
+                                             block_for,
+                                             nil,
+                                             (buffer.read_byte != 0),
+                                             failures_by_node)
+              end
             when 0x1400
               FunctionFailureErrorResponse.new(custom_payload,
                                                warnings,
@@ -277,15 +296,33 @@ module Cassandra
                                                buffer.read_string,
                                                buffer.read_string_list)
             when 0x1500
-              WriteFailureErrorResponse.new(custom_payload,
-                                            warnings,
-                                            code,
-                                            message,
-                                            buffer.read_consistency,
-                                            buffer.read_int,
-                                            buffer.read_int,
-                                            buffer.read_int,
-                                            buffer.read_string)
+              cl = buffer.read_consistency
+              received = buffer.read_int
+              block_for = buffer.read_int
+              if protocol_version < 5
+                WriteFailureErrorResponse.new(custom_payload,
+                                              warnings,
+                                              code,
+                                              message,
+                                              cl,
+                                              received,
+                                              block_for,
+                                              buffer.read_int,
+                                              buffer.read_string,
+                                              nil)
+              else
+                failures_by_node = buffer.read_reason_map
+                WriteFailureErrorResponse.new(custom_payload,
+                                              warnings,
+                                              code,
+                                              message,
+                                              cl,
+                                              received,
+                                              block_for,
+                                              nil,
+                                              buffer.read_string,
+                                              failures_by_node)
+              end
             when 0x2400
               AlreadyExistsErrorResponse.new(custom_payload,
                                              warnings,
