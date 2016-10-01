@@ -49,6 +49,11 @@ module Cassandra
       SCHEMA_CHANGE_TARGET_FUNCTION  = 'FUNCTION'.freeze
       SCHEMA_CHANGE_TARGET_AGGREGATE = 'AGGREGATE'.freeze
     end
+
+    module Versions
+      BETA_VERSION = 5
+      MAX_SUPPORTED_VERSION = 4
+    end
   end
 end
 

@@ -122,11 +122,8 @@ module Cassandra
                          ssl: @connection_options.ssl) do |connection|
           raise Errors::ClientError, 'Not connected, reactor stopped' unless connection
 
-          if @connection_options.nodelay?
-            connection.to_io.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
-          else
-            connection.to_io.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 0)
-          end
+          connection.to_io.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY,
+                                      @connection_options.nodelay? ? 1 : 0)
 
           Protocol::CqlProtocolHandler.new(connection,
                                            @reactor,

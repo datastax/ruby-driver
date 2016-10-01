@@ -399,10 +399,24 @@ describe Cassandra do
       expect { C.validate(protocol_version: 'a') }.to raise_error(ArgumentError)
       expect { C.validate(protocol_version: 0) }.to raise_error(ArgumentError)
       expect { C.validate(protocol_version: 1.5) }.to raise_error(ArgumentError)
-      expect { C.validate(protocol_version: 5) }.to raise_error(ArgumentError)
+      expect { C.validate(protocol_version: Cassandra::Protocol::Versions::MAX_SUPPORTED_VERSION + 1) }.
+          to raise_error(ArgumentError)
       expect(C.validate(protocol_version: 1)).to eq({ protocol_version: 1 })
-      expect(C.validate(protocol_version: 4)).to eq({ protocol_version: 4 })
+      expect(C.validate(protocol_version: Cassandra::Protocol::Versions::MAX_SUPPORTED_VERSION)).
+          to eq({ protocol_version: Cassandra::Protocol::Versions::MAX_SUPPORTED_VERSION })
       expect(C.validate(protocol_version: nil)).to eq({ protocol_version: nil })
+    end
+
+    it 'should validate that :protocol_version and :allow_beta_protocol are not both specified' do
+      expect(C.validate(allow_beta_protocol: true)).to eq({ allow_beta_protocol: true } )
+      expect(C.validate(allow_beta_protocol: false)).to eq({ allow_beta_protocol: false } )
+      expect { C.validate(allow_beta_protocol: true, protocol_version: 3) }.to raise_error(ArgumentError)
+      expect(C.validate(allow_beta_protocol: false, protocol_version: 3)).
+          to eq({ allow_beta_protocol: false, protocol_version: 3 })
+      expect(C.validate(allow_beta_protocol: true, protocol_version: nil)).
+          to eq({ allow_beta_protocol: true, protocol_version: nil })
+      expect(C.validate(allow_beta_protocol: false, protocol_version: nil)).
+          to eq({ allow_beta_protocol: false, protocol_version: nil })
     end
 
     it 'should validate :futures_factory option' do

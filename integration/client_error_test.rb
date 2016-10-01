@@ -69,32 +69,43 @@ class ClientErrorTest < IntegrationTestCase
   # @test_category error_codes
   #
   def test_raise_error_on_write_failure
-    begin
-      skip("Client failure errors are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
+    skip("Client failure errors are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-      cluster = Retry.with_attempts(5, Cassandra::Errors::NoHostsAvailable) { Cassandra.cluster }
-      session = cluster.connect
+    # Create a cluster object that tries to use the beta protocol. If it succeeds, the write failure response
+    # will have a map of <node-ip, failure-code> instead of num-failures. When v5 is officially released, we
+    # can remove the allow_beta_protocol arg in this test.
+    cluster = Retry.with_attempts(5, Cassandra::Errors::NoHostsAvailable) {
+      Cassandra.cluster(allow_beta_protocol: true)
+    }
+    session = cluster.connect
 
-      session.execute("CREATE KEYSPACE testwritefail WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3'}",
-                      consistency: :all) rescue nil
-      session.execute("CREATE TABLE testwritefail.test (k int PRIMARY KEY, v int)", consistency: :all)
+    session.execute("CREATE KEYSPACE testwritefail WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3'}",
+                    consistency: :all) rescue nil
+    session.execute("CREATE TABLE IF NOT EXISTS testwritefail.test (k int PRIMARY KEY, v int)", consistency: :all)
 
-      # Disable one node
-      set_failing_nodes(["node1"], "testwritefail")
+    # Disable one node
+    set_failing_nodes(["node1"], "testwritefail")
 
-      # One node disabled should trigger a WriteFailure
-      assert_raises(Cassandra::Errors::WriteError) do
-        session.execute("INSERT INTO testwritefail.test (k, v) VALUES (1, 0)", consistency: :all)
-      end
-
-      # Quorum should still work with two nodes
-      session.execute("INSERT INTO testwritefail.test (k, v) VALUES (1, 0)", consistency: :quorum)
-
-      # Restart the node to clear jvm settings
-      set_failing_nodes([], "testwritefail")
-    ensure
-      cluster && cluster.close
+    # One node disabled should trigger a WriteFailure
+    ex = assert_raises(Cassandra::Errors::WriteError) do
+      session.execute("INSERT INTO testwritefail.test (k, v) VALUES (1, 0)", consistency: :all)
     end
+
+    # If we're speaking protocol version > 4, verify that we have a failure map in the exception.
+    connection_options = cluster.instance_variable_get(:@connection_options)
+    assert_operator(ex.failed, :>=, 1)
+    if connection_options.protocol_version > 4
+      assert_equal(ex.failed, ex.failures_by_node.size)
+      assert_equal(0, ex.failures_by_node.values.first)
+    end
+
+    # Quorum should still work with two nodes
+    session.execute("INSERT INTO testwritefail.test (k, v) VALUES (1, 0)", consistency: :quorum)
+
+    # Restart the node to clear jvm settings
+    set_failing_nodes([], "testwritefail")
+  ensure
+    cluster && cluster.close
   end
 
   # Test for validating ReadError
@@ -117,33 +128,45 @@ class ClientErrorTest < IntegrationTestCase
   def test_raise_error_on_read_failure
     skip("Client failure errors are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-    begin
-      cluster = Retry.with_attempts(5, Cassandra::Errors::NoHostsAvailable) { Cassandra.cluster }
-      session = cluster.connect
+    # Create a cluster object that tries to use the beta protocol. If it succeeds, the write failure response
+    # will have a map of <node-ip, failure-code> instead of num-failures. When v5 is officially released, we
+    # can remove the allow_beta_protocol arg in this test.
+    cluster = Retry.with_attempts(5, Cassandra::Errors::NoHostsAvailable) {
+      Cassandra.cluster(allow_beta_protocol: true)
+    }
+    session = cluster.connect
 
-      session.execute("CREATE KEYSPACE testreadfail WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3'}",
-                      consistency: :all) rescue nil
-      session.execute("CREATE TABLE testreadfail.test2 (k int, v0 int, v1 int, PRIMARY KEY (k, v0))", consistency: :all)
+    session.execute("CREATE KEYSPACE testreadfail WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3'}",
+                    consistency: :all) rescue nil
+    session.execute("CREATE TABLE IF NOT EXISTS testreadfail.test2 (k int, v0 int, v1 int, PRIMARY KEY (k, v0))",
+                    consistency: :all)
 
-      # Insert wide rows
-      insert = session.prepare("INSERT INTO testreadfail.test2 (k, v0, v1) VALUES (1, ?, 1)")
-      (0..3000).each do |num|
-        session.execute(insert, arguments: [num])
-      end
-
-      # Delete wide rows
-      delete = session.prepare("DELETE v1 FROM testreadfail.test2 WHERE k = 1 AND v0 =?")
-      (0..2001).each do |num|
-        session.execute(delete, arguments: [num])
-      end
-
-      # Tombstones should trigger ReadFailure
-      assert_raises(Cassandra::Errors::ReadError) do
-        session.execute("SELECT * FROM testreadfail.test2 WHERE k = 1")
-      end
-    ensure
-      cluster && cluster.close
+    # Insert wide rows
+    insert = session.prepare("INSERT INTO testreadfail.test2 (k, v0, v1) VALUES (1, ?, 1)")
+    (0..3000).each do |num|
+      session.execute(insert, arguments: [num])
     end
+
+    # Delete wide rows
+    delete = session.prepare("DELETE v1 FROM testreadfail.test2 WHERE k = 1 AND v0 =?")
+    (0..2001).each do |num|
+      session.execute(delete, arguments: [num])
+    end
+
+    # Tombstones should trigger ReadFailure
+    ex = assert_raises(Cassandra::Errors::ReadError) do
+      session.execute("SELECT * FROM testreadfail.test2 WHERE k = 1")
+    end
+
+    # If we're speaking protocol version > 4, verify that we have a failure map in the exception.
+    connection_options = cluster.instance_variable_get(:@connection_options)
+    assert_operator(ex.failed, :>=, 1)
+    if connection_options.protocol_version > 4
+      assert_equal(ex.failed, ex.failures_by_node.size)
+      assert_equal(1, ex.failures_by_node.values.first)
+    end
+  ensure
+    cluster && cluster.close
   end
 
   # Test for validating FunctionCallError
@@ -165,30 +188,28 @@ class ClientErrorTest < IntegrationTestCase
   def test_raise_error_on_function_failure
     skip("Client failure errors are only available in C* after 2.2") if CCM.cassandra_version < '2.2.0'
 
-    begin
-      cluster = Retry.with_attempts(5, Cassandra::Errors::NoHostsAvailable) { Cassandra.cluster }
-      session = cluster.connect
+    cluster = Retry.with_attempts(5, Cassandra::Errors::NoHostsAvailable) { Cassandra.cluster }
+    session = cluster.connect
 
-      session.execute("CREATE KEYSPACE testfunctionfail WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3'}",
-                      consistency: :all) rescue nil
-      session.execute("CREATE TABLE testfunctionfail.d (k int PRIMARY KEY , d double)", consistency: :all)
+    session.execute("CREATE KEYSPACE testfunctionfail WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3'}",
+                    consistency: :all) rescue nil
+    session.execute("CREATE TABLE IF NOT EXISTS testfunctionfail.d (k int PRIMARY KEY , d double)", consistency: :all)
 
-      # Create a UDF that throws an exception
-      session.execute("CREATE FUNCTION testfunctionfail.test_failure(d double)
+    # Create a UDF that throws an exception
+    session.execute("CREATE FUNCTION IF NOT EXISTS testfunctionfail.test_failure(d double)
                       RETURNS NULL ON NULL INPUT
                       RETURNS double
                       LANGUAGE java AS 'throw new RuntimeException(\"failure\");'",
-                      consistency: :all)
+                    consistency: :all)
 
-      # Insert value to use for function
-      session.execute("INSERT INTO testfunctionfail.d (k, d) VALUES (0, 5.12)")
+    # Insert value to use for function
+    session.execute("INSERT INTO testfunctionfail.d (k, d) VALUES (0, 5.12)")
 
-      # FunctionFailure should be triggered
-      assert_raises(Cassandra::Errors::FunctionCallError) do
-        session.execute("SELECT test_failure(d) FROM testfunctionfail.d WHERE k = 0")
-      end
-    ensure
-      cluster && cluster.close
+    # FunctionFailure should be triggered
+    assert_raises(Cassandra::Errors::FunctionCallError) do
+      session.execute("SELECT test_failure(d) FROM testfunctionfail.d WHERE k = 0")
     end
+  ensure
+    cluster && cluster.close
   end
 end

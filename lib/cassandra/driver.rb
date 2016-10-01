@@ -141,13 +141,15 @@ module Cassandra
         schema_refresh_timeout,
         nodelay,
         requests_per_connection,
-        custom_types
+        custom_types,
+        allow_beta_protocol
       )
     end
 
     let(:custom_types)      { [] }
     let(:port)                      { 9042 }
     let(:protocol_version)          { nil }
+    let(:allow_beta_protocol)       { false }
     let(:connect_timeout)           { 10 }
     let(:ssl)                       { false }
     let(:logger)                    { NullLogger.new }
