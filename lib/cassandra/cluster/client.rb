@@ -47,7 +47,7 @@ module Cassandra
         @futures                     = futures_factory
         @connections                 = ::Hash.new
         @prepared_statements         = ::Hash.new
-        @preparing_statements        = ::Hash.new
+        @preparing_statements        = ::Hash.new {|hash, host| hash[host] = {}}
         @pending_connections         = ::Hash.new
         @keyspace                    = nil
         @state                       = :idle
@@ -83,7 +83,6 @@ module Cassandra
 
             connecting_hosts[host] = pool_size
             @pending_connections[host] = 0
-            @prepared_statements[host] = {}
             @preparing_statements[host] = {}
             @connections[host] = ConnectionPool.new
           end
@@ -182,7 +181,6 @@ module Cassandra
           end
 
           @pending_connections[host] ||= 0
-          @prepared_statements[host] = {}
           @preparing_statements[host] = {}
           @connections[host] = ConnectionPool.new
         end
@@ -197,7 +195,6 @@ module Cassandra
           return Ione::Future.resolved unless @connections.key?(host)
 
           @pending_connections.delete(host) unless @pending_connections[host] > 0
-          @prepared_statements.delete(host)
           @preparing_statements.delete(host)
           pool = @connections.delete(host)
         end
@@ -632,15 +629,13 @@ module Cassandra
                                            errors,
                                            hosts)
         cql = statement.cql
-        id = nil
-        host_is_up = true
-        synchronize do
-          if @prepared_statements[host].nil?
-            host_is_up = false
-          else
-            id = @prepared_statements[host][cql]
-          end
-        end
+
+        # Get the prepared statement id for this statement from our cache if possible. We are optimistic
+        # that the statement has previously been prepared on all hosts, so the id will be valid. However, if
+        # we're in the midst of preparing the statement on the given host, we know that executing with the id
+        # will fail. So, act like we don't have the prepared-statement id in that case.
+
+        id = synchronize { @preparing_statements[host][cql] ? nil : @prepared_statements[cql] }
 
         if id
           request.id = id
@@ -655,19 +650,6 @@ module Cassandra
                                   timeout,
                                   errors,
                                   hosts)
-        elsif !host_is_up
-          # We've hit a race condition where the plan says we can query this host, but the host has gone
-          # down in the mean time. Just execute the plan again on the next host.
-          @logger.debug("#{host} is down; executing plan on next host")
-          execute_by_plan(promise,
-                          keyspace,
-                          statement,
-                          options,
-                          request,
-                          plan,
-                          timeout,
-                          errors,
-                          hosts)
         else
           prepare = prepare_statement(host, connection, cql, timeout)
           prepare.on_complete do |_|
@@ -825,29 +807,15 @@ module Cassandra
           cql = statement.cql
 
           if statement.is_a?(Statements::Bound)
-            host_is_up = true
-            id = nil
-            synchronize do
-              if @prepared_statements[host].nil?
-                host_is_up = false
-              else
-                id = @prepared_statements[host][cql]
-              end
-            end
+            # Get the prepared statement id for this statement from our cache if possible. We are optimistic
+            # that the statement has previously been prepared on all hosts, so the id will be valid. However, if
+            # we're in the midst of preparing the statement on the given host, we know that executing with the id
+            # will fail. So, act like we don't have the prepared-statement id in that case.
+
+            id = synchronize { @preparing_statements[host][cql] ? nil : @prepared_statements[cql] }
 
             if id
               request.add_prepared(id, statement.params, statement.params_types)
-            elsif !host_is_up
-              @logger.debug("#{host} is down; executing on next host in plan")
-              return batch_by_plan(promise,
-                                   keyspace,
-                                   batch_statement,
-                                   options,
-                                   request,
-                                   plan,
-                                   timeout,
-                                   errors,
-                                   hosts)
             else
               unprepared[cql] << statement
             end
@@ -1097,7 +1065,6 @@ module Cassandra
 
               synchronize do
                 @preparing_statements[host].delete(cql)
-                @prepared_statements[host].delete(cql)
               end
 
               prepare = prepare_statement(host, connection, cql, timeout)
@@ -1198,7 +1165,7 @@ module Cassandra
             when Protocol::PreparedResultResponse
               cql = request.cql
               synchronize do
-                @prepared_statements[host][cql] = r.id
+                @prepared_statements[cql] = r.id
                 @preparing_statements[host].delete(cql)
               end
 
@@ -1531,7 +1498,7 @@ module Cassandra
           when Protocol::PreparedResultResponse
             id = r.id
             synchronize do
-              @prepared_statements[host][cql] = id
+              @prepared_statements[cql] = id
               @preparing_statements[host].delete(cql)
             end
             id

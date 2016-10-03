@@ -56,19 +56,17 @@ module Cassandra
       let(:request) { double('request') }
       let(:batch_statement) { double('batch_statement') }
       let(:bound_statement) { double('bound_statement') }
+      let(:response) { double('response future')}
+      let(:prepared_id) { 1234 }
 
       it 'RUBY-189 - handles node down after prepare' do
         expect(promise).to_not receive(:break)
         expect(statement).to receive(:cql).and_return('select * from foo')
-        expect(client).to receive(:execute_by_plan).with(promise,
-                                                         'keyspace',
-                                                         statement,
-                                                         options,
-                                                         'request',
-                                                         plan,
-                                                         12,
-                                                         errors,
-                                                         hosts)
+
+        # We expect the down node to receive a request attempt.
+        expect(connection).to receive(:send_request).and_return(response)
+        expect(response).to receive(:map).and_return(response)
+        expect(response).to receive(:on_complete)
         client.send(:prepare_and_send_request_by_plan,
                     'down_host',
                     connection,
@@ -85,19 +83,14 @@ module Cassandra
 
       it 'RUBY-189 - handles node down after prepare in batch' do
         expect(request).to receive(:clear)
+        expect(connection).to receive(:send_request).and_return(response)
+        expect(response).to receive(:map).and_return(response)
+        expect(response).to receive(:on_complete)
+
         expect(bound_statement).to receive(:is_a?).and_return(true)
         expect(bound_statement).to receive(:cql).and_return('select * from foo')
         expect(batch_statement).to receive(:statements).and_return([bound_statement])
         expect(promise).to_not receive(:break)
-        expect(client).to receive(:batch_by_plan).with(promise,
-                                                       'keyspace',
-                                                       batch_statement,
-                                                       options,
-                                                       request,
-                                                       plan,
-                                                       12,
-                                                       errors,
-                                                       hosts)
         client.send(:batch_and_send_request_by_plan,
                     'down_host',
                     connection,
