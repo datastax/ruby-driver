@@ -809,7 +809,7 @@ class SessionTest < IntegrationTestCase
 
     # C* 3.0+ does not support protocol version < 3
     if CCM.cassandra_version >= '3.0.0'
-      assert_raises(Cassandra::Errors::NoHostsAvailable) do
+      assert_raises(Cassandra::Errors::ProtocolError) do
         Cassandra.cluster(protocol_version: 2)
       end
     end
