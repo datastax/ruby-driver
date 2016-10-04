@@ -5,6 +5,10 @@ Features:
 * Update Table metadata to include trigger-collection and view-collection metadata.
 * Added execution profiles to encapsulate a group of request execution options.
 * Added support for v5 beta protocol.
+* Make prepared statement cache not be scoped by host and optimistically execute prepared statements on hosts where
+  we are not sure the statement is already prepared. The motivation is that in the steady state, all nodes have
+  prepared statements already, so there is no need to prepare statements before executing them. If the guess is wrong,
+  the client will prepare and execute at that point.
 
 Bug Fixes:
 * [RUBY-255](https://datastax-oss.atlassian.net/browse/RUBY-255) ControlConnection.peer_ip ignores peers that are missing critical information in system.peers.

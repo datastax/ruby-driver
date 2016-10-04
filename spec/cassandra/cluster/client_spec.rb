@@ -695,7 +695,7 @@ module Cassandra
           expect(sent).to be_truthy
         end
 
-        it 're-prepares a statement on new connection' do
+        it 'does not re-prepare a statement on new connection if the new host already has the statement prepared' do
           count = 0
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
@@ -719,7 +719,12 @@ module Cassandra
           cluster_registry.hosts.delete(cluster_registry.hosts.first)
 
           client.execute(statement.bind, execution_options).get
-          expect(count).to eq(2)
+
+          # Expected sequence of events:
+          # 1. prepare on host1
+          # 2. execute on host2. Since execute succeeds, the implication is that host2 already had the statement
+          #    prepared.
+          expect(count).to eq(1)
         end
 
         it 're-prepares a statement on unprepared error' do
@@ -752,7 +757,14 @@ module Cassandra
           cluster_registry.hosts.delete(statement.execution_info.hosts.first)
 
           client.execute(statement.bind, execution_options).get
-          expect(count).to eq(3)
+
+
+          # Expected sequence of events:
+          # 1. prepare on host1
+          # 2. execute on host2, yielding unprepared error.
+          # 3. prepare on host2
+          # 4. execute on host2.
+          expect(count).to eq(2)
           expect(error).to be(false)
         end
 
@@ -937,7 +949,7 @@ module Cassandra
           expect(sent).to be_truthy
         end
 
-        it 'automatically re-prepares statements' do
+        it 'does not automatically re-prepare statements' do
           sent = false
           count = 0
           batch = Statements::Batch::Logged.new(driver.execution_options)
@@ -983,7 +995,11 @@ module Cassandra
 
           client.batch(batch, execution_options.override(consistency: :one)).get
           expect(sent).to be_truthy
-          expect(count).to eq(2)
+
+          # Expected sequence of events:
+          # 1. prepare on host1
+          # 2. run batch on host2 with prepared-statement id's. This succeeds, so no more work to do.
+          expect(count).to eq(1)
         end
 
         it 'follows the plan on failure' do

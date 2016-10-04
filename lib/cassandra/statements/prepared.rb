@@ -27,9 +27,12 @@ module Cassandra
       attr_reader :cql
       # @private
       attr_reader :result_metadata
+      # @private prepared-statement id
+      attr_reader :id
 
       # @private
-      def initialize(payload,
+      def initialize(id,
+                     payload,
                      warnings,
                      cql,
                      params_metadata,
@@ -44,6 +47,7 @@ module Cassandra
                      retries,
                      client,
                      connection_options)
+        @id                 = id
         @payload            = payload
         @warnings           = warnings
         @cql                = cql
@@ -131,7 +135,8 @@ module Cassandra
 
         partition_key = create_partition_key(params)
 
-        Bound.new(@cql,
+        Bound.new(@id,
+                  @cql,
                   param_types,
                   @result_metadata,
                   params,
