@@ -28,15 +28,19 @@ module Cassandra
       attr_reader :params
       # @private
       attr_reader :params_types, :result_metadata, :keyspace, :partition_key
+      # @private prepared-statement id
+      attr_reader :id
 
       # @private
-      def initialize(cql,
+      def initialize(id,
+                     cql,
                      params_types,
                      result_metadata,
                      params,
                      keyspace = nil,
                      partition_key = nil,
                      idempotent = false)
+        @id              = id
         @cql             = cql
         @params_types    = params_types
         @result_metadata = result_metadata

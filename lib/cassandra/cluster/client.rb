@@ -1061,16 +1061,23 @@ module Cassandra
                                                     r.data_present,
                                                     retries)
             when Protocol::UnpreparedErrorResponse
-              cql = statement.cql
-
-              synchronize do
-                @preparing_statements[host].delete(cql)
+              cql = nil
+              if statement.is_a?(Cassandra::Statements::Batch)
+                # Find the prepared statement with the prepared-statement-id reported by the node.
+                unprepared_child = statement.statements.select do |s|
+                  (s.is_a?(Cassandra::Statements::Prepared) || s.is_a?(Cassandra::Statements::Bound)) && s.id == r.id
+                end.first
+                cql = unprepared_child ? unprepared_child.cql : nil
+              else
+                # This is a normal statement, so we have everything we need.
+                cql = statement.cql
+                synchronize { @preparing_statements[host].delete(cql) }
               end
 
               prepare = prepare_statement(host, connection, cql, timeout)
               prepare.on_complete do |_|
                 if prepare.resolved?
-                  request.id = prepare.value
+                  request.id = prepare.value unless request.is_a?(Cassandra::Protocol::BatchRequest)
                   do_send_request_by_plan(host,
                                           connection,
                                           promise,
@@ -1174,7 +1181,8 @@ module Cassandra
               pk_idx ||= @schema.get_pk_idx(metadata)
 
               promise.fulfill(
-                Statements::Prepared.new(r.custom_payload,
+                Statements::Prepared.new(r.id,
+                                         r.custom_payload,
                                          r.warnings,
                                          cql,
                                          metadata,

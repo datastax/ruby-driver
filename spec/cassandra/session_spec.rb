@@ -131,7 +131,7 @@ module Cassandra
         let(:cql)             { "INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)" }
         let(:result_metadata) { nil }
         let(:params_metadata) { Array.new(5) }
-        let(:statement)       { Statements::Prepared.new(nil, nil, cql, params_metadata, result_metadata, nil, nil, nil, nil, VOID_OPTIONS, nil, nil, nil, nil, nil) }
+        let(:statement)       { Statements::Prepared.new(nil, nil, nil, cql, params_metadata, result_metadata, nil, nil, nil, nil, VOID_OPTIONS, nil, nil, nil, nil, nil) }
 
         it 'binds and executes result' do
           promise         = double('promise')
@@ -151,7 +151,7 @@ module Cassandra
         let(:result_metadata) { nil }
         let(:params_metadata) { Array.new(5) }
         let(:params)          { [1,2,3,4,5] }
-        let(:statement)       { Statements::Bound.new(cql, params_metadata, result_metadata, params) }
+        let(:statement)       { Statements::Bound.new(nil, cql, params_metadata, result_metadata, params) }
 
         it 'executes statement' do
           promise = double('promise')
