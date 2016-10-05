@@ -56,6 +56,7 @@ end
 
 Aruba.configure do |config|
   config.exit_timeout = 60
+  config.remove_ansi_escape_sequences = false
 end
 
 Before do
@@ -83,3 +84,104 @@ end
 After('@client_failures') do
   @cluster.restart
 end
+
+##############################################################################################################
+# The following matchers and aruba SpawnProcess monkey-patch cause aruba to write command output to file
+#     with binmode to avoid encoding / translation issues. The matchers take the "binary" output and re-interpret
+#     as utf8. This works around (resolves?) a behavior difference in jruby9k where cukes were failing when output
+#     included non-ascii characters. RUBY-167
+##############################################################################################################
+
+RSpec::Matchers.define :include_output_string do |expected|
+  match do |actual|
+    actual.force_encoding("UTF-8")
+    @expected = Regexp.new(Regexp.escape(sanitize_text(expected.to_s)), Regexp::MULTILINE)
+    @actual   = sanitize_text(actual)
+
+    values_match? @expected, @actual
+  end
+
+  diffable
+
+  description { "string includes: #{description_of expected}" }
+end
+
+RSpec::Matchers.define :match_output_string do |expected|
+  match do |actual|
+    actual.force_encoding("UTF-8")
+    @expected = Regexp.new(unescape_text(expected), Regexp::MULTILINE)
+    @actual   = sanitize_text(actual)
+
+    values_match? @expected, @actual
+  end
+
+  diffable
+
+  description { "output string matches: #{description_of expected}" }
+end
+
+RSpec::Matchers.define :output_string_eq do |expected|
+  match do |actual|
+    actual.force_encoding("UTF-8")
+    @expected = sanitize_text(expected.to_s)
+    @actual   = sanitize_text(actual.to_s)
+
+    values_match? @expected, @actual
+  end
+
+  diffable
+
+  description { "output string is eq: #{description_of expected}" }
+end
+
+module Aruba
+  module Processes
+    class SpawnProcess
+      def start
+        # rubocop:disable Metrics/LineLength
+        fail CommandAlreadyStartedError, %(Command "#{commandline}" has already been started. Please `#stop` the command first and `#start` it again. Alternatively use `#restart`.\n#{caller.join("\n")}) if started?
+        # rubocop:enable Metrics/LineLength
+
+        @started = true
+
+        @process = ChildProcess.build(*[command_string.to_a, arguments].flatten)
+        @stdout_file = Tempfile.new('aruba-stdout-')
+        @stderr_file = Tempfile.new('aruba-stderr-')
+
+
+        @stdout_file.sync = true
+        @stderr_file.sync = true
+
+        @stdout_file.binmode
+        @stderr_file.binmode
+
+        @exit_status = nil
+        @duplex = true
+
+        before_run
+
+        @process.leader = true
+        @process.io.stdout = @stdout_file
+        @process.io.stderr = @stderr_file
+        @process.duplex = @duplex
+        @process.cwd = @working_directory
+
+        @process.environment.update(environment)
+
+        begin
+          Aruba.platform.with_environment(environment) do
+            @process.start
+            sleep startup_wait_time
+          end
+        rescue ChildProcess::LaunchError => e
+          raise LaunchError, "It tried to start #{cmd}. " + e.message
+        end
+
+        after_run
+
+        yield self if block_given?
+      end
+    end
+  end
+end
+
