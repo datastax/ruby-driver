@@ -3,7 +3,7 @@ schedules:
     schedule: per_commit
     matrix:
       exclude:
-        - ruby: ['2.2']
+        - ruby: ['2.2', 'jruby1.7']
         - cassandra: ['2.0', '2.2', '3.0']
   nightly:
     schedule: nightly
