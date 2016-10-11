@@ -151,6 +151,21 @@ module Cassandra
     #   @return [Boolean] true or false
     def_delegators :@schema, :keyspace, :has_keyspace?
 
+    # @return [Integer] Cassandra native protocol port
+    def port
+      @connection_options.port
+    end
+
+    # @return [Integer] the version of the native protocol used in communication with nodes
+    def protocol_version
+      @connection_options.protocol_version
+    end
+
+    # @return [Hash<String, Cassandra::Execution::Profile>] the collection of execution profiles
+    def execution_profiles
+      @profile_manager.profiles
+    end
+
     # @!method refresh_schema_async
     #   Trigger an asynchronous schema metadata refresh
     #   @return [Cassandra::Future<nil>] a future that will be fulfilled when
@@ -279,7 +294,7 @@ module Cassandra
       "name=#{name.inspect}, " \
       "port=#{@connection_options.port}, " \
       "protocol_version=#{@connection_options.protocol_version}, " \
-      "profile_manager=#{@profile_manager.inspect}, " \
+      "execution_profiles=#{@profile_manager.profiles.inspect}, " \
       "hosts=#{hosts.inspect}, " \
       "keyspaces=#{keyspaces.inspect}>"
     end
