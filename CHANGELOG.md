@@ -9,6 +9,7 @@ Features:
   we are not sure the statement is already prepared. The motivation is that in the steady state, all nodes have
   prepared statements already, so there is no need to prepare statements before executing them. If the guess is wrong,
   the client will prepare and execute at that point.
+* Expose various cluster attributes with getters.
 
 Bug Fixes:
 * [RUBY-255](https://datastax-oss.atlassian.net/browse/RUBY-255) ControlConnection.peer_ip ignores peers that are missing critical information in system.peers.
