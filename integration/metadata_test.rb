@@ -45,6 +45,12 @@ class MetadataTest < IntegrationTestCase
     @listener.wait_for_table('simplex', 'test2')
     @session.execute("CREATE TABLE simplex.audit (key timeuuid, keyspace_name text, table_name text, primary_key text, PRIMARY KEY(key))")
     @listener.wait_for_table('simplex', 'audit')
+    @session.execute(<<EOF)
+        CREATE TABLE rb264(inclusion_r_t text, inclusion_r_id text, inclusion_uaid timeuuid, own_t text, own_id text,
+        PRIMARY KEY (inclusion_r_t, inclusion_r_id, inclusion_uaid, own_t, own_id)
+        ) WITH CLUSTERING ORDER BY (inclusion_r_id ASC, inclusion_uaid ASC, own_t ASC, own_id ASC)
+EOF
+    @listener.wait_for_table('simplex', 'rb264')
   end
 
   def teardown
@@ -69,7 +75,7 @@ class MetadataTest < IntegrationTestCase
     assert_equal 1, ks_meta.replication.options['replication_factor'].to_i
     assert ks_meta.durable_writes?
     assert ks_meta.has_table?('users')
-    assert_equal 7, ks_meta.tables.size
+    assert_equal 8, ks_meta.tables.size
 
     ks_cql = Regexp.new(/CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', \
 'replication_factor': '1'} AND durable_writes = true;/)
@@ -107,6 +113,23 @@ class MetadataTest < IntegrationTestCase
       assert ['user_id', 'first', 'last', 'age'].any? { |name| name == column.name }
       assert [:bigint, :text, :int].any? { |type| type == column.type.kind }
     end
+  end
+
+  # Regression test for retrieving table metadata, RUBY-264
+  #
+  # test_ruby_264 tests that a table with a relatively large number of clustering columns is not erroneously
+  # considered to use compact storage.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-264
+  # @expected_result table metadata should be retrieved.
+  #
+  # @test_category metadata
+  #
+  def test_ruby_264
+    assert @cluster.keyspace('simplex').has_table?('rb264')
+    table_meta = @cluster.keyspace('simplex').table('rb264')
+    assert(!table_meta.options.compact_storage?)
   end
 
   # Test for column ordering in table metadata
