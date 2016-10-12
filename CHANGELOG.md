@@ -13,6 +13,7 @@ Features:
 
 Bug Fixes:
 * [RUBY-255](https://datastax-oss.atlassian.net/browse/RUBY-255) ControlConnection.peer_ip ignores peers that are missing critical information in system.peers.
+* [RUBY-264](https://datastax-oss.atlassian.net/browse/RUBY-255) Table erroneously reported as using compact storage.
 
 # 3.0.3
 

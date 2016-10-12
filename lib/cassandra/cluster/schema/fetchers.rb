@@ -632,7 +632,7 @@ module Cassandra
                 clustering_columns[ind] = column
                 clustering_order[ind]   = column.order
 
-                clustering_size = ind + 1 if clustering_size.zero? || ind == clustering_size
+                clustering_size += 1
               else
                 other_columns << column
               end
