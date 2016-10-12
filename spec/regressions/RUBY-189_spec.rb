@@ -78,7 +78,8 @@ module Cassandra
                     plan,
                     12,
                     errors,
-                    hosts)
+                    hosts,
+                    0)
       end
 
       it 'RUBY-189 - handles node down after prepare in batch' do
@@ -102,7 +103,8 @@ module Cassandra
                     plan,
                     12,
                     errors,
-                    hosts)
+                    hosts,
+                    0)
       end
     end
   end

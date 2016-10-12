@@ -528,13 +528,16 @@ module Cassandra
                           plan,
                           timeout,
                           errors = nil,
-                          hosts = [])
+                          hosts = [],
+                          retries = -1)
         unless plan.has_next?
           promise.break(Errors::NoHostsAvailable.new(errors))
           return
         end
 
         hosts << host = plan.next
+        retries += 1
+
         pool = nil
         synchronize { pool = @connections[host] }
 
@@ -549,7 +552,8 @@ module Cassandra
                                  plan,
                                  timeout,
                                  errors,
-                                 hosts)
+                                 hosts,
+                                 retries)
         end
 
         connection = pool.random_connection
@@ -568,7 +572,8 @@ module Cassandra
                                                plan,
                                                timeout,
                                                errors,
-                                               hosts)
+                                               hosts,
+                                               retries)
             else
               s.on_failure do |e|
                 if e.is_a?(Errors::HostError) ||
@@ -583,7 +588,8 @@ module Cassandra
                                   plan,
                                   timeout,
                                   errors,
-                                  hosts)
+                                  hosts,
+                                  retries)
                 else
                   promise.break(e)
                 end
@@ -601,7 +607,8 @@ module Cassandra
                                            plan,
                                            timeout,
                                            errors,
-                                           hosts)
+                                           hosts,
+                                           retries)
         end
       rescue => e
         errors ||= {}
@@ -614,7 +621,8 @@ module Cassandra
                         plan,
                         timeout,
                         errors,
-                        hosts)
+                        hosts,
+                        retries)
       end
 
       def prepare_and_send_request_by_plan(host,
@@ -627,7 +635,8 @@ module Cassandra
                                            plan,
                                            timeout,
                                            errors,
-                                           hosts)
+                                           hosts,
+                                           retries)
         cql = statement.cql
 
         # Get the prepared statement id for this statement from our cache if possible. We are optimistic
@@ -649,7 +658,8 @@ module Cassandra
                                   plan,
                                   timeout,
                                   errors,
-                                  hosts)
+                                  hosts,
+                                  retries)
         else
           prepare = prepare_statement(host, connection, cql, timeout)
           prepare.on_complete do |_|
@@ -665,7 +675,8 @@ module Cassandra
                                       plan,
                                       timeout,
                                       errors,
-                                      hosts)
+                                      hosts,
+                                      retries)
             else
               prepare.on_failure do |e|
                 if e.is_a?(Errors::HostError) ||
@@ -680,7 +691,8 @@ module Cassandra
                                   plan,
                                   timeout,
                                   errors,
-                                  hosts)
+                                  hosts,
+                                  retries)
                 else
                   promise.break(e)
                 end
@@ -700,13 +712,15 @@ module Cassandra
                         plan,
                         timeout,
                         errors = nil,
-                        hosts = [])
+                        hosts = [],
+                        retries = -1)
         unless plan.has_next?
           promise.break(Errors::NoHostsAvailable.new(errors))
           return
         end
 
         hosts << host = plan.next
+        retries += 1
         pool = nil
         synchronize { pool = @connections[host] }
 
@@ -721,7 +735,8 @@ module Cassandra
                                plan,
                                timeout,
                                errors,
-                               hosts)
+                               hosts,
+                               retries)
         end
 
         connection = pool.random_connection
@@ -740,7 +755,8 @@ module Cassandra
                                              plan,
                                              timeout,
                                              errors,
-                                             hosts)
+                                             hosts,
+                                             retries)
             else
               s.on_failure do |e|
                 if e.is_a?(Errors::HostError) ||
@@ -755,7 +771,8 @@ module Cassandra
                                 plan,
                                 timeout,
                                 errors,
-                                hosts)
+                                hosts,
+                                retries)
                 else
                   promise.break(e)
                 end
@@ -773,7 +790,8 @@ module Cassandra
                                          plan,
                                          timeout,
                                          errors,
-                                         hosts)
+                                         hosts,
+                                         retries)
         end
       rescue => e
         errors ||= {}
@@ -786,7 +804,8 @@ module Cassandra
                       plan,
                       timeout,
                       errors,
-                      hosts)
+                      hosts,
+                      retries)
       end
 
       def batch_and_send_request_by_plan(host,
@@ -799,7 +818,8 @@ module Cassandra
                                          plan,
                                          timeout,
                                          errors,
-                                         hosts)
+                                         hosts,
+                                         retries)
         request.clear
         unprepared = Hash.new {|hash, cql| hash[cql] = []}
 
@@ -835,7 +855,8 @@ module Cassandra
                                   plan,
                                   timeout,
                                   errors,
-                                  hosts)
+                                  hosts,
+                                  retries)
         else
           to_prepare = unprepared.to_a
           futures    = to_prepare.map do |cql, _|
@@ -863,7 +884,8 @@ module Cassandra
                                       plan,
                                       timeout,
                                       errors,
-                                      hosts)
+                                      hosts,
+                                      retries)
             else
               f.on_failure do |e|
                 if e.is_a?(Errors::HostError) ||
@@ -878,7 +900,8 @@ module Cassandra
                                 plan,
                                 timeout,
                                 errors,
-                                hosts)
+                                hosts,
+                                retries)
                 else
                   promise.break(e)
                 end
@@ -896,13 +919,15 @@ module Cassandra
                                plan,
                                timeout,
                                errors = nil,
-                               hosts = [])
+                               hosts = [],
+                               retries = -1)
         unless plan.has_next?
           promise.break(Errors::NoHostsAvailable.new(errors))
           return
         end
 
         hosts << host = plan.next
+        retries += 1
         pool = nil
         synchronize { pool = @connections[host] }
 
@@ -917,7 +942,8 @@ module Cassandra
                                       plan,
                                       timeout,
                                       errors,
-                                      hosts)
+                                      hosts,
+                                      retries)
         end
 
         connection = pool.random_connection
@@ -936,7 +962,8 @@ module Cassandra
                                       plan,
                                       timeout,
                                       errors,
-                                      hosts)
+                                      hosts,
+                                      retries)
             else
               s.on_failure do |e|
                 if e.is_a?(Errors::HostError) ||
@@ -951,7 +978,8 @@ module Cassandra
                                        plan,
                                        timeout,
                                        errors,
-                                       hosts)
+                                       hosts,
+                                       retries)
                 else
                   promise.break(e)
                 end
@@ -969,7 +997,8 @@ module Cassandra
                                   plan,
                                   timeout,
                                   errors,
-                                  hosts)
+                                  hosts,
+                                  retries)
         end
       rescue => e
         errors ||= {}
@@ -982,7 +1011,8 @@ module Cassandra
                              plan,
                              timeout,
                              errors,
-                             hosts)
+                             hosts,
+                             retries)
       end
 
       def do_send_request_by_plan(host,
@@ -996,7 +1026,7 @@ module Cassandra
                                   timeout,
                                   errors,
                                   hosts,
-                                  retries = 0)
+                                  retries)
         request.retries = retries
 
         f = connection.send_request(request, timeout)
@@ -1088,7 +1118,8 @@ module Cassandra
                                           plan,
                                           timeout,
                                           errors,
-                                          hosts)
+                                          hosts,
+                                          retries)
                 else
                   prepare.on_failure do |e|
                     if e.is_a?(Errors::HostError) ||
@@ -1102,7 +1133,8 @@ module Cassandra
                                       plan,
                                       timeout,
                                       errors,
-                                      hosts)
+                                      hosts,
+                                      retries)
                     else
                       promise.break(e)
                     end
@@ -1131,7 +1163,8 @@ module Cassandra
                                        plan,
                                        timeout,
                                        errors,
-                                       hosts)
+                                       hosts,
+                                       retries)
                 when Protocol::ExecuteRequest
                   execute_by_plan(promise,
                                   keyspace,
@@ -1141,7 +1174,8 @@ module Cassandra
                                   plan,
                                   timeout,
                                   errors,
-                                  hosts)
+                                  hosts,
+                                  retries)
                 when Protocol::BatchRequest
                   batch_by_plan(promise,
                                 keyspace,
@@ -1151,7 +1185,8 @@ module Cassandra
                                 plan,
                                 timeout,
                                 errors,
-                                hosts)
+                                hosts,
+                                retries)
                 end
               else
                 promise.break(error)
@@ -1303,7 +1338,8 @@ module Cassandra
                                        plan,
                                        timeout,
                                        errors,
-                                       hosts)
+                                       hosts,
+                                       retries)
                 when Protocol::ExecuteRequest
                   execute_by_plan(promise,
                                   keyspace,
@@ -1313,7 +1349,8 @@ module Cassandra
                                   plan,
                                   timeout,
                                   errors,
-                                  hosts)
+                                  hosts,
+                                  retries)
                 when Protocol::BatchRequest
                   batch_by_plan(promise,
                                 keyspace,
@@ -1323,7 +1360,8 @@ module Cassandra
                                 plan,
                                 timeout,
                                 errors,
-                                hosts)
+                                hosts,
+                                retries)
                 else
                   promise.break(e)
                 end
@@ -1377,7 +1415,8 @@ module Cassandra
                                        plan,
                                        timeout,
                                        errors,
-                                       hosts)
+                                       hosts,
+                                       retries)
                 when Protocol::ExecuteRequest
                   execute_by_plan(promise,
                                   keyspace,
@@ -1387,7 +1426,8 @@ module Cassandra
                                   plan,
                                   timeout,
                                   errors,
-                                  hosts)
+                                  hosts,
+                                  retries)
                 when Protocol::BatchRequest
                   batch_by_plan(promise,
                                 keyspace,
@@ -1397,7 +1437,8 @@ module Cassandra
                                 plan,
                                 timeout,
                                 errors,
-                                hosts)
+                                hosts,
+                                retries)
                 else
                   promise.break(ex)
               end

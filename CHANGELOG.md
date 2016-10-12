@@ -12,8 +12,9 @@ Features:
 * Expose various cluster attributes with getters.
 
 Bug Fixes:
+* [RUBY-235](https://datastax-oss.atlassian.net/browse/RUBY-235) execution_info.retries resets retry count when switching hosts.
 * [RUBY-255](https://datastax-oss.atlassian.net/browse/RUBY-255) ControlConnection.peer_ip ignores peers that are missing critical information in system.peers.
-* [RUBY-264](https://datastax-oss.atlassian.net/browse/RUBY-255) Table erroneously reported as using compact storage.
+* [RUBY-264](https://datastax-oss.atlassian.net/browse/RUBY-264) Table erroneously reported as using compact storage.
 
 # 3.0.3
 
