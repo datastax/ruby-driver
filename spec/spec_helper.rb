@@ -33,6 +33,9 @@ require 'support/fake_cluster_registry'
 require 'support/stub_io_reactor'
 
 RSpec.configure do |config|
+  # suppress ruby warnings
+  config.warnings = false
+
   config.expect_with(:rspec) do |c|
     c.syntax = [:should, :expect]
   end

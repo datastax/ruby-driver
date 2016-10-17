@@ -43,8 +43,8 @@ module Cassandra
         @cond    = new_cond
         @tasks   = ::Array.new
         @waiting = 0
-        @pool    = ::Array.new(size, &method(:spawn_thread))
         @term    = false
+        @pool    = ::Array.new(size, &method(:spawn_thread))
       end
 
       def execute(*args, &block)
