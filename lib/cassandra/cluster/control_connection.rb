@@ -36,8 +36,10 @@ module Cassandra
         @address_resolver      = address_resolution_policy
         @connector             = connector
         @connection_options    = connection_options
+        @connection            = nil
         @schema_fetcher        = schema_fetcher
         @refreshing_statuses   = ::Hash.new(false)
+        @refresh_schema_future = nil
         @status                = :closed
         @refreshing_hosts      = false
         @refreshing_host       = ::Hash.new(false)
