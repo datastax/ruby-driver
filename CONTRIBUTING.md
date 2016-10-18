@@ -23,7 +23,7 @@ very particular circumstances, or is not deterministic, please still report the 
 
 Submit defect reports to our [Jira](https://datastax-oss.atlassian.net/projects/RUBY/issues). Include:
 
-* The `cassandra-driver` version (`bundle exec gem cassandra-driver -v`)
+* The `cassandra-driver` version (`bundle show cassandra-driver | sed 's/.*\///'`)
 * The Ruby version (`ruby -v`)
 * The Cassandra version (2nd line printed when running `cqlsh`)
 * A stack trace from the error, if there is one
