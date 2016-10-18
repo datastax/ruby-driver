@@ -33,13 +33,11 @@ module Cassandra
 
         @load_balancing_policies = Set.new
         @load_balancing_policies << default_profile.load_balancing_policy if default_profile.load_balancing_policy
+        @profiles = {DEFAULT_EXECUTION_PROFILE => default_profile}
 
-        profiles.each_value do |profile|
-          @load_balancing_policies << profile.load_balancing_policy if profile.load_balancing_policy
-          profile.merge_from(default_profile)
+        profiles.each do |name, profile|
+          add_profile(name, profile)
         end
-
-        @profiles = profiles.merge({DEFAULT_EXECUTION_PROFILE => default_profile})
       end
 
       def default_profile
@@ -57,6 +55,14 @@ module Cassandra
 
         # Fall back to ignore the host.
         return :ignore
+      end
+
+      # NOTE: It's only safe to call add_profile when setting up the cluster object. In particular,
+      # this is only ok before calling Driver#connect.
+      def add_profile(name, profile)
+        @profiles[name] = profile
+        @load_balancing_policies << profile.load_balancing_policy if profile.load_balancing_policy
+        profile.merge_from(default_profile)
       end
 
       # @private
