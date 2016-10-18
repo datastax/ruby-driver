@@ -288,6 +288,12 @@ module Cassandra
       close_async.get
     end
 
+    # @param name [String] Name of profile to retrieve
+    # @return [Cassandra::Execution::Profile] execution profile of the given name.
+    def execution_profile(name)
+      @profile_manager.profiles[name]
+    end
+
     # @private
     def inspect
       "#<#{self.class.name}:0x#{object_id.to_s(16)} " \
