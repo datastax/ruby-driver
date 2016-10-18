@@ -161,9 +161,16 @@ module Cassandra
       @connection_options.protocol_version
     end
 
+    # @param name [String] Name of profile to retrieve
+    # @return [Cassandra::Execution::Profile] execution profile of the given name
+    def execution_profile(name)
+      @profile_manager.profiles[name]
+    end
+
     # @return [Hash<String, Cassandra::Execution::Profile>] the collection of execution profiles
     def execution_profiles
-      @profile_manager.profiles
+      # Return a dup of the hash to prevent the user from adding/removing profiles from the profile-manager.
+      @profile_manager.profiles.dup
     end
 
     # @!method refresh_schema_async
@@ -286,12 +293,6 @@ module Cassandra
     # @see Cassandra::Cluster#close_async
     def close
       close_async.get
-    end
-
-    # @param name [String] Name of profile to retrieve
-    # @return [Cassandra::Execution::Profile] execution profile of the given name.
-    def execution_profile(name)
-      @profile_manager.profiles[name]
     end
 
     # @private

@@ -59,7 +59,6 @@ module Cassandra
 
       # NOTE: It's only safe to call add_profile when setting up the cluster object. In particular,
       # this is only ok before calling Driver#connect.
-      # @private
       def add_profile(name, profile)
         @profiles[name] = profile
         @load_balancing_policies << profile.load_balancing_policy if profile.load_balancing_policy
