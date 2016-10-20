@@ -54,7 +54,7 @@ module Cassandra
       #
       # @see https://github.com/apache/cassandra/blob/cassandra-3.4/doc/native_protocol_v4.spec#L125-L131 Description
       #   of custom payload in Cassandra native protocol v4.
-      # @see https://datastax.github.io/java-driver/manual/custom_payloads/#enabling-custom-payloads-on-c-nodes
+      # @see http://docs.datastax.com/en/developer/java-driver/3.0/manual/custom_payloads/#enabling-custom-payloads-on-c-nodes
       #   Enabling custom payloads on Cassandra nodes.
       #
       # @example Sending a custom payload
@@ -177,7 +177,7 @@ module Cassandra
           @consistency = consistency || trusted_options.consistency
           @page_size = page_size || trusted_options.page_size
           @trace = trace.nil? ? trusted_options.trace? : !!trace
-          @timeout = timeout || trusted_options.timeout
+          @timeout = options.key?(:timeout) ? timeout : trusted_options.timeout
           @serial_consistency = serial_consistency || trusted_options.serial_consistency
           @arguments = arguments || trusted_options.arguments
           @type_hints = type_hints || trusted_options.type_hints

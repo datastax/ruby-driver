@@ -107,10 +107,8 @@ module Cassandra
               nil
             else
               view_row = rows_views.first
-              base_table = @schema.keyspace(keyspace_name).table(view_row['base_table_name'])
               create_materialized_view(view_row,
-                                       rows_columns,
-                                       base_table)
+                                       rows_columns)
             end
           end
         end
@@ -836,7 +834,7 @@ module Cassandra
             initial_state  = Util.encode_object(
               Protocol::Coder.read_value_v4(
                 Protocol::CqlByteBuffer.new.append_bytes(aggregate_data['initcond']),
-                state_type))
+                state_type, nil))
 
             # The state-function takes arguments: first the stype, then the args of the aggregate.
             state_function = functions.get(aggregate_data['state_func'],
@@ -1216,10 +1214,8 @@ module Cassandra
 
             views = rows_views.each_with_object({}) do |row, h|
               view_name = row['view_name']
-              base_table = tables[row['base_table_name']]
               h[view_name] = create_materialized_view(row,
                                                       lookup_columns[view_name],
-                                                      base_table,
                                                       types)
             end
 
@@ -1366,9 +1362,10 @@ module Cassandra
                                                  options['target'], options))
           end
 
-          def create_materialized_view(view_data, rows_columns, base_table, types = nil)
+          def create_materialized_view(view_data, rows_columns, types = nil)
             keyspace_name   = view_data['keyspace_name']
             view_name       = view_data['view_name']
+            base_table_name = view_data['base_table_name']
             include_all_columns = view_data['include_all_columns']
             where_clause = view_data['where_clause']
 
@@ -1406,7 +1403,7 @@ module Cassandra
                                  view_options,
                                  include_all_columns,
                                  where_clause,
-                                 base_table,
+                                 base_table_name,
                                  view_data['id'])
           end
         end

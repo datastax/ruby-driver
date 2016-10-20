@@ -113,6 +113,12 @@ module Cassandra
         self
       end
 
+      # @private
+      def accept(client, options)
+        Util.assert_not_empty(statements) { 'batch cannot be empty' }
+        client.batch(self, options)
+      end
+
       # Determines whether or not the statement is safe to retry on timeout
       # Batches are idempotent only when all statements in a batch are.
       # @return [Boolean] whether the statement is safe to retry on timeout

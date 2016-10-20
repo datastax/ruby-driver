@@ -24,7 +24,7 @@ module Cassandra
 
       attr_reader :auth_provider, :compressor, :connect_timeout, :credentials,
                   :heartbeat_interval, :idle_timeout, :port, :schema_refresh_delay,
-                  :schema_refresh_timeout, :ssl
+                  :schema_refresh_timeout, :ssl, :custom_type_handlers
       attr_boolean :protocol_negotiable, :synchronize_schema, :nodelay
 
       attr_accessor :protocol_version
@@ -45,7 +45,8 @@ module Cassandra
                      schema_refresh_delay,
                      schema_refresh_timeout,
                      nodelay,
-                     requests_per_connection)
+                     requests_per_connection,
+                     custom_types)
         @logger                 = logger
         @protocol_version       = protocol_version
         @credentials            = credentials
@@ -60,6 +61,10 @@ module Cassandra
         @schema_refresh_delay   = schema_refresh_delay
         @schema_refresh_timeout = schema_refresh_timeout
         @nodelay                = nodelay
+        @custom_type_handlers   = {}
+        custom_types.each do |type_klass|
+          @custom_type_handlers[type_klass.type] = type_klass
+        end
 
         @connections_per_local_node  = connections_per_local_node
         @connections_per_remote_node = connections_per_remote_node
@@ -78,8 +83,17 @@ module Cassandra
         @compressor && @compressor.algorithm
       end
 
-      def create_authenticator(authentication_class)
-        @auth_provider && @auth_provider.create_authenticator(authentication_class)
+      def create_authenticator(authentication_class, host)
+        if @auth_provider
+          # Auth providers should take an auth-class and host, but they used to not, so for backward compatibility
+          # we figure out if this provider does, and if so send both args, otherwise just send the auth-class.
+
+          if @auth_provider.method(:create_authenticator).arity == 1
+            @auth_provider.create_authenticator(authentication_class)
+          else
+            @auth_provider.create_authenticator(authentication_class, host)
+          end
+        end
       end
 
       def connections_per_local_node

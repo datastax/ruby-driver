@@ -83,9 +83,11 @@ Feature: Execution information
                                                '(id, title, album, artist, tags) values ' +
                                                '(?, ?, ?, ?, ?)')
 
-      args = [Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8d696488'), 'a' * 5 * 1025, 'a1', 'a1', Set.new(['t1'])]
+      args0 = [Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8d696488'), 'a' * 5 * 1025, 'a1', 'a1', Set.new(['t1'])]
+      args1 = [Cassandra::Uuid.new('f6071e72-48ec-4fcb-bf3e-379c8d696498'), 'a' * 5 * 1025, 'a1', 'a1', Set.new(['t1'])]
       batch = session.unlogged_batch do |b|
-        b.add(insert, arguments: args)
+        b.add(insert, arguments: args0)
+        b.add(insert, arguments: args1)
       end
       execution_info = session.execute(batch).execution_info
 
@@ -94,7 +96,7 @@ Feature: Execution information
     When it is executed
     Then its output should match:
       """
-      warnings: Batch of prepared statements for .* is of size .*, exceeding specified threshold of 5120
+      warnings: Batch.* for .* is of size .*, exceeding specified threshold of 5120
       """
 
   Scenario: execution information reflects retry decision

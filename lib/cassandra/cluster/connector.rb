@@ -136,7 +136,8 @@ module Cassandra
                                            @connection_options.compressor,
                                            @connection_options.heartbeat_interval,
                                            @connection_options.idle_timeout,
-                                           @connection_options.requests_per_connection)
+                                           @connection_options.requests_per_connection,
+                                           @connection_options.custom_type_handlers)
         end.flat_map do |connection|
           # connection is a CqlProtocolHandler
           f = request_options(connection)
@@ -156,7 +157,7 @@ module Cassandra
                 supported_cql_versions.first :
                 '3.1.0'
 
-            startup_connection(connection, cql_version, compression)
+            startup_connection(host, connection, cql_version, compression)
           end
           f.fallback do |error|
             case error
@@ -202,7 +203,7 @@ module Cassandra
         end
       end
 
-      def startup_connection(connection, cql_version, compression)
+      def startup_connection(host, connection, cql_version, compression)
         connection.send_request(Protocol::StartupRequest.new(cql_version, compression),
                                 @execution_options.timeout).flat_map do |r|
           case r
@@ -215,12 +216,9 @@ module Cassandra
                 Ione::Future.failed(cannot_authenticate_error)
               end
             else
-              authenticator = @connection_options.create_authenticator(
-                r.authentication_class)
+              authenticator = @connection_options.create_authenticator(r.authentication_class, host)
               if authenticator
-                challenge_response_cycle(connection,
-                                         authenticator,
-                                         authenticator.initial_response)
+                challenge_response_cycle(connection, authenticator, authenticator.initial_response)
               else
                 Ione::Future.failed(cannot_authenticate_error)
               end
@@ -285,7 +283,7 @@ module Cassandra
           case r
           when Protocol::AuthChallengeResponse
             token = authenticator.challenge_response(r.token)
-            challenge_response_cycle(pending_connection, authenticator, token)
+            challenge_response_cycle(connection, authenticator, token)
           when Protocol::AuthSuccessResponse
             begin
               authenticator.authentication_successful(r.token)

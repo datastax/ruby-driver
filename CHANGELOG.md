@@ -1,3 +1,16 @@
+# 3.0.3
+
+Bug Fixes:
+* [RUBY-241](https://datastax-oss.atlassian.net/browse/RUBY-241) Materialied views sometimes have nil ref to base-table.
+
+# 3.0.2
+
+Bug Fixes:
+* [RUBY-219](https://datastax-oss.atlassian.net/browse/RUBY-219) Sometimes get stack trace in metadata.rb due to failure in SortedSet initialization.
+* [RUBY-220](https://datastax-oss.atlassian.net/browse/RUBY-220) Improve support for custom types.
+* [RUBY-231](https://datastax-oss.atlassian.net/browse/RUBY-231) Driver ignores explicitly specified nil timeout (to indicate no time limit on query execution).
+* [RUBY-233](https://datastax-oss.atlassian.net/browse/RUBY-233) Client timeout errors are retried for non-idempotent statements. 
+
 # 3.0.0 GA
 Features:
 * Increased default request timeout (the `timeout` option to `Cassandra.cluster`), from 10 seconds to 12 seconds 
@@ -13,7 +26,6 @@ Breaking Changes:
 * The Datacenter-aware load balancing policy (Cassandra::LoadBalancing::Policies::DCAwareRoundRobin) defaults to using
   nodes in the local DC only. In prior releases, the policy would fall back to remote nodes after exhausting local nodes.
   Specify a positive value (or nil for unlimited) for `max_remote_hosts_to_use` when initializing the policy to allow remote node use. 
-
 
 # 3.0.0 rc2
 Features:
@@ -73,6 +85,10 @@ Breaking Changes:
 * Unavailable errors are retried on the next host in the load balancing plan by default.
 * Statement execution no longer retried on timeouts, unless `:idempotent => true` has been specified when executing.
 
+# 2.1.7
+Bug Fixes:
+* [RUBY-255](https://datastax-oss.atlassian.net/browse/RUBY-255) ControlConnection.peer_ip ignores peers that are missing critical information in system.peers.
+
 # 2.1.6
 Bug Fixes:
 
@@ -93,7 +109,6 @@ Bug Fixes:
 
 Features:
 
-* [RUBY-119](https://datastax-oss.atlassian.net/browse/RUBY-119) Use `require 'datastax/cassandra'` to avoid namespace conflicts
 * [RUBY-90](https://datastax-oss.atlassian.net/browse/RUBY-90) Add support for disabling nagle algorithm (tcp nodelay), enabled by default.
 * [RUBY-70](https://datastax-oss.atlassian.net/browse/RUBY-70) Add support for client-side timestamps, disabled by default.
 * [RUBY-114](https://datastax-oss.atlassian.net/browse/RUBY-114) Add support for serial consistency in batch requests.
@@ -106,6 +121,7 @@ Bug Fixes:
 * [RUBY-97](https://datastax-oss.atlassian.net/browse/RUBY-97) Allow disabling of the initial population of schema metadata
 * [RUBY-95](https://datastax-oss.atlassian.net/browse/RUBY-95) Speed up generation of large token maps
 * [RUBY-116](https://datastax-oss.atlassian.net/browse/RUBY-116) fix thread leak on connection error
+* [RUBY-119](https://datastax-oss.atlassian.net/browse/RUBY-119) Use `require 'datastax/cassandra'` to avoid namespace conflicts
 
 Breaking Changes:
 

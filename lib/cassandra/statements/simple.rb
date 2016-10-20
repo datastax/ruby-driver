@@ -93,6 +93,11 @@ module Cassandra
         @idempotent   = idempotent
       end
 
+      # @private
+      def accept(client, options)
+        client.query(self, options)
+      end
+
       # @return [String] a CLI-friendly simple statement representation
       def inspect
         "#<#{self.class.name}:0x#{object_id.to_s(16)} @cql=#{@cql.inspect} " \

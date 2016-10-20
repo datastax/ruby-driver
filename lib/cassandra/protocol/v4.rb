@@ -59,7 +59,7 @@ module Cassandra
       end
 
       class Decoder
-        def initialize(handler, compressor = nil)
+        def initialize(handler, compressor = nil, custom_type_handlers = {})
           @handler    = handler
           @compressor = compressor
           @state      = :initial
@@ -68,6 +68,7 @@ module Cassandra
           @code       = nil
           @length     = nil
           @buffer     = CqlByteBuffer.new
+          @custom_type_handlers = custom_type_handlers
         end
 
         def <<(data)
@@ -325,11 +326,12 @@ module Cassandra
                                           protocol_version,
                                           remaining_bytes,
                                           paging_state,
-                                          trace_id)
+                                          trace_id,
+                                          @custom_type_handlers)
               else
                 RowsResultResponse.new(custom_payload,
                                        warnings,
-                                       Coder.read_values_v4(buffer, column_specs),
+                                       Coder.read_values_v4(buffer, column_specs, @custom_type_handlers),
                                        column_specs,
                                        paging_state,
                                        trace_id)

@@ -16,22 +16,25 @@
 # limitations under the License.
 #++
 
-module Cassandra
-  module Statements
-    # This statement is passed to {Cassandra::LoadBalancing::Policy#plan} when
-    # establishing connections and preparing statements
-    class Void
-      include Statement
+require 'spec_helper'
 
-      # @private
-      def accept(client, options)
-        nil
+module Cassandra
+  module Execution
+    describe(Options) do
+      let(:base_options) { Options.new(timeout: 10, consistency: :one) }
+      it 'should allow nil timeout to override base non-nil timeout option' do
+        result = Options.new({timeout: nil}, base_options)
+        expect(result.timeout).to be_nil
       end
 
-      # Returns nothing
-      # @return [nil] there is no cql for the void statement
-      def cql
-        nil
+      it 'should non-nil timeout to override base non-nil timeout option' do
+        result = Options.new({timeout: 123}, base_options)
+        expect(result.timeout).to eq(123)
+      end
+
+      it 'should not override base timeout if not specified' do
+        result = Options.new({}, base_options)
+        expect(result.timeout).to eq(10)
       end
     end
   end

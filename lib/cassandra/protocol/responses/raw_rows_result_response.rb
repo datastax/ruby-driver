@@ -24,17 +24,19 @@ module Cassandra
                      protocol_version,
                      raw_rows,
                      paging_state,
-                     trace_id)
+                     trace_id,
+                     custom_type_handlers = nil)
         super(custom_payload, warnings, nil, nil, paging_state, trace_id)
         @protocol_version = protocol_version
         @raw_rows = raw_rows
+        @custom_type_handlers = custom_type_handlers
       end
 
       def materialize(metadata)
         @metadata = metadata
 
         @rows = if @protocol_version == 4
-                  Coder.read_values_v4(@raw_rows, @metadata)
+                  Coder.read_values_v4(@raw_rows, @metadata, @custom_type_handlers)
                 elsif @protocol_version == 3
                   Coder.read_values_v3(@raw_rows, @metadata)
                 else

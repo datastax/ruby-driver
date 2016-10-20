@@ -66,6 +66,7 @@ module Cassandra
     :connections_per_remote_node,
     :consistency,
     :credentials,
+    :custom_types,
     :datacenter,
     :futures_factory,
     :heartbeat_interval,
@@ -293,28 +294,7 @@ module Cassandra
   # @return [Cassandra::Future<Cassandra::Cluster>] a future resolving to the
   #   cluster instance.
   def self.cluster_async(options = {})
-    options = validate_and_massage_options(options)
-    hosts = []
-
-    Array(options.fetch(:hosts, '127.0.0.1')).each do |host|
-      case host
-      when ::IPAddr
-        hosts << host
-      when ::String # ip address or hostname
-        Resolv.each_address(host) do |ip|
-          hosts << ::IPAddr.new(ip)
-        end
-      else
-        raise ::ArgumentError, ":hosts must be String or IPAddr, #{host.inspect} given"
-      end
-    end
-
-    if hosts.empty?
-      raise ::ArgumentError,
-            ":hosts #{options[:hosts].inspect} could not be resolved to any ip address"
-    end
-
-    hosts.shuffle!
+    options, hosts = validate_and_massage_options(options)
   rescue => e
     futures = options.fetch(:futures_factory) { return Future::Error.new(e) }
     futures.error(e)
@@ -664,14 +644,14 @@ module Cassandra
 
       case address_resolution
       when :none
-        # do nothing
+      # do nothing
       when :ec2_multi_region
         options[:address_resolution_policy] =
           AddressResolution::Policies::EC2MultiRegion.new
       else
         raise ::ArgumentError,
               ':address_resolution must be either :none or :ec2_multi_region, ' \
-                  "#{address_resolution.inspect} given"
+                "#{address_resolution.inspect} given"
       end
     end
 
@@ -757,7 +737,31 @@ module Cassandra
         end
       end
     end
-    options
+
+    # Get host addresses.
+    hosts = []
+
+    Array(options.fetch(:hosts, '127.0.0.1')).each do |host|
+      case host
+      when ::IPAddr
+        hosts << host
+      when ::String # ip address or hostname
+        Resolv.each_address(host) do |ip|
+          hosts << ::IPAddr.new(ip)
+        end
+      else
+        raise ::ArgumentError, ":hosts must be String or IPAddr, #{host.inspect} given"
+      end
+    end
+
+    if hosts.empty?
+      raise ::ArgumentError,
+            ":hosts #{options[:hosts].inspect} could not be resolved to any ip address"
+    end
+
+    hosts.shuffle!
+
+    [options, hosts]
   end
 
   # @private
@@ -798,6 +802,7 @@ require 'cassandra/null_logger'
 require 'cassandra/executors'
 require 'cassandra/future'
 require 'cassandra/cluster'
+require 'cassandra/custom_data'
 require 'cassandra/driver'
 require 'cassandra/host'
 require 'cassandra/session'
@@ -830,6 +835,11 @@ require 'cassandra/util'
 
 # murmur3 hash extension
 require 'cassandra_murmur3'
+
+# SortedSet has a race condition where it does some class/global initialization when the first instance is created.
+# If this is done in a multi-threaded environment, bad things can happen. So force the initialization here,
+# when loading the C* module.
+::SortedSet.new
 
 module Cassandra
   # @private

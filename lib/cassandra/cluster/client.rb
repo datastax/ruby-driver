@@ -1390,38 +1390,44 @@ module Cassandra
           end
         else
           response_future.on_failure do |ex|
-            errors[host] = ex
-            case request
-            when Protocol::QueryRequest, Protocol::PrepareRequest
-              send_request_by_plan(promise,
-                                   keyspace,
-                                   statement,
-                                   options,
-                                   request,
-                                   plan,
-                                   timeout,
-                                   errors,
-                                   hosts)
-            when Protocol::ExecuteRequest
-              execute_by_plan(promise,
-                              keyspace,
-                              statement,
-                              options,
-                              request,
-                              plan,
-                              timeout,
-                              errors,
-                              hosts)
-            when Protocol::BatchRequest
-              batch_by_plan(promise,
-                            keyspace,
-                            statement,
-                            options,
-                            request,
-                            plan,
-                            timeout,
-                            errors,
-                            hosts)
+            if ex.is_a?(Errors::HostError) ||
+                (ex.is_a?(Errors::TimeoutError) && statement.idempotent?)
+
+              errors[host] = ex
+              case request
+                when Protocol::QueryRequest, Protocol::PrepareRequest
+                  send_request_by_plan(promise,
+                                       keyspace,
+                                       statement,
+                                       options,
+                                       request,
+                                       plan,
+                                       timeout,
+                                       errors,
+                                       hosts)
+                when Protocol::ExecuteRequest
+                  execute_by_plan(promise,
+                                  keyspace,
+                                  statement,
+                                  options,
+                                  request,
+                                  plan,
+                                  timeout,
+                                  errors,
+                                  hosts)
+                when Protocol::BatchRequest
+                  batch_by_plan(promise,
+                                keyspace,
+                                statement,
+                                options,
+                                request,
+                                plan,
+                                timeout,
+                                errors,
+                                hosts)
+                else
+                  promise.break(ex)
+              end
             else
               promise.break(ex)
             end
