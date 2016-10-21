@@ -4,6 +4,13 @@ inherit_from: .rubocop_todo.yml
 
 AllCops:
   TargetRubyVersion: 1.9
+  Exclude:
+    - 'spec/**/*'
+    - 'benchmarking/**/*'
+    - 'support/**/*'
+    - 'integration/**/*'
+    - 'features/**/*'
+    - 'tmp/**/*'
 
 # We shouldn't rescue Exception!
 Lint/RescueException:
@@ -18,6 +25,12 @@ Metrics/ModuleLength:
   Enabled: false
 
 Metrics/ClassLength:
+  Enabled: false
+
+Metrics/ParameterLists:
+  Enabled: false
+
+Style/MultilineBlockLayout:
   Enabled: false
 
 Style/MultilineTernaryOperator:

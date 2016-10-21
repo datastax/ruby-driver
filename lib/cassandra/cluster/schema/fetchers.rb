@@ -36,8 +36,7 @@ module Cassandra
                            select_materialized_views(connection),
                            select_indexes(connection),
                            select_triggers(connection))
-                      .map do |rows_keyspaces, rows_tables, rows_columns, rows_types, rows_functions, rows_aggregates,
-                               rows_views, rows_indexes, rows_triggers|
+                      .map do |rows_keyspaces, rows_tables, rows_columns, rows_types, rows_functions, rows_aggregates, rows_views, rows_indexes, rows_triggers|
                         lookup_tables     = map_rows_by(rows_tables, 'keyspace_name')
                         lookup_columns    = map_rows_by(rows_columns, 'keyspace_name')
                         lookup_types      = map_rows_by(rows_types, 'keyspace_name')
@@ -263,7 +262,8 @@ module Cassandra
         def send_select_request(connection, cql, params = EMPTY_LIST, types = EMPTY_LIST)
           backtrace = caller
           connection.send_request(
-            Protocol::QueryRequest.new(cql, params, types, :one)).map do |r|
+            Protocol::QueryRequest.new(cql, params, types, :one)
+          ).map do |r|
             case r
             when Protocol::RowsResultResponse
               r.rows
@@ -509,7 +509,8 @@ module Cassandra
             # Most of this logic was taken from the Java driver.
             options = {}
             # For some versions of C*, this field could have a literal string 'null' value.
-            if !row_column['index_options'].nil? && row_column['index_options'] != 'null' && !row_column['index_options'].empty?
+            if !row_column['index_options'].nil? && row_column['index_options'] != 'null' &&
+               !row_column['index_options'].empty?
               options = ::JSON.load(row_column['index_options'])
             end
             column_name = Util.escape_name(column.name)
@@ -579,7 +580,7 @@ module Cassandra
         end
 
         class V2_0_x < V1_2_x
-          SELECT_TRIGGERS          = 'SELECT * FROM system.schema_triggers'.freeze
+          SELECT_TRIGGERS = 'SELECT * FROM system.schema_triggers'.freeze
 
           SELECT_KEYSPACE           =
             'SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?'.freeze
@@ -587,8 +588,8 @@ module Cassandra
             'SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ?'.freeze
           SELECT_KEYSPACE_COLUMNS   =
             'SELECT * FROM system.schema_columns WHERE keyspace_name = ?'.freeze
-          SELECT_KEYSPACE_TRIGGERS   =
-              'SELECT * FROM system.schema_triggers WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_TRIGGERS =
+            'SELECT * FROM system.schema_triggers WHERE keyspace_name = ?'.freeze
 
           SELECT_TABLE              =
             'SELECT * ' \
@@ -598,7 +599,7 @@ module Cassandra
             'SELECT * ' \
             'FROM system.schema_columns ' \
             'WHERE keyspace_name = ? AND columnfamily_name = ?'.freeze
-          SELECT_TABLE_TRIGGERS      =
+          SELECT_TABLE_TRIGGERS =
             'SELECT * ' \
             'FROM system.schema_triggers ' \
             'WHERE keyspace_name = ? AND columnfamily_name = ?'.freeze
@@ -894,7 +895,9 @@ module Cassandra
             initial_state  = Util.encode_object(
               Protocol::Coder.read_value_v4(
                 Protocol::CqlByteBuffer.new.append_bytes(aggregate_data['initcond']),
-                state_type, nil))
+                state_type, nil
+              )
+            )
 
             # The state-function takes arguments: first the stype, then the args of the aggregate.
             state_function = functions.get(aggregate_data['state_func'],
@@ -989,7 +992,7 @@ module Cassandra
             'SELECT * ' \
             'FROM system_schema.indexes ' \
             'WHERE keyspace_name = ? AND table_name = ?'.freeze
-          SELECT_TABLE_TRIGGERS      =
+          SELECT_TABLE_TRIGGERS =
             'SELECT * ' \
             'FROM system_schema.triggers ' \
             'WHERE keyspace_name = ? AND table_name = ?'.freeze

@@ -50,11 +50,11 @@ module Cassandra
       attr_reader :paging_state
 
       # @return [nil, Hash<String, String>] custom outgoing payload, a map of
-      # string and byte buffers.
+      #   string and byte buffers.
       #
       # @see https://github.com/apache/cassandra/blob/cassandra-3.4/doc/native_protocol_v4.spec#L125-L131 Description
       #   of custom payload in Cassandra native protocol v4.
-      # @see http://docs.datastax.com/en/developer/java-driver/3.0/manual/custom_payloads/#enabling-custom-payloads-on-c-nodes
+      # @see http://dsdocs30_java/manual/custom_payloads/#enabling-custom-payloads-on-c-nodes
       #   Enabling custom payloads on Cassandra nodes.
       #
       # @example Sending a custom payload
@@ -64,11 +64,12 @@ module Cassandra
       #            })
       attr_reader :payload
 
-      # @return [Cassandra::LoadBalancing::Policy] load-balancing policy that determines which node will run the next statement.
+      # @return [Cassandra::LoadBalancing::Policy] load-balancing policy that determines which node will run the
+      #   next statement.
       attr_reader :load_balancing_policy
 
-      # @return [Cassandra::Retry::Policy] retry policy that determines how request retries should be handled for different
-      #   failure modes.
+      # @return [Cassandra::Retry::Policy] retry policy that determines how request retries should be handled for
+      #   different failure modes.
       attr_reader :retry_policy
 
       # @private
@@ -106,16 +107,14 @@ module Cassandra
           methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown,
                      :distance, :plan]
           Util.assert_responds_to_all(methods, load_balancing_policy,
-            ":load_balancing_policy #{load_balancing_policy.inspect} must respond " \
-            "to #{methods.inspect}, but doesn't"
-          )
+                                      ":load_balancing_policy #{load_balancing_policy.inspect} must respond " \
+                                      "to #{methods.inspect}, but doesn't")
         end
         if trusted_options.nil? || !retry_policy.nil?
           methods = [:read_timeout, :write_timeout, :unavailable]
           Util.assert_responds_to_all(methods, retry_policy,
-            ":retry_policy #{retry_policy.inspect} must respond to #{methods.inspect}, " \
-            "but doesn't"
-          )
+                                      ":retry_policy #{retry_policy.inspect} must respond to #{methods.inspect}, " \
+                                      "but doesn't")
         end
 
         unless serial_consistency.nil?

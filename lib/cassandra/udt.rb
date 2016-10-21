@@ -224,15 +224,13 @@ module Cassandra
       values = Array(values.first) if values.one?
 
       Util.assert_not_empty(values,
-                            'user-defined type must contain at least one value'
-                           )
+                            'user-defined type must contain at least one value')
 
       if values.first.is_a?(::Array)
         @values = values.map do |pair|
           Util.assert(pair.size == 2,
                       'values of a user-defined type must be an Array of name and ' \
-                      "value pairs, #{pair.inspect} given"
-                     )
+                      "value pairs, #{pair.inspect} given")
           name, value = pair
 
           [String(name), value]
@@ -240,8 +238,7 @@ module Cassandra
       else
         Util.assert(values.size.even?,
                     'values of a user-defined type must be an Array of alternating ' \
-                    "names and values pairs, #{values.inspect} given"
-                   )
+                    "names and values pairs, #{values.inspect} given")
         @values = values.each_slice(2).map do |(name, value)|
           [String(name), value]
         end

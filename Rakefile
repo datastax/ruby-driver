@@ -7,16 +7,16 @@ require 'cucumber/rake/task'
 require 'rake/testtask'
 require 'bundler/gem_tasks'
 
-ENV["FAIL_FAST"] ||= 'Y'
+ENV['FAIL_FAST'] ||= 'Y'
 
-RSpec::Core::RakeTask.new(:rspec => :compile)
+RSpec::Core::RakeTask.new(rspec: :compile)
 
-Cucumber::Rake::Task.new(:cucumber => :compile)
+Cucumber::Rake::Task.new(cucumber: :compile)
 
 desc 'Run all tests'
-task :test => [:rspec, :integration, :cucumber]
+task test: [:rspec, :integration, :cucumber]
 
-ruby_engine = defined?(RUBY_ENGINE)? RUBY_ENGINE : 'ruby'
+ruby_engine = defined?(RUBY_ENGINE) ? RUBY_ENGINE : 'ruby'
 
 case ruby_engine
 when 'jruby'
@@ -29,19 +29,19 @@ else
   Rake::ExtensionTask.new('cassandra_murmur3')
 end
 
-Rake::TestTask.new(:integration => :compile) do |t|
-  t.libs.push "lib"
+Rake::TestTask.new(integration: :compile) do |t|
+  t.libs.push 'lib'
   t.test_files = FileList['integration/*_test.rb',
-                  'integration/security/*_test.rb',
-                  'integration/load_balancing/*_test.rb',
-                  'integration/types/*_test.rb',
-                  'integration/functions/*_test.rb',
-                  'integration/indexes/*_test.rb']
+                          'integration/security/*_test.rb',
+                          'integration/load_balancing/*_test.rb',
+                          'integration/types/*_test.rb',
+                          'integration/functions/*_test.rb',
+                          'integration/indexes/*_test.rb']
   t.verbose = true
 end
 
-Rake::TestTask.new(:stress => :compile) do |t|
-  t.libs.push "lib"
+Rake::TestTask.new(stress: :compile) do |t|
+  t.libs.push 'lib'
   t.test_files = FileList['integration/stress_tests/*_test.rb']
   t.verbose = true
 end

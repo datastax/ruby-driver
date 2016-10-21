@@ -20,32 +20,34 @@
 # columns in C*. This module has no logic of its own, but indicates that the marked class has
 # certain methods.
 # @private
-module Cassandra::CustomData
-  def self.included base
-    base.send :include, InstanceMethods
-    base.extend ClassMethods
-  end
-
-  module ClassMethods
-    # @return [Cassandra::Types::Custom] the custom type that this class represents.
-    def type
-      raise NotImplementedError, "#{self.class} must implement the :type class method"
+module Cassandra
+  module CustomData
+    def self.included(base)
+      base.send :include, InstanceMethods
+      base.extend ClassMethods
     end
 
-    # Deserialize the given data into an instance of this domain object class.
-    # @param data [String] byte-array representation of a column value of this custom type.
-    # @return An instance of the domain object class.
-    # @raise [Cassandra::Errors::DecodingError] upon failure.
-    def deserialize(data)
-      raise NotImplementedError, "#{self.class} must implement the :deserialize class method"
-    end
-  end
+    module ClassMethods
+      # @return [Cassandra::Types::Custom] the custom type that this class represents.
+      def type
+        raise NotImplementedError, "#{self.class} must implement the :type class method"
+      end
 
-  module InstanceMethods
-    # Serialize this domain object into a byte array to send to C*.
-    # @return [String] byte-array representation of this domain object.
-    def serialize
-      raise NotImplementedError, "#{self.class} must implement the :serialize instance method"
+      # Deserialize the given data into an instance of this domain object class.
+      # @param data [String] byte-array representation of a column value of this custom type.
+      # @return An instance of the domain object class.
+      # @raise [Cassandra::Errors::DecodingError] upon failure.
+      def deserialize(data)
+        raise NotImplementedError, "#{self.class} must implement the :deserialize class method"
+      end
+    end
+
+    module InstanceMethods
+      # Serialize this domain object into a byte array to send to C*.
+      # @return [String] byte-array representation of this domain object.
+      def serialize
+        raise NotImplementedError, "#{self.class} must implement the :serialize instance method"
+      end
     end
   end
 end

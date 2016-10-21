@@ -248,9 +248,7 @@ module Cassandra
         execution_profile = nil
         if options.key?(:execution_profile)
           execution_profile = @profile_manager.profiles[options[:execution_profile]]
-          unless execution_profile
-            raise ::ArgumentError.new("Unknown execution profile #{options[:execution_profile]}")
-          end
+          raise ::ArgumentError.new("Unknown execution profile #{options[:execution_profile]}") unless execution_profile
         end
 
         # This looks a little hokey, so let's explain: Execution::Options.override takes a

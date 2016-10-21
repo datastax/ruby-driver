@@ -28,11 +28,12 @@ module Cassandra
     # @see Session#prepare_async
     # @see Session#prepare
     class Profile
-      # @return [Cassandra::LoadBalancing::Policy] load-balancing policy that determines which node will run the next statement.
+      # @return [Cassandra::LoadBalancing::Policy] load-balancing policy that determines which node will run the
+      #   next statement.
       attr_reader :load_balancing_policy
 
-      # @return [Cassandra::Retry::Policy] retry policy that determines how request retries should be handled for different
-      #   failure modes.
+      # @return [Cassandra::Retry::Policy] retry policy that determines how request retries should be handled for
+      #   different failure modes.
       attr_reader :retry_policy
 
       # @return [Symbol] consistency level with which to run statements.
@@ -42,10 +43,10 @@ module Cassandra
       attr_reader :timeout
 
       # @private
-      DEFAULT_OPTIONS={load_balancing_policy: nil,
-                       retry_policy: nil,
-                       consistency: nil,
-                       timeout: :unspecified}
+      DEFAULT_OPTIONS = {load_balancing_policy: nil,
+                         retry_policy: nil,
+                         consistency: nil,
+                         timeout: :unspecified}.freeze
 
       # @private
       DEFAULT_TIMEOUT = 12
@@ -75,20 +76,20 @@ module Cassandra
       # @private
       def to_h
         {
-            load_balancing_policy: @load_balancing_policy,
-            retry_policy: @retry_policy,
-            consistency: @consistency,
-            timeout: timeout
+          load_balancing_policy: @load_balancing_policy,
+          retry_policy: @retry_policy,
+          consistency: @consistency,
+          timeout: timeout
         }
       end
 
       # @private
       def eql?(other)
         other.is_a?(Profile) && \
-        @load_balancing_policy == other.load_balancing_policy && \
-        @retry_policy == other.retry_policy && \
-        @consistency == other.consistency && \
-        @timeout == other.instance_variable_get(:@timeout)
+          @load_balancing_policy == other.load_balancing_policy && \
+          @retry_policy == other.retry_policy && \
+          @consistency == other.consistency && \
+          @timeout == other.instance_variable_get(:@timeout)
       end
       alias == eql?
 

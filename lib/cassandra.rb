@@ -528,12 +528,11 @@ module Cassandra
     if options.key?(:execution_profiles)
       options[:execution_profiles].each do |name, profile|
         timeout = profile.timeout
-        unless timeout.nil?
-          Util.assert_instance_of(::Numeric, timeout,
-                                  ":timeout of execution profile #{name} must be a number of seconds, " \
-                                "#{timeout.inspect} given")
-          Util.assert(timeout > 0, ":timeout of execution profile #{name} must be greater than 0, #{timeout} given")
-        end
+        next if timeout.nil?
+        Util.assert_instance_of(::Numeric, timeout,
+                                ":timeout of execution profile #{name} must be a number of seconds, " \
+                              "#{timeout.inspect} given")
+        Util.assert(timeout > 0, ":timeout of execution profile #{name} must be greater than 0, #{timeout} given")
       end
     end
 
@@ -599,12 +598,11 @@ module Cassandra
                  :distance, :plan]
       options[:execution_profiles].each do |name, profile|
         load_balancing_policy = profile.load_balancing_policy
-        unless load_balancing_policy.nil?
-          Util.assert_responds_to_all(methods, load_balancing_policy,
-            ":load_balancing_policy in execution profile #{name} #{load_balancing_policy.inspect} must respond " \
-            "to #{methods.inspect}, but doesn't"
-          )
-        end
+        next if load_balancing_policy.nil?
+        Util.assert_responds_to_all(methods, load_balancing_policy,
+                                    ":load_balancing_policy in execution profile #{name} " \
+                                    "#{load_balancing_policy.inspect} must respond " \
+                                    "to #{methods.inspect}, but doesn't")
       end
     end
 
@@ -629,12 +627,10 @@ module Cassandra
       methods = [:read_timeout, :write_timeout, :unavailable]
       options[:execution_profiles].each do |name, profile|
         retry_policy = profile.retry_policy
-        unless retry_policy.nil?
-          Util.assert_responds_to_all(methods, retry_policy,
-                                      ":retry_policy in execution profile #{name} #{retry_policy.inspect} must " \
-                                      "respond to #{methods.inspect}, but doesn't"
-          )
-        end
+        next if retry_policy.nil?
+        Util.assert_responds_to_all(methods, retry_policy,
+                                    ":retry_policy in execution profile #{name} #{retry_policy.inspect} must " \
+                                    "respond to #{methods.inspect}, but doesn't")
       end
     end
 
@@ -643,19 +639,16 @@ module Cassandra
     if options.key?(:consistency)
       consistency = options[:consistency]
       Util.assert_one_of(CONSISTENCIES, consistency,
-        ":consistency must be one of #{CONSISTENCIES.inspect}, " \
-            "#{consistency.inspect} given"
-      )
+                         ":consistency must be one of #{CONSISTENCIES.inspect}, " \
+                             "#{consistency.inspect} given")
     end
     if options.key?(:execution_profiles)
       options[:execution_profiles].each do |name, profile|
         consistency = profile.consistency
-        unless consistency.nil?
-          Util.assert_one_of(CONSISTENCIES, consistency,
-            ":consistency in execution profile #{name} must be one of #{CONSISTENCIES.inspect}, " \
-            "#{consistency.inspect} given"
-          )
-        end
+        next if consistency.nil?
+        Util.assert_one_of(CONSISTENCIES, consistency,
+                           ":consistency in execution profile #{name} must be one of #{CONSISTENCIES.inspect}, " \
+                           "#{consistency.inspect} given")
       end
     end
 
@@ -681,9 +674,8 @@ module Cassandra
       unless protocol_version.nil?
         Util.assert_instance_of(::Integer, protocol_version)
         Util.assert_one_of(1..Cassandra::Protocol::Versions::MAX_SUPPORTED_VERSION, protocol_version,
-          ':protocol_version must be a positive integer between 1 and ' \
-          "#{Cassandra::Protocol::Versions::MAX_SUPPORTED_VERSION}, #{protocol_version.inspect} given"
-        )
+                           ':protocol_version must be a positive integer between 1 and ' \
+                           "#{Cassandra::Protocol::Versions::MAX_SUPPORTED_VERSION}, #{protocol_version.inspect} given")
       end
     end
 

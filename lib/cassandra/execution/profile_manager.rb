@@ -25,7 +25,7 @@ module Cassandra
 
       # Name of the default execution profile. Use this constant as the key for an execution profile when initializing
       # a {Cluster} to override the default execution profile with your own.
-      DEFAULT_EXECUTION_PROFILE = '__DEFAULT_EXECUTION_PROFILE__'
+      DEFAULT_EXECUTION_PROFILE = '__DEFAULT_EXECUTION_PROFILE__'.freeze
 
       def initialize(default_profile, profiles)
         # Walk through the profiles and fill them out with attributes from the default profile when they're not
@@ -54,7 +54,7 @@ module Cassandra
         return :remote if distances.include?(:remote)
 
         # Fall back to ignore the host.
-        return :ignore
+        :ignore
       end
 
       # NOTE: It's only safe to call add_profile when setting up the cluster object. In particular,

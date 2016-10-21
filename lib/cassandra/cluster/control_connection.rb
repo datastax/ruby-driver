@@ -90,7 +90,8 @@ module Cassandra
                  (@status == :closing || @status == :closed) ||
                  @load_balancing_policy.distance(host) == :ignore
             return connect_to_first_available(
-              @load_balancing_policy.plan(nil, VOID_STATEMENT, VOID_OPTIONS))
+              @load_balancing_policy.plan(nil, VOID_STATEMENT, VOID_OPTIONS)
+            )
           end
         end
 
@@ -148,18 +149,20 @@ module Cassandra
 
       private
 
-      SELECT_LOCAL  = Protocol::QueryRequest.new(
+      SELECT_LOCAL = Protocol::QueryRequest.new(
         'SELECT * ' \
           'FROM system.local',
         EMPTY_LIST,
         EMPTY_LIST,
-        :one)
-      SELECT_PEERS  = Protocol::QueryRequest.new(
+        :one
+      )
+      SELECT_PEERS = Protocol::QueryRequest.new(
         'SELECT * ' \
           'FROM system.peers',
         EMPTY_LIST,
         EMPTY_LIST,
-        :one)
+        :one
+      )
 
       SELECT_PEER_QUERY =
         'SELECT * ' \
@@ -677,7 +680,7 @@ Control connection failed and is unlikely to recover.
         rpc_address = data['rpc_address']
 
         if rpc_address.nil?
-          @logger.info("The system.peers row for '#{data['peer']}' has no rpc_address. This is likely " +
+          @logger.info("The system.peers row for '#{data['peer']}' has no rpc_address. This is likely " \
                            'a gossip or snitch issue. This host will be ignored.')
           return nil
         end
@@ -686,7 +689,7 @@ Control connection failed and is unlikely to recover.
           # Some DSE versions were inserting a line for the local node in peers (with mostly null values).
           # This has been fixed, but if we detect that's the case, ignore it as it's not really a big deal.
 
-          @logger.debug("System.peers on node #{host_address} has a line for itself. This is not normal but is a " +
+          @logger.debug("System.peers on node #{host_address} has a line for itself. This is not normal but is a " \
                             'known problem of some DSE versions. Ignoring the entry.')
           return nil
         end

@@ -166,7 +166,8 @@ module Cassandra
           if compression == 1
             if @compressor
               buffer = CqlByteBuffer.new(
-                @compressor.decompress(buffer.read(frame_length)))
+                @compressor.decompress(buffer.read(frame_length))
+              )
               frame_length = buffer.size
             else
               raise Errors::DecodingError,

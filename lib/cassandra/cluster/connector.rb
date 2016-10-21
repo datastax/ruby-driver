@@ -222,10 +222,12 @@ module Cassandra
             ::Ione::Future.resolved(connection)
           when Protocol::ErrorResponse
             ::Ione::Future.failed(
-              r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0))
+              r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0)
+            )
           else
             ::Ione::Future.failed(
-              Errors::InternalError.new("Unexpected response #{r.inspect}"))
+              Errors::InternalError.new("Unexpected response #{r.inspect}")
+            )
           end
         end
       end
@@ -241,7 +243,8 @@ module Cassandra
           VOID_OPTIONS,
           EMPTY_LIST,
           :one,
-          0)
+          0
+        )
       end
 
       def request_options(connection)
@@ -288,10 +291,12 @@ module Cassandra
             ::Ione::Future.resolved(connection)
           when Protocol::ErrorResponse
             ::Ione::Future.failed(
-              r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0))
+              r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0)
+            )
           else
             ::Ione::Future.failed(
-              Errors::InternalError.new("Unexpected response #{r.inspect}"))
+              Errors::InternalError.new("Unexpected response #{r.inspect}")
+            )
           end
         end
       end

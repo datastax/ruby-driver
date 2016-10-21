@@ -268,7 +268,8 @@ module Cassandra
           value      = ::Hash.new
 
           buffer.read_signed_int.times do
-            value[read_value_v4(buffer, key_type, custom_type_handlers)] = read_value_v4(buffer, value_type, custom_type_handlers)
+            value[read_value_v4(buffer, key_type, custom_type_handlers)] =
+              read_value_v4(buffer, value_type, custom_type_handlers)
           end
 
           value

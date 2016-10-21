@@ -222,7 +222,9 @@ module Cassandra
           return @futures.error(
             Errors::ClientError.new(
               'Positional arguments are not supported by the current version of ' \
-              'Apache Cassandra'))
+              'Apache Cassandra'
+            )
+          )
         end
 
         timestamp = @timestamp_generator.next if @timestamp_generator && @connection_options.protocol_version > 2
@@ -310,7 +312,9 @@ module Cassandra
           return @futures.error(
             Errors::ClientError.new(
               'Batch statements are not supported by the current version of ' \
-              'Apache Cassandra'))
+              'Apache Cassandra'
+            )
+          )
         end
 
         timestamp = @timestamp_generator.next if @timestamp_generator && @connection_options.protocol_version > 2
@@ -361,13 +365,15 @@ module Cassandra
           'SELECT peer, rpc_address, schema_version FROM system.peers',
           EMPTY_LIST,
           EMPTY_LIST,
-          :one)
+          :one
+        )
       SELECT_SCHEMA_LOCAL =
         Protocol::QueryRequest.new(
           "SELECT schema_version FROM system.local WHERE key='local'",
           EMPTY_LIST,
           EMPTY_LIST,
-          :one)
+          :one
+        )
 
       def connected(f)
         if f.resolved?
@@ -1072,24 +1078,24 @@ module Cassandra
             case r
             when Protocol::UnavailableErrorResponse
               decision = options.retry_policy.unavailable(statement,
-                                                   r.consistency,
-                                                   r.required,
-                                                   r.alive,
-                                                   retries)
+                                                          r.consistency,
+                                                          r.required,
+                                                          r.alive,
+                                                          retries)
             when Protocol::WriteTimeoutErrorResponse
               decision = options.retry_policy.write_timeout(statement,
-                                                     r.consistency,
-                                                     r.write_type,
-                                                     r.blockfor,
-                                                     r.received,
-                                                     retries)
+                                                            r.consistency,
+                                                            r.write_type,
+                                                            r.blockfor,
+                                                            r.received,
+                                                            retries)
             when Protocol::ReadTimeoutErrorResponse
               decision = options.retry_policy.read_timeout(statement,
-                                                    r.consistency,
-                                                    r.blockfor,
-                                                    r.received,
-                                                    r.data_present,
-                                                    retries)
+                                                           r.consistency,
+                                                           r.blockfor,
+                                                           r.received,
+                                                           r.data_present,
+                                                           retries)
             when Protocol::UnpreparedErrorResponse
               cql = nil
               if statement.is_a?(Cassandra::Statements::Batch)
@@ -1231,7 +1237,8 @@ module Cassandra
                                          request.consistency,
                                          retries,
                                          self,
-                                         @connection_options))
+                                         @connection_options)
+              )
             when Protocol::RawRowsResultResponse
               r.materialize(statement.result_metadata)
               promise.fulfill(
@@ -1247,7 +1254,8 @@ module Cassandra
                                    request.consistency,
                                    retries,
                                    self,
-                                   @futures))
+                                   @futures)
+              )
             when Protocol::RowsResultResponse
               promise.fulfill(
                 Results::Paged.new(r.custom_payload,
@@ -1262,7 +1270,8 @@ module Cassandra
                                    request.consistency,
                                    retries,
                                    self,
-                                   @futures))
+                                   @futures)
+              )
             when Protocol::SchemaChangeResultResponse
               if r.change == 'DROPPED' &&
                  r.target == Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
@@ -1275,7 +1284,8 @@ module Cassandra
                 unless f.resolved?
                   f.on_failure do |e|
                     @logger.error(
-                      "Schema agreement failure (#{e.class.name}: #{e.message})")
+                      "Schema agreement failure (#{e.class.name}: #{e.message})"
+                    )
                   end
                 end
                 promise.fulfill(
@@ -1289,7 +1299,8 @@ module Cassandra
                                     request.consistency,
                                     retries,
                                     self,
-                                    @futures))
+                                    @futures)
+                )
               end
             else
               promise.fulfill(Results::Void.new(r.custom_payload,
@@ -1377,7 +1388,8 @@ module Cassandra
                                     request.consistency,
                                     retries,
                                     self,
-                                    @futures))
+                                    @futures)
+                )
               when Retry::Decisions::Reraise
                 promise.break(
                   r.to_error(keyspace,
@@ -1385,7 +1397,8 @@ module Cassandra
                              options,
                              hosts,
                              request.consistency,
-                             retries))
+                             retries)
+                )
               else
                 promise.break(
                   r.to_error(keyspace,
@@ -1393,7 +1406,8 @@ module Cassandra
                              options,
                              hosts,
                              request.consistency,
-                             retries))
+                             retries)
+                )
               end
             end
           rescue => e
@@ -1402,34 +1416,23 @@ module Cassandra
         else
           response_future.on_failure do |ex|
             if ex.is_a?(Errors::HostError) ||
-                (ex.is_a?(Errors::TimeoutError) && statement.idempotent?)
+               (ex.is_a?(Errors::TimeoutError) && statement.idempotent?)
 
               errors[host] = ex
               case request
-                when Protocol::QueryRequest, Protocol::PrepareRequest
-                  send_request_by_plan(promise,
-                                       keyspace,
-                                       statement,
-                                       options,
-                                       request,
-                                       plan,
-                                       timeout,
-                                       errors,
-                                       hosts,
-                                       retries)
-                when Protocol::ExecuteRequest
-                  execute_by_plan(promise,
-                                  keyspace,
-                                  statement,
-                                  options,
-                                  request,
-                                  plan,
-                                  timeout,
-                                  errors,
-                                  hosts,
-                                  retries)
-                when Protocol::BatchRequest
-                  batch_by_plan(promise,
+              when Protocol::QueryRequest, Protocol::PrepareRequest
+                send_request_by_plan(promise,
+                                     keyspace,
+                                     statement,
+                                     options,
+                                     request,
+                                     plan,
+                                     timeout,
+                                     errors,
+                                     hosts,
+                                     retries)
+              when Protocol::ExecuteRequest
+                execute_by_plan(promise,
                                 keyspace,
                                 statement,
                                 options,
@@ -1439,8 +1442,19 @@ module Cassandra
                                 errors,
                                 hosts,
                                 retries)
-                else
-                  promise.break(ex)
+              when Protocol::BatchRequest
+                batch_by_plan(promise,
+                              keyspace,
+                              statement,
+                              options,
+                              request,
+                              plan,
+                              timeout,
+                              errors,
+                              hosts,
+                              retries)
+              else
+                promise.break(ex)
               end
             else
               promise.break(ex)

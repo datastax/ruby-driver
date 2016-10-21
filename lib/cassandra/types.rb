@@ -1518,8 +1518,7 @@ module Cassandra
     # @return [Cassandra::Types::List] list type
     def list(value_type)
       Util.assert_instance_of(Cassandra::Type, value_type,
-                              "list type must be a Cassandra::Type, #{value_type.inspect} given"
-                             )
+                              "list type must be a Cassandra::Type, #{value_type.inspect} given")
 
       List.new(value_type)
     end
@@ -1529,11 +1528,9 @@ module Cassandra
     # @return [Cassandra::Types::Map] map type
     def map(key_type, value_type)
       Util.assert_instance_of(Cassandra::Type, key_type,
-                              "map key type must be a Cassandra::Type, #{key_type.inspect} given"
-                             )
+                              "map key type must be a Cassandra::Type, #{key_type.inspect} given")
       Util.assert_instance_of(Cassandra::Type, value_type,
-                              "map value type must be a Cassandra::Type, #{value_type.inspect} given"
-                             )
+                              "map value type must be a Cassandra::Type, #{value_type.inspect} given")
 
       Map.new(key_type, value_type)
     end
@@ -1542,8 +1539,7 @@ module Cassandra
     # @return [Cassandra::Types::Set] set type
     def set(value_type)
       Util.assert_instance_of(Cassandra::Type, value_type,
-                              "set type must be a Cassandra::Type, #{value_type.inspect} given"
-                             )
+                              "set type must be a Cassandra::Type, #{value_type.inspect} given")
 
       Set.new(value_type)
     end
@@ -1555,8 +1551,7 @@ module Cassandra
       members.each do |member|
         Util.assert_instance_of(Cassandra::Type, member,
                                 'each tuple member must be a Cassandra::Type, ' \
-                                            "#{member.inspect} given"
-                               )
+                                            "#{member.inspect} given")
       end
 
       Tuple.new(*members)
@@ -1598,40 +1593,33 @@ module Cassandra
       fields = Array(fields.first) if fields.one?
 
       Util.assert_not_empty(fields,
-                            'user-defined type must contain at least one field'
-                           )
+                            'user-defined type must contain at least one field')
 
       if fields.first.is_a?(::Array)
         fields = fields.map do |pair|
           Util.assert(pair.size == 2,
                       'fields of a user-defined type must be an Array of name and ' \
-                                  "value pairs, #{pair.inspect} given"
-                     )
+                                  "value pairs, #{pair.inspect} given")
           Util.assert_instance_of(::String, pair[0],
                                   'each field name for a user-defined type must be a String, ' \
-                                              "#{pair[0].inspect} given"
-                                 )
+                                              "#{pair[0].inspect} given")
           Util.assert_instance_of(Cassandra::Type, pair[1],
                                   'each field type for a user-defined type must be a ' \
-                                              "Cassandra::Type, #{pair[1].inspect} given"
-                                 )
+                                              "Cassandra::Type, #{pair[1].inspect} given")
 
           UserDefined::Field.new(*pair)
         end
       else
         Util.assert(fields.size.even?,
                     'fields of a user-defined type must be an Array of alternating ' \
-                                "names and values pairs, #{fields.inspect} given"
-                   )
+                                "names and values pairs, #{fields.inspect} given")
         fields = fields.each_slice(2).map do |field_name, field_type|
           Util.assert_instance_of(::String, field_name,
                                   'each field name for a user-defined type must be a String, ' \
-                                              "#{field_name.inspect} given"
-                                 )
+                                              "#{field_name.inspect} given")
           Util.assert_instance_of(Cassandra::Type, field_type,
                                   'each field type for a user-defined type must be a ' \
-                                              "Cassandra::Type, #{field_type.inspect} given"
-                                 )
+                                              "Cassandra::Type, #{field_type.inspect} given")
 
           UserDefined::Field.new(field_name, field_type)
         end

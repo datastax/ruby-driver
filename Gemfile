@@ -2,10 +2,10 @@ source 'https://rubygems.org/'
 
 gemspec
 
-gem 'snappy',        :group => [:development, :test]
-gem 'lz4-ruby',      :group => [:development, :test]
-gem 'rake-compiler', :group => [:development, :test]
-gem 'cliver',        :group => [:development, :test]
+gem 'snappy',        group: [:development, :test]
+gem 'lz4-ruby',      group: [:development, :test]
+gem 'rake-compiler', group: [:development, :test]
+gem 'cliver',        group: [:development, :test]
 
 group :development do
   platforms :mri_19 do

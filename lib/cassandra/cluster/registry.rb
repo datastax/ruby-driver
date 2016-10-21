@@ -170,8 +170,7 @@ module Cassandra
                  Array(data['tokens']).freeze,
                  :up,
                  data['broadcast_address'],
-                 data['listen_address']
-                )
+                 data['listen_address'])
       end
 
       def toggle_up(host)

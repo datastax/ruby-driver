@@ -109,7 +109,7 @@ module Cassandra
                         address_resolution_policy,
                         connector,
                         futures_factory,
-			                  timestamp_generator)
+                        timestamp_generator)
     end
 
     let(:execution_options) do
@@ -146,7 +146,7 @@ module Cassandra
       )
     end
 
-    let(:custom_types)      { [] }
+    let(:custom_types)              { [] }
     let(:port)                      { 9042 }
     let(:protocol_version)          { nil }
     let(:allow_beta_protocol)       { false }
@@ -160,7 +160,8 @@ module Cassandra
     let(:load_balancing_policy)     do
       LoadBalancing::Policies::TokenAware.new(
         LoadBalancing::Policies::DCAwareRoundRobin.new(datacenter, 0),
-        shuffle_replicas)
+        shuffle_replicas
+      )
     end
     let(:reconnection_policy) do
       Reconnection::Policies::Exponential.new(0.5, 30, 2)

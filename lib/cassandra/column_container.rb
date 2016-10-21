@@ -64,7 +64,6 @@ module Cassandra
       attr_reader :cdc
 
       # @private
-      # rubocop:disable Metrics/ParameterLists
       def initialize(comment,
                      read_repair_chance,
                      local_read_repair_chance,
@@ -135,7 +134,7 @@ module Cassandra
           options << "bloom_filter_fp_chance = #{Util.encode_object(@bloom_filter_fp_chance)}"
         end
         options << "caching = #{Util.encode_object(@caching)}" unless @caching.nil?
-        options << "cdc = true" if @cdc
+        options << 'cdc = true' if @cdc
         options << "comment = #{Util.encode_object(@comment)}" unless @comment.nil?
         options << "compaction = #{@compaction_strategy.to_cql}" unless @compaction_strategy.nil?
         options << "compression = #{Util.encode_object(@compression)}" unless @compression.nil?
@@ -181,7 +180,7 @@ module Cassandra
           @compression == other.compression &&
           @compact_storage == other.compact_storage? &&
           @crc_check_chance == other.crc_check_chance &&
-          @extensions == other.extensions
+          @extensions == other.extensions &&
           @cdc == other.cdc
       end
       alias == eql?

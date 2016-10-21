@@ -168,7 +168,7 @@ module Cassandra
     def each_materialized_view(&block)
       if block_given?
         @views.each_value do |v|
-          block.call(v) if v.base_table
+          yield(v) if v.base_table
         end
         self
       else
