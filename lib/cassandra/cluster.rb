@@ -167,11 +167,23 @@ module Cassandra
       @profile_manager.profiles[name]
     end
 
-    # @return [Hash<String, Cassandra::Execution::Profile>] the collection of execution profiles
-    def execution_profiles
-      # Return a dup of the hash to prevent the user from adding/removing profiles from the profile-manager.
-      @profile_manager.profiles.dup
+    # Yield or enumerate each execution profile defined in this cluster
+    # @overload each_execution_profile
+    #   @yieldparam name [String, Symbol] name of current profile
+    #   @yieldparam profile [Cassandra::Execution::Profile] current profile
+    #   @return [Cassandra::Cluster] self
+    # @overload each_execution_profile
+    #   @return [Hash<String, Cassandra::Execution::Profile>] a hash of profiles keyed on name
+    def each_execution_profile(&block)
+      if block_given?
+        @profile_manager.profiles.each_pair(&block)
+        self
+      else
+        # Return a dup of the hash to prevent the user from adding/removing profiles from the profile-manager.
+        @profile_manager.profiles.dup
+      end
     end
+    alias execution_profiles each_execution_profile
 
     # @!method refresh_schema_async
     #   Trigger an asynchronous schema metadata refresh
