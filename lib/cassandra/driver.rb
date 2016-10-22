@@ -250,6 +250,9 @@ module Cassandra
       picker.when('3.') do
         Cluster::Schema::Fetchers::V3_0_x.new(schema_cql_type_parser, cluster_schema)
       end
+      picker.when('4.') do
+        Cluster::Schema::Fetchers::V3_0_x.new(schema_cql_type_parser, cluster_schema)
+      end
 
       picker
     end
