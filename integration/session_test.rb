@@ -838,7 +838,7 @@ class SessionTest < IntegrationTestCase
   #
   # @since 3.0.0
   # @jira_ticket RUBY-162
-  # @expected_result cluster and object options should be visible in the inspect string
+  # @expected_result cluster and session options should be visible in the inspect string
   #
   # @test_category connection
   #
@@ -872,4 +872,33 @@ datacenter="datacenter1", use_remote=false, max_remote=0.*shuffle=true/, cluster
     assert_match(/@payload=nil/, session_inspect)
   end
 
+  # Test for cluster options retrieval
+  #
+  # test_can_retrieve_cluster_options tests that cluster objects' options can be retrieved. It first creates a simple
+  # cluster object with some options defined. It then inspects this object and verifies that the options set can be
+  # retrieved.
+  #
+  # @since 3.1.0
+  # @jira_ticket RUBY-250
+  # @expected_result cluster options should be retrieved from the cluster object
+  #
+  # @test_category connection
+  #
+  def test_can_retrieve_cluster_options
+    setup_schema
+
+    cluster = Cassandra.cluster(hosts: ['127.0.0.1'], consistency: :quorum)
+    assert_match(/ruby-driver-.*/, cluster.name)
+    assert_equal '127.0.0.1', cluster.hosts.first.ip.to_s
+    assert_equal 9042, cluster.port
+    assert_includes [1,2,3,4], cluster.protocol_version
+    refute_nil cluster.keyspaces
+
+    execution_profile = cluster.execution_profiles['__DEFAULT_EXECUTION_PROFILE__']
+    refute_nil execution_profile
+    assert_equal Cassandra::LoadBalancing::Policies::TokenAware, execution_profile.load_balancing_policy.class
+    assert_equal Cassandra::Retry::Policies::Default, execution_profile.retry_policy.class
+    assert_equal :quorum, execution_profile.consistency
+    assert_equal 12, execution_profile.timeout
+  end
 end
