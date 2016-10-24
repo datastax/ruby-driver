@@ -61,11 +61,19 @@ class IdempotencyTest < IntegrationTestCase
       session.execute('SELECT * FROM test', consistency: :one)
     end
 
-    info = session.execute('SELECT * FROM test', consistency: :one, idempotent: true).execution_info
-    assert_equal 1, info.retries
-    assert_equal 2, info.hosts.size
-    assert_equal '127.0.0.1', info.hosts[0].ip.to_s
-    assert_equal '127.0.0.2', info.hosts[1].ip.to_s
+    info = nil
+    begin
+      info = session.execute('SELECT * FROM test', consistency: :one, idempotent: true).execution_info
+      assert_equal 1, info.retries
+      assert_equal 2, info.hosts.size
+      assert_equal '127.0.0.1', info.hosts[0].ip.to_s
+      assert_equal '127.0.0.2', info.hosts[1].ip.to_s
+    rescue Cassandra::Errors::ReadTimeoutError => e
+      # Every once in a while, the test fails with a ReadTimeoutError. Try to report extra info in that case that
+      # may help us track down the core issue.
+      info = e.execution_info
+      assert_equal('', info.inspect, 'Got ReadTimeoutError when statement should have succeeded')
+    end
   ensure
     @@ccm_cluster.unblock_nodes
     cluster && cluster.close
@@ -101,14 +109,21 @@ class IdempotencyTest < IntegrationTestCase
       session.execute('SELECT * FROM simplex.test', consistency: :one)
     end
 
-    info = session.execute('SELECT * FROM simplex.test', consistency: :one, idempotent: true).execution_info
-    assert_equal 1, info.retries
-    assert_equal 2, info.hosts.size
-    assert_equal '127.0.0.1', info.hosts[0].ip.to_s
-    assert_equal '127.0.0.2', info.hosts[1].ip.to_s
+    info = nil
+    begin
+      info = session.execute('SELECT * FROM simplex.test', consistency: :one, idempotent: true).execution_info
+      assert_equal 1, info.retries
+      assert_equal 2, info.hosts.size
+      assert_equal '127.0.0.1', info.hosts[0].ip.to_s
+      assert_equal '127.0.0.2', info.hosts[1].ip.to_s
+    rescue Cassandra::Errors::ReadTimeoutError => e
+      # Every once in a while, the test fails with a ReadTimeoutError. Try to report extra info in that case that
+      # may help us track down the core issue.
+      info = e.execution_info
+      assert_equal('', info.inspect, 'Got ReadTimeoutError when statement should have succeeded')
+    end
   ensure
     @@ccm_cluster.unblock_nodes
     cluster && cluster.close
   end
-
 end
