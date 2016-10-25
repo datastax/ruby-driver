@@ -88,4 +88,43 @@ class ControlConnectionTest < IntegrationTestCase
       end
     end
   end
+
+  # Test for repreparing statements on another host
+  #
+  # test_can_reprepare_statements_automatically tests that prepared statements are automatically reprepared on a host
+  # if that host does not already have the prepared statement in its cache. It first creates a simple keyspace
+  # and table to be used. It then prepares an insert statement on node2, by keeping node1 down. It then brings node1
+  # back up but brings node2 down. Finally it executes the prepared statement on node1, and verifies that the query
+  # is executed successfully using node1.
+  #
+  # @since 3.1.0
+  # @jira_ticket RUBY-257
+  # @expected_result Node1 should be able to be used to execute the prepared statement
+  #
+  # @test_assumptions A 2-node Cassandra cluster.
+  # @test_category prepared_statements:preparation
+  #
+  def test_can_reprepare_statements_automatically
+    cluster = Cassandra.cluster
+    session = cluster.connect
+
+    session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 2}")
+    session.execute("USE simplex")
+    session.execute("CREATE TABLE test (k int, v int, PRIMARY KEY (k, v))")
+
+    # Prepare on node2
+    @@ccm_cluster.stop_node('node1')
+    insert = session.prepare("INSERT INTO test (k,v) VALUES (?, ?)")
+    assert_equal 1, insert.execution_info.hosts.size
+    assert_equal '127.0.0.2', insert.execution_info.hosts.first.ip.to_s
+    @@ccm_cluster.start_node('node1')
+
+    # Insert using node1
+    @@ccm_cluster.stop_node('node2')
+    info = session.execute(insert, arguments: [0,0]).execution_info
+    assert_equal 1, info.hosts.size
+    assert_equal '127.0.0.1', info.hosts.first.ip.to_s
+  ensure
+    cluster.close
+  end
 end
