@@ -473,7 +473,7 @@ module Cassandra
           @pending_connections[host] += size
         end
 
-        @logger.debug("Creating #{size} connections to #{host.ip}")
+        @logger.debug("Creating #{size} request connections to #{host.ip}")
         futures = size.times.map do
           @connector.connect(host).recover do |e|
             FailedConnection.new(e, host)
@@ -492,7 +492,7 @@ module Cassandra
             end
           end
 
-          @logger.debug("Created #{connections.size} connections to #{host.ip}")
+          @logger.debug("Created #{connections.size} request connections to #{host.ip}")
 
           pool = nil
 
@@ -511,6 +511,12 @@ module Cassandra
 
             connections.each do |connection|
               connection.on_closed do |cause|
+                if cause
+                  @logger.info('Request connection closed ' \
+                      "(#{cause.class.name}: #{cause.message})")
+                else
+                  @logger.info('Request connection closed')
+                end
                 connect_to_host_maybe_retry(host, pool_size) if cause
               end
             end
