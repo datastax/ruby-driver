@@ -35,6 +35,8 @@ module Cassandra
         @load_balancing_policies << default_profile.load_balancing_policy if default_profile.load_balancing_policy
         @profiles = {DEFAULT_EXECUTION_PROFILE => default_profile}
 
+        @unready_profiles = {}
+
         profiles.each do |name, profile|
           add_profile(name, profile)
         end
@@ -60,9 +62,39 @@ module Cassandra
       # NOTE: It's only safe to call add_profile when setting up the cluster object. In particular,
       # this is only ok before calling Driver#connect.
       def add_profile(name, profile)
+        if !profile.well_formed? && @profiles.key?(profile.parent_name)
+          # This profile is ready to inherit attributes from its parent.
+          profile.merge_from(@profiles[profile.parent_name])
+        end
+        if profile.well_formed?
+          make_available(name, profile)
+          did_add = true
+          while did_add && !@unready_profiles.empty?
+            did_add = false
+            @unready_profiles.dup.each do |name, profile|
+              did_add = hydrate_profile(name, profile)
+            end
+          end
+        else
+          # This profile isn't ready to inherit its parent attributes yet
+          @unready_profiles[name] = profile
+        end
+      end
+
+      def make_available(name, profile)
         @profiles[name] = profile
         @load_balancing_policies << profile.load_balancing_policy if profile.load_balancing_policy
-        profile.merge_from(default_profile)
+        @unready_profiles.delete(name)
+      end
+
+      def hydrate_profile(name, profile)
+        did_work = false
+        if @profiles.key?(profile.parent_name)
+          profile.merge_from(@profiles[profile.parent_name])
+          make_available(name, profile)
+          did_work = true
+        end
+        did_work
       end
 
       # @private

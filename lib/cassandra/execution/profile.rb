@@ -43,6 +43,9 @@ module Cassandra
       attr_reader :timeout
 
       # @private
+      attr_accessor :parent_name
+
+      # @private
       DEFAULT_OPTIONS = {load_balancing_policy: nil,
                          retry_policy: nil,
                          consistency: nil,
@@ -50,6 +53,9 @@ module Cassandra
 
       # @private
       DEFAULT_TIMEOUT = 12
+
+      # @private
+      DEFAULT_PARENT_NAME = Cassandra::Execution::ProfileManager::DEFAULT_EXECUTION_PROFILE
 
       # @param options [Hash] hash of attributes. Unspecified attributes or attributes with nil values effectively
       #   fall back to the attributes in the default execution profile.
@@ -67,6 +73,7 @@ module Cassandra
         @retry_policy = options[:retry_policy]
         @consistency = options[:consistency]
         @timeout = options[:timeout]
+        @parent_name = DEFAULT_PARENT_NAME
       end
 
       def timeout
@@ -121,6 +128,11 @@ module Cassandra
         @consistency = parent_profile.consistency if @consistency.nil?
         @timeout = parent_profile.timeout if @timeout == :unspecified
         self
+      end
+
+      # @private
+      def well_formed?
+        !@load_balancing_policy.nil? && !@retry_policy.nil? && !@consistency.nil? && @timeout != :unspecified
       end
     end
   end
