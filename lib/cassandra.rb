@@ -877,8 +877,8 @@ require 'cassandra/trigger'
 
 require 'cassandra/execution/info'
 require 'cassandra/execution/options'
-require 'cassandra/execution/profile'
 require 'cassandra/execution/profile_manager'
+require 'cassandra/execution/profile'
 require 'cassandra/execution/trace'
 
 require 'cassandra/load_balancing'

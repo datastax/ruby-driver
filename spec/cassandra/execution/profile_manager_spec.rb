@@ -33,11 +33,18 @@ module Cassandra
       let(:profile3) { Profile.new(load_balancing_policy: lbp3) }
       let(:profile4) { Profile.new }
       let(:profile5) { Profile.new(load_balancing_policy: lbp1) }
+      let(:profile6) {
+        # This profile's parent is *not* the default, but rather one of the other profiles.
+        p = Profile.new
+        p.parent_name = :p3
+        p
+      }
+
       let(:default_profile) {
         Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy, consistency: :quorum)
       }
       let(:subject) {
-        ProfileManager.new(default_profile, {p1: profile1, p2: profile2, p3: profile3, p4: profile4, p5: profile5})
+        ProfileManager.new(default_profile, {p6: profile6, p1: profile1, p2: profile2, p3: profile3, p4: profile4, p5: profile5})
       }
 
       it 'should fill out profiles with values from default profile' do
@@ -52,6 +59,7 @@ module Cassandra
                                            consistency: :quorum, timeout: Profile::DEFAULT_TIMEOUT))
         expect(profile5).to eq(Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy,
                                            consistency: :quorum, timeout: Profile::DEFAULT_TIMEOUT))
+        expect(profile6).to eq(profile3)
       end
 
       it 'should return unique list of lbps' do
