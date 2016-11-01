@@ -3,6 +3,16 @@ Feature: Execution profiles
   Execution profiles allow a user to group various execution options into a 'profile'. A user can then execute
   statements with different profiles by specifying the profile name.
 
+  Profile names should be strings or symbols. In this release, a profile encapsulates load-balancing policy,
+  retry-policy, consistency-level, and timeout.
+
+  When a user specifies simple options to `Cassandra.cluster`, the options mentioned above get stored in a default
+  execution profile. This execution profile is used by default by `Session.execute*` methods. User-defined execution
+  profiles fall back to values from the default profile for unspecified attributes. This allows the user to override
+  only the options she wants to set differently from the default profile.
+
+  Finally, options specified to `Session.execute*` methods override options specified in the desired execution profile.
+
   Background:
     Given a running cassandra cluster
 
