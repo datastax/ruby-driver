@@ -46,28 +46,26 @@ module Cassandra
       attr_accessor :parent_name
 
       # @private
-      DEFAULT_OPTIONS = {load_balancing_policy: nil,
-                         retry_policy: nil,
-                         consistency: nil,
+      DEFAULT_OPTIONS = {load_balancing_policy: :unspecified,
+                         retry_policy: :unspecified,
+                         consistency: :unspecified,
                          timeout: :unspecified}.freeze
-
-      # @private
-      DEFAULT_TIMEOUT = 12
 
       # @private
       DEFAULT_PARENT_NAME = Cassandra::Execution::ProfileManager::DEFAULT_EXECUTION_PROFILE
 
       # @param options [Hash] hash of attributes. Unspecified attributes or attributes with nil values effectively
       #   fall back to the attributes in the default execution profile.
-      # @option options [Numeric] :timeout (12) Request execution timeout in
+      # @option options [Numeric] :timeout (:unspecified) Request execution timeout in
       #   seconds. Setting value to `nil` will remove request timeout.
-      # @option options [Cassandra::LoadBalancing::Policy] :load_balancing_policy (nil) Load-balancing policy that
-      #   determines which node will run the next statement.
-      # @option options [Cassandra::Retry::Policy] :retry_policy (nil) Retry policy that determines how request
-      #   retries should be handled for different failure modes.
-      # @option options [Symbol] :consistency (nil) Consistency level with which to run statements. Must be one
+      # @option options [Cassandra::LoadBalancing::Policy] :load_balancing_policy (:unspecified) Load-balancing policy
+      #   that determines which node will run the next statement.
+      # @option options [Cassandra::Retry::Policy] :retry_policy (:unspecified) Retry policy that determines how
+      #   request retries should be handled for different failure modes.
+      # @option options [Symbol] :consistency (:unspecified) Consistency level with which to run statements. Must be one
       #   of {Cassandra::CONSISTENCIES}.
       def initialize(options = {})
+        validate(options)
         options = DEFAULT_OPTIONS.merge(options)
         @load_balancing_policy = options[:load_balancing_policy]
         @retry_policy = options[:retry_policy]
@@ -76,17 +74,13 @@ module Cassandra
         @parent_name = DEFAULT_PARENT_NAME
       end
 
-      def timeout
-        @timeout == :unspecified ? DEFAULT_TIMEOUT : @timeout
-      end
-
       # @private
       def to_h
         {
           load_balancing_policy: @load_balancing_policy,
           retry_policy: @retry_policy,
           consistency: @consistency,
-          timeout: timeout
+          timeout: @timeout
         }
       end
 
@@ -96,7 +90,7 @@ module Cassandra
           @load_balancing_policy == other.load_balancing_policy && \
           @retry_policy == other.retry_policy && \
           @consistency == other.consistency && \
-          @timeout == other.instance_variable_get(:@timeout)
+          @timeout == other.timeout
       end
       alias == eql?
 
@@ -122,10 +116,48 @@ module Cassandra
       end
 
       # @private
+      def validate(options)
+        if options.key?(:timeout)
+          timeout = options[:timeout]
+
+          unless timeout.nil?
+            Util.assert_instance_of(::Numeric, timeout, ":timeout must be a number of seconds, #{timeout.inspect} given")
+            Util.assert(timeout > 0, ":timeout must be greater than 0, #{timeout} given")
+          end
+        end
+
+        if options.key?(:load_balancing_policy)
+          load_balancing_policy = options[:load_balancing_policy]
+          methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown,
+                     :distance, :plan]
+          Util.assert_responds_to_all(methods, load_balancing_policy) do
+            ":load_balancing_policy #{load_balancing_policy.inspect} must respond " \
+            "to #{methods.inspect}, but doesn't"
+          end
+        end
+
+        if options.key?(:retry_policy)
+          retry_policy = options[:retry_policy]
+          methods = [:read_timeout, :write_timeout, :unavailable]
+          Util.assert_responds_to_all(methods, retry_policy) do
+            ":retry_policy #{retry_policy.inspect} must respond to #{methods.inspect}, " \
+            "but doesn't"
+          end
+        end
+
+        if options.key?(:consistency)
+          consistency = options[:consistency]
+          Util.assert_one_of(CONSISTENCIES, consistency,
+                             ":consistency must be one of #{CONSISTENCIES.inspect}, " \
+                             "#{consistency.inspect} given")
+        end
+      end
+
+      # @private
       def merge_from(parent_profile)
-        @load_balancing_policy = parent_profile.load_balancing_policy if @load_balancing_policy.nil?
-        @retry_policy = parent_profile.retry_policy if @retry_policy.nil?
-        @consistency = parent_profile.consistency if @consistency.nil?
+        @load_balancing_policy = parent_profile.load_balancing_policy if @load_balancing_policy == :unspecified
+        @retry_policy = parent_profile.retry_policy if @retry_policy == :unspecified
+        @consistency = parent_profile.consistency if @consistency == :unspecified
         @timeout = parent_profile.timeout if @timeout == :unspecified
         self
       end

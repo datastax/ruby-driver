@@ -32,7 +32,12 @@ module Cassandra
       }
     }
     let(:profile_manager) { double('profile_manager') }
-    let(:profile) { Execution::Profile.new }
+    let(:profile) {
+      Execution::Profile.new(load_balancing_policy: load_balancing_policy,
+                             retry_policy: retry_policy,
+                             consistency: :one,
+                             timeout: 12)
+    }
     let(:session_options) { Execution::Options.new(default_options) }
     let(:client)          { double('cassandra-driver') }
     let(:session)         {

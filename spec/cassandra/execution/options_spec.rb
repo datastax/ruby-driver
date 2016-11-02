@@ -22,20 +22,24 @@ module Cassandra
   module Execution
     describe(Options) do
       let(:load_balancing_policy) { double('lbp') }
+      let(:lbp2) { double('lbp2') }
       let(:retry_policy) { double('retry_policy') }
       let(:base_options) {
         Options.new(timeout: 10, consistency: :one, load_balancing_policy: load_balancing_policy,
                     retry_policy: retry_policy)
       }
+
       before do
-        allow(load_balancing_policy).to receive(:host_up)
-        allow(load_balancing_policy).to receive(:host_down)
-        allow(load_balancing_policy).to receive(:host_found)
-        allow(load_balancing_policy).to receive(:host_lost)
-        allow(load_balancing_policy).to receive(:setup)
-        allow(load_balancing_policy).to receive(:teardown)
-        allow(load_balancing_policy).to receive(:distance)
-        allow(load_balancing_policy).to receive(:plan)
+        [load_balancing_policy, lbp2].each do |policy|
+          allow(policy).to receive(:host_up)
+          allow(policy).to receive(:host_down)
+          allow(policy).to receive(:host_found)
+          allow(policy).to receive(:host_lost)
+          allow(policy).to receive(:setup)
+          allow(policy).to receive(:teardown)
+          allow(policy).to receive(:distance)
+          allow(policy).to receive(:plan)
+        end
 
         allow(retry_policy).to receive(:read_timeout)
         allow(retry_policy).to receive(:write_timeout)
@@ -76,9 +80,9 @@ module Cassandra
       end
 
       it 'should override with execution-profile and simple attribute' do
-        profile = Profile.new(timeout: 21, consistency: :quorum)
+        profile = Profile.new(load_balancing_policy: lbp2, retry_policy: retry_policy, timeout: 21, consistency: :quorum)
         result = base_options.override(profile, timeout: 42)
-        expect(result.load_balancing_policy).to be(load_balancing_policy)
+        expect(result.load_balancing_policy).to be(lbp2)
         expect(result.retry_policy).to be(retry_policy)
         expect(result.consistency).to be(:quorum)
         expect(result.timeout).to eq(42)
