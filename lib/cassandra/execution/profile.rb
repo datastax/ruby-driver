@@ -164,7 +164,10 @@ module Cassandra
 
       # @private
       def well_formed?
-        !@load_balancing_policy.nil? && !@retry_policy.nil? && !@consistency.nil? && @timeout != :unspecified
+        !@load_balancing_policy.nil? && @load_balancing_policy != :unspecified &&
+            !@retry_policy.nil? && @retry_policy != :unspecified &&
+            !@consistency.nil? && @consistency != :unspecified &&
+            @timeout != :unspecified
       end
     end
   end

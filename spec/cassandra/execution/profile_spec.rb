@@ -104,6 +104,13 @@ module Cassandra
           expect(profile.merge_from(default_profile).timeout).to be_nil
         end
       end
+
+      it 'should not be well-formed if it has unspecified attributes' do
+        expect(Profile.new(timeout: 7).well_formed?).to eq(false)
+        expect(Profile.new(load_balancing_policy: lbp2, timeout: 7).well_formed?).to eq(false)
+        expect(Profile.new(retry_policy: retry_policy, load_balancing_policy: lbp2, timeout: 7).well_formed?).to eq(false)
+        expect(Profile.new(consistency: :one, retry_policy: retry_policy, load_balancing_policy: lbp2, timeout: 7).well_formed?).to eq(true)
+      end
     end
   end
 end
