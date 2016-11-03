@@ -929,10 +929,7 @@ datacenter="datacenter1", use_remote=false, max_remote=0.*shuffle=true/, cluster
                                                   timeout: 32
     )
 
-    profile_2 = Cassandra::Execution::Profile.new(load_balancing_policy: nil,
-                                                  retry_policy: nil,
-                                                  consistency: nil,
-    )
+    profile_2 = Cassandra::Execution::Profile.new
 
     profiles = {profile_1: profile_1, profile_2: profile_2}
     cluster = Cassandra.cluster(execution_profiles: profiles)

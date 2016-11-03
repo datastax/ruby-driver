@@ -517,25 +517,6 @@ module Cassandra
                               ':execution_profiles must be a hash of <name,ExecutionProfile> entries.')
     end
 
-    if options.key?(:timeout)
-      timeout = options[:timeout]
-
-      unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout, ":timeout must be a number of seconds, #{timeout.inspect} given")
-        Util.assert(timeout > 0, ":timeout must be greater than 0, #{timeout} given")
-      end
-    end
-    if options.key?(:execution_profiles)
-      options[:execution_profiles].each do |name, profile|
-        timeout = profile.timeout
-        next if timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout,
-                                ":timeout of execution profile #{name} must be a number of seconds, " \
-                              "#{timeout.inspect} given")
-        Util.assert(timeout > 0, ":timeout of execution profile #{name} must be greater than 0, #{timeout} given")
-      end
-    end
-
     if options.key?(:heartbeat_interval)
       timeout = options[:heartbeat_interval]
 
@@ -584,28 +565,6 @@ module Cassandra
       end
     end
 
-    if options.key?(:load_balancing_policy)
-      load_balancing_policy = options[:load_balancing_policy]
-      methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown,
-                 :distance, :plan]
-      Util.assert_responds_to_all(methods, load_balancing_policy) do
-        ":load_balancing_policy #{load_balancing_policy.inspect} must respond " \
-            "to #{methods.inspect}, but doesn't"
-      end
-    end
-    if options.key?(:execution_profiles)
-      methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown,
-                 :distance, :plan]
-      options[:execution_profiles].each do |name, profile|
-        load_balancing_policy = profile.load_balancing_policy
-        next if load_balancing_policy.nil?
-        Util.assert_responds_to_all(methods, load_balancing_policy,
-                                    ":load_balancing_policy in execution profile #{name} " \
-                                    "#{load_balancing_policy.inspect} must respond " \
-                                    "to #{methods.inspect}, but doesn't")
-      end
-    end
-
     if options.key?(:reconnection_policy)
       reconnection_policy = options[:reconnection_policy]
 
@@ -615,43 +574,11 @@ module Cassandra
       end
     end
 
-    if options.key?(:retry_policy)
-      retry_policy = options[:retry_policy]
-      methods = [:read_timeout, :write_timeout, :unavailable]
-      Util.assert_responds_to_all(methods, retry_policy) do
-        ":retry_policy #{retry_policy.inspect} must respond to #{methods.inspect}, " \
-            "but doesn't"
-      end
-    end
-    if options.key?(:execution_profiles)
-      methods = [:read_timeout, :write_timeout, :unavailable]
-      options[:execution_profiles].each do |name, profile|
-        retry_policy = profile.retry_policy
-        next if retry_policy.nil?
-        Util.assert_responds_to_all(methods, retry_policy,
-                                    ":retry_policy in execution profile #{name} #{retry_policy.inspect} must " \
-                                    "respond to #{methods.inspect}, but doesn't")
-      end
-    end
+    # Validate options that go in an execution profile. Instantiating one
+    # causes validation automatically.
+    Cassandra::Execution::Profile.new(options)
 
     options[:listeners] = Array(options[:listeners]) if options.key?(:listeners)
-
-    if options.key?(:consistency)
-      consistency = options[:consistency]
-      Util.assert_one_of(CONSISTENCIES, consistency,
-                         ":consistency must be one of #{CONSISTENCIES.inspect}, " \
-                             "#{consistency.inspect} given")
-    end
-    if options.key?(:execution_profiles)
-      options[:execution_profiles].each do |name, profile|
-        consistency = profile.consistency
-        next if consistency.nil?
-        Util.assert_one_of(CONSISTENCIES, consistency,
-                           ":consistency in execution profile #{name} must be one of #{CONSISTENCIES.inspect}, " \
-                           "#{consistency.inspect} given")
-      end
-    end
-
     options[:nodelay] = !!options[:nodelay] if options.key?(:nodelay)
     options[:trace] = !!options[:trace] if options.key?(:trace)
     options[:shuffle_replicas] = !!options[:shuffle_replicas] if options.key?(:shuffle_replicas)

@@ -20,37 +20,70 @@ require 'spec_helper'
 
 module Cassandra
   module Execution
-    describe(Profile) do
-      let(:profile1) { Profile.new(load_balancing_policy: lbp1) }
-      let(:profile2) { Profile.new(load_balancing_policy: lbp2) }
-      let(:profile3) { Profile.new(load_balancing_policy: lbp3) }
-      let(:profile4) { Profile.new }
+    describe Profile do
+      let(:lbp) { double('lbp') }
+      let(:lbp2) { double('lbp2') }
+      let(:retry_policy) { double('retry_policy') }
+      let(:retry_policy2) { double('retry_policy2') }
 
-      context :timeout do
-        it 'should return default timeout value if unspecified' do
-          expect(Profile.new.timeout).to eq(12)
+      before do
+        [lbp, lbp2].each do |policy|
+          allow(policy).to receive(:host_up)
+          allow(policy).to receive(:host_down)
+          allow(policy).to receive(:host_found)
+          allow(policy).to receive(:host_lost)
+          allow(policy).to receive(:setup)
+          allow(policy).to receive(:teardown)
+          allow(policy).to receive(:distance)
+          allow(policy).to receive(:plan)
         end
 
-        it 'should return nil if set with nil' do
-          expect(Profile.new(timeout: nil).timeout).to be_nil
+        [retry_policy, retry_policy2].each do |policy|
+          allow(policy).to receive(:read_timeout)
+          allow(policy).to receive(:write_timeout)
+          allow(policy).to receive(:unavailable)
+        end
+      end
+
+      context :initialize do
+        it 'should validate :load_balancing_policy option' do
+          expect(Profile.new(load_balancing_policy: lbp).load_balancing_policy).to eq(lbp)
+          ['junk', nil].each do |val|
+            expect { Profile.new(load_balancing_policy: val) }.to raise_error(ArgumentError)
+          end
         end
 
-        it 'should return timeout value if set with a real value' do
-          expect(Profile.new(timeout: 6).timeout).to eq(6)
+        it 'should validate :retry_policy option' do
+          expect(Profile.new(retry_policy: retry_policy).retry_policy).to be(retry_policy)
+          expect { Profile.new(retry_policy: 'junk') }.to raise_error(ArgumentError)
+          expect { Profile.new(retry_policy: nil) }.to raise_error(ArgumentError)
+        end
+
+        it 'should validate :timeout' do
+          ['a', -1, 0].each do |val|
+            expect { Profile.new(timeout: val) }.to raise_error(ArgumentError)
+          end
+          [0.5, 38, nil].each do |val|
+            expect(Profile.new(timeout: val).timeout).to eq(val)
+          end
+        end
+
+        it 'should validate :consistency' do
+          Cassandra::CONSISTENCIES.each do |c|
+            expect(Profile.new(consistency: c).consistency).to eq(c)
+          end
+          expect { Profile.new(consistency: 'foo') }.to raise_error(ArgumentError)
         end
       end
 
       context :merge_from do
-        let(:lbp) { double('lbp') }
-        let(:lbp2) { double('lbp2') }
-        let(:retry_policy) { double('retry_policy') }
-        let(:retry_policy2) { double('retry_policy2') }
         let(:default_profile) { Profile.new(load_balancing_policy: lbp, retry_policy: retry_policy, consistency: :one,
                                             timeout: 10)}
         let(:profile) {
           Profile.new(load_balancing_policy: lbp2, retry_policy: retry_policy2, consistency: :quorum, timeout: 23)
         }
         let(:empty_profile) { Profile.new }
+
         it 'should accept all attributes from parent profile if it has no attributes itself' do
           expect(Profile.new.merge_from(default_profile)).to eq(default_profile)
         end
@@ -61,7 +94,7 @@ module Cassandra
 
         it 'should respect nil timeout in parent' do
           parent_profile = Profile.new(timeout: nil)
-          expect(empty_profile.timeout).to eq(12)
+          expect(empty_profile.timeout).to eq(:unspecified)
           expect(empty_profile.merge_from(parent_profile).timeout).to be_nil
         end
 
@@ -70,6 +103,13 @@ module Cassandra
           expect(profile.timeout).to be_nil
           expect(profile.merge_from(default_profile).timeout).to be_nil
         end
+      end
+
+      it 'should not be well-formed if it has unspecified attributes' do
+        expect(Profile.new(timeout: 7).well_formed?).to eq(false)
+        expect(Profile.new(load_balancing_policy: lbp2, timeout: 7).well_formed?).to eq(false)
+        expect(Profile.new(retry_policy: retry_policy, load_balancing_policy: lbp2, timeout: 7).well_formed?).to eq(false)
+        expect(Profile.new(consistency: :one, retry_policy: retry_policy, load_balancing_policy: lbp2, timeout: 7).well_formed?).to eq(true)
       end
     end
   end

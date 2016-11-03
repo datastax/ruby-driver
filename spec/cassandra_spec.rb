@@ -223,20 +223,6 @@ describe Cassandra do
       end
     end
 
-    it 'should validate :timeout in a profile' do
-      ['a', -1, 0].each do |val|
-        profiles.merge!(bad_profile: Cassandra::Execution::Profile.new(timeout: val))
-        expect { C.validate(execution_profiles: profiles) }.to raise_error(ArgumentError)
-      end
-
-      profiles.delete(:bad_profile)
-
-      [0.5, 38, nil].each do |val|
-        profiles.merge!(good_profile: Cassandra::Execution::Profile.new(timeout: val))
-        expect(C.validate(execution_profiles: profiles)).to eq({ execution_profiles: profiles })
-      end
-    end
-
     it 'should validate :heartbeat_interval' do
       expect { C.validate(heartbeat_interval: 'a') }.to raise_error(ArgumentError)
       expect { C.validate(heartbeat_interval: -1) }.to raise_error(ArgumentError)
@@ -280,18 +266,6 @@ describe Cassandra do
       end
     end
 
-    it 'should validate :load_balancing_policy option in a profile' do
-      profiles.merge!(good_profile: Cassandra::Execution::Profile.new(load_balancing_policy: lbp))
-      expect(C.validate(execution_profiles: profiles)).to eq({ execution_profiles: profiles })
-
-      # nil is actually allowed, so we don't error out for it.
-      profiles.merge!(good_profile: Cassandra::Execution::Profile.new(load_balancing_policy: nil))
-      expect(C.validate(execution_profiles: profiles)).to eq({ execution_profiles: profiles })
-
-      profiles.merge!(bad_profile: Cassandra::Execution::Profile.new(load_balancing_policy: 'junk'))
-      expect { C.validate(execution_profiles: profiles) }.to raise_error(ArgumentError)
-    end
-
     it 'should validate :reconnection_policy option' do
       class GoodPolicy
         def schedule
@@ -320,30 +294,6 @@ describe Cassandra do
       expect { C.validate(retry_policy: nil) }.to raise_error(ArgumentError)
     end
 
-    it 'should validate :retry_policy option in a profile' do
-      class GoodPolicy
-        def read_timeout
-        end
-
-        def write_timeout
-        end
-
-        def unavailable
-        end
-      end
-      policy = GoodPolicy.new
-
-      profiles.merge!(good_profile: Cassandra::Execution::Profile.new(retry_policy: policy))
-      expect(C.validate(execution_profiles: profiles)).to eq({ execution_profiles: profiles })
-
-      # nil is actually allowed, so we don't error out for it.
-      profiles.merge!(good_profile: Cassandra::Execution::Profile.new(retry_policy: nil))
-      expect(C.validate(execution_profiles: profiles)).to eq({ execution_profiles: profiles })
-
-      profiles.merge!(bad_profile: Cassandra::Execution::Profile.new(retry_policy: 'junk'))
-      expect { C.validate(execution_profiles: profiles) }.to raise_error(ArgumentError)
-    end
-
     it 'should massage :listeners into an array' do
       expect(C.validate(listeners: 'a')).to eq({ listeners: ['a'] })
       expect(C.validate(listeners: ['a'])).to eq({ listeners: ['a'] })
@@ -355,15 +305,6 @@ describe Cassandra do
         expect(C.validate(consistency: c)).to eq({ consistency: c })
       end
       expect { C.validate(consistency: 'foo') }.to raise_error(ArgumentError)
-    end
-
-    it 'should validate :consistency in a profile' do
-      Cassandra::CONSISTENCIES.each do |c|
-        profiles.merge!(good_profile: Cassandra::Execution::Profile.new(consistency: c))
-        expect(C.validate(execution_profiles: profiles)).to eq({ execution_profiles: profiles })
-      end
-      profiles.merge!(bad_profile: Cassandra::Execution::Profile.new(consistency: 'foo'))
-      expect { C.validate(execution_profiles: profiles) }.to raise_error(ArgumentError)
     end
 
     it 'should massage :nodelay to a boolean' do

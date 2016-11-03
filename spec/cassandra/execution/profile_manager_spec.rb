@@ -41,24 +41,41 @@ module Cassandra
       }
 
       let(:default_profile) {
-        Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy, consistency: :quorum)
+        Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy, consistency: :quorum, timeout: 12)
       }
       let(:subject) {
         ProfileManager.new(default_profile, {p6: profile6, p1: profile1, p2: profile2, p3: profile3, p4: profile4, p5: profile5})
       }
 
+      before do
+        [lbp1, lbp2, lbp3].each do |policy|
+          allow(policy).to receive(:host_up)
+          allow(policy).to receive(:host_down)
+          allow(policy).to receive(:host_found)
+          allow(policy).to receive(:host_lost)
+          allow(policy).to receive(:setup)
+          allow(policy).to receive(:teardown)
+          allow(policy).to receive(:distance)
+          allow(policy).to receive(:plan)
+        end
+
+        allow(retry_policy).to receive(:read_timeout)
+        allow(retry_policy).to receive(:write_timeout)
+        allow(retry_policy).to receive(:unavailable)
+      end
+
       it 'should fill out profiles with values from default profile' do
         subject
         expect(profile1).to eq(Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy,
-                                     consistency: :quorum, timeout: Profile::DEFAULT_TIMEOUT))
+                                     consistency: :quorum, timeout: 12))
         expect(profile2).to eq(Profile.new(load_balancing_policy: lbp2, retry_policy: retry_policy,
-                                           consistency: :quorum, timeout: Profile::DEFAULT_TIMEOUT))
+                                           consistency: :quorum, timeout: 12))
         expect(profile3).to eq(Profile.new(load_balancing_policy: lbp3, retry_policy: retry_policy,
-                                           consistency: :quorum, timeout: Profile::DEFAULT_TIMEOUT))
+                                           consistency: :quorum, timeout: 12))
         expect(profile4).to eq(Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy,
-                                           consistency: :quorum, timeout: Profile::DEFAULT_TIMEOUT))
+                                           consistency: :quorum, timeout: 12))
         expect(profile5).to eq(Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy,
-                                           consistency: :quorum, timeout: Profile::DEFAULT_TIMEOUT))
+                                           consistency: :quorum, timeout: 12))
         expect(profile6).to eq(profile3)
       end
 
