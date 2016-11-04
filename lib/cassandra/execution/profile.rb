@@ -52,7 +52,7 @@ module Cassandra
                          timeout: :unspecified}.freeze
 
       # @private
-      DEFAULT_PARENT_NAME = Cassandra::Execution::ProfileManager::DEFAULT_EXECUTION_PROFILE
+      DEFAULT_PARENT_NAME = :default
 
       # @param options [Hash] hash of attributes. Unspecified attributes or attributes with nil values effectively
       #   fall back to the attributes in the default execution profile.
@@ -155,11 +155,14 @@ module Cassandra
 
       # @private
       def merge_from(parent_profile)
-        @load_balancing_policy = parent_profile.load_balancing_policy if @load_balancing_policy == :unspecified
-        @retry_policy = parent_profile.retry_policy if @retry_policy == :unspecified
-        @consistency = parent_profile.consistency if @consistency == :unspecified
-        @timeout = parent_profile.timeout if @timeout == :unspecified
-        self
+        return self if well_formed?
+
+        parent_hash = parent_profile.to_h
+        self_hash = to_h
+        self_hash.each do |key, value|
+          self_hash[key] = parent_hash[key] if value == :unspecified
+        end
+        Profile.new(self_hash)
       end
 
       # @private

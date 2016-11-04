@@ -41,6 +41,17 @@ class GoodLBP
   end
 end
 
+class GoodRetryPolicy
+  def read_timeout
+  end
+
+  def write_timeout
+  end
+
+  def unavailable
+  end
+end
+
 describe Cassandra do
   context :validate_and_massage_options do
     let(:profiles) {
@@ -60,6 +71,23 @@ describe Cassandra do
       it 'should validate :execution_profiles is a hash' do
         expect(C.validate(execution_profiles: profiles)).to eq({ execution_profiles: profiles })
         expect { C.validate(execution_profiles: []) }.to raise_error(ArgumentError)
+      end
+
+      it 'should validate that execution profiles and load_balancing_policy are mutually exclusive' do
+        expect { C.validate(execution_profiles: profiles, load_balancing_policy: lbp) }.to raise_error(ArgumentError)
+      end
+
+      it 'should validate that execution profiles and consistency are mutually exclusive' do
+        expect { C.validate(execution_profiles: profiles, consistency: :one) }.to raise_error(ArgumentError)
+      end
+
+      it 'should validate that execution profiles and timeout are mutually exclusive' do
+        expect { C.validate(execution_profiles: profiles, timeout: 7) }.to raise_error(ArgumentError)
+      end
+
+      it 'should validate that execution profiles and retry_policy are mutually exclusive' do
+        expect { C.validate(execution_profiles: profiles, retry_policy: GoodRetryPolicy.new) }.
+            to raise_error(ArgumentError)
       end
     end
 
@@ -278,17 +306,7 @@ describe Cassandra do
     end
 
     it 'should validate :retry_policy option' do
-      class GoodPolicy
-        def read_timeout
-        end
-
-        def write_timeout
-        end
-
-        def unavailable
-        end
-      end
-      policy = GoodPolicy.new
+      policy = GoodRetryPolicy.new
       expect(C.validate(retry_policy: policy)).to eq({ retry_policy: policy })
       expect { C.validate(retry_policy: 'junk') }.to raise_error(ArgumentError)
       expect { C.validate(retry_policy: nil) }.to raise_error(ArgumentError)

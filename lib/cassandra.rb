@@ -324,6 +324,12 @@ module Cassandra
       CLUSTER_OPTIONS.include?(key)
     end
 
+    if options.key?(:execution_profiles)
+      [:load_balancing_policy, :retry_policy, :timeout, :consistency].each do |opt|
+        raise ::ArgumentError, "#{opt} is not allowed when execution profiles are used" if options.key?(opt)
+      end
+    end
+
     has_username = options.key?(:username)
     has_password = options.key?(:password)
     if has_username || has_password
