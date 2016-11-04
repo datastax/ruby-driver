@@ -896,7 +896,7 @@ datacenter="datacenter1", use_remote=false, max_remote=0.*shuffle=true/, cluster
     assert_includes [1,2,3,4], cluster.protocol_version
     refute_nil cluster.keyspaces
 
-    execution_profile = cluster.execution_profiles['__DEFAULT_EXECUTION_PROFILE__']
+    execution_profile = cluster.execution_profiles[:default]
     refute_nil execution_profile
     assert_equal Cassandra::LoadBalancing::Policies::TokenAware, execution_profile.load_balancing_policy.class
     assert_equal Cassandra::Retry::Policies::Default, execution_profile.retry_policy.class
@@ -911,7 +911,7 @@ datacenter="datacenter1", use_remote=false, max_remote=0.*shuffle=true/, cluster
   # test_can_use_execution_profiles tests that execution profiles can be created and used in session execution. It first
   # creates two execution profiles: one with all options specified and another with no options specified. It then
   # creates a cluster with these two profiles and verifies their options. The 2nd execution profile should be equivalent
-  # to the DEFAULT_EXECUTION_PROFILE as any missing options are copied over. It then executes a simple query using
+  # to the :default execution profile as any missing options are copied over. It then executes a simple query using
   # the execution profiles and verifies that the execution info shows their use.
   #
   # @since 3.1.0
@@ -940,7 +940,7 @@ datacenter="datacenter1", use_remote=false, max_remote=0.*shuffle=true/, cluster
 
     execution_profile_2 = cluster.execution_profiles[:profile_2]
     assert_equal profile_2, execution_profile_2
-    assert_equal cluster.execution_profiles['__DEFAULT_EXECUTION_PROFILE__'], execution_profile_2
+    assert_equal cluster.execution_profiles[:default], execution_profile_2
 
     session = cluster.connect
     exec_options = session.execute('select * from system.local').execution_info.options

@@ -23,10 +23,9 @@ module Cassandra
     describe(ProfileManager) do
       let(:cluster) { double('cluster') }
       let(:host) { double('host') }
-      let(:registry) { FakeClusterRegistry.new(['127.0.0.1', '127.0.0.2']) }
-      let(:lbp1) { FakeLoadBalancingPolicy.new(registry) }
-      let(:lbp2) { FakeLoadBalancingPolicy.new(registry) }
-      let(:lbp3) { FakeLoadBalancingPolicy.new(registry) }
+      let(:lbp1) { double('lbp1') }
+      let(:lbp2) { double('lbp2') }
+      let(:lbp3) { double('lbp3') }
       let(:retry_policy) { double('retry_policy') }
       let(:profile1) { Profile.new(load_balancing_policy: lbp1) }
       let(:profile2) { Profile.new(load_balancing_policy: lbp2) }
@@ -39,12 +38,14 @@ module Cassandra
         p.parent_name = :p3
         p
       }
-
       let(:default_profile) {
         Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy, consistency: :quorum, timeout: 12)
       }
       let(:subject) {
         ProfileManager.new(default_profile, {p6: profile6, p1: profile1, p2: profile2, p3: profile3, p4: profile4, p5: profile5})
+      }
+      let(:subject_with_custom_default) {
+        ProfileManager.new(default_profile, {default: profile2, p4: profile4})
       }
 
       before do
@@ -65,18 +66,24 @@ module Cassandra
       end
 
       it 'should fill out profiles with values from default profile' do
-        subject
-        expect(profile1).to eq(Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy,
+        expect(subject.profiles[:p1]).to eq(Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy,
                                      consistency: :quorum, timeout: 12))
-        expect(profile2).to eq(Profile.new(load_balancing_policy: lbp2, retry_policy: retry_policy,
+        expect(subject.profiles[:p2]).to eq(Profile.new(load_balancing_policy: lbp2, retry_policy: retry_policy,
                                            consistency: :quorum, timeout: 12))
-        expect(profile3).to eq(Profile.new(load_balancing_policy: lbp3, retry_policy: retry_policy,
+        expect(subject.profiles[:p3]).to eq(Profile.new(load_balancing_policy: lbp3, retry_policy: retry_policy,
                                            consistency: :quorum, timeout: 12))
-        expect(profile4).to eq(Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy,
+        expect(subject.profiles[:p4]).to eq(Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy,
                                            consistency: :quorum, timeout: 12))
-        expect(profile5).to eq(Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy,
+        expect(subject.profiles[:p5]).to eq(Profile.new(load_balancing_policy: lbp1, retry_policy: retry_policy,
                                            consistency: :quorum, timeout: 12))
-        expect(profile6).to eq(profile3)
+        expect(subject.profiles[:p6]).to eq(subject.profiles[:p3])
+      end
+
+      it 'should respect custom default profile' do
+        expect(subject_with_custom_default.profiles[:p4]).to eq(Profile.new(load_balancing_policy: lbp2,
+                                                                            retry_policy: retry_policy,
+                                                                            consistency: :quorum,
+                                                                            timeout: 12))
       end
 
       it 'should return unique list of lbps' do

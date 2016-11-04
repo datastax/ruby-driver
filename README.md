@@ -101,9 +101,19 @@ In the examples directory, you can find [an example of how to wrap the ruby driv
 interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/master/examples/cql-rb-wrapper.rb)
 to assist you with gradual upgrade.
 
-## What's new in v3.0
+## What's new in v3.1
 
-See the [changelog](https://github.com/datastax/ruby-driver/blob/master/CHANGELOG.md) for details on patch versions.
+This minor release introduces features and fixes around resiliency, schema metadata, usability, and performance. One
+of the most user-impacting of these is the introduction of
+[execution profiles](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/basics/execution_profiles).
+Execution profiles allow you to group various execution options into a 'profile' and you reference the desired
+profile at execution time. Get the scoop
+[here](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/basics/execution_profiles).
+
+See the [changelog](https://github.com/datastax/ruby-driver/blob/master/CHANGELOG.md) for more information on all
+changes in this version and past versions.
+
+## What's new in v3.0
 
 ### Features:
 

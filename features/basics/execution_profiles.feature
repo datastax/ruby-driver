@@ -1,15 +1,38 @@
 Feature: Execution profiles
 
-  Execution profiles allow a user to group various execution options into a 'profile'. A user can then execute
-  statements with different profiles by specifying the profile name.
+  Execution profiles allow a user to group various execution options into a 'profile'. A user defines profiles when
+  initializing the cluster object. A user can then execute statements with different profiles by specifying the profile
+  name in calls to `Session.execute*`.
 
   Profile names should be strings or symbols. In this release, a profile encapsulates load-balancing policy,
-  retry-policy, consistency-level, and timeout.
+  retry-policy, consistency-level, and timeout primitive options.
 
-  When a user specifies simple options to `Cassandra.cluster`, the options mentioned above get stored in a default
-  execution profile. This execution profile is used by default by `Session.execute*` methods. User-defined execution
-  profiles fall back to values from the default profile for unspecified attributes. This allows the user to override
-  only the options she wants to set differently from the default profile.
+  If a user specifies simple options to `Cassandra.cluster`, the options mentioned above get stored in a default
+  execution profile named `:default`. This execution profile is used by default by `Session.execute*` methods.
+  User-defined execution profiles fall back to values from the default profile for unspecified attributes. This allows
+  the user to override only the options she wants to set differently from the default profile.
+
+  If you declare execution profiles, it is illegal to also include the primitive options mentioned above:
+
+  ```ruby
+  puts "This is bad"
+  cluster = Cassandra.cluster(timeout: 7, execution_profiles: {
+      myprof: Cassandra::Execution::Profile.new(...)
+  })
+  ```
+
+  To change default execution profile attributes and declare other execution profiles, you must declare the :default
+  profile when initializing the cluster:
+
+  ```ruby
+  puts "This is legal"
+  cluster = Cassandra.cluster(execution_profiles: {
+      default: Cassandra::Execution::Profile.new(timeout: 7)
+      myprof: Cassandra::Execution::Profile.new(...)
+  })
+  ```
+
+  Unspecified attributes fall back to the same system defaults that have been used in past versions of the driver.
 
   Finally, options specified to `Session.execute*` methods override options specified in the desired execution profile.
 
@@ -45,7 +68,7 @@ Feature: Execution profiles
       """
       There are 2 execution profiles in the cluster:
 
-      Name: __DEFAULT_EXECUTION_PROFILE__
+      Name: default
       Load_balancing_policy: Cassandra::LoadBalancing::Policies::TokenAware
       Retry policy: Cassandra::Retry::Policies::Default
       Consistency: local_one

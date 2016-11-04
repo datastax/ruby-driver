@@ -89,11 +89,14 @@ module Cassandra
         end
 
         it 'should ignore all attributes from parent profile if it is fully specified itself' do
-          expect(profile.merge_from(default_profile)).to eq(profile)
+          expect(profile.merge_from(default_profile)).to be(profile)
         end
 
         it 'should respect nil timeout in parent' do
-          parent_profile = Profile.new(timeout: nil)
+          parent_profile = Profile.new(load_balancing_policy: lbp,
+                                       retry_policy: retry_policy,
+                                       consistency: :one,
+                                       timeout: nil)
           expect(empty_profile.timeout).to eq(:unspecified)
           expect(empty_profile.merge_from(parent_profile).timeout).to be_nil
         end

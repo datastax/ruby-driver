@@ -23,17 +23,22 @@ module Cassandra
       attr_reader :profiles
       attr_reader :load_balancing_policies
 
-      # Name of the default execution profile. Use this constant as the key for an execution profile when initializing
-      # a {Cluster} to override the default execution profile with your own.
-      DEFAULT_EXECUTION_PROFILE = '__DEFAULT_EXECUTION_PROFILE__'.freeze
-
       def initialize(default_profile, profiles)
+        # default_profile is the default profile that we constructed internally. However, the user can override it
+        # with their own :default profile, which may not be fully specified. See if we have such a profile and merge
+        # in the "system defaults" from the profile we generated.
+
+        custom_default = profiles.delete(:default)
+        unless custom_default.nil?
+          default_profile = custom_default.merge_from(default_profile)
+        end
+
         # Walk through the profiles and fill them out with attributes from the default profile when they're not
         # set. Also, save off all of the load-balancing policies for easy access.
 
         @load_balancing_policies = Set.new
-        @load_balancing_policies << default_profile.load_balancing_policy if default_profile.load_balancing_policy
-        @profiles = {DEFAULT_EXECUTION_PROFILE => default_profile}
+        @load_balancing_policies << default_profile.load_balancing_policy
+        @profiles = {default: default_profile}
 
         @unready_profiles = {}
 
@@ -43,7 +48,7 @@ module Cassandra
       end
 
       def default_profile
-        @profiles[DEFAULT_EXECUTION_PROFILE]
+        @profiles[:default]
       end
 
       def distance(host)
@@ -64,7 +69,7 @@ module Cassandra
       def add_profile(name, profile)
         if !profile.well_formed? && @profiles.key?(profile.parent_name)
           # This profile is ready to inherit attributes from its parent.
-          profile.merge_from(@profiles[profile.parent_name])
+          profile = profile.merge_from(@profiles[profile.parent_name])
         end
         if profile.well_formed?
           make_available(name, profile)
@@ -83,18 +88,17 @@ module Cassandra
 
       def make_available(name, profile)
         @profiles[name] = profile
-        @load_balancing_policies << profile.load_balancing_policy if profile.load_balancing_policy
+        @load_balancing_policies << profile.load_balancing_policy
         @unready_profiles.delete(name)
       end
 
       def hydrate_profile(name, profile)
-        did_work = false
         if @profiles.key?(profile.parent_name)
-          profile.merge_from(@profiles[profile.parent_name])
+          profile = profile.merge_from(@profiles[profile.parent_name])
           make_available(name, profile)
-          did_work = true
+          return true
         end
-        did_work
+        false
       end
 
       # @private
