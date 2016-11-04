@@ -939,7 +939,6 @@ datacenter="datacenter1", use_remote=false, max_remote=0.*shuffle=true/, cluster
     assert_equal profile_1, execution_profile_1
 
     execution_profile_2 = cluster.execution_profiles[:profile_2]
-    assert_equal profile_2, execution_profile_2
     assert_equal cluster.execution_profiles[:default], execution_profile_2
 
     session = cluster.connect
