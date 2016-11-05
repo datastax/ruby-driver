@@ -910,9 +910,9 @@ datacenter="datacenter1", use_remote=false, max_remote=0.*shuffle=true/, cluster
   #
   # test_can_use_execution_profiles tests that execution profiles can be created and used in session execution. It first
   # creates two execution profiles: one with all options specified and another with no options specified. It then
-  # creates a cluster with these two profiles and verifies their options. The 2nd execution profile should be equivalent
-  # to the :default execution profile as any missing options are copied over. It then executes a simple query using
-  # the execution profiles and verifies that the execution info shows their use.
+  # creates a cluster with these two profiles and verifies their options. The 2nd execution profile should use
+  # system defaults for attributes. It then executes a simple query using the execution profiles and verifies that the
+  # execution info shows their use.
   #
   # @since 3.1.0
   # @jira_ticket RUBY-256
@@ -939,7 +939,10 @@ datacenter="datacenter1", use_remote=false, max_remote=0.*shuffle=true/, cluster
     assert_equal profile_1, execution_profile_1
 
     execution_profile_2 = cluster.execution_profiles[:profile_2]
-    assert_equal cluster.execution_profiles[:default], execution_profile_2
+    assert_equal cluster.execution_profiles[:default].timeout, execution_profile_2.timeout
+    assert_equal cluster.execution_profiles[:default].consistency, execution_profile_2.consistency
+    assert_instance_of Cassandra::Retry::Policies::Default, execution_profile_2.retry_policy
+    assert_instance_of Cassandra::LoadBalancing::Policies::TokenAware, execution_profile_2.load_balancing_policy
 
     session = cluster.connect
     exec_options = session.execute('select * from system.local').execution_info.options
