@@ -68,17 +68,17 @@ Feature: Execution profiles
       """
       There are 2 execution profiles in the cluster:
 
-      Name: default
-      Load_balancing_policy: Cassandra::LoadBalancing::Policies::TokenAware
-      Retry policy: Cassandra::Retry::Policies::Default
-      Consistency: local_one
-      Timeout: 12
-
       Name: my_profile
       Load_balancing_policy: Cassandra::LoadBalancing::Policies::RoundRobin
       Retry policy: Cassandra::Retry::Policies::DowngradingConsistency
       Consistency: all
       Timeout: 32
+
+      Name: default
+      Load_balancing_policy: Cassandra::LoadBalancing::Policies::TokenAware
+      Retry policy: Cassandra::Retry::Policies::Default
+      Consistency: local_one
+      Timeout: 12
       """
 
   Scenario: Configure different load balancing policies with profiles

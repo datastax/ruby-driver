@@ -43,44 +43,37 @@ module Cassandra
       attr_reader :timeout
 
       # @private
-      attr_accessor :parent_name
+      DEFAULT_OPTIONS = { consistency: :local_one, timeout: 12 }.freeze
 
-      # @private
-      DEFAULT_OPTIONS = {load_balancing_policy: :unspecified,
-                         retry_policy: :unspecified,
-                         consistency: :unspecified,
-                         timeout: :unspecified}.freeze
-
-      # @private
-      DEFAULT_PARENT_NAME = :default
-
-      # @param options [Hash] hash of attributes. Unspecified attributes or attributes with nil values effectively
-      #   fall back to the attributes in the default execution profile.
-      # @option options [Numeric] :timeout (:unspecified) Request execution timeout in
+      # @param options [Hash] hash of attributes. Unspecified attributes fall back to system defaults.
+      # @option options [Numeric] :timeout (12) Request execution timeout in
       #   seconds. Setting value to `nil` will remove request timeout.
-      # @option options [Cassandra::LoadBalancing::Policy] :load_balancing_policy (:unspecified) Load-balancing policy
+      # @option options [Cassandra::LoadBalancing::Policy] :load_balancing_policy (
+      #   LoadBalancing::Policies::TokenAware(LoadBalancing::Policies::DCAwareRoundRobin)) Load-balancing policy
       #   that determines which node will run the next statement.
-      # @option options [Cassandra::Retry::Policy] :retry_policy (:unspecified) Retry policy that determines how
-      #   request retries should be handled for different failure modes.
-      # @option options [Symbol] :consistency (:unspecified) Consistency level with which to run statements. Must be one
+      # @option options [Cassandra::Retry::Policy] :retry_policy (Retry::Policies::Default) Retry policy that
+      #   determines how request retries should be handled for different failure modes.
+      # @option options [Symbol] :consistency (:local_one) Consistency level with which to run statements. Must be one
       #   of {Cassandra::CONSISTENCIES}.
       def initialize(options = {})
         validate(options)
         options = DEFAULT_OPTIONS.merge(options)
-        @load_balancing_policy = options[:load_balancing_policy]
-        @retry_policy = options[:retry_policy]
+        @load_balancing_policy = options[:load_balancing_policy] ||
+            LoadBalancing::Policies::TokenAware.new(
+                LoadBalancing::Policies::DCAwareRoundRobin.new,
+                true)
+        @retry_policy = options[:retry_policy] || Retry::Policies::Default.new
         @consistency = options[:consistency]
         @timeout = options[:timeout]
-        @parent_name = DEFAULT_PARENT_NAME
       end
 
       # @private
       def to_h
         {
-          load_balancing_policy: @load_balancing_policy,
-          retry_policy: @retry_policy,
-          consistency: @consistency,
-          timeout: @timeout
+            load_balancing_policy: @load_balancing_policy,
+            retry_policy: @retry_policy,
+            consistency: @consistency,
+            timeout: @timeout
         }
       end
 
@@ -151,26 +144,6 @@ module Cassandra
                              ":consistency must be one of #{CONSISTENCIES.inspect}, " \
                              "#{consistency.inspect} given")
         end
-      end
-
-      # @private
-      def merge_from(parent_profile)
-        return self if well_formed?
-
-        parent_hash = parent_profile.to_h
-        self_hash = to_h
-        self_hash.each do |key, value|
-          self_hash[key] = parent_hash[key] if value == :unspecified
-        end
-        Profile.new(self_hash)
-      end
-
-      # @private
-      def well_formed?
-        !@load_balancing_policy.nil? && @load_balancing_policy != :unspecified &&
-            !@retry_policy.nil? && @retry_policy != :unspecified &&
-            !@consistency.nil? && @consistency != :unspecified &&
-            @timeout != :unspecified
       end
     end
   end

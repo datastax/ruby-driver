@@ -25,26 +25,16 @@ module Cassandra
 
       def initialize(default_profile, profiles)
         # default_profile is the default profile that we constructed internally. However, the user can override it
-        # with their own :default profile, which may not be fully specified. See if we have such a profile and merge
-        # in the "system defaults" from the profile we generated.
+        # with their own :default profile. If that happens, ignore the internally generated default profile.
 
-        custom_default = profiles.delete(:default)
-        unless custom_default.nil?
-          default_profile = custom_default.merge_from(default_profile)
-        end
+        profiles[:default] = default_profile unless profiles.key?(:default)
 
-        # Walk through the profiles and fill them out with attributes from the default profile when they're not
-        # set. Also, save off all of the load-balancing policies for easy access.
-
+        # Save off all of the load-balancing policies for easy access.
         @load_balancing_policies = Set.new
-        @load_balancing_policies << default_profile.load_balancing_policy
-        @profiles = {default: default_profile}
-
-        @unready_profiles = {}
-
         profiles.each do |name, profile|
-          add_profile(name, profile)
+          @load_balancing_policies << profile.load_balancing_policy
         end
+        @profiles = profiles
       end
 
       def default_profile
@@ -67,44 +57,14 @@ module Cassandra
       # NOTE: It's only safe to call add_profile when setting up the cluster object. In particular,
       # this is only ok before calling Driver#connect.
       def add_profile(name, profile)
-        if !profile.well_formed? && @profiles.key?(profile.parent_name)
-          # This profile is ready to inherit attributes from its parent.
-          profile = profile.merge_from(@profiles[profile.parent_name])
-        end
-        if profile.well_formed?
-          make_available(name, profile)
-          did_add = true
-          while did_add && !@unready_profiles.empty?
-            did_add = false
-            @unready_profiles.dup.each do |name, profile|
-              did_add = hydrate_profile(name, profile)
-            end
-          end
-        else
-          # This profile isn't ready to inherit its parent attributes yet
-          @unready_profiles[name] = profile
-        end
-      end
-
-      def make_available(name, profile)
         @profiles[name] = profile
         @load_balancing_policies << profile.load_balancing_policy
-        @unready_profiles.delete(name)
-      end
-
-      def hydrate_profile(name, profile)
-        if @profiles.key?(profile.parent_name)
-          profile = profile.merge_from(@profiles[profile.parent_name])
-          make_available(name, profile)
-          return true
-        end
-        false
       end
 
       # @private
       def inspect
         "#<#{self.class.name}:0x#{object_id.to_s(16)} " \
-      "profiles=#{@profiles.inspect}>"
+          "profiles=#{@profiles.inspect}>"
       end
     end
   end
