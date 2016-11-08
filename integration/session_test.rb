@@ -906,6 +906,61 @@ datacenter="datacenter1", use_remote=false, max_remote=0.*shuffle=true/, cluster
     cluster && cluster.close
   end
 
+  # Test for the default execution profile
+  #
+  # test_can_use_the_default_execution_profile tests that the default execution profile can be created and used. It
+  # first inspects the default execution profile for its options. It then creates a Cassandra cluster with some options,
+  # and verifies that these options are inserted into the default execution profile. It then creates an execution
+  # profile manually and specifies it as the default execution profile. Finally, it verifies that an ArgumentError
+  # is raised when execution profiles are used concurrently with a hash of options in cluster creation.
+  #
+  # @expected_errors [ArgumentError] When both execution profiles and options hash is specified in a cluster
+  #
+  # @since 3.1.0
+  # @jira_ticket RUBY-277
+  # @expected_result the default execution profiles should be defined and retrieved from the cluster object
+  #
+  # @test_category execution_profiles
+  #
+  def test_can_use_the_default_execution_profile
+    setup_schema
+
+    # Default execution profile options
+    cluster = Cassandra.cluster
+    default_profile = cluster.execution_profiles[:default]
+    assert_instance_of Cassandra::LoadBalancing::Policies::TokenAware, default_profile.load_balancing_policy
+    assert_instance_of Cassandra::Retry::Policies::Default, default_profile.retry_policy
+    assert_equal :local_one, default_profile.consistency
+    assert_equal 12, default_profile.timeout
+    cluster.close
+
+    # Default execution profile options changed automatically
+    cluster = Cassandra.cluster(timeout: 60, consistency: :all)
+    default_profile = cluster.execution_profiles[:default]
+    assert_instance_of Cassandra::LoadBalancing::Policies::TokenAware, default_profile.load_balancing_policy
+    assert_instance_of Cassandra::Retry::Policies::Default, default_profile.retry_policy
+    assert_equal :all, default_profile.consistency
+    assert_equal 60, default_profile.timeout
+    cluster.close
+
+    # Manually specifying options in default execution profile
+    profile = Cassandra::Execution::Profile.new(timeout: 60, consistency: :all)
+    assert_instance_of Cassandra::LoadBalancing::Policies::TokenAware, profile.load_balancing_policy
+    assert_instance_of Cassandra::Retry::Policies::Default, profile.retry_policy
+    assert_equal :all, profile.consistency
+    assert_equal 60, profile.timeout
+
+    cluster = Cassandra.cluster(execution_profiles: {default: profile})
+    default_profile = cluster.execution_profiles[:default]
+    assert_equal profile, default_profile
+    cluster.close
+
+    # Can't mix and match options with execution profile
+    assert_raises(ArgumentError) do
+      Cassandra.cluster(timeout: 60, execution_profiles: {default: profile})
+    end
+  end
+
   # Test for execution profile creation and use
   #
   # test_can_use_execution_profiles tests that execution profiles can be created and used in session execution. It first
@@ -913,6 +968,8 @@ datacenter="datacenter1", use_remote=false, max_remote=0.*shuffle=true/, cluster
   # creates a cluster with these two profiles and verifies their options. The 2nd execution profile should use
   # system defaults for attributes. It then executes a simple query using the execution profiles and verifies that the
   # execution info shows their use.
+  #
+  # @expected_errors [NoMethodError] When execution profile is attempted to be modified
   #
   # @since 3.1.0
   # @jira_ticket RUBY-256
@@ -929,7 +986,21 @@ datacenter="datacenter1", use_remote=false, max_remote=0.*shuffle=true/, cluster
                                                   timeout: 32
     )
 
+    assert_instance_of Cassandra::LoadBalancing::Policies::RoundRobin, profile_1.load_balancing_policy
+    assert_instance_of Cassandra::Retry::Policies::DowngradingConsistency, profile_1.retry_policy
+    assert_equal :all, profile_1.consistency
+    assert_equal 32, profile_1.timeout
+
+    # Execution profiles are immutable
+    assert_raises(NoMethodError) do
+      profile_1.timeout = 5
+    end
+
     profile_2 = Cassandra::Execution::Profile.new
+    assert_instance_of Cassandra::LoadBalancing::Policies::TokenAware, profile_2.load_balancing_policy
+    assert_instance_of Cassandra::Retry::Policies::Default, profile_2.retry_policy
+    assert_equal :local_one, profile_2.consistency
+    assert_equal 12, profile_2.timeout
 
     profiles = {profile_1: profile_1, profile_2: profile_2}
     cluster = Cassandra.cluster(execution_profiles: profiles)
@@ -939,23 +1010,20 @@ datacenter="datacenter1", use_remote=false, max_remote=0.*shuffle=true/, cluster
     assert_equal profile_1, execution_profile_1
 
     execution_profile_2 = cluster.execution_profiles[:profile_2]
-    assert_equal cluster.execution_profiles[:default].timeout, execution_profile_2.timeout
-    assert_equal cluster.execution_profiles[:default].consistency, execution_profile_2.consistency
-    assert_instance_of Cassandra::Retry::Policies::Default, execution_profile_2.retry_policy
-    assert_instance_of Cassandra::LoadBalancing::Policies::TokenAware, execution_profile_2.load_balancing_policy
+    assert_equal profile_2, execution_profile_2
 
     session = cluster.connect
-    exec_options = session.execute('select * from system.local').execution_info.options
-    assert_equal Cassandra::LoadBalancing::Policies::TokenAware, exec_options.load_balancing_policy.class
-    assert_equal Cassandra::Retry::Policies::Default, exec_options.retry_policy.class
-    assert_equal :local_one, exec_options.consistency
-    assert_equal 12, exec_options.timeout
-
     exec_options = session.execute('select * from system.local', execution_profile: :profile_1).execution_info.options
-    assert_equal Cassandra::LoadBalancing::Policies::RoundRobin, exec_options.load_balancing_policy.class
-    assert_equal Cassandra::Retry::Policies::DowngradingConsistency, exec_options.retry_policy.class
+    assert_instance_of Cassandra::LoadBalancing::Policies::RoundRobin, exec_options.load_balancing_policy
+    assert_instance_of Cassandra::Retry::Policies::DowngradingConsistency, exec_options.retry_policy
     assert_equal :all, exec_options.consistency
     assert_equal 32, exec_options.timeout
+
+    exec_options = session.execute('select * from system.local').execution_info.options
+    assert_instance_of Cassandra::LoadBalancing::Policies::TokenAware, exec_options.load_balancing_policy
+    assert_instance_of Cassandra::Retry::Policies::Default, exec_options.retry_policy
+    assert_equal :local_one, exec_options.consistency
+    assert_equal 12, exec_options.timeout
   ensure
     cluster && cluster.close
   end
