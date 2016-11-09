@@ -7,10 +7,18 @@ Feature: Execution profiles
   Profile names should be strings or symbols. In this release, a profile encapsulates load-balancing policy,
   retry-policy, consistency-level, and timeout primitive options. Execution profiles are immutable once created.
 
-  If a user specifies simple options to `Cassandra.cluster`, the options mentioned above get stored in a default
+  If a user specifies simple options to `Cassandra.cluster`, the options mentioned above are stored in a default
   execution profile named `:default`. This execution profile is used by default by `Session.execute*` methods.
-  User-defined execution profiles fall back to values from the system defaults for unspecified attributes. This allows
-  the user to override only the options she wants to set differently from the system defaults.
+  User-defined execution profiles fall back to the same system defaults that past versions of the driver fell back to
+  for unspecified options:
+
+  * load_balancing_policy: `LoadBalancing::Policies::TokenAware.new(LoadBalancing::Policies::DCAwareRoundRobin.new, true)`
+  * retry-policy: `Retry::Policies::Default.new`
+  * consistency: `:local_one`
+  * timeout: `12`
+
+  In particular, note that user-defined execution profiles do not fall back to options specified in a (possibly
+  user-defined) `:default` profile.
 
   If you declare execution profiles, it is illegal to also include the primitive options mentioned above:
 
@@ -32,7 +40,7 @@ Feature: Execution profiles
   })
   ```
 
-  Unspecified attributes fall back to the same system defaults that have been used in past versions of the driver.
+  Unspecified attributes fall back to the system defaults mentioned above.
 
   Finally, options specified to `Session.execute*` methods override options specified in the desired execution profile.
 
