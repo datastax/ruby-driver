@@ -1,3 +1,9 @@
+master
+
+Features:
+
+Bug Fixes:
+
 # 3.1.0
 Features:
 * Do not mark a host as down if there are active connections.

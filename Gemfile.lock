@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cassandra-driver (3.1.0)
+    cassandra-driver (3.1.1.rc.1)
       ione (~> 1.2)
 
 GEM
@@ -40,7 +40,7 @@ GEM
     ffi (1.9.10)
     ffi (1.9.10-java)
     gherkin (3.2.0)
-    ione (1.2.3)
+    ione (1.2.4)
     json (1.8.3)
     json (1.8.3-java)
     lz4-ruby (0.3.3)
