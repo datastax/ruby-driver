@@ -1,10 +1,12 @@
-# master
+# 3.1.0
 Features:
 * Do not mark a host as down if there are active connections.
 * Update Keyspace metadata to include collection of indexes defined in the keyspace.
-* Update Table metadata to include trigger-collection and view-collection metadata.
+* Update Table metadata to include trigger-collection and view-collection metadata. Also include the cdc attribute,
+  introduced in C* 3.8. More details [here.](http://cassandra.apache.org/doc/latest/operating/cdc.html)
 * Added execution profiles to encapsulate a group of request execution options.
-* Added support for v5 beta protocol.
+* Added support for v5 beta protocol. This will always be a "work-in-progress" since the protocol is under
+  development and the driver is not necessarily updated to the latest revision of it.
 * Make prepared statement cache not be scoped by host and optimistically execute prepared statements on hosts where
   we are not sure the statement is already prepared. The motivation is that in the steady state, all nodes have
   prepared statements already, so there is no need to prepare statements before executing them. If the guess is wrong,

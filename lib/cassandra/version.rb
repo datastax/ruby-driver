@@ -17,5 +17,5 @@
 #++
 
 module Cassandra
-  VERSION = '3.1.0.rc.1'.freeze
+  VERSION = '3.1.0'.freeze
 end
