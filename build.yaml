@@ -4,7 +4,7 @@ schedules:
     matrix:
       exclude:
         - ruby: ['2.2', 'jruby1.7']
-        - cassandra: ['2.0', '2.2', '3.0']
+        - cassandra: ['2.2', '3.0']
   nightly:
     schedule: nightly
     branches:
@@ -16,7 +16,6 @@ ruby:
   - jruby1.7
   - jruby9k
 cassandra:
-  - 2.0
   - 2.1
   - 2.2
   - 3.0
