@@ -19,6 +19,7 @@ group :test do
   gem 'rspec-wait'
   gem 'rspec-collection_matchers'
   gem 'simplecov'
+  gem 'simplecov-cobertura'
   gem 'cucumber'
   gem 'aruba'
   gem 'os'

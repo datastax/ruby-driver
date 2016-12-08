@@ -19,6 +19,18 @@
 require File.dirname(__FILE__) + '/../support/ccm.rb'
 require File.dirname(__FILE__) + '/../support/retry.rb'
 require File.dirname(__FILE__) + '/schema_change_listener.rb'
+
+unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
+    require 'simplecov'
+    require 'simplecov-cobertura'
+
+    SimpleCov.formatter = SimpleCov::Formatter::CoberturaFormatter
+
+    SimpleCov.start do
+      command_name 'MiniTest'
+    end
+end
+
 require 'minitest/unit'
 require 'minitest/autorun'
 require 'cassandra'

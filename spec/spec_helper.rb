@@ -20,6 +20,17 @@ ENV['CASSANDRA_HOST'] ||= '127.0.0.1'
 
 require 'bundler/setup'
 
+unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
+  require 'simplecov'
+  require 'simplecov-cobertura'
+
+  SimpleCov.formatter = SimpleCov::Formatter::CoberturaFormatter
+
+  SimpleCov.start do
+    command_name 'RSpec'
+  end
+end
+
 require File.dirname(__FILE__) + '/../support/retry.rb'
 require File.dirname(__FILE__) + '/../support/ccm.rb'
 
@@ -45,14 +56,6 @@ RSpec.configure do |config|
 
   config.before(:context, :integration) do
     CCM.setup_cluster(1, 1)
-  end
-end
-
-unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
-  require 'simplecov'
-
-  SimpleCov.start do
-    command_name 'RSpec'
   end
 end
 

@@ -11,7 +11,9 @@ end
 
 unless ENV['COVERAGE'] == 'no' || RUBY_ENGINE == 'rbx'
   require 'simplecov'
+  require 'simplecov-cobertura'
 
+  SimpleCov.formatter = SimpleCov::Formatter::CoberturaFormatter
   SimpleCov.start do
     command_name 'Cucumber'
   end
