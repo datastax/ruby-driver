@@ -66,8 +66,6 @@ module Cassandra
         raise ::ArgumentError, 'no block given' unless block_given?
         begin
           yield(@error)
-        rescue
-          nil
         end
         self
       end
@@ -76,8 +74,6 @@ module Cassandra
         raise ::ArgumentError, 'no block given' unless block_given?
         begin
           yield(nil, @error)
-        rescue
-          nil
         end
         self
       end
@@ -89,8 +85,6 @@ module Cassandra
 
         begin
           listener.failure(@error)
-        rescue
-          nil
         end
         self
       end
@@ -129,8 +123,6 @@ module Cassandra
         raise ::ArgumentError, 'no block given' unless block_given?
         begin
           yield(@value)
-        rescue
-          nil
         end
         self
       end
@@ -144,8 +136,6 @@ module Cassandra
         raise ::ArgumentError, 'no block given' unless block_given?
         begin
           yield(@value, nil)
-        rescue
-          nil
         end
         self
       end
@@ -157,8 +147,6 @@ module Cassandra
 
         begin
           listener.success(@value)
-        rescue
-          nil
         end
         self
       end
@@ -537,8 +525,6 @@ module Cassandra
           listeners.each do |listener|
             begin
               listener.failure(error)
-            rescue
-              nil
             end
           end
 
@@ -569,8 +555,6 @@ module Cassandra
           listeners.each do |listener|
             begin
               listener.success(value)
-            rescue
-              nil
             end
           end
 
@@ -648,13 +632,9 @@ module Cassandra
 
         begin
           listener.success(@value)
-        rescue
-          nil
         end if @state == :fulfilled
         begin
           listener.failure(@error)
-        rescue
-          nil
         end if @state == :broken
 
         self
@@ -672,8 +652,6 @@ module Cassandra
 
         begin
           yield(@value)
-        rescue
-          nil
         end if @state == :fulfilled
 
         self
@@ -691,8 +669,6 @@ module Cassandra
 
         begin
           yield(@error)
-        rescue
-          nil
         end if @state == :broken
 
         self
@@ -710,8 +686,6 @@ module Cassandra
 
         begin
           yield(@value, @error)
-        rescue
-          nil
         end
 
         self
