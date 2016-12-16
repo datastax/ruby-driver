@@ -64,17 +64,13 @@ module Cassandra
 
       def on_failure
         raise ::ArgumentError, 'no block given' unless block_given?
-        begin
-          yield(@error)
-        end
+        yield(@error)
         self
       end
 
       def on_complete
         raise ::ArgumentError, 'no block given' unless block_given?
-        begin
-          yield(nil, @error)
-        end
+        yield(nil, @error)
         self
       end
 
@@ -145,9 +141,7 @@ module Cassandra
           raise ::ArgumentError, 'listener must respond to both #success and #failure'
         end
 
-        begin
-          listener.success(@value)
-        end
+        listener.success(@value)
         self
       end
 
@@ -667,9 +661,7 @@ module Cassandra
           end
         end
 
-        begin
-          yield(@error)
-        end if @state == :broken
+        yield(@error)
 
         self
       end
@@ -684,10 +676,7 @@ module Cassandra
           end
         end
 
-        begin
-          yield(@value, @error)
-        end
-
+        yield(@value, @error)
         self
       end
 
