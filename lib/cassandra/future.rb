@@ -79,9 +79,7 @@ module Cassandra
           raise ::ArgumentError, 'listener must respond to both #success and #failure'
         end
 
-        begin
-          listener.failure(@error)
-        end
+        listener.failure(@error)
         self
       end
 
@@ -117,9 +115,7 @@ module Cassandra
 
       def on_success
         raise ::ArgumentError, 'no block given' unless block_given?
-        begin
-          yield(@value)
-        end
+        yield(@value)
         self
       end
 
@@ -130,9 +126,7 @@ module Cassandra
 
       def on_complete
         raise ::ArgumentError, 'no block given' unless block_given?
-        begin
-          yield(@value, nil)
-        end
+        yield(@value, nil)
         self
       end
 
