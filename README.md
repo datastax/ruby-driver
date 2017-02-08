@@ -51,7 +51,7 @@ and is likely to break in the release following 3.0.
 ```ruby
 require 'cassandra'
 
-cluster = Cassandra.cluster # connects to localhost by default
+cluster = Cassandra.connect # connects to localhost by default
 
 cluster.each_host do |host| # automatically discovers all peers
   puts "Host #{host.ip}: id=#{host.id} datacenter=#{host.datacenter} rack=#{host.rack}"
