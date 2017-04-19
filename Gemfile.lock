@@ -85,6 +85,9 @@ GEM
       docile (~> 1.1.0)
       json (~> 1.8)
       simplecov-html (~> 0.10.0)
+    simplecov-cobertura (1.2.0)
+      json (~> 1.8)
+      simplecov (~> 0.8)
     simplecov-html (0.10.0)
     snappy (0.0.14)
     snappy (0.0.14-java)
@@ -117,8 +120,9 @@ DEPENDENCIES
   rspec-wait
   rubocop (~> 0.36)
   simplecov
+  simplecov-cobertura
   snappy
   yard
 
 BUNDLED WITH
-   1.11.2
+   1.12.5
