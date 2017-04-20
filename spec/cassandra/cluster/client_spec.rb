@@ -327,10 +327,25 @@ module Cassandra
             client.connect.value
           end
 
-          it 'closes connections to that host' do
-            expect do
-              client.host_down(Host.new('127.0.0.1'))
-            end.to change { io_reactor.connections.select(&:connected?).size }.from(4).to(2)
+          it 'does not clear prepared-statements cache when there are no connections' do
+            h = Host.new('127.0.0.1')
+            client.host_down(h)
+            expect(client.instance_variable_get(:@prepared_statements).key?(h)).to be true
+            expect(client.instance_variable_get(:@preparing_statements).key?(h)).to be true
+          end
+
+          it 'does clear prepared-statements cache if there are no connections' do
+            h = Host.new('127.0.0.1')
+
+            # This cheats a little, but it's much easier than concocting a realistic scenario using only public
+            # interfaces.
+            conns = client.instance_variable_get(:@connections)
+            conns[h] = double("ConnectionPool")
+            expect(conns[h]).to receive(:size).and_return(0)
+            expect(conns[h]).to receive(:snapshot).and_return([])
+            client.host_down(h)
+            expect(client.instance_variable_get(:@prepared_statements).key?(h)).to be false
+            expect(client.instance_variable_get(:@preparing_statements).key?(h)).to be false
           end
         end
 
