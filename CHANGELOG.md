@@ -1,8 +1,9 @@
-master
+# 3.1.1
 
 Features:
 
 Bug Fixes:
+* [RUBY-291](https://datastax-oss.atlassian.net/browse/RUBY-291) Driver fails to connect to cluster when a table column type has a quoted name.
 
 # 3.1.0
 Features:

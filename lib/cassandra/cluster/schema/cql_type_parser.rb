@@ -100,7 +100,7 @@ module Cassandra
             when ' '
               next
             else
-              node.name << char
+              node.name << char unless char == '"'
             end
           end
 
