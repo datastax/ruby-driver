@@ -106,6 +106,16 @@ module Cassandra
 
             failed_connections = connections.reject(&:connected?)
 
+            # convert Cassandra::Protocol::CqlProtocolHandler to something with a real host
+            failed_connections.map! do |c|
+              if c.host.is_a?(String)
+                host = @registry.each_host.detect { |h| h.ip.to_s == c.host } || raise("Unable to find host #{c.host}")
+                FailedConnection.new(c.error, host)
+              else
+                c
+              end
+            end
+
             if failed_connections.size == connections.size
               errors = {}
               connections.each {|c| errors[c.host] = c.error unless c.error.nil?}

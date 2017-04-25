@@ -75,7 +75,7 @@ class ClientErrorTest < IntegrationTestCase
     # will have a map of <node-ip, failure-code> instead of num-failures. When v5 is officially released, we
     # can remove the allow_beta_protocol arg in this test.
     cluster = Retry.with_attempts(5, Cassandra::Errors::NoHostsAvailable) {
-      Cassandra.cluster(allow_beta_protocol: true)
+      Cassandra.cluster
     }
     session = cluster.connect
 
@@ -132,7 +132,7 @@ class ClientErrorTest < IntegrationTestCase
     # will have a map of <node-ip, failure-code> instead of num-failures. When v5 is officially released, we
     # can remove the allow_beta_protocol arg in this test.
     cluster = Retry.with_attempts(5, Cassandra::Errors::NoHostsAvailable) {
-      Cassandra.cluster(allow_beta_protocol: true)
+      Cassandra.cluster
     }
     session = cluster.connect
 
