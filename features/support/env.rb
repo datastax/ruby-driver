@@ -74,7 +74,7 @@ After('@auth') do
 end
 
 After('@ssl') do
-  @cluster.disable_ssl
+  CCM.remove_cluster(@cluster.name)
 end
 
 After('@netblock') do

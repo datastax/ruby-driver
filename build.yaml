@@ -19,7 +19,7 @@ cassandra:
   - 2.1
   - 2.2
   - 3.0
-  - 3.9
+  - '3.10'
 os:
   - ubuntu/trusty64
 build:

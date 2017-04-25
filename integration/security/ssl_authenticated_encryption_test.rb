@@ -25,8 +25,7 @@ class SSLAuthenticatedEncryptionTest < IntegrationTestCase
   end
 
   def self.after_suite
-    @@ccm_cluster && @@ccm_cluster.disable_ssl
-    super
+    CCM.remove_cluster(@@ccm_cluster.name)
   end
 
   def test_can_connect_with_ssl_authentication
@@ -38,7 +37,7 @@ class SSLAuthenticatedEncryptionTest < IntegrationTestCase
               )
     refute_nil cluster
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 
   def test_raise_error_on_invalid_ssl_auth
