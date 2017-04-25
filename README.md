@@ -1,5 +1,5 @@
 # Datastax Ruby Driver for Apache Cassandra
-
+ 
 *If you're reading this on GitHub, please note that this is the readme for the development version and that some
 features described here might not yet have been released. You can view the documentation for the latest released
 version [here](http://docs.datastax.com/en/developer/ruby-driver/latest).*
