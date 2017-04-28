@@ -37,36 +37,6 @@ build:
         export CASSANDRA_VERSION=$CCM_VERSION
       fi
 
-      # Run the tests
-      RC=0
-      bundle exec rake compile
-      if [ $? -eq 0 ] ; then
-        echo "SANDMAN: about to launch unit tests"
-        bundle exec rake rspec
-        if [ $? -eq 0 ] ; then
-          echo "SANDMAN: unit tests completed successfully"
-          bundle exec rake integration
-          if [ $? -eq 0 ] ; then
-            echo "SANDMAN: integ tests completed successfully"
-            bundle exec rake cucumber
-            if [ $? -eq 0 ] ; then
-              echo "SANDMAN: features ran successfully"
-            else
-              echo "SANDMAN: features failed"
-              RC=1
-            fi
-          else
-            echo "SANDMAN: integ tests failed"
-            RC=1
-          fi
-        else
-          echo "SANDMAN: unit tests failed"
-          RC=1
-        fi
-      else
-        echo "SANDMAN: compile failed"
-        RC=1
-      fi
-      if [ $RC -ne 0 ] ; then
-        bin/false
-      fi
+      # Run the tests; `bundle exec rake test` does all this but seems to be unstable
+      # in JRuby9k, so we break down the phases ourselves.
+      bundle exec rake compile && bundle exec rake rspec && bundle exec rake integration && bundle exec rake cucumber
