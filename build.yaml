@@ -39,4 +39,4 @@ build:
 
       # Run the tests; `bundle exec rake test` does all this but seems to be unstable
       # in JRuby9k, so we break down the phases ourselves.
-      bundle exec rake compile && bundle exec rake rspec && bundle exec rake integration && bundle exec rake cucumber
+      bundle exec rake compile && sleep 3 && bundle exec rake rspec && sleep 3 && bundle exec rake integration && sleep 3 && bundle exec rake cucumber
