@@ -36,5 +36,5 @@ if cassandra_version.start_with?('1.2')
 end
 %>
 default: --color --guess --tags ~@todo --tags ~@cassandra-version-specific<%= cassandra_version_tags %> -r features/
-non_interactive: --color --guess --tags ~interactive --tags ~@todo --tags ~@cassandra-version-specific<%= cassandra_version_tags %> -r features/
+non_interactive: --color --guess --tags ~@interactive --tags ~@todo --tags ~@cassandra-version-specific<%= cassandra_version_tags %> -r features/
 interactive: --color --guess --tags @interactive -r features/
