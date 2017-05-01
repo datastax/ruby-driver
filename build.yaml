@@ -37,37 +37,5 @@ build:
         export CASSANDRA_VERSION=$CCM_VERSION
       fi
 
-      # Run the tests; `bundle exec rake test` does all this but seems to be unstable
-      # in JRuby9k, so we break down the phases ourselves.
-      RC=0
-      bundle exec rake compile
-      if [ $? -eq 0 ] ; then
-        echo "About to launch unit tests"
-        bundle exec rake rspec
-        if [ $? -eq 0 ] ; then
-          echo "Unit tests completed successfully"
-          bundle exec rake integration
-          if [ $? -eq 0 ] ; then
-            echo "Integration tests completed successfully"
-            bundle exec rake cucumber
-            if [ $? -eq 0 ] ; then
-              echo "Features ran successfully"
-            else
-              echo "Features failed"
-              RC=1
-            fi
-          else
-            echo "Integration tests failed"
-            RC=1
-          fi
-        else
-          echo "Unit tests failed"
-          RC=1
-        fi
-      else
-        echo "Compile failed"
-        RC=1
-      fi
-      if [ $RC -ne 0 ] ; then
-        bin/false
-      fi
+      # Run the tests
+      bundle exec rake test
