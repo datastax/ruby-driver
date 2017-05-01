@@ -100,6 +100,7 @@ Feature: Automatic reconnection
     And it is running interactively
     And I wait for its output to contain "START"
 
+  @interactive
   Scenario: Driver reconnects when all hosts are down
     When node 1 stops
     When node 2 stops
