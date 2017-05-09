@@ -13,6 +13,7 @@ schedules:
 ruby:
   - 2.2
   - 2.3
+  - 2.4
   - jruby1.7
   - jruby9k
 cassandra:
