@@ -63,6 +63,8 @@ module Cassandra
 
       let(:schema_fetcher) { driver.schema_fetcher }
 
+      let(:local_ip) { ::IPAddr.new('127.0.0.1') }
+
       def connections
         io_reactor.connections
       end
@@ -181,9 +183,11 @@ module Cassandra
                 ip   = $1
                 rows = [
                   {
+                    'peer'            => ip,
                     'rack'            => racks[ip],
                     'data_center'     => data_centers[ip],
                     'host_id'         => host_ids[ip],
+                    'rpc_address'     => bind_all_rpc_addresses ? ::IPAddr.new('0.0.0.0') : ip,
                     'release_version' => release_versions[ip],
                     'tokens'          => tokens[ip]
                   }
@@ -334,6 +338,7 @@ module Cassandra
           it 'skips empty peers' do
             additional_rpc_addresses = additional_nodes.dup
 
+            expect(address_resolution_policy).to receive(:resolve).with(local_ip).and_return(local_ip)
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[0]).and_return(additional_rpc_addresses[0])
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[1]).and_return(additional_rpc_addresses[1])
 
@@ -342,7 +347,7 @@ module Cassandra
 
             # We should give up on a peer if 'peer' is empty. This is indicated by *not* doing
             # an address resolution of rpc-address.
-            expect(address_resolution_policy).to_not receive(:resolve).with('127.1.2.3')
+            expect(address_resolution_policy).to_not receive(:resolve).with(::IPAddr.new('127.1.2.3'))
 
             handle_request do |request|
               case request
@@ -386,15 +391,16 @@ module Cassandra
           it 'skips empty rack' do
             additional_rpc_addresses = additional_nodes.dup
 
+            expect(address_resolution_policy).to receive(:resolve).with(local_ip).and_return(local_ip)
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[0]).and_return(additional_rpc_addresses[0])
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[1]).and_return(additional_rpc_addresses[1])
 
             # RUBY-255: We should never try to do address resolution of nil.
             expect(address_resolution_policy).to_not receive(:resolve).with(nil)
 
-            # We should give up on a peer if 'rpc-address' is empty. This is indicated by *not* doing
+            # We should give up on a peer if 'rack' is empty. This is indicated by *not* doing
             # an address resolution of peer.
-            expect(address_resolution_policy).to_not receive(:resolve).with('127.1.2.3')
+            expect(address_resolution_policy).to_not receive(:resolve).with(::IPAddr.new('127.1.2.3'))
 
             handle_request do |request|
               case request
@@ -408,7 +414,7 @@ module Cassandra
                             'rack'            => racks[ip],
                             'data_center'     => data_centers[ip],
                             'host_id'         => host_ids[ip],
-                            'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
+                            'rpc_address'     => bind_all_rpc_addresses ? ::IPAddr.new('0.0.0.0') : ip,
                             'release_version' => release_versions[ip],
                             'tokens'          => tokens[ip]
                         }
@@ -438,15 +444,16 @@ module Cassandra
           it 'skips empty data_center' do
             additional_rpc_addresses = additional_nodes.dup
 
+            expect(address_resolution_policy).to receive(:resolve).with(local_ip).and_return(local_ip)
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[0]).and_return(additional_rpc_addresses[0])
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[1]).and_return(additional_rpc_addresses[1])
 
             # RUBY-255: We should never try to do address resolution of nil.
             expect(address_resolution_policy).to_not receive(:resolve).with(nil)
 
-            # We should give up on a peer if 'rpc-address' is empty. This is indicated by *not* doing
+            # We should give up on a peer if 'datacenter' is empty. This is indicated by *not* doing
             # an address resolution of peer.
-            expect(address_resolution_policy).to_not receive(:resolve).with('127.1.2.3')
+            expect(address_resolution_policy).to_not receive(:resolve).with(::IPAddr.new('127.1.2.3'))
 
             handle_request do |request|
               case request
@@ -460,7 +467,7 @@ module Cassandra
                             'rack'            => racks[ip],
                             'data_center'     => data_centers[ip],
                             'host_id'         => host_ids[ip],
-                            'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
+                            'rpc_address'     => bind_all_rpc_addresses ? ::IPAddr.new('0.0.0.0') : ip,
                             'release_version' => release_versions[ip],
                             'tokens'          => tokens[ip]
                         }
@@ -490,15 +497,16 @@ module Cassandra
           it 'skips empty host_id' do
             additional_rpc_addresses = additional_nodes.dup
 
+            expect(address_resolution_policy).to receive(:resolve).with(local_ip).and_return(local_ip)
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[0]).and_return(additional_rpc_addresses[0])
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[1]).and_return(additional_rpc_addresses[1])
 
             # RUBY-255: We should never try to do address resolution of nil.
             expect(address_resolution_policy).to_not receive(:resolve).with(nil)
 
-            # We should give up on a peer if 'rpc-address' is empty. This is indicated by *not* doing
+            # We should give up on a peer if 'host_id' is empty. This is indicated by *not* doing
             # an address resolution of peer.
-            expect(address_resolution_policy).to_not receive(:resolve).with('127.1.2.3')
+            expect(address_resolution_policy).to_not receive(:resolve).with(::IPAddr.new('127.1.2.3'))
 
             handle_request do |request|
               case request
@@ -512,7 +520,7 @@ module Cassandra
                             'rack'            => racks[ip],
                             'data_center'     => data_centers[ip],
                             'host_id'         => host_ids[ip],
-                            'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
+                            'rpc_address'     => bind_all_rpc_addresses ? ::IPAddr.new('0.0.0.0') : ip,
                             'release_version' => release_versions[ip],
                             'tokens'          => tokens[ip]
                         }
@@ -542,6 +550,7 @@ module Cassandra
           it 'skips empty rpc_address' do
             additional_rpc_addresses = additional_nodes.dup
 
+            expect(address_resolution_policy).to receive(:resolve).with(local_ip).and_return(local_ip)
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[0]).and_return(additional_rpc_addresses[0])
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[1]).and_return(additional_rpc_addresses[1])
 
@@ -550,7 +559,7 @@ module Cassandra
 
             # We should give up on a peer if 'rpc-address' is empty. This is indicated by *not* doing
             # an address resolution of peer.
-            expect(address_resolution_policy).to_not receive(:resolve).with('127.1.2.3')
+            expect(address_resolution_policy).to_not receive(:resolve).with(::IPAddr.new('127.1.2.3'))
 
             handle_request do |request|
               case request
@@ -594,6 +603,7 @@ module Cassandra
           it 'skips empty tokens' do
             additional_rpc_addresses = additional_nodes.dup
 
+            expect(address_resolution_policy).to receive(:resolve).with(local_ip).and_return(local_ip)
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[0]).and_return(additional_rpc_addresses[0])
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[1]).and_return(additional_rpc_addresses[1])
 
@@ -602,7 +612,7 @@ module Cassandra
 
             # We should give up on a peer if 'rpc-address' is empty. This is indicated by *not* doing
             # an address resolution of peer.
-            expect(address_resolution_policy).to_not receive(:resolve).with('127.1.2.3')
+            expect(address_resolution_policy).to_not receive(:resolve).with(::IPAddr.new('127.1.2.3'))
 
             handle_request do |request|
               case request
@@ -646,6 +656,7 @@ module Cassandra
           it 'skips matching peer' do
             additional_rpc_addresses = additional_nodes.dup
 
+            expect(address_resolution_policy).to receive(:resolve).with(local_ip).and_return(local_ip)
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[0]).and_return(additional_rpc_addresses[0])
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[1]).and_return(additional_rpc_addresses[1])
 
@@ -654,8 +665,8 @@ module Cassandra
 
             # We should give up on a peer if its rpc_address is the local host. This is indicated by *not* doing
             # an address resolution of it.
-            expect(address_resolution_policy).to_not receive(:resolve).with('127.0.0.9')
-            expect(address_resolution_policy).to_not receive(:resolve).with('127.0.0.1')
+            expect(address_resolution_policy).to_not receive(:resolve).with(::IPAddr.new('127.0.0.9'))
+            expect(address_resolution_policy).to_not receive(:resolve).with(::IPAddr.new('127.0.0.1'))
 
             handle_request do |request|
               case request
@@ -669,7 +680,7 @@ module Cassandra
                             'rack'            => racks[ip],
                             'data_center'     => data_centers[ip],
                             'host_id'         => host_ids[ip],
-                            'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
+                            'rpc_address'     => bind_all_rpc_addresses ? ::IPAddr.new('0.0.0.0') : ip,
                             'release_version' => release_versions[ip],
                             'tokens'          => tokens[ip]
                         }
@@ -680,7 +691,7 @@ module Cassandra
                           'rack'            => racks['127.0.0.9'],
                           'data_center'     => data_centers['127.0.0.9'],
                           'host_id'         => host_ids['127.0.0.9'],
-                          'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : '127.0.0.9',
+                          'rpc_address'     => bind_all_rpc_addresses ? ::IPAddr.new('0.0.0.0') : '127.0.0.9',
                           'release_version' => release_versions['127.0.0.9'],
                           'tokens'          => tokens['127.0.0.9']
                       }
@@ -697,6 +708,7 @@ module Cassandra
           it 'skips matching rpc_address' do
             additional_rpc_addresses = additional_nodes.dup
 
+            expect(address_resolution_policy).to receive(:resolve).with(local_ip).and_return(local_ip)
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[0]).and_return(additional_rpc_addresses[0])
             expect(address_resolution_policy).to receive(:resolve).with(additional_rpc_addresses[1]).and_return(additional_rpc_addresses[1])
 
@@ -705,8 +717,7 @@ module Cassandra
 
             # We should give up on a peer if its rpc_address is the local host. This is indicated by *not* doing
             # an address resolution of it.
-            expect(address_resolution_policy).to_not receive(:resolve).with('127.0.0.9')
-            expect(address_resolution_policy).to_not receive(:resolve).with('127.0.0.1')
+            expect(address_resolution_policy).to_not receive(:resolve).with(::IPAddr.new('127.0.0.9'))
 
             handle_request do |request|
               case request
@@ -720,7 +731,7 @@ module Cassandra
                             'rack'            => racks[ip],
                             'data_center'     => data_centers[ip],
                             'host_id'         => host_ids[ip],
-                            'rpc_address'     => bind_all_rpc_addresses ? IPAddr.new('0.0.0.0') : ip,
+                            'rpc_address'     => bind_all_rpc_addresses ? ::IPAddr.new('0.0.0.0') : ip,
                             'release_version' => release_versions[ip],
                             'tokens'          => tokens[ip]
                         }
@@ -867,10 +878,13 @@ module Cassandra
 
                 it 'refreshes metadata and notifies registry' do
                   ip = address.to_s
+                  expect(address_resolution_policy).to receive(:resolve).with(address).and_return(address).twice
                   expect(cluster_registry).to receive(:host_found).once.with(address, {
+                    'peer'            => address,
                     'rack'            => racks[ip],
                     'data_center'     => data_centers[ip],
                     'host_id'         => host_ids[ip],
+                    'rpc_address'     => address,
                     'release_version' => release_versions[ip],
                     'tokens'          => tokens[ip]
                   })
@@ -933,10 +947,13 @@ module Cassandra
 
                 it 'notifies registry' do
                   ip = address.to_s
+                  expect(address_resolution_policy).to receive(:resolve).with(address).and_return(address).twice
                   expect(cluster_registry).to receive(:host_found).once.with(address, {
+                    'peer'            => address,
                     'rack'            => racks[ip],
                     'data_center'     => data_centers[ip],
                     'host_id'         => host_ids[ip],
+                    'rpc_address'     => address,
                     'release_version' => release_versions[ip],
                     'tokens'          => tokens[ip]
                   })
@@ -976,9 +993,11 @@ module Cassandra
                           ip   = $1
                           rows = [
                             {
+                              'peer'            => ip,
                               'rack'            => racks[ip],
                               'data_center'     => data_centers[ip],
                               'host_id'         => host_ids[ip],
+                              'rpc_address'     => ip,
                               'release_version' => release_versions[ip],
                               'tokens'          => tokens[ip]
                             }
@@ -999,10 +1018,13 @@ module Cassandra
                 it 'tries again' do
                   connections.first.trigger_event(event)
                   ip = address.to_s
+                  expect(address_resolution_policy).to receive(:resolve).with(address).and_return(address)
                   expect(cluster_registry).to receive(:host_found).once.with(address, {
+                    'peer'            => address,
                     'rack'            => racks[ip],
                     'data_center'     => data_centers[ip],
                     'host_id'         => host_ids[ip],
+                    'rpc_address'     => address,
                     'release_version' => release_versions[ip],
                     'tokens'          => tokens[ip]
                   })

@@ -225,12 +225,11 @@ module Cassandra
             else
               case event.change
               when 'UP'
-                address = event.address
-
+                address = @address_resolver.resolve(event.address)
                 if @registry.has_host?(address)
                   @registry.host_up(address)
                 else
-                  refresh_host_async_maybe_retry(address)
+                  refresh_host_async_maybe_retry(event.address)
                   refresh_schema_async_wrapper
                 end
               when 'DOWN'
@@ -238,14 +237,14 @@ module Cassandra
                 # logic in connector.rb to call host_down when all connections to a node are lost,
                 # so that covers the requirement.
               when 'NEW_NODE'
-                address = event.address
+                address = @address_resolver.resolve(event.address)
 
                 unless @registry.has_host?(address)
-                  refresh_host_async_maybe_retry(address)
+                  refresh_host_async_maybe_retry(event.address)
                   refresh_schema_async_wrapper
                 end
               when 'REMOVED_NODE'
-                @registry.host_lost(event.address)
+                @registry.host_lost(@address_resolver.resolve(event.address))
                 refresh_schema_async_wrapper
               end
             end
@@ -480,7 +479,7 @@ module Cassandra
           raise Errors::InternalError, "Unable to fetch connected host's metadata" if local.empty?
 
           data = local.first
-          @registry.host_found(IPAddr.new(connection.host), data)
+          @registry.host_found(@address_resolver.resolve(IPAddr.new(connection.host)), data)
           @metadata.update(data)
 
           @logger.info("Completed refreshing connected host's metadata")
@@ -516,6 +515,9 @@ module Cassandra
         end
       end
 
+      # @param address [IPAddr] address node address, as reported from a C* event. Thus it is *not* resolved
+      #           relative to the client, but rather is the address that other nodes would use to communicate with
+      #           this node.
       def refresh_host_async_maybe_retry(address)
         synchronize do
           return Ione::Future.resolved if @refreshing_hosts || @refreshing_host[address]
@@ -539,6 +541,9 @@ module Cassandra
         end
       end
 
+      # @param address [IPAddr] address node address, as reported from a C* event. Thus it is *not* resolved
+      #           relative to the client, but rather is the address that other nodes would use to communicate with
+      #           this node.
       def refresh_host_async_retry(address, error, schedule)
         timeout = schedule.next
         @logger.info("Failed to refresh host #{address} (#{error.class.name}: " \
@@ -560,6 +565,9 @@ module Cassandra
         end
       end
 
+      # @param address [IPAddr] address node address, as reported from a C* event. Thus it is *not* resolved
+      #           relative to the client, but rather is the address that other nodes would use to communicate with
+      #           this node.
       def refresh_host_async(address)
         connection = @connection
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
@@ -581,6 +589,11 @@ module Cassandra
           raise Errors::InternalError, "Unable to find host metadata: #{ip}" if rows.empty?
 
           @logger.info("Completed refreshing host metadata: #{ip}")
+          address = if ip == connection.host
+                      @address_resolver.resolve(address)
+                    else
+                      peer_ip(rows.first, connection.host)
+                    end
           @registry.host_found(address, rows.first)
 
           self
