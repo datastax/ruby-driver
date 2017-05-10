@@ -437,7 +437,6 @@ module Cassandra
         when :text             then read_text(buffer)
         when :varint           then read_varint(buffer)
         when :inet             then read_inet(buffer)
-        when :custom           then read_text(buffer)
         when :list
           return nil unless read_size(buffer)
 
