@@ -88,7 +88,11 @@ Feature: Datatypes
       row = session.execute("SELECT * FROM mytable").first
 
       puts "Bigint: #{row['b']}"
-      puts "Decimal: #{row['c']}"
+
+      # Different versions of ruby express scientific notation with lowercase or capital E (E10 vs e10).
+      # Unify on upper-case
+      puts "Decimal: #{row['c'].to_s.upcase}"
+
       puts "Double: #{row['d']}"
       puts "Float: #{row['e']}"
       puts "Integer: #{row['f']}"
