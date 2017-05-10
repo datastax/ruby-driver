@@ -254,7 +254,12 @@ module Cassandra
         when :smallint         then read_smallint(buffer)
         when :time             then read_time(buffer)
         when :date             then read_date(buffer)
-        when :custom           then read_custom(buffer, type, custom_type_handlers)
+        when :custom    
+          if type.name == "com.backupify.db.DatumType"
+            return read_text(buffer)
+          else
+            read_custom(buffer, type, custom_type_handlers)
+          end       
         when :list
           return nil unless read_size(buffer)
 
@@ -498,6 +503,12 @@ module Cassandra
           values.fill(nil, values.length, (members.length - values.length))
 
           Cassandra::Tuple::Strict.new(members, values)
+        when :custom
+          if type.name == "com.backupify.db.DatumType"
+            return read_text(buffer)
+          else
+            raise Errors::DecodingError, %(Unsupported value type: #{type})
+          end
         else
           raise Errors::DecodingError, %(Unsupported value type: #{type})
         end
@@ -696,6 +707,12 @@ module Cassandra
           end
 
           value
+        when :custom
+          if type.name == "com.backupify.db.DatumType"
+            return read_text(buffer)
+          else
+            raise Errors::DecodingError, %(Unsupported value type: #{type})
+          end
         else
           raise Errors::DecodingError, %(Unsupported value type: #{type})
         end
