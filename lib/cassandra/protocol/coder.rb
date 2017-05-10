@@ -404,6 +404,7 @@ module Cassandra
                                                  type.value_type)
         when :udt              then write_udt_v3(buffer, value, type.fields)
         when :tuple            then write_tuple_v3(buffer, value, type.members)
+        when :custom           then write_text(buffer, value)
         else
           raise Errors::EncodingError, %(Unsupported value type: #{type})
         end
