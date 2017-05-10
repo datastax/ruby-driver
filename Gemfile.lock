@@ -41,8 +41,8 @@ GEM
     ffi (1.9.10-java)
     gherkin (3.2.0)
     ione (1.2.4)
-    json (1.8.3)
-    json (1.8.3-java)
+    json (1.8.6)
+    json (1.8.6-java)
     lz4-ruby (0.3.3)
     lz4-ruby (0.3.3-java)
     minitest (4.7.5)
@@ -121,4 +121,4 @@ DEPENDENCIES
   yard
 
 BUNDLED WITH
-   1.11.2
+   1.14.6
