@@ -11,7 +11,19 @@ ENV['FAIL_FAST'] ||= 'Y'
 
 RSpec::Core::RakeTask.new(rspec: :compile)
 
-Cucumber::Rake::Task.new(cucumber: :compile)
+# We separate interactive from non-interactive features because jruby 9k sometimes has trouble
+# closing its pipe to the child process in interactive features.
+
+Cucumber::Rake::Task.new({cucumber_interactive: :compile}, 'Run cucumber features that are interactive') do |t|
+  t.profile = 'interactive'
+end
+
+Cucumber::Rake::Task.new({cucumber_noninteractive: :compile}, 'Run cucumber features that are non-interactive') do |t|
+  t.profile = 'non_interactive'
+end
+
+desc 'Run cucumber features'
+task cucumber: [:cucumber_noninteractive, :cucumber_interactive]
 
 desc 'Run all tests'
 task test: [:rspec, :integration, :cucumber]

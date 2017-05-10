@@ -66,6 +66,39 @@ class UserDefinedTypeTest < IntegrationTestCase
     cluster && cluster.close
   end
 
+  def test_can_insert_udts_with_capitalized_name
+    skip("UDTs are only available in C* after 2.1") if CCM.cassandra_version < '2.1.0'
+
+    cluster = Cassandra.cluster
+    session = cluster.connect("simplex")
+
+    session.execute('CREATE TYPE "User" (age int, name text, gender text)')
+    session.execute('CREATE TABLE mytable (a int PRIMARY KEY, b frozen<"User">)')
+
+    # RUBY-291 - We can't connect to the cluster when a UDT name contains capital letters and is thus quoted.
+    cluster2 = Cassandra.cluster
+    session2 = cluster2.connect("simplex")
+
+    # Test non-prepared statement
+    session2.execute("INSERT INTO mytable (a, b) VALUES (0, {age: 30, name: 'John', gender: 'male'})")
+    user_value = session2.execute("SELECT b FROM mytable where a=0").first['b']
+    assert_equal 30, user_value.age
+    assert_equal 'John', user_value.name
+    assert_equal 'male', user_value.gender
+
+    # Test prepared statement
+    insert = Retry.with_attempts(5) { session2.prepare("INSERT INTO simplex.mytable (a, b) VALUES (?, ?)") }
+    Retry.with_attempts(5) { session2.execute(insert, arguments: [1, Cassandra::UDT.new(age: 25, name: 'Jane', gender: 'female')]) }
+
+    user_value = session2.execute("SELECT b FROM mytable where a=1").first['b']
+    assert_equal 25, user_value.age
+    assert_equal 'Jane', user_value.name
+    assert_equal 'female', user_value.gender
+  ensure
+    cluster && cluster.close
+    cluster2 && cluster2.close
+  end
+
   def test_can_insert_same_udt_different_keyspaces
     skip("UDTs are only available in C* after 2.1") if CCM.cassandra_version < '2.1.0'
 
