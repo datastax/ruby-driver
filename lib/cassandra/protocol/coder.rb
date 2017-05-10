@@ -117,6 +117,12 @@ module Cassandra
                                                  type.value_type)
         when :udt              then write_udt_v4(buffer, value, type.fields)
         when :tuple            then write_tuple_v4(buffer, value, type.members)
+        when :custom
+          if type.name == "com.backupify.db.DatumType"
+            write_text(buffer, value)
+          else
+            raise Errors::EncodingError, %(Unsupported value type: #{type})
+          end
         else
           raise Errors::EncodingError, %(Unsupported value type: #{type})
         end
@@ -254,12 +260,12 @@ module Cassandra
         when :smallint         then read_smallint(buffer)
         when :time             then read_time(buffer)
         when :date             then read_date(buffer)
-        when :custom    
+        when :custom
           if type.name == "com.backupify.db.DatumType"
             return read_text(buffer)
           else
             read_custom(buffer, type, custom_type_handlers)
-          end       
+          end
         when :list
           return nil unless read_size(buffer)
 
@@ -409,7 +415,12 @@ module Cassandra
                                                  type.value_type)
         when :udt              then write_udt_v3(buffer, value, type.fields)
         when :tuple            then write_tuple_v3(buffer, value, type.members)
-        when :custom           then write_text(buffer, value)
+        when :custom
+          if type.name == "com.backupify.db.DatumType"
+            write_text(buffer, value)
+          else
+            raise Errors::EncodingError, %(Unsupported value type: #{type})
+          end
         else
           raise Errors::EncodingError, %(Unsupported value type: #{type})
         end
@@ -644,6 +655,12 @@ module Cassandra
                                                  value,
                                                  type.key_type,
                                                  type.value_type)
+        when :custom
+          if type.name == "com.backupify.db.DatumType"
+            write_text(buffer, value)
+          else
+            raise Errors::EncodingError, %(Unsupported value type: #{type})
+          end
         else
           raise Errors::EncodingError, %(Unsupported value type: #{type})
         end
