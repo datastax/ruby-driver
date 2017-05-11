@@ -834,7 +834,7 @@ require 'cassandra/timestamp_generator'
 require 'cassandra/util'
 
 # murmur3 hash extension
-require 'cassandra_murmur3'
+#require 'cassandra_murmur3'
 
 # SortedSet has a race condition where it does some class/global initialization when the first instance is created.
 # If this is done in a multi-threaded environment, bad things can happen. So force the initialization here,

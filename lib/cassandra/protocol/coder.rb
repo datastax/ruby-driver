@@ -117,12 +117,7 @@ module Cassandra
                                                  type.value_type)
         when :udt              then write_udt_v4(buffer, value, type.fields)
         when :tuple            then write_tuple_v4(buffer, value, type.members)
-        when :custom
-          if type.name == "com.backupify.db.DatumType"
-            write_text(buffer, value)
-          else
-            raise Errors::EncodingError, %(Unsupported value type: #{type})
-          end
+        when :custom           then write_custom(buffer, value, type)
         else
           raise Errors::EncodingError, %(Unsupported value type: #{type})
         end
@@ -415,12 +410,7 @@ module Cassandra
                                                  type.value_type)
         when :udt              then write_udt_v3(buffer, value, type.fields)
         when :tuple            then write_tuple_v3(buffer, value, type.members)
-        when :custom
-          if type.name == "com.backupify.db.DatumType"
-            write_text(buffer, value)
-          else
-            raise Errors::EncodingError, %(Unsupported value type: #{type})
-          end
+        when :custom           then write_custom(buffer, value, type)
         else
           raise Errors::EncodingError, %(Unsupported value type: #{type})
         end
@@ -655,12 +645,7 @@ module Cassandra
                                                  value,
                                                  type.key_type,
                                                  type.value_type)
-        when :custom
-          if type.name == "com.backupify.db.DatumType"
-            write_text(buffer, value)
-          else
-            raise Errors::EncodingError, %(Unsupported value type: #{type})
-          end
+        when :custom           then write_custom(buffer, value, type)
         else
           raise Errors::EncodingError, %(Unsupported value type: #{type})
         end
