@@ -9,11 +9,14 @@ version [here](http://docs.datastax.com/en/developer/ruby-driver/latest).*
 A Ruby client driver for Apache Cassandra. This driver works exclusively with
 the Cassandra Query Language version 3 (CQL3) and Cassandra's native protocol.
 
+Use the [Ruby DSE driver](https://github.com/datastax/ruby-dse-driver.git) for
+better compatibility and support for DataStax Enterprise.
+
 - Code: https://github.com/datastax/ruby-driver
 - Docs: http://docs.datastax.com/en/developer/ruby-driver
 - Jira: https://datastax-oss.atlassian.net/browse/RUBY
 - Mailing List: https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user
-- IRC: #datastax-drivers on [irc.freenode.net](http://freenode.net>)
+- Slack: `#datastax-drivers` channel at https://academy.datastax.com/slack
 - Twitter: Follow the latest news about DataStax Drivers - [@stamhankar999](http://twitter.com/stamhankar999), [@avalanche123](http://twitter.com/avalanche123), [@al3xandru](https://twitter.com/al3xandru)
 
 This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [Theo Hultberg](https://github.com/iconara) and we added support for:
@@ -33,14 +36,13 @@ This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [
 
 This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. The current version works with:
 
-* Apache Cassandra versions 1.2, 2.0, 2.1, 2.2, and 3.x
-* DataStax Enterprise 4.0 and above.
-* Ruby (MRI) 2.2, 2.3
-* JRuby 1.7
+* Apache Cassandra versions 2.1, 2.2, and 3.x
+* DataStax Enterprise 4.8 and above. However, the [Ruby DSE driver](https://github.com/datastax/ruby-dse-driver.git) provides more features and is recommended for use with DataStax Enterprise.
+* Ruby (MRI) 2.2, 2.3, 2.4
+* JRuby 1.7, 9k
 
-__Note__: JRuby 1.6 is not officially supported, although 1.6.8 should work. Rubinius is not supported.
-MRI 2.0, 2.1, and JRuby 9k are not officially supported, but they should work. 1.9.3 is deprecated
-and is likely to break in the release following 3.0.
+__Note__: Rubinius is not supported. MRI 2.0, and 2.1 are not officially supported, but they should work. MRI 1.9.3 is deprecated
+and may break in any release after 3.0. 
 
 ## Feedback Requested
 
@@ -101,6 +103,15 @@ In the examples directory, you can find [an example of how to wrap the ruby driv
 interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/master/examples/cql-rb-wrapper.rb)
 to assist you with gradual upgrade.
 
+If you are upgrading to DataStax Enterprise, use the [Ruby DSE driver](https://github.com/datastax/ruby-dse-driver.git) 
+for more features and better compatibility.
+
+## What's new in v3.2
+This minor release adds support for MRI 2.4.x and also contains a few miscellaneous defect fixes.
+
+See the [changelog](https://github.com/datastax/ruby-driver/blob/master/CHANGELOG.md) for more information on all
+changes in this version and past versions.
+
 ## What's new in v3.1
 
 This minor release introduces features and fixes around resiliency, schema metadata, usability, and performance. One
@@ -109,9 +120,6 @@ of the most user-impacting of these is the introduction of
 Execution profiles allow you to group various execution options into a 'profile' and you reference the desired
 profile at execution time. Get the scoop
 [here](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/basics/execution_profiles).
-
-See the [changelog](https://github.com/datastax/ruby-driver/blob/master/CHANGELOG.md) for more information on all
-changes in this version and past versions.
 
 ## What's new in v3.0
 
@@ -159,16 +167,6 @@ batch.add(query, arguments: {p1: 'val1'})
   Specify a positive value (or nil for unlimited) for `max_remote_hosts_to_use` when initializing the policy to allow remote node use.
 * Unspecified variables in statements previously resulted in an exception. Now they are essentially ignored or treated as null.
 
-### Bug Fixes:
-
-* [[RUBY-120](https://datastax-oss.atlassian.net/browse/RUBY-120)] Tuples and UDTs can be used in sets and hash keys.
-* [[RUBY-143](https://datastax-oss.atlassian.net/browse/RUBY-143)] Retry querying system table for metadata of new hosts when prior attempts fail, ultimately enabling use of new hosts.
-* [[RUBY-150](https://datastax-oss.atlassian.net/browse/RUBY-150)] Fixed a protocol decoding error that occurred when multiple messages are available in a stream.
-* [[RUBY-151](https://datastax-oss.atlassian.net/browse/RUBY-151)] Decode incomplete UDTs properly.
-* [[RUBY-155](https://datastax-oss.atlassian.net/browse/RUBY-155)] Request timeout timer should not include request queuing time.
-* [[RUBY-161](https://datastax-oss.atlassian.net/browse/RUBY-161)] Protocol version negotiation in mixed version clusters should not fall back to v1 unless it is truly warranted.
-* [[RUBY-214](https://datastax-oss.atlassian.net/browse/RUBY-214)] Ensure client timestamps have microsecond precision in JRuby. Previously, some row updates would get lost in high transaction environments.
-
 ## Code examples
 
 The DataStax Ruby Driver uses the awesome [Cucumber Framework](http://cukes.info/) for
@@ -197,7 +195,7 @@ bundle install --without docs
 CASSANDRA_VERSION=3.1.1 bundle exec cucumber # runs end-to-end tests (or bundle exec rake cucumber)
 CASSANDRA_VERSION=3.0.0 bundle exec rspec # runs unit tests (or bundle exec rake rspec)
 CASSANDRA_VERSION=2.1.12 bundle exec rake integration # run integration tests
-CASSANDRA_VERSION=2.0.17 bundle exec rake test # run both as well as integration tests
+CASSANDRA_VERSION=2.1.12 bundle exec rake test # run both as well as integration tests
 ```
 
 ## Changelog & versioning
@@ -223,7 +221,6 @@ the release.
 
 * Specifying a `protocol_version` option of 1 or 2 in cluster options will fail with a
   `NoHostsAvailable` error rather than a `ProtocolError` against Cassandra node versions 3.0-3.4.
-* JRuby 1.6 is not officially supported, although 1.6.8 should work.
 * Because the driver reactor is using `IO.select`, the maximum number of tcp connections allowed is 1024.
 * Because the driver uses `IO#write_nonblock`, Windows is not supported.
 
@@ -245,7 +242,7 @@ Driver for Apache Cassandra will continue on this project, while
 
 ## Copyright
 
-Copyright 2013-2016 DataStax, Inc.
+Copyright 2013-2017 DataStax, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
 except in compliance with the License. You may obtain a copy of the License at
