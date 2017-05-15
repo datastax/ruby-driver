@@ -3,11 +3,11 @@
 # 3.2.0
 
 Features:
-* [RUBY-294](https://datastax-oss.atlassian.net/browse/RUBY-291) Support MRI 2.4.x. Thanks, @lautis, for this contribution!
+* [RUBY-294](https://datastax-oss.atlassian.net/browse/RUBY-294) Support MRI 2.4.x. Thanks, @lautis, for this contribution!
 
 Bug Fixes:
 * [RUBY-291](https://datastax-oss.atlassian.net/browse/RUBY-291) Driver fails to connect to cluster when a table column type has a quoted name.
-* [RUBY-292](https://datastax-oss.atlassian.net/browse/RUBY-291) Driver sporadically crashes with "undefined method 'ip'" error.
+* [RUBY-292](https://datastax-oss.atlassian.net/browse/RUBY-292) Driver sporadically crashes with "undefined method 'ip'" error.
 Thanks, @grosser, for the fix!
 * [RUBY-295](https://datastax-oss.atlassian.net/browse/RUBY-295) When a custom address resolver is configured, 
 consult it when handling all host events, and thus prevent the creation of invalid Host objects.
