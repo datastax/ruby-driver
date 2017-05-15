@@ -64,21 +64,13 @@ module Cassandra
 
       def on_failure
         raise ::ArgumentError, 'no block given' unless block_given?
-        begin
-          yield(@error)
-        rescue
-          nil
-        end
+        yield(@error)
         self
       end
 
       def on_complete
         raise ::ArgumentError, 'no block given' unless block_given?
-        begin
-          yield(nil, @error)
-        rescue
-          nil
-        end
+        yield(nil, @error)
         self
       end
 
@@ -87,11 +79,7 @@ module Cassandra
           raise ::ArgumentError, 'listener must respond to both #success and #failure'
         end
 
-        begin
-          listener.failure(@error)
-        rescue
-          nil
-        end
+        listener.failure(@error)
         self
       end
 
@@ -127,11 +115,7 @@ module Cassandra
 
       def on_success
         raise ::ArgumentError, 'no block given' unless block_given?
-        begin
-          yield(@value)
-        rescue
-          nil
-        end
+        yield(@value)
         self
       end
 
@@ -142,11 +126,7 @@ module Cassandra
 
       def on_complete
         raise ::ArgumentError, 'no block given' unless block_given?
-        begin
-          yield(@value, nil)
-        rescue
-          nil
-        end
+        yield(@value, nil)
         self
       end
 
@@ -155,11 +135,7 @@ module Cassandra
           raise ::ArgumentError, 'listener must respond to both #success and #failure'
         end
 
-        begin
-          listener.success(@value)
-        rescue
-          nil
-        end
+        listener.success(@value)
         self
       end
 
@@ -537,8 +513,6 @@ module Cassandra
           listeners.each do |listener|
             begin
               listener.failure(error)
-            rescue
-              nil
             end
           end
 
@@ -569,8 +543,6 @@ module Cassandra
           listeners.each do |listener|
             begin
               listener.success(value)
-            rescue
-              nil
             end
           end
 
@@ -648,13 +620,9 @@ module Cassandra
 
         begin
           listener.success(@value)
-        rescue
-          nil
         end if @state == :fulfilled
         begin
           listener.failure(@error)
-        rescue
-          nil
         end if @state == :broken
 
         self
@@ -672,8 +640,6 @@ module Cassandra
 
         begin
           yield(@value)
-        rescue
-          nil
         end if @state == :fulfilled
 
         self
@@ -689,11 +655,7 @@ module Cassandra
           end
         end
 
-        begin
-          yield(@error)
-        rescue
-          nil
-        end if @state == :broken
+        yield(@error)
 
         self
       end
@@ -708,12 +670,7 @@ module Cassandra
           end
         end
 
-        begin
-          yield(@value, @error)
-        rescue
-          nil
-        end
-
+        yield(@value, @error)
         self
       end
 
