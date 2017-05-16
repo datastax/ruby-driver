@@ -23,7 +23,7 @@ Gem::Specification.new do |s|
 
   if defined?(JRUBY_VERSION)
     s.platform = 'java'
-    s.files << 'lib/cassandra_murmur3.jar'
+    s.files << 'ext/cassandra_murmur3/CassandraMurmur3Service.java'
   else
     s.platform = Gem::Platform::RUBY
     s.extensions = 'ext/cassandra_murmur3/extconf.rb'
