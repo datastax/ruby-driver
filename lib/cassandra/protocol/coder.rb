@@ -257,7 +257,7 @@ module Cassandra
         when :date             then read_date(buffer)
         when :custom
           if type.name == "com.backupify.db.DatumType"
-            return read_ascii(buffer)
+            return read_text(buffer)
           else
             read_custom(buffer, type, custom_type_handlers)
           end
@@ -507,7 +507,7 @@ module Cassandra
           Cassandra::Tuple::Strict.new(members, values)
         when :custom
           if type.name == "com.backupify.db.DatumType"
-            return read_ascii(buffer)
+            return read_text(buffer)
           else
             raise Errors::DecodingError, %(Unsupported value type: #{type})
           end
@@ -712,7 +712,7 @@ module Cassandra
           value
         when :custom
           if type.name == "com.backupify.db.DatumType"
-            return read_ascii(buffer)
+            return read_text(buffer)
           else
             raise Errors::DecodingError, %(Unsupported value type: #{type})
           end
