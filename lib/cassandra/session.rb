@@ -243,7 +243,7 @@ module Cassandra
     # @private
     def merge_execution_options(options)
       if options
-        Util.assert_instance_of(::Hash, options, "options must be a Hash, #{options.inspect} given")
+        Util.assert_instance_of(::Hash, options)
         # Yell if the caller gave us a bad profile name.
         execution_profile = nil
         if options.key?(:execution_profile)
