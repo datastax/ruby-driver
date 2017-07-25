@@ -44,6 +44,8 @@ This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Ca
 __Note__: Rubinius is not supported. MRI 2.0, and 2.1 are not officially supported, but they should work. MRI 1.9.3 is deprecated
 and may break in any release after 3.0. 
 
+__Note__: Big-endian systems are not supported.
+
 ## Feedback Requested
 
 *Help us focus our efforts!* [Provide your input](http://goo.gl/forms/pCs8PTpHLf) on the Ruby Driver Platform and Runtime Survey (we kept it short).
