@@ -80,7 +80,7 @@ statement = session.prepare('INSERT INTO users (username, email) VALUES (?, ?)')
 session.execute(statement, arguments: ['avalanche123', 'bulat.shakirzyanov@datastax.com'])
 ```
 
-You should prepare a statement for a given query **only** once and then resue it by calling #execute. Re-preparing the same statement will have a negative impact on the performance and should be avoided.
+You should prepare a statement for a given query **only** once and then reuse it by calling #execute. Re-preparing the same statement will have a negative impact on the performance and should be avoided.
 
 A prepared statement can be run many times, but the CQL parsing will only be done once on each node. Use prepared statements for queries you run over and over again.
 
