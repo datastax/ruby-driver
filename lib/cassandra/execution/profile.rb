@@ -114,7 +114,10 @@ module Cassandra
           timeout = options[:timeout]
 
           unless timeout.nil?
-            Util.assert_instance_of(::Numeric, timeout, ":timeout must be a number of seconds, #{timeout.inspect} given")
+            Util.assert_instance_of(::Numeric,
+                                    timeout,
+                                    ":timeout must be a number of seconds,
+                                    #{timeout.inspect} given")
             Util.assert(timeout > 0, ":timeout must be greater than 0, #{timeout} given")
           end
         end

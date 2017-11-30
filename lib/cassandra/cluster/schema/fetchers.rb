@@ -293,7 +293,7 @@ module Cassandra
 
       # @private
       module Fetchers
-        # rubocop:disable Style/ClassAndModuleCamelCase
+        # rubocop:disable Naming/ClassAndModuleCamelCase
         class V1_2_x
           SELECT_KEYSPACES        = 'SELECT * FROM system.schema_keyspaces'.freeze
           SELECT_TABLES           = 'SELECT * FROM system.schema_columnfamilies'.freeze
