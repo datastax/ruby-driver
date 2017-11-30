@@ -53,7 +53,7 @@ if __name__ == "__main__":
         args = [arg.encode('utf-8') for arg in args]
         arg1 = args[0].lower()
 
-        if arg1 in cluster_cmds.cluster_cmds():
+        if arg1 in cluster_cmds.commands():
             kind = 'cluster'
             cmd = arg1
             cmd_args = args[1:]
