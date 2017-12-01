@@ -11,7 +11,7 @@ group :development do
   platforms :mri_19 do
     gem 'perftools.rb'
   end
-  gem 'rubocop', '~> 0.49', require: false
+  gem 'rubocop', '~> 0.51', require: false
 end
 
 group :test do
