@@ -860,7 +860,7 @@ module CCM extend self
 
   def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
     parse_version
-    cluster_name = 'ruby-driver-' + "#{@dse ? 'dse' : 'cassandra'}" + "-#{@raw_version}" + '-test-cluster'
+    cluster_name = "ruby-driver-#{@dse ? 'dse' : 'cassandra'}-#{@raw_version.gsub('.', '_')}-test-cluster"
 
     if @current_cluster && @current_cluster.name == cluster_name
       unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
