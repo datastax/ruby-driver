@@ -14,12 +14,12 @@ Gem::Specification.new do |s|
   s.description   = 'A pure Ruby driver for Apache Cassandra'
   s.license       = 'Apache License 2.0'
   s.files         = Dir['lib/**/*.rb', 'README.md', '.yardopts']
-  s.require_paths = %w(lib)
+  s.require_paths = %w[lib]
 
   s.extra_rdoc_files = ['README.md']
   s.rdoc_options << '--title' << 'Datastax Ruby Driver' << '--main' << 'README.md' << '--line-numbers'
 
-  s.required_ruby_version = '>= 1.9.3'
+  s.required_ruby_version = '>= 2.2.0'
 
   if defined?(JRUBY_VERSION)
     s.platform = 'java'

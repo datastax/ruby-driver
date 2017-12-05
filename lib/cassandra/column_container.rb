@@ -294,7 +294,7 @@ module Cassandra
     # its keyspace constructed yet. So allow updating @keyspace, thus
     # allowing fetchers to create keyspace, table/view, and hook them together without
     # worrying about chickens and eggs.
-    # rubocop:disable Style/AccessorMethodName
+    # rubocop:disable Naming/AccessorMethodName
     def set_keyspace(keyspace)
       @keyspace = keyspace
     end

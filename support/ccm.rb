@@ -718,7 +718,7 @@ module CCM extend self
 
     def enable_triggers
       trigger_root = File.expand_path(File.dirname(__FILE__) + '/../support/triggers')
-      ccm_node_conf_dir = "~/.ccm/ruby-driver-cassandra-#{CCM.cassandra_version}-test-cluster"
+      ccm_node_conf_dir = "~/.ccm/#{@name}"
 
       (1..@nodes.size).each do |n|
         `mkdir -p #{ccm_node_conf_dir}/node#{n}/conf/triggers`
@@ -833,6 +833,7 @@ module CCM extend self
   @raw_version = nil
   @cassandra_version = nil
   @dse = false
+  @cluster_name = nil
 
   def parse_version
     @raw_version ||= begin
@@ -843,6 +844,10 @@ module CCM extend self
       end
       version
     end
+  end
+
+  def cluster_name
+    @cluster_name ||= "ruby-driver-#{@dse ? 'dse' : 'cassandra'}-#{@raw_version.gsub('.', '_')}-test-cluster"
   end
 
   def cassandra_version
@@ -860,7 +865,6 @@ module CCM extend self
 
   def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
     parse_version
-    cluster_name = 'ruby-driver-' + "#{@dse ? 'dse' : 'cassandra'}" + "-#{@raw_version}" + '-test-cluster'
 
     if @current_cluster && @current_cluster.name == cluster_name
       unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
