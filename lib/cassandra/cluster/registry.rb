@@ -182,7 +182,7 @@ module Cassandra
                  data['listen_address'])
       end
 
-      # @param ip [Host] host that is found to be up.
+      # @param host [Host] host that is found to be up.
       def toggle_up(host)
         host = Host.new(host.ip,
                         host.id,
@@ -204,7 +204,7 @@ module Cassandra
         host
       end
 
-      # @param ip [Host] host that is found to be down.
+      # @param host [Host] host that is found to be down.
       def toggle_down(host)
         host = Host.new(host.ip,
                         host.id,
@@ -226,7 +226,7 @@ module Cassandra
         host
       end
 
-      # @param ip [Host] host that is lost.
+      # @param host [Host] host that is lost.
       def notify_lost(host)
         if host.up?
           @logger.debug("Host #{host.ip} is down and lost")
@@ -263,7 +263,7 @@ module Cassandra
         end
       end
 
-      # @param ip [Host] host that is found.
+      # @param host [Host] host that is found.
       def notify_found(host)
         @logger.debug("Host #{host.ip} is found and up")
         @listeners.each do |listener|
