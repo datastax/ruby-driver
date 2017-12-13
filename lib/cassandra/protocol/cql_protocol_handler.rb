@@ -170,7 +170,7 @@ module Cassandra
       def send_request(request, timeout = nil, with_heartbeat = true)
         return Ione::Future.failed(Errors::IOError.new('Connection closed')) if closed?
         schedule_heartbeat if with_heartbeat
-        promise = RequestPromise.new(request, timeout)
+        promise = RequestPromise.new(request, timeout, @scheduler)
         id = nil
         @lock.lock
         begin
@@ -256,11 +256,13 @@ module Cassandra
 
         attr_reader :request, :timeout
         attr_boolean :timed_out
+        attr_accessor :timer
 
-        def initialize(request, timeout)
+        def initialize(request, timeout, scheduler)
           @request = request
           @timeout = timeout
           @timed_out = false
+          @scheduler = scheduler
           super()
         end
 
@@ -270,6 +272,24 @@ module Cassandra
             # rubocop:disable Style/SignalException
             fail(Errors::TimeoutError.new('Timed out'))
             # rubocop:enable Style/SignalException
+          end
+        end
+
+        def fulfill(response)
+          super
+
+          if @timer
+            @scheduler.cancel_timer(@timer)
+            @timer = nil
+          end
+        end
+
+        def fail(cause)
+          super
+
+          if @timer
+            @scheduler.cancel_timer(@timer)
+            @timer = nil
           end
         end
       end
@@ -313,7 +333,8 @@ module Cassandra
           @frame_encoder.encode(buffer, request_promise.request, id)
         end
         if request_promise.timeout
-          @scheduler.schedule_timer(request_promise.timeout).on_value do
+          request_promise.timer = @scheduler.schedule_timer(request_promise.timeout)
+          request_promise.timer.on_value do
             request_promise.time_out!
           end
         end

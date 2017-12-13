@@ -45,13 +45,17 @@ module Cassandra
     # @param options [Hash] (nil) a customizable set of options
     #
     # @option options [Symbol] :consistency consistency level for the request.
-    #   Must be one of {Cassandra::CONSISTENCIES}
+    #   Must be one of {Cassandra::CONSISTENCIES}. Defaults to the setting in the
+    #   active execution profile. If none is specified, the default profile is used,
+    #   which is set to `:local_one`.
     # @option options [Integer] :page_size size of results page. You can page
     #   through results using {Cassandra::Result#next_page} or
     #   {Cassandra::Result#next_page_async}
     # @option options [Boolean] :trace (false) whether to enable request tracing
     # @option options [Numeric] :timeout (nil) if specified, it is a number of
-    #   seconds after which to time out the request if it hasn't completed
+    #   seconds after which to time out the request if it hasn't completed. Defaults to the setting in the
+    #   active execution profile. If none is specified, the default profile is used,
+    #   which is set to 12 seconds.
     # @option options [Symbol] :serial_consistency (nil) this option is only
     #   relevant for conditional updates and specifies a serial consistency to
     #   be used, one of {Cassandra::SERIAL_CONSISTENCIES}
