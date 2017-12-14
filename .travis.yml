@@ -15,13 +15,14 @@ matrix:
 branches:
   only:
     - master
-# before_install: |
-#  gem cleanup bundler
-#
-#  if [[ k$TRAVIS_RUBY_VERSION = kjruby* ]] ; then
+before_install: |
+  gem cleanup bundler
+
+  if [[ k$TRAVIS_RUBY_VERSION = kjruby* ]] ; then
 #    gem uninstall -i /home/travis/.rvm/gems/jruby-1.7.24@global bundler -x
-#    gem uninstall -i /home/travis/.rvm/gems/jruby-9.0.5.0@global bundler -x
-#    gem install bundler -v 1.7.12
-#  else
-#    gem install bundler -v 1.11.2
-#  fi
+    gem uninstall -i /home/travis/.rvm/gems/jruby-9.0.5.0@global bundler -x
+    gem uninstall -i /home/travis/.rvm/gems/jruby-9.0.5.0 bundler -x
+    gem install bundler -v 1.7.12
+  else
+    gem install bundler -v 1.11.2
+  fi
