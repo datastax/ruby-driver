@@ -6,7 +6,16 @@ script: |
     BUNDLER_VERSION=_1.11.2_
   fi
   bundle $BUNDLER_VERSION exec rake rspec
-bundler_args: --without development docs
+#bundler_args: --without development docs
+
+install: |
+  if [[ k$TRAVIS_RUBY_VERSION = kjruby* ]] ; then
+    BUNDLER_VERSION=_1.7.12_
+  else
+    BUNDLER_VERSION=_1.11.2_
+  fi
+  bundle $BUNDLER_VERSION install --without development docs
+
 rvm:
 #  - 2.2.4
 #  - 2.3.0
