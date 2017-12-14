@@ -5,8 +5,9 @@ script: |
   else
     BUNDLER_VERSION=_1.11.2_
   fi
+  bundle $BUNDLER_VERSION --version
+  echo bundle $BUNDLER_VERSION exec rake rspec
   bundle $BUNDLER_VERSION exec rake rspec
-#bundler_args: --without development docs
 
 install: |
   if [[ k$TRAVIS_RUBY_VERSION = kjruby* ]] ; then
