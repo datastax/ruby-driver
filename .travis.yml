@@ -1,5 +1,11 @@
 language: ruby
-script: bundle exec rake rspec
+script: |
+  if [[ k$TRAVIS_RUBY_VERSION = kjruby* ]] ; then
+    BUNDLER_VERSION=_1.7.12_
+  else
+    BUNDLER_VERSION=_1.11.2_
+  fi
+  bundle $BUNDLER_VERSION exec rake rspec
 bundler_args: --without development docs
 rvm:
 #  - 2.2.4
@@ -19,8 +25,6 @@ before_install: |
   gem cleanup bundler
 
   if [[ k$TRAVIS_RUBY_VERSION = kjruby* ]] ; then
-    gem uninstall -i /home/travis/.rvm/gems/jruby-9.0.5.0@global bundler -x
-    gem uninstall -i /home/travis/.rvm/gems/jruby-9.0.5.0 bundler -x
     gem install bundler -v 1.7.12
   else
     gem install bundler -v 1.11.2
