@@ -4,7 +4,6 @@ bundler_args: --without development docs
 rvm:
   - 2.2.4
   - 2.3.0
-  - jruby-1.7.24
   - jruby-9.0.5.0
 env:
   global:
@@ -16,12 +15,7 @@ branches:
   only:
     - master
 before_install: |
-  gem cleanup bundler
-
   if [[ k$TRAVIS_RUBY_VERSION = kjruby* ]] ; then
-    gem uninstall -i /home/travis/.rvm/gems/jruby-1.7.24@global bundler -x
-    gem uninstall -i /home/travis/.rvm/gems/jruby-9.0.5.0@global bundler -x
-    gem install bundler -v 1.7.12
-  else
-    gem install bundler -v 1.11.2
+    # Hack the Gemfile.lock file to indicate we're a JRuby gem, to make bundler happy.
+    sed -e 's/\(cassandra-driver [^)]*\)/\1-java/' -i"" Gemfile.lock
   fi
