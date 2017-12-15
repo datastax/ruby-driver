@@ -1,21 +1,9 @@
 language: ruby
 script: |
-  if [[ k$TRAVIS_RUBY_VERSION = kjruby* ]] ; then
-    BUNDLER_VERSION=_1.7.12_
-  else
-    BUNDLER_VERSION=_1.11.2_
-  fi
-  bundle $BUNDLER_VERSION --version
-  echo bundle $BUNDLER_VERSION exec rake rspec
-  bundle $BUNDLER_VERSION exec rake rspec
+  bundle exec rake rspec
 
 install: |
-  if [[ k$TRAVIS_RUBY_VERSION = kjruby* ]] ; then
-    BUNDLER_VERSION=_1.7.12_
-  else
-    BUNDLER_VERSION=_1.11.2_
-  fi
-  bundle $BUNDLER_VERSION install --without development docs
+  bundle install --without development docs
 
 rvm:
 #  - 2.2.4
@@ -32,11 +20,6 @@ branches:
   only:
     - master
 before_install: |
-  gem update --system 2.4.8
-  gem cleanup bundler
-
   if [[ k$TRAVIS_RUBY_VERSION = kjruby* ]] ; then
-    gem install bundler -v 1.7.12
-  else
-    gem install bundler -v 1.11.2
+    sed -e 's/\(cassandra-driver [^)]*\)/\1-java/' -i"" Gemfile.lock
   fi
