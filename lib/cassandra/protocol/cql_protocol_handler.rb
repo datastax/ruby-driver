@@ -263,6 +263,7 @@ module Cassandra
           @timeout = timeout
           @timed_out = false
           @scheduler = scheduler
+          @lock = Mutex.new
           super()
         end
 
@@ -275,21 +276,64 @@ module Cassandra
           end
         end
 
+        def maybe_start_timer
+          # This is more complicated than one would expect. First, we want to start a timer
+          # if a timeout is set. But there is a race condition where send_request creates
+          # a fresh promise and adds it to @promises, but another thread handles a socket
+          # closure event and fails all known promises. When a promise fails, we want to cancel
+          # the timer, if set. So, we synchronize access to @timer to be sure we don't set up
+          # and cancel the timer at the same time. However, if promise.fail runs first, there
+          # will be no timer to cancel, and then when maybe_start_timer gets called in the other
+          # thread, it'll create a timer on a promise that no one is going to action on going forward.
+          # So, that leads to leaking the timer until it times out. To avoid this, we want to
+          # check that the future of the promise isn't completed before starting the timer.
+          # Finally, we cancel a potentially existing timer before scheduling a new one. That's
+          # just defensive programming -- that scenario shouldn't be possible right now.
+          if @timeout
+            @lock.lock
+            begin
+              @scheduler.cancel_timer(@timer) if @timer
+              unless @future.completed?
+                @timer = @scheduler.schedule_timer(@timeout)
+                @timer.on_value do
+                  time_out!
+                end
+              end
+            ensure
+                @lock.unlock
+            end
+          end
+        end
+
         def fulfill(response)
           super
 
-          if @timer
-            @scheduler.cancel_timer(@timer)
-            @timer = nil
+          if @timeout
+            @lock.lock
+            begin
+              if @timer
+                @scheduler.cancel_timer(@timer)
+                @timer = nil
+              end
+            ensure
+                @lock.unlock
+            end
           end
         end
 
         def fail(cause)
           super
 
-          if @timer
-            @scheduler.cancel_timer(@timer)
-            @timer = nil
+          if @timeout
+            @lock.lock
+            begin
+              if @timer
+                @scheduler.cancel_timer(@timer)
+                @timer = nil
+              end
+            ensure
+              @lock.unlock
+            end
           end
         end
       end
@@ -332,12 +376,7 @@ module Cassandra
         @connection.write do |buffer|
           @frame_encoder.encode(buffer, request_promise.request, id)
         end
-        if request_promise.timeout
-          request_promise.timer = @scheduler.schedule_timer(request_promise.timeout)
-          request_promise.timer.on_value do
-            request_promise.time_out!
-          end
-        end
+        request_promise.maybe_start_timer
       end
 
       def socket_closed(cause)
