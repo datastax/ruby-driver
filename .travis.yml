@@ -16,5 +16,6 @@ branches:
     - master
 before_install: |
   if [[ k$TRAVIS_RUBY_VERSION = kjruby* ]] ; then
+    # Hack the Gemfile.lock file to indicate we're a JRuby gem, to make bundler happy.
     sed -e 's/\(cassandra-driver [^)]*\)/\1-java/' -i"" Gemfile.lock
   fi
