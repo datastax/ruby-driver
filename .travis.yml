@@ -1,14 +1,9 @@
 language: ruby
-script: |
-  bundle exec rake rspec
-
-install: |
-  bundle install --without development docs
-
+script: bundle exec rake rspec
+bundler_args: --without development docs
 rvm:
-#  - 2.2.4
-#  - 2.3.0
-#  - jruby-1.7.24
+  - 2.2.4
+  - 2.3.0
   - jruby-9.0.5.0
 env:
   global:
