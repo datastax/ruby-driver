@@ -287,54 +287,43 @@ module Cassandra
           # thread, it'll create a timer on a promise that no one is going to action on going forward.
           # So, that leads to leaking the timer until it times out. To avoid this, we want to
           # check that the future of the promise isn't completed before starting the timer.
-          # Finally, we cancel a potentially existing timer before scheduling a new one. That's
-          # just defensive programming -- that scenario shouldn't be possible right now.
-          if @timeout
-            @lock.lock
-            begin
-              @scheduler.cancel_timer(@timer) if @timer
-              unless @future.completed?
+
+          return if @timeout.nil?
+          return if @future.completed?
+
+          if @timer.nil?
+            @lock.synchronize do
+              if @timer.nil?
+                return if @future.completed?
                 @timer = @scheduler.schedule_timer(@timeout)
-                @timer.on_value do
-                  time_out!
-                end
+                @timer.on_value { time_out! }
               end
-            ensure
-                @lock.unlock
             end
           end
         end
 
         def fulfill(response)
           super
-
-          if @timeout
-            @lock.lock
-            begin
-              if @timer
-                @scheduler.cancel_timer(@timer)
-                @timer = nil
-              end
-            ensure
-                @lock.unlock
-            end
-          end
+          maybe_cancel_timer
         end
 
         def fail(cause)
           super
+          maybe_cancel_timer
+        end
 
-          if @timeout
-            @lock.lock
-            begin
+        def maybe_cancel_timer
+          return if @timeout.nil?
+          timer = nil
+          if @timer
+            @lock.synchronize do
               if @timer
-                @scheduler.cancel_timer(@timer)
+                timer = @timer
                 @timer = nil
               end
-            ensure
-              @lock.unlock
             end
           end
+          @scheduler.cancel_timer(timer) if timer
         end
       end
 
