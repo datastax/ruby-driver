@@ -39,7 +39,7 @@ This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Ca
 * Apache Cassandra versions 2.1, 2.2, and 3.x
 * DataStax Enterprise 4.8 and above. However, the [Ruby DSE driver](https://github.com/datastax/ruby-dse-driver.git) provides more features and is recommended for use with DataStax Enterprise.
 * Ruby (MRI) 2.2, 2.3, 2.4
-* JRuby 1.7, 9k
+* JRuby 9k
 
 __Note__: Rubinius is not supported. 
 

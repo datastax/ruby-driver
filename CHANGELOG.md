@@ -1,4 +1,10 @@
-# master
+# 3.2.1
+
+Bug Fixes:
+* [RUBY-315](https://datastax-oss.atlassian.net/browse/RUBY-315) Bump rubocop version to address security vulnerability; disallow Ruby versions prior to 2.2.
+* [RUBY-316](https://datastax-oss.atlassian.net/browse/RUBY-316) Memory leak in ruby driver due to request timers not being cleaned up when extremely large request timeout is set.
+* [RUBY-317](https://datastax-oss.atlassian.net/browse/RUBY-317) Upgrade Yard to address security vulnerability.
+* [RUBY-318](https://datastax-oss.atlassian.net/browse/RUBY-318) Fix Travis config to work with JRuby on new image.
 
 # 3.2.0
 
