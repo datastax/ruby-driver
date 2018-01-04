@@ -101,16 +101,18 @@ __Note__: if you want to use compression you should also install [snappy](http:/
 
 Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API.
 In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete
-interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/master/examples/cql-rb-wrapper.rb)
+interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/v3.2.1/examples/cql-rb-wrapper.rb)
 to assist you with gradual upgrade.
 
 If you are upgrading to DataStax Enterprise, use the [Ruby DSE driver](https://github.com/datastax/ruby-dse-driver.git) 
 for more features and better compatibility.
 
 ## What's new in v3.2
-This minor release adds support for MRI 2.4.x and also contains a few miscellaneous defect fixes.
+This minor release adds support for MRI 2.4.x and also contains a few miscellaneous defect fixes. It also removes
+support for Ruby versions prior to 2.2. This was already officially the case, but the minimum version limit is
+now enforced.
 
-See the [changelog](https://github.com/datastax/ruby-driver/blob/master/CHANGELOG.md) for more information on all
+See the [changelog](https://github.com/datastax/ruby-driver/blob/v3.2.1/CHANGELOG.md) for more information on all
 changes in this version and past versions.
 
 ## What's new in v3.1
@@ -178,7 +180,7 @@ examples in the `features/` directory.
 ## Running tests
 
 If you don't feel like reading through the following instructions on how to run
-ruby-driver tests, feel free to [check out .travis.yml for the entire build code](https://github.com/datastax/ruby-driver/blob/master/.travis.yml).
+ruby-driver tests, feel free to [check out .travis.yml for the entire build code](https://github.com/datastax/ruby-driver/blob/v3.2.1/.travis.yml).
 
 * Check out the driver codebase and install test dependencies:
 
@@ -202,7 +204,7 @@ CASSANDRA_VERSION=2.1.12 bundle exec rake test # run both as well as integration
 ## Changelog & versioning
 
 Check out the [releases on GitHub](https://github.com/datastax/ruby-driver/releases) and
-[changelog](https://github.com/datastax/ruby-driver/blob/master/CHANGELOG.md). Version
+[changelog](https://github.com/datastax/ruby-driver/blob/v3.2.1/CHANGELOG.md). Version
 numbering follows the [semantic versioning](http://semver.org/) scheme.
 
 Private and experimental APIs, defined as whatever is not in the
