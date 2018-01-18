@@ -270,9 +270,7 @@ module Cassandra
         def time_out!
           unless future.completed?
             @timed_out = true
-            # rubocop:disable Style/SignalException
             fail(Errors::TimeoutError.new('Timed out'))
-            # rubocop:enable Style/SignalException
           end
         end
 

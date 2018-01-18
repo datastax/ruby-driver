@@ -53,24 +53,30 @@ module Cassandra
       end
 
       def read_decimal(len = bytesize)
-        size = read_signed_int
+        scale = read_signed_int
         number_string = read_varint(len - 4).to_s
-        if number_string.length <= size
-          if number_string.start_with?(MINUS)
-            number_string = number_string[1, number_string.length - 1]
-            fraction_string = MINUS + ZERO << DECIMAL_POINT
-          else
-            fraction_string = ZERO + DECIMAL_POINT
-          end
-          (size - number_string.length).times { fraction_string << ZERO }
-          fraction_string << number_string
+        if scale < 0
+          # Special case where the actual scale is positive; scale in the protocol is actually negative of
+          # reality.
+          BigDecimal.new(number_string + '0' * -scale)
         else
-          fraction_string = number_string[0, number_string.length - size]
-          fraction_string << DECIMAL_POINT
-          fraction_string <<
-            number_string[number_string.length - size, number_string.length]
+          if number_string.length <= scale
+            if number_string.start_with?(MINUS)
+              number_string = number_string[1, number_string.length - 1]
+              fraction_string = MINUS + ZERO << DECIMAL_POINT
+            else
+              fraction_string = ZERO + DECIMAL_POINT
+            end
+            (scale - number_string.length).times { fraction_string << ZERO }
+            fraction_string << number_string
+          else
+            fraction_string = number_string[0, number_string.length - scale]
+            fraction_string << DECIMAL_POINT
+            fraction_string <<
+              number_string[number_string.length - scale, number_string.length]
+          end
+          BigDecimal.new(fraction_string)
         end
-        BigDecimal.new(fraction_string)
       rescue Errors::DecodingError => e
         raise Errors::DecodingError, e.message, e.backtrace
       end
