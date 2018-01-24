@@ -1,6 +1,7 @@
 # master
 Bug Fixes:
 * [RUBY-319](https://datastax-oss.atlassian.net/browse/RUBY-319) Support reading decimals in scientific notation with positive exponent.
+* [RUBY-320](https://datastax-oss.atlassian.net/browse/RUBY-320) Cassandra::Future.all([]).join hangs forever
 
 # 3.2.1
 

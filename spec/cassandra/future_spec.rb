@@ -69,6 +69,11 @@ module Cassandra
         futures << Future.error(RuntimeError.new("something happened"))
         expect { Future.all(futures).get }.to raise_error("something happened")
       end
+
+      it 'trivially succeeds when there are no futures' do
+        expect(Future.all.get).to eq([])
+        expect(Future.all([]).get).to eq([])
+      end
     end
 
     describe('#get') do

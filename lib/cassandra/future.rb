@@ -204,7 +204,13 @@ module Cassandra
       end
 
       def all(*futures)
-        futures   = Array(futures.first) if futures.one?
+        # May get called with varargs or an array of futures. In the latter case,
+        # the first element in futures is the array of futures. Promote it.
+        futures = Array(futures.first) if futures.one?
+
+        # Special case where there are no futures to aggregate.
+        return Value.new([]) if futures.empty?
+
         monitor   = Monitor.new
         promise   = Promise.new(@executor)
         remaining = futures.length
