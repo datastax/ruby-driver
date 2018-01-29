@@ -1,3 +1,6 @@
+# master
+
+
 # 3.2.2
 Bug Fixes:
 * [RUBY-319](https://datastax-oss.atlassian.net/browse/RUBY-319) Support reading decimals in scientific notation with positive exponent.
