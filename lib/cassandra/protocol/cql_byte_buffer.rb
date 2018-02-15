@@ -55,7 +55,7 @@ module Cassandra
       def read_decimal(len = bytesize)
         scale = read_signed_int
         number_string = read_varint(len - 4).to_s
-        if scale < 0
+        if scale <= 0
           # Special case where the actual scale is positive; scale in the protocol is actually negative of
           # reality.
           BigDecimal.new(number_string + '0' * -scale)

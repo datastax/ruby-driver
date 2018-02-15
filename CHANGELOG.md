@@ -1,4 +1,6 @@
 # master
+Bug Fixes:
+* [RUBY-322](https://datastax-oss.atlassian.net/browse/RUBY-322) Decimals with zero scale aren't parsed properly.
 
 
 # 3.2.2
