@@ -122,6 +122,21 @@ module Cassandra
           buffer.read_decimal.should == BigDecimal.new('-2')
         end
 
+        it 'decodes zero decimal with zero scale' do
+          buffer = described_class.new("\x00\x00\x00\x00\x00")
+          buffer.read_decimal.should == BigDecimal.new('0')
+        end
+
+        it 'decodes zero decimal with negative scale' do
+          buffer = described_class.new("\xff\xff\xff\xf9\x00")
+          buffer.read_decimal.should == BigDecimal.new('0')
+        end
+
+        it 'decodes zero decimal with positive scale' do
+          buffer = described_class.new("\x00\x00\x00\x05\x00")
+          buffer.read_decimal.should == BigDecimal.new('0')
+        end
+
         it 'consumes the bytes' do
           buffer << 'HELLO'
           buffer.read_decimal(buffer.length - 5)
