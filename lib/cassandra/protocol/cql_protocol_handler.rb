@@ -264,6 +264,7 @@ module Cassandra
           @timed_out = false
           @scheduler = scheduler
           @lock = Mutex.new
+          @timer = nil
           super()
         end
 
