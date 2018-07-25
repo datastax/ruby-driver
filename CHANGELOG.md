@@ -1,6 +1,7 @@
 # master
 Bug Fixes:
 * [RUBY-322](https://datastax-oss.atlassian.net/browse/RUBY-322) Decimals with zero scale aren't parsed properly.
+* [RUBY-325](https://datastax-oss.atlassian.net/browse/RUBY-325) Upgrade Yard to resolve security vulnerability
 
 
 # 3.2.2
