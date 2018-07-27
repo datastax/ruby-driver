@@ -169,7 +169,7 @@ module Cassandra
 
       cql << "\n)\nWITH "
 
-      if @clustering_order.any? {|o| o != :asc}
+      if !@clustering_order.empty? && !@clustering_columns.empty?
         cql << 'CLUSTERING ORDER BY ('
         first = true
         @clustering_columns.zip(@clustering_order) do |column, order|
