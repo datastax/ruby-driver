@@ -72,6 +72,7 @@ CREATE TABLE simplex."t4" (
   "f1" int,
   "f2" int,
   "f3" int,
+  "f4" list<frozen<tuple<text, int>>>,
   PRIMARY KEY ("f1", "f2")
 )
 WITH CLUSTERING ORDER BY ("f2" DESC)

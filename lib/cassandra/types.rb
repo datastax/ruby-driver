@@ -1414,6 +1414,73 @@ module Cassandra
       alias == eql?
     end
 
+    class Frozen < Type
+      # @private
+      attr_reader :value_type
+
+      # @private
+      def initialize(value_type)
+        super(:frozen)
+        @value_type = value_type
+      end
+
+      # Coerces the value to Array
+      # @param value [Object] original value
+      # @return [Array] value
+      # @see Cassandra::Type#new
+      def new(*value)
+        value = Array(value.first) if value.one?
+
+        value.each do |v|
+          Util.assert_type(@value_type, v)
+        end
+        value
+      end
+
+      # Asserts that a given value is an Array
+      # @param value [Object] value to be validated
+      # @param message [String] error message to use when assertion fails
+      # @yieldreturn [String] error message to use when assertion fails
+      # @raise [ArgumentError] if the value is not an Array
+      # @return [void]
+      # @see Cassandra::Type#assert
+      def assert(value, message = nil, &block)
+        Util.assert_instance_of(::Array, value, message, &block)
+        value.each do |v|
+          Util.assert_type(@value_type, v, message, &block)
+        end
+        nil
+      end
+
+      # @return [String] `"list<type>"`
+      # @see Cassandra::Type#to_s
+      def to_s
+        "frozen<#{@value_type}>"
+      end
+
+      def hash
+        @hash ||= begin
+          h = 17
+          h = 31 * h + @kind.hash
+          h = 31 * h + @value_type.hash
+          h
+        end
+      end
+
+      def eql?(other)
+        other.is_a?(List) && @value_type == other.value_type
+      end
+
+      alias == eql?
+    end
+
+    def frozen(value_type)
+      Util.assert_instance_of(Cassandra::Type, value_type,
+                              "frozen type must be a Cassandra::Type, #{value_type.inspect} given")
+
+      Frozen.new(value_type)
+    end
+
     # @return [Cassandra::Types::Text] text type since varchar is an alias for text
     def varchar
       Text

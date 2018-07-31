@@ -306,6 +306,16 @@
       "kind": "regular",
       "position": -1,
       "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t4",
+      "column_name": "f4",
+      "clustering_order": "none",
+      "column_name_bytes": "f3",
+      "kind": "regular",
+      "position": 0,
+      "type": "list<frozen<tuple<text, int>>"
     }
   ],
   "SELECT * FROM system_schema.types": [
