@@ -315,7 +315,7 @@
       "column_name_bytes": "f3",
       "kind": "regular",
       "position": 0,
-      "type": "list<frozen<int>>"
+      "type": "list<frozen<tuple<text, int>>"
     }
   ],
   "SELECT * FROM system_schema.types": [

@@ -709,7 +709,7 @@ WITH CLUSTERING ORDER BY ("f2" DESC)
 CREATE TABLE simplex."t3" (
   "f1" int PRIMARY KEY,
   "f2" int,
-  "f3" list<frozen<int>>
+  "f3" list<frozen<tuple<text, int>>>
 )
 WITH bloom_filter_fp_chance = 0.01
  AND caching = '{"keys":"ALL", "rows_per_partition":"NONE"}'

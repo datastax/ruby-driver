@@ -3045,7 +3045,7 @@
       "index_options": "null",
       "index_type": null,
       "type": "regular",
-      "validator": "org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.FrozenType(org.apache.cassandra.db.marshal.Int32Type))"
+      "validator": "org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.FrozenType(org.apache.cassandra.db.marshal.TupleType(org.apache.cassandra.db.marshal.UTF8Type,org.apache.cassandra.db.marshal.Int32Type)))"
     }
   ],
   "SELECT * FROM system.schema_usertypes": [
