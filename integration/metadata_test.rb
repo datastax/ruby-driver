@@ -288,7 +288,8 @@ EOF
   "f3" int,
   PRIMARY KEY \("f1", "f2"\)
 \)
-WITH COMPACT STORAGE/)
+WITH CLUSTERING ORDER BY \("f2" ASC\)
+ AND COMPACT STORAGE/)
 
     assert_equal 0, table_meta.to_cql =~ table_cql, "actual cql: #{table_meta.to_cql}"
     assert_equal 3, table_meta.columns.size

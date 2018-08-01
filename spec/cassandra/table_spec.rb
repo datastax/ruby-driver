@@ -225,7 +225,7 @@ WITH opt1=value1;
       end
 
       it 'should handle clustering order properly' do
-        t = Table.new(ks, 'mytable1', [col, col2], [col3], [], options, [:desc], id)
+        t = Table.new(ks, 'mytable1', [col, col2], [col3], [], options, [:asc], id)
         expected_cql = <<-EOF
 CREATE TABLE "myks1"."mytable1" (
   col int,
@@ -233,7 +233,7 @@ CREATE TABLE "myks1"."mytable1" (
   "from" text,
   PRIMARY KEY ((col, "col2"), "from")
 )
-WITH CLUSTERING ORDER BY ("from" DESC)
+WITH CLUSTERING ORDER BY ("from" ASC)
  AND opt1=value1;
         EOF
         expect(t.to_cql).to eq(expected_cql.chomp)
