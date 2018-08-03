@@ -24,6 +24,12 @@ cassandra:
 os:
   - ubuntu/bionic64/ruby-driver
 build:
+  - script: |
+    ruby_version=`ruby --version`
+    if [[ `ruby --version` == jruby* ]]; then
+      # Remove gemfile lock for jruby as build is different
+      rm Gemfile.lock
+    fi
   - type: bundler
     without: development docs
   - script: |
