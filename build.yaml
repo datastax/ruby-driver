@@ -27,8 +27,8 @@ build:
   - script: |
       ruby_version=`ruby --version`
       if [[ `ruby --version` == jruby* ]]; then
-        # Remove gemfile lock for jruby as build is different
-        rm Gemfile.lock
+        # Add '-java' to version as that is included in version name when using jruby
+        sed -i -r 's/cassandra-driver \((.*)\)/cassandra-driver (\1-java)/' Gemfile.lock
       fi
   - type: bundler
     without: development docs
