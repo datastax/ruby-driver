@@ -1,8 +1,10 @@
-# master
+# 3.2.3
 Bug Fixes:
 * [RUBY-322](https://datastax-oss.atlassian.net/browse/RUBY-322) Decimals with zero scale aren't parsed properly.
-* [RUBY-325](https://datastax-oss.atlassian.net/browse/RUBY-325) Upgrade Yard to resolve security vulnerability
-
+* [RUBY-323](https://datastax-oss.atlassian.net/browse/RUBY-323) Travis can time out due to unintialized instance variable warning in CqlProtocolHandler.  Thanks @baldarn for the contribution!
+* [RUBY-324](https://datastax-oss.atlassian.net/browse/RUBY-324) CQL generation does not handle nested collections properly.  Thanks @mnin for the contribution!
+* [RUBY-325](https://datastax-oss.atlassian.net/browse/RUBY-325) Upgrade Yard to resolve security vulnerability.
+* [RUBY-326](https://datastax-oss.atlassian.net/browse/RUBY-326) CQL generation should include ascending clustering order specification.  Thanks @mnin for the contribution!
 
 # 3.2.2
 Bug Fixes:
@@ -10,7 +12,6 @@ Bug Fixes:
 * [RUBY-320](https://datastax-oss.atlassian.net/browse/RUBY-320) Cassandra::Future.all([]).join hangs forever
 
 # 3.2.1
-
 Bug Fixes:
 * [RUBY-315](https://datastax-oss.atlassian.net/browse/RUBY-315) Bump rubocop version to address security vulnerability; disallow Ruby versions prior to 2.2.
 * [RUBY-316](https://datastax-oss.atlassian.net/browse/RUBY-316) Memory leak in ruby driver due to request timers not being cleaned up when extremely large request timeout is set.
@@ -18,7 +19,6 @@ Bug Fixes:
 * [RUBY-318](https://datastax-oss.atlassian.net/browse/RUBY-318) Fix Travis config to work with JRuby on new image.
 
 # 3.2.0
-
 Features:
 * [RUBY-294](https://datastax-oss.atlassian.net/browse/RUBY-294) Support MRI 2.4.x. Thanks, @lautis, for this contribution!
 
@@ -50,12 +50,10 @@ Bug Fixes:
 * [RUBY-264](https://datastax-oss.atlassian.net/browse/RUBY-264) Table erroneously reported as using compact storage.
 
 # 3.0.3
-
 Bug Fixes:
 * [RUBY-241](https://datastax-oss.atlassian.net/browse/RUBY-241) Materialied views sometimes have nil ref to base-table.
 
 # 3.0.2
-
 Bug Fixes:
 * [RUBY-219](https://datastax-oss.atlassian.net/browse/RUBY-219) Sometimes get stack trace in metadata.rb due to failure in SortedSet initialization.
 * [RUBY-220](https://datastax-oss.atlassian.net/browse/RUBY-220) Improve support for custom types.
