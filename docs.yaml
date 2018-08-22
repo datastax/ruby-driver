@@ -27,6 +27,12 @@ rewrites:
     replace: https://datastax.github.io/java-driver/manual
   - search: http://dsdocs30_java
     replace: http://docs.datastax.com/en/developer/java-driver/3.0
+  - search: http://www.datastax.com/documentation/cassandra/2.0
+    replace: https://docs.datastax.com/en/archived/cassandra/2.0
+  - search: http://www.datastax.com/documentation/cassandra/1.2
+    replace: https://docs.datastax.com/en/archived/cassandra/1.2
+  - search: http://www.datastax.com/documentation/cql/3.0
+    replace: https://docs.datastax.com/en/archived/cql/3.0
 links:
   - title: Code
     href:  https://github.com/datastax/ruby-driver/
