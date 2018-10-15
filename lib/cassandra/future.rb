@@ -615,9 +615,9 @@ module Cassandra
               @waiting += 1
               while @state == :pending
                 if deadline
+                  break if now >= deadline
                   @cond.wait(deadline - now)
                   now = ::Time.now
-                  break if now >= deadline
                 else
                   @cond.wait
                 end
