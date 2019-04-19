@@ -6,8 +6,10 @@ CREATE TABLE simplex."t1" (
   "f3" int,
   PRIMARY KEY ("f1", "f2")
 )
-WITH bloom_filter_fp_chance = 0.01
+WITH CLUSTERING ORDER BY ("f2" ASC)
+ AND bloom_filter_fp_chance = 0.01
  AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
+ AND cdc = true
  AND comment = 'test table for unit tests'
  AND compaction = {'class': 'SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
  AND compression = {'chunk_length_in_kb': '64', 'class': 'LZ4Compressor'}
@@ -23,13 +25,16 @@ WITH bloom_filter_fp_chance = 0.01
 
 CREATE INDEX "ind1" ON simplex."t1" ("f2");
 
+CREATE TRIGGER mytrigger ON simplex."t1" USING 'org.apache.cassandra.triggers.AuditTrigger';
+
 CREATE TABLE simplex."t2" (
   "f1" int,
   "f2" int,
   "f3" int,
   PRIMARY KEY ("f1", "f2")
 )
-WITH COMPACT STORAGE
+WITH CLUSTERING ORDER BY ("f2" ASC)
+ AND COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
  AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
  AND comment = 'compact (dense) test table for unit tests'
@@ -69,6 +74,7 @@ CREATE TABLE simplex."t4" (
   "f1" int,
   "f2" int,
   "f3" int,
+  "f4" list<frozen<tuple<text, int>>>,
   PRIMARY KEY ("f1", "f2")
 )
 WITH CLUSTERING ORDER BY ("f2" DESC)

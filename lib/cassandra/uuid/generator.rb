@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,9 +49,10 @@ module Cassandra
                      clock = ::Time)
         raise ::ArgumentError, 'invalid clock' unless clock.respond_to?(:now)
 
-        @node_id  = Integer(node_id)
-        @clock_id = Integer(clock_id)
-        @clock    = clock
+        @node_id    = Integer(node_id)
+        @clock_id   = Integer(clock_id)
+        @clock      = clock
+        @last_usecs = nil
       end
 
       # Returns a new UUID with a time component that is the current time.
@@ -82,6 +83,7 @@ module Cassandra
       def now
         now   = @clock.now
         usecs = now.to_i * 1_000_000 + now.usec
+
         if @last_usecs && @last_usecs - @sequence <= usecs && usecs <= @last_usecs
           @sequence += 1
         elsif @last_usecs && @last_usecs > usecs
@@ -90,6 +92,7 @@ module Cassandra
         else
           @sequence = 0
         end
+
         @last_usecs = usecs + @sequence
         from_usecs(@last_usecs)
       end

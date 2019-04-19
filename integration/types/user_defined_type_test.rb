@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,6 +64,50 @@ class UserDefinedTypeTest < IntegrationTestCase
     assert_equal 'female', user_value.gender
   ensure
     cluster && cluster.close
+  end
+
+  # Test for inserting quoted udts
+  #
+  # test_can_insert_quoted_udts tests that udts with a quoted name can be inserted and retrieved.
+  #
+  # @since 3.2.0
+  # @jira_ticket RUBY-291
+  # @expected_result Quoted UDTs should be successfully inserted into the table
+  #
+  # @test_assumptions A Cassandra cluster with version 2.1.0 or higher.
+  # @test_category data_types:udt
+  #
+  def test_can_insert_quoted_udts
+    skip('UDTs are only available in C* after 2.1') if CCM.cassandra_version < '2.1.0'
+
+    cluster = Cassandra.cluster
+    session = cluster.connect("simplex")
+
+    session.execute('CREATE TYPE "User" (age int, name text, gender text)')
+    session.execute('CREATE TABLE "MyTable" (a int PRIMARY KEY, b frozen<"User">)')
+
+    # RUBY-291 - We can't connect to the cluster when a UDT name contains capital letters (and is thus quoted)
+    cluster2 = Cassandra.cluster
+    session2 = cluster2.connect("simplex")
+
+    # Test non-prepared statement
+    session2.execute("INSERT INTO \"MyTable\" (a, b) VALUES (0, {age: 30, name: 'John', gender: 'male'})")
+    user_value = session2.execute('SELECT b FROM "MyTable" where a=0').first['b']
+    assert_equal 30, user_value.age
+    assert_equal 'John', user_value.name
+    assert_equal 'male', user_value.gender
+
+    # Test prepared statement
+    insert = Retry.with_attempts(5) { session2.prepare("INSERT INTO \"MyTable\" (a, b) VALUES (?, ?)") }
+    Retry.with_attempts(5) { session2.execute(insert, arguments: [1, Cassandra::UDT.new(age: 25, name: 'Jane', gender: 'female')]) }
+
+    user_value = session2.execute('SELECT b FROM "MyTable" where a=1').first['b']
+    assert_equal 25, user_value.age
+    assert_equal 'Jane', user_value.name
+    assert_equal 'female', user_value.gender
+  ensure
+    cluster && cluster.close
+    cluster2 && cluster2.close
   end
 
   def test_can_insert_same_udt_different_keyspaces

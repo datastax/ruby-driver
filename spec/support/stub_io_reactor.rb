@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 #++
 
 class StubIoReactor
+  include MonitorMixin
+
   class NullObject
     def method_missing(method, *args, &block)
       self
@@ -385,6 +387,8 @@ class StubIoReactor
     @connections   = ::Array.new
     @timers        = ::Array.new
     @max_conns     = ::Hash.new
+
+    mon_initialize
   end
 
   def enable_nodes(ips)
@@ -465,21 +469,26 @@ class StubIoReactor
   end
 
   def schedule_timer(seconds)
-    promise = Ione::Promise.new
-    @timers << Timer.new(promise, Time.now + seconds)
-    promise.future
+    synchronize do
+      promise = Ione::Promise.new
+      @timers << Timer.new(promise, Time.now + seconds)
+      promise.future
+    end
   end
 
   def advance_time(seconds)
-    @timers.dup.each {|timer| timer.advance(seconds)}
-    @timers.reject! {|timer| timer.expired?}
-
+    synchronize do
+      @timers.dup.each { |timer| timer.advance(seconds) }
+      @timers.reject! { |timer| timer.expired? }
+    end
     self
   end
 
   def cancel_timer(timer_future)
-    @timers.reject! do |timer|
-      timer.resolves?(timer_future)
+    synchronize do
+      @timers.reject! do |timer|
+        timer.resolves?(timer_future)
+      end
     end
   end
 end

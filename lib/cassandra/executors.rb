@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,8 +43,8 @@ module Cassandra
         @cond    = new_cond
         @tasks   = ::Array.new
         @waiting = 0
-        @pool    = ::Array.new(size, &method(:spawn_thread))
         @term    = false
+        @pool    = ::Array.new(size, &method(:spawn_thread))
       end
 
       def execute(*args, &block)

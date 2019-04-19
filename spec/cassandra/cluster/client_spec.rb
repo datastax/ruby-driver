@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,7 +40,8 @@ module Cassandra
                                } }
 
       let(:driver) { Driver.new(driver_settings) }
-      let(:client) { Client.new(driver.logger, driver.cluster_registry, driver.cluster_schema, driver.io_reactor, driver.connector, driver.load_balancing_policy, driver.reconnection_policy, driver.retry_policy, driver.address_resolution_policy, driver.connection_options, driver.futures_factory, driver.timestamp_generator) }
+      let(:client) { Client.new(driver.logger, driver.cluster_registry, driver.cluster_schema, driver.io_reactor, driver.connector, driver.profile_manager, driver.reconnection_policy, driver.address_resolution_policy, driver.connection_options, driver.futures_factory, driver.timestamp_generator) }
+      let(:execution_options) { driver.execution_options }
 
       before do
         io_reactor.connection_options = driver.connection_options
@@ -68,6 +69,12 @@ module Cassandra
         it 'creates connections to each host based on distance' do
           client.connect.value
           expect(io_reactor).to have(4).connections
+        end
+
+        it 'gets distance from profile-manager' do
+          driver.profile_manager.stub(:distance) { :remote }
+          client.connect.value
+          expect(io_reactor).to have(2).connections
         end
 
         it 'can be called multiple times' do
@@ -263,6 +270,13 @@ module Cassandra
           end
         end
 
+        it 'gets distance from policy_manager' do
+          driver.profile_manager.stub(:distance) { :remote }
+          expect do
+            client.host_up(Cassandra::Host.new('1.1.1.1'))
+          end.to change { io_reactor.connections.size }.from(4).to(5)
+        end
+
         context 'host not responding' do
           let(:address) { '1.1.1.1' }
           let(:host)    { Host.new(address) }
@@ -375,7 +389,7 @@ module Cassandra
             end
           end
           client.connect.value
-          client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
+          client.query(Statements::Simple.new('SELECT * FROM songs'), execution_options).get
 
           expect(handled).to be_truthy
         end
@@ -403,10 +417,10 @@ module Cassandra
             end
           end
           client.connect.value
-          client.query(Statements::Simple.new('USE foo'), Execution::Options.new(:consistency => :one)).get
+          client.query(Statements::Simple.new('USE foo'), execution_options).get
           # make sure we get a different host in the load balancing plan
           cluster_registry.hosts.delete(cluster_registry.hosts.first)
-          client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
+          client.query(Statements::Simple.new('SELECT * FROM songs'), execution_options).get
 
           expect(count).to eq(2)
         end
@@ -434,10 +448,10 @@ module Cassandra
             end
           end
           client.connect.value
-          client.query(Statements::Simple.new('USE "FooBar"'), Execution::Options.new(:consistency => :one)).get
+          client.query(Statements::Simple.new('USE "FooBar"'), execution_options).get
           # make sure we get a different host in the load balancing plan
           cluster_registry.hosts.delete(cluster_registry.hosts.first)
-          client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
+          client.query(Statements::Simple.new('SELECT * FROM songs'), execution_options).get
 
           expect(count).to eq(2)
         end
@@ -469,7 +483,7 @@ module Cassandra
             end
           end
           client.connect.value
-          client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
+          client.query(Statements::Simple.new('SELECT * FROM songs'), execution_options).get
           expect(attempts).to have(2).items
           expect(attempts).to eq(hosts)
         end
@@ -496,7 +510,7 @@ module Cassandra
           end
           client.connect.value
           future = client.query(Statements::Simple.new('SELECT * FROM songs'),
-                                Execution::Options.new(:consistency => :one))
+                                execution_options)
           got_excp = false
           future.on_failure do |ex|
             got_excp = true
@@ -535,7 +549,7 @@ module Cassandra
           end
           client.connect.value
           client.query(Statements::Simple.new('SELECT * FROM songs', nil, nil, true),
-                       Execution::Options.new(:consistency => :one)).get
+                       execution_options).get
           expect(attempts).to have(2).items
           expect(attempts).to eq(hosts)
         end
@@ -560,7 +574,7 @@ module Cassandra
           end
           client.connect.value
           expect do
-            client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
+            client.query(Statements::Simple.new('SELECT * FROM songs'), execution_options).get
           end.to raise_error(Errors::NoHostsAvailable)
         end
 
@@ -585,7 +599,7 @@ module Cassandra
 
           client.connect.value
           expect do
-            client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one)).get
+            client.query(Statements::Simple.new('SELECT * FROM songs'), execution_options).get
           end.to raise_error(Cassandra::Errors::InvalidError, 'blargh')
         end
 
@@ -618,14 +632,14 @@ module Cassandra
             end
           end
           client.connect.value
-          client.query(Statements::Simple.new('USE foo'), Execution::Options.new(:consistency => :one)).get
+          client.query(Statements::Simple.new('USE foo'), execution_options).get
 
           # make sure we get a different host in the load balancing plan
           cluster_registry.remove_host(cluster_registry.hosts.first)
 
           completed = 0
           5.times do
-            f = client.query(Statements::Simple.new('SELECT * FROM songs'), Execution::Options.new(:consistency => :one))
+            f = client.query(Statements::Simple.new('SELECT * FROM songs'), execution_options)
             f.on_success do
               completed += 1
             end
@@ -652,7 +666,7 @@ module Cassandra
             end
           end
           client.connect.value
-          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
+          statement = client.prepare('SELECT * FROM songs', execution_options).get
           expect(statement.cql).to eq('SELECT * FROM songs')
         end
       end
@@ -676,12 +690,12 @@ module Cassandra
             end
           end
           client.connect.value
-          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
-          client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
+          statement = client.prepare('SELECT * FROM songs', execution_options).get
+          client.execute(statement.bind, execution_options).get
           expect(sent).to be_truthy
         end
 
-        it 're-prepares a statement on new connection' do
+        it 'does not re-prepare a statement on new connection if the new host already has the statement prepared' do
           count = 0
           io_reactor.on_connection do |connection|
             connection.handle_request do |request|
@@ -699,13 +713,18 @@ module Cassandra
             end
           end
           client.connect.value
-          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
+          statement = client.prepare('SELECT * FROM songs', execution_options).get
 
           # make sure we get a different host in the load balancing plan
           cluster_registry.hosts.delete(cluster_registry.hosts.first)
 
-          client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
-          expect(count).to eq(2)
+          client.execute(statement.bind, execution_options).get
+
+          # Expected sequence of events:
+          # 1. prepare on host1
+          # 2. execute on host2. Since execute succeeds, the implication is that host2 already had the statement
+          #    prepared.
+          expect(count).to eq(1)
         end
 
         it 're-prepares a statement on unprepared error' do
@@ -732,13 +751,20 @@ module Cassandra
             end
           end
           client.connect.value
-          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
+          statement = client.prepare('SELECT * FROM songs', execution_options).get
 
           # make sure we get a different host in the load balancing plan
           cluster_registry.hosts.delete(statement.execution_info.hosts.first)
 
-          client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
-          expect(count).to eq(3)
+          client.execute(statement.bind, execution_options).get
+
+
+          # Expected sequence of events:
+          # 1. prepare on host1
+          # 2. execute on host2, yielding unprepared error.
+          # 3. prepare on host2
+          # 4. execute on host2.
+          expect(count).to eq(2)
           expect(error).to be(false)
         end
 
@@ -766,9 +792,9 @@ module Cassandra
           end
           client.connect.value
 
-          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
+          statement = client.prepare('SELECT * FROM songs', execution_options).get
 
-          client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
+          client.execute(statement.bind, execution_options).get
 
           expect(attempts).to have(2).items
           expect(attempts.sort!).to eq(hosts)
@@ -792,10 +818,10 @@ module Cassandra
 
           client.connect.value
 
-          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
+          statement = client.prepare('SELECT * FROM songs', execution_options).get
 
           expect do
-            client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
+            client.execute(statement.bind, execution_options).get
           end.to raise_error(Cassandra::Errors::InvalidError, 'blargh')
         end
 
@@ -818,9 +844,9 @@ module Cassandra
 
           client.connect.value
 
-          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
+          statement = client.prepare('SELECT * FROM songs', execution_options).get
 
-          expect(client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get)
+          expect(client.execute(statement.bind, execution_options).get)
               .to be_instance_of(Results::Void)
         end
 
@@ -842,10 +868,10 @@ module Cassandra
 
           client.connect.value
 
-          statement = client.prepare('SELECT * FROM songs', Execution::Options.new(:consistency => :one)).get
+          statement = client.prepare('SELECT * FROM songs', execution_options).get
 
           expect do
-            client.execute(statement.bind, Execution::Options.new(:consistency => :one)).get
+            client.execute(statement.bind, execution_options).get
           end.to raise_error(Errors::NoHostsAvailable)
         end
       end
@@ -877,7 +903,7 @@ module Cassandra
           allow(batch_request).to receive(:clear)
           expect(batch_request).to receive(:add_query).once.with('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', [1, 2, 3, 4, 5], [Cassandra::Types.bigint, Cassandra::Types.bigint, Cassandra::Types.bigint, Cassandra::Types.bigint, Cassandra::Types.bigint])
           expect(batch_request).to receive(:retries=).once.with(0)
-          client.batch(batch, Execution::Options.new(:consistency => :one, :trace => false)).get
+          client.batch(batch, execution_options.override(consistency: :one)).get
           expect(sent).to be_truthy
         end
 
@@ -910,7 +936,8 @@ module Cassandra
 
           client.connect.value
 
-          statement = client.prepare('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', Execution::Options.new(:consistency => :one, :trace => false)).get
+          statement = client.prepare('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)',
+                                     execution_options.override(consistency: :one)).get
 
           batch.add(statement, arguments: [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])
 
@@ -918,11 +945,11 @@ module Cassandra
           allow(batch_request).to receive(:clear)
           expect(batch_request).to receive(:add_prepared).once.with(123, [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']], params_metadata.map(&:last))
           expect(batch_request).to receive(:retries=).once.with(0)
-          client.batch(batch, Execution::Options.new(:consistency => :one, :trace => false)).get
+          client.batch(batch, execution_options.override(consistency: :one)).get
           expect(sent).to be_truthy
         end
 
-        it 'automatically re-prepares statements' do
+        it 'does not automatically re-prepare statements' do
           sent = false
           count = 0
           batch = Statements::Batch::Logged.new(driver.execution_options)
@@ -953,7 +980,8 @@ module Cassandra
 
           client.connect.value
 
-          statement = client.prepare('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)', Execution::Options.new(:consistency => :one, :trace => false)).get
+          statement = client.prepare('INSERT INTO songs (id, title, album, artist, tags) VALUES (?, ?, ?, ?, ?)',
+                                     execution_options.override(consistency: :one)).get
 
           batch.add(statement, arguments: [Cassandra::Uuid.new(1), 'some title', 'some album', 'some artist', Set['cool', 'stuff']])
 
@@ -965,9 +993,13 @@ module Cassandra
           # make sure we get a different host in the load balancing plan
           cluster_registry.hosts.delete(cluster_registry.hosts.first)
 
-          client.batch(batch, Execution::Options.new(:consistency => :one, :trace => false)).get
+          client.batch(batch, execution_options.override(consistency: :one)).get
           expect(sent).to be_truthy
-          expect(count).to eq(2)
+
+          # Expected sequence of events:
+          # 1. prepare on host1
+          # 2. run batch on host2 with prepared-statement id's. This succeeds, so no more work to do.
+          expect(count).to eq(1)
         end
 
         it 'follows the plan on failure' do
@@ -994,7 +1026,7 @@ module Cassandra
           client.connect.value
           batch = Statements::Batch::Logged.new(driver.execution_options)
 
-          client.batch(batch, Execution::Options.new(:consistency => :one)).get
+          client.batch(batch, execution_options).get
 
           expect(attempts).to have(2).items
           expect(attempts).to eq(hosts)
@@ -1019,7 +1051,7 @@ module Cassandra
           batch = Statements::Batch::Logged.new(driver.execution_options)
 
           expect do
-            client.batch(batch, Execution::Options.new(:consistency => :one)).get
+            client.batch(batch, execution_options).get
           end.to raise_error(Errors::NoHostsAvailable)
         end
       end

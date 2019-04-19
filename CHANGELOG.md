@@ -1,15 +1,59 @@
-# master
+# 3.2.3
+Bug Fixes:
+* [RUBY-322](https://datastax-oss.atlassian.net/browse/RUBY-322) Decimals with zero scale aren't parsed properly.
+* [RUBY-323](https://datastax-oss.atlassian.net/browse/RUBY-323) Travis can time out due to unintialized instance variable warning in CqlProtocolHandler.  Thanks @baldarn for the contribution!
+* [RUBY-324](https://datastax-oss.atlassian.net/browse/RUBY-324) CQL generation does not handle nested collections properly.  Thanks @mnin for the contribution!
+* [RUBY-325](https://datastax-oss.atlassian.net/browse/RUBY-325) Upgrade Yard to resolve security vulnerability.
+* [RUBY-326](https://datastax-oss.atlassian.net/browse/RUBY-326) CQL generation should include ascending clustering order specification.  Thanks @mnin for the contribution!
+
+# 3.2.2
+Bug Fixes:
+* [RUBY-319](https://datastax-oss.atlassian.net/browse/RUBY-319) Support reading decimals in scientific notation with positive exponent.
+* [RUBY-320](https://datastax-oss.atlassian.net/browse/RUBY-320) Cassandra::Future.all([]).join hangs forever
+
+# 3.2.1
+Bug Fixes:
+* [RUBY-315](https://datastax-oss.atlassian.net/browse/RUBY-315) Bump rubocop version to address security vulnerability; disallow Ruby versions prior to 2.2.
+* [RUBY-316](https://datastax-oss.atlassian.net/browse/RUBY-316) Memory leak in ruby driver due to request timers not being cleaned up when extremely large request timeout is set.
+* [RUBY-317](https://datastax-oss.atlassian.net/browse/RUBY-317) Upgrade Yard to address security vulnerability.
+* [RUBY-318](https://datastax-oss.atlassian.net/browse/RUBY-318) Fix Travis config to work with JRuby on new image.
+
+# 3.2.0
 Features:
+* [RUBY-294](https://datastax-oss.atlassian.net/browse/RUBY-294) Support MRI 2.4.x. Thanks, @lautis, for this contribution!
 
 Bug Fixes:
+* [RUBY-291](https://datastax-oss.atlassian.net/browse/RUBY-291) Driver fails to connect to cluster when a table column type has a quoted name.
+* [RUBY-292](https://datastax-oss.atlassian.net/browse/RUBY-292) Driver sporadically crashes with "undefined method 'ip'" error.
+Thanks, @grosser, for the fix!
+* [RUBY-295](https://datastax-oss.atlassian.net/browse/RUBY-295) When a custom address resolver is configured, 
+consult it when handling all host events, and thus prevent the creation of invalid Host objects.
+
+# 3.1.0
+Features:
+* Do not mark a host as down if there are active connections.
+* Update Keyspace metadata to include collection of indexes defined in the keyspace.
+* Update Table metadata to include trigger-collection and view-collection metadata. Also include the cdc attribute,
+  introduced in C* 3.8. More details [here.](http://cassandra.apache.org/doc/latest/operating/cdc.html)
+* Added execution profiles to encapsulate a group of request execution options.
+* Added support for v5 beta protocol. This will always be a "work-in-progress" since the protocol is under
+  development and the driver is not necessarily updated to the latest revision of it.
+* Make prepared statement cache not be scoped by host and optimistically execute prepared statements on hosts where
+  we are not sure the statement is already prepared. The motivation is that in the steady state, all nodes have
+  prepared statements already, so there is no need to prepare statements before executing them. If the guess is wrong,
+  the client will prepare and execute at that point.
+* Expose various cluster attributes with getters.
+
+Bug Fixes:
+* [RUBY-235](https://datastax-oss.atlassian.net/browse/RUBY-235) execution_info.retries resets retry count when switching hosts.
+* [RUBY-255](https://datastax-oss.atlassian.net/browse/RUBY-255) ControlConnection.peer_ip ignores peers that are missing critical information in system.peers.
+* [RUBY-264](https://datastax-oss.atlassian.net/browse/RUBY-264) Table erroneously reported as using compact storage.
 
 # 3.0.3
-
 Bug Fixes:
 * [RUBY-241](https://datastax-oss.atlassian.net/browse/RUBY-241) Materialied views sometimes have nil ref to base-table.
 
 # 3.0.2
-
 Bug Fixes:
 * [RUBY-219](https://datastax-oss.atlassian.net/browse/RUBY-219) Sometimes get stack trace in metadata.rb due to failure in SortedSet initialization.
 * [RUBY-220](https://datastax-oss.atlassian.net/browse/RUBY-220) Improve support for custom types.
@@ -90,6 +134,10 @@ Breaking Changes:
 * Unavailable errors are retried on the next host in the load balancing plan by default.
 * Statement execution no longer retried on timeouts, unless `:idempotent => true` has been specified when executing.
 
+# 2.1.7
+Bug Fixes:
+* [RUBY-255](https://datastax-oss.atlassian.net/browse/RUBY-255) ControlConnection.peer_ip ignores peers that are missing critical information in system.peers.
+
 # 2.1.6
 Bug Fixes:
 
@@ -110,7 +158,6 @@ Bug Fixes:
 
 Features:
 
-* [RUBY-119](https://datastax-oss.atlassian.net/browse/RUBY-119) Use `require 'datastax/cassandra'` to avoid namespace conflicts
 * [RUBY-90](https://datastax-oss.atlassian.net/browse/RUBY-90) Add support for disabling nagle algorithm (tcp nodelay), enabled by default.
 * [RUBY-70](https://datastax-oss.atlassian.net/browse/RUBY-70) Add support for client-side timestamps, disabled by default.
 * [RUBY-114](https://datastax-oss.atlassian.net/browse/RUBY-114) Add support for serial consistency in batch requests.
@@ -123,6 +170,7 @@ Bug Fixes:
 * [RUBY-97](https://datastax-oss.atlassian.net/browse/RUBY-97) Allow disabling of the initial population of schema metadata
 * [RUBY-95](https://datastax-oss.atlassian.net/browse/RUBY-95) Speed up generation of large token maps
 * [RUBY-116](https://datastax-oss.atlassian.net/browse/RUBY-116) fix thread leak on connection error
+* [RUBY-119](https://datastax-oss.atlassian.net/browse/RUBY-119) Use `require 'datastax/cassandra'` to avoid namespace conflicts
 
 Breaking Changes:
 

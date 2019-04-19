@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -170,7 +170,7 @@ module Cassandra
       def send_request(request, timeout = nil, with_heartbeat = true)
         return Ione::Future.failed(Errors::IOError.new('Connection closed')) if closed?
         schedule_heartbeat if with_heartbeat
-        promise = RequestPromise.new(request, timeout)
+        promise = RequestPromise.new(request, timeout, @scheduler)
         id = nil
         @lock.lock
         begin
@@ -256,21 +256,73 @@ module Cassandra
 
         attr_reader :request, :timeout
         attr_boolean :timed_out
+        attr_accessor :timer
 
-        def initialize(request, timeout)
+        def initialize(request, timeout, scheduler)
           @request = request
           @timeout = timeout
           @timed_out = false
+          @scheduler = scheduler
+          @lock = Mutex.new
+          @timer = nil
           super()
         end
 
         def time_out!
           unless future.completed?
             @timed_out = true
-            # rubocop:disable Style/SignalException
             fail(Errors::TimeoutError.new('Timed out'))
-            # rubocop:enable Style/SignalException
           end
+        end
+
+        def maybe_start_timer
+          # This is more complicated than one would expect. First, we want to start a timer
+          # if a timeout is set. But there is a race condition where send_request creates
+          # a fresh promise and adds it to @promises, but another thread handles a socket
+          # closure event and fails all known promises. When a promise fails, we want to cancel
+          # the timer, if set. So, we synchronize access to @timer to be sure we don't set up
+          # and cancel the timer at the same time. However, if promise.fail runs first, there
+          # will be no timer to cancel, and then when maybe_start_timer gets called in the other
+          # thread, it'll create a timer on a promise that no one is going to action on going forward.
+          # So, that leads to leaking the timer until it times out. To avoid this, we want to
+          # check that the future of the promise isn't completed before starting the timer.
+
+          return if @timeout.nil?
+          return if @future.completed?
+
+          if @timer.nil?
+            @lock.synchronize do
+              if @timer.nil?
+                return if @future.completed?
+                @timer = @scheduler.schedule_timer(@timeout)
+                @timer.on_value { time_out! }
+              end
+            end
+          end
+        end
+
+        def fulfill(response)
+          super
+          maybe_cancel_timer
+        end
+
+        def fail(cause)
+          super
+          maybe_cancel_timer
+        end
+
+        def maybe_cancel_timer
+          return if @timeout.nil?
+          timer = nil
+          if @timer
+            @lock.synchronize do
+              if @timer
+                timer = @timer
+                @timer = nil
+              end
+            end
+          end
+          @scheduler.cancel_timer(timer) if timer
         end
       end
 
@@ -312,11 +364,7 @@ module Cassandra
         @connection.write do |buffer|
           @frame_encoder.encode(buffer, request_promise.request, id)
         end
-        if request_promise.timeout
-          @scheduler.schedule_timer(request_promise.timeout).on_value do
-            request_promise.time_out!
-          end
-        end
+        request_promise.maybe_start_timer
       end
 
       def socket_closed(cause)

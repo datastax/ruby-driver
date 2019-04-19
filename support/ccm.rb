@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -455,6 +455,9 @@ module CCM extend self
 
       options[:load_balancing_policy] = SameOrderLoadBalancingPolicy.new
 
+      enable_triggers
+
+      total_attempts = 1
       until @nodes.all?(&:up?) && @cluster && @cluster.hosts.select(&:up?).count == @nodes.size
         attempts = 1
 
@@ -492,6 +495,11 @@ module CCM extend self
         until @cluster.hosts.all?(&:up?)
           $stderr.puts "not all hosts are up yet, retrying in 1s..."
           sleep(1)
+        end
+
+        total_attempts += 1
+        if total_attempts >= 20
+          raise "Cluster hosts did not match node count. nodes:#{@nodes.size}, hosts:#{@cluster.hosts.select(&:up?).count}"
         end
       end
 
@@ -708,6 +716,17 @@ module CCM extend self
       start
     end
 
+    def enable_triggers
+      trigger_root = File.expand_path(File.dirname(__FILE__) + '/../support/triggers')
+      ccm_node_conf_dir = "~/.ccm/#{@name}"
+
+      (1..@nodes.size).each do |n|
+        `mkdir -p #{ccm_node_conf_dir}/node#{n}/conf/triggers`
+        `cp #{trigger_root}/AuditTrigger.properties #{ccm_node_conf_dir}/node#{n}/conf`
+        `cp #{trigger_root}/trigger-example.jar #{ccm_node_conf_dir}/node#{n}/conf/triggers`
+      end
+    end
+
     def setup_schema(schema)
       schema.strip!
       schema.chomp!(";")
@@ -814,6 +833,7 @@ module CCM extend self
   @raw_version = nil
   @cassandra_version = nil
   @dse = false
+  @cluster_name = nil
 
   def parse_version
     @raw_version ||= begin
@@ -824,6 +844,10 @@ module CCM extend self
       end
       version
     end
+  end
+
+  def cluster_name
+    @cluster_name ||= "ruby-driver-#{@dse ? 'dse' : 'cassandra'}-#{@raw_version.gsub('.', '_')}-test-cluster"
   end
 
   def cassandra_version
@@ -841,7 +865,6 @@ module CCM extend self
 
   def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
     parse_version
-    cluster_name = 'ruby-driver-' + "#{@dse ? 'dse' : 'cassandra'}" + "-#{@raw_version}" + '-test-cluster'
 
     if @current_cluster && @current_cluster.name == cluster_name
       unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
@@ -869,6 +892,15 @@ module CCM extend self
 
     @current_cluster.start
     @current_cluster
+  end
+
+  def remove_cluster(name)
+    cluster = clusters.find {|c| c.name == name}
+    return unless cluster
+    ccm.exec('remove', cluster.name)
+    clusters.delete(cluster)
+    @current_cluster = nil if @current_cluster.name == name
+    nil
   end
 
   private
@@ -918,22 +950,16 @@ module CCM extend self
     nil
   end
 
-  def remove_cluster(name)
-    cluster = clusters.find {|c| c.name == name}
-    return unless cluster
-    ccm.exec('remove', cluster.name)
-    clusters.delete(cluster)
-
-    nil
-  end
-
   def create_cluster(name, version, datacenters, nodes_per_datacenter)
     nodes = Array.new(datacenters, nodes_per_datacenter).join(':')
 
-    create_args = ['-v', version, name]
-    create_args << '--dse' if @dse
-
-    ccm.exec('create', *create_args)
+    if !@dse && ENV['CASSANDRA_DIR'] && !ENV['CASSANDRA_DIR'].empty?
+      ccm.exec('create', name, '--install-dir', ENV['CASSANDRA_DIR'])
+    else
+      create_args = ['-v', version, name]
+      create_args << '--dse' if @dse
+      ccm.exec('create', *create_args)
+    end
 
     config = [
       '--rt', '1000',

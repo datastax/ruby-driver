@@ -1,16 +1,35 @@
+schedules:
+  commit:
+    schedule: per_commit
+    matrix:
+      exclude:
+        - ruby: ['2.2']
+        - cassandra: ['2.2', '3.0']
+  nightly:
+    schedule: nightly
+    branches:
+      include: [master]
+
 ruby:
   - 2.2
   - 2.3
-  - jruby1.7
+  - 2.4
+  - jruby9k
+
 cassandra:
-  - 2.0
   - 2.1
   - 2.2
   - 3.0
-  - 3.7
+  - '3.11'
 os:
-  - ubuntu/trusty64
+  - ubuntu/bionic64/ruby-driver
 build:
+  - script: |
+      ruby_version=`ruby --version`
+      if [[ `ruby --version` == jruby* ]]; then
+        # Add '-java' to version as that is included in version name when using jruby
+        sed -i -r 's/cassandra-driver \((.*)\)/cassandra-driver (\1-java)/' Gemfile.lock
+      fi
   - type: bundler
     without: development docs
   - script: |

@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,15 +25,14 @@ class SSLEncryptionTest < IntegrationTestCase
   end
 
   def self.after_suite
-    @@ccm_cluster && @@ccm_cluster.disable_ssl
-    super
+    CCM.remove_cluster(@@ccm_cluster.name)
   end
 
   def test_can_connect_with_default_ssl
     cluster = Cassandra.cluster(ssl: true)
     refute_nil cluster
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 
   def test_raise_error_when_not_using_ssl
@@ -47,7 +46,7 @@ class SSLEncryptionTest < IntegrationTestCase
     cluster = Cassandra.cluster(server_cert: @@server_cert)
     refute_nil cluster
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 
   def test_raise_error_on_invalid_ca_provided

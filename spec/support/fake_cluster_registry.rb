@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -69,6 +69,24 @@ class FakeLoadBalancingPolicy
   def initialize(fake_cluster_registry)
     @registry = fake_cluster_registry
     @index    = -1
+  end
+
+  def host_up(*args)
+  end
+
+  def host_down(*args)
+  end
+
+  def host_found(*args)
+  end
+
+  def host_lost(*args)
+  end
+
+  def setup(*args)
+  end
+
+  def teardown(*args)
   end
 
   def distance(host)

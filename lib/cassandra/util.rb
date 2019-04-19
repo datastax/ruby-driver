@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -174,9 +174,8 @@ module Cassandra
     def guess_type(object)
       case object
       when ::String      then Types.varchar
-      when ::Fixnum      then Types.bigint
+      when ::Integer     then object.size > 8 ? Types.varint : Types.bigint
       when ::Float       then Types.double
-      when ::Bignum      then Types.varint
       when ::BigDecimal  then Types.decimal
       when ::TrueClass   then Types.boolean
       when ::FalseClass  then Types.boolean

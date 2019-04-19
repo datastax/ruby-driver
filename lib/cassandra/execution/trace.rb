@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ module Cassandra
       attr_reader :id
 
       # @private
-      def initialize(id, client)
+      def initialize(id, client, load_balancing_policy)
         @id            = id
         @client        = client
         @coordinator   = nil
@@ -65,6 +65,7 @@ module Cassandra
         @client_ip     = nil
         @loaded        = false
         @loaded_events = false
+        @load_balancing_policy = load_balancing_policy
 
         mon_initialize
       end
@@ -141,12 +142,12 @@ module Cassandra
 
           attempt = 1
           data    = @client.query(Statements::Simple.new(SELECT_SESSION % @id),
-                                  VOID_OPTIONS).get.first
+                                  VOID_OPTIONS.override(load_balancing_policy: @load_balancing_policy)).get.first
 
           while data.nil? && attempt <= 5
             sleep(attempt * 0.4)
             data = @client.query(Statements::Simple.new(SELECT_SESSION % @id),
-                                 VOID_OPTIONS).get.first
+                                 VOID_OPTIONS.override(load_balancing_policy: @load_balancing_policy)).get.first
             break if data
             attempt += 1
           end
@@ -173,7 +174,7 @@ module Cassandra
           @events = []
 
           @client.query(Statements::Simple.new(SELECT_EVENTS % @id),
-                        VOID_OPTIONS).get.each do |row|
+                        VOID_OPTIONS.override(load_balancing_policy: @load_balancing_policy)).get.each do |row|
             @events << Event.new(row['event_id'],
                                  row['activity'],
                                  row['source'],

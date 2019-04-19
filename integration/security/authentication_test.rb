@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,8 +25,7 @@ class AuthenticationTest < IntegrationTestCase
   end
 
   def self.after_suite
-    @@ccm_cluster && @@ccm_cluster.disable_authentication
-    super
+    CCM.remove_cluster(@@ccm_cluster.name)
   end
 
   # Test for basic successful authentication
@@ -54,7 +53,7 @@ class AuthenticationTest < IntegrationTestCase
 
     refute_nil cluster
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 
   # Test for basic unsuccessful authentication

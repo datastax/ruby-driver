@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -69,11 +69,18 @@ module Cassandra
       @views          = views
 
       # Set the keyspace attribute on the tables and views.
+      # Also set up the index collection on the keyspace and the view-collection on each table.
+      @indexes_hash = {}
       @tables.each_value do |t|
         t.set_keyspace(self)
+        t.each_index do |index|
+          @indexes_hash[index.name] = index
+        end
       end
       @views.each_value do |v|
         v.set_keyspace(self)
+        table = v.base_table
+        table.add_view(v) if table
       end
     end
 
@@ -110,6 +117,34 @@ module Cassandra
     end
     alias tables each_table
 
+    # @return [Boolean] whether this keyspace has an index with the given name
+    # @param name [String] index name
+    def has_index?(name)
+      @indexes_hash.key?(name)
+    end
+
+    # @return [Cassandra::Index, nil] an index or nil
+    # @param name [String] index name
+    def index(name)
+      @indexes_hash[name]
+    end
+
+    # Yield or enumerate each index defined in this keyspace
+    # @overload each_index
+    #   @yieldparam index [Cassandra::Index] current index
+    #   @return [Cassandra::Keyspace] self
+    # @overload each_index
+    #   @return [Array<Cassandra::Index>] a list of indexes
+    def each_index(&block)
+      if block_given?
+        @indexes_hash.each_value(&block)
+        self
+      else
+        @indexes_hash.values
+      end
+    end
+    alias indexes each_index
+
     # @return [Boolean] whether this keyspace has a materialized view with the given name
     # @param name [String] materialized view name
     def has_materialized_view?(name)
@@ -133,7 +168,7 @@ module Cassandra
     def each_materialized_view(&block)
       if block_given?
         @views.each_value do |v|
-          block.call(v) if v.base_table
+          yield(v) if v.base_table
         end
         self
       else

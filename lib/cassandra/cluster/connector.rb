@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -122,11 +122,8 @@ module Cassandra
                          ssl: @connection_options.ssl) do |connection|
           raise Errors::ClientError, 'Not connected, reactor stopped' unless connection
 
-          if @connection_options.nodelay?
-            connection.to_io.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
-          else
-            connection.to_io.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 0)
-          end
+          connection.to_io.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY,
+                                      @connection_options.nodelay? ? 1 : 0)
 
           Protocol::CqlProtocolHandler.new(connection,
                                            @reactor,
@@ -225,10 +222,12 @@ module Cassandra
             ::Ione::Future.resolved(connection)
           when Protocol::ErrorResponse
             ::Ione::Future.failed(
-              r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0))
+              r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0)
+            )
           else
             ::Ione::Future.failed(
-              Errors::InternalError.new("Unexpected response #{r.inspect}"))
+              Errors::InternalError.new("Unexpected response #{r.inspect}")
+            )
           end
         end
       end
@@ -244,7 +243,8 @@ module Cassandra
           VOID_OPTIONS,
           EMPTY_LIST,
           :one,
-          0)
+          0
+        )
       end
 
       def request_options(connection)
@@ -291,10 +291,12 @@ module Cassandra
             ::Ione::Future.resolved(connection)
           when Protocol::ErrorResponse
             ::Ione::Future.failed(
-              r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0))
+              r.to_error(nil, VOID_STATEMENT, VOID_OPTIONS, EMPTY_LIST, :one, 0)
+            )
           else
             ::Ione::Future.failed(
-              Errors::InternalError.new("Unexpected response #{r.inspect}"))
+              Errors::InternalError.new("Unexpected response #{r.inspect}")
+            )
           end
         end
       end

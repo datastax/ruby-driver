@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,7 +50,8 @@ module Cassandra
           'org.apache.cassandra.db.marshal.ShortType'         => :smallint,
           'org.apache.cassandra.db.marshal.ByteType'          => :tinyint,
           'org.apache.cassandra.db.marshal.TimeType'          => :time,
-          'org.apache.cassandra.db.marshal.SimpleDateType'    => :date
+          'org.apache.cassandra.db.marshal.SimpleDateType'    => :date,
+          'org.apache.cassandra.db.marshal.FrozenType'        => :frozen
         }.freeze
 
         def parse(string)
@@ -109,14 +110,12 @@ module Cassandra
         end
 
         def lookup_type(node)
-          return lookup_type(node.children.first) if node.name == 'org.apache.cassandra.db.marshal.FrozenType'
-
           type = @@types.fetch(node.name) do
             return Cassandra::Types.custom(dump_node(node))
           end
 
           case type
-          when :set, :list
+          when :set, :list, :frozen
             Cassandra::Types.send(type, lookup_type(node.children.first))
           when :map
             Cassandra::Types.map(*node.children.map(&method(:lookup_type)))

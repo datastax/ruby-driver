@@ -18,6 +18,7 @@
         "keys": "ALL",
         "rows_per_partition": "NONE"
       },
+      "cdc": true,
       "comment": "test table for unit tests",
       "compaction": {
         "class": "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy",
@@ -305,6 +306,16 @@
       "kind": "regular",
       "position": -1,
       "type": "int"
+    },
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t4",
+      "column_name": "f4",
+      "clustering_order": "none",
+      "column_name_bytes": "f3",
+      "kind": "regular",
+      "position": 0,
+      "type": "list<frozen<tuple<text, int>>"
     }
   ],
   "SELECT * FROM system_schema.types": [
@@ -397,6 +408,14 @@
       "read_repair_chance": 0.2,
       "speculative_retry": "99PERCENTILE",
       "where_clause": "f2 IS NOT NULL"
+    }
+  ],
+  "SELECT * FROM system_schema.triggers": [
+    {
+      "keyspace_name": "simplex",
+      "table_name": "t1",
+      "trigger_name": "mytrigger",
+      "options": { "class": "org.apache.cassandra.triggers.AuditTrigger"}
     }
   ]
 }

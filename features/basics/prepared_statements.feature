@@ -4,7 +4,12 @@ Feature: Prepared statements
   it multiple times with different values. A bind variable marker `?` is used
   to represent a dynamic value in a statement.
 
-  Scenario: an INSERT statement is prepared
+  The driver caches prepared statement id's in such a way that
+  when a query is to be prepared for a node, the "preparation" is bypassed if the statement has previously
+  been prepared on any other node. This reduces a round-trip to the node while also optimizing query execution
+  performance.
+
+  Scenario: An INSERT statement is prepared
     Given a running cassandra cluster with schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
@@ -72,7 +77,7 @@ Feature: Prepared statements
       """
 
   @cassandra-version-specific @cassandra-version-2.1
-  Scenario: an INSERT statement is prepared with named parameters
+  Scenario: An INSERT statement is prepared with named parameters
     Given a running cassandra cluster with schema:
     """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
@@ -140,7 +145,7 @@ Feature: Prepared statements
       """
 
   @cassandra-version-specific @cassandra-version-2.0
-  Scenario: a SELECT statement with parameterized LIMIT is prepared
+  Scenario: A SELECT statement with parameterized LIMIT is prepared
     Given a running cassandra cluster with schema:
       """cql
       CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};

@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,6 +56,7 @@ module Cassandra
   CLUSTER_OPTIONS = [
     :address_resolution,
     :address_resolution_policy,
+    :allow_beta_protocol,
     :auth_provider,
     :client_cert,
     :client_timestamps,
@@ -68,6 +69,7 @@ module Cassandra
     :credentials,
     :custom_types,
     :datacenter,
+    :execution_profiles,
     :futures_factory,
     :heartbeat_interval,
     :hosts,
@@ -117,10 +119,14 @@ module Cassandra
   #   found by the default Token-Aware Load Balancing Policy should be
   #   shuffled. See {Cassandra::LoadBalancing::Policies::TokenAware#initialize Token-Aware Load Balancing Policy}.
   #
+  # @option options [Hash<String|Symbol, ExecutionProfile>] :execution_profiles (nil)
+  #   Hash of {Cassandra::Execution::Profile}s that are available for client use (e.g.
+  #   {Session#execute}, {Session#execute_async}, {Session#prepare}, and {Session#prepare_async}).
+  #
   # @option options [Numeric] :connect_timeout (10) connection timeout in
   #   seconds. Setting value to `nil` will reset it to 5 seconds.
   #
-  # @option options [Numeric] :timeout (10) request execution timeout in
+  # @option options [Numeric] :timeout (12) request execution timeout in
   #   seconds. Setting value to `nil` will remove request timeout.
   #
   # @option options [Numeric] :heartbeat_interval (30) how often should a
@@ -190,6 +196,9 @@ module Cassandra
   # @option options [Integer] :protocol_version (nil) Version of protocol to speak to
   #   nodes. By default, this is auto-negotiated to the highest common protocol version
   #   that all nodes in `:hosts` speak.
+  #
+  # @option options [Boolean] :allow_beta_protocol (false) whether the driver should attempt to speak to nodes
+  #   with a beta version of the newest protocol (which is still under development). USE WITH CAUTION!
   #
   # @option options [Boolean, Cassandra::TimestampGenerator] :client_timestamps (false) whether the driver
   #   should send timestamps for each executed statement and possibly which timestamp generator to use. Enabling this
@@ -313,6 +322,12 @@ module Cassandra
   def self.validate_and_massage_options(options)
     options = options.select do |key, _|
       CLUSTER_OPTIONS.include?(key)
+    end
+
+    if options.key?(:execution_profiles)
+      [:load_balancing_policy, :retry_policy, :timeout, :consistency].each do |opt|
+        raise ::ArgumentError, "#{opt} is not allowed when execution profiles are used" if options.key?(opt)
+      end
     end
 
     has_username = options.key?(:username)
@@ -503,15 +518,9 @@ module Cassandra
       end
     end
 
-    if options.key?(:timeout)
-      timeout = options[:timeout]
-
-      unless timeout.nil?
-        Util.assert_instance_of(::Numeric, timeout) do
-          ":timeout must be a number of seconds, #{timeout.inspect} given"
-        end
-        Util.assert(timeout > 0) { ":timeout must be greater than 0, #{timeout} given" }
-      end
+    if options.key?(:execution_profiles)
+      Util.assert_instance_of(::Hash, options[:execution_profiles],
+                              ':execution_profiles must be a hash of <name,ExecutionProfile> entries.')
     end
 
     if options.key?(:heartbeat_interval)
@@ -562,17 +571,6 @@ module Cassandra
       end
     end
 
-    if options.key?(:load_balancing_policy)
-      load_balancing_policy = options[:load_balancing_policy]
-      methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown,
-                 :distance, :plan]
-
-      Util.assert_responds_to_all(methods, load_balancing_policy) do
-        ":load_balancing_policy #{load_balancing_policy.inspect} must respond " \
-            "to #{methods.inspect}, but doesn't"
-      end
-    end
-
     if options.key?(:reconnection_policy)
       reconnection_policy = options[:reconnection_policy]
 
@@ -582,30 +580,15 @@ module Cassandra
       end
     end
 
-    if options.key?(:retry_policy)
-      retry_policy = options[:retry_policy]
-      methods = [:read_timeout, :write_timeout, :unavailable]
-
-      Util.assert_responds_to_all(methods, retry_policy) do
-        ":retry_policy #{retry_policy.inspect} must respond to #{methods.inspect}, " \
-            "but doesn't"
-      end
-    end
+    # Validate options that go in an execution profile. Instantiating one
+    # causes validation automatically.
+    Cassandra::Execution::Profile.new(options)
 
     options[:listeners] = Array(options[:listeners]) if options.key?(:listeners)
-
-    if options.key?(:consistency)
-      consistency = options[:consistency]
-
-      Util.assert_one_of(CONSISTENCIES, consistency) do
-        ":consistency must be one of #{CONSISTENCIES.inspect}, " \
-            "#{consistency.inspect} given"
-      end
-    end
-
     options[:nodelay] = !!options[:nodelay] if options.key?(:nodelay)
     options[:trace] = !!options[:trace] if options.key?(:trace)
     options[:shuffle_replicas] = !!options[:shuffle_replicas] if options.key?(:shuffle_replicas)
+    options[:allow_beta_protocol] = !!options[:allow_beta_protocol] if options.key?(:allow_beta_protocol)
 
     if options.key?(:page_size)
       page_size = options[:page_size]
@@ -623,11 +606,14 @@ module Cassandra
       protocol_version = options[:protocol_version]
       unless protocol_version.nil?
         Util.assert_instance_of(::Integer, protocol_version)
-        Util.assert_one_of(1..4, protocol_version) do
-          ":protocol_version must be a positive integer, #{protocol_version.inspect} given"
-        end
+        Util.assert_one_of(1..Cassandra::Protocol::Versions::MAX_SUPPORTED_VERSION, protocol_version,
+                           ':protocol_version must be a positive integer between 1 and ' \
+                           "#{Cassandra::Protocol::Versions::MAX_SUPPORTED_VERSION}, #{protocol_version.inspect} given")
       end
     end
+
+    Util.assert(!(options[:allow_beta_protocol] && options[:protocol_version]),
+                'only one of :allow_beta_protocol and :protocol_version may be specified, both given')
 
     if options.key?(:futures_factory)
       futures_factory = options[:futures_factory]
@@ -820,9 +806,12 @@ require 'cassandra/table'
 require 'cassandra/materialized_view'
 require 'cassandra/keyspace'
 require 'cassandra/index'
+require 'cassandra/trigger'
 
 require 'cassandra/execution/info'
 require 'cassandra/execution/options'
+require 'cassandra/execution/profile_manager'
+require 'cassandra/execution/profile'
 require 'cassandra/execution/trace'
 
 require 'cassandra/load_balancing'
@@ -845,7 +834,9 @@ module Cassandra
   # @private
   VOID_STATEMENT = Statements::Void.new
   # @private
-  VOID_OPTIONS   = Execution::Options.new(consistency: :one)
+  VOID_OPTIONS   = Execution::Options.new(consistency: :one,
+                                          load_balancing_policy: LoadBalancing::Policies::RoundRobin.new,
+                                          retry_policy: Retry::Policies::Default.new)
   # @private
   NO_HOSTS       = Errors::NoHostsAvailable.new
 end

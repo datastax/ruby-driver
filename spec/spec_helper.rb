@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,6 +33,9 @@ require 'support/fake_cluster_registry'
 require 'support/stub_io_reactor'
 
 RSpec.configure do |config|
+  # suppress ruby warnings
+  config.warnings = false
+
   config.expect_with(:rspec) do |c|
     c.syntax = [:should, :expect]
   end

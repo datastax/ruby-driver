@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ module Cassandra
       attr_reader :auth_provider, :compressor, :connect_timeout, :credentials,
                   :heartbeat_interval, :idle_timeout, :port, :schema_refresh_delay,
                   :schema_refresh_timeout, :ssl, :custom_type_handlers
-      attr_boolean :protocol_negotiable, :synchronize_schema, :nodelay
+      attr_boolean :protocol_negotiable, :synchronize_schema, :nodelay, :allow_beta_protocol
 
       attr_accessor :protocol_version
 
@@ -46,7 +46,8 @@ module Cassandra
                      schema_refresh_timeout,
                      nodelay,
                      requests_per_connection,
-                     custom_types)
+                     custom_types,
+                     allow_beta_protocol)
         @logger                 = logger
         @protocol_version       = protocol_version
         @credentials            = credentials
@@ -61,6 +62,7 @@ module Cassandra
         @schema_refresh_delay   = schema_refresh_delay
         @schema_refresh_timeout = schema_refresh_timeout
         @nodelay                = nodelay
+        @allow_beta_protocol    = allow_beta_protocol
         @custom_type_handlers   = {}
         custom_types.each do |type_klass|
           @custom_type_handlers[type_klass.type] = type_klass
@@ -71,12 +73,14 @@ module Cassandra
         @requests_per_connection = requests_per_connection
 
         # If @protocol_version is nil, it means we want the driver to negotiate the
-        # protocol starting with our known max (4). If @protocol_version is not nil,
+        # protocol starting with our known max. If @protocol_version is not nil,
         # it means the user wants us to use a particular version, so we should not
         # support negotiation.
 
         @protocol_negotiable = @protocol_version.nil?
-        @protocol_version ||= 4
+        @protocol_version ||= allow_beta_protocol ?
+            Cassandra::Protocol::Versions::BETA_VERSION :
+            Cassandra::Protocol::Versions::MAX_SUPPORTED_VERSION
       end
 
       def compression

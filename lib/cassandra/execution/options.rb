@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,11 +50,11 @@ module Cassandra
       attr_reader :paging_state
 
       # @return [nil, Hash<String, String>] custom outgoing payload, a map of
-      # string and byte buffers.
+      #   string and byte buffers.
       #
       # @see https://github.com/apache/cassandra/blob/cassandra-3.4/doc/native_protocol_v4.spec#L125-L131 Description
       #   of custom payload in Cassandra native protocol v4.
-      # @see http://docs.datastax.com/en/developer/java-driver/3.0/supplemental/manual/custom_payloads/?local=true&nav=toc#enabling-custom-payloads-on-c-nodes
+      # @see http://dsdocs30_java/manual/custom_payloads/#enabling-custom-payloads-on-c-nodes
       #   Enabling custom payloads on Cassandra nodes.
       #
       # @example Sending a custom payload
@@ -64,21 +64,31 @@ module Cassandra
       #            })
       attr_reader :payload
 
+      # @return [Cassandra::LoadBalancing::Policy] load-balancing policy that determines which node will run the
+      #   next statement.
+      attr_reader :load_balancing_policy
+
+      # @return [Cassandra::Retry::Policy] retry policy that determines how request retries should be handled for
+      #   different failure modes.
+      attr_reader :retry_policy
+
       # @private
       # @param options [Hash] execution options to validate and encapsulate
       # @param trusted_options [Options] (optional) base Execution::Options from which
       #        to create this new Options object.
       def initialize(options, trusted_options = nil)
-        consistency        = options[:consistency]
-        page_size          = options[:page_size]
-        trace              = options[:trace]
-        timeout            = options[:timeout]
-        serial_consistency = options[:serial_consistency]
-        paging_state       = options[:paging_state]
-        arguments          = options[:arguments]
-        type_hints         = options[:type_hints]
-        idempotent         = options[:idempotent]
-        payload            = options[:payload]
+        consistency           = options[:consistency]
+        page_size             = options[:page_size]
+        trace                 = options[:trace]
+        timeout               = options[:timeout]
+        serial_consistency    = options[:serial_consistency]
+        paging_state          = options[:paging_state]
+        arguments             = options[:arguments]
+        type_hints            = options[:type_hints]
+        idempotent            = options[:idempotent]
+        payload               = options[:payload]
+        load_balancing_policy = options[:load_balancing_policy]
+        retry_policy          = options[:retry_policy]
 
         # consistency is a required attribute of an Options object. If we are creating
         # an Options object from scratch (e.g. no trusted_options as base) validate the
@@ -89,6 +99,22 @@ module Cassandra
             ":consistency must be one of #{CONSISTENCIES.inspect}, " \
                 "#{consistency.inspect} given"
           end
+        end
+
+        # load_balancing_policy and retry_policy are required, but can fallback to trusted_options, just like
+        # consistency.
+        if trusted_options.nil? || !load_balancing_policy.nil?
+          methods = [:host_up, :host_down, :host_found, :host_lost, :setup, :teardown,
+                     :distance, :plan]
+          Util.assert_responds_to_all(methods, load_balancing_policy,
+                                      ":load_balancing_policy #{load_balancing_policy.inspect} must respond " \
+                                      "to #{methods.inspect}, but doesn't")
+        end
+        if trusted_options.nil? || !retry_policy.nil?
+          methods = [:read_timeout, :write_timeout, :unavailable]
+          Util.assert_responds_to_all(methods, retry_policy,
+                                      ":retry_policy #{retry_policy.inspect} must respond to #{methods.inspect}, " \
+                                      "but doesn't")
         end
 
         unless serial_consistency.nil?
@@ -173,6 +199,8 @@ module Cassandra
           @serial_consistency = serial_consistency
           @arguments = arguments
           @type_hints = type_hints
+          @load_balancing_policy = load_balancing_policy
+          @retry_policy = retry_policy
         else
           @consistency = consistency || trusted_options.consistency
           @page_size = page_size || trusted_options.page_size
@@ -181,6 +209,8 @@ module Cassandra
           @serial_consistency = serial_consistency || trusted_options.serial_consistency
           @arguments = arguments || trusted_options.arguments
           @type_hints = type_hints || trusted_options.type_hints
+          @load_balancing_policy = load_balancing_policy || trusted_options.load_balancing_policy
+          @retry_policy = retry_policy || trusted_options.retry_policy
         end
 
         # The following fields are *not* inherited from trusted_options, so we always
@@ -210,18 +240,24 @@ module Cassandra
           other.serial_consistency == @serial_consistency &&
           other.paging_state == @paging_state &&
           other.arguments == @arguments &&
-          other.type_hints == @type_hints
+          other.type_hints == @type_hints &&
+          other.load_balancing_policy == @load_balancing_policy &&
+          other.retry_policy == @retry_policy
       end
       alias == eql?
 
       # @private
       def override(*options)
         merged = options.unshift({}).inject do |base, opts|
+          # Skip nil args
           next base unless opts
-          Util.assert_instance_of(::Hash, opts) do
-            "options must be a Hash, #{options.inspect} given"
+
+          if opts.is_a?(Cassandra::Execution::Profile)
+            base.merge!(opts.to_h)
+          else
+            Util.assert_instance_of(::Hash, opts, "options must be a Hash, #{opts.inspect} given")
+            base.merge!(opts)
           end
-          base.merge!(opts)
         end
 
         Options.new(merged, self)

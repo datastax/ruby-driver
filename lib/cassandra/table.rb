@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,6 +38,10 @@ module Cassandra
       @clustering_order = clustering_order.freeze
       @indexes = []
       @indexes_hash = {}
+      @materialized_views = []
+      @materialized_views_hash = {}
+      @triggers = []
+      @triggers_hash = {}
     end
 
     # @param name [String] index name
@@ -67,6 +71,62 @@ module Cassandra
       end
     end
     alias indexes each_index
+
+    # @param name [String] trigger name
+    # @return [Boolean] whether this table has a given trigger
+    def has_trigger?(name)
+      @triggers_hash.key?(name)
+    end
+
+    # @param name [String] trigger name
+    # @return [Cassandra::Trigger, nil] a trigger or nil
+    def trigger(name)
+      @triggers_hash[name]
+    end
+
+    # Yield or enumerate each trigger bound to this table
+    # @overload each_trigger
+    #   @yieldparam trigger [Cassandra::Index] current trigger
+    #   @return [Cassandra::Table] self
+    # @overload each_trigger
+    #   @return [Array<Cassandra::Trigger>] a list of triggers
+    def each_trigger(&block)
+      if block_given?
+        @triggers.each(&block)
+        self
+      else
+        @triggers.freeze
+      end
+    end
+    alias triggers each_trigger
+
+    # @param name [String] materialized view name
+    # @return [Boolean] whether this table has a given materialized view
+    def has_materialized_view?(name)
+      @materialized_views_hash.key?(name)
+    end
+
+    # @param name [String] materialized view name
+    # @return [Cassandra::MaterializedView, nil] a materialized view or nil
+    def materialized_view(name)
+      @materialized_views_hash[name]
+    end
+
+    # Yield or enumerate each materialized view bound to this table
+    # @overload each_materialized_view
+    #   @yieldparam materialized_view [Cassandra::MaterializedView] current materialized view
+    #   @return [Cassandra::Table] self
+    # @overload each_materialized_view
+    #   @return [Array<Cassandra::MaterializedView>] a list of materialized views
+    def each_materialized_view(&block)
+      if block_given?
+        @materialized_views.each(&block)
+        self
+      else
+        @materialized_views.freeze
+      end
+    end
+    alias materialized_views each_materialized_view
 
     # @return [String] a cql representation of this table
     def to_cql
@@ -109,7 +169,7 @@ module Cassandra
 
       cql << "\n)\nWITH "
 
-      if @clustering_order.any? {|o| o != :asc}
+      if !@clustering_order.empty? && !@clustering_columns.empty?
         cql << 'CLUSTERING ORDER BY ('
         first = true
         @clustering_columns.zip(@clustering_order) do |column, order|
@@ -132,6 +192,18 @@ module Cassandra
     def add_index(index)
       @indexes << index
       @indexes_hash[index.name] = index
+    end
+
+    # @private
+    def add_view(view)
+      @materialized_views << view
+      @materialized_views_hash[view.name] = view
+    end
+
+    # @private
+    def add_trigger(trigger)
+      @triggers << trigger
+      @triggers_hash[trigger.name] = trigger
     end
 
     # @private

@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,9 +36,8 @@ module Cassandra
                    cluster_metadata,
                    execution_options,
                    connection_options,
-                   load_balancing_policy,
+                   profile_manager,
                    reconnection_policy,
-                   retry_policy,
                    address_resolution_policy,
                    connector,
                    futures_factory,
@@ -52,9 +51,8 @@ module Cassandra
       @metadata              = cluster_metadata
       @execution_options     = execution_options
       @connection_options    = connection_options
-      @load_balancing_policy = load_balancing_policy
+      @profile_manager       = profile_manager
       @reconnection_policy   = reconnection_policy
-      @retry_policy          = retry_policy
       @address_resolver      = address_resolution_policy
       @connector             = connector
       @futures               = futures_factory
@@ -62,7 +60,7 @@ module Cassandra
 
       @control_connection.on_close do |_cause|
         begin
-          @load_balancing_policy.teardown(self)
+          @profile_manager.teardown(self)
         rescue
           nil
         end
@@ -153,6 +151,40 @@ module Cassandra
     #   @return [Boolean] true or false
     def_delegators :@schema, :keyspace, :has_keyspace?
 
+    # @return [Integer] Cassandra native protocol port
+    def port
+      @connection_options.port
+    end
+
+    # @return [Integer] the version of the native protocol used in communication with nodes
+    def protocol_version
+      @connection_options.protocol_version
+    end
+
+    # @param name [String] Name of profile to retrieve
+    # @return [Cassandra::Execution::Profile] execution profile of the given name
+    def execution_profile(name)
+      @profile_manager.profiles[name]
+    end
+
+    # Yield or enumerate each execution profile defined in this cluster
+    # @overload each_execution_profile
+    #   @yieldparam name [String, Symbol] name of current profile
+    #   @yieldparam profile [Cassandra::Execution::Profile] current profile
+    #   @return [Cassandra::Cluster] self
+    # @overload each_execution_profile
+    #   @return [Hash<String, Cassandra::Execution::Profile>] a hash of profiles keyed on name
+    def each_execution_profile(&block)
+      if block_given?
+        @profile_manager.profiles.each_pair(&block)
+        self
+      else
+        # Return a dup of the hash to prevent the user from adding/removing profiles from the profile-manager.
+        @profile_manager.profiles.dup
+      end
+    end
+    alias execution_profiles each_execution_profile
+
     # @!method refresh_schema_async
     #   Trigger an asynchronous schema metadata refresh
     #   @return [Cassandra::Future<nil>] a future that will be fulfilled when
@@ -201,14 +233,13 @@ module Cassandra
                            @schema,
                            @io_reactor,
                            @connector,
-                           @load_balancing_policy,
+                           @profile_manager,
                            @reconnection_policy,
-                           @retry_policy,
                            @address_resolver,
                            @connection_options,
                            @futures,
                            @timestamp_generator)
-      session = Session.new(client, @execution_options, @futures)
+      session = Session.new(client, @execution_options, @futures, @profile_manager)
       promise = @futures.promise
 
       client.connect.on_complete do |f|
@@ -282,9 +313,7 @@ module Cassandra
       "name=#{name.inspect}, " \
       "port=#{@connection_options.port}, " \
       "protocol_version=#{@connection_options.protocol_version}, " \
-      "load_balancing_policy=#{@load_balancing_policy.inspect}, " \
-      "consistency=#{@execution_options.consistency.inspect}, " \
-      "timeout=#{@execution_options.timeout.inspect}, " \
+      "execution_profiles=#{@profile_manager.profiles.inspect}, " \
       "hosts=#{hosts.inspect}, " \
       "keyspaces=#{keyspaces.inspect}>"
     end

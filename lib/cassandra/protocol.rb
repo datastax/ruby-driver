@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,6 +48,11 @@ module Cassandra
       SCHEMA_CHANGE_TARGET_UDT       = 'TYPE'.freeze
       SCHEMA_CHANGE_TARGET_FUNCTION  = 'FUNCTION'.freeze
       SCHEMA_CHANGE_TARGET_AGGREGATE = 'AGGREGATE'.freeze
+    end
+
+    module Versions
+      BETA_VERSION = 5
+      MAX_SUPPORTED_VERSION = 4
     end
   end
 end

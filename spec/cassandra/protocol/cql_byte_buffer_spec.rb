@@ -1,7 +1,7 @@
 # encoding: ascii-8bit
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -100,6 +100,41 @@ module Cassandra
         it 'decodes a small negative decimal' do
           buffer = described_class.new("\x00\x00\x00\x12\x91z\xE1\xAF\x06c\x5A")
           buffer.read_decimal.should == BigDecimal.new('-0.031108612692221094')
+        end
+
+        it 'decodes a decimal with negative scale' do
+          buffer = described_class.new("\xff\xff\xff\xfa\x0a")
+          buffer.read_decimal.should == BigDecimal.new('10000000')
+        end
+
+        it 'decodes a negative decimal with negative scale' do
+          buffer = described_class.new("\xff\xff\xff\xf9\xfd")
+          buffer.read_decimal.should == BigDecimal.new('-30000000')
+        end
+
+        it 'decodes a decimal with zero scale' do
+          buffer = described_class.new("\x00\x00\x00\x00\x0a")
+          buffer.read_decimal.should == BigDecimal.new('10')
+        end
+
+        it 'decodes a negative decimal with zero scale' do
+          buffer = described_class.new("\x00\x00\x00\x00\xfe")
+          buffer.read_decimal.should == BigDecimal.new('-2')
+        end
+
+        it 'decodes zero decimal with zero scale' do
+          buffer = described_class.new("\x00\x00\x00\x00\x00")
+          buffer.read_decimal.should == BigDecimal.new('0')
+        end
+
+        it 'decodes zero decimal with negative scale' do
+          buffer = described_class.new("\xff\xff\xff\xf9\x00")
+          buffer.read_decimal.should == BigDecimal.new('0')
+        end
+
+        it 'decodes zero decimal with positive scale' do
+          buffer = described_class.new("\x00\x00\x00\x05\x00")
+          buffer.read_decimal.should == BigDecimal.new('0')
         end
 
         it 'consumes the bytes' do

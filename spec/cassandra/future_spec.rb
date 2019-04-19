@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -68,6 +68,11 @@ module Cassandra
         futures = 9.times.map {|i| Future.value(i)}
         futures << Future.error(RuntimeError.new("something happened"))
         expect { Future.all(futures).get }.to raise_error("something happened")
+      end
+
+      it 'trivially succeeds when there are no futures' do
+        expect(Future.all.get).to eq([])
+        expect(Future.all([]).get).to eq([])
       end
     end
 

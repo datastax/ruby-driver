@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ module Cassandra
       @options['class_name']
     end
 
-    # @return [String] a cql representation of this table
+    # @return [String] a cql representation of this index
     def to_cql
       keyspace_name = Util.escape_name(@table.keyspace.name)
       table_name = Util.escape_name(@table.name)

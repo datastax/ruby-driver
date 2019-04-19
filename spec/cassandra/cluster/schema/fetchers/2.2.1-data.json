@@ -3035,6 +3035,17 @@
       "index_type": null,
       "type": "regular",
       "validator": "org.apache.cassandra.db.marshal.Int32Type"
+    },
+    {
+      "keyspace_name": "simplex",
+      "columnfamily_name": "t3",
+      "column_name": "f3",
+      "component_index": 0,
+      "index_name": null,
+      "index_options": "null",
+      "index_type": null,
+      "type": "regular",
+      "validator": "org.apache.cassandra.db.marshal.ListType(org.apache.cassandra.db.marshal.FrozenType(org.apache.cassandra.db.marshal.TupleType(org.apache.cassandra.db.marshal.UTF8Type,org.apache.cassandra.db.marshal.Int32Type)))"
     }
   ],
   "SELECT * FROM system.schema_usertypes": [
@@ -3045,5 +3056,13 @@
   ],
   "SELECT * FROM system.schema_aggregates": [
 
+  ],
+  "SELECT * FROM system.schema_triggers": [
+    {
+      "keyspace_name": "simplex",
+      "columnfamily_name": "t1",
+      "trigger_name": "mytrigger",
+      "trigger_options": { "class": "org.apache.cassandra.triggers.AuditTrigger"}
+    }
   ]
 }

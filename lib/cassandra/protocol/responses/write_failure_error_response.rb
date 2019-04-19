@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 module Cassandra
   module Protocol
     class WriteFailureErrorResponse < ErrorResponse
-      attr_reader :consistency, :received, :blockfor, :numfailures, :write_type
+      attr_reader :consistency, :received, :blockfor, :numfailures, :write_type, :failures_by_node
 
       def initialize(custom_payload,
                      warnings,
@@ -29,16 +29,21 @@ module Cassandra
                      received,
                      blockfor,
                      numfailures,
-                     write_type)
+                     write_type,
+                     failures_by_node)
         super(custom_payload, warnings, code, message)
 
         write_type.downcase!
 
-        @consistency = consistency
-        @received    = received
-        @blockfor    = blockfor
-        @numfailures = numfailures
-        @write_type  = write_type.to_sym
+        @consistency      = consistency
+        @received         = received
+        @blockfor         = blockfor
+        @write_type       = write_type.to_sym
+        @failures_by_node = failures_by_node
+
+        # If failures_by_node is set, numfailures isn't, and v.v. Set @numfailures to the size of the failure-map
+        # if numfailures is nil.
+        @numfailures = numfailures || @failures_by_node.size
       end
 
       def to_error(keyspace, statement, options, hosts, consistency, retries)
@@ -55,7 +60,8 @@ module Cassandra
                                @consistency,
                                @blockfor,
                                @numfailures,
-                               @received)
+                               @received,
+                               @failures_by_node)
       end
 
       def to_s

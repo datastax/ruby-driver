@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,6 +39,18 @@ class MetadataTest < IntegrationTestCase
     @session.execute("CREATE TABLE simplex.custom (f1 int PRIMARY KEY," \
     " f2 'org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.UUIDType,org.apache.cassandra.db.marshal.UTF8Type)')")
     @listener.wait_for_table('simplex', 'custom')
+    @session.execute("CREATE TABLE simplex.test1 (key text, value text, PRIMARY KEY(key))")
+    @listener.wait_for_table('simplex', 'test1')
+    @session.execute("CREATE TABLE simplex.test2 (key text, value text, PRIMARY KEY(key))")
+    @listener.wait_for_table('simplex', 'test2')
+    @session.execute("CREATE TABLE simplex.audit (key timeuuid, keyspace_name text, table_name text, primary_key text, PRIMARY KEY(key))")
+    @listener.wait_for_table('simplex', 'audit')
+    @session.execute(<<EOF)
+        CREATE TABLE rb264(inclusion_r_t text, inclusion_r_id text, inclusion_uaid timeuuid, own_t text, own_id text,
+        PRIMARY KEY (inclusion_r_t, inclusion_r_id, inclusion_uaid, own_t, own_id)
+        ) WITH CLUSTERING ORDER BY (inclusion_r_id ASC, inclusion_uaid ASC, own_t ASC, own_id ASC)
+EOF
+    @listener.wait_for_table('simplex', 'rb264')
   end
 
   def teardown
@@ -63,7 +75,7 @@ class MetadataTest < IntegrationTestCase
     assert_equal 1, ks_meta.replication.options['replication_factor'].to_i
     assert ks_meta.durable_writes?
     assert ks_meta.has_table?('users')
-    assert_equal 4, ks_meta.tables.size
+    assert_equal 8, ks_meta.tables.size
 
     ks_cql = Regexp.new(/CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', \
 'replication_factor': '1'} AND durable_writes = true;/)
@@ -101,6 +113,23 @@ class MetadataTest < IntegrationTestCase
       assert ['user_id', 'first', 'last', 'age'].any? { |name| name == column.name }
       assert [:bigint, :text, :int].any? { |type| type == column.type.kind }
     end
+  end
+
+  # Regression test for retrieving table metadata, RUBY-264
+  #
+  # test_ruby_264 tests that a table with a relatively large number of clustering columns is not erroneously
+  # considered to use compact storage.
+  #
+  # @since 3.0.0
+  # @jira_ticket RUBY-264
+  # @expected_result table metadata should be retrieved.
+  #
+  # @test_category metadata
+  #
+  def test_ruby_264
+    assert @cluster.keyspace('simplex').has_table?('rb264')
+    table_meta = @cluster.keyspace('simplex').table('rb264')
+    assert(!table_meta.options.compact_storage?)
   end
 
   # Test for column ordering in table metadata
@@ -259,7 +288,8 @@ class MetadataTest < IntegrationTestCase
   "f3" int,
   PRIMARY KEY \("f1", "f2"\)
 \)
-WITH COMPACT STORAGE/)
+WITH CLUSTERING ORDER BY \("f2" ASC\)
+ AND COMPACT STORAGE/)
 
     assert_equal 0, table_meta.to_cql =~ table_cql, "actual cql: #{table_meta.to_cql}"
     assert_equal 3, table_meta.columns.size
@@ -342,4 +372,42 @@ WITH COMPACT STORAGE/)
     assert_empty table_meta.options.extensions
   end
 
+  # Test for retrieving trigger metadata
+  #
+  # test_can_retrieve_trigger_metadata tests that all pieces of trigger metadata can be retrieved. It first creates a
+  # simple trigger. It then goes through each piece of the trigger metadata and verifies that each piece is as expected.
+  # It finally creates another trigger with the same name, on a different table and verifies that it is retrieved and
+  # complete.
+  #
+  # @since 3.1.0
+  # @jira_ticket RUBY-187
+  # @expected_result trigger metadata should be retrieved.
+  #
+  # @test_category metadata
+  #
+  def test_can_retrieve_trigger_metadata
+    skip("Triggers were introduced in Cassandra 2.0") if CCM.cassandra_version < '2.0.0'
+
+    # trigger1, on test1 table
+    @session.execute("CREATE TRIGGER trigger1 ON simplex.test1 USING 'org.apache.cassandra.triggers.AuditTrigger'")
+    @listener.wait_for_trigger('simplex', 'test1', 'trigger1')
+
+    assert @cluster.keyspace('simplex').table('test1').has_trigger?('trigger1')
+    trigger_meta = @cluster.keyspace('simplex').table('test1').trigger('trigger1')
+    assert_equal 'trigger1', trigger_meta.name
+    assert_equal 'test1', trigger_meta.table.name
+    assert_equal 'org.apache.cassandra.triggers.AuditTrigger', trigger_meta.options['class']
+
+    # trigger1, on test2 table
+    @session.execute("CREATE TRIGGER trigger1 ON simplex.test2 USING 'org.apache.cassandra.triggers.AuditTrigger'")
+    @listener.wait_for_trigger('simplex', 'test2', 'trigger1')
+
+    assert @cluster.keyspace('simplex').table('test2').has_trigger?('trigger1')
+    trigger_meta2 = @cluster.keyspace('simplex').table('test2').trigger('trigger1')
+    assert_equal 'trigger1', trigger_meta2.name
+    assert_equal 'test2', trigger_meta2.table.name
+    assert_equal 'org.apache.cassandra.triggers.AuditTrigger', trigger_meta2.options['class']
+
+    refute_equal trigger_meta, trigger_meta2
+  end
 end

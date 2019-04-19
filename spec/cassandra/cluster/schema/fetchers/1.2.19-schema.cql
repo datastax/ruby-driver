@@ -6,7 +6,8 @@ CREATE TABLE system."HintsColumnFamily" (
   value blob,
   PRIMARY KEY ("key", "column1")
 )
-WITH COMPACT STORAGE
+WITH CLUSTERING ORDER BY ("column1" ASC)
+ AND COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
  AND caching = 'KEYS_ONLY'
  AND comment = 'unused'
@@ -23,7 +24,8 @@ CREATE TABLE system."IndexInfo" (
   index_name text,
   PRIMARY KEY (table_name, index_name)
 )
-WITH COMPACT STORAGE
+WITH CLUSTERING ORDER BY (index_name ASC)
+ AND COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
  AND caching = 'KEYS_ONLY'
  AND comment = 'indexes that have been completed'
@@ -41,7 +43,8 @@ CREATE TABLE system."LocationInfo" (
   value blob,
   PRIMARY KEY ("key", "column1")
 )
-WITH COMPACT STORAGE
+WITH CLUSTERING ORDER BY ("column1" ASC)
+ AND COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
  AND caching = 'KEYS_ONLY'
  AND comment = 'unused'
@@ -59,7 +62,8 @@ CREATE TABLE system."Migrations" (
   value blob,
   PRIMARY KEY ("key", "column1")
 )
-WITH COMPACT STORAGE
+WITH CLUSTERING ORDER BY ("column1" ASC)
+ AND COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
  AND caching = 'KEYS_ONLY'
  AND comment = 'unused'
@@ -76,7 +80,8 @@ CREATE TABLE system."NodeIdInfo" (
   id timeuuid,
   PRIMARY KEY ("key", id)
 )
-WITH COMPACT STORAGE
+WITH CLUSTERING ORDER BY (id ASC)
+ AND COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
  AND caching = 'KEYS_ONLY'
  AND comment = 'counter node IDs'
@@ -94,7 +99,8 @@ CREATE TABLE system."Schema" (
   value blob,
   PRIMARY KEY ("key", "column1")
 )
-WITH COMPACT STORAGE
+WITH CLUSTERING ORDER BY ("column1" ASC)
+ AND COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
  AND caching = 'KEYS_ONLY'
  AND comment = 'unused'
@@ -129,7 +135,8 @@ CREATE TABLE system.hints (
   mutation blob,
   PRIMARY KEY (target_id, hint_id, message_version)
 )
-WITH COMPACT STORAGE
+WITH CLUSTERING ORDER BY (hint_id ASC, message_version ASC)
+ AND COMPACT STORAGE
  AND bloom_filter_fp_chance = 0.01
  AND caching = 'KEYS_ONLY'
  AND comment = 'hints awaiting delivery'
@@ -247,7 +254,8 @@ CREATE TABLE system.schema_columnfamilies (
   value_alias text,
   PRIMARY KEY (keyspace_name, columnfamily_name)
 )
-WITH bloom_filter_fp_chance = 0.01
+WITH CLUSTERING ORDER BY (columnfamily_name ASC)
+ AND bloom_filter_fp_chance = 0.01
  AND caching = 'KEYS_ONLY'
  AND comment = 'ColumnFamily definitions'
  AND compaction = {'class': 'SizeTieredCompactionStrategy'}
@@ -269,7 +277,8 @@ CREATE TABLE system.schema_columns (
   validator text,
   PRIMARY KEY (keyspace_name, columnfamily_name, column_name)
 )
-WITH bloom_filter_fp_chance = 0.01
+WITH CLUSTERING ORDER BY (columnfamily_name ASC, column_name ASC)
+ AND bloom_filter_fp_chance = 0.01
  AND caching = 'KEYS_ONLY'
  AND comment = 'ColumnFamily column attributes'
  AND compaction = {'class': 'SizeTieredCompactionStrategy'}
@@ -309,7 +318,8 @@ CREATE TABLE system_traces.events (
   thread text,
   PRIMARY KEY (session_id, event_id)
 )
-WITH bloom_filter_fp_chance = 0.01
+WITH CLUSTERING ORDER BY (event_id ASC)
+ AND bloom_filter_fp_chance = 0.01
  AND caching = 'KEYS_ONLY'
  AND comment = ''
  AND compaction = {'class': 'SizeTieredCompactionStrategy'}
@@ -347,7 +357,8 @@ CREATE TABLE simplex."t1" (
   "f3" int,
   PRIMARY KEY ("f1", "f2")
 )
-WITH bloom_filter_fp_chance = 0.01
+WITH CLUSTERING ORDER BY ("f2" ASC)
+ AND bloom_filter_fp_chance = 0.01
  AND caching = 'KEYS_ONLY'
  AND comment = 'test table'
  AND compaction = {'class': 'SizeTieredCompactionStrategy'}

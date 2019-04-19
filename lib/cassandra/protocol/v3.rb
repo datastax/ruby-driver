@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -166,7 +166,8 @@ module Cassandra
           if compression == 1
             if @compressor
               buffer = CqlByteBuffer.new(
-                @compressor.decompress(buffer.read(frame_length)))
+                @compressor.decompress(buffer.read(frame_length))
+              )
               frame_length = buffer.size
             else
               raise Errors::DecodingError,

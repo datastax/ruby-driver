@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,8 +40,6 @@ module Cassandra
         private
 
         def lookup_type(node, types)
-          return lookup_type(node.children.first, types) if node.name == 'frozen'
-
           case node.name
           when 'text'              then Cassandra::Types.text
           when 'blob'              then Cassandra::Types.blob
@@ -70,6 +68,8 @@ module Cassandra
             Cassandra::Types.list(lookup_type(node.children.first, types))
           when 'tuple'             then
             Cassandra::Types.tuple(*node.children.map { |t| lookup_type(t, types)})
+          when 'frozen'            then
+            Cassandra::Types.frozen(lookup_type(node.children.first, types))
           when 'empty'             then
             Cassandra::Types.custom('org.apache.cassandra.db.marshal.EmptyType')
           when /\A'/ then
@@ -100,7 +100,7 @@ module Cassandra
             when ' '
               next
             else
-              node.name << char
+              node.name << char unless char == '"'
             end
           end
 

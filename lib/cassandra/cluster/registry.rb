@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,14 +60,18 @@ module Cassandra
       end
       alias hosts each_host
 
+      # @param address [IPAddr] resolved address of the node
       def host(address)
         @hosts[address.to_s]
       end
 
+      # @param address [IPAddr] resolved address of the node
       def has_host?(address)
         @hosts.key?(address.to_s)
       end
 
+      # @param address [IPAddr] resolved address of the node
+      # @param data [Hash<String, String>] attributes of the host, typically a row from system.local or system.peers.
       def host_found(address, data = {})
         ip   = address.to_s
         host = @hosts[ip]
@@ -108,6 +112,7 @@ module Cassandra
         self
       end
 
+      # @param address [IPAddr] resolved address of the node
       def host_down(address)
         ip   = address.to_s
         host = @hosts[ip]
@@ -125,6 +130,7 @@ module Cassandra
         self
       end
 
+      # @param address [IPAddr] resolved address of the node
       def host_up(address)
         ip   = address.to_s
         host = @hosts[ip]
@@ -142,6 +148,7 @@ module Cassandra
         self
       end
 
+      # @param address [IPAddr] resolved address of the node
       def host_lost(address)
         ip   = address.to_s
         host = nil
@@ -161,6 +168,8 @@ module Cassandra
 
       private
 
+      # @param ip [String] resolved address of the node
+      # @param data [Hash<String, String>] attributes of the host, typically a row from system.local or system.peers.
       def create_host(ip, data)
         Host.new(ip,
                  data['host_id'],
@@ -170,10 +179,10 @@ module Cassandra
                  Array(data['tokens']).freeze,
                  :up,
                  data['broadcast_address'],
-                 data['listen_address']
-                )
+                 data['listen_address'])
       end
 
+      # @param host [Host] host that is found to be up.
       def toggle_up(host)
         host = Host.new(host.ip,
                         host.id,
@@ -195,6 +204,7 @@ module Cassandra
         host
       end
 
+      # @param host [Host] host that is found to be down.
       def toggle_down(host)
         host = Host.new(host.ip,
                         host.id,
@@ -216,6 +226,7 @@ module Cassandra
         host
       end
 
+      # @param host [Host] host that is lost.
       def notify_lost(host)
         if host.up?
           @logger.debug("Host #{host.ip} is down and lost")
@@ -252,6 +263,7 @@ module Cassandra
         end
       end
 
+      # @param host [Host] host that is found.
       def notify_found(host)
         @logger.debug("Host #{host.ip} is found and up")
         @listeners.each do |listener|

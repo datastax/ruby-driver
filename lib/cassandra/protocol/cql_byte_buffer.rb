@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,24 +53,30 @@ module Cassandra
       end
 
       def read_decimal(len = bytesize)
-        size = read_signed_int
+        scale = read_signed_int
         number_string = read_varint(len - 4).to_s
-        if number_string.length <= size
-          if number_string.start_with?(MINUS)
-            number_string = number_string[1, number_string.length - 1]
-            fraction_string = MINUS + ZERO << DECIMAL_POINT
-          else
-            fraction_string = ZERO + DECIMAL_POINT
-          end
-          (size - number_string.length).times { fraction_string << ZERO }
-          fraction_string << number_string
+        if scale <= 0
+          # Special case where the actual scale is positive; scale in the protocol is actually negative of
+          # reality.
+          BigDecimal.new(number_string + '0' * -scale)
         else
-          fraction_string = number_string[0, number_string.length - size]
-          fraction_string << DECIMAL_POINT
-          fraction_string <<
-            number_string[number_string.length - size, number_string.length]
+          if number_string.length <= scale
+            if number_string.start_with?(MINUS)
+              number_string = number_string[1, number_string.length - 1]
+              fraction_string = MINUS + ZERO << DECIMAL_POINT
+            else
+              fraction_string = ZERO + DECIMAL_POINT
+            end
+            (scale - number_string.length).times { fraction_string << ZERO }
+            fraction_string << number_string
+          else
+            fraction_string = number_string[0, number_string.length - scale]
+            fraction_string << DECIMAL_POINT
+            fraction_string <<
+              number_string[number_string.length - scale, number_string.length]
+          end
+          BigDecimal.new(fraction_string)
         end
-        BigDecimal.new(fraction_string)
       rescue Errors::DecodingError => e
         raise Errors::DecodingError, e.message, e.backtrace
       end
@@ -204,6 +210,15 @@ module Cassandra
               e.backtrace
       end
 
+      def read_inet_addr
+        size = read_byte
+        IPAddr.new_ntoh(read(size))
+      rescue RangeError => e
+        raise Errors::DecodingError,
+              "Not enough bytes available to decode an INET addr: #{e.message}",
+              e.backtrace
+      end
+
       def read_consistency
         index = read_unsigned_short
         if index >= CONSISTENCIES.size || CONSISTENCIES[index].nil?
@@ -228,6 +243,18 @@ module Cassandra
         map_size.times do
           key = read_string
           map[key] = read_bytes
+        end
+        map
+      end
+
+      def read_reason_map
+        # reason_map is new in v5. Starts with an int indicating the number of key-value pairs, followed by
+        # the key-value pairs. Keys are inet's, values are short int's.
+        map = {}
+        map_size = read_int
+        map_size.times do
+          key = read_inet_addr
+          map[key] = read_short
         end
         map
       end

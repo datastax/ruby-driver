@@ -15,10 +15,80 @@ module C
   end
 end
 
+class GoodLBP
+  def host_up
+  end
+
+  def host_down
+  end
+
+  def host_found
+  end
+
+  def host_lost
+  end
+
+  def setup
+  end
+
+  def teardown
+  end
+
+  def distance
+  end
+
+  def plan
+  end
+end
+
+class GoodRetryPolicy
+  def read_timeout
+  end
+
+  def write_timeout
+  end
+
+  def unavailable
+  end
+end
+
 describe Cassandra do
   context :validate_and_massage_options do
+    let(:profiles) {
+      {
+          p1: Cassandra::Execution::Profile.new(load_balancing_policy: lbp),
+          p2: Cassandra::Execution::Profile.new(timeout: 0.00005)
+      }
+    }
+
+    let(:lbp) { GoodLBP.new }
+
     it 'should ignore spurious options' do
       expect(C.validate(foo: 1, timeout: 5)).to eq({ timeout: 5 })
+    end
+
+    context 'for execution profiles' do
+      it 'should validate :execution_profiles is a hash' do
+        expect(C.validate(execution_profiles: profiles)).to eq({ execution_profiles: profiles })
+        expect { C.validate(execution_profiles: []) }.to raise_error(ArgumentError)
+      end
+
+      it 'should validate that execution profiles and load_balancing_policy are mutually exclusive' do
+        expect { C.validate(execution_profiles: profiles, load_balancing_policy: lbp) }.to raise_error(ArgumentError)
+      end
+
+      it 'should validate that execution profiles and consistency are mutually exclusive' do
+        expect { C.validate(execution_profiles: profiles, consistency: :one) }.to raise_error(ArgumentError)
+      end
+
+      it 'should validate that execution profiles and timeout are mutually exclusive' do
+        expect { C.validate(execution_profiles: profiles, timeout: 7) }.to raise_error(ArgumentError)
+      end
+
+      it 'should validate that execution profiles and retry_policy are mutually exclusive' do
+        expect { C.validate(execution_profiles: profiles, retry_policy: GoodRetryPolicy.new) }.
+            to raise_error(ArgumentError)
+      end
     end
 
     context 'for username and password' do
@@ -173,12 +243,12 @@ describe Cassandra do
     end
 
     it 'should validate :timeout' do
-      expect { C.validate(timeout: 'a') }.to raise_error(ArgumentError)
-      expect { C.validate(timeout: -1) }.to raise_error(ArgumentError)
-      expect { C.validate(timeout: 0) }.to raise_error(ArgumentError)
-      expect(C.validate(timeout: 0.5)).to eq({ timeout: 0.5 })
-      expect(C.validate(timeout: 38)).to eq({ timeout: 38 })
-      expect(C.validate(timeout: nil)).to eq({ timeout: nil })
+      ['a', -1, 0].each do |val|
+        expect { C.validate(timeout: val) }.to raise_error(ArgumentError)
+      end
+      [0.5, 38, nil].each do |val|
+        expect(C.validate(timeout: val)).to eq({ timeout: val })
+      end
     end
 
     it 'should validate :heartbeat_interval' do
@@ -203,7 +273,7 @@ describe Cassandra do
       expect { C.validate(schema_refresh_delay: 'a') }.to raise_error(ArgumentError)
       expect { C.validate(schema_refresh_delay: -1) }.to raise_error(ArgumentError)
       expect { C.validate(schema_refresh_delay: 0) }.to raise_error(ArgumentError)
-      expect {C.validate(schema_refresh_delay: nil)}.to raise_error(ArgumentError)
+      expect { C.validate(schema_refresh_delay: nil) }.to raise_error(ArgumentError)
       expect(C.validate(schema_refresh_delay: 0.5)).to eq({ schema_refresh_delay: 0.5 })
       expect(C.validate(schema_refresh_delay: 38)).to eq({ schema_refresh_delay: 38 })
     end
@@ -212,41 +282,16 @@ describe Cassandra do
       expect { C.validate(schema_refresh_timeout: 'a') }.to raise_error(ArgumentError)
       expect { C.validate(schema_refresh_timeout: -1) }.to raise_error(ArgumentError)
       expect { C.validate(schema_refresh_timeout: 0) }.to raise_error(ArgumentError)
-      expect {C.validate(schema_refresh_timeout: nil)}.to raise_error(ArgumentError)
+      expect { C.validate(schema_refresh_timeout: nil) }.to raise_error(ArgumentError)
       expect(C.validate(schema_refresh_timeout: 0.5)).to eq({ schema_refresh_timeout: 0.5 })
       expect(C.validate(schema_refresh_timeout: 38)).to eq({ schema_refresh_timeout: 38 })
     end
 
     it 'should validate :load_balancing_policy option' do
-      class GoodPolicy
-        def host_up
-        end
-
-        def host_down
-        end
-
-        def host_found
-        end
-
-        def host_lost
-        end
-
-        def setup
-        end
-
-        def teardown
-        end
-
-        def distance
-        end
-
-        def plan
-        end
+      expect(C.validate(load_balancing_policy: lbp)).to eq({ load_balancing_policy: lbp })
+      ['junk', nil].each do |val|
+        expect { C.validate(load_balancing_policy: val) }.to raise_error(ArgumentError)
       end
-      policy = GoodPolicy.new
-      expect(C.validate(load_balancing_policy: policy)).to eq({ load_balancing_policy: policy })
-      expect { C.validate(load_balancing_policy: 'junk') }.to raise_error(ArgumentError)
-      expect { C.validate(load_balancing_policy: nil) }.to raise_error(ArgumentError)
     end
 
     it 'should validate :reconnection_policy option' do
@@ -261,17 +306,7 @@ describe Cassandra do
     end
 
     it 'should validate :retry_policy option' do
-      class GoodPolicy
-        def read_timeout
-        end
-
-        def write_timeout
-        end
-
-        def unavailable
-        end
-      end
-      policy = GoodPolicy.new
+      policy = GoodRetryPolicy.new
       expect(C.validate(retry_policy: policy)).to eq({ retry_policy: policy })
       expect { C.validate(retry_policy: 'junk') }.to raise_error(ArgumentError)
       expect { C.validate(retry_policy: nil) }.to raise_error(ArgumentError)
@@ -291,21 +326,21 @@ describe Cassandra do
     end
 
     it 'should massage :nodelay to a boolean' do
-      expect(C.validate(nodelay: nil)).to eq({nodelay: false})
-      expect(C.validate(nodelay: 1)).to eq({nodelay: true})
-      expect(C.validate(nodelay: 0)).to eq({nodelay: true})
+      expect(C.validate(nodelay: nil)).to eq({ nodelay: false })
+      expect(C.validate(nodelay: 1)).to eq({ nodelay: true })
+      expect(C.validate(nodelay: 0)).to eq({ nodelay: true })
     end
 
     it 'should massage :trace to a boolean' do
-      expect(C.validate(trace: nil)).to eq({trace: false})
-      expect(C.validate(trace: 1)).to eq({trace: true})
-      expect(C.validate(trace: 0)).to eq({trace: true})
+      expect(C.validate(trace: nil)).to eq({ trace: false })
+      expect(C.validate(trace: 1)).to eq({ trace: true })
+      expect(C.validate(trace: 0)).to eq({ trace: true })
     end
 
     it 'should massage :shuffle_replicas to a boolean' do
-      expect(C.validate(shuffle_replicas: nil)).to eq({shuffle_replicas: false})
-      expect(C.validate(shuffle_replicas: 1)).to eq({shuffle_replicas: true})
-      expect(C.validate(shuffle_replicas: 0)).to eq({shuffle_replicas: true})
+      expect(C.validate(shuffle_replicas: nil)).to eq({ shuffle_replicas: false })
+      expect(C.validate(shuffle_replicas: 1)).to eq({ shuffle_replicas: true })
+      expect(C.validate(shuffle_replicas: 0)).to eq({ shuffle_replicas: true })
     end
 
     it 'should validate :page_size' do
@@ -323,23 +358,37 @@ describe Cassandra do
       expect { C.validate(protocol_version: 'a') }.to raise_error(ArgumentError)
       expect { C.validate(protocol_version: 0) }.to raise_error(ArgumentError)
       expect { C.validate(protocol_version: 1.5) }.to raise_error(ArgumentError)
-      expect { C.validate(protocol_version: 5) }.to raise_error(ArgumentError)
+      expect { C.validate(protocol_version: Cassandra::Protocol::Versions::MAX_SUPPORTED_VERSION + 1) }.
+          to raise_error(ArgumentError)
       expect(C.validate(protocol_version: 1)).to eq({ protocol_version: 1 })
-      expect(C.validate(protocol_version: 4)).to eq({ protocol_version: 4 })
+      expect(C.validate(protocol_version: Cassandra::Protocol::Versions::MAX_SUPPORTED_VERSION)).
+          to eq({ protocol_version: Cassandra::Protocol::Versions::MAX_SUPPORTED_VERSION })
       expect(C.validate(protocol_version: nil)).to eq({ protocol_version: nil })
+    end
+
+    it 'should validate that :protocol_version and :allow_beta_protocol are not both specified' do
+      expect(C.validate(allow_beta_protocol: true)).to eq({ allow_beta_protocol: true } )
+      expect(C.validate(allow_beta_protocol: false)).to eq({ allow_beta_protocol: false } )
+      expect { C.validate(allow_beta_protocol: true, protocol_version: 3) }.to raise_error(ArgumentError)
+      expect(C.validate(allow_beta_protocol: false, protocol_version: 3)).
+          to eq({ allow_beta_protocol: false, protocol_version: 3 })
+      expect(C.validate(allow_beta_protocol: true, protocol_version: nil)).
+          to eq({ allow_beta_protocol: true, protocol_version: nil })
+      expect(C.validate(allow_beta_protocol: false, protocol_version: nil)).
+          to eq({ allow_beta_protocol: false, protocol_version: nil })
     end
 
     it 'should validate :futures_factory option' do
       class GoodFactory
         def error
         end
-        
+
         def value
         end
-        
+
         def promise
         end
-        
+
         def all
         end
       end
@@ -370,14 +419,14 @@ describe Cassandra do
     end
 
     it 'should massage :synchronize_schema to a boolean' do
-      expect(C.validate(synchronize_schema: nil)).to eq({synchronize_schema: false})
-      expect(C.validate(synchronize_schema: 1)).to eq({synchronize_schema: true})
-      expect(C.validate(synchronize_schema: 0)).to eq({synchronize_schema: true})
+      expect(C.validate(synchronize_schema: nil)).to eq({ synchronize_schema: false })
+      expect(C.validate(synchronize_schema: 1)).to eq({ synchronize_schema: true })
+      expect(C.validate(synchronize_schema: 0)).to eq({ synchronize_schema: true })
     end
 
     it 'should map :client_timestamps to a generator class or nil' do
-      expect(C.validate(client_timestamps: nil)).to eq({timestamp_generator: nil})
-      expect(C.validate(client_timestamps: false)).to eq({timestamp_generator: nil})
+      expect(C.validate(client_timestamps: nil)).to eq({ timestamp_generator: nil })
+      expect(C.validate(client_timestamps: false)).to eq({ timestamp_generator: nil })
       expect(C.validate({})).to eq({})
 
       expected_class = RUBY_ENGINE == 'jruby' ?
@@ -387,9 +436,11 @@ describe Cassandra do
       expect { C.validate(client_timestamps: Object.new) }.to raise_error(ArgumentError)
 
       valid_generator = Object.new
+
       def valid_generator.next
         42
       end
+
       expect(C.validate(client_timestamps: valid_generator)).to eq({ timestamp_generator: valid_generator })
     end
 

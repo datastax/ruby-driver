@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -190,7 +190,12 @@ module Cassandra
           let(:keyspace)    { 'foo' }
           let(:statement)   { VOID_STATEMENT }
           let(:consistency) { :one }
-          let(:options)     { Execution::Options.new({:consistency => consistency}) }
+          let(:retry_policy) { double('retry_policy') }
+          let(:options)     {
+            Execution::Options.new({ consistency: consistency,
+                                     load_balancing_policy: policy,
+                                     retry_policy: retry_policy})
+          }
 
           let(:plan) { policy.plan(keyspace, statement, options) }
 
@@ -212,6 +217,10 @@ module Cassandra
             policy.host_up(host)
             remote_hosts.each {|host| policy.host_up(host)}
             local_hosts.each {|host| policy.host_up(host)}
+
+            allow(retry_policy).to receive(:read_timeout)
+            allow(retry_policy).to receive(:write_timeout)
+            allow(retry_policy).to receive(:unavailable)
           end
 
           it 'prioritizes hosts first' do

@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,5 +17,5 @@
 #++
 
 module Cassandra
-  VERSION = '3.0.4.rc.1'.freeze
+  VERSION = '3.2.3'.freeze
 end

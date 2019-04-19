@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,8 +34,9 @@ module Cassandra
                            select_functions(connection),
                            select_aggregates(connection),
                            select_materialized_views(connection),
-                           select_indexes(connection))
-                      .map do |rows_keyspaces, rows_tables, rows_columns, rows_types, rows_functions, rows_aggregates, rows_views, rows_indexes|
+                           select_indexes(connection),
+                           select_triggers(connection))
+                      .map do |rows_keyspaces, rows_tables, rows_columns, rows_types, rows_functions, rows_aggregates, rows_views, rows_indexes, rows_triggers|
                         lookup_tables     = map_rows_by(rows_tables, 'keyspace_name')
                         lookup_columns    = map_rows_by(rows_columns, 'keyspace_name')
                         lookup_types      = map_rows_by(rows_types, 'keyspace_name')
@@ -43,6 +44,7 @@ module Cassandra
                         lookup_aggregates = map_rows_by(rows_aggregates, 'keyspace_name')
                         lookup_views      = map_rows_by(rows_views, 'keyspace_name')
                         lookup_indexes    = map_rows_by(rows_indexes, 'keyspace_name')
+                        lookup_triggers   = map_rows_by(rows_triggers, 'keyspace_name')
 
                         rows_keyspaces.map do |keyspace_data|
                           name = keyspace_data['keyspace_name']
@@ -54,7 +56,8 @@ module Cassandra
                                           lookup_functions[name],
                                           lookup_aggregates[name],
                                           lookup_views[name],
-                                          lookup_indexes[name])
+                                          lookup_indexes[name],
+                                          lookup_triggers[name])
                         end
                       end
         end
@@ -67,8 +70,9 @@ module Cassandra
                            select_keyspace_functions(connection, keyspace_name),
                            select_keyspace_aggregates(connection, keyspace_name),
                            select_keyspace_materialized_views(connection, keyspace_name),
-                           select_keyspace_indexes(connection, keyspace_name))
-                      .map do |rows_keyspaces, rows_tables, rows_columns, rows_types, rows_functions, rows_aggregates, rows_views, rows_indexes|
+                           select_keyspace_indexes(connection, keyspace_name),
+                           select_keyspace_triggers(connection, keyspace_name))
+                      .map do |rows_keyspaces, rows_tables, rows_columns, rows_types, rows_functions, rows_aggregates, rows_views, rows_indexes, rows_triggers|
                         if rows_keyspaces.empty?
                           nil
                         else
@@ -79,7 +83,8 @@ module Cassandra
                                           rows_functions,
                                           rows_aggregates,
                                           rows_views,
-                                          rows_indexes)
+                                          rows_indexes,
+                                          rows_triggers)
                         end
                       end
         end
@@ -87,14 +92,16 @@ module Cassandra
         def fetch_table(connection, keyspace_name, table_name)
           Ione::Future.all(select_table(connection, keyspace_name, table_name),
                            select_table_columns(connection, keyspace_name, table_name),
-                           select_table_indexes(connection, keyspace_name, table_name))
-                      .map do |(rows_tables, rows_columns, rows_indexes)|
+                           select_table_indexes(connection, keyspace_name, table_name),
+                           select_table_triggers(connection, keyspace_name, table_name))
+                      .map do |(rows_tables, rows_columns, rows_indexes, rows_triggers)|
             if rows_tables.empty?
               nil
             else
               create_table(rows_tables.first,
                            rows_columns,
-                           rows_indexes)
+                           rows_indexes,
+                           rows_triggers)
             end
           end
         end
@@ -168,6 +175,10 @@ module Cassandra
           FUTURE_EMPTY_LIST
         end
 
+        def select_triggers(connection)
+          FUTURE_EMPTY_LIST
+        end
+
         def select_types(connection)
           FUTURE_EMPTY_LIST
         end
@@ -200,6 +211,10 @@ module Cassandra
           FUTURE_EMPTY_LIST
         end
 
+        def select_keyspace_triggers(connection, keyspace_name)
+          FUTURE_EMPTY_LIST
+        end
+
         def select_keyspace_types(connection, keyspace_name)
           FUTURE_EMPTY_LIST
         end
@@ -228,6 +243,10 @@ module Cassandra
           FUTURE_EMPTY_LIST
         end
 
+        def select_table_triggers(connection, keyspace_name, table_name)
+          FUTURE_EMPTY_LIST
+        end
+
         def select_type(connection, keyspace_name, type_name)
           FUTURE_EMPTY_LIST
         end
@@ -243,7 +262,8 @@ module Cassandra
         def send_select_request(connection, cql, params = EMPTY_LIST, types = EMPTY_LIST)
           backtrace = caller
           connection.send_request(
-            Protocol::QueryRequest.new(cql, params, types, :one)).map do |r|
+            Protocol::QueryRequest.new(cql, params, types, :one)
+          ).map do |r|
             case r
             when Protocol::RowsResultResponse
               r.rows
@@ -273,7 +293,7 @@ module Cassandra
 
       # @private
       module Fetchers
-        # rubocop:disable Style/ClassAndModuleCamelCase
+        # rubocop:disable Naming/ClassAndModuleCamelCase
         class V1_2_x
           SELECT_KEYSPACES        = 'SELECT * FROM system.schema_keyspaces'.freeze
           SELECT_TABLES           = 'SELECT * FROM system.schema_columnfamilies'.freeze
@@ -348,7 +368,7 @@ module Cassandra
 
           def create_keyspace(keyspace_data, rows_tables, rows_columns,
                               rows_types, rows_functions, rows_aggregates,
-                              rows_views, rows_indexes)
+                              rows_views, rows_indexes, rows_triggers)
             keyspace_name = keyspace_data['keyspace_name']
             replication   = create_replication(keyspace_data)
             types = rows_types.each_with_object({}) do |row, h|
@@ -367,10 +387,14 @@ module Cassandra
             end
 
             lookup_columns = map_rows_by(rows_columns, 'columnfamily_name')
+            lookup_indexes = map_rows_by(rows_indexes, 'columnfamily_name')
+            lookup_triggers = map_rows_by(rows_triggers, 'columnfamily_name')
             tables = rows_tables.each_with_object({}) do |row, h|
               table_name = row['columnfamily_name']
-              # rows_indexes is nil for C* < 3.0.
-              h[table_name] = create_table(row, lookup_columns[table_name], nil)
+              h[table_name] = create_table(row,
+                                           lookup_columns[table_name],
+                                           lookup_indexes[table_name],
+                                           lookup_triggers[table_name])
             end
 
             Keyspace.new(keyspace_name,
@@ -383,7 +407,7 @@ module Cassandra
                          {})
           end
 
-          def create_table(table_data, rows_columns, rows_indexes)
+          def create_table(table_data, rows_columns, rows_indexes, rows_triggers)
             keyspace_name   = table_data['keyspace_name']
             table_name      = table_data['columnfamily_name']
             key_validator   = @type_parser.parse(table_data['key_validator'])
@@ -461,7 +485,7 @@ module Cassandra
               column = create_column(row)
               other_columns << column
 
-              # In C* 1.2.x, index info is in the column metadata; rows_indexes is nil.
+              # In C* 1.2.x, index info is in the column metadata; rows_indexes is [].
               index_rows << [column, row] unless row['index_type'].nil?
             end
 
@@ -485,7 +509,8 @@ module Cassandra
             # Most of this logic was taken from the Java driver.
             options = {}
             # For some versions of C*, this field could have a literal string 'null' value.
-            if !row_column['index_options'].nil? && row_column['index_options'] != 'null' && !row_column['index_options'].empty?
+            if !row_column['index_options'].nil? && row_column['index_options'] != 'null' &&
+               !row_column['index_options'].empty?
               options = ::JSON.load(row_column['index_options'])
             end
             column_name = Util.escape_name(column.name)
@@ -548,18 +573,24 @@ module Cassandra
               compression_parameters,
               is_compact,
               table_data['crc_check_chance'],
-              table_data['extensions']
+              table_data['extensions'],
+              nil
             )
           end
         end
 
         class V2_0_x < V1_2_x
+          SELECT_TRIGGERS = 'SELECT * FROM system.schema_triggers'.freeze
+
           SELECT_KEYSPACE           =
             'SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?'.freeze
           SELECT_KEYSPACE_TABLES    =
             'SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ?'.freeze
           SELECT_KEYSPACE_COLUMNS   =
             'SELECT * FROM system.schema_columns WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_TRIGGERS =
+            'SELECT * FROM system.schema_triggers WHERE keyspace_name = ?'.freeze
+
           SELECT_TABLE              =
             'SELECT * ' \
             'FROM system.schema_columnfamilies ' \
@@ -568,10 +599,14 @@ module Cassandra
             'SELECT * ' \
             'FROM system.schema_columns ' \
             'WHERE keyspace_name = ? AND columnfamily_name = ?'.freeze
+          SELECT_TABLE_TRIGGERS =
+            'SELECT * ' \
+            'FROM system.schema_triggers ' \
+            'WHERE keyspace_name = ? AND columnfamily_name = ?'.freeze
 
           private
 
-          def create_table(table_data, rows_columns, rows_indexes)
+          def create_table(table_data, rows_columns, rows_indexes, rows_triggers)
             keyspace_name   = table_data['keyspace_name']
             table_name      = table_data['columnfamily_name']
             comparator      = @type_parser.parse(table_data['comparator'])
@@ -598,7 +633,7 @@ module Cassandra
                 clustering_columns[ind] = column
                 clustering_order[ind]   = column.order
 
-                clustering_size = ind + 1 if clustering_size.zero? || ind == clustering_size
+                clustering_size += 1
               else
                 other_columns << column
               end
@@ -626,7 +661,19 @@ module Cassandra
             index_rows.each do |column, row|
               create_index(table, column, row)
             end
+
+            # Create Trigger objects and add them to the table.
+            rows_triggers.each do |row_trigger|
+              table.add_trigger(Cassandra::Trigger.new(table,
+                                                       row_trigger['trigger_name'],
+                                                       row_trigger['trigger_options']))
+            end
+
             table
+          end
+
+          def select_triggers(connection)
+            send_select_request(connection, SELECT_TRIGGERS)
           end
 
           def select_keyspace(connection, keyspace_name)
@@ -647,6 +694,12 @@ module Cassandra
             send_select_request(connection, SELECT_KEYSPACE_COLUMNS, params, hints)
           end
 
+          def select_keyspace_triggers(connection, keyspace_name)
+            params = [keyspace_name]
+            hints  = [Types.varchar]
+            send_select_request(connection, SELECT_KEYSPACE_TRIGGERS, params, hints)
+          end
+
           def select_table(connection, keyspace_name, table_name)
             params         = [keyspace_name, table_name]
             hints          = [Types.varchar, Types.varchar]
@@ -657,6 +710,12 @@ module Cassandra
             params         = [keyspace_name, table_name]
             hints          = [Types.varchar, Types.varchar]
             send_select_request(connection, SELECT_TABLE_COLUMNS, params, hints)
+          end
+
+          def select_table_triggers(connection, keyspace_name, table_name)
+            params         = [keyspace_name, table_name]
+            hints          = [Types.varchar, Types.varchar]
+            send_select_request(connection, SELECT_TABLE_TRIGGERS, params, hints)
           end
 
           def create_table_options(table_data, compaction_strategy, is_compact)
@@ -684,7 +743,8 @@ module Cassandra
               compression_parameters,
               is_compact,
               table_data['crc_check_chance'],
-              table_data['extensions']
+              table_data['extensions'],
+              nil
             )
           end
         end
@@ -758,7 +818,8 @@ module Cassandra
               compression_parameters,
               is_compact,
               table_data['crc_check_chance'],
-              table_data['extensions']
+              table_data['extensions'],
+              nil
             )
           end
         end
@@ -834,7 +895,9 @@ module Cassandra
             initial_state  = Util.encode_object(
               Protocol::Coder.read_value_v4(
                 Protocol::CqlByteBuffer.new.append_bytes(aggregate_data['initcond']),
-                state_type, nil))
+                state_type, nil
+              )
+            )
 
             # The state-function takes arguments: first the stype, then the args of the aggregate.
             state_function = functions.get(aggregate_data['state_func'],
@@ -896,6 +959,7 @@ module Cassandra
           SELECT_AGGREGATES = 'SELECT * FROM system_schema.aggregates'.freeze
           SELECT_INDEXES    = 'SELECT * FROM system_schema.indexes'.freeze
           SELECT_VIEWS      = 'SELECT * FROM system_schema.views'.freeze
+          SELECT_TRIGGERS   = 'SELECT * FROM system_schema.triggers'.freeze
 
           SELECT_KEYSPACE            =
             'SELECT * FROM system_schema.keyspaces WHERE keyspace_name = ?'.freeze
@@ -913,6 +977,8 @@ module Cassandra
             'SELECT * FROM system_schema.functions WHERE keyspace_name = ?'.freeze
           SELECT_KEYSPACE_AGGREGATES =
             'SELECT * FROM system_schema.aggregates WHERE keyspace_name = ?'.freeze
+          SELECT_KEYSPACE_TRIGGERS   =
+            'SELECT * FROM system_schema.triggers WHERE keyspace_name = ?'.freeze
 
           SELECT_TABLE         =
             'SELECT * ' \
@@ -925,6 +991,10 @@ module Cassandra
           SELECT_TABLE_INDEXES =
             'SELECT * ' \
             'FROM system_schema.indexes ' \
+            'WHERE keyspace_name = ? AND table_name = ?'.freeze
+          SELECT_TABLE_TRIGGERS =
+            'SELECT * ' \
+            'FROM system_schema.triggers ' \
             'WHERE keyspace_name = ? AND table_name = ?'.freeze
 
           SELECT_VIEW =
@@ -984,6 +1054,10 @@ module Cassandra
             send_select_request(connection, SELECT_COLUMNS)
           end
 
+          def select_triggers(connection)
+            send_select_request(connection, SELECT_TRIGGERS)
+          end
+
           def select_types(connection)
             send_select_request(connection, SELECT_TYPES)
           end
@@ -1024,6 +1098,12 @@ module Cassandra
             params = [keyspace_name]
             hints  = [Types.varchar]
             send_select_request(connection, SELECT_KEYSPACE_VIEWS, params, hints)
+          end
+
+          def select_keyspace_triggers(connection, keyspace_name)
+            params = [keyspace_name]
+            hints  = [Types.varchar]
+            send_select_request(connection, SELECT_KEYSPACE_TRIGGERS, params, hints)
           end
 
           def select_keyspace_types(connection, keyspace_name)
@@ -1069,6 +1149,12 @@ module Cassandra
             params         = [keyspace_name, view_name]
             hints          = [Types.varchar, Types.varchar]
             send_select_request(connection, SELECT_VIEW, params, hints)
+          end
+
+          def select_table_triggers(connection, keyspace_name, table_name)
+            params         = [keyspace_name, table_name]
+            hints          = [Types.varchar, Types.varchar]
+            send_select_request(connection, SELECT_TABLE_TRIGGERS, params, hints)
           end
 
           def select_type(connection, keyspace_name, type_name)
@@ -1182,7 +1268,7 @@ module Cassandra
           end
 
           def create_keyspace(keyspace_data, rows_tables, rows_columns, rows_types,
-                              rows_functions, rows_aggregates, rows_views, rows_indexes)
+                              rows_functions, rows_aggregates, rows_views, rows_indexes, rows_triggers)
             keyspace_name = keyspace_data['keyspace_name']
             replication   = create_replication(keyspace_data)
 
@@ -1206,10 +1292,11 @@ module Cassandra
 
             lookup_columns = map_rows_by(rows_columns, 'table_name')
             lookup_indexes = map_rows_by(rows_indexes, 'table_name')
+            lookup_triggers = map_rows_by(rows_triggers, 'table_name')
             tables = rows_tables.each_with_object({}) do |row, h|
               table_name = row['table_name']
               h[table_name] = create_table(row, lookup_columns[table_name],
-                                           lookup_indexes[table_name], types)
+                                           lookup_indexes[table_name], lookup_triggers[table_name], types)
             end
 
             views = rows_views.each_with_object({}) do |row, h|
@@ -1266,7 +1353,8 @@ module Cassandra
               compression,
               is_compact,
               table_data['crc_check_chance'],
-              table_data['extensions']
+              table_data['extensions'],
+              table_data['cdc']
             )
           end
 
@@ -1285,7 +1373,7 @@ module Cassandra
             Column.new(name, type, order, is_static, is_frozen)
           end
 
-          def create_table(table_data, rows_columns, rows_indexes, types = nil)
+          def create_table(table_data, rows_columns, rows_indexes, rows_triggers, types = nil)
             keyspace_name   = table_data['keyspace_name']
             table_name      = table_data['table_name']
             table_flags     = table_data['flags']
@@ -1352,6 +1440,14 @@ module Cassandra
             rows_indexes.each do |row|
               create_index(table, row)
             end
+
+            # Create Trigger objects and add them to the table.
+            rows_triggers.each do |row_trigger|
+              table.add_trigger(Cassandra::Trigger.new(table,
+                                                       row_trigger['trigger_name'],
+                                                       row_trigger['options']))
+            end
+
             table
           end
 

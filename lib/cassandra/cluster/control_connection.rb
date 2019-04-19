@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,8 +36,10 @@ module Cassandra
         @address_resolver      = address_resolution_policy
         @connector             = connector
         @connection_options    = connection_options
+        @connection            = nil
         @schema_fetcher        = schema_fetcher
         @refreshing_statuses   = ::Hash.new(false)
+        @refresh_schema_future = nil
         @status                = :closed
         @refreshing_hosts      = false
         @refreshing_host       = ::Hash.new(false)
@@ -88,7 +90,8 @@ module Cassandra
                  (@status == :closing || @status == :closed) ||
                  @load_balancing_policy.distance(host) == :ignore
             return connect_to_first_available(
-              @load_balancing_policy.plan(nil, VOID_STATEMENT, VOID_OPTIONS))
+              @load_balancing_policy.plan(nil, VOID_STATEMENT, VOID_OPTIONS)
+            )
           end
         end
 
@@ -146,18 +149,20 @@ module Cassandra
 
       private
 
-      SELECT_LOCAL  = Protocol::QueryRequest.new(
+      SELECT_LOCAL = Protocol::QueryRequest.new(
         'SELECT * ' \
           'FROM system.local',
         EMPTY_LIST,
         EMPTY_LIST,
-        :one)
-      SELECT_PEERS  = Protocol::QueryRequest.new(
+        :one
+      )
+      SELECT_PEERS = Protocol::QueryRequest.new(
         'SELECT * ' \
           'FROM system.peers',
         EMPTY_LIST,
         EMPTY_LIST,
-        :one)
+        :one
+      )
 
       SELECT_PEER_QUERY =
         'SELECT * ' \
@@ -220,25 +225,26 @@ module Cassandra
             else
               case event.change
               when 'UP'
-                address = event.address
-
+                address = @address_resolver.resolve(event.address)
                 if @registry.has_host?(address)
                   @registry.host_up(address)
                 else
-                  refresh_host_async_maybe_retry(address)
+                  refresh_host_async_maybe_retry(event.address)
                   refresh_schema_async_wrapper
                 end
               when 'DOWN'
-                @registry.host_down(event.address)
+                # RUBY-164: Don't mark host down if there are active connections. We have
+                # logic in connector.rb to call host_down when all connections to a node are lost,
+                # so that covers the requirement.
               when 'NEW_NODE'
-                address = event.address
+                address = @address_resolver.resolve(event.address)
 
                 unless @registry.has_host?(address)
-                  refresh_host_async_maybe_retry(address)
+                  refresh_host_async_maybe_retry(event.address)
                   refresh_schema_async_wrapper
                 end
               when 'REMOVED_NODE'
-                @registry.host_lost(event.address)
+                @registry.host_lost(@address_resolver.resolve(event.address))
                 refresh_schema_async_wrapper
               end
             end
@@ -445,7 +451,7 @@ module Cassandra
 
           peers.shuffle!
           peers.each do |data|
-            ip = peer_ip(data)
+            ip = peer_ip(data, connection.host)
             next unless ip
             ips << ip
             @registry.host_found(ip, data)
@@ -473,7 +479,7 @@ module Cassandra
           raise Errors::InternalError, "Unable to fetch connected host's metadata" if local.empty?
 
           data = local.first
-          @registry.host_found(IPAddr.new(connection.host), data)
+          @registry.host_found(@address_resolver.resolve(IPAddr.new(connection.host)), data)
           @metadata.update(data)
 
           @logger.info("Completed refreshing connected host's metadata")
@@ -509,6 +515,9 @@ module Cassandra
         end
       end
 
+      # @param address [IPAddr] address node address, as reported from a C* event. Thus it is *not* resolved
+      #           relative to the client, but rather is the address that other nodes would use to communicate with
+      #           this node.
       def refresh_host_async_maybe_retry(address)
         synchronize do
           return Ione::Future.resolved if @refreshing_hosts || @refreshing_host[address]
@@ -532,6 +541,9 @@ module Cassandra
         end
       end
 
+      # @param address [IPAddr] address node address, as reported from a C* event. Thus it is *not* resolved
+      #           relative to the client, but rather is the address that other nodes would use to communicate with
+      #           this node.
       def refresh_host_async_retry(address, error, schedule)
         timeout = schedule.next
         @logger.info("Failed to refresh host #{address} (#{error.class.name}: " \
@@ -553,6 +565,9 @@ module Cassandra
         end
       end
 
+      # @param address [IPAddr] address node address, as reported from a C* event. Thus it is *not* resolved
+      #           relative to the client, but rather is the address that other nodes would use to communicate with
+      #           this node.
       def refresh_host_async(address)
         connection = @connection
         return Ione::Future.failed(Errors::ClientError.new('Not connected')) if connection.nil?
@@ -574,6 +589,11 @@ module Cassandra
           raise Errors::InternalError, "Unable to find host metadata: #{ip}" if rows.empty?
 
           @logger.info("Completed refreshing host metadata: #{ip}")
+          address = if ip == connection.host
+                      @address_resolver.resolve(address)
+                    else
+                      peer_ip(rows.first, connection.host)
+                    end
           @registry.host_found(address, rows.first)
 
           self
@@ -665,10 +685,30 @@ Control connection failed and is unlikely to recover.
         @connector.connect(host)
       end
 
-      def peer_ip(data)
-        ip = data['rpc_address']
-        ip = data['peer'] if ip == '0.0.0.0'
-        return nil if ip.nil? == true
+      def peer_ip(data, host_address)
+        peer = data['peer']
+
+        return nil unless peer && data['host_id'] && data['data_center'] && data['rack'] && data['tokens']
+
+        rpc_address = data['rpc_address']
+
+        if rpc_address.nil?
+          @logger.info("The system.peers row for '#{data['peer']}' has no rpc_address. This is likely " \
+                           'a gossip or snitch issue. This host will be ignored.')
+          return nil
+        end
+
+        if peer == host_address || rpc_address == host_address
+          # Some DSE versions were inserting a line for the local node in peers (with mostly null values).
+          # This has been fixed, but if we detect that's the case, ignore it as it's not really a big deal.
+
+          @logger.debug("System.peers on node #{host_address} has a line for itself. This is not normal but is a " \
+                            'known problem of some DSE versions. Ignoring the entry.')
+          return nil
+        end
+
+        ip = rpc_address
+        ip = peer if ip == '0.0.0.0'
 
         @address_resolver.resolve(ip)
       end

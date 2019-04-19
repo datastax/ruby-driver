@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,6 +54,8 @@ class IndexesTest < IntegrationTestCase
 
     assert @cluster.keyspace('simplex').table('test').has_index?('b_index')
     index = @cluster.keyspace('simplex').table('test').index('b_index')
+    assert @cluster.keyspace('simplex').has_index?('b_index')
+    assert_same(index, @cluster.keyspace('simplex').index('b_index'))
     assert_equal 'b_index', index.name
     assert_equal 'test', index.table.name
     assert_equal :composites, index.kind

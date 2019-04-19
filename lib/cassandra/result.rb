@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 #--
-# Copyright 2013-2016 DataStax, Inc.
+# Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ module Cassandra
                                     @consistency,
                                     @retries,
                                     @trace_id ?
-                                        Execution::Trace.new(@trace_id, @client) :
+                                        Execution::Trace.new(@trace_id, @client, @options.load_balancing_policy) :
                                         nil)
     end
 
