@@ -25,7 +25,7 @@ module Cassandra
       let :buffer do
         described_class.new
       end
-      
+
       describe '#read_unsigned_byte' do
         let :buffer do
           described_class.new("\xab")
@@ -79,62 +79,62 @@ module Cassandra
         end
 
         it 'decodes a decimal to a BigDecimal' do
-          buffer.read_decimal.should == BigDecimal.new('1042342234234.123423435647768234')
+          buffer.read_decimal.should == BigDecimal('1042342234234.123423435647768234')
         end
 
         it 'decodes a negative decimal' do
           buffer = described_class.new("\x00\x00\x00\x12\xF2\xD8\x02\xB6R\x7F\x99\xEE\x98#\x99\xA9V")
-          buffer.read_decimal.should == BigDecimal.new('-1042342234234.123423435647768234')
+          buffer.read_decimal.should == BigDecimal('-1042342234234.123423435647768234')
         end
 
         it 'decodes a positive decimal with only fractions' do
           buffer = described_class.new("\x00\x00\x00\x13*\xF8\xC4\xDF\xEB]o")
-          buffer.read_decimal.should == BigDecimal.new('0.0012095473475870063')
+          buffer.read_decimal.should == BigDecimal('0.0012095473475870063')
         end
 
         it 'decodes a negative decimal with only fractions' do
           buffer = described_class.new("\x00\x00\x00\x13\xD5\a;\x20\x14\xA2\x91")
-          buffer.read_decimal.should == BigDecimal.new('-0.0012095473475870063')
+          buffer.read_decimal.should == BigDecimal('-0.0012095473475870063')
         end
 
         it 'decodes a small negative decimal' do
           buffer = described_class.new("\x00\x00\x00\x12\x91z\xE1\xAF\x06c\x5A")
-          buffer.read_decimal.should == BigDecimal.new('-0.031108612692221094')
+          buffer.read_decimal.should == BigDecimal('-0.031108612692221094')
         end
 
         it 'decodes a decimal with negative scale' do
           buffer = described_class.new("\xff\xff\xff\xfa\x0a")
-          buffer.read_decimal.should == BigDecimal.new('10000000')
+          buffer.read_decimal.should == BigDecimal('10000000')
         end
 
         it 'decodes a negative decimal with negative scale' do
           buffer = described_class.new("\xff\xff\xff\xf9\xfd")
-          buffer.read_decimal.should == BigDecimal.new('-30000000')
+          buffer.read_decimal.should == BigDecimal('-30000000')
         end
 
         it 'decodes a decimal with zero scale' do
           buffer = described_class.new("\x00\x00\x00\x00\x0a")
-          buffer.read_decimal.should == BigDecimal.new('10')
+          buffer.read_decimal.should == BigDecimal('10')
         end
 
         it 'decodes a negative decimal with zero scale' do
           buffer = described_class.new("\x00\x00\x00\x00\xfe")
-          buffer.read_decimal.should == BigDecimal.new('-2')
+          buffer.read_decimal.should == BigDecimal('-2')
         end
 
         it 'decodes zero decimal with zero scale' do
           buffer = described_class.new("\x00\x00\x00\x00\x00")
-          buffer.read_decimal.should == BigDecimal.new('0')
+          buffer.read_decimal.should == BigDecimal('0')
         end
 
         it 'decodes zero decimal with negative scale' do
           buffer = described_class.new("\xff\xff\xff\xf9\x00")
-          buffer.read_decimal.should == BigDecimal.new('0')
+          buffer.read_decimal.should == BigDecimal('0')
         end
 
         it 'decodes zero decimal with positive scale' do
           buffer = described_class.new("\x00\x00\x00\x05\x00")
-          buffer.read_decimal.should == BigDecimal.new('0')
+          buffer.read_decimal.should == BigDecimal('0')
         end
 
         it 'consumes the bytes' do
@@ -326,7 +326,7 @@ module Cassandra
         it 'decodes a UUID as a Cassandra::Uuid' do
           buffer.read_uuid.should == Uuid.new('a4a70900-24e1-11df-8924-001ff3591711')
         end
-        
+
         it 'decodes a UUID as a Cassandra::TimeUuid' do
           uuid = buffer.read_uuid(TimeUuid)
           uuid.should == TimeUuid.new('a4a70900-24e1-11df-8924-001ff3591711')
@@ -337,7 +337,7 @@ module Cassandra
           buffer.read_uuid
           buffer.should be_empty
         end
-        
+
         it 'raises an error when there a not enough bytes in the buffer' do
           b = described_class.new(buffer.discard(2).read(5))
           expect { b.read_uuid }.to raise_error(Errors::DecodingError)
@@ -910,38 +910,38 @@ module Cassandra
 
       describe '#append_decimal' do
         it 'encodes a BigDecimal as a decimal' do
-          buffer.append_decimal(BigDecimal.new('1042342234234.123423435647768234'))
+          buffer.append_decimal(BigDecimal('1042342234234.123423435647768234'))
           buffer.should eql_bytes("\x00\x00\x00\x12\r'\xFDI\xAD\x80f\x11g\xDCfV\xAA")
         end
 
         it 'encodes a 0.0 BigDecimal' do
-          buffer.append_decimal(BigDecimal.new('0.0'))
+          buffer.append_decimal(BigDecimal('0.0'))
           buffer.should eql_bytes("\x00\x00\x00\x01\x00")
         end
 
         it 'encodes a BigDecimal ending in .0' do
-          buffer.append_decimal(BigDecimal.new('1042342234234.0'))
+          buffer.append_decimal(BigDecimal('1042342234234.0'))
           buffer.should eql_bytes("\x00\x00\x00\x01\tz\xE4b\xD4\xC4")
         end
 
         it 'encodes a BigDecimal ending with 00.0' do
-          buffer.append_decimal(BigDecimal.new('12000.0'))
+          buffer.append_decimal(BigDecimal('12000.0'))
           buffer.should eql_bytes("\x00\x00\x00\x01\x01\xD4\xC0")
         end
 
         it 'encodes a BigDecimal with zero padding when sign bit is on' do
-          buffer.append_decimal(BigDecimal.new('25.0'))
+          buffer.append_decimal(BigDecimal('25.0'))
           buffer.should eql_bytes("\x00\x00\x00\x01\x00\xFA")
         end
 
         it 'appends to the buffer' do
           buffer << "\x99"
-          buffer.append_decimal(BigDecimal.new('1042342234234.123423435647768234'))
+          buffer.append_decimal(BigDecimal('1042342234234.123423435647768234'))
           buffer.read(1).should eql_bytes("\x99")
         end
 
         it 'returns the buffer' do
-          result = buffer.append_decimal(BigDecimal.new('3.14'))
+          result = buffer.append_decimal(BigDecimal('3.14'))
           result.should equal(buffer)
         end
       end

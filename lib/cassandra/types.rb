@@ -158,7 +158,7 @@ module Cassandra
       end
 
       def new_decimal(value)
-        ::BigDecimal.new(value)
+        BigDecimal(value)
       end
 
       def assert_decimal(value, message, &block)
