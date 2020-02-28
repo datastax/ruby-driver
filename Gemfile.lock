@@ -56,7 +56,7 @@ GEM
     powerpack (0.1.1)
     rainbow (2.2.2)
       rake
-    rake (10.5.0)
+    rake (13.0.1)
     rake-compiler (0.9.5)
       rake
     rspec (3.4.0)
@@ -113,7 +113,7 @@ DEPENDENCIES
   minitest (< 5.0.0)
   os
   perftools.rb
-  rake (~> 10.0)
+  rake (~> 13.0)
   rake-compiler
   rspec
   rspec-collection_matchers
