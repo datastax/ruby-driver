@@ -15,3 +15,4 @@
 /node_modules
 /*.gem
 /.bundle/*
+/.idea/
