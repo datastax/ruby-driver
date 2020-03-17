@@ -1,7 +1,6 @@
 schedules:
   commit:
     schedule: per_commit
-    enable_pull_requests: true
     matrix:
       exclude:
         - ruby: ['2.2']
