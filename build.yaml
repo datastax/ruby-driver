@@ -10,6 +10,8 @@ schedules:
     branches:
       include: [master]
 
+enable_pull_requests: true
+
 ruby:
   - 2.2
   - 2.3
