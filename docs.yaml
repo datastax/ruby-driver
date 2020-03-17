@@ -1,6 +1,8 @@
 title:    Ruby Driver for Apache Cassandra
 summary:  A pure Ruby client for Apache Cassandra
 homepage: http://docs.datastax.com/en/developer/ruby-driver/
+swiftype_drivers: rubydrivers
+maintenance_mode: YES
 sections:
   - title:     Features
     prefix:    /features
