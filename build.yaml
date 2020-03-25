@@ -14,7 +14,8 @@ ruby:
   - 2.2
   - 2.3
   - 2.4
-  - jruby9k
+  - 2.7
+  - jruby9.1
 
 cassandra:
   - '2.1'
@@ -30,6 +31,8 @@ build:
         # Add '-java' to version as that is included in version name when using jruby
         sed -i -r 's/cassandra-driver \((.*)\)/cassandra-driver (\1-java)/' Gemfile.lock
       fi
+  - script: |
+      bundle update --bundler
   - type: bundler
     without: development docs
   - script: |
