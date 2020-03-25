@@ -33,5 +33,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'ione', '~> 1.2'
 
   s.add_development_dependency 'bundler', '~> 1.6'
-  s.add_development_dependency 'rake', '~> 10.0'
+  s.add_development_dependency 'rake', '~> 13.0'
 end
