@@ -155,34 +155,10 @@ class MaterializedViewTest < IntegrationTestCase
     skip("Materialized views were introduced in Cassandra 3.0.0") if CCM.cassandra_version < '3.0.0'
 
     assert @cluster.keyspace('simplex').has_materialized_view?('monthlyhigh')
-    mv_cql = Regexp.new(/CREATE MATERIALIZED VIEW simplex.monthlyhigh AS
-SELECT game, year, month, score, "user", day
-FROM simplex.scores
-WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL AND day IS NOT NULL
-PRIMARY KEY \(\(game, year, month\), score, "user", day\)
-WITH bloom_filter_fp_chance = 0.01
- AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
- AND comment = ''
- AND compaction = {'class': 'SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
- AND compression = {'chunk_length_in_kb': '64', 'class': 'LZ4Compressor'}
- AND crc_check_chance = 1.0
- AND dclocal_read_repair_chance = 0.1
- AND default_time_to_live = 0
- AND gc_grace_seconds = 864000
- AND max_index_interval = 2048
- AND memtable_flush_period_in_ms = 0
- AND min_index_interval = 128
- AND read_repair_chance = 0.0
- AND speculative_retry = '99PERCENTILE';/)
 
     mv_meta = @cluster.keyspace('simplex').materialized_view('monthlyhigh')
-    assert_match mv_cql, mv_meta.to_cql
-
-    col_names = ['game', 'year', 'month', 'score', 'user', 'day']
-    mv_meta.each_column do |column|
-      assert_equal col_names[0], column.name
-      col_names.delete_at(0)
-    end
+    refute_nil /PRIMARY KEY \(\(game, year, month\), score, \"user\", day\)/ =~ mv_meta.to_cql
+    assert_equal ['game', 'year', 'month', 'score', 'user', 'day'], mv_meta.columns.map { |col| col.name }
   end
 
   # Test for retrieving mv metadata updates
@@ -202,7 +178,7 @@ WITH bloom_filter_fp_chance = 0.01
     skip("Materialized views were introduced in Cassandra 3.0.0") if CCM.cassandra_version < '3.0.0'
 
     @session.execute("CREATE TABLE simplex.test (pk int PRIMARY KEY, c int)")
-    @session.execute("CREATE MATERIALIZED VIEW simplex.mv1 AS SELECT c FROM simplex.test WHERE c IS NOT NULL PRIMARY KEY (pk, c)")
+    @session.execute("CREATE MATERIALIZED VIEW simplex.mv1 AS SELECT c,pk FROM simplex.test WHERE c IS NOT NULL AND pk IS NOT NULL PRIMARY KEY (pk, c)")
 
     @listener.wait_for_materialized_view('simplex', 'mv1')
 
@@ -232,7 +208,7 @@ WITH bloom_filter_fp_chance = 0.01
     skip("Materialized views were introduced in Cassandra 3.0.0") if CCM.cassandra_version < '3.0.0'
 
     @session.execute("CREATE TABLE simplex.test (pk int PRIMARY KEY, c int)")
-    @session.execute("CREATE MATERIALIZED VIEW simplex.mv1 AS SELECT c FROM simplex.test WHERE c IS NOT NULL PRIMARY KEY (pk, c)")
+    @session.execute("CREATE MATERIALIZED VIEW simplex.mv1 AS SELECT c,pk FROM simplex.test WHERE c IS NOT NULL AND pk IS NOT NULL PRIMARY KEY (pk, c)")
 
     @listener.wait_for_materialized_view('simplex', 'mv1')
     assert @cluster.keyspace('simplex').has_materialized_view?('mv1')
@@ -270,8 +246,7 @@ WITH bloom_filter_fp_chance = 0.01
     @session.execute("CREATE MATERIALIZED VIEW simplex.alltimehigh AS
                         SELECT * FROM simplex.scores2
                         WHERE game IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL
-                        PRIMARY KEY (game, score, user, year, month, day)
-                        WITH CLUSTERING ORDER BY (score DESC)")
+                        PRIMARY KEY (game, score, user, year, month, day)")
 
     @listener.wait_for_materialized_view('simplex', 'alltimehigh')
 

@@ -32,10 +32,6 @@ class MetadataTest < IntegrationTestCase
     @session = @cluster.connect('simplex')
     @session.execute("CREATE TABLE simplex.users (user_id bigint, first text, last text, age int, PRIMARY KEY (user_id, last))")
     @listener.wait_for_table('simplex', 'users')
-    @session.execute("CREATE TABLE simplex.blobby (key blob PRIMARY KEY, f1 blob, f2 blob) WITH COMPACT STORAGE")
-    @listener.wait_for_table('simplex', 'blobby')
-    @session.execute("CREATE TABLE simplex.dense (f1 int, f2 int, f3 int, PRIMARY KEY (f1, f2)) WITH COMPACT STORAGE")
-    @listener.wait_for_table('simplex', 'dense')
     @session.execute("CREATE TABLE simplex.custom (f1 int PRIMARY KEY," \
     " f2 'org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.UUIDType,org.apache.cassandra.db.marshal.UTF8Type)')")
     @listener.wait_for_table('simplex', 'custom')
@@ -75,7 +71,14 @@ EOF
     assert_equal 1, ks_meta.replication.options['replication_factor'].to_i
     assert ks_meta.durable_writes?
     assert ks_meta.has_table?('users')
-    assert_equal 8, ks_meta.tables.size
+
+    results =
+      if CCM.cassandra_version < '3.0'
+        @session.execute("SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name = 'simplex'")
+      else
+        @session.execute("SELECT table_name FROM system_schema.tables WHERE keyspace_name = 'simplex'")
+      end
+    assert_equal results.size, ks_meta.tables.size
 
     ks_cql = Regexp.new(/CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', \
 'replication_factor': '1'} AND durable_writes = true;/)
@@ -245,6 +248,12 @@ EOF
   # @test_category metadata
   #
   def test_skip_internal_columns_for_static_compact_table
+
+    skip("WITH COMPACT STORAGE has been removed in C* 4.0") if CCM.cassandra_version > '4.0'
+
+    @session.execute("CREATE TABLE simplex.blobby (key blob PRIMARY KEY, f1 blob, f2 blob) WITH COMPACT STORAGE")
+    @listener.wait_for_table('simplex', 'blobby')
+
     assert @cluster.keyspace('simplex').has_table?('blobby')
     table_meta = @cluster.keyspace('simplex').table('blobby')
     table_cql = Regexp.new(/CREATE TABLE simplex\.blobby \(
@@ -253,7 +262,9 @@ EOF
   "f2" blob
 \)/)
 
-    assert_equal 0, table_meta.to_cql =~ table_cql, "actual cql: #{table_meta.to_cql}"
+    m = table_meta.to_cql =~ table_cql
+    refute_nil m, "actual cql: #{table_meta.to_cql}"
+    assert_equal 0, m, "actual cql: #{table_meta.to_cql}"
     assert_equal 3, table_meta.columns.size
 
     table_meta.each_column do |column|
@@ -261,6 +272,8 @@ EOF
       assert_equal :blob, column.type.kind
       refute column.static?
     end
+
+    @session.execute("DROP TABLE simplex.blobby")
   end
 
   # Test for skipping internal columns in dense tables
@@ -280,6 +293,11 @@ EOF
     # in case some version of C* does create the internal column; if we encounter such a C*, the test will fail and
     # we'll go to the effort of fixing the issue.
 
+    skip("WITH COMPACT STORAGE has been removed in C* 4.0") if CCM.cassandra_version > '4.0'
+
+    @session.execute("CREATE TABLE simplex.dense (f1 int, f2 int, f3 int, PRIMARY KEY (f1, f2)) WITH COMPACT STORAGE")
+    @listener.wait_for_table('simplex', 'dense')
+
     assert @cluster.keyspace('simplex').has_table?('dense')
     table_meta = @cluster.keyspace('simplex').table('dense')
     table_cql = Regexp.new(/CREATE TABLE simplex\.dense \(
@@ -291,7 +309,9 @@ EOF
 WITH CLUSTERING ORDER BY \("f2" ASC\)
  AND COMPACT STORAGE/)
 
-    assert_equal 0, table_meta.to_cql =~ table_cql, "actual cql: #{table_meta.to_cql}"
+    m = table_meta.to_cql =~ table_cql
+    refute_nil m, "actual cql: #{table_meta.to_cql}"
+    assert_equal 0, m, "actual cql: #{table_meta.to_cql}"
     assert_equal 3, table_meta.columns.size
 
     table_meta.each_column do |column|
@@ -299,6 +319,8 @@ WITH CLUSTERING ORDER BY \("f2" ASC\)
       assert_equal :int, column.type.kind
       refute column.static?
     end
+
+    @session.execute("DROP TABLE simplex.dense")
   end
 
   # Test for handling custom type columns in table metadata

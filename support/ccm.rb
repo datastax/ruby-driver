@@ -471,6 +471,7 @@ module CCM extend self
 
           wait = attempts * 2
           $stderr.puts "#{e.class.name}: #{e.message}, retrying in #{wait}s..."
+          @ccm.exec('checklogerror')
           attempts += 1
           sleep(wait)
           retry
@@ -854,9 +855,9 @@ module CCM extend self
     parse_version
     @cassandra_version ||= begin
       version = @raw_version
-      if @raw_version.start_with?('4.0') || @raw_version.start_with?('4.5') || @raw_version.start_with?('4.6')
+      if (@raw_version.start_with?('4.0') || @raw_version.start_with?('4.5') || @raw_version.start_with?('4.6')) and @dse
         version = '2.0.17'
-      elsif @raw_version.start_with?('4.7') || @raw_version.start_with?('4.8')
+      elsif (@raw_version.start_with?('4.7') || @raw_version.start_with?('4.8')) and @dse
         version = '2.1.12'
       end
       version
@@ -982,8 +983,10 @@ module CCM extend self
     end
 
     config << 'native_transport_max_threads: 1'
-    config << 'rpc_min_threads: 1'
-    config << 'rpc_max_threads: 1'
+    if cassandra_version < '4.0'
+      config << 'rpc_min_threads: 1'
+      config << 'rpc_max_threads: 1'
+    end
     config << 'concurrent_reads: 2'
     config << 'concurrent_writes: 2'
     config << 'concurrent_compactors: 1'
@@ -1005,6 +1008,11 @@ module CCM extend self
     config << 'key_cache_save_period: 0'
     config << 'memtable_flush_writers: 1'
     config << 'max_hints_delivery_threads: 1'
+
+    # If we're just dealing with C* 4.0 enable MV as well
+    if cassandra_version >= '4.0'
+      config << 'enable_materialized_views: true'
+    end
 
     ccm.exec('updateconf', *config)
     ccm.exec('populate', '-n', nodes, '-i', '127.0.0.')
