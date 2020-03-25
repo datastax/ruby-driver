@@ -49,12 +49,12 @@ class SessionTest < IntegrationTestCase
   def test_can_select_from_an_existing_keyspace
     cluster = Cassandra.cluster
     session = cluster.connect()
-    if CCM.cassandra_version.start_with?('3.')
-      results = session.execute("SELECT * FROM system_schema.keyspaces")
-    else
-      results = session.execute("SELECT * FROM system.schema_keyspaces")
-    end
-
+    results =
+      if CCM.cassandra_version < '3.0'
+        session.execute("SELECT * FROM system.schema_keyspaces")
+      else
+        session.execute("SELECT * FROM system_schema.keyspaces")
+      end
     refute_nil results
   ensure
     cluster && cluster.close

@@ -364,7 +364,7 @@ Feature: Schema Metadata
       Final function: avgfinal
       """
 
-  @cassandra-version-specific @cassandra-version-3.0
+  @cassandra-version-specific @cassandra-version-only-3.0
   Scenario: Getting materialized view metadata
     Given the following schema:
       """cql

@@ -71,6 +71,7 @@ Feature: Request Execution Errors
       Cassandra::Errors::UnauthorizedError
       """
 
+  @cassandra-version-specific @cassandra-version-less-4.0
   Scenario: Dropping non-existent keyspace
     Given the following example:
       """ruby
@@ -89,6 +90,27 @@ Feature: Request Execution Errors
     Then its output should contain:
       """
       Cassandra::Errors::ConfigurationError
+      """
+
+  @cassandra-version-specific @cassandra-version-4.0
+  Scenario: Dropping non-existent keyspace
+    Given the following example:
+      """ruby
+      require 'cassandra'
+
+      cluster = Cassandra.cluster
+      session = cluster.connect
+
+      begin
+        session.execute("DROP KEYSPACE badkeyspace")
+      rescue => e
+        puts "#{e.class.name}: #{e.message}"
+      end
+      """
+    When it is executed
+    Then its output should contain:
+      """
+      Cassandra::Errors::InvalidError
       """
 
   Scenario: Creating keyspace that already exists
