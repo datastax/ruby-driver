@@ -64,7 +64,7 @@ class DatatypeUtils
       when 'bigint' then 765438000
       when 'blob' then '0x626c6f62'
       when 'boolean' then true
-      when 'decimal' then ::BigDecimal.new('1313123123.234234234234234234123')
+      when 'decimal' then BigDecimal('1313123123.234234234234234234123')
       when 'double' then 3.141592653589793
       when 'float' then 1.25
       when 'inet' then ::IPAddr.new('200.199.198.197')

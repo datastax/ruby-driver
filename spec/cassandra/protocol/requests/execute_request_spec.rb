@@ -163,7 +163,7 @@ module Cassandra
             [Types.blob, "\xab\xcd", "\xab\xcd"],
             [Types.boolean, false, "\x00"],
             [Types.boolean, true, "\x01"],
-            [Types.decimal, ::BigDecimal.new('1042342234234.123423435647768234'), "\x00\x00\x00\x12\r'\xFDI\xAD\x80f\x11g\xDCfV\xAA"],
+            [Types.decimal, BigDecimal('1042342234234.123423435647768234'), "\x00\x00\x00\x12\r'\xFDI\xAD\x80f\x11g\xDCfV\xAA"],
             [Types.double, 10000.123123123, "@\xC3\x88\x0F\xC2\x7F\x9DU"],
             [Types.float, 12.13, "AB\x14{"],
             [Types.inet, ::IPAddr.new('8.8.8.8'), "\x08\x08\x08\x08"],

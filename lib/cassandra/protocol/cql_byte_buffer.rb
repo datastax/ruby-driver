@@ -58,7 +58,7 @@ module Cassandra
         if scale <= 0
           # Special case where the actual scale is positive; scale in the protocol is actually negative of
           # reality.
-          BigDecimal.new(number_string + '0' * -scale)
+          BigDecimal(number_string + '0' * -scale)
         else
           if number_string.length <= scale
             if number_string.start_with?(MINUS)
@@ -75,7 +75,7 @@ module Cassandra
             fraction_string <<
               number_string[number_string.length - scale, number_string.length]
           end
-          BigDecimal.new(fraction_string)
+          BigDecimal(fraction_string)
         end
       rescue Errors::DecodingError => e
         raise Errors::DecodingError, e.message, e.backtrace

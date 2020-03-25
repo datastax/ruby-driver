@@ -27,7 +27,7 @@ module Cassandra
         [Types.bigint, 2**63],
         [Types.boolean, true],
         [Types.boolean, false],
-        [Types.decimal, ::BigDecimal.new('1042342234234.123423435647768234')],
+        [Types.decimal, BigDecimal('1042342234234.123423435647768234')],
         [Types.double, 10000.123123123],
         [Types.inet, ::IPAddr.new('8.8.8.8')],
         [Types.uuid, Uuid.new(::SecureRandom.hex)],
