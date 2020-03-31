@@ -21,14 +21,14 @@ better compatibility and support for DataStax Enterprise.
 
 This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [Theo Hultberg](https://github.com/iconara) and we added support for:
 
-* [Asynchronous execution](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/asynchronous_io/)
-* One-off, [prepared](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/basics/prepared_statements/) and [batch statements](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/basics/batch_statements/)
-* Automatic peer discovery and cluster metadata with [support for change notifications](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/state_listeners/)
-* Various [load-balancing](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/load_balancing/), [retry](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/retry_policies/) and [reconnection](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/reconnection/) policies with [ability to write your own](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/load_balancing/implementing_a_policy/)
-* [SSL encryption](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/security/ssl_encryption/)
-* [Flexible and robust error handling](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/error_handling/)
-* [Per-request execution information and tracing](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/debugging/)
-* [Configurable address resolution](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/address_resolution/)
+* [Asynchronous execution](http://docs.datastax.com/en/developer/ruby-driver/3.2/features/asynchronous_io/)
+* One-off, [prepared](http://docs.datastax.com/en/developer/ruby-driver/3.2/features/basics/prepared_statements/) and [batch statements](http://docs.datastax.com/en/developer/ruby-driver/3.2/features/basics/batch_statements/)
+* Automatic peer discovery and cluster metadata with [support for change notifications](http://docs.datastax.com/en/developer/ruby-driver/3.2/features/state_listeners/)
+* Various [load-balancing](http://docs.datastax.com/en/developer/ruby-driver/3.2/features/load_balancing/), [retry](http://docs.datastax.com/en/developer/ruby-driver/3.2/features/retry_policies/) and [reconnection](http://docs.datastax.com/en/developer/ruby-driver/3.2/features/reconnection/) policies with [ability to write your own](http://docs.datastax.com/en/developer/ruby-driver/3.2/features/load_balancing/implementing_a_policy/)
+* [SSL encryption](http://docs.datastax.com/en/developer/ruby-driver/3.2/features/security/ssl_encryption/)
+* [Flexible and robust error handling](http://docs.datastax.com/en/developer/ruby-driver/3.2/features/error_handling/)
+* [Per-request execution information and tracing](http://docs.datastax.com/en/developer/ruby-driver/3.2/features/debugging/)
+* [Configurable address resolution](http://docs.datastax.com/en/developer/ruby-driver/3.2/features/address_resolution/)
 
 [Check out the slides from Ruby Driver Explained](https://speakerdeck.com/avalanche123/ruby-driver-explained) for a detailed overview of the Ruby Driver architecture.
 
@@ -76,9 +76,9 @@ __Note__: The host you specify is just a seed node, the driver will automaticall
 
 Read more:
 
-* [`Cassandra.cluster` options](http://docs.datastax.com/en/developer/ruby-driver/3.1/api/cassandra/#cluster-class_method)
-* [`Session#execute_async` options](http://docs.datastax.com/en/developer/ruby-driver/3.1/api/cassandra/session/#execute_async-instance_method)
-* [Usage documentation](http://docs.datastax.com/en/developer/ruby-driver/3.1/features)
+* [`Cassandra.cluster` options](http://docs.datastax.com/en/developer/ruby-driver/3.2/api/cassandra/#cluster-class_method)
+* [`Session#execute_async` options](http://docs.datastax.com/en/developer/ruby-driver/3.2/api/cassandra/session/#execute_async-instance_method)
+* [Usage documentation](http://docs.datastax.com/en/developer/ruby-driver/3.2/features)
 
 ## Installation
 
@@ -94,14 +94,14 @@ Install via Gemfile
 gem 'cassandra-driver'
 ```
 
-__Note__: if you want to use compression you should also install [snappy](http://rubygems.org/gems/snappy) or [lz4-ruby](http://rubygems.org/gems/lz4-ruby). [Read more about compression.](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/#compression)
+__Note__: if you want to use compression you should also install [snappy](http://rubygems.org/gems/snappy) or [lz4-ruby](http://rubygems.org/gems/lz4-ruby). [Read more about compression.](http://docs.datastax.com/en/developer/ruby-driver/3.2/features/#compression)
 
 
 ## Upgrading from cql-rb
 
 Some of the new features added to the driver have unfortunately led to changes in the original cql-rb API.
 In the examples directory, you can find [an example of how to wrap the ruby driver to achieve almost complete
-interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/v3.2.3/examples/cql-rb-wrapper.rb)
+interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/v3.2.4/examples/cql-rb-wrapper.rb)
 to assist you with gradual upgrade.
 
 If you are upgrading to DataStax Enterprise, use the [Ruby DSE driver](https://github.com/datastax/ruby-dse-driver.git) 
@@ -112,7 +112,7 @@ This minor release adds support for MRI 2.4.x and also contains a few miscellane
 support for Ruby versions prior to 2.2. This was already officially the case, but the minimum version limit is
 now enforced.
 
-See the [changelog](https://github.com/datastax/ruby-driver/blob/v3.2.3/CHANGELOG.md) for more information on all
+See the [changelog](https://github.com/datastax/ruby-driver/blob/v3.2.4/CHANGELOG.md) for more information on all
 changes in this version and past versions.
 
 ## What's new in v3.1
@@ -180,7 +180,7 @@ examples in the `features/` directory.
 ## Running tests
 
 If you don't feel like reading through the following instructions on how to run
-ruby-driver tests, feel free to [check out .travis.yml for the entire build code](https://github.com/datastax/ruby-driver/blob/v3.2.3/.travis.yml).
+ruby-driver tests, feel free to [check out .travis.yml for the entire build code](https://github.com/datastax/ruby-driver/blob/v3.2.4/.travis.yml).
 
 * Check out the driver codebase and install test dependencies:
 
@@ -204,7 +204,7 @@ CASSANDRA_VERSION=2.1.12 bundle exec rake test # run both as well as integration
 ## Changelog & versioning
 
 Check out the [releases on GitHub](https://github.com/datastax/ruby-driver/releases) and
-[changelog](https://github.com/datastax/ruby-driver/blob/v3.2.3/CHANGELOG.md). Version
+[changelog](https://github.com/datastax/ruby-driver/blob/v3.2.4/CHANGELOG.md). Version
 numbering follows the [semantic versioning](http://semver.org/) scheme.
 
 Private and experimental APIs, defined as whatever is not in the
@@ -227,7 +227,7 @@ the release.
 * Because the driver reactor is using `IO.select`, the maximum number of tcp connections allowed is 1024.
 * Because the driver uses `IO#write_nonblock`, Windows is not supported.
 
-Please [refer to the usage documentation for more information on common pitfalls](http://docs.datastax.com/en/developer/ruby-driver/3.1/features/)
+Please [refer to the usage documentation for more information on common pitfalls](http://docs.datastax.com/en/developer/ruby-driver/3.2/features/)
 
 ## Contributing
 
@@ -257,4 +257,4 @@ License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF 
 either express or implied. See the License for the specific language governing permissions
 and limitations under the License.
 
-  [1]: http://docs.datastax.com/en/developer/ruby-driver/3.1/api
+  [1]: http://docs.datastax.com/en/developer/ruby-driver/3.2/api
