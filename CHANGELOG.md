@@ -1,3 +1,8 @@
+# 3.2.4
+Bug Fixes:
+* [RUBY-329](https://datastax-oss.atlassian.net/browse/RUBY-329) BigDecimal initialization compatibility issue with MRI 2.7
+* [RUBY-330](https://datastax-oss.atlassian.net/browse/RUBY-330) Dependency updates for yard, rake, ffi
+
 # 3.2.3
 Bug Fixes:
 * [RUBY-322](https://datastax-oss.atlassian.net/browse/RUBY-322) Decimals with zero scale aren't parsed properly.
