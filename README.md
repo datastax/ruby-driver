@@ -9,7 +9,7 @@ version [here](http://docs.datastax.com/en/developer/ruby-driver/latest).*
 A Ruby client driver for Apache Cassandra. This driver works exclusively with
 the Cassandra Query Language version 3 (CQL3) and Cassandra's native protocol.
 
-Use the [Ruby DSE driver](https://github.com/datastax/ruby-dse-driver.git) for
+Use the [Ruby DSE driver](https://docs.datastax.com/en/developer/ruby-driver-dse/2.1/) for
 better compatibility and support for DataStax Enterprise.
 
 - Code: https://github.com/datastax/ruby-driver
@@ -37,7 +37,7 @@ This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [
 This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. The current version works with:
 
 * Apache Cassandra versions 2.1, 2.2, and 3.x
-* DataStax Enterprise 4.8 and above. However, the [Ruby DSE driver](https://github.com/datastax/ruby-dse-driver.git) provides more features and is recommended for use with DataStax Enterprise.
+* DataStax Enterprise 4.8 and above. However, the [Ruby DSE driver](https://docs.datastax.com/en/developer/ruby-driver-dse/2.1/) provides more features and is recommended for use with DataStax Enterprise.
 * Ruby (MRI) 2.2, 2.3, 2.4
 * JRuby 9k
 
@@ -104,8 +104,7 @@ In the examples directory, you can find [an example of how to wrap the ruby driv
 interface parity with cql-rb](https://github.com/datastax/ruby-driver/blob/v3.2.4/examples/cql-rb-wrapper.rb)
 to assist you with gradual upgrade.
 
-If you are upgrading to DataStax Enterprise, use the [Ruby DSE driver](https://github.com/datastax/ruby-dse-driver.git) 
-for more features and better compatibility.
+If you are upgrading to DataStax Enterprise, use the [Ruby DSE driver](https://docs.datastax.com/en/developer/ruby-driver-dse/2.1/) for more features and better compatibility.
 
 ## What's new in v3.2
 This minor release adds support for MRI 2.4.x and also contains a few miscellaneous defect fixes. It also removes
