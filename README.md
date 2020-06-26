@@ -1,3 +1,5 @@
+:warning: **The Ruby driver is in maintenance mode. We are still accepting pull-requests and we will occasionally release critical bug fixes, but no ongoing active development is being done currently.**
+
 # Datastax Ruby Driver for Apache Cassandra
 
 *If you're reading this on GitHub, please note that this is the readme for the development version and that some
