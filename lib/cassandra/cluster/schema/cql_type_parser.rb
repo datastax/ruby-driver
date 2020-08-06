@@ -60,6 +60,7 @@ module Cassandra
           when 'smallint'          then Cassandra::Types.smallint
           when 'time'              then Cassandra::Types.time
           when 'tinyint'           then Cassandra::Types.tinyint
+          when 'duration'          then Cassandra::Types.duration
           when 'map'               then
             Cassandra::Types.map(*node.children.map { |t| lookup_type(t, types)})
           when 'set'               then
