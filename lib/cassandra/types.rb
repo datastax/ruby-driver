@@ -1474,53 +1474,6 @@ module Cassandra
       alias == eql?
     end
 
-    class Duration < Type
-      # @private
-      attr_reader :months, :days, :nanos
-
-      # @private
-      def initialize(months, days, nanos)
-        super(:duration)
-        @months = months
-        @days = days
-        @nanos = nanos
-      end
-
-      def new(*values)
-        Util.assert(values.size == 3) do
-          "Duration type expects three values, #{values.size} were provided"
-        end
-        values.each { |v| Util.assert_type(Int, v) }
-      end
-
-      def assert(value, message = nil, &block)
-        Util.assert_instance_of(Duration, value, message, &block)
-      end
-
-      def to_s
-        "Months: #{@months}, days; #{@days}, nanos: #{@nanos}"
-      end
-
-      def hash
-        @hash ||= begin
-          h = 17
-          h = 31 * h + @months.hash
-          h = 31 * h + @days.hash
-          h = 31 * h + @nanos.hash
-          h
-        end
-      end
-
-      def eql?(other)
-        other.is_a?(Duration) &&
-          @months == other.months &&
-          @days == other.days &&
-          @nanos == other.nanos
-      end
-
-      alias == eql?
-    end
-
     def frozen(value_type)
       Util.assert_instance_of(Cassandra::Type, value_type,
                               "frozen type must be a Cassandra::Type, #{value_type.inspect} given")
@@ -1749,7 +1702,7 @@ module Cassandra
     end
 
     def duration
-      Type.new(:duration)
+      Duration.type
     end
   end
 end

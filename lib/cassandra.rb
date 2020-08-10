@@ -777,6 +777,7 @@ require 'cassandra/udt'
 require 'cassandra/time'
 
 require 'cassandra/types'
+require 'cassandra/duration'
 
 require 'cassandra/errors'
 require 'cassandra/compression'
