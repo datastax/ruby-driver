@@ -61,6 +61,9 @@ module Cassandra
 
       class Decoder
         def initialize(handler, compressor = nil, custom_type_handlers = {})
+          # In v4 the duration type is represented as a custom type so we always want to have
+          # a handler included here.  This handler can be overridden via the connection options.
+          custom_type_handlers[Cassandra::Types.custom('org.apache.cassandra.db.marshal.DurationType')] ||= Cassandra::DurationTypeHandler.new
           @handler    = handler
           @compressor = compressor
           @state      = :initial

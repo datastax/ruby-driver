@@ -287,6 +287,30 @@ module Cassandra
               "Not enough bytes available to decode a tinyint: #{e.message}", e.backtrace
       end
 
+      def read_vint
+        n = read_byte
+
+        # Bits are indexed in Integer in little-endian order
+        bytes_to_read = 7.downto(0).take_while {|i| n[i] == 1}.size
+        return n unless bytes_to_read > 0
+
+        rv = n & (0xff >> bytes_to_read)
+        1.upto(bytes_to_read) do |idx|
+          new_byte = read_byte
+          rv <<= 8
+          rv |= (new_byte & 0xff)
+        end
+
+        rv
+      rescue RangeError => e
+        raise Errors::DecodingError, e.message, e.backtrace
+      end
+
+      def read_signed_vint
+        rv = read_vint
+        (rv >> 1) ^ -(rv & 1)
+      end
+
       def append_tinyint(n)
         append([n].pack(Formats::CHAR_FORMAT))
       end

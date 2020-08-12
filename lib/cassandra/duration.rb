@@ -69,4 +69,11 @@ module Cassandra
       end
     end    
   end
+
+  class DurationTypeHandler
+    def deserialize(bytestr)
+      buffer = Cassandra::Protocol::CqlByteBuffer.new.append(bytestr)
+      Cassandra::Types::Duration.new(buffer.read_signed_vint,buffer.read_signed_vint,buffer.read_signed_vint)
+    end
+  end
 end

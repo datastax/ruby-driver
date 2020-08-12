@@ -1,4 +1,4 @@
-# encoding: ascii-8bit
+# encoding: utf-8
 
 #--
 # Copyright DataStax, Inc.
@@ -70,6 +70,37 @@ module Cassandra
         it 'raises an error when there is not enough bytes available' do
           buffer = described_class.new("\xC9v\x8D:")
           expect { buffer.read_varint(7) }.to raise_error(Errors::DecodingError)
+        end
+
+        it 'can correctly execute the reference decodings' do
+          described_class.new("\x00").read_varint().should == 0
+          described_class.new("\x01").read_varint().should == 1
+          described_class.new("\x7f").read_varint().should == 127
+          described_class.new("\x00\x80").read_varint().should == 128
+          described_class.new("\x00\x81").read_varint().should == 129
+          described_class.new("\xff").read_varint().should == -1
+          described_class.new("\x80").read_varint().should == -128
+          described_class.new("\xff\x7f").read_varint().should == -129
+        end
+      end
+
+      describe '#read_vint' do
+        it 'decodes a single byte correctly' do
+          described_class.new("\x00").read_vint.should == 0
+          described_class.new("\x01").read_vint.should == 1
+          described_class.new("\x7f").read_vint.should == 127
+        end
+
+        it 'respects leading flag for additional bytes' do
+          # An artificial construct, but useful to test the impl
+          described_class.new("\x80\x00").read_vint.should == 0
+          described_class.new("\x80\x01").read_vint.should == 1
+          described_class.new("\x80\x7f").read_vint.should == 127
+          described_class.new("\xc0\x01\x01").read_vint.should == 257
+        end
+
+        it 'preserves non-byte count bits from the first byte' do
+          described_class.new("\x81\x01").read_vint.should == 257
         end
       end
 
