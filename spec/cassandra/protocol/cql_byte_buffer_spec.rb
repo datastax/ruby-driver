@@ -43,15 +43,6 @@ module Cassandra
         end
       end
 
-      describe '#encode_zigzag32' do
-        it 'should create values which can be successfully decoded' do
-          (-200..200).each do |x|
-            encoded = described_class.encode_zigzag32(x)
-            described_class.decode_zigzag(encoded).should == x
-          end
-        end
-      end
-
       describe '#encode_zigzag64' do
         it 'should create values which can be successfully decoded' do
           (-200..200).each do |x|

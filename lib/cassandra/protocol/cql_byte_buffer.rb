@@ -34,10 +34,8 @@ module Cassandra
         (n >> 1) ^ -(n & 1)
       end
 
-      def self.encode_zigzag32(n)
-        (n >> 31) ^ (n << 1)
-      end
-
+      # Note that this works for 64-bit or 32-bit values... in the 32-bit case you wind up
+      # doing some right shifts you didn't actually have to do.
       def self.encode_zigzag64(n)
         (n >> 63) ^ (n << 1)
       end
