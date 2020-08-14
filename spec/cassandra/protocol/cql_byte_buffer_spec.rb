@@ -26,6 +26,41 @@ module Cassandra
         described_class.new
       end
 
+      describe '#decode_zigzag' do
+        it 'should handle zero' do
+          described_class.decode_zigzag(0).should == 0
+        end
+
+        it 'should return expected positive values for even numbers' do
+          (2..100).step(2) do |x|
+            described_class.decode_zigzag(x).should == x/2
+          end
+        end
+        it 'should return expected negative values for odd numbers' do
+          (1..99).step(2) do |x|
+            described_class.decode_zigzag(x).should == -(x + 1)/2
+          end
+        end
+      end
+
+      describe '#encode_zigzag32' do
+        it 'should create values which can be successfully decoded' do
+          (-200..200).each do |x|
+            encoded = described_class.encode_zigzag32(x)
+            described_class.decode_zigzag(encoded).should == x
+          end
+        end
+      end
+
+      describe '#encode_zigzag64' do
+        it 'should create values which can be successfully decoded' do
+          (-200..200).each do |x|
+            encoded = described_class.encode_zigzag64(x)
+            described_class.decode_zigzag(encoded).should == x
+          end
+        end
+      end
+
       describe '#read_unsigned_byte' do
         let :buffer do
           described_class.new("\xab")

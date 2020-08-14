@@ -19,6 +19,7 @@ module Cassandra
   module Types
 
     class Duration < Type
+
       # @private
       attr_reader :months, :days, :nanos
 
@@ -74,6 +75,29 @@ module Cassandra
     def deserialize(bytestr)
       buffer = Cassandra::Protocol::CqlByteBuffer.new.append(bytestr)
       Cassandra::Types::Duration.new(buffer.read_signed_vint,buffer.read_signed_vint,buffer.read_signed_vint)
+    end
+  end
+
+  class DurationCustomData
+    include Cassandra::CustomData
+
+    # @private
+    attr_reader :dur
+
+    def initialize(dur)
+      @dur = dur
+    end
+
+    def serialize
+      rv = Cassandra::Protocol::CqlByteBuffer.new
+      rv.append_int(dur.months)
+      rv.append_int(dur.days)
+      rv.append_long(dur.nanos)
+      rv
+    end
+
+    def self.type
+      Cassandra::Types::Custom.new('org.apache.cassandra.db.marshal.DurationType')
     end
   end
 end

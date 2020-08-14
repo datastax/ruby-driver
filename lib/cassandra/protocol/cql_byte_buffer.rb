@@ -30,6 +30,18 @@ module Cassandra
       # @private
       NO_CHAR = ''.freeze
 
+      def self.decode_zigzag(n)
+        (n >> 1) ^ -(n & 1)
+      end
+
+      def self.encode_zigzag32(n)
+        (n >> 31) ^ (n << 1)
+      end
+
+      def self.encode_zigzag64(n)
+        (n >> 63) ^ (n << 1)
+      end
+
       def inspect
         "#<#{self.class.name}:0x#{object_id.to_s(16)} #{to_str.inspect}>"
       end
@@ -307,8 +319,7 @@ module Cassandra
       end
 
       def read_signed_vint
-        rv = read_vint
-        (rv >> 1) ^ -(rv & 1)
+        self.class.decode_zigzag(read_vint)
       end
 
       def append_tinyint(n)
@@ -431,6 +442,10 @@ module Cassandra
 
       def append_float(n)
         append([n].pack(Formats::FLOAT_FORMAT))
+      end
+
+      def append_vint(n)
+        raise NotImplementedError, "vint encoding not yet supported"
       end
 
       def eql?(other)
