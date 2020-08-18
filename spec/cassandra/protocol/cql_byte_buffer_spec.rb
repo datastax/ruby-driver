@@ -131,7 +131,7 @@ module Cassandra
         end
       end
 
-      describe '#read_unsigned_vint' do
+      describe '#read_signed_vint' do
         it 'handles single byte values correctly' do
           described_class.new("\x00").read_signed_vint().should == 0
           described_class.new("\x01").read_signed_vint().should == -1
@@ -1073,6 +1073,27 @@ module Cassandra
           # Leading one bit on the first byte itself... to make sure we can distinguish between
           # data bits and bytes to read counts
           should_match 32768
+        end
+      end
+
+      describe '#append_signed_vint' do
+        def should_match(n)
+          described_class.new.append_signed_vint(n).read_signed_vint.should == n
+        end
+
+        it 'handles single byte values correctly' do
+          should_match 0
+          should_match 1
+          should_match -1
+          should_match 127
+          should_match -127
+        end
+
+        it 'handles multiple byte values correctly' do
+          should_match 129
+          should_match -129
+          should_match 32768
+          should_match -32768
         end
       end
     end
