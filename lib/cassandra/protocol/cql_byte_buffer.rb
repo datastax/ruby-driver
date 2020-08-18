@@ -299,11 +299,9 @@ module Cassandra
 
       def read_vint
         n = read_byte
-        puts "Read byte: #{n}"
 
         # Bits are indexed in Integer in little-endian order
         bytes_to_read = 7.downto(0).take_while {|i| n[i] == 1}.size
-        puts "bytes_to_read: #{bytes_to_read}"
         return n unless bytes_to_read > 0
 
         rv = n & (0xff >> bytes_to_read)
@@ -445,39 +443,14 @@ module Cassandra
       end
 
       def append_vint(n)
-        num = n
-        bytes = []
-        loop do
-          bytes << (num & 0xff)
-          num >>= 8
-          break if (num == 0 || num == -1) && (bytes.last == num)
-        end
-        bytes_to_send = bytes[1..-1].reverse
-        send_cnt = bytes_to_send.length
-        puts "bytes_to_send: #{bytes_to_send}, send_cnt: #{send_cnt}"
+        send_bytes = [n].pack("Q>").unpack(Formats::BYTES_FORMAT).drop_while {|i| i == 0}
+        send_cnt = send_bytes.length
 
         raise Errors::EncodingError, "Too many bytes (#{bytes_to_send.length}) to send!" if send_cnt > 8
-        return append(bytes_to_send.pack(Formats::BYTES_FORMAT)) if send_cnt == 1
-        return append(bytes_to_send.insert(0,-1).pack(Formats::BYTES_FORMAT)) if send_cnt == 8
 
-        # Do we have enough space to add the mask directly to our first byte?  If so we can just mask it directly.
-        # Otherwise we have to add a byte defining how many additional bytes need to be read.
-        #
-        # This algorithm is most easily explained with an example.  If we have three bytes to send total we want
-        # to check the first byte to see if we can mask it.  So we need to check for three leading 0 bits on that
-        # first byte (two bits to indicate future bytes + a leading zero to indicate completion of the count of extra
-        # bytes to read).  That means we need to look at bits 7 through 5 and validate that they're all zeroes.
-        last_bit_to_check = 7 - (send_cnt - 1)
-        if 7.downto(last_bit_to_check).all? {|idx| bytes_to_send[0][idx] == 0}
-          # One bit because we're masking the first byte (so it isn't extra), one bit because we aren't adding
-          # the trailing zero (since it's already there)
-          bytes_to_send[0] |= (128 >> (send_cnt - 2))
-          puts "First byte to send (after mask): #{bytes_to_send[0]}"
-        else
-          bytes_to_send.insert(0,(128 >> (send_cnt - 1)))
-          puts "First byte to send (leading byte added): #{bytes_to_send[0]}"
-        end
-        append(bytes_to_send.pack(Formats::BYTES_FORMAT))
+        send_cnt_byte = (0xff << (8 - send_cnt)) & 0xff
+        append([send_cnt_byte].pack(Formats::BYTES_FORMAT))
+        append(send_bytes.pack(Formats::BYTES_FORMAT))
       end
 
       def append_signed_vint(n)

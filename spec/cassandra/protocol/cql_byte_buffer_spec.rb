@@ -1063,19 +1063,15 @@ module Cassandra
           should_match 0
           should_match 1
           should_match 127
+          should_match 255
         end
 
-        it "should encode and decode the mulit-byte case using masking" do
+        it "should encode and decode mulit-byte cases" do
+          should_match 256
           should_match 257
 
-          # Note that in the case above the first byte (after encoding) should have 1 bits at index 0 and 7
-          # To make sure we're not reading from the wrong end by mistake we also test a case where the 1
-          # bit in the first byte is set only for index 0 and 6
-          should_match 513
-        end
-
-        it "should encode and decode the mulit-byte case, no masking available" do
-          # Two bytes with a leading one bit and nothing else
+          # Leading one bit on the first byte itself... to make sure we can distinguish between
+          # data bits and bytes to read counts
           should_match 32768
         end
       end
