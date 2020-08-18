@@ -19,6 +19,7 @@ module Cassandra
   module Types
 
     class Duration < Type
+      include Cassandra::CustomData
 
       # @private
       attr_reader :months, :days, :nanos
@@ -65,39 +66,27 @@ module Cassandra
 
       alias == eql?
 
-      def self.type
+      def self.cql_type
         Type.new(@kind)        
       end
-    end    
-  end
 
-  class DurationTypeHandler
-    def deserialize(bytestr)
-      buffer = Cassandra::Protocol::CqlByteBuffer.new.append(bytestr)
-      Cassandra::Types::Duration.new(buffer.read_signed_vint,buffer.read_signed_vint,buffer.read_signed_vint)
-    end
-  end
+      # Requirements for CustomData module
+      def self.deserialize(bytestr)
+        buffer = Cassandra::Protocol::CqlByteBuffer.new.append(bytestr)
+        Cassandra::Types::Duration.new(buffer.read_signed_vint,buffer.read_signed_vint,buffer.read_signed_vint)
+      end
 
-  class DurationCustomData
-    include Cassandra::CustomData
+      def self.type
+        Cassandra::Types::Custom.new('org.apache.cassandra.db.marshal.DurationType')
+      end
 
-    # @private
-    attr_reader :dur
-
-    def initialize(dur)
-      @dur = dur
-    end
-
-    def serialize
-      rv = Cassandra::Protocol::CqlByteBuffer.new
-      rv.append_signed_vint(dur.months)
-      rv.append_signed_vint(dur.days)
-      rv.append_signed_vint(dur.nanos)
-      rv
-    end
-
-    def self.type
-      Cassandra::Types::Custom.new('org.apache.cassandra.db.marshal.DurationType')
+      def serialize
+        rv = Cassandra::Protocol::CqlByteBuffer.new
+        rv.append_signed_vint(@months)
+        rv.append_signed_vint(@days)
+        rv.append_signed_vint(@nanos)
+        rv
+      end
     end
   end
 end

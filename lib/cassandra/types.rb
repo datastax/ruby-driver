@@ -1702,7 +1702,7 @@ module Cassandra
     end
 
     def duration
-      Duration.type
+      Duration.cql_type
     end
   end
 end
