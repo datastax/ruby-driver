@@ -36,6 +36,7 @@ module Cassandra
             described_class.decode_zigzag(x).should == x/2
           end
         end
+
         it 'should return expected negative values for odd numbers' do
           (1..99).step(2) do |x|
             described_class.decode_zigzag(x).should == -(x + 1)/2
@@ -127,6 +128,20 @@ module Cassandra
 
         it 'preserves non-byte count bits from the first byte' do
           described_class.new("\x81\x01").read_vint.should == 257
+        end
+      end
+
+      describe '#read_unsigned_vint' do
+        it 'handles single byte values correctly' do
+          described_class.new("\x00").read_signed_vint().should == 0
+          described_class.new("\x01").read_signed_vint().should == -1
+          described_class.new("\x02").read_signed_vint().should == 1
+        end
+
+        it 'handles multiple bytes as expected' do
+          described_class.new("\x80\x00").read_signed_vint.should == 0
+          described_class.new("\x80\x01").read_signed_vint.should == -1
+          described_class.new("\x80\x02").read_signed_vint.should == 1
         end
       end
 
@@ -1036,6 +1051,32 @@ module Cassandra
         it 'returns the buffer' do
           result = buffer.append_float(12.13)
           result.should equal(buffer)
+        end
+      end
+
+      describe '#append_vint' do
+        def should_match(n)
+          described_class.new.append_vint(n).read_vint.should == n
+        end
+
+        it "should encode and decode single-byte cases" do
+          should_match 0
+          should_match 1
+          should_match 127
+        end
+
+        it "should encode and decode the mulit-byte case using masking" do
+          should_match 257
+
+          # Note that in the case above the first byte (after encoding) should have 1 bits at index 0 and 7
+          # To make sure we're not reading from the wrong end by mistake we also test a case where the 1
+          # bit in the first byte is set only for index 0 and 6
+          should_match 513
+        end
+
+        it "should encode and decode the mulit-byte case, no masking available" do
+          # Two bytes with a leading one bit and nothing else
+          should_match 32768
         end
       end
     end

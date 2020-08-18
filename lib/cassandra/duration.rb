@@ -90,9 +90,9 @@ module Cassandra
 
     def serialize
       rv = Cassandra::Protocol::CqlByteBuffer.new
-      rv.append_int(dur.months)
-      rv.append_int(dur.days)
-      rv.append_long(dur.nanos)
+      rv.append_signed_vint(dur.months)
+      rv.append_signed_vint(dur.days)
+      rv.append_signed_vint(dur.nanos)
       rv
     end
 
