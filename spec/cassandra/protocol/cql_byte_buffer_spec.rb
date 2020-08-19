@@ -90,8 +90,7 @@ module Cassandra
           described_class.new("\x7f").read_vint.should == 127
         end
 
-        it 'respects leading flag for additional bytes' do
-          # An artificial construct, but useful to test the impl
+        it 'respects byte count bits in the first byte' do
           described_class.new("\x80\x00").read_vint.should == 0
           described_class.new("\x80\x01").read_vint.should == 1
           described_class.new("\x80\x7f").read_vint.should == 127
