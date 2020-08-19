@@ -40,7 +40,7 @@ module Cassandra
         values.each { |v| Util.assert_type(Int, v) }
         Util.assert (Util.encode_zigzag32(values[0]) < @@four_byte_max), "Months value must be a valid 32-bit integer"
         Util.assert (Util.encode_zigzag32(values[1]) < @@four_byte_max), "Days value must be a valid 32-bit integer"
-        Util.assert (Util.encode_zigzag64(values[2]) < @@eight_byte_max), "Nanos value must be a valid 32-bit integer"
+        Util.assert (Util.encode_zigzag64(values[2]) < @@eight_byte_max), "Nanos value must be a valid 64-bit integer"
         all_positive = values.all? {|i| i >= 0 }
         all_negative = values.all? {|i| i <= 0 }
         Util.assert (all_positive or all_negative), "Values in a duration must be uniformly positive or negative"
