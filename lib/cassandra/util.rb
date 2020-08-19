@@ -302,6 +302,26 @@ module Cassandra
       end
     end
 
+    def to_byte_array(n)
+      [n].pack("Q>").unpack("C*")
+    end
+
+    def to_min_byte_array(n)
+      to_byte_array(n).drop_while {|i| i == 0}
+    end
+
+    def decode_zigzag(n)
+      (n >> 1) ^ -(n & 1)
+    end
+
+    def encode_zigzag32(n)
+      (n >> 31) ^ (n << 1)
+    end
+
+    def encode_zigzag64(n)
+      (n >> 63) ^ (n << 1)
+    end
+
     # @private
     LOWERCASE_REGEXP = /[[:lower:]\_]*/
     # @private

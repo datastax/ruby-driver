@@ -19,7 +19,10 @@ module Cassandra
   module Types
 
     class Duration < Type
-      include Cassandra::CustomData
+      include CustomData
+
+      @@four_byte_max = 2 ** 32
+      @@eight_byte_max = 2 ** 64
 
       # @private
       attr_reader :months, :days, :nanos
@@ -33,10 +36,15 @@ module Cassandra
       end
 
       def new(*values)
-        Util.assert(values.size == 3) do
-          "Duration type expects three values, #{values.size} were provided"
-        end
+        Util.assert_size(3, values, "Duration type expects three values, #{values.size} were provided")
         values.each { |v| Util.assert_type(Int, v) }
+        Util.assert (Util.encode_zigzag32(values[0]) < @@four_byte_max), "Months value must be a valid 32-bit integer"
+        Util.assert (Util.encode_zigzag32(values[1]) < @@four_byte_max), "Days value must be a valid 32-bit integer"
+        Util.assert (Util.encode_zigzag64(values[2]) < @@eight_byte_max), "Nanos value must be a valid 32-bit integer"
+        all_positive = values.all? {|i| i >= 0 }
+        all_negative = values.all? {|i| i <= 0 }
+        Util.assert (all_positive or all_negative), "Values in a duration must be uniformly positive or negative"
+        Duration.new *values
       end
 
       def assert(value, message = nil, &block)
@@ -82,9 +90,9 @@ module Cassandra
 
       def serialize
         rv = Cassandra::Protocol::CqlByteBuffer.new
-        rv.append_signed_vint(@months)
-        rv.append_signed_vint(@days)
-        rv.append_signed_vint(@nanos)
+        rv.append_signed_vint32(@months)
+        rv.append_signed_vint32(@days)
+        rv.append_signed_vint64(@nanos)
         rv
       end
     end

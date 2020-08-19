@@ -18,39 +18,11 @@
 
 require 'spec_helper'
 
-
 module Cassandra
   module Protocol
     describe CqlByteBuffer do
       let :buffer do
         described_class.new
-      end
-
-      describe '#decode_zigzag' do
-        it 'should handle zero' do
-          described_class.decode_zigzag(0).should == 0
-        end
-
-        it 'should return expected positive values for even numbers' do
-          (2..100).step(2) do |x|
-            described_class.decode_zigzag(x).should == x/2
-          end
-        end
-
-        it 'should return expected negative values for odd numbers' do
-          (1..99).step(2) do |x|
-            described_class.decode_zigzag(x).should == -(x + 1)/2
-          end
-        end
-      end
-
-      describe '#encode_zigzag64' do
-        it 'should create values which can be successfully decoded' do
-          (-200..200).each do |x|
-            encoded = described_class.encode_zigzag64(x)
-            described_class.decode_zigzag(encoded).should == x
-          end
-        end
       end
 
       describe '#read_unsigned_byte' do
@@ -1076,9 +1048,30 @@ module Cassandra
         end
       end
 
-      describe '#append_signed_vint' do
+      describe '#append_signed_vint32' do
         def should_match(n)
-          described_class.new.append_signed_vint(n).read_signed_vint.should == n
+          described_class.new.append_signed_vint32(n).read_signed_vint.should == n
+        end
+
+        it 'handles single byte values correctly' do
+          should_match 0
+          should_match 1
+          should_match -1
+          should_match 127
+          should_match -127
+        end
+
+        it 'handles multiple byte values correctly' do
+          should_match 129
+          should_match -129
+          should_match 32768
+          should_match -32768
+        end
+      end
+
+      describe '#append_signed_vint64' do
+        def should_match(n)
+          described_class.new.append_signed_vint64(n).read_signed_vint.should == n
         end
 
         it 'handles single byte values correctly' do

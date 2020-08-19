@@ -30,16 +30,6 @@ module Cassandra
       # @private
       NO_CHAR = ''.freeze
 
-      def self.decode_zigzag(n)
-        (n >> 1) ^ -(n & 1)
-      end
-
-      # Note that this works for 64-bit or 32-bit values... in the 32-bit case you wind up
-      # doing some right shifts you didn't actually have to do.
-      def self.encode_zigzag64(n)
-        (n >> 63) ^ (n << 1)
-      end
-
       def inspect
         "#<#{self.class.name}:0x#{object_id.to_s(16)} #{to_str.inspect}>"
       end
@@ -317,7 +307,7 @@ module Cassandra
       end
 
       def read_signed_vint
-        self.class.decode_zigzag(read_vint)
+        Util.decode_zigzag(read_vint)
       end
 
       def append_tinyint(n)
@@ -443,7 +433,7 @@ module Cassandra
       end
 
       def append_vint(n)
-        send_bytes = [n].pack("Q>").unpack(Formats::BYTES_FORMAT).drop_while {|i| i == 0}
+        send_bytes = Util.to_min_byte_array(n)
         send_cnt = send_bytes.length
 
         raise Errors::EncodingError, "Too many bytes (#{bytes_to_send.length}) to send!" if send_cnt > 8
@@ -453,8 +443,12 @@ module Cassandra
         append(send_bytes.pack(Formats::BYTES_FORMAT))
       end
 
-      def append_signed_vint(n)
-        append_vint(self.class.encode_zigzag64(n))
+      def append_signed_vint32(n)
+        append_vint(Util.encode_zigzag32(n))
+      end
+
+      def append_signed_vint64(n)
+        append_vint(Util.encode_zigzag64(n))
       end
 
       def eql?(other)

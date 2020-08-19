@@ -44,5 +44,41 @@ module Cassandra
         end
       end
     end
+
+    describe '.decode_zigzag' do
+      it 'should handle zero' do
+        Util.decode_zigzag(0).should == 0
+      end
+
+      it 'should return expected positive values for even numbers' do
+        (2..100).step(2) do |x|
+          Util.decode_zigzag(x).should == x/2
+        end
+      end
+
+      it 'should return expected negative values for odd numbers' do
+        (1..99).step(2) do |x|
+          Util.decode_zigzag(x).should == -(x + 1)/2
+        end
+      end
+    end
+
+    describe '.encode_zigzag32' do
+      it 'should create (32-bit) values which can be successfully decoded' do
+        (-200..200).each do |x|
+          encoded = Util.encode_zigzag32(x)
+          Util.decode_zigzag(encoded).should == x
+        end
+      end
+    end
+
+    describe '.encode_zigzag64' do
+      it 'should create (64-bit) values which can be successfully decoded' do
+        (-200..200).each do |x|
+          encoded = Util.encode_zigzag64(x)
+          Util.decode_zigzag(encoded).should == x
+        end
+      end
+    end
   end
 end
