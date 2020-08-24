@@ -17,7 +17,6 @@
 #++
 
 require 'integration_test_case'
-require 'datatype_utils.rb'
 
 class DurationTest < IntegrationTestCase
 
@@ -26,6 +25,8 @@ class DurationTest < IntegrationTestCase
   end
 
   def test_can_insert_duration
+    skip("Duration type was added in DSE 5.1/C* 3.10") if (CCM.dse_version < '5.1' || CCM.cassandra_version < '3.10')
+
     cluster = Cassandra.cluster
     session = cluster.connect "foo"
 
@@ -48,6 +49,6 @@ class DurationTest < IntegrationTestCase
       assert_equal durations[duration_name], duration
     end
   ensure
-    cluster.close
+    cluster && cluster.close
   end
 end
