@@ -43,6 +43,8 @@ end
 
 Rake::TestTask.new(integration: :compile) do |t|
   t.libs.push 'lib'
+  t.libs.push 'support'
+  t.libs.push 'integration'
   t.test_files = FileList['integration/*_test.rb',
                           'integration/security/*_test.rb',
                           'integration/load_balancing/*_test.rb',

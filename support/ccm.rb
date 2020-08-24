@@ -854,13 +854,23 @@ module CCM extend self
   def cassandra_version
     parse_version
     @cassandra_version ||= begin
-      version = @raw_version
-      if (@raw_version.start_with?('4.0') || @raw_version.start_with?('4.5') || @raw_version.start_with?('4.6')) and @dse
-        version = '2.0.17'
-      elsif (@raw_version.start_with?('4.7') || @raw_version.start_with?('4.8')) and @dse
-        version = '2.1.12'
+      if @dse
+        return case
+               when @raw_version =~ /4.[056].*/
+                 '2.0'
+               when @raw_version =~ /4.[78].*/
+                 '2.1'
+               when @raw_version =~ /5.0.*/
+                 '3.0'
+               when @raw_version =~ /5.1.[01]/
+                 "3.10"
+               when @raw_version =~ /5.1.*/
+                 "3.11"
+               else
+                 "4.0"
+               end
       end
-      version
+      @raw_version
     end
   end
 
@@ -979,16 +989,18 @@ module CCM extend self
       config << 'index_interval: 512'
     else
       config << 'cas_contention_timeout_in_ms: 10000'
-      config << 'file_cache_size_in_mb: 0'
+      if cassandra_version < '4.0'
+        config << 'file_cache_size_in_mb: 0'
+      end
     end
 
     config << 'native_transport_max_threads: 1'
     if cassandra_version < '4.0'
       config << 'rpc_min_threads: 1'
       config << 'rpc_max_threads: 1'
+      config << 'concurrent_reads: 2'
+      config << 'concurrent_writes: 2'
     end
-    config << 'concurrent_reads: 2'
-    config << 'concurrent_writes: 2'
     config << 'concurrent_compactors: 1'
     config << 'compaction_throughput_mb_per_sec: 0'
 
@@ -1010,9 +1022,9 @@ module CCM extend self
     config << 'max_hints_delivery_threads: 1'
 
     # If we're just dealing with C* 4.0 enable MV as well
-    if cassandra_version >= '4.0'
-      config << 'enable_materialized_views: true'
-    end
+    #if cassandra_version >= '4.0'
+    #  config << 'enable_materialized_views: true'
+    #end
 
     ccm.exec('updateconf', *config)
     ccm.exec('populate', '-n', nodes, '-i', '127.0.0.')

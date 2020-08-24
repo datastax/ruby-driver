@@ -16,16 +16,16 @@
 # limitations under the License.
 #++
 
-require File.dirname(__FILE__) + '/../support/ccm.rb'
-require File.dirname(__FILE__) + '/../support/retry.rb'
-require File.dirname(__FILE__) + '/schema_change_listener.rb'
-require 'minitest/unit'
+require 'ccm.rb'
+require 'retry.rb'
+require 'schema_change_listener.rb'
 require 'minitest/autorun'
+require 'minitest/unit'
 require 'cassandra'
 require 'delorean'
 require 'ansi/code'
 
-class IntegrationTestCase < MiniTest::Unit::TestCase
+class IntegrationTestCase < Minitest::Unit::TestCase
   @@ccm_cluster = nil
 
   def self.before_suite
