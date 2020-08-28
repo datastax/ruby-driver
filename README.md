@@ -47,10 +47,6 @@ __Note__: Rubinius is not supported.
 
 __Note__: Big-endian systems are not supported.
 
-## Feedback Requested
-
-*Help us focus our efforts!* [Provide your input](http://goo.gl/forms/pCs8PTpHLf) on the Ruby Driver Platform and Runtime Survey (we kept it short).
-
 ## Quick start
 
 ```ruby
