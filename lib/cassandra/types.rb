@@ -1700,5 +1700,9 @@ module Cassandra
     def custom(name)
       Custom.new(name)
     end
+
+    def duration
+      Duration.new 0,0,0
+    end
   end
 end

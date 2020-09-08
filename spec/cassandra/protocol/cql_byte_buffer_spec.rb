@@ -1,4 +1,4 @@
-# encoding: ascii-8bit
+# encoding: utf-8
 
 #--
 # Copyright DataStax, Inc.
@@ -17,7 +17,6 @@
 #++
 
 require 'spec_helper'
-
 
 module Cassandra
   module Protocol
@@ -70,6 +69,50 @@ module Cassandra
         it 'raises an error when there is not enough bytes available' do
           buffer = described_class.new("\xC9v\x8D:")
           expect { buffer.read_varint(7) }.to raise_error(Errors::DecodingError)
+        end
+
+        it 'can correctly execute the reference decodings' do
+          described_class.new("\x00").read_varint().should == 0
+          described_class.new("\x01").read_varint().should == 1
+          described_class.new("\x7f").read_varint().should == 127
+          described_class.new("\x00\x80").read_varint().should == 128
+          described_class.new("\x00\x81").read_varint().should == 129
+          described_class.new("\xff").read_varint().should == -1
+          described_class.new("\x80").read_varint().should == -128
+          described_class.new("\xff\x7f").read_varint().should == -129
+        end
+      end
+
+      describe '#read_vint' do
+        it 'decodes a single byte correctly' do
+          described_class.new("\x00").read_vint.should == 0
+          described_class.new("\x01").read_vint.should == 1
+          described_class.new("\x7f").read_vint.should == 127
+        end
+
+        it 'respects byte count bits in the first byte' do
+          described_class.new("\x80\x00").read_vint.should == 0
+          described_class.new("\x80\x01").read_vint.should == 1
+          described_class.new("\x80\x7f").read_vint.should == 127
+          described_class.new("\xc0\x01\x01").read_vint.should == 257
+        end
+
+        it 'preserves non-byte count bits from the first byte' do
+          described_class.new("\x81\x01").read_vint.should == 257
+        end
+      end
+
+      describe '#read_signed_vint' do
+        it 'handles single byte values correctly' do
+          described_class.new("\x00").read_signed_vint().should == 0
+          described_class.new("\x01").read_signed_vint().should == -1
+          described_class.new("\x02").read_signed_vint().should == 1
+        end
+
+        it 'handles multiple bytes as expected' do
+          described_class.new("\x80\x00").read_signed_vint.should == 0
+          described_class.new("\x80\x01").read_signed_vint.should == -1
+          described_class.new("\x80\x02").read_signed_vint.should == 1
         end
       end
 
@@ -979,6 +1022,70 @@ module Cassandra
         it 'returns the buffer' do
           result = buffer.append_float(12.13)
           result.should equal(buffer)
+        end
+      end
+
+      describe '#append_vint' do
+        def should_match(n)
+          described_class.new.append_vint(n).read_vint.should == n
+        end
+
+        it "should encode and decode single-byte cases" do
+          should_match 0
+          should_match 1
+          should_match 127
+          should_match 255
+        end
+
+        it "should encode and decode mulit-byte cases" do
+          should_match 256
+          should_match 257
+
+          # Leading one bit on the first byte itself... to make sure we can distinguish between
+          # data bits and bytes to read counts
+          should_match 32768
+        end
+      end
+
+      describe '#append_signed_vint32' do
+        def should_match(n)
+          described_class.new.append_signed_vint32(n).read_signed_vint.should == n
+        end
+
+        it 'handles single byte values correctly' do
+          should_match 0
+          should_match 1
+          should_match -1
+          should_match 127
+          should_match -127
+        end
+
+        it 'handles multiple byte values correctly' do
+          should_match 129
+          should_match -129
+          should_match 32768
+          should_match -32768
+        end
+      end
+
+      describe '#append_signed_vint64' do
+        def should_match(n)
+          described_class.new.append_signed_vint64(n).read_signed_vint.should == n
+        end
+
+        it 'handles single byte values correctly' do
+          should_match 0
+          should_match 1
+          should_match -1
+          should_match 127
+          should_match -127
+        end
+
+        it 'handles multiple byte values correctly' do
+          should_match 129
+          should_match -129
+          should_match 32768
+          should_match -32768
         end
       end
     end

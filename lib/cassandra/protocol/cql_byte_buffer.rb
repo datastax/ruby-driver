@@ -287,6 +287,29 @@ module Cassandra
               "Not enough bytes available to decode a tinyint: #{e.message}", e.backtrace
       end
 
+      def read_vint
+        n = read_byte
+
+        # Bits are indexed in Integer in little-endian order
+        bytes_to_read = 7.downto(0).take_while {|i| n[i] == 1}.size
+        return n unless bytes_to_read > 0
+
+        rv = n & (0xff >> bytes_to_read)
+        1.upto(bytes_to_read) do |idx|
+          new_byte = read_byte
+          rv <<= 8
+          rv |= (new_byte & 0xff)
+        end
+
+        rv
+      rescue RangeError => e
+        raise Errors::DecodingError, e.message, e.backtrace
+      end
+
+      def read_signed_vint
+        Util.decode_zigzag(read_vint)
+      end
+
       def append_tinyint(n)
         append([n].pack(Formats::CHAR_FORMAT))
       end
@@ -407,6 +430,25 @@ module Cassandra
 
       def append_float(n)
         append([n].pack(Formats::FLOAT_FORMAT))
+      end
+
+      def append_vint(n)
+        send_bytes = Util.to_min_byte_array(n)
+        send_cnt = send_bytes.length
+
+        raise Errors::EncodingError, "Too many bytes (#{bytes_to_send.length}) to send!" if send_cnt > 8
+
+        send_cnt_byte = (0xff << (8 - send_cnt)) & 0xff
+        append([send_cnt_byte].pack(Formats::BYTES_FORMAT))
+        append(send_bytes.pack(Formats::BYTES_FORMAT))
+      end
+
+      def append_signed_vint32(n)
+        append_vint(Util.encode_zigzag32(n))
+      end
+
+      def append_signed_vint64(n)
+        append_vint(Util.encode_zigzag64(n))
       end
 
       def eql?(other)

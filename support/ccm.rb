@@ -831,64 +831,48 @@ module CCM extend self
     end
   end
 
-  @raw_version = nil
-  @cassandra_version = nil
-  @dse = false
-  @cluster_name = nil
-
-  def parse_version
-    @raw_version ||= begin
-      version = ENV['CASSANDRA_VERSION'] || '3.0.1'
-      if ENV['DSE_VERSION']
-        @dse = true
-        version = ENV['DSE_VERSION']
-      end
-      version
+  def cassandra_version_from_dse(dse_version)
+    case
+    when dse_version =~ /4.[056].*/
+      '2.0'
+    when dse_version =~ /4.[78].*/
+      '2.1'
+    when dse_version =~ /5.0.*/
+      '3.0'
+    when dse_version =~ /5.1.[01]/
+      "3.10"
+    when dse_version =~ /5.1.*/
+      "3.11"
+    else
+      "4.0"
     end
   end
 
-  def cluster_name
-    @cluster_name ||= "ruby-driver-#{@dse ? 'dse' : 'cassandra'}-#{@raw_version.gsub('.', '_')}-test-cluster"
-  end
+  @dse_version = ENV['DSE_VERSION']
+  @dse = !@dse_version.nil?
+  @cassandra_version = ENV['CASSANDRA_VERSION'] || (@dse_version && cassandra_version_from_dse(@dse_version)) || '3.0.1'
+  @cluster_version = @dse_version || @cassandra_version
+  @cluster_name = "ruby-driver-#{@dse ? 'dse' : 'cassandra'}-#{@cluster_version.gsub('.', '_')}-test-cluster"
 
-  def cassandra_version
-    parse_version
-    @cassandra_version ||= begin
-      version = @raw_version
-      if (@raw_version.start_with?('4.0') || @raw_version.start_with?('4.5') || @raw_version.start_with?('4.6')) and @dse
-        version = '2.0.17'
-      elsif (@raw_version.start_with?('4.7') || @raw_version.start_with?('4.8')) and @dse
-        version = '2.1.12'
-      end
-      version
+  attr_accessor :dse_version, :cassandra_version
+
+  def maybe_recreate_current_cluster(no_dc, no_nodes_per_dc)
+    unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
+      @current_cluster.stop
+      remove_cluster(@current_cluster.name)
+      create_cluster(@cluster_name, @cluster_version, no_dc, no_nodes_per_dc)
     end
   end
 
   def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
-    parse_version
-
-    if @current_cluster && @current_cluster.name == cluster_name
-      unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
-        @current_cluster.stop
-        remove_cluster(@current_cluster.name)
-        create_cluster(cluster_name, @raw_version, no_dc, no_nodes_per_dc)
-      end
-
-      @current_cluster.start
-      return @current_cluster
-    end
-
-    if cluster_exists?(cluster_name)
-      switch_cluster(cluster_name)
-
-      unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
-        @current_cluster.stop
-        remove_cluster(@current_cluster.name)
-        create_cluster(cluster_name, @raw_version, no_dc, no_nodes_per_dc)
-      end
+    if @current_cluster && @current_cluster.name == @cluster_name
+      maybe_recreate_current_cluster no_dc, no_nodes_per_dc
+    elsif cluster_exists?(@cluster_name)
+      switch_cluster(@cluster_name)
+      maybe_recreate_current_cluster no_dc, no_nodes_per_dc
     else
       @current_cluster && @current_cluster.stop
-      create_cluster(cluster_name, @raw_version, no_dc, no_nodes_per_dc)
+      create_cluster(@cluster_name, @cluster_version, no_dc, no_nodes_per_dc)
     end
 
     @current_cluster.start
@@ -979,16 +963,18 @@ module CCM extend self
       config << 'index_interval: 512'
     else
       config << 'cas_contention_timeout_in_ms: 10000'
-      config << 'file_cache_size_in_mb: 0'
+      if cassandra_version < '4.0'
+        config << 'file_cache_size_in_mb: 0'
+      end
     end
 
     config << 'native_transport_max_threads: 1'
     if cassandra_version < '4.0'
       config << 'rpc_min_threads: 1'
       config << 'rpc_max_threads: 1'
+      config << 'concurrent_reads: 2'
+      config << 'concurrent_writes: 2'
     end
-    config << 'concurrent_reads: 2'
-    config << 'concurrent_writes: 2'
     config << 'concurrent_compactors: 1'
     config << 'compaction_throughput_mb_per_sec: 0'
 
@@ -1010,9 +996,9 @@ module CCM extend self
     config << 'max_hints_delivery_threads: 1'
 
     # If we're just dealing with C* 4.0 enable MV as well
-    if cassandra_version >= '4.0'
-      config << 'enable_materialized_views: true'
-    end
+    #if cassandra_version >= '4.0'
+    #  config << 'enable_materialized_views: true'
+    #end
 
     ccm.exec('updateconf', *config)
     ccm.exec('populate', '-n', nodes, '-i', '127.0.0.')
