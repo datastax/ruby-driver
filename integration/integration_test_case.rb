@@ -25,7 +25,7 @@ require 'cassandra'
 require 'delorean'
 require 'ansi/code'
 
-class IntegrationTestCase < Minitest::Unit::TestCase
+class IntegrationTestCase < MiniTest::Unit::TestCase
   @@ccm_cluster = nil
 
   def self.before_suite
