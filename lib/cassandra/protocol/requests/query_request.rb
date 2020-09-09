@@ -66,7 +66,11 @@ module Cassandra
             buffer.append(flags.chr)
             encoder.write_parameters(buffer, @values, @type_hints, @names)
           else
-            buffer.append(flags.chr)
+            if protocol_version < 5
+              buffer.append(flags.chr)
+            else
+              buffer.append_int(flags)
+            end
           end
           buffer.append_int(@page_size) if @page_size
           buffer.append_bytes(@paging_state) if @paging_state
