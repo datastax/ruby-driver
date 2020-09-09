@@ -37,7 +37,7 @@ class DurationTest < IntegrationTestCase
     }
     session.execute 'CREATE TABLE bar ("name" varchar, "dur" duration, primary key ("name"))'
 
-    insert = Retry.with_attempts(5) { session.prepare "INSERT INTO foo.bar (name,dur) VALUES (?,?)" }    
+    insert = Retry.with_attempts(5) { session.prepare "INSERT INTO foo.bar (name,dur) VALUES (?,?)" }
     durations.each_pair do |key,val|
       Retry.with_attempts(5) { session.execute insert, arguments: [key,val] }
     end
