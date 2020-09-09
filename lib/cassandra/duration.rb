@@ -75,7 +75,7 @@ module Cassandra
       alias == eql?
 
       def self.cql_type
-        Type.new(@kind)        
+        Type.new(@kind)
       end
 
       # Requirements for CustomData module
