@@ -25,7 +25,7 @@ class DurationTest < IntegrationTestCase
   end
 
   def test_can_insert_duration
-    skip("Duration type was added in DSE 5.1/C* 3.10") if (CCM.dse_version < '5.1' || CCM.cassandra_version < '3.10')
+    skip("Duration type was added in DSE 5.1/C* 3.10") if (CCM.dse_version && CCM.dse_version < '5.1' || CCM.cassandra_version < '3.10')
 
     cluster = Cassandra.cluster
     session = cluster.connect "foo"
