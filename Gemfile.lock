@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cassandra-driver (3.2.4)
+    cassandra-driver (3.2.5.rc.1)
       ione (~> 1.2)
 
 GEM
@@ -124,4 +124,4 @@ DEPENDENCIES
   yard
 
 BUNDLED WITH
-   1.16.0
+   1.16.2
