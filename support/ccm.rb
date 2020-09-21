@@ -854,7 +854,7 @@ module CCM extend self
   @cluster_version = @dse_version || @cassandra_version
   @cluster_name = "ruby-driver-#{@dse ? 'dse' : 'cassandra'}-#{@cluster_version.gsub('.', '_')}-test-cluster"
 
-  attr_accessor :dse_version, :cassandra_version
+  attr_accessor :dse_version, :cassandra_version, :dse
 
   def maybe_recreate_current_cluster(no_dc, no_nodes_per_dc)
     unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
@@ -936,6 +936,7 @@ module CCM extend self
   end
 
   def create_cluster(name, version, datacenters, nodes_per_datacenter)
+
     nodes = Array.new(datacenters, nodes_per_datacenter).join(':')
 
     if !@dse && ENV['CASSANDRA_DIR'] && !ENV['CASSANDRA_DIR'].empty?
@@ -996,9 +997,9 @@ module CCM extend self
     config << 'max_hints_delivery_threads: 1'
 
     # If we're just dealing with C* 4.0 enable MV as well
-    #if cassandra_version >= '4.0'
-    #  config << 'enable_materialized_views: true'
-    #end
+    if cassandra_version >= '3.0' and !dse
+      config << 'enable_materialized_views: true'
+    end
 
     ccm.exec('updateconf', *config)
     ccm.exec('populate', '-n', nodes, '-i', '127.0.0.')
