@@ -36,6 +36,7 @@ class SSLEncryptionTest < IntegrationTestCase
   end
 
   def test_raise_error_when_not_using_ssl
+    skip("Netty changes in 4.0 change the behaviour of this test") if CCM.cassandra_version >= '4.0'
     assert_raises(Cassandra::Errors::NoHostsAvailable) do
       cluster = Cassandra.cluster
       cluster.close
