@@ -43,6 +43,8 @@ Feature: SSL encryption
       connection successful
       """
 
+  # This test doesn't apply for C* 4.0; see RUBY-335 for details
+  @cassandra-version-specific @cassandra-version-less-4.0
   Scenario: Connection fails when not using SSL encryption
     Given a running cassandra cluster with SSL encryption enabled
     And the following example:
