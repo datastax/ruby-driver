@@ -1,3 +1,8 @@
+# 3.2.5.rc.1
+Bug Fixes:
+* [RUBY-332](https://datastax-oss.atlassian.net/browse/RUBY-332) Add support for duration type
+* [RUBY-335](https://datastax-oss.atlassian.net/browse/RUBY-335) ssl_encryption_test.rb (integration test) failures with some C* 4.0 versions
+
 # 3.2.4
 Bug Fixes:
 * [RUBY-329](https://datastax-oss.atlassian.net/browse/RUBY-329) BigDecimal initialization compatibility issue with MRI 2.7
