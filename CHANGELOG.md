@@ -1,4 +1,4 @@
-# 3.2.5.rc.1
+# 3.2.5.rc1
 Bug Fixes:
 * [RUBY-332](https://datastax-oss.atlassian.net/browse/RUBY-332) Add support for duration type
 * [RUBY-335](https://datastax-oss.atlassian.net/browse/RUBY-335) ssl_encryption_test.rb (integration test) failures with some C* 4.0 versions
