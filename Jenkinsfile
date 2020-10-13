@@ -35,10 +35,6 @@ pipeline {
 
     stages {
 	stage('Per-Commit') {
-	    when {
-		beforeAgent true
-	    }
-
 	    environment {
 		OS_VERSION = 'ubuntu/bionic64/ruby-driver'
 	    }
