@@ -37,10 +37,6 @@ pipeline {
 	stage('Per-Commit') {
 	    when {
 		beforeAgent true
-		allOf {
-		    expression { params.CI_SCHEDULE == 'DEFAULT-PER-COMMIT' }
-		    not { buildingTag() }
-		}
 	    }
 
 	    environment {
