@@ -28,6 +28,12 @@ def installDependencies() {
 def buildDriver() {}
 
 def executeTests() {
+
+    # Load CCM environment variables
+    set -o allexport
+    . ${HOME}/environment.txt
+    set +o allexport    
+    
     sh label: 'Execute all tests', script: '''#!/bin/bash -le
         bundle exec rake test
     '''
