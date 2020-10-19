@@ -9,6 +9,8 @@ def initializeEnvironment() {
     env.GITHUB_COMMIT_URL = "${GITHUB_PROJECT_URL}/commit/${env.GIT_COMMIT}"
 }
 
+def describeBuild() {}
+
 def installDependencies() {}
 
 def buildDriver() {}
@@ -58,16 +60,11 @@ pipeline {
 		    stage('Initialize-Environment') {
 			steps {
 			    initializeEnvironment()
-			    /*script {
-				if (env.BUILD_STATED_SLACK_NOTIFIED != 'true') {
-				    notifySlack()
-				}
-			    }*/
 			}
 		    }
 		    stage('Describe-Build') {
 			steps {
-			    describePerCommitStage()
+			    describeBuild()
 			}
 		    }
 		    stage('Install-Dependencies') {
