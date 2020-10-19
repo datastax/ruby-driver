@@ -51,6 +51,14 @@ module Cassandra
         !!@payload
       end
 
+      def append_flags(buffer,flags,protocol_version)
+        if protocol_version < 5
+          buffer.append(flags.chr)
+        else
+          buffer.append_int(flags)
+        end
+      end
+
       def write(buffer, protocol_version, encoder)
         buffer.append_long_string(@cql)
         buffer.append_consistency(@consistency)
@@ -63,10 +71,10 @@ module Cassandra
           if @values && !@values.empty?
             flags |= 0x01
             flags |= 0x40 if protocol_version > 2 && !@names.empty?
-            buffer.append(flags.chr)
+            append_flags(buffer, flags, protocol_version)
             encoder.write_parameters(buffer, @values, @type_hints, @names)
           else
-            buffer.append(flags.chr)
+            append_flags(buffer, flags, protocol_version)
           end
           buffer.append_int(@page_size) if @page_size
           buffer.append_bytes(@paging_state) if @paging_state
