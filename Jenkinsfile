@@ -11,13 +11,21 @@ def initializeEnvironment() {
 
 def describeBuild() {}
 
-def installDependencies() {}
+def installDependencies() {
+    sh label: 'Update bundler', script: '''#!/bin/bash -le
+        bundle update --bundler
+    '''
+    sh label: 'Update dependent gems', script: '''#!/bin/bash -le
+        bundle --version
+        bundle install --without development docs
+    '''
+}
 
 def buildDriver() {}
 
 def executeTests() {
     sh label: 'Execute all tests', script: '''#!/bin/bash -le
-        rake test
+        bundle exec rake test
     '''
 }
 
