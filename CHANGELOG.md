@@ -1,3 +1,7 @@
+# 3.2.5
+Bug Fixes:
+* [RUBY-293](https://datastax-oss.atlassian.net/browse/RUBY-293) Infinite loop when connecting with allow_beta_protocol
+
 # 3.2.5.rc1
 Bug Fixes:
 * [RUBY-332](https://datastax-oss.atlassian.net/browse/RUBY-332) Add support for duration type
