@@ -14,10 +14,10 @@ def initializeEnvironment() {
 }
 
 def installDependencies() {
-    sh label: 'Update bundler', script: '''#!/bin/bash -le
+    sh label: 'Set Ruby env and update gems', script: '''#!/bin/bash -le
+        rbenv global ${RUBY_VERSION}
+        ruby -v
         bundle update --bundler
-    '''
-    sh label: 'Update dependent gems', script: '''#!/bin/bash -le
         bundle --version
         bundle install --without development docs
     '''
@@ -25,10 +25,6 @@ def installDependencies() {
 
 def executeTests() {
     sh label: 'Execute all tests', script: '''#!/bin/bash -le
-        # Setup Ruby version
-        rbenv global ${RUBY_VERSION}
-        ruby -v
-
         # Load CCM environment variables
         set -o allexport
         . ${HOME}/environment.txt
