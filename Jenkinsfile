@@ -13,8 +13,6 @@ def initializeEnvironment() {
     '''
 }
 
-def describeBuild() {}
-
 def installDependencies() {
     sh label: 'Update bundler', script: '''#!/bin/bash -le
         bundle update --bundler
@@ -25,12 +23,12 @@ def installDependencies() {
     '''
 }
 
-def buildDriver() {}
-
 def executeTests() {
-
-    
     sh label: 'Execute all tests', script: '''#!/bin/bash -le
+        # Setup Ruby version
+        rbenv global ${RUBY_VERSION}
+        ruby -v
+
         # Load CCM environment variables
         set -o allexport
         . ${HOME}/environment.txt
@@ -81,19 +79,9 @@ pipeline {
 			    initializeEnvironment()
 			}
 		    }
-		    stage('Describe-Build') {
-			steps {
-			    describeBuild()
-			}
-		    }
 		    stage('Install-Dependencies') {
 			steps {
 			    installDependencies()
-			}
-		    }
-		    stage('Build-Driver') {
-			steps {
-			    buildDriver()
 			}
 		    }
 		    stage('Execute-Tests') {
