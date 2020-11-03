@@ -16,7 +16,6 @@ def initializeEnvironment() {
 def installDependencies() {
     sh label: 'Set Ruby env and update gems', script: '''#!/bin/bash -le
         rbenv versions
-        rbenv install ${RUBY_VERSION}
         rbenv global ${RUBY_VERSION}
         ruby -v
         bundle update --bundler
