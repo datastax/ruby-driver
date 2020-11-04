@@ -22,7 +22,7 @@ def installDependencies() {
         if [[ $ruby_bin_version == jruby* ]]; then
           # Add '-java' to version as that is included in version name when using jruby
           echo "JRuby detected, updating Gemfile.lock"
-          sed -i -r 's/cassandra-driver \((.*)\)/cassandra-driver (\1-java)/' Gemfile.lock
+          sed -i -r 's/cassandra-driver \\((.*)\\)/cassandra-driver (\\1-java)/' Gemfile.lock
         fi
 
         bundle update --bundler
