@@ -16,7 +16,15 @@ def initializeEnvironment() {
 def installDependencies() {
     sh label: 'Set Ruby env and update gems', script: '''#!/bin/bash -le
         rbenv global ${RUBY_VERSION}
-        ruby -v
+
+        ruby_bin_version=`ruby -v`
+        echo "Ruby binary version: ${ruby_bin_version}"
+        if [[ $ruby_bin_version == jruby* ]]; then
+          # Add '-java' to version as that is included in version name when using jruby
+          echo "JRuby detected, updating Gemfile.lock"
+          sed -i -r 's/cassandra-driver \((.*)\)/cassandra-driver (\1-java)/' Gemfile.lock
+        fi
+
         bundle update --bundler
         bundle --version
         bundle install --without development docs
