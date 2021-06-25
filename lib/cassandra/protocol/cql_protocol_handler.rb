@@ -437,7 +437,7 @@ module Cassandra
         end
 
         timer.on_value do
-          @logger.warning("#{@host} has had no activity in the last #{@idle_timeout}s; marking as failed")
+          @logger.warn("#{@host} has had no activity in the last #{@idle_timeout}s; marking as failed")
           @terminate = nil
           @connection.close(TERMINATED)
         end
