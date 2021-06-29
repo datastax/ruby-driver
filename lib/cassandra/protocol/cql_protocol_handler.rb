@@ -419,7 +419,10 @@ module Cassandra
 
         timer.on_value do
           @logger.debug("sending heartbeat to #{@host}")
-          send_request(HEARTBEAT, nil, false).on_complete do
+          send_request(HEARTBEAT, nil, false).on_complete do |value,error|
+            if !error.nil?
+              @logger.warn("heartbeat returned error #{error}")
+            end
             schedule_heartbeat
           end
         end

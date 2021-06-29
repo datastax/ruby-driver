@@ -48,6 +48,14 @@ module Cassandra
       def initialize(error)
         raise ::ArgumentError, "error must be an exception, #{error.inspect} given" unless error.is_a?(::Exception)
 
+        File.open("/tmp/events-super-shitty-logging", "a") do |f|
+          f.write "Traceback from #{error} at #{error.object_id}"
+          caller.each do |line|
+            f.write "#{line}\n"
+          end
+          f.write
+        end
+
         @error = error
       end
 

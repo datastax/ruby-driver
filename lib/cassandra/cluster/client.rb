@@ -106,6 +106,8 @@ module Cassandra
 
             failed_connections = connections.reject(&:connected?)
 
+            @logger.debug("connection future resolved with #{failed_connections.len} failed connections out of #{connections.len} connections")
+
             # convert Cassandra::Protocol::CqlProtocolHandler to something with a real host
             failed_connections.map! do |c|
               if c.host.is_a?(String)
@@ -122,6 +124,7 @@ module Cassandra
               raise Errors::NoHostsAvailable.new(errors)
             else
               failed_connections.each do |f|
+                @logger.warn("want to reconnect to #{f.host}")
                 connect_to_host_with_retry(f.host,
                                            connecting_hosts[f.host],
                                            @reconnection_policy.schedule)

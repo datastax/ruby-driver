@@ -98,5 +98,9 @@ module Cassandra
     def inspect
       "#<#{self.class.name}:0x#{object_id.to_s(16)} @ip=#{@ip}>"
     end
+
+    def to_s
+      inspect
+    end
   end
 end
