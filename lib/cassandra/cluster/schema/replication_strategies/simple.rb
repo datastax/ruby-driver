@@ -30,9 +30,12 @@ module Cassandra
             replication_map = ::Hash.new
 
             token_ring.each_with_index do |token, i|
-              replication_map[token] = factor.times.map do |j|
-                token_hosts[token_ring[(i + j) % size]]
-              end.freeze
+              replicas = ::Set.new
+              size.times do |j|
+                replicas << token_hosts[token_ring[(i + j) % size]]
+                break if replicas.size == factor
+              end
+              replication_map[token] = replicas.to_a.freeze
             end
 
             replication_map
