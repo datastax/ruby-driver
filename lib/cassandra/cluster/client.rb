@@ -566,6 +566,7 @@ module Cassandra
         unless pool
           errors ||= {}
           errors[host] = NOT_CONNECTED
+          @logger.warn("Failed to send a request to #{host.ip} on #{retries + 1}th try (#{errors[host].class.name}: #{errors[host]})")
           return execute_by_plan(promise,
                                  keyspace,
                                  statement,
@@ -602,6 +603,7 @@ module Cassandra
                    (e.is_a?(Errors::TimeoutError) && statement.idempotent?)
                   errors ||= {}
                   errors[host] = e
+                  @logger.warn("Failed to send a request to #{host.ip} on #{retries + 1}th try  (#{e.class.name}: #{e})")
                   execute_by_plan(promise,
                                   keyspace,
                                   statement,
@@ -635,6 +637,7 @@ module Cassandra
       rescue => e
         errors ||= {}
         errors[host] = e
+        @logger.warn("Failed to send a request to #{host.ip} on #{retries + 1}th try (#{e.class.name}: #{e})")
         execute_by_plan(promise,
                         keyspace,
                         statement,
@@ -705,6 +708,7 @@ module Cassandra
                    (e.is_a?(Errors::TimeoutError) && statement.idempotent?)
                   errors ||= {}
                   errors[host] = e
+                  @logger.warn("Failed to send a request to #{host.ip} on #{retries + 1}th try (#{e.class.name}: #{e})")
                   execute_by_plan(promise,
                                   keyspace,
                                   statement,
@@ -749,6 +753,7 @@ module Cassandra
         unless pool
           errors ||= {}
           errors[host] = NOT_CONNECTED
+          @logger.warn("Failed to send a request to #{host.ip} on #{retries + 1}th try (#{errors[host].class.name}: #{errors[host]})")
           return batch_by_plan(promise,
                                keyspace,
                                statement,
@@ -785,6 +790,7 @@ module Cassandra
                    (e.is_a?(Errors::TimeoutError) && statement.idempotent?)
                   errors ||= {}
                   errors[host] = e
+                  @logger.warn("Failed to send a request to #{host.ip} on #{retries + 1}th try (#{e.class.name}: #{e})")
                   batch_by_plan(promise,
                                 keyspace,
                                 statement,
@@ -818,6 +824,7 @@ module Cassandra
       rescue => e
         errors ||= {}
         errors[host] = e
+        @logger.warn("Failed to send a request to #{host.ip} on #{retries + 1}th try (#{e.class.name}: #{e})")
         batch_by_plan(promise,
                       keyspace,
                       statement,
@@ -914,6 +921,7 @@ module Cassandra
                    (e.is_a?(Errors::TimeoutError) && batch_statement.idempotent?)
                   errors ||= {}
                   errors[host] = e
+                  @logger.warn("Failed to send a request to #{host.ip} on #{retries + 1}th try (#{e.class.name}: #{e})")
                   batch_by_plan(promise,
                                 keyspace,
                                 batch_statement,
@@ -956,6 +964,7 @@ module Cassandra
         unless pool
           errors ||= {}
           errors[host] = NOT_CONNECTED
+          @logger.warn("Failed to send a request to #{host.ip} on #{retries + 1}th try (#{errors[host].class.name}: #{errors[host]})")
           return send_request_by_plan(promise,
                                       keyspace,
                                       statement,
@@ -992,6 +1001,7 @@ module Cassandra
                    (e.is_a?(Errors::TimeoutError) && statement.idempotent?)
                   errors ||= {}
                   errors[host] = e
+                  @logger.warn("Failed to send a request to #{host.ip} on #{retries + 1}th try (#{e.class.name}: #{e})")
                   send_request_by_plan(promise,
                                        keyspace,
                                        statement,
@@ -1025,6 +1035,7 @@ module Cassandra
       rescue => e
         errors ||= {}
         errors[host] = e
+        @logger.warn("Failed to send a request to #{host.ip} on #{retries + 1}th try (#{e.class.name}: #{e})")
         send_request_by_plan(promise,
                              keyspace,
                              statement,
@@ -1147,6 +1158,7 @@ module Cassandra
                     if e.is_a?(Errors::HostError) ||
                        (e.is_a?(Errors::TimeoutError) && statement.idempotent?)
                       errors[host] = e
+                      @logger.warn("Failed to send a request to #{host.ip} on #{retries + 1}th try (#{e.class.name}: #{e})")
                       execute_by_plan(promise,
                                       keyspace,
                                       statement,
@@ -1174,6 +1186,7 @@ module Cassandra
               if error.is_a?(Errors::HostError) ||
                  (error.is_a?(Errors::TimeoutError) && statement.idempotent?)
                 errors[host] = error
+                @logger.warn("Failed to send a request to #{host.ip} on #{retries + 1}th try (#{error.class.name}: #{error})")
 
                 case request
                 when Protocol::QueryRequest, Protocol::PrepareRequest
@@ -1355,6 +1368,7 @@ module Cassandra
                                           hosts,
                                           request.consistency,
                                           retries)
+                @logger.warn("Failed to send a request to #{host.ip} on #{retries + 1}th try (#{errors[host].class.name}: #{errors[host]})")
                 case request
                 when Protocol::QueryRequest, Protocol::PrepareRequest
                   send_request_by_plan(promise,
@@ -1435,6 +1449,7 @@ module Cassandra
                (ex.is_a?(Errors::TimeoutError) && statement.idempotent?)
 
               errors[host] = ex
+              @logger.warn("Failed to send a request to #{host.ip} on #{retries + 1}th try (#{ex.class.name}: #{ex})")
               case request
               when Protocol::QueryRequest, Protocol::PrepareRequest
                 send_request_by_plan(promise,
