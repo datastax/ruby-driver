@@ -996,8 +996,9 @@ module CCM extend self
     config << 'memtable_flush_writers: 1'
     config << 'max_hints_delivery_threads: 1'
 
-    # If we're just dealing with C* 4.0 enable MV as well
-    if cassandra_version >= '3.0' and !dse
+    # Be more rigorous about our versioning here.
+    # enable_materialized_views flag was added in 3.0.16 (see CASSANDRA-13959)
+    if cassandra_version >= '3.0.16' and !dse
       config << 'enable_materialized_views: true'
     end
 
