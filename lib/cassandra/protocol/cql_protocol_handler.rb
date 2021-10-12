@@ -41,7 +41,9 @@ module Cassandra
       attr_reader :protocol_version
 
       def initialize(connection,
+                     host,
                      scheduler,
+                     logger,
                      protocol_version,
                      compressor = nil,
                      heartbeat_interval = 30,
@@ -50,10 +52,12 @@ module Cassandra
                      custom_type_handlers = {})
         @protocol_version = protocol_version
         @connection = connection
+        @host = host
         @scheduler = scheduler
         @compressor = compressor
         @connection.on_data(&method(:receive_data))
         @connection.on_closed(&method(:socket_closed))
+        @logger = logger
 
         @streams = Array.new(requests_per_connection) {|i| i}
 
@@ -414,7 +418,8 @@ module Cassandra
         end
 
         timer.on_value do
-          send_request(HEARTBEAT, nil, false).on_value do
+          @logger.debug("sending heartbeat to #{@host}")
+          send_request(HEARTBEAT, nil, false).on_complete do
             schedule_heartbeat
           end
         end
@@ -432,6 +437,7 @@ module Cassandra
         end
 
         timer.on_value do
+          @logger.info("#{@host} has had no activity in the last #{@idle_timeout}s; marking as failed")
           @terminate = nil
           @connection.close(TERMINATED)
         end
