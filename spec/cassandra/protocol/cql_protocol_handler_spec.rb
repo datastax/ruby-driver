@@ -29,7 +29,7 @@ module Cassandra
         Cassandra::NullLogger.new
       end
       let :protocol_handler do
-        described_class.new(connection, host, scheduler, 1, logger, nil, 30, 60, 36)
+        described_class.new(connection, host, scheduler, logger, 1, nil, 30, 60, 36)
       end
 
       let :connection do
@@ -182,7 +182,7 @@ module Cassandra
 
         context 'when a compressor is specified' do
           let :protocol_handler do
-            described_class.new(connection, host, scheduler, 1, logger, compressor)
+            described_class.new(connection, host, scheduler, logger, 1, compressor)
           end
 
           let :compressor do
@@ -222,7 +222,7 @@ module Cassandra
 
         context 'when a protocol version is specified' do
           let :protocol_handler do
-            described_class.new(connection, host, scheduler, 7, logger)
+            described_class.new(connection, host, scheduler, logger, 7)
           end
 
           it 'sets the protocol version in the header' do
