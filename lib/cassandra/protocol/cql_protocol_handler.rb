@@ -43,8 +43,8 @@ module Cassandra
       def initialize(connection,
                      host,
                      scheduler,
-                     protocol_version,
                      logger,
+                     protocol_version,
                      compressor = nil,
                      heartbeat_interval = 30,
                      idle_timeout = 60,
@@ -437,7 +437,7 @@ module Cassandra
         end
 
         timer.on_value do
-          @logger.warn("#{@host} has had no activity in the last #{@idle_timeout}s; marking as failed")
+          @logger.info("#{@host} has had no activity in the last #{@idle_timeout}s; marking as failed")
           @terminate = nil
           @connection.close(TERMINATED)
         end
