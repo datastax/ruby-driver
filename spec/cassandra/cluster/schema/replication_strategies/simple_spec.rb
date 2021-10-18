@@ -63,12 +63,15 @@ module Cassandra
 
             it do
               replication_map = subject.replication_map(token_hosts, token_ring, replication_options)
-              expect(replication_map[token_ring[0]].sort_by(&:ip).map do |host|
-                [host.ip]
-              end).to eq([
-                ['127.0.0.1'],
-                ['127.0.0.2'],
-                ['127.0.0.3'],
+              expect(replication_map[token_ring[0]].map(&:ip)).to eq([
+                '127.0.0.1',
+                '127.0.0.2',
+                '127.0.0.3',
+              ])
+              expect(replication_map[token_ring[2]].map(&:ip)).to eq([
+                '127.0.0.2',
+                '127.0.0.3',
+                '127.0.0.1',
               ])
             end
           end
