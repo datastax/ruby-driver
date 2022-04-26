@@ -42,6 +42,7 @@ module Cassandra
         def lookup_type(node, types)
           case node.name
           when 'text'              then Cassandra::Types.text
+          when 'varchar'           then Cassandra::Types.text
           when 'blob'              then Cassandra::Types.blob
           when 'ascii'             then Cassandra::Types.ascii
           when 'bigint'            then Cassandra::Types.bigint
