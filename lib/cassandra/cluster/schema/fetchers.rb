@@ -1361,7 +1361,7 @@ module Cassandra
           def create_column(column_data, types)
             name      = column_data['column_name']
             is_static = column_data['kind'].to_s.casecmp('STATIC').zero?
-            order     = column_data['clustering_order'] == 'desc' ? :desc : :asc
+            order     = column_data['clustering_order'].to_s.casecmp('DESC').zero? ? :desc : :asc
             if column_data['type'][0] == "'"
               # This is a custom column type.
               type = Types.custom(column_data['type'].slice(1, column_data['type'].length - 2))
