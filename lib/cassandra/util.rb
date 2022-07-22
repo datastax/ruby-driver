@@ -19,6 +19,16 @@
 module Cassandra
   # @private
   module Util
+    class MonoClock
+      def initialize
+        @start = Monotime::Instant.now
+      end
+
+      def now
+        @start.elapsed.to_secs
+      end
+    end
+
     module_function
 
     def encode_hash(hash, io = StringIO.new)
