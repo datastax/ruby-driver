@@ -74,6 +74,8 @@ module Cassandra
             Cassandra::Types.frozen(lookup_type(node.children.first, types))
           when 'empty'             then
             Cassandra::Types.custom('org.apache.cassandra.db.marshal.EmptyType')
+          when 'vector'            then
+            Cassandra::Types.vector(lookup_type(node.children[0], types), node.children[1])
           when /\A'/ then
             # Custom type.
             Cassandra::Types.custom(node.name[1..-2])

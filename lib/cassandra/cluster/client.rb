@@ -1050,7 +1050,6 @@ module Cassandra
                                   hosts,
                                   retries)
         request.retries = retries
-
         f = connection.send_request(request, timeout)
         f.on_complete do |response_future|
           errors ||= {}

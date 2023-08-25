@@ -49,6 +49,16 @@ module Cassandra
         buffer.append_bytes(raw)
       end
 
+      def write_vector_v4(buffer, vector, type)
+        raw = CqlByteBuffer.new
+
+        vector.each do |element|
+          write_value_v4(raw, element, type, false)
+        end
+
+        buffer.append_bytes(raw)
+      end
+
       def write_map_v4(buffer, map, key_type, value_type)
         raw = CqlByteBuffer.new
 
@@ -81,7 +91,7 @@ module Cassandra
         buffer.append_bytes(raw)
       end
 
-      def write_value_v4(buffer, value, type)
+      def write_value_v4(buffer, value, type, with_size = true)
         if value.nil?
           buffer.append_int(-1)
           return
@@ -94,24 +104,25 @@ module Cassandra
 
         case type.kind
         when :ascii            then write_ascii(buffer, value)
-        when :bigint, :counter then write_bigint(buffer, value)
+        when :bigint, :counter then write_bigint(buffer, value, with_size)
         when :blob             then write_blob(buffer, value)
         when :boolean          then write_boolean(buffer, value)
         when :custom           then write_custom(buffer, value, type)
         when :decimal          then write_decimal(buffer, value)
-        when :double           then write_double(buffer, value)
-        when :float            then write_float(buffer, value)
-        when :int              then write_int(buffer, value)
+        when :double           then write_double(buffer, value, with_size)
+        when :float            then write_float(buffer, value, with_size)
+        when :int              then write_int(buffer, value, with_size)
         when :inet             then write_inet(buffer, value)
         when :timestamp        then write_timestamp(buffer, value)
         when :uuid, :timeuuid  then write_uuid(buffer, value)
         when :text             then write_text(buffer, value)
         when :varint           then write_varint(buffer, value)
-        when :tinyint          then write_tinyint(buffer, value)
-        when :smallint         then write_smallint(buffer, value)
+        when :tinyint          then write_tinyint(buffer, value, with_size)
+        when :smallint         then write_smallint(buffer, value, with_size)
         when :time             then write_time(buffer, value)
         when :date             then write_date(buffer, value)
         when :list, :set       then write_list_v4(buffer, value, type.value_type)
+        when :vector           then write_vector_v4(buffer, value, type.value_type)
         when :map              then write_map_v4(buffer, value,
                                                  type.key_type,
                                                  type.value_type)
@@ -234,24 +245,24 @@ module Cassandra
         end
       end
 
-      def read_value_v4(buffer, type, custom_type_handlers)
+      def read_value_v4(buffer, type, custom_type_handlers, with_size = true)
         case type.kind
         when :ascii            then read_ascii(buffer)
-        when :bigint, :counter then read_bigint(buffer)
+        when :bigint, :counter then read_bigint(buffer, with_size)
         when :blob             then buffer.read_bytes
         when :boolean          then read_boolean(buffer)
         when :decimal          then read_decimal(buffer)
-        when :double           then read_double(buffer)
-        when :float            then read_float(buffer)
-        when :int              then read_int(buffer)
+        when :double           then read_double(buffer, with_size)
+        when :float            then read_float(buffer, with_size)
+        when :int              then read_int(buffer, with_size)
         when :timestamp        then read_timestamp(buffer)
         when :uuid             then read_uuid(buffer)
         when :timeuuid         then read_uuid(buffer, TimeUuid)
         when :text             then read_text(buffer)
         when :varint           then read_varint(buffer)
         when :inet             then read_inet(buffer)
-        when :tinyint          then read_tinyint(buffer)
-        when :smallint         then read_smallint(buffer)
+        when :tinyint          then read_tinyint(buffer, with_size)
+        when :smallint         then read_smallint(buffer, with_size)
         when :time             then read_time(buffer)
         when :date             then read_date(buffer)
         when :custom           then read_custom(buffer, type, custom_type_handlers)
@@ -317,6 +328,15 @@ module Cassandra
           values.fill(nil, values.length, (members.length - values.length))
 
           Cassandra::Tuple::Strict.new(members, values)
+        when :vector
+          return nil unless read_size(buffer)
+
+          value_type = type.value_type
+          value      = ::Array.new
+          type.dimension.to_i.times do
+            value << read_value_v4(buffer, value_type, custom_type_handlers, false)
+          end
+          value
         else
           raise Errors::DecodingError, %(Unsupported value type: #{type})
         end
@@ -767,8 +787,9 @@ module Cassandra
         value && value.force_encoding(::Encoding::ASCII)
       end
 
-      def read_bigint(buffer)
-        read_size(buffer) && buffer.read_long
+      def read_bigint(buffer, with_size = true)
+        read_size(buffer) if with_size
+        buffer.read_long
       end
 
       alias read_counter read_bigint
@@ -791,16 +812,19 @@ module Cassandra
         size && buffer.read_decimal(size)
       end
 
-      def read_double(buffer)
-        read_size(buffer) && buffer.read_double
+      def read_double(buffer, with_size = true)
+        read_size(buffer) if with_size
+        buffer.read_double
       end
 
-      def read_float(buffer)
-        read_size(buffer) && buffer.read_float
+      def read_float(buffer, with_size = true)
+        read_size(buffer) if with_size
+        buffer.read_float
       end
 
-      def read_int(buffer)
-        read_size(buffer) && buffer.read_signed_int
+      def read_int(buffer, with_size = true)
+        read_size(buffer) if with_size
+        buffer.read_signed_int
       end
 
       def read_timestamp(buffer)
@@ -832,12 +856,14 @@ module Cassandra
         size && ::IPAddr.new_ntoh(buffer.read(size))
       end
 
-      def read_tinyint(buffer)
-        read_size(buffer) && buffer.read_tinyint
+      def read_tinyint(buffer, with_size = true)
+        read_size(buffer) if with_size
+        buffer.read_tinyint
       end
 
-      def read_smallint(buffer)
-        read_size(buffer) && buffer.read_smallint
+      def read_smallint(buffer, with_size = true)
+        read_size(buffer) if with_size
+        buffer.read_smallint
       end
 
       def read_time(buffer)
@@ -856,8 +882,8 @@ module Cassandra
         buffer.append_bytes(value.encode(::Encoding::ASCII))
       end
 
-      def write_bigint(buffer, value)
-        buffer.append_int(8)
+      def write_bigint(buffer, value, with_size = true)
+        buffer.append_int(8) if with_size
         buffer.append_long(value)
       end
 
@@ -885,18 +911,18 @@ module Cassandra
         buffer.append_bytes(CqlByteBuffer.new.append_decimal(value))
       end
 
-      def write_double(buffer, value)
-        buffer.append_int(8)
+      def write_double(buffer, value, with_size = true)
+        buffer.append_int(8) if with_size
         buffer.append_double(value)
       end
 
-      def write_float(buffer, value)
-        buffer.append_int(4)
+      def write_float(buffer, value, with_size = true)
+        buffer.append_int(4) if with_size
         buffer.append_float(value)
       end
 
-      def write_int(buffer, value)
-        buffer.append_int(4)
+      def write_int(buffer, value, with_size = true)
+        buffer.append_int(4) if with_size
         buffer.append_int(value)
       end
 
@@ -924,13 +950,13 @@ module Cassandra
         buffer.append_bytes(CqlByteBuffer.new.append_varint(value))
       end
 
-      def write_tinyint(buffer, value)
-        buffer.append_int(1)
+      def write_tinyint(buffer, value, with_size = true)
+        buffer.append_int(1) if with_size
         buffer.append_tinyint(value)
       end
 
-      def write_smallint(buffer, value)
-        buffer.append_int(2)
+      def write_smallint(buffer, value, with_size = true)
+        buffer.append_int(2) if with_size
         buffer.append_smallint(value)
       end
 
