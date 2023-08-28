@@ -868,7 +868,7 @@ module Cassandra
         value
       end
 
-      # Asserts that a given value is an Array
+      # Asserts that a given value is an Array with matching length
       # @param value [Object] value to be validated
       # @param message [String] error message to use when assertion fails
       # @yieldreturn [String] error message to use when assertion fails
@@ -877,6 +877,7 @@ module Cassandra
       # @see Cassandra::Type#assert
       def assert(value, message = nil, &block)
         Util.assert_instance_of(::Array, value, message, &block)
+        Util.assert_size(@dimension.to_i, value, message, &block)
         value.each do |v|
           Util.assert_type(@value_type, v, message, &block)
         end
@@ -899,7 +900,7 @@ module Cassandra
       end
 
       def eql?(other)
-        other.is_a?(List) && @value_type == other.value_type
+        other.is_a?(Vector) && @value_type == other.value_type
       end
 
       alias == eql?
