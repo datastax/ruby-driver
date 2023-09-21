@@ -23,18 +23,20 @@ rewrites:
   - supplemental/: /
   - en/latest-ruby-driver/ruby-driver/whatsNew.html: en/developer/ruby-driver/latest
   - 'trunk/doc/native_protocol_v([12])\.spec': cassandra-2.2/doc/native_protocol_v\1.spec
-  - search: http://www.datastax.com/documentation/cql/3.1/webhelp/index.html
-    replace: http://docs.datastax.com/en/cql/3.3/cql/cql_using/useAboutCQL.html
-  - search: https://datastax.github.io/java-driver/features
-    replace: https://datastax.github.io/java-driver/manual
-  - search: http://dsdocs30_java
-    replace: http://docs.datastax.com/en/developer/java-driver/3.0
-  - search: http://www.datastax.com/documentation/cassandra/2.0
-    replace: https://docs.datastax.com/en/archived/cassandra/2.0
-  - search: http://www.datastax.com/documentation/cassandra/1.2
-    replace: https://docs.datastax.com/en/archived/cassandra/1.2
-  - search: http://www.datastax.com/documentation/cql/3.0
-    replace: https://docs.datastax.com/en/archived/cql/3.0
+  - search: 'http://www.datastax.com/documentation/cql/3.1/webhelp/index.html'
+    replace: 'http://docs.datastax.com/en/cql/3.3/cql/cql_using/useAboutCQL.html'
+  - search: 'https://datastax.github.io/java-driver/features'
+    replace: 'https://datastax.github.io/java-driver/manual'
+  - search: 'http://dsdocs30_java'
+    replace: 'http://docs.datastax.com/en/developer/java-driver/3.0'
+  - search: 'http://www.datastax.com/documentation/cassandra/2.0'
+    replace: 'https://docs.datastax.com/en/archived/cassandra/2.0'
+  - search: 'http://www.datastax.com/documentation/cassandra/1.2'
+    replace: 'https://docs.datastax.com/en/archived/cassandra/1.2'
+  - search: 'http://www.datastax.com/documentation/cql/3.0'
+    replace: 'https://docs.datastax.com/en/archived/cql/3.0'
+  - search: 'http://cukes.info/'
+    replace: 'https://cucumber.io/'
 links:
   - title: Code
     href:  https://github.com/datastax/ruby-driver/
@@ -65,3 +67,28 @@ versions:
     ref:  1763066e2f70db8889799aa0af4a8eb63ad9ab74
   - name: 1.0
     ref:  72bfc9609f94e904c0186b061a02404fb2c0d22e
+checks:
+  external_links:
+    exclude:
+      - 'https://twitter.com/dsJavaDriver'
+      - 'https://twitter.com/datastaxeng'
+      - 'https://twitter.com/datastax'
+      - 'https://projectreactor.io'
+      - 'https://docs.datastax.com/en/drivers/java/4.[0-9]+/com/datastax/oss/driver/internal/'
+      - 'http://www.planetcassandra.org/blog/user-defined-functions-in-cassandra-3-0/'
+      - 'http://www.planetcassandra.org/making-the-change-from-thrift-to-cql/'
+      - 'https://academy.datastax.com/slack'
+      - 'https://community.datastax.com/index.html'
+      - 'https://micrometer.io/docs'
+      - 'http://datastax.github.io/java-driver/features/shaded_jar/'
+      - 'http://twitter.com/avalanche123'
+      - 'http://twitter.com/mfiguiere'
+      - 'http://twitter.com/stamhankar999'
+      - 'https://twitter.com/al3xandru'
+      - 'https://github.com/datastax/ruby-dse-driver.git'
+      - 'https://academy.datastax.com/demos/datastax-ruby-driver-load-balancing-policies'
+  internal_links:
+    exclude:
+      - 'netty_pipeline/'
+      - '../core/'
+      - '%5Bguava%20eviction%5D'
