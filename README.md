@@ -18,8 +18,6 @@ better compatibility and support for DataStax Enterprise.
 - Docs: http://docs.datastax.com/en/developer/ruby-driver
 - Jira: https://datastax-oss.atlassian.net/browse/RUBY
 - Mailing List: https://groups.google.com/a/lists.datastax.com/forum/#!forum/ruby-driver-user
-- Slack: `#datastax-drivers` channel at https://academy.datastax.com/slack
-- Twitter: Follow the latest news about DataStax Drivers - [@stamhankar999](http://twitter.com/stamhankar999), [@avalanche123](http://twitter.com/avalanche123), [@al3xandru](https://twitter.com/al3xandru)
 
 This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [Theo Hultberg](https://github.com/iconara) and we added support for:
 
@@ -38,7 +36,7 @@ This driver is based on [the cql-rb gem](https://github.com/iconara/cql-rb) by [
 
 This driver works exclusively with the Cassandra Query Language v3 (CQL3) and Cassandra's native protocol. The current version works with:
 
-* Apache Cassandra versions 2.1, 2.2, and 3.x
+* Apache Cassandra versions 2.1, 2.2, 3.0+, and 4.0+
 * DataStax Enterprise 4.8 and above. However, the [Ruby DSE driver](https://docs.datastax.com/en/developer/ruby-driver-dse/2.1/) provides more features and is recommended for use with DataStax Enterprise.
 * Ruby (MRI) 2.2, 2.3, 2.4
 * JRuby 9k
