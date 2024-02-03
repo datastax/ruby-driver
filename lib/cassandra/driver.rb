@@ -28,7 +28,8 @@ module Cassandra
       define_method(:"#{name}=") { |object| @instances[name] = object }
     end
 
-    let(:io_reactor)       { Ione::Io::IoReactor.new }
+    let(:monotonic_clock)  { Cassandra::Util::MonoClock::new }
+    let(:io_reactor)       { Ione::Io::IoReactor.new(clock: monotonic_clock) }
     let(:cluster_registry) { Cluster::Registry.new(logger) }
     let(:cluster_schema)   { Cluster::Schema.new }
     let(:cluster_metadata) do

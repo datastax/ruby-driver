@@ -2,7 +2,8 @@ PATH
   remote: .
   specs:
     cassandra-driver (3.2.5)
-      ione (~> 1.2)
+      ione (~> 1.2.5)
+      monotime (~> 0.7)
 
 GEM
   remote: https://rubygems.org/
@@ -40,12 +41,13 @@ GEM
     ffi (1.9.25)
     ffi (1.9.25-java)
     gherkin (3.2.0)
-    ione (1.2.4)
+    ione (1.2.5)
     json (1.8.6)
     json (1.8.6-java)
     lz4-ruby (0.3.3)
     lz4-ruby (0.3.3-java)
     minitest (4.7.5)
+    monotime (0.7.1)
     multi_json (1.11.2)
     multi_test (0.1.2)
     os (0.9.6)
