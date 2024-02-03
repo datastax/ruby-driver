@@ -116,7 +116,7 @@ module Cassandra
     alias encode encode_object
 
     def encode_time(time, io = StringIO.new)
-      encode_string(time.to_s, io)
+      encode_string(time.strftime('%Y-%m-%d %H:%M:%S.%L%z'), io)
     end
 
     def encode_udt(udt, io = StringIO.new)
