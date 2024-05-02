@@ -2,12 +2,15 @@ language: ruby
 script: bundle exec rake rspec
 bundler_args: --without development docs
 rvm:
-  - 2.2.4
   - 2.3.0
   - 2.4
   - 2.5
   - 2.6
   - 2.7
+  - 3.0
+  - 3.1
+  - 3.2
+  - 3.3
   - jruby-9.0.5.0
 jdk:
   - openjdk8
@@ -24,7 +27,16 @@ before_install: |
   # Install bundler < 2.0, see https://docs.travis-ci.com/user/languages/ruby/
   gem uninstall -v '>= 2' -i $(rvm gemdir)@global -ax bundler || true
   gem install bundler -v '< 2'
+
+  RUBY_MAJOR=$(echo "$TRAVIS_RUBY_VERSION" | cut -d. -f1)
+  RUBY_MINOR=$(echo "$TRAVIS_RUBY_VERSION" | cut -d. -f2)
   if [[ k$TRAVIS_RUBY_VERSION = kjruby* ]] ; then
     # Hack the Gemfile.lock file to indicate we're a JRuby gem, to make bundler happy.
     sed -e 's/\(cassandra-driver [^)]*\)/\1-java/' -i"" Gemfile.lock
+  elif (( $RUBY_MAJOR >= 3 && $RUBY_MINOR >= 2)); then
+    # Hack the Gemfile.lock, bundler 1.x does not work with Ruby 3.2+
+    sed -e 's/   1\.17\.3/   2.5.9/g' -i"" Gemfile.lock
+    sed -e 's/bundler (~> 1\.6)/bundler (~> 2.5)/g' -i"" Gemfile.lock
+    # Hack the gemspec, bundler 1.x does not work with Ruby 3.2+
+    sed -e "s/'bundler', '~> 1\.6'/'bundler', '~> 2.5'/g" -i"" cassandra-driver.gemspec
   fi

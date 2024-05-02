@@ -19,7 +19,7 @@ Gem::Specification.new do |s|
   s.extra_rdoc_files = ['README.md']
   s.rdoc_options << '--title' << 'Datastax Ruby Driver' << '--main' << 'README.md' << '--line-numbers'
 
-  s.required_ruby_version = '>= 2.2.0'
+  s.required_ruby_version = '>= 2.3.0'
 
   if defined?(JRUBY_VERSION)
     s.platform = 'java'
@@ -31,6 +31,7 @@ Gem::Specification.new do |s|
   end
 
   s.add_runtime_dependency 'ione', '~> 1.2'
+  s.add_runtime_dependency 'sorted_set', '~> 1.0'
 
   s.add_development_dependency 'bundler', '~> 1.6'
   s.add_development_dependency 'rake', '~> 13.0'
