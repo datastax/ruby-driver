@@ -29,6 +29,7 @@ require 'stringio'
 require 'resolv'
 require 'openssl'
 require 'securerandom'
+require 'sorted_set'
 require 'time'
 require 'date'
 
